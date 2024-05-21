@@ -924,7 +924,7 @@
 </tr>
 <tr>
 <td><a href="-byte-size/">ByteSize</a></td>
-<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html">JvmInline</a><br>value class <a href="-byte-size/">ByteSize</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-comparable/index.html">Comparable</a>&lt;<a href="-byte-size/">ByteSize</a>&gt; <br>Inspired by <a href="https://github.com/saket/file-size">https://github.com/saket/file-size</a> as well as Kotlin&rsquo;s Duration API.</td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html">JvmInline</a><br>value class <a href="-byte-size/">ByteSize</a>(val inWholeBytes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-comparable/index.html">Comparable</a>&lt;<a href="-byte-size/">ByteSize</a>&gt; <br>Inspired by <a href="https://github.com/saket/file-size">https://github.com/saket/file-size</a> as well as Kotlin&rsquo;s Duration API.</td>
 </tr>
 <tr>
 <td><a href="-chaining-instance-reference-reader/">ChainingInstanceReferenceReader</a></td>
@@ -1120,7 +1120,7 @@
 </tr>
 <tr>
 <td><a href="-initial-state/">InitialState</a></td>
-<td>[jvm]<br>class <a href="-initial-state/">InitialState</a>(val scenarioLoopsPerGraph: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 1, val heapGraphCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>? = null) : <a href="-heap-traversal-input/">HeapTraversalInput</a></td>
+<td>[jvm]<br>class <a href="-initial-state/">InitialState</a>(val scenarioLoopsPerGraph: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_GRAPH) : <a href="-heap-traversal-input/">HeapTraversalInput</a></td>
 </tr>
 <tr>
 <td><a href="-interactive-command/">InteractiveCommand</a></td>
@@ -1133,6 +1133,10 @@
 <tr>
 <td><a href="-jdk-reference-matchers/">JdkReferenceMatchers</a></td>
 <td>[jvm]<br>enum <a href="-jdk-reference-matchers/">JdkReferenceMatchers</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-jdk-reference-matchers/">JdkReferenceMatchers</a>&gt; , <a href="-reference-matcher/-list-builder/">ReferenceMatcher.ListBuilder</a></td>
+</tr>
+<tr>
+<td><a href="-jvm-object-growth-reference-matchers/">JvmObjectGrowthReferenceMatchers</a></td>
+<td>[jvm]<br>enum <a href="-jvm-object-growth-reference-matchers/">JvmObjectGrowthReferenceMatchers</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-jvm-object-growth-reference-matchers/">JvmObjectGrowthReferenceMatchers</a>&gt; , <a href="-reference-matcher/-list-builder/">ReferenceMatcher.ListBuilder</a></td>
 </tr>
 <tr>
 <td><a href="-jvm-test-heap-dumper/">JvmTestHeapDumper</a></td>
@@ -1303,6 +1307,10 @@
 <td>[jvm]<br>class <a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a>(heapGraphProvider: <a href="-heap-graph-provider/">HeapGraphProvider</a>, objectGrowthDetector: <a href="-object-growth-detector/">ObjectGrowthDetector</a>, maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_DUMP)</td>
 </tr>
 <tr>
+<td><a href="-retained/">Retained</a></td>
+<td>[jvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html">JvmInline</a><br>value class <a href="-retained/">Retained</a></td>
+</tr>
+<tr>
 <td><a href="-shark-cli-command/">SharkCliCommand</a></td>
 <td>[jvm]<br>class <a href="-shark-cli-command/">SharkCliCommand</a> : CliktCommand</td>
 </tr>
@@ -1316,7 +1324,7 @@
 </tr>
 <tr>
 <td><a href="-shortest-path-object-node/">ShortestPathObjectNode</a></td>
-<td>[jvm]<br>class <a href="-shortest-path-object-node/">ShortestPathObjectNode</a>(val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val parent: <a href="-shortest-path-object-node/">ShortestPathObjectNode</a>?, newNode: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</td>
+<td>[jvm]<br>class <a href="-shortest-path-object-node/">ShortestPathObjectNode</a>(val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val parent: <a href="-shortest-path-object-node/">ShortestPathObjectNode</a>?)</td>
 </tr>
 <tr>
 <td><a href="-streaming-hprof-reader/">StreamingHprofReader</a></td>
@@ -1383,7 +1391,7 @@
 </tr>
 <tr>
 <td><a href="for-jvm-heap/">forJvmHeap</a></td>
-<td>[jvm]<br>fun <a href="-object-growth-detector/-companion/">ObjectGrowthDetector.Companion</a>.<a href="for-jvm-heap/">forJvmHeap</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-reference-matcher/">ReferenceMatcher</a>&gt; = JdkReferenceMatchers.defaults +     HeapTraversalOutput.ignoredReferences): <a href="-object-growth-detector/">ObjectGrowthDetector</a></td>
+<td>[jvm]<br>fun <a href="-object-growth-detector/-companion/">ObjectGrowthDetector.Companion</a>.<a href="for-jvm-heap/">forJvmHeap</a>(referenceMatchers: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-reference-matcher/">ReferenceMatcher</a>&gt; = JvmObjectGrowthReferenceMatchers.defaults): <a href="-object-growth-detector/">ObjectGrowthDetector</a></td>
 </tr>
 <tr>
 <td><a href="ignored/">ignored</a></td>
@@ -1405,6 +1413,10 @@
 <td><a href="repeating-scenario/">repeatingScenario</a></td>
 <td>[jvm]<br>fun <a href="-object-growth-detector/">ObjectGrowthDetector</a>.<a href="repeating-scenario/">repeatingScenario</a>(heapGraphProvider: <a href="-heap-graph-provider/">HeapGraphProvider</a>, maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP): <a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></td>
 </tr>
+<tr>
+<td><a href="-retained/">Retained</a></td>
+<td>[jvm]<br>inline fun <a href="-retained/">Retained</a>(heapSize: <a href="-byte-size/">ByteSize</a>, objectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>): <a href="-retained/">Retained</a><br>Constructors can&rsquo;t be inlined so we used a function instead.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
@@ -1417,12 +1429,52 @@
 </thead>
 <tbody>
 <tr>
+<td><a href="bytes/">bytes</a></td>
+<td>[jvm]<br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>.<a href="bytes/">bytes</a>: <a href="-byte-size/">ByteSize</a><br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>.<a href="bytes/">bytes</a>: <a href="-byte-size/">ByteSize</a></td>
+</tr>
+<tr>
+<td><a href="-b-y-t-e-s_-p-e-r_-g-b/">BYTES_PER_GB</a></td>
+<td>[jvm]<br>const val <a href="-b-y-t-e-s_-p-e-r_-g-b/">BYTES_PER_GB</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
+</tr>
+<tr>
+<td><a href="-b-y-t-e-s_-p-e-r_-k-b/">BYTES_PER_KB</a></td>
+<td>[jvm]<br>const val <a href="-b-y-t-e-s_-p-e-r_-k-b/">BYTES_PER_KB</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
+</tr>
+<tr>
+<td><a href="-b-y-t-e-s_-p-e-r_-m-b/">BYTES_PER_MB</a></td>
+<td>[jvm]<br>const val <a href="-b-y-t-e-s_-p-e-r_-m-b/">BYTES_PER_MB</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></td>
+</tr>
+<tr>
+<td><a href="gigabytes/">gigabytes</a></td>
+<td>[jvm]<br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>.<a href="gigabytes/">gigabytes</a>: <a href="-byte-size/">ByteSize</a><br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>.<a href="gigabytes/">gigabytes</a>: <a href="-byte-size/">ByteSize</a></td>
+</tr>
+<tr>
 <td><a href="hex-identity-hash-code/">hexIdentityHashCode</a></td>
 <td>[jvm]<br>val <a href="-heap-object/-heap-instance/">HeapObject.HeapInstance</a>.<a href="hex-identity-hash-code/">hexIdentityHashCode</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>?<br>The system identity hashCode represented as hex, or null if it couldn&rsquo;t be found. This is the string identifier you see when calling Object.toString() at runtime on a class that does not override its hashCode() method, e.g. com.example.MyThing@6bd57cf</td>
 </tr>
 <tr>
 <td><a href="identity-hash-code/">identityHashCode</a></td>
 <td>[jvm]<br>val <a href="-heap-object/-heap-instance/">HeapObject.HeapInstance</a>.<a href="identity-hash-code/">identityHashCode</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?<br>The system identity hash code, or null if it couldn&rsquo;t be found.</td>
+</tr>
+<tr>
+<td><a href="kilobytes/">kilobytes</a></td>
+<td>[jvm]<br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>.<a href="kilobytes/">kilobytes</a>: <a href="-byte-size/">ByteSize</a><br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>.<a href="kilobytes/">kilobytes</a>: <a href="-byte-size/">ByteSize</a></td>
+</tr>
+<tr>
+<td><a href="megabytes/">megabytes</a></td>
+<td>[jvm]<br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>.<a href="megabytes/">megabytes</a>: <a href="-byte-size/">ByteSize</a><br>val <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>.<a href="megabytes/">megabytes</a>: <a href="-byte-size/">ByteSize</a></td>
+</tr>
+<tr>
+<td><a href="-u-n-k-n-o-w-n_-r-e-t-a-i-n-e-d/">UNKNOWN_RETAINED</a></td>
+<td>[jvm]<br>val <a href="-u-n-k-n-o-w-n_-r-e-t-a-i-n-e-d/">UNKNOWN_RETAINED</a>: <a href="-retained/">Retained</a></td>
+</tr>
+<tr>
+<td><a href="-z-e-r-o_-b-y-t-e-s/">ZERO_BYTES</a></td>
+<td>[jvm]<br>val <a href="-z-e-r-o_-b-y-t-e-s/">ZERO_BYTES</a>: <a href="-byte-size/">ByteSize</a></td>
+</tr>
+<tr>
+<td><a href="-z-e-r-o_-r-e-t-a-i-n-e-d/">ZERO_RETAINED</a></td>
+<td>[jvm]<br>val <a href="-z-e-r-o_-r-e-t-a-i-n-e-d/">ZERO_RETAINED</a>: <a href="-retained/">Retained</a></td>
 </tr>
 </tbody>
 </table>

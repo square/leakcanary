@@ -748,6 +748,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#types" class="md-nav__link">
+    Types
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#properties" class="md-nav__link">
     Properties
   </a>
@@ -778,7 +785,7 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">shark</a>/<a href="./">InitialState</a></p>
 <h1 id="initialstate">InitialState<a class="headerlink" href="#initialstate" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-class <a href="./">InitialState</a>(val scenarioLoopsPerGraph: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 1, val heapGraphCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>? = null) : <a href="../-heap-traversal-input/">HeapTraversalInput</a></p>
+class <a href="./">InitialState</a>(val scenarioLoopsPerGraph: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_GRAPH) : <a href="../-heap-traversal-input/">HeapTraversalInput</a></p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -790,7 +797,22 @@ class <a href="./">InitialState</a>(val scenarioLoopsPerGraph: <a href="https://
 <tbody>
 <tr>
 <td><a href="-initial-state/">InitialState</a></td>
-<td>[jvm]<br>constructor(scenarioLoopsPerGraph: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 1, heapGraphCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>? = null)</td>
+<td>[jvm]<br>constructor(scenarioLoopsPerGraph: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_GRAPH)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="-companion/">Companion</a></td>
+<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
 </tr>
 </tbody>
 </table>
@@ -804,12 +826,8 @@ class <a href="./">InitialState</a>(val scenarioLoopsPerGraph: <a href="https://
 </thead>
 <tbody>
 <tr>
-<td><a href="heap-graph-count/">heapGraphCount</a></td>
-<td>[jvm]<br>open override val <a href="heap-graph-count/">heapGraphCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>? = null<br>The expected max number of traversals, or null if unknown.</td>
-</tr>
-<tr>
 <td><a href="scenario-loops-per-graph/">scenarioLoopsPerGraph</a></td>
-<td>[jvm]<br>open override val <a href="scenario-loops-per-graph/">scenarioLoopsPerGraph</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 1<br>How many times a scenario that might cause heap growth is repeated in between each dump and traversal. This leads the traversal algorithm to only look at objects that are growing at least <a href="scenario-loops-per-graph/">scenarioLoopsPerGraph</a> times since the previous traversal.</td>
+<td>[jvm]<br>open override val <a href="scenario-loops-per-graph/">scenarioLoopsPerGraph</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><br>How many times a scenario that might cause heap growth is repeated in between each dump and traversal. This leads the traversal algorithm to only look at objects that are growing at least <a href="scenario-loops-per-graph/">scenarioLoopsPerGraph</a> times since the previous traversal.</td>
 </tr>
 <tr>
 <td><a href="traversal-count/">traversalCount</a></td>

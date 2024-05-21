@@ -792,7 +792,7 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">shark</a>/<a href="./">ShortestPathObjectNode</a></p>
 <h1 id="shortestpathobjectnode">ShortestPathObjectNode<a class="headerlink" href="#shortestpathobjectnode" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-class <a href="./">ShortestPathObjectNode</a>(val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val parent: <a href="./">ShortestPathObjectNode</a>?, newNode: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</p>
+class <a href="./">ShortestPathObjectNode</a>(val name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val parent: <a href="./">ShortestPathObjectNode</a>?)</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -804,7 +804,7 @@ class <a href="./">ShortestPathObjectNode</a>(val name: <a href="https://kotlinl
 <tbody>
 <tr>
 <td><a href="-shortest-path-object-node/">ShortestPathObjectNode</a></td>
-<td>[jvm]<br>constructor(name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, parent: <a href="./">ShortestPathObjectNode</a>?, newNode: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</td>
+<td>[jvm]<br>constructor(name: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, parent: <a href="./">ShortestPathObjectNode</a>?)</td>
 </tr>
 </tbody>
 </table>
@@ -818,8 +818,8 @@ class <a href="./">ShortestPathObjectNode</a>(val name: <a href="https://kotlinl
 </thead>
 <tbody>
 <tr>
-<td><a href="-retained/">Retained</a></td>
-<td>[jvm]<br>class <a href="-retained/">Retained</a>(val heapSize: <a href="../-byte-size/">ByteSize</a>, val objectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)</td>
+<td><a href="-growing-child-node/">GrowingChildNode</a></td>
+<td>[jvm]<br>data class <a href="-growing-child-node/">GrowingChildNode</a>(val child: <a href="./">ShortestPathObjectNode</a>, val objectCountIncrease: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -860,12 +860,8 @@ class <a href="./">ShortestPathObjectNode</a>(val name: <a href="https://kotlinl
 <td>[jvm]<br>val <a href="children/">children</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="./">ShortestPathObjectNode</a>&gt;</td>
 </tr>
 <tr>
-<td><a href="children-object-count/">childrenObjectCount</a></td>
-<td>[jvm]<br>val <a href="children-object-count/">childrenObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
-</tr>
-<tr>
-<td><a href="children-object-count-increase/">childrenObjectCountIncrease</a></td>
-<td>[jvm]<br>val <a href="children-object-count-increase/">childrenObjectCountIncrease</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
+<td><a href="growing-children/">growingChildren</a></td>
+<td>[jvm]<br>val <a href="growing-children/">growingChildren</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-growing-child-node/">ShortestPathObjectNode.GrowingChildNode</a>&gt;<br>Returns a list of pair of child <a href="./">ShortestPathObjectNode</a> and associated object count increase, filtered to only the children nodes that were marked as growing, i.e. children that had an object count increase greater or equal to the scenario loop count.</td>
 </tr>
 <tr>
 <td><a href="name/">name</a></td>
@@ -877,27 +873,15 @@ class <a href="./">ShortestPathObjectNode</a>(val name: <a href="https://kotlinl
 </tr>
 <tr>
 <td><a href="retained/">retained</a></td>
-<td>[jvm]<br>val <a href="retained/">retained</a>: <a href="-retained/">ShortestPathObjectNode.Retained</a></td>
+<td>[jvm]<br>var <a href="retained/">retained</a>: <a href="../-retained/">Retained</a><br>Set for growing nodes if the traversal requested the computation of retained sizes, otherwise null.</td>
 </tr>
 <tr>
 <td><a href="retained-increase/">retainedIncrease</a></td>
-<td>[jvm]<br>val <a href="retained-increase/">retainedIncrease</a>: <a href="-retained/">ShortestPathObjectNode.Retained</a></td>
-</tr>
-<tr>
-<td><a href="retained-increase-or-null/">retainedIncreaseOrNull</a></td>
-<td>[jvm]<br>var <a href="retained-increase-or-null/">retainedIncreaseOrNull</a>: <a href="-retained/">ShortestPathObjectNode.Retained</a>?<br>Set for growing nodes if <a href="retained-or-null/">retainedOrNull</a> is not null. Non 0 if the previous traversal also computed retained size. This is on the last 2 traversals.</td>
-</tr>
-<tr>
-<td><a href="retained-or-null/">retainedOrNull</a></td>
-<td>[jvm]<br>var <a href="retained-or-null/">retainedOrNull</a>: <a href="-retained/">ShortestPathObjectNode.Retained</a>?<br>Set for growing nodes if the traversal requested the computation of retained sizes, otherwise null. This is on the last 2 traversals.</td>
+<td>[jvm]<br>var <a href="retained-increase/">retainedIncrease</a>: <a href="../-retained/">Retained</a><br>Set for growing nodes if retainedOrNull is not null. Non 0 if the previous traversal also computed retained size.</td>
 </tr>
 <tr>
 <td><a href="self-object-count/">selfObjectCount</a></td>
 <td>[jvm]<br>var <a href="self-object-count/">selfObjectCount</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
-</tr>
-<tr>
-<td><a href="self-object-count-increase/">selfObjectCountIncrease</a></td>
-<td>[jvm]<br>var <a href="self-object-count-increase/">selfObjectCountIncrease</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></td>
 </tr>
 </tbody>
 </table>

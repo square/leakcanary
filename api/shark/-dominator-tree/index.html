@@ -831,11 +831,15 @@ class <a href="./">DominatorTree</a>(expectedElements: <a href="https://kotlinla
 </tr>
 <tr>
 <td><a href="compute-retained-sizes/">computeRetainedSizes</a></td>
-<td>[jvm]<br>fun <a href="compute-retained-sizes/">computeRetainedSizes</a>(retainedObjectIds: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>&gt;, objectSizeCalculator: <a href="-object-size-calculator/">DominatorTree.ObjectSizeCalculator</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/index.html">Pair</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>&gt;&gt;<br>Computes the size retained by <a href="compute-retained-sizes/">retainedObjectIds</a> using the dominator tree built using <a href="update-dominated/">updateDominated</a>. The shallow size of each object is provided by <a href="compute-retained-sizes/">objectSizeCalculator</a>.</td>
+<td>[jvm]<br>fun <a href="compute-retained-sizes/">computeRetainedSizes</a>(retainedObjectIds: <a href="https://developer.android.com/reference/kotlin/androidx/collection/LongSet.html">LongSet</a>, objectSizeCalculator: <a href="-object-size-calculator/">DominatorTree.ObjectSizeCalculator</a>): <a href="https://developer.android.com/reference/kotlin/androidx/collection/LongLongMap.html">LongLongMap</a><br>Computes the size retained by <a href="compute-retained-sizes/">retainedObjectIds</a> using the dominator tree built using <a href="update-dominated/">updateDominated</a>. The shallow size of each object is provided by <a href="compute-retained-sizes/">objectSizeCalculator</a>.</td>
 </tr>
 <tr>
 <td><a href="contains/">contains</a></td>
 <td>[jvm]<br>operator fun <a href="contains/">contains</a>(objectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></td>
+</tr>
+<tr>
+<td><a href="get/">get</a></td>
+<td>[jvm]<br>operator fun <a href="get/">get</a>(dominatedObjectId: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>Returns the dominator object id or <a href="../-value-holder/-companion/-n-u-l-l_-r-e-f-e-r-e-n-c-e/">ValueHolder.NULL_REFERENCE</a> if <a href="get/">dominatedObjectId</a> is the root dominator.</td>
 </tr>
 <tr>
 <td><a href="update-dominated/">updateDominated</a></td>

@@ -741,6 +741,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#inheritors" class="md-nav__link">
+    Inheritors
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
@@ -778,6 +785,19 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">leakcanary</a>/<a href="./">HeapDumper</a></p>
 <h1 id="heapdumper">HeapDumper<a class="headerlink" href="#heapdumper" title="Permanent link">&para;</a></h1>
 <p>fun interface <a href="./">HeapDumper</a></p>
+<h4 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../-object-growth-warmup-heap-dumper/">ObjectGrowthWarmupHeapDumper</a></td>
+</tr>
+</tbody>
+</table>
 <h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -805,6 +825,10 @@
 <tr>
 <td><a href="dump-heap/">dumpHeap</a></td>
 <td>[jvm]<br>abstract fun <a href="dump-heap/">dumpHeap</a>(heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>)<br>Dumps the heap. The implementation is expected to be blocking until the heap is dumped or heap dumping failed.</td>
+</tr>
+<tr>
+<td><a href="../with-detector-warmup/">withDetectorWarmup</a></td>
+<td>[jvm]<br>fun <a href="./">HeapDumper</a>.<a href="../with-detector-warmup/">withDetectorWarmup</a>(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>): <a href="./">HeapDumper</a></td>
 </tr>
 <tr>
 <td><a href="../with-gc/">withGc</a></td>

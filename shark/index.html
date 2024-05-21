@@ -973,80 +973,153 @@ Commands:
 </code></pre></div>
 <h2 id="shark-code-examples">Shark code examples<a class="headerlink" href="#shark-code-examples" title="Permanent link">&para;</a></h2>
 <h3 id="reading-records-in-a-hprof-file">Reading records in a hprof file<a class="headerlink" href="#reading-records-in-a-hprof-file" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// build.gradle</span>
+<span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
 <span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:shark-hprof:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="c1">// Prints all class and field names</span>
-<span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="na">use</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hprof</span><span class="w"> </span><span class="o">-&gt;</span>
-<span class="w">      </span><span class="n">hprof</span><span class="p">.</span><span class="na">reader</span><span class="p">.</span><span class="na">readHprofRecords</span><span class="p">(</span>
-<span class="w">          </span><span class="n">recordTypes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">setOf</span><span class="p">(</span><span class="n">StringRecord</span><span class="o">::</span><span class="n">class</span><span class="p">),</span>
-<span class="w">          </span><span class="n">listener</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">OnHprofRecordListener</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">position</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="w"> </span><span class="o">-&gt;</span>
-<span class="w">            </span><span class="n">println</span><span class="p">((</span><span class="n">record</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">StringRecord</span><span class="p">).</span><span class="na">string</span><span class="p">)</span>
-<span class="w">          </span><span class="p">})</span>
-<span class="w">    </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">java.io.File</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.Hprof</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HprofRecord.StringRecord</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.OnHprofRecordListener</span>
+
+<span class="kd">fun</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">:</span><span class="w"> </span><span class="n">Array</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="n">args</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="p">)</span>
+
+<span class="w">  </span><span class="c1">// Prints all class and field names</span>
+<span class="w">  </span><span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">).</span><span class="na">use</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hprof</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">    </span><span class="n">hprof</span><span class="p">.</span><span class="na">reader</span><span class="p">.</span><span class="na">readHprofRecords</span><span class="p">(</span>
+<span class="w">      </span><span class="n">recordTypes</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">setOf</span><span class="p">(</span><span class="n">StringRecord</span><span class="o">::</span><span class="n">class</span><span class="p">),</span>
+<span class="w">      </span><span class="n">listener</span><span class="w"> </span><span class="o">=</span>
+<span class="w">        </span><span class="n">OnHprofRecordListener</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">position</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">println</span><span class="p">((</span><span class="n">record</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">StringRecord</span><span class="p">).</span><span class="na">string</span><span class="p">)</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">)</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 <h3 id="navigating-the-heap-object-graph">Navigating the heap object graph<a class="headerlink" href="#navigating-the-heap-object-graph" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// build.gradle</span>
+<span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
 <span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:shark-graph:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="c1">// Prints all thread names</span>
-<span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="na">use</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hprof</span><span class="w"> </span><span class="o">-&gt;</span>
-<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapGraph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HprofHeapGraph</span><span class="p">.</span><span class="na">indexHprof</span><span class="p">(</span><span class="n">hprof</span><span class="p">)</span>
-<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">threadClass</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapGraph</span><span class="p">.</span><span class="na">findClassByName</span><span class="p">(</span><span class="s">&quot;java.lang.Thread&quot;</span><span class="p">)</span><span class="o">!!</span>
-<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">threadNames</span><span class="p">:</span><span class="w"> </span><span class="n">Sequence</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">threadClass</span><span class="p">.</span><span class="na">instances</span><span class="p">.</span><span class="na">map</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">instance</span><span class="w"> </span><span class="o">-&gt;</span>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">java.io.File</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.Hprof</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HprofHeapGraph</span>
+
+<span class="kd">fun</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">:</span><span class="w"> </span><span class="n">Array</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="n">args</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="p">)</span>
+
+<span class="w">  </span><span class="c1">// Prints all thread names</span>
+<span class="w">  </span><span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">).</span><span class="na">use</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hprof</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapGraph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HprofHeapGraph</span><span class="p">.</span><span class="na">indexHprof</span><span class="p">(</span><span class="n">hprof</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">threadClass</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapGraph</span><span class="p">.</span><span class="na">findClassByName</span><span class="p">(</span><span class="s">&quot;java.lang.Thread&quot;</span><span class="p">)</span><span class="o">!!</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">threadNames</span><span class="p">:</span><span class="w"> </span><span class="n">Sequence</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span>
+<span class="w">      </span><span class="n">threadClass</span><span class="p">.</span><span class="na">instances</span><span class="p">.</span><span class="na">map</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">instance</span><span class="w"> </span><span class="o">-&gt;</span>
 <span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">nameField</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance</span><span class="o">[</span><span class="s">&quot;java.lang.Thread&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;name&quot;</span><span class="o">]!!</span>
 <span class="w">        </span><span class="n">nameField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">readAsJavaString</span><span class="p">()</span><span class="o">!!</span>
 <span class="w">      </span><span class="p">}</span>
-<span class="w">      </span><span class="n">threadNames</span><span class="p">.</span><span class="na">forEach</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">println</span><span class="p">(</span><span class="nb">it</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
-<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">threadNames</span><span class="p">.</span><span class="na">forEach</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">println</span><span class="p">(</span><span class="nb">it</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 <h3 id="generating-a-heap-analysis-report">Generating a heap analysis report<a class="headerlink" href="#generating-a-heap-analysis-report" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// build.gradle</span>
+<span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
 <span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:shark:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="c1">// Marks any instance of com.example.ThingWithLifecycle with</span>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">java.io.File</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.FilteringLeakingObjectFinder</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.FilteringLeakingObjectFinder.LeakingObjectFilter</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapAnalyzer</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapObject</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapObject.HeapInstance</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.Hprof</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HprofHeapGraph</span>
+
+<span class="c1">// Marks any instance of com.example.ThingWithLifecycle with</span>
 <span class="c1">// ThingWithLifecycle.destroyed=true as leaking</span>
-<span class="kd">val</span><span class="w"> </span><span class="nv">leakingObjectFilter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">object</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">LeakingObjectFilter</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">isLeakingObject</span><span class="p">(</span><span class="n">heapObject</span><span class="p">:</span><span class="w"> </span><span class="n">HeapObject</span><span class="p">):</span><span class="w"> </span><span class="kt">Boolean</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">heapObject</span><span class="w"> </span><span class="n">instanceOf</span><span class="w"> </span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">instance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapObject</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">HeapInstance</span>
-<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">destroyedField</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance</span><span class="o">[</span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;destroyed&quot;</span><span class="o">]!!</span>
-<span class="w">      </span><span class="n">destroyedField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">asBoolean</span><span class="o">!!</span>
-<span class="w">    </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="kc">false</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">leakingObjectFilter</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="k">object</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">LeakingObjectFilter</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">isLeakingObject</span><span class="p">(</span><span class="n">heapObject</span><span class="p">:</span><span class="w"> </span><span class="n">HeapObject</span><span class="p">):</span><span class="w"> </span><span class="kt">Boolean</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="n">heapObject</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">HeapInstance</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">heapObject</span><span class="w"> </span><span class="n">instanceOf</span><span class="w"> </span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span>
+<span class="w">      </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">destroyedField</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapObject</span><span class="o">[</span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;destroyed&quot;</span><span class="o">]!!</span>
+<span class="w">        </span><span class="n">destroyedField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">asBoolean</span><span class="o">!!</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
-<span class="p">}</span>
 
 <span class="kd">val</span><span class="w"> </span><span class="nv">leakingObjectFinder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FilteringLeakingObjectFinder</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">leakingObjectFilter</span><span class="p">))</span>
 
-<span class="kd">val</span><span class="w"> </span><span class="nv">heapAnalysis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">)</span>
-<span class="w">    </span><span class="p">.</span><span class="na">use</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hprof</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="kd">fun</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">:</span><span class="w"> </span><span class="n">Array</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="n">args</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="p">)</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapAnalysis</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">).</span><span class="na">use</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hprof</span><span class="w"> </span><span class="o">-&gt;</span>
 <span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapGraph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HprofHeapGraph</span><span class="p">.</span><span class="na">indexHprof</span><span class="p">(</span><span class="n">hprof</span><span class="p">)</span>
-<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapAnalyzer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapAnalyzer</span><span class="p">(</span><span class="n">AnalyzerProgressListener</span><span class="p">.</span><span class="na">NONE</span><span class="p">)</span>
+<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapAnalyzer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapAnalyzer</span><span class="p">({})</span>
 <span class="w">      </span><span class="n">heapAnalyzer</span><span class="p">.</span><span class="na">analyze</span><span class="p">(</span>
-<span class="w">          </span><span class="n">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapDumpFile</span><span class="p">,</span>
-<span class="w">          </span><span class="n">graph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapGraph</span><span class="p">,</span>
-<span class="w">          </span><span class="n">leakingObjectFinder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">leakingObjectFinder</span><span class="p">,</span>
+<span class="w">        </span><span class="n">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapDumpFile</span><span class="p">,</span>
+<span class="w">        </span><span class="n">graph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapGraph</span><span class="p">,</span>
+<span class="w">        </span><span class="n">leakingObjectFinder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">leakingObjectFinder</span><span class="p">,</span>
 <span class="w">      </span><span class="p">)</span>
 <span class="w">    </span><span class="p">}</span>
-<span class="n">println</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
+<span class="w">  </span><span class="n">println</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
+<span class="p">}</span>
 </code></pre></div>
 <h3 id="generating-an-android-heap-analysis-report">Generating an Android heap analysis report<a class="headerlink" href="#generating-an-android-heap-analysis-report" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<div class="highlight"><pre><span></span><code><span class="c1">// build.gradle</span>
+<span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
 <span class="w">  </span><span class="n">implementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:shark-android:$sharkVersion&#39;</span>
 <span class="o">}</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="kd">val</span><span class="w"> </span><span class="nv">heapAnalyzer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapAnalyzer</span><span class="p">(</span><span class="n">AnalyzerProgressListener</span><span class="p">.</span><span class="na">NONE</span><span class="p">)</span>
-<span class="kd">val</span><span class="w"> </span><span class="nv">analysis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapAnalyzer</span><span class="p">.</span><span class="na">checkForLeaks</span><span class="p">(</span>
-<span class="w">    </span><span class="n">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapDumpFile</span><span class="p">,</span>
-<span class="w">    </span><span class="n">referenceMatchers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span><span class="p">,</span>
-<span class="w">    </span><span class="n">objectInspectors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="na">appDefaults</span>
-<span class="p">)</span>
-<span class="n">println</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="k">import</span><span class="w"> </span><span class="nn">java.io.File</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.AndroidObjectInspectors</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.AndroidReferenceMatchers</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.FilteringLeakingObjectFinder</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.FilteringLeakingObjectFinder.LeakingObjectFilter</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapAnalyzer</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapObject</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HeapObject.HeapInstance</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.Hprof</span>
+<span class="k">import</span><span class="w"> </span><span class="nn">shark.HprofHeapGraph</span>
+
+<span class="c1">// Marks any instance of com.example.ThingWithLifecycle with</span>
+<span class="c1">// ThingWithLifecycle.destroyed=true as leaking</span>
+<span class="kd">val</span><span class="w"> </span><span class="nv">leakingObjectFilter</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="k">object</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="nc">LeakingObjectFilter</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">override</span><span class="w"> </span><span class="kd">fun</span><span class="w"> </span><span class="nf">isLeakingObject</span><span class="p">(</span><span class="n">heapObject</span><span class="p">:</span><span class="w"> </span><span class="n">HeapObject</span><span class="p">):</span><span class="w"> </span><span class="kt">Boolean</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span>
+<span class="w">        </span><span class="n">heapObject</span><span class="w"> </span><span class="k">is</span><span class="w"> </span><span class="n">HeapInstance</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">heapObject</span><span class="w"> </span><span class="n">instanceOf</span><span class="w"> </span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span>
+<span class="w">      </span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">instance</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapObject</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">HeapInstance</span>
+<span class="w">        </span><span class="kd">val</span><span class="w"> </span><span class="nv">destroyedField</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">instance</span><span class="o">[</span><span class="s">&quot;com.example.ThingWithLifecycle&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;destroyed&quot;</span><span class="o">]!!</span>
+<span class="w">        </span><span class="n">destroyedField</span><span class="p">.</span><span class="na">value</span><span class="p">.</span><span class="na">asBoolean</span><span class="o">!!</span>
+<span class="w">      </span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="kd">val</span><span class="w"> </span><span class="nv">leakingObjectFinder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FilteringLeakingObjectFinder</span><span class="p">(</span><span class="n">listOf</span><span class="p">(</span><span class="n">leakingObjectFilter</span><span class="p">))</span>
+
+<span class="kd">fun</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">args</span><span class="p">:</span><span class="w"> </span><span class="n">Array</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="n">args</span><span class="o">[</span><span class="m">0</span><span class="o">]</span><span class="p">)</span>
+
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapAnalysis</span><span class="w"> </span><span class="o">=</span>
+<span class="w">    </span><span class="n">Hprof</span><span class="p">.</span><span class="na">open</span><span class="p">(</span><span class="n">heapDumpFile</span><span class="p">).</span><span class="na">use</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">hprof</span><span class="w"> </span><span class="o">-&gt;</span>
+<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapGraph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HprofHeapGraph</span><span class="p">.</span><span class="na">indexHprof</span><span class="p">(</span><span class="n">hprof</span><span class="p">)</span>
+<span class="w">      </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapAnalyzer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapAnalyzer</span><span class="p">({})</span>
+<span class="w">      </span><span class="n">heapAnalyzer</span><span class="p">.</span><span class="na">analyze</span><span class="p">(</span>
+<span class="w">        </span><span class="n">heapDumpFile</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapDumpFile</span><span class="p">,</span>
+<span class="w">        </span><span class="n">graph</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">heapGraph</span><span class="p">,</span>
+<span class="w">        </span><span class="n">leakingObjectFinder</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">leakingObjectFinder</span><span class="p">,</span>
+<span class="w">        </span><span class="n">referenceMatchers</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidReferenceMatchers</span><span class="p">.</span><span class="na">appDefaults</span><span class="p">,</span>
+<span class="w">        </span><span class="n">objectInspectors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">AndroidObjectInspectors</span><span class="p">.</span><span class="na">appDefaults</span><span class="p">,</span>
+<span class="w">      </span><span class="p">)</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">println</span><span class="p">(</span><span class="n">heapAnalysis</span><span class="p">)</span>
+<span class="p">}</span>
 </code></pre></div>
   
 

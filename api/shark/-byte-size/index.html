@@ -741,8 +741,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#types" class="md-nav__link">
-    Types
+  <a href="#constructors" class="md-nav__link">
+    Constructors
   </a>
   
 </li>
@@ -786,20 +786,20 @@
 <h1 id="bytesize">ByteSize<a class="headerlink" href="#bytesize" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
 @<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-jvm-inline/index.html">JvmInline</a></p>
-<p>value class <a href="./">ByteSize</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-comparable/index.html">Comparable</a>&lt;<a href="./">ByteSize</a>&gt; </p>
+<p>value class <a href="./">ByteSize</a>(val inWholeBytes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>) : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-comparable/index.html">Comparable</a>&lt;<a href="./">ByteSize</a>&gt; </p>
 <p>Inspired by <a href="https://github.com/saket/file-size">https://github.com/saket/file-size</a> as well as Kotlin&rsquo;s Duration API.</p>
-<h2 id="types">Types<a class="headerlink" href="#types" title="Permanent link">&para;</a></h2>
+<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Name</th>
-<th>Summary</th>
+<th></th>
+<th></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="-companion/">Companion</a></td>
-<td>[jvm]<br>object <a href="-companion/">Companion</a></td>
+<td><a href="-byte-size/">ByteSize</a></td>
+<td>[jvm]<br>constructor(inWholeBytes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -818,19 +818,19 @@
 </tr>
 <tr>
 <td><a href="div/">div</a></td>
-<td>[jvm]<br>operator fun <a href="div/">div</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
+<td>[jvm]<br>inline operator fun <a href="div/">div</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
 </tr>
 <tr>
 <td><a href="minus/">minus</a></td>
-<td>[jvm]<br>operator fun <a href="minus/">minus</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
+<td>[jvm]<br>inline operator fun <a href="minus/">minus</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
 </tr>
 <tr>
 <td><a href="plus/">plus</a></td>
-<td>[jvm]<br>operator fun <a href="plus/">plus</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
+<td>[jvm]<br>inline operator fun <a href="plus/">plus</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
 </tr>
 <tr>
 <td><a href="times/">times</a></td>
-<td>[jvm]<br>operator fun <a href="times/">times</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
+<td>[jvm]<br>inline operator fun <a href="times/">times</a>(other: <a href="./">ByteSize</a>): <a href="./">ByteSize</a></td>
 </tr>
 <tr>
 <td><a href="to-string/">toString</a></td>
