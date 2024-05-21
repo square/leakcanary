@@ -3,8 +3,15 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 Alpha 4 (2024-05-10)
+## Version 3.0 Alpha 5 (2024-05-20)
 
+Bug Fixes & Performance Improvements.
+
+🤨
+
+See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-4...v3.0-alpha-5).
+
+## Version 3.0 Alpha 4 (2024-05-10)
 
 
 * Deleted the `shark-heap-growth` artifact, the code has been merged into the `shark*` and `leakcanary*` modules.
