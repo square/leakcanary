@@ -51,7 +51,7 @@ public final class leakcanary/HeapDumperKt {
 
 public final class leakcanary/ObjectGrowthWarmupHeapDumper : leakcanary/HeapDumper {
 	public static final field Companion Lleakcanary/ObjectGrowthWarmupHeapDumper$Companion;
-	public fun <init> (Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumper;)V
+	public fun <init> (Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumper;Z)V
 	public fun dumpHeap (Ljava/io/File;)V
 }
 
@@ -59,7 +59,7 @@ public final class leakcanary/ObjectGrowthWarmupHeapDumper$Companion {
 }
 
 public final class leakcanary/ObjectGrowthWarmupHeapDumperKt {
-	public static final fun withDetectorWarmup (Lleakcanary/HeapDumper;Lshark/ObjectGrowthDetector;)Lleakcanary/HeapDumper;
+	public static final fun withDetectorWarmup (Lleakcanary/HeapDumper;Lshark/ObjectGrowthDetector;Z)Lleakcanary/HeapDumper;
 }
 
 public final class leakcanary/TempHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {

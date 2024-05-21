@@ -940,6 +940,7 @@ public final class shark/RepeatingScenarioObjectGrowthDetector {
 	public static final field Companion Lshark/RepeatingScenarioObjectGrowthDetector$Companion;
 	public static final field DEFAULT_MAX_HEAP_DUMPS I
 	public static final field DEFAULT_SCENARIO_LOOPS_PER_DUMP I
+	public static final field IN_PROCESS_SCENARIO_LOOPS_PER_DUMP I
 	public fun <init> (Lshark/HeapGraphProvider;Lshark/ObjectGrowthDetector;II)V
 	public synthetic fun <init> (Lshark/HeapGraphProvider;Lshark/ObjectGrowthDetector;IIILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun findRepeatedlyGrowingObjects (Lkotlin/jvm/functions/Function0;)Lshark/HeapGrowthTraversal;

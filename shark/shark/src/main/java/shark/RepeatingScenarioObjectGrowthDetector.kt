@@ -48,6 +48,11 @@ class RepeatingScenarioObjectGrowthDetector(
   companion object {
     const val DEFAULT_MAX_HEAP_DUMPS = 5
     const val DEFAULT_SCENARIO_LOOPS_PER_DUMP = 1
+
+    /**
+     * In process => More than one to account for the impact of running the analysis.
+     */
+    const val IN_PROCESS_SCENARIO_LOOPS_PER_DUMP = 2
   }
 }
 

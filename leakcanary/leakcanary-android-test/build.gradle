@@ -8,6 +8,11 @@ dependencies {
   api projects.leakcanary.leakcanaryCore
   api projects.leakcanary.leakcanaryAndroidUtils
   api projects.shark.sharkAndroid
+
+  androidTestImplementation libs.androidX.multidex
+  androidTestImplementation libs.androidX.test.core
+  androidTestImplementation libs.androidX.test.runner
+  androidTestImplementation libs.assertjCore
 }
 
 android {
@@ -15,7 +20,10 @@ android {
   defaultConfig {
     targetSdk versions.compileSdk
     minSdk versions.minSdk
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    multiDexEnabled true
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.core'
+  namespace 'com.squareup.leakcanary.android.test'
+  testNamespace 'com.squareup.leakcanary.android.test.test'
 }
