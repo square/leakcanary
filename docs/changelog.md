@@ -3,13 +3,21 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 Alpha 5 (2024-05-20)
+## Version 3.0 Alpha 6 (2024-05-21)
 
-Bug Fixes & Performance Improvements.
+* 🐛 [#2670](https://github.com/square/leakcanary/pull/2670) Use `RequestPermissionActivity` context for `Toast.makeText`.
 
-🤨
+### Heap Growth
 
-See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-4...v3.0-alpha-5).
+* Add warmup to reduce changes of classloading tied to analysis being picked up as false positive heap growth signal.
+* Add dependency on AndroidX Collections to use in place of JDK data structures (lower memory footprint) and HHPC copied data structures (hard to maintain).
+* Improvements to memory footprint by flattening a number of objects
+* Fix retained size not being computed when analysis stops at the second heap dump.
+* Removed `InitialState.heapGraphCount`
+* Ignore static `<resolved_references>` in all classes on JVM
+
+
+See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-4...v3.0-alpha-6).
 
 ## Version 3.0 Alpha 4 (2024-05-10)
 
