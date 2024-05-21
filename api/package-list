@@ -12,7 +12,7 @@ $dokka.location:leakcanary//repeatingAndroidInProcessScenario/shark.ObjectGrowth
 $dokka.location:leakcanary//repeatingJvmInProcessScenario/shark.ObjectGrowthDetector#kotlin.Int#kotlin.Int/PointingToDeclaration/leakcanary-repo/leakcanary/repeating-jvm-in-process-scenario.md
 $dokka.location:leakcanary//repeatingUiAutomatorScenario/shark.ObjectGrowthDetector#kotlin.String#kotlin.Int#kotlin.Int/PointingToDeclaration/leakcanary-repo/leakcanary/repeating-ui-automator-scenario.md
 $dokka.location:leakcanary//tempFile/leakcanary.HeapDumpFileProvider.Companion#/PointingToDeclaration/leakcanary-repo/leakcanary/temp-file.md
-$dokka.location:leakcanary//withDetectorWarmup/leakcanary.HeapDumper#shark.ObjectGrowthDetector/PointingToDeclaration/leakcanary-repo/leakcanary/with-detector-warmup.md
+$dokka.location:leakcanary//withDetectorWarmup/leakcanary.HeapDumper#shark.ObjectGrowthDetector#kotlin.Boolean/PointingToDeclaration/leakcanary-repo/leakcanary/with-detector-warmup.md
 $dokka.location:leakcanary//withGc/leakcanary.HeapDumper#leakcanary.GcTrigger/PointingToDeclaration/leakcanary-repo/leakcanary/with-gc.md
 $dokka.location:leakcanary/ActivityWatcher///PointingToDeclaration/leakcanary-repo/leakcanary/-activity-watcher/index.md
 $dokka.location:leakcanary/ActivityWatcher/ActivityWatcher/#android.app.Application#leakcanary.DeletableObjectReporter/PointingToDeclaration/leakcanary-repo/leakcanary/-activity-watcher/-activity-watcher.md
@@ -284,7 +284,7 @@ $dokka.location:leakcanary/NotificationEventListener///PointingToDeclaration/le
 $dokka.location:leakcanary/NotificationEventListener/onEvent/#leakcanary.EventListener.Event/PointingToDeclaration/leakcanary-repo/leakcanary/-notification-event-listener/on-event.md
 $dokka.location:leakcanary/ObjectGrowthWarmupHeapDumper.Companion///PointingToDeclaration/leakcanary-repo/leakcanary/-object-growth-warmup-heap-dumper/-companion/index.md
 $dokka.location:leakcanary/ObjectGrowthWarmupHeapDumper///PointingToDeclaration/leakcanary-repo/leakcanary/-object-growth-warmup-heap-dumper/index.md
-$dokka.location:leakcanary/ObjectGrowthWarmupHeapDumper/ObjectGrowthWarmupHeapDumper/#shark.ObjectGrowthDetector#leakcanary.HeapDumper/PointingToDeclaration/leakcanary-repo/leakcanary/-object-growth-warmup-heap-dumper/-object-growth-warmup-heap-dumper.md
+$dokka.location:leakcanary/ObjectGrowthWarmupHeapDumper/ObjectGrowthWarmupHeapDumper/#shark.ObjectGrowthDetector#leakcanary.HeapDumper#kotlin.Boolean/PointingToDeclaration/leakcanary-repo/leakcanary/-object-growth-warmup-heap-dumper/-object-growth-warmup-heap-dumper.md
 $dokka.location:leakcanary/ObjectGrowthWarmupHeapDumper/dumpHeap/#java.io.File/PointingToDeclaration/leakcanary-repo/leakcanary/-object-growth-warmup-heap-dumper/dump-heap.md
 $dokka.location:leakcanary/OnObjectRetainedListener///PointingToDeclaration/leakcanary-repo/leakcanary/-on-object-retained-listener/index.md
 $dokka.location:leakcanary/OnObjectRetainedListener/onObjectRetained/#/PointingToDeclaration/leakcanary-repo/leakcanary/-on-object-retained-listener/on-object-retained.md
@@ -1878,6 +1878,7 @@ $dokka.location:shark/RepeatingHeapGraphObjectGrowthDetector/findRepeatedlyGrowi
 $dokka.location:shark/RepeatingScenarioObjectGrowthDetector.Companion///PointingToDeclaration/leakcanary-repo/shark/-repeating-scenario-object-growth-detector/-companion/index.md
 $dokka.location:shark/RepeatingScenarioObjectGrowthDetector.Companion/DEFAULT_MAX_HEAP_DUMPS/#/PointingToDeclaration/leakcanary-repo/shark/-repeating-scenario-object-growth-detector/-companion/-d-e-f-a-u-l-t_-m-a-x_-h-e-a-p_-d-u-m-p-s.md
 $dokka.location:shark/RepeatingScenarioObjectGrowthDetector.Companion/DEFAULT_SCENARIO_LOOPS_PER_DUMP/#/PointingToDeclaration/leakcanary-repo/shark/-repeating-scenario-object-growth-detector/-companion/-d-e-f-a-u-l-t_-s-c-e-n-a-r-i-o_-l-o-o-p-s_-p-e-r_-d-u-m-p.md
+$dokka.location:shark/RepeatingScenarioObjectGrowthDetector.Companion/IN_PROCESS_SCENARIO_LOOPS_PER_DUMP/#/PointingToDeclaration/leakcanary-repo/shark/-repeating-scenario-object-growth-detector/-companion/-i-n_-p-r-o-c-e-s-s_-s-c-e-n-a-r-i-o_-l-o-o-p-s_-p-e-r_-d-u-m-p.md
 $dokka.location:shark/RepeatingScenarioObjectGrowthDetector///PointingToDeclaration/leakcanary-repo/shark/-repeating-scenario-object-growth-detector/index.md
 $dokka.location:shark/RepeatingScenarioObjectGrowthDetector/RepeatingScenarioObjectGrowthDetector/#shark.HeapGraphProvider#shark.ObjectGrowthDetector#kotlin.Int#kotlin.Int/PointingToDeclaration/leakcanary-repo/shark/-repeating-scenario-object-growth-detector/-repeating-scenario-object-growth-detector.md
 $dokka.location:shark/RepeatingScenarioObjectGrowthDetector/findRepeatedlyGrowingObjects/#kotlin.Function0[kotlin.Unit]/PointingToDeclaration/leakcanary-repo/shark/-repeating-scenario-object-growth-detector/find-repeatedly-growing-objects.md

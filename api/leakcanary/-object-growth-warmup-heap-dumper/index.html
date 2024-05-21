@@ -785,7 +785,7 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">leakcanary</a>/<a href="./">ObjectGrowthWarmupHeapDumper</a></p>
 <h1 id="objectgrowthwarmupheapdumper">ObjectGrowthWarmupHeapDumper<a class="headerlink" href="#objectgrowthwarmupheapdumper" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-class <a href="./">ObjectGrowthWarmupHeapDumper</a>(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>, delegate: <a href="../-heap-dumper/">HeapDumper</a>) : <a href="../-heap-dumper/">HeapDumper</a></p>
+class <a href="./">ObjectGrowthWarmupHeapDumper</a>(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>, delegate: <a href="../-heap-dumper/">HeapDumper</a>, androidHeap: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="../-heap-dumper/">HeapDumper</a></p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -797,7 +797,7 @@ class <a href="./">ObjectGrowthWarmupHeapDumper</a>(objectGrowthDetector: <a hre
 <tbody>
 <tr>
 <td><a href="-object-growth-warmup-heap-dumper/">ObjectGrowthWarmupHeapDumper</a></td>
-<td>[jvm]<br>constructor(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>, delegate: <a href="../-heap-dumper/">HeapDumper</a>)</td>
+<td>[jvm]<br>constructor(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>, delegate: <a href="../-heap-dumper/">HeapDumper</a>, androidHeap: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -831,7 +831,7 @@ class <a href="./">ObjectGrowthWarmupHeapDumper</a>(objectGrowthDetector: <a hre
 </tr>
 <tr>
 <td><a href="../with-detector-warmup/">withDetectorWarmup</a></td>
-<td>[jvm]<br>fun <a href="../-heap-dumper/">HeapDumper</a>.<a href="../with-detector-warmup/">withDetectorWarmup</a>(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>): <a href="../-heap-dumper/">HeapDumper</a></td>
+<td>[jvm]<br>fun <a href="../-heap-dumper/">HeapDumper</a>.<a href="../with-detector-warmup/">withDetectorWarmup</a>(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>, androidHeap: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>): <a href="../-heap-dumper/">HeapDumper</a></td>
 </tr>
 <tr>
 <td><a href="../with-gc/">withGc</a></td>

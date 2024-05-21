@@ -1032,7 +1032,7 @@
 </tr>
 <tr>
 <td><a href="-object-growth-warmup-heap-dumper/">ObjectGrowthWarmupHeapDumper</a></td>
-<td>[jvm]<br>class <a href="-object-growth-warmup-heap-dumper/">ObjectGrowthWarmupHeapDumper</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>, delegate: <a href="-heap-dumper/">HeapDumper</a>) : <a href="-heap-dumper/">HeapDumper</a></td>
+<td>[jvm]<br>class <a href="-object-growth-warmup-heap-dumper/">ObjectGrowthWarmupHeapDumper</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>, delegate: <a href="-heap-dumper/">HeapDumper</a>, androidHeap: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="-heap-dumper/">HeapDumper</a></td>
 </tr>
 <tr>
 <td><a href="-once-per-period-interceptor/">OncePerPeriodInterceptor</a></td>
@@ -1167,11 +1167,11 @@
 </tr>
 <tr>
 <td><a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a></td>
-<td>[androidJvm]<br>fun <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a>.<a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 2): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests. Typically called on a <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a> created via shark.forAndroidHeap.</td>
+<td>[androidJvm]<br>fun <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a>.<a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests. Typically called on a <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a> created via shark.forAndroidHeap.</td>
 </tr>
 <tr>
 <td><a href="repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a></td>
-<td>[jvm]<br>fun <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>.<a href="repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 2): <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>Creates a <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for JVM in process tests. Typically called on a <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a> created via <a href="../shark/for-jvm-heap/">shark.forJvmHeap</a>.</td>
+<td>[jvm]<br>fun <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>.<a href="repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>Creates a <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for JVM in process tests. Typically called on a <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a> created via <a href="../shark/for-jvm-heap/">shark.forJvmHeap</a>.</td>
 </tr>
 <tr>
 <td><a href="repeating-ui-automator-scenario/">repeatingUiAutomatorScenario</a></td>
@@ -1183,7 +1183,7 @@
 </tr>
 <tr>
 <td><a href="with-detector-warmup/">withDetectorWarmup</a></td>
-<td>[jvm]<br>fun <a href="-heap-dumper/">HeapDumper</a>.<a href="with-detector-warmup/">withDetectorWarmup</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>): <a href="-heap-dumper/">HeapDumper</a></td>
+<td>[jvm]<br>fun <a href="-heap-dumper/">HeapDumper</a>.<a href="with-detector-warmup/">withDetectorWarmup</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>, androidHeap: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>): <a href="-heap-dumper/">HeapDumper</a></td>
 </tr>
 <tr>
 <td><a href="with-gc/">withGc</a></td>

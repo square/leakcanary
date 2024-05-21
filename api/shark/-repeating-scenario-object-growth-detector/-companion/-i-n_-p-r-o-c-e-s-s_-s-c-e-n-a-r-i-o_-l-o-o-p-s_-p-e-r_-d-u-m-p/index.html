@@ -12,23 +12,23 @@
         <meta name="author" content="Square, Inc.">
       
       
-        <link rel="canonical" href="https://square.github.io/leakcanary/api/leakcanary/-object-growth-warmup-heap-dumper/-object-growth-warmup-heap-dumper/">
+        <link rel="canonical" href="https://square.github.io/leakcanary/api/shark/-repeating-scenario-object-growth-detector/-companion/-i-n_-p-r-o-c-e-s-s_-s-c-e-n-a-r-i-o_-l-o-o-p-s_-p-e-r_-d-u-m-p/">
       
       
       
-      <link rel="icon" href="../../../../images/logo.png">
+      <link rel="icon" href="../../../../../images/logo.png">
       <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.3">
     
     
       
-        <title>object growth warmup heap dumper - LeakCanary</title>
+        <title>i n p r o c e s s s c e n a r i o l o o p s p e r d u m p - LeakCanary</title>
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.c4a75a56.min.css">
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.c4a75a56.min.css">
       
         
-        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.a0c5b2b5.min.css">
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.a0c5b2b5.min.css">
       
       
 
@@ -44,7 +44,7 @@
       
     
     
-    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -69,7 +69,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#objectgrowthwarmupheapdumper" class="md-skip">
+        <a href="#in_process_scenario_loops_per_dump" class="md-skip">
           Skip to content
         </a>
       
@@ -80,7 +80,7 @@
           <div class="md-banner__inner md-grid md-typeset">
             
              
-   Upgrade to <a href="../../../../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../../../../how_to_help/">Here's how you can contribute<a> 🙏
+   Upgrade to <a href="../../../../../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../../../../../how_to_help/">Here's how you can contribute<a> 🙏
 
           </div>
           
@@ -95,9 +95,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../../.." title="LeakCanary" class="md-header__button md-logo" aria-label="LeakCanary" data-md-component="logo">
+    <a href="../../../../.." title="LeakCanary" class="md-header__button md-logo" aria-label="LeakCanary" data-md-component="logo">
       
-  <img src="../../../../images/logo.png" alt="logo">
+  <img src="../../../../../images/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-               object growth warmup heap dumper
+               i n  p r o c e s s  s c e n a r i o  l o o p s  p e r  d u m p
             
           </span>
         </div>
@@ -192,9 +192,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../../.." title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary" data-md-component="logo">
+    <a href="../../../../.." title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary" data-md-component="logo">
       
-  <img src="../../../../images/logo.png" alt="logo">
+  <img src="../../../../../images/logo.png" alt="logo">
 
     </a>
     LeakCanary
@@ -222,7 +222,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../.." class="md-nav__link">
+      <a href="../../../../.." class="md-nav__link">
         Overview
       </a>
     </li>
@@ -237,7 +237,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../getting_started/" class="md-nav__link">
+      <a href="../../../../../getting_started/" class="md-nav__link">
         Getting Started
       </a>
     </li>
@@ -279,7 +279,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../fundamentals/" class="md-nav__link">
+      <a href="../../../../../fundamentals/" class="md-nav__link">
         Introduction
       </a>
     </li>
@@ -293,7 +293,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../fundamentals-how-leakcanary-works/" class="md-nav__link">
+      <a href="../../../../../fundamentals-how-leakcanary-works/" class="md-nav__link">
         How LeakCanary works
       </a>
     </li>
@@ -307,7 +307,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../fundamentals-fixing-a-memory-leak/" class="md-nav__link">
+      <a href="../../../../../fundamentals-fixing-a-memory-leak/" class="md-nav__link">
         Fixing a memory leak
       </a>
     </li>
@@ -356,7 +356,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../ui-tests/" class="md-nav__link">
+      <a href="../../../../../ui-tests/" class="md-nav__link">
         Leak detection in UI tests
       </a>
     </li>
@@ -370,7 +370,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../uploading/" class="md-nav__link">
+      <a href="../../../../../uploading/" class="md-nav__link">
         Uploading analysis results
       </a>
     </li>
@@ -384,7 +384,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../leakcanary-for-releases/" class="md-nav__link">
+      <a href="../../../../../leakcanary-for-releases/" class="md-nav__link">
         LeakCanary for releases
       </a>
     </li>
@@ -433,7 +433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../recipes/" class="md-nav__link">
+      <a href="../../../../../recipes/" class="md-nav__link">
         Code recipes
       </a>
     </li>
@@ -447,7 +447,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../faq/" class="md-nav__link">
+      <a href="../../../../../faq/" class="md-nav__link">
         FAQ
       </a>
     </li>
@@ -461,7 +461,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../support/" class="md-nav__link">
+      <a href="../../../../../support/" class="md-nav__link">
         Support
       </a>
     </li>
@@ -475,7 +475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../upgrading-to-leakcanary-2.0/" class="md-nav__link">
+      <a href="../../../../../upgrading-to-leakcanary-2.0/" class="md-nav__link">
         Upgrading to LeakCanary 2
       </a>
     </li>
@@ -489,7 +489,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../recorded-presentations/" class="md-nav__link">
+      <a href="../../../../../recorded-presentations/" class="md-nav__link">
         Recorded Presentations
       </a>
     </li>
@@ -503,7 +503,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../blog-articles/" class="md-nav__link">
+      <a href="../../../../../blog-articles/" class="md-nav__link">
         Blog Articles
       </a>
     </li>
@@ -558,7 +558,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../code_of_conduct/" class="md-nav__link">
+      <a href="../../../../../code_of_conduct/" class="md-nav__link">
         Code of Conduct
       </a>
     </li>
@@ -572,7 +572,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../dev-env/" class="md-nav__link">
+      <a href="../../../../../dev-env/" class="md-nav__link">
         Dev Environment
       </a>
     </li>
@@ -586,7 +586,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../releasing/" class="md-nav__link">
+      <a href="../../../../../releasing/" class="md-nav__link">
         Releasing
       </a>
     </li>
@@ -600,7 +600,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../how_to_help/" class="md-nav__link">
+      <a href="../../../../../how_to_help/" class="md-nav__link">
         How to help
       </a>
     </li>
@@ -656,7 +656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../shark/" class="md-nav__link">
+      <a href="../../../../../shark/" class="md-nav__link">
         Overview
       </a>
     </li>
@@ -670,7 +670,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../shark/" class="md-nav__link">
+      <a href="../../../" class="md-nav__link">
         Shark API
       </a>
     </li>
@@ -692,7 +692,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../" class="md-nav__link">
+      <a href="../../../../leakcanary/" class="md-nav__link">
         LeakCanary API
       </a>
     </li>
@@ -707,7 +707,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../../changelog/" class="md-nav__link">
+      <a href="../../../../../changelog/" class="md-nav__link">
         Change Log
       </a>
     </li>
@@ -746,17 +746,18 @@
                 
   
     
-  <span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20api/leakcanary/-object-growth-warmup-heap-dumper/-object-growth-warmup-heap-dumper/%20page">Report it</a></span>
+  <span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20api/shark/-repeating-scenario-object-growth-detector/-companion/-i-n_-p-r-o-c-e-s-s_-s-c-e-n-a-r-i-o_-l-o-o-p-s_-p-e-r_-d-u-m-p/%20page">Report it</a></span>
     
   
   
     
   
   
-  <p>//<a href="../../../../">leakcanary-repo</a>/<a href="../../">leakcanary</a>/<a href="../">ObjectGrowthWarmupHeapDumper</a>/<a href="./">ObjectGrowthWarmupHeapDumper</a></p>
-<h1 id="objectgrowthwarmupheapdumper">ObjectGrowthWarmupHeapDumper<a class="headerlink" href="#objectgrowthwarmupheapdumper" title="Permanent link">&para;</a></h1>
+  <p>//<a href="../../../../../">leakcanary-repo</a>/<a href="../../../">shark</a>/<a href="../../">RepeatingScenarioObjectGrowthDetector</a>/<a href="../">Companion</a>/<a href="./">IN_PROCESS_SCENARIO_LOOPS_PER_DUMP</a></p>
+<h1 id="in_process_scenario_loops_per_dump">IN_PROCESS_SCENARIO_LOOPS_PER_DUMP<a class="headerlink" href="#in_process_scenario_loops_per_dump" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-constructor(objectGrowthDetector: <a href="../../../shark/-object-growth-detector/">ObjectGrowthDetector</a>, delegate: <a href="../../-heap-dumper/">HeapDumper</a>, androidHeap: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>)</p>
+const val <a href="./">IN_PROCESS_SCENARIO_LOOPS_PER_DUMP</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = 2</p>
+<p>In process =&gt; More than one to account for the impact of running the analysis.</p>
   
 
               </article>
@@ -842,10 +843,10 @@ constructor(objectGrowthDetector: <a href="../../../shark/-object-growth-detecto
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../../../..", "features": ["tabs"], "search": "../../../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../../../../..", "features": ["tabs"], "search": "../../../../../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../../../assets/javascripts/bundle.efa0ade1.min.js"></script>
+      <script src="../../../../../assets/javascripts/bundle.efa0ade1.min.js"></script>
       
     
   </body>

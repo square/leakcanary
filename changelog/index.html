@@ -743,9 +743,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#version-30-alpha-5-2024-05-20" class="md-nav__link">
-    Version 3.0 Alpha 5 (2024-05-20)
+  <a href="#version-30-alpha-6-2024-05-21" class="md-nav__link">
+    Version 3.0 Alpha 6 (2024-05-21)
   </a>
+  
+    <nav class="md-nav" aria-label="Version 3.0 Alpha 6 (2024-05-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth" class="md-nav__link">
+    Heap Growth
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -799,7 +812,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#heap-growth" class="md-nav__link">
+  <a href="#heap-growth_1" class="md-nav__link">
     Heap Growth
   </a>
   
@@ -1653,9 +1666,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#version-30-alpha-5-2024-05-20" class="md-nav__link">
-    Version 3.0 Alpha 5 (2024-05-20)
+  <a href="#version-30-alpha-6-2024-05-21" class="md-nav__link">
+    Version 3.0 Alpha 6 (2024-05-21)
   </a>
+  
+    <nav class="md-nav" aria-label="Version 3.0 Alpha 6 (2024-05-21)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth" class="md-nav__link">
+    Heap Growth
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1709,7 +1735,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#heap-growth" class="md-nav__link">
+  <a href="#heap-growth_1" class="md-nav__link">
     Heap Growth
   </a>
   
@@ -2551,10 +2577,20 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
-<h2 id="version-30-alpha-5-2024-05-20">Version 3.0 Alpha 5 (2024-05-20)<a class="headerlink" href="#version-30-alpha-5-2024-05-20" title="Permanent link">&para;</a></h2>
-<p>Bug Fixes &amp; Performance Improvements.</p>
-<p>🤨</p>
-<p>See the <a href="https://github.com/square/leakcanary/compare/v3.0-alpha-4...v3.0-alpha-5">full diff</a>.</p>
+<h2 id="version-30-alpha-6-2024-05-21">Version 3.0 Alpha 6 (2024-05-21)<a class="headerlink" href="#version-30-alpha-6-2024-05-21" title="Permanent link">&para;</a></h2>
+<ul>
+<li>🐛 <a href="https://github.com/square/leakcanary/pull/2670">#2670</a> Use <code>RequestPermissionActivity</code> context for <code>Toast.makeText</code>.</li>
+</ul>
+<h3 id="heap-growth">Heap Growth<a class="headerlink" href="#heap-growth" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add warmup to reduce changes of classloading tied to analysis being picked up as false positive heap growth signal.</li>
+<li>Add dependency on AndroidX Collections to use in place of JDK data structures (lower memory footprint) and HHPC copied data structures (hard to maintain).</li>
+<li>Improvements to memory footprint by flattening a number of objects</li>
+<li>Fix retained size not being computed when analysis stops at the second heap dump.</li>
+<li>Removed <code>InitialState.heapGraphCount</code></li>
+<li>Ignore static <code>&lt;resolved_references&gt;</code> in all classes on JVM</li>
+</ul>
+<p>See the <a href="https://github.com/square/leakcanary/compare/v3.0-alpha-4...v3.0-alpha-6">full diff</a>.</p>
 <h2 id="version-30-alpha-4-2024-05-10">Version 3.0 Alpha 4 (2024-05-10)<a class="headerlink" href="#version-30-alpha-4-2024-05-10" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Deleted the <code>shark-heap-growth</code> artifact, the code has been merged into the <code>shark*</code> and <code>leakcanary*</code> modules.</li>
@@ -2639,7 +2675,7 @@ footprint and the IO reads.</li>
 </ul>
 <h2 id="version-30-alpha-1-2024-01-09">Version 3.0 Alpha 1 (2024-01-09)<a class="headerlink" href="#version-30-alpha-1-2024-01-09" title="Permanent link">&para;</a></h2>
 <p>This alpha release marks the start of the work on LeakCanary 3. It&rsquo;s not stable! While I intend to rework some APIs, I also want to minimize migration work. The best way to ensure migrations will go smoothly is to try upgrading to a 3.0 alpha and to let me know if you get any compile or runtime error.</p>
-<h3 id="heap-growth">Heap Growth<a class="headerlink" href="#heap-growth" title="Permanent link">&para;</a></h3>
+<h3 id="heap-growth_1">Heap Growth<a class="headerlink" href="#heap-growth_1" title="Permanent link">&para;</a></h3>
 <p>New APIs, not stable yet: the <code>shark-heap-growth</code> artifact contains APIs for writing test scenarios that detect repeated heap growth.</p>
 <p>Here&rsquo;s how it&rsquo;s used with an Espresso test:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">MyEspressoTest</span><span class="w"> </span><span class="p">{</span>
