@@ -12,3 +12,8 @@ public final class leakcanary/RepeatingJvmInProcessScenarioKt {
 	public static synthetic fun repeatingJvmInProcessScenario$default (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;ILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
 }
 
+public final class leakcanary/RepositoryRootHeapDumpDirectoryProvider : leakcanary/HeapDumpDirectoryProvider {
+	public fun <init> (Ljava/lang/String;)V
+	public fun heapDumpDirectory ()Ljava/io/File;
+}
+

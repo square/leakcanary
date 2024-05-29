@@ -1,6 +1,5 @@
 package leakcanary
 
-import java.io.File
 import shark.HeapDiff
 import shark.ObjectGrowthDetector
 import shark.RepeatingScenarioObjectGrowthDetector
@@ -16,7 +15,7 @@ import shark.forJvmHeap
  */
 fun HeapDiff.Companion.repeatingJvmInProcessScenario(
   objectGrowthDetector: ObjectGrowthDetector = ObjectGrowthDetector.forJvmHeap(),
-  heapDumpDirectoryProvider: HeapDumpDirectoryProvider = WorkingDirectoryHeapDumpDirectoryProvider(
+  heapDumpDirectoryProvider: HeapDumpDirectoryProvider = RepositoryRootHeapDumpDirectoryProvider(
     "heap_dumps_object_growth"
   ),
   heapDumper: HeapDumper = HeapDumper.forJvmInProcess()
