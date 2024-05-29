@@ -4,7 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.HeapDiff
 import shark.RepeatingScenarioObjectGrowthDetector.Companion.DEFAULT_MAX_HEAP_DUMPS
-import shark.RepeatingScenarioObjectGrowthDetector.Companion.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP
+import shark.RepeatingScenarioObjectGrowthDetector.Companion.DEFAULT_SCENARIO_LOOPS_PER_DUMP
 
 class RepeatingAndroidInProcessScenarioTest {
 
@@ -18,7 +18,7 @@ class RepeatingAndroidInProcessScenarioTest {
       iteration++
     }
 
-    assertThat(iteration).isEqualTo(DEFAULT_MAX_HEAP_DUMPS * IN_PROCESS_SCENARIO_LOOPS_PER_DUMP)
+    assertThat(iteration).isEqualTo(DEFAULT_MAX_HEAP_DUMPS * DEFAULT_SCENARIO_LOOPS_PER_DUMP)
   }
 
   @Test fun failing_scenario_finds_expected_growing_object() {

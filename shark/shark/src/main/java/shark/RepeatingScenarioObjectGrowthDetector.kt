@@ -21,7 +21,7 @@ class RepeatingScenarioObjectGrowthDetector(
    */
   fun findRepeatedlyGrowingObjects(
     maxHeapDumps: Int = DEFAULT_MAX_HEAP_DUMPS,
-    scenarioLoopsPerDump: Int = 2,
+    scenarioLoopsPerDump: Int = DEFAULT_SCENARIO_LOOPS_PER_DUMP,
     roundTripScenario: () -> Unit
   ): HeapDiff {
     val heapGraphSequence = dumpHeapOnNext(maxHeapDumps, scenarioLoopsPerDump, roundTripScenario)
@@ -47,11 +47,6 @@ class RepeatingScenarioObjectGrowthDetector(
 
   companion object {
     const val DEFAULT_MAX_HEAP_DUMPS = 5
-    const val DEFAULT_SCENARIO_LOOPS_PER_DUMP = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH
-
-    /**
-     * In process => More than one to account for the impact of running the analysis.
-     */
-    const val IN_PROCESS_SCENARIO_LOOPS_PER_DUMP = 2
+    const val DEFAULT_SCENARIO_LOOPS_PER_DUMP = 2
   }
 }
