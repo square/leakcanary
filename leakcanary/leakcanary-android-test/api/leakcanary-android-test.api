@@ -1,5 +1,10 @@
 public final class leakcanary/RepeatingAndroidInProcessScenarioKt {
-	public static final fun repeatingAndroidInProcessScenario (Lshark/ObjectGrowthDetector;II)Lshark/RepeatingScenarioObjectGrowthDetector;
-	public static synthetic fun repeatingAndroidInProcessScenario$default (Lshark/ObjectGrowthDetector;IIILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static final fun repeatingAndroidInProcessScenario (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static synthetic fun repeatingAndroidInProcessScenario$default (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;ILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
+}
+
+public final class leakcanary/TargetContextHeapDumpDirectoryProvider : leakcanary/HeapDumpDirectoryProvider {
+	public fun <init> (Ljava/lang/String;)V
+	public fun heapDumpDirectory ()Ljava/io/File;
 }
 

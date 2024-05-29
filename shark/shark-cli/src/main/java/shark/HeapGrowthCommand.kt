@@ -102,11 +102,10 @@ class HeapGrowthCommand : CliktCommand(
           previousStartTime = openTime
           sourceProvider.openHeapGraph()
         }
-        val detector = androidDetector
-          .repeatingHeapGraph()
+        val detector = RepeatingHeapGraphObjectGrowthDetector(androidDetector)
         val results = detector.findRepeatedlyGrowingObjects(
+          scenarioLoopsPerGraph = scenarioLoopsPerDump,
           heapGraphSequence = heapGraphs,
-          initialState = InitialState(scenarioLoopsPerDump),
         ).also {
           previous?.let {
             val finishTime = System.nanoTime().nanoseconds
@@ -135,7 +134,7 @@ class HeapGrowthCommand : CliktCommand(
         var latestTraversal = androidDetector.findGrowingObjects(
           heapGraph = source.dumpHeapAndOpenGraph(),
           previousTraversal = firstTraversal
-        ) as HeapGrowthTraversal
+        ) as HeapDiff
 
         while (true) {
 
@@ -197,7 +196,7 @@ class HeapGrowthCommand : CliktCommand(
           latestTraversal = androidDetector.findGrowingObjects(
             heapGraph = source.dumpHeapAndOpenGraph(),
             previousTraversal = nextInputTraversal
-          ) as HeapGrowthTraversal
+          ) as HeapDiff
         }
       }
     }

@@ -1,15 +1,15 @@
 package leakcanary
 
 import java.io.File
+import leakcanary.DumpingHeapGraphProvider.HeapDumpClosedListener
 import shark.CloseableHeapGraph
-import shark.HeapGraph
 import shark.HeapGraphProvider
 import shark.HprofHeapGraph.Companion.openHeapGraph
 
-class DumpingAndDeletingHeapGraphProvider(
+class DumpingHeapGraphProvider(
   private val heapDumpFileProvider: HeapDumpFileProvider,
   private val heapDumper: HeapDumper,
-  private val fileDeleter: FileDeleter
+  private val heapDumpClosedListener: HeapDumpClosedListener = HeapDumpClosedListener {}
 ) : HeapGraphProvider {
   override fun openHeapGraph(): CloseableHeapGraph {
     val heapDumpFile = heapDumpFileProvider.newHeapDumpFile()
@@ -20,19 +20,16 @@ class DumpingAndDeletingHeapGraphProvider(
     val realGraph = heapDumpFile.openHeapGraph()
     return object : CloseableHeapGraph by realGraph {
       override fun close() {
-        realGraph.close()
-        fileDeleter.delete(heapDumpFile)
+        try {
+          realGraph.close()
+        } finally {
+          heapDumpClosedListener.onHeapDumpClosed(heapDumpFile)
+        }
       }
     }
   }
-}
 
-fun interface FileDeleter {
-  fun delete(file: File)
+  fun interface HeapDumpClosedListener {
+    fun onHeapDumpClosed(heapDumpFile: File)
+  }
 }
-
-fun HeapGraphProvider.Companion.dumpingAndDeleting(
-  heapDumper: HeapDumper,
-  heapDumpFileProvider: HeapDumpFileProvider = TempHeapDumpFileProvider,
-  fileDeleter: FileDeleter = FileDeleter { it.delete() }
-) = DumpingAndDeletingHeapGraphProvider(heapDumpFileProvider, heapDumper, fileDeleter)

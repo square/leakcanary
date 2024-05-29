@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
   api projects.leakcanary.leakcanaryCore
+  api projects.leakcanary.leakcanaryTestCore
   api projects.shark.sharkAndroid
   api libs.androidX.test.uiautomator
 
@@ -16,7 +17,7 @@ android {
   compileSdk versions.compileSdk
   defaultConfig {
     targetSdk versions.compileSdk
-    minSdk versions.minSdk
+    minSdk 18
   }
   buildFeatures.buildConfig = false
   namespace 'com.squareup.leakcanary.android.uiautomator'

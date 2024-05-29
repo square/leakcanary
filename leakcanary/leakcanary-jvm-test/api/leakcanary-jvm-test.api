@@ -8,7 +8,7 @@ public final class leakcanary/HotSpotHeapDumperKt {
 }
 
 public final class leakcanary/RepeatingJvmInProcessScenarioKt {
-	public static final fun repeatingJvmInProcessScenario (Lshark/ObjectGrowthDetector;II)Lshark/RepeatingScenarioObjectGrowthDetector;
-	public static synthetic fun repeatingJvmInProcessScenario$default (Lshark/ObjectGrowthDetector;IIILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static final fun repeatingJvmInProcessScenario (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static synthetic fun repeatingJvmInProcessScenario$default (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;ILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
 }
 

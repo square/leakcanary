@@ -33,7 +33,7 @@ class ObjectGrowthDetectorTest {
       previousTraversal = first,
     )
 
-    assertThat(secondTraversal).isInstanceOf(HeapGrowthTraversal::class.java)
+    assertThat(secondTraversal).isInstanceOf(HeapDiff::class.java)
   }
 
   @Test
@@ -477,16 +477,14 @@ class ObjectGrowthDetectorTest {
   class ListRepeatingHeapGraphObjectGrowthDetector(
     objectGrowthDetector: ObjectGrowthDetector
   ) {
-    private val delegate = objectGrowthDetector.repeatingHeapGraph()
+    private val delegate = RepeatingHeapGraphObjectGrowthDetector(objectGrowthDetector)
 
     fun findRepeatedlyGrowingObjects(
       heapGraphs: List<CloseableHeapGraph>,
       scenarioLoopsPerGraph: Int = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
-    ): HeapGrowthTraversal {
+    ): HeapDiff {
       return delegate.findRepeatedlyGrowingObjects(
-        initialState = InitialState(
-          scenarioLoopsPerGraph = scenarioLoopsPerGraph,
-        ),
+        scenarioLoopsPerGraph = scenarioLoopsPerGraph,
         heapGraphSequence = heapGraphs.asSequence()
       ).apply {
         check(traversalCount == heapGraphs.size) {

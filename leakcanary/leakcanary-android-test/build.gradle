@@ -7,7 +7,10 @@ plugins {
 dependencies {
   api projects.leakcanary.leakcanaryCore
   api projects.leakcanary.leakcanaryAndroidUtils
+  api projects.leakcanary.leakcanaryTestCore
   api projects.shark.sharkAndroid
+
+  implementation libs.androidX.test.runner
 
   androidTestImplementation libs.androidX.multidex
   androidTestImplementation libs.androidX.test.core

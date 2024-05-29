@@ -29,7 +29,7 @@ class ObjectGrowthDetector(
     heapGraph: CloseableHeapGraph,
     previousTraversal: HeapTraversalInput = InitialState(),
   ): HeapTraversalOutput {
-    check(previousTraversal !is HeapGrowthTraversal || previousTraversal.isGrowing) {
+    check(previousTraversal !is HeapDiff || previousTraversal.isGrowing) {
       "Previous HeapGrowth traversal was not growing, there's no reason to run this again. " +
         "previousTraversal:$previousTraversal"
     }
@@ -44,7 +44,7 @@ class ObjectGrowthDetector(
         previousTraversal
       )
     }.also { output ->
-      if (output is HeapGrowthTraversal) {
+      if (output is HeapDiff) {
         val scenarioCount = output.traversalCount * output.scenarioLoopsPerGraph
         SharkLog.d {
           "After $scenarioCount scenario iterations and ${output.traversalCount} heap dumps, " +
@@ -385,7 +385,7 @@ class ObjectGrowthDetector(
           )
         }
       }
-      HeapGrowthTraversal(
+      HeapDiff(
         previousTraversal.traversalCount + 1, tree, reportedGrowingNodes, previousTraversal
       )
     }

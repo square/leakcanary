@@ -88,11 +88,3 @@ public final class leakcanary/SkipLeakDetection$Companion {
 	public final fun shouldSkipTest (Lorg/junit/runner/Description;Ljava/lang/String;)Z
 }
 
-public final class leakcanary/TestDescriptionHolder : org/junit/rules/TestRule {
-	public static final field INSTANCE Lleakcanary/TestDescriptionHolder;
-	public fun apply (Lorg/junit/runners/model/Statement;Lorg/junit/runner/Description;)Lorg/junit/runners/model/Statement;
-	public final fun getTestDescription ()Lorg/junit/runner/Description;
-	public final fun isEvaluating ()Z
-	public final fun wrap (Lorg/junit/runners/model/Statement;Lorg/junit/runner/Description;)Lorg/junit/runners/model/Statement;
-}
-

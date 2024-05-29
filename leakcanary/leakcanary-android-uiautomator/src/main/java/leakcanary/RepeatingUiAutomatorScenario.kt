@@ -1,39 +1,36 @@
 package leakcanary
 
 import androidx.test.platform.app.InstrumentationRegistry
-import java.io.File
-import shark.RepeatingScenarioObjectGrowthDetector
-import shark.HeapGraphProvider
+import shark.HeapDiff
 import shark.ObjectGrowthDetector
-import shark.repeatingScenario
+import shark.RepeatingScenarioObjectGrowthDetector
+import shark.forAndroidHeap
 
 /**
  * Creates a [RepeatingScenarioObjectGrowthDetector] suitable for Android UI Automator tests.
- * Typically called on a [ObjectGrowthDetector] created via [shark.forAndroidHeap].
  *
  * Dumps the heap by leveraging adb, running a GC on API 27+ right before dumping.
- * Deletes the heap dump file as soon as we're done traversing it.
  *
  * @see [RepeatingScenarioObjectGrowthDetector.findRepeatedlyGrowingObjects]
  */
-fun ObjectGrowthDetector.repeatingUiAutomatorScenario(
+fun HeapDiff.Companion.repeatingUiAutomatorScenario(
+  objectGrowthDetector: ObjectGrowthDetector = ObjectGrowthDetector.forAndroidHeap(),
   dumpedAppPackageName: String = InstrumentationRegistry.getInstrumentation().targetContext.packageName,
-  maxHeapDumps: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS,
-  scenarioLoopsPerDump: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP,
+  heapDumpDirectoryProvider: HeapDumpDirectoryProvider = AndroidDeviceTempHeapDumpDirectoryProvider(
+    heapDumpDirectoryName = "heap_dumps_object_growth_$dumpedAppPackageName"
+  ),
+  heapDumper: HeapDumper = HeapDumper.forUiAutomatorAsShell(
+    withGc = true,
+    dumpedAppPackageName = dumpedAppPackageName
+  ),
+  heapDumpDeletionStrategy: HeapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnHeapDumpClose { heapDumpFile ->
+    UiAutomatorShellFileDeleter.deleteFileUsingShell(heapDumpFile)
+  },
 ): RepeatingScenarioObjectGrowthDetector {
-  return repeatingScenario(
-    heapGraphProvider = HeapGraphProvider.dumpingAndDeleting(
-      heapDumper = HeapDumper.forUiAutomatorAsShell(
-        withGc = true,
-        dumpedAppPackageName = dumpedAppPackageName
-      ),
-      heapDumpFileProvider = HeapDumpFileProvider.datetimeFormatted(
-        directory = File("/data/local/tmp/"),
-        suffix = "-$dumpedAppPackageName"
-      ),
-      fileDeleter = UiAutomatorShellFileDeleter
-    ),
-    maxHeapDumps = maxHeapDumps,
-    scenarioLoopsPerDump = scenarioLoopsPerDump,
+  return repeatingDumpingTestScenario(
+    objectGrowthDetector = objectGrowthDetector,
+    heapDumpDirectoryProvider = heapDumpDirectoryProvider,
+    heapDumper = heapDumper,
+    heapDumpDeletionStrategy = heapDumpDeletionStrategy,
   )
 }
