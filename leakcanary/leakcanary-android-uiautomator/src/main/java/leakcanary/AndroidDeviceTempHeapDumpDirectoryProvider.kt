@@ -8,7 +8,7 @@ class AndroidDeviceTempHeapDumpDirectoryProvider(
 
   private val heapDumpDirectory by lazy {
     File("/data/local/tmp/", heapDumpDirectoryName).apply {
-      mkdir()
+      mkdirs()
       check(exists()) {
         "Expected heap dump directory $absolutePath to exist"
       }

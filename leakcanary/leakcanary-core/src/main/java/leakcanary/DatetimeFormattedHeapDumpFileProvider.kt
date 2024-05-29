@@ -12,15 +12,6 @@ class DatetimeFormattedHeapDumpFileProvider(
   private val suffixProvider: () -> String = { "" }
 ) : HeapDumpFileProvider {
 
-  private val heapDumpDirectory by lazy {
-    heapDumpDirectoryProvider.heapDumpDirectory().apply {
-      mkdirs()
-      check(exists()) {
-        "Expected heap dump folder to exist: $absolutePath"
-      }
-    }
-  }
-
   private val timeFormatThreadLocal = object : ThreadLocal<SimpleDateFormat>() {
     // Lint is drunk and thinks we use the pattern 'u'
     @Suppress("NewApi")
@@ -32,7 +23,7 @@ class DatetimeFormattedHeapDumpFileProvider(
     val datetime = dateProvider()
     val formattedDatetime = timeFormatThreadLocal.get()!!.format(datetime)
     val fileName = "${prefixProvider()}$formattedDatetime${suffixProvider()}.hprof"
-    return File(heapDumpDirectory, fileName)
+    return File(heapDumpDirectoryProvider.heapDumpDirectory(), fileName)
   }
 
   companion object {
