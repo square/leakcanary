@@ -5,6 +5,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.ActualMatchingReferenceReaderFactory
+import shark.HeapDiff
 import shark.JvmObjectGrowthReferenceMatchers
 import shark.MatchingGcRootProvider
 import shark.ObjectGrowthDetector
@@ -31,24 +32,32 @@ class JvmLiveObjectGrowthDetectorTest {
 
   val multiLeakies = mutableListOf<MultiLeaky>()
 
+  @get:Rule
+  val tempFolder = TemporaryFolder()
+
   @Test
   fun `empty scenario leads to no heap growth`() {
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
     val emptyScenario = {}
 
-    val heapTraversal = detector.findRepeatedlyGrowingObjects(roundTripScenario = emptyScenario)
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(
+      scenarioLoopsPerDump = 1,
+      roundTripScenario = emptyScenario
+    )
 
     assertThat(heapTraversal.growingObjects).isEmpty()
   }
 
   @Test
   fun `leaky increase leads to heap growth`() {
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       leakies += Any()
     }
 
@@ -57,11 +66,12 @@ class JvmLiveObjectGrowthDetectorTest {
 
   @Test
   fun `string leak increase leads to heap growth`() {
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
     var index = 0
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       stringLeaks += "Yo ${++index}"
     }
 
@@ -72,14 +82,15 @@ class JvmLiveObjectGrowthDetectorTest {
   fun `leak increase that ends leads to no heap growth`() {
     val maxHeapDumps = 10
     val stopLeakingIndex = maxHeapDumps / 2
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(
-        maxHeapDumps = maxHeapDumps,
-        scenarioLoopsPerDump = 1
-      )
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
     var index = 0
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = maxHeapDumps,
+      scenarioLoopsPerDump = 1
+    ) {
       if (++index < stopLeakingIndex) {
         leakies += Any()
       }
@@ -91,12 +102,14 @@ class JvmLiveObjectGrowthDetectorTest {
   @Test
   fun `multiple leaky scenarios per dump leads to heap growth`() {
     val scenarioLoopsPerDump = 5
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = scenarioLoopsPerDump)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
-      leakies += Any()
-    }
+    val heapTraversal =
+      detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = scenarioLoopsPerDump) {
+        leakies += Any()
+      }
 
     val growingObject = heapTraversal.growingObjects.single()
     val growingChild = growingObject.growingChildren.single()
@@ -105,10 +118,11 @@ class JvmLiveObjectGrowthDetectorTest {
 
   @Test
   fun `detect growth of custom linked list`() {
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
     }
 
@@ -117,10 +131,11 @@ class JvmLiveObjectGrowthDetectorTest {
 
   @Test
   fun `custom leaky linked list reports descendant to root as flattened collection`() {
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
       customLeakyLinkedList = CustomLinkedList(customLeakyLinkedList)
@@ -134,10 +149,11 @@ class JvmLiveObjectGrowthDetectorTest {
 
   @Test
   fun `growth along shared sub paths reported as single growth of shortest path`() {
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       multiLeakies += MultiLeaky()
     }
 
@@ -147,11 +163,12 @@ class JvmLiveObjectGrowthDetectorTest {
 
   @Test
   fun `OpenJdk HashMap without synthetic refs shows internal table array growing`() {
-    val detector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+    )
 
     var index = 0
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       leakyHashMap["key${++index}"] = Any()
     }
 
@@ -161,11 +178,12 @@ class JvmLiveObjectGrowthDetectorTest {
 
   @Test
   fun `OpenJdk HashMap with synthetic refs shows itself growing`() {
-    val detector = ObjectGrowthDetector.forJvmHeap()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeap(),
+    )
 
     var index = 0
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       leakyHashMap["key${++index}"] = Any()
     }
 
@@ -176,15 +194,205 @@ class JvmLiveObjectGrowthDetectorTest {
 
   @Test
   fun `OpenJdk ArrayList virtualized as array`() {
-    val detector = ObjectGrowthDetector.forJvmHeap()
-      .repeatingJvmInProcessScenario(scenarioLoopsPerDump = 1)
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeap(),
+    )
 
-    val heapTraversal = detector.findRepeatedlyGrowingObjects {
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
       leakies += Any()
     }
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.name).contains("leakies")
+  }
+
+  @Test
+  fun `DeleteOnHeapDumpClose invokes file deletion in between each scenario`() {
+    // Nothing to delete on first run.
+    var didDeleteFile = true
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnHeapDumpClose {
+        it.delete()
+        didDeleteFile = true
+      }
+    )
+
+    detector.findRepeatedlyGrowingObjects(scenarioLoopsPerDump = 1) {
+      assertThat(didDeleteFile).isTrue()
+      didDeleteFile = false
+      leakies += Any()
+    }
+
+    assertThat(didDeleteFile).isTrue()
+  }
+
+  @Test
+  fun `KeepHeapDumps does not delete heap dumps`() {
+    val heapDumpDirectory = tempFolder.newFolder()
+    val maxHeapDump = 5
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.KeepHeapDumps,
+      heapDumpDirectoryProvider = { heapDumpDirectory }
+    )
+
+    detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = maxHeapDump,
+      scenarioLoopsPerDump = 1
+    ) {
+      leakies += Any()
+    }
+
+    val heapDumpFileCount = heapDumpDirectory.listFiles()!!.count { it.extension == "hprof" }
+    assertThat(heapDumpFileCount).isEqualTo(maxHeapDump)
+  }
+
+  @Test
+  fun `DeleteOnObjectsNotGrowing does invokes file deletion in between each scenario`() {
+    var didDeleteFile = false
+    val heapDumpDirectory = tempFolder.newFolder()
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnObjectsNotGrowing {
+        didDeleteFile = true
+        it.delete()
+      },
+      heapDumpDirectoryProvider = { heapDumpDirectory }
+    )
+
+    detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = 5,
+      scenarioLoopsPerDump = 1
+    ) {
+      assertThat(didDeleteFile).isFalse()
+      leakies += Any()
+    }
+  }
+
+  @Test
+  fun `DeleteOnObjectsNotGrowing does not delete any heap dump if objects growing`() {
+    val maxHeapDump = 5
+    val heapDumpDirectory = tempFolder.newFolder()
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnObjectsNotGrowing(),
+      heapDumpDirectoryProvider = { heapDumpDirectory }
+    )
+
+    detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = maxHeapDump,
+      scenarioLoopsPerDump = 1
+    ) {
+      leakies += Any()
+    }
+
+    val heapDumpFileCount = heapDumpDirectory.listFiles()!!.count { it.extension == "hprof" }
+    assertThat(heapDumpFileCount).isEqualTo(maxHeapDump)
+  }
+
+  @Test
+  fun `DeleteOnObjectsNotGrowing invokes file deletion on completion if objects not growing`() {
+    var filesDeleted = 0
+    val heapDumpDirectory = tempFolder.newFolder()
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnObjectsNotGrowing {
+        filesDeleted++
+        it.delete()
+      },
+      heapDumpDirectoryProvider = { heapDumpDirectory }
+    )
+    val leakyScenarioRuns = 3
+
+    var i = 1
+    detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = 5,
+      scenarioLoopsPerDump = 1
+    ) {
+      assertThat(filesDeleted).isEqualTo(0)
+      if (i <= leakyScenarioRuns) {
+        leakies += Any()
+      }
+      i++
+    }
+
+    assertThat(filesDeleted).isEqualTo(1 + leakyScenarioRuns)
+  }
+
+  @Test
+  fun `ZipAndDeleteOnObjectsNotGrowing leaves zipped heap dumps if objects growing`() {
+    val maxHeapDump = 5
+    val heapDumpDirectory = tempFolder.newFolder()
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.ZipAndDeleteOnObjectsNotGrowing(),
+      heapDumpDirectoryProvider = { heapDumpDirectory }
+    )
+
+    detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = maxHeapDump,
+      scenarioLoopsPerDump = 1
+    ) {
+      leakies += Any()
+    }
+
+    val heapDumpDirectoryFileExtensions = heapDumpDirectory.listFiles()!!.map { it.extension }
+    assertThat(heapDumpDirectoryFileExtensions).hasSize(maxHeapDump)
+    assertThat(heapDumpDirectoryFileExtensions).containsOnly("zip")
+  }
+
+  @Test
+  fun `ZipAndDeleteOnObjectsNotGrowing deletes all files if objects not growing`() {
+    val heapDumpDirectory = tempFolder.newFolder()
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.ZipAndDeleteOnObjectsNotGrowing(),
+      heapDumpDirectoryProvider = { heapDumpDirectory }
+    )
+    val leakyScenarioRuns = 3
+
+    var i = 1
+    detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = 5,
+      scenarioLoopsPerDump = 1
+    ) {
+      if (i <= leakyScenarioRuns) {
+        leakies += Any()
+      }
+      i++
+    }
+
+    assertThat(heapDumpDirectory.listFiles()).isEmpty()
+  }
+
+  @Test
+  fun `ZipAndDeleteOnObjectsNotGrowing zips heap dumps in between each scenario`() {
+    val heapDumpDirectory = tempFolder.newFolder()
+    val maxHeapDump = 5
+
+    val detector = HeapDiff.repeatingJvmInProcessScenario(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
+      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.ZipAndDeleteOnObjectsNotGrowing(),
+      heapDumpDirectoryProvider = { heapDumpDirectory }
+    )
+    var i = 1
+    detector.findRepeatedlyGrowingObjects(
+      maxHeapDumps = maxHeapDump,
+      scenarioLoopsPerDump = 1
+    ) {
+      val heapDumpDirectoryFileExtensions = heapDumpDirectory.listFiles()!!.map { it.extension }
+      assertThat(heapDumpDirectoryFileExtensions).hasSize(i - 1)
+      if (i > 1) {
+        assertThat(heapDumpDirectoryFileExtensions).containsOnly("zip")
+      }
+      leakies += Any()
+      i++
+    }
+
+    val heapDumpDirectoryFileExtensions = heapDumpDirectory.listFiles()!!.map { it.extension }
+    assertThat(heapDumpDirectoryFileExtensions).hasSize(maxHeapDump)
+    assertThat(heapDumpDirectoryFileExtensions).containsOnly("zip")
   }
 
   private fun ObjectGrowthDetector.Companion.forJvmHeapNoSyntheticRefs(): ObjectGrowthDetector {

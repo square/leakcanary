@@ -6,6 +6,8 @@ plugins {
 
 dependencies {
   api projects.leakcanary.leakcanaryAndroidCore
+  api projects.leakcanary.leakcanaryAndroidTest
+  api projects.leakcanary.leakcanaryTestCore
   api projects.shark.sharkAndroid
 
   implementation libs.androidX.test.runner

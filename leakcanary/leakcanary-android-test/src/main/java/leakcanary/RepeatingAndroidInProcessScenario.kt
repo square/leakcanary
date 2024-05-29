@@ -1,32 +1,32 @@
 package leakcanary
 
-import shark.HeapGraphProvider
+import shark.HeapDiff
 import shark.ObjectGrowthDetector
 import shark.RepeatingScenarioObjectGrowthDetector
-import shark.repeatingScenario
+import shark.forAndroidHeap
 
 /**
  * Creates a [RepeatingScenarioObjectGrowthDetector] suitable for Android in process tests, such
- * as Espresso tests. Typically called on a [ObjectGrowthDetector] created via
- * [shark.forAndroidHeap].
+ * as Espresso tests.
  *
  * Dumps the heap by leveraging Android APIs, running an in process GC right before dumping.
- * Deletes the heap dump file as soon as we're done traversing it.
  *
  * @see [RepeatingScenarioObjectGrowthDetector.findRepeatedlyGrowingObjects]
  */
-fun ObjectGrowthDetector.repeatingAndroidInProcessScenario(
-  maxHeapDumps: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS,
-  scenarioLoopsPerDump: Int = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP,
+fun HeapDiff.Companion.repeatingAndroidInProcessScenario(
+  objectGrowthDetector: ObjectGrowthDetector = ObjectGrowthDetector.forAndroidHeap(),
+  heapDumpDirectoryProvider: HeapDumpDirectoryProvider = TargetContextHeapDumpDirectoryProvider(
+    heapDumpDirectoryName = "heap_dumps_object_growth"
+  ),
+  heapDumper: HeapDumper = HeapDumper.forAndroidInProcess()
+    .withGc(gcTrigger = GcTrigger.inProcess())
+    .withDetectorWarmup(objectGrowthDetector, androidHeap = true),
+  heapDumpDeletionStrategy: HeapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnHeapDumpClose(),
 ): RepeatingScenarioObjectGrowthDetector {
-  return repeatingScenario(
-    heapGraphProvider = HeapGraphProvider.dumpingAndDeleting(
-      heapDumper = HeapDumper.forAndroidInProcess()
-        .withGc(gcTrigger = GcTrigger.inProcess())
-        .withDetectorWarmup(this, androidHeap = true),
-      heapDumpFileProvider = HeapDumpFileProvider.tempFile()
-    ),
-    maxHeapDumps = maxHeapDumps,
-    scenarioLoopsPerDump = scenarioLoopsPerDump,
+  return repeatingDumpingTestScenario(
+    objectGrowthDetector = objectGrowthDetector,
+    heapDumpDirectoryProvider = heapDumpDirectoryProvider,
+    heapDumper = heapDumper,
+    heapDumpDeletionStrategy = heapDumpDeletionStrategy,
   )
 }

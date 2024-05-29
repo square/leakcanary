@@ -4,40 +4,40 @@ package shark
  * @see [findRepeatedlyGrowingObjects]
  */
 class RepeatingScenarioObjectGrowthDetector(
-  /**
-   * Dumps the heap and opens the heap dump file as a [shark.CloseableHeapGraph]
-   */
   private val heapGraphProvider: HeapGraphProvider,
-  objectGrowthDetector: ObjectGrowthDetector,
-  private val maxHeapDumps: Int = DEFAULT_MAX_HEAP_DUMPS,
-  scenarioLoopsPerDump: Int = DEFAULT_SCENARIO_LOOPS_PER_DUMP,
+  private val repeatingHeapGraphDetector: RepeatingHeapGraphObjectGrowthDetector,
 ) {
-
-  private val repeatingHeapGraphDetector = objectGrowthDetector.repeatingHeapGraph()
-
-  private val initialState = InitialState(
-    scenarioLoopsPerGraph = scenarioLoopsPerDump,
-  )
 
   /**
    * Detects object growth by iterating through [roundTripScenario] repeatedly and dumping the heap
    * every `scenarioLoopsPerDump` until no object growth is detected or we reach `maxHeapDumps`.
-   * Returns the [HeapGrowthTraversal] for the last iteration. You can check
-   * [HeapGrowthTraversal.isGrowing] and [HeapGrowthTraversal.growingObjects] to report object growth.
+   * Returns the [HeapDiff] for the last iteration. You can check
+   * [HeapDiff.isGrowing] and [HeapDiff.growingObjects] to report object growth.
+   *
+   * @param scenarioLoopsPerDump How many times a scenario that might cause heap growth is repeated
+   * in between each dump and traversal. This leads the traversal algorithm to only look at objects
+   * that are growing at least [scenarioLoopsPerDump] times since the previous traversal. While
+   * 1 can work fine, we recommend at least 2 to ignore any side effect of dumping the heap.
    */
-  fun findRepeatedlyGrowingObjects(roundTripScenario: () -> Unit): HeapGrowthTraversal {
-    val heapGraphSequence = dumpHeapOnNext(roundTripScenario)
+  fun findRepeatedlyGrowingObjects(
+    maxHeapDumps: Int = DEFAULT_MAX_HEAP_DUMPS,
+    scenarioLoopsPerDump: Int = 2,
+    roundTripScenario: () -> Unit
+  ): HeapDiff {
+    val heapGraphSequence = dumpHeapOnNext(maxHeapDumps, scenarioLoopsPerDump, roundTripScenario)
     return repeatingHeapGraphDetector.findRepeatedlyGrowingObjects(
-      initialState = initialState,
+      scenarioLoopsPerGraph = scenarioLoopsPerDump,
       heapGraphSequence = heapGraphSequence,
     )
   }
 
   private fun dumpHeapOnNext(
+    maxHeapDumps: Int,
+    scenarioLoopsPerDump: Int,
     repeatedScenario: () -> Unit,
   ): Sequence<CloseableHeapGraph> {
     val heapDumps = (1..maxHeapDumps).asSequence().map {
-      repeat(initialState.scenarioLoopsPerGraph) {
+      repeat(scenarioLoopsPerDump) {
         repeatedScenario()
       }
       heapGraphProvider.openHeapGraph()
@@ -47,27 +47,11 @@ class RepeatingScenarioObjectGrowthDetector(
 
   companion object {
     const val DEFAULT_MAX_HEAP_DUMPS = 5
-    const val DEFAULT_SCENARIO_LOOPS_PER_DUMP = 1
+    const val DEFAULT_SCENARIO_LOOPS_PER_DUMP = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH
 
     /**
      * In process => More than one to account for the impact of running the analysis.
      */
     const val IN_PROCESS_SCENARIO_LOOPS_PER_DUMP = 2
   }
-}
-
-/**
- * @see [RepeatingScenarioObjectGrowthDetector.findRepeatedlyGrowingObjects].
- */
-fun ObjectGrowthDetector.repeatingScenario(
-  heapGraphProvider: HeapGraphProvider,
-  maxHeapDumps: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS,
-  scenarioLoopsPerDump: Int = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP,
-): RepeatingScenarioObjectGrowthDetector {
-  return RepeatingScenarioObjectGrowthDetector(
-    heapGraphProvider = heapGraphProvider,
-    objectGrowthDetector = this,
-    maxHeapDumps = maxHeapDumps,
-    scenarioLoopsPerDump = scenarioLoopsPerDump
-  )
 }

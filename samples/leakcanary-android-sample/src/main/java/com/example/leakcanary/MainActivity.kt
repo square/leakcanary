@@ -30,15 +30,23 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.View
 import android.widget.Button
+import java.io.File
 import java.util.concurrent.atomic.AtomicReference
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlin.concurrent.thread
 import kotlin.random.Random
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTime
+import leakcanary.AndroidDebugHeapDumper
 import leakcanary.AppWatcher
+import shark.bytes
 
 class MainActivity : Activity() {
 
   private var leakyReceiver = false
 
+  @OptIn(ExperimentalTime::class)
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.main_activity)
@@ -77,7 +85,32 @@ class MainActivity : Activity() {
         .show()
     }
     findViewById<Button>(R.id.start_service_button).setOnClickListener {
-      startService(Intent(this, LeakingService::class.java))
+
+      Thread {
+        val heapDump = File(filesDir, "test.hprof")
+        AndroidDebugHeapDumper.dumpHeap(heapDump)
+        println("FOOBAR  file size is ${heapDump.length().bytes}")
+        val bufferSizes = generateSequence(180000) { previous ->
+          if (previous < 280000) {
+            previous + 10_000
+          } else {
+            null
+          }
+        }
+        for (bufferSize in bufferSizes) {
+          val zippedFile = File(filesDir, "test.zip")
+          val duration = measureTime {
+            heapDump.zipFile(zippedFile, bufferSize)
+          }
+          println(
+            "FOOBAR Zipped buffer $bufferSize in $duration (size: ${zippedFile.length().bytes})"
+          )
+          zippedFile.delete()
+        }
+
+      }.start()
+
+      // startService(Intent(this, LeakingService::class.java))
     }
     findViewById<Button>(R.id.leak_receiver_button).setOnClickListener {
       leakyReceiver = true
@@ -128,4 +161,16 @@ class MainActivity : Activity() {
       }, 500)
     }
   }
+}
+
+private fun File.zipFile(
+  destination: File = File(parent, "$nameWithoutExtension.zip"),
+  bufferSize: Int
+): File {
+  ZipOutputStream(destination.outputStream()).use { zipOutputStream ->
+    zipOutputStream.putNextEntry(ZipEntry(name))
+    // TODO Right buffer size for heap dump?
+    inputStream().use { it.copyTo(zipOutputStream, bufferSize = bufferSize) }
+  }
+  return destination
 }

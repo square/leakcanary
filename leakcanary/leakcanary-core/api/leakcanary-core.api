@@ -1,39 +1,30 @@
-public final class leakcanary/DateFormatHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {
-	public static final field Companion Lleakcanary/DateFormatHeapDumpFileProvider$Companion;
+public final class leakcanary/DatetimeFormattedHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {
+	public static final field Companion Lleakcanary/DatetimeFormattedHeapDumpFileProvider$Companion;
 	public static final field TIME_PATTERN Ljava/lang/String;
-	public fun <init> (Ljava/io/File;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;)V
-	public synthetic fun <init> (Ljava/io/File;Lkotlin/jvm/functions/Function0;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (Lleakcanary/HeapDumpDirectoryProvider;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;)V
+	public synthetic fun <init> (Lleakcanary/HeapDumpDirectoryProvider;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun newHeapDumpFile ()Ljava/io/File;
 }
 
-public final class leakcanary/DateFormatHeapDumpFileProvider$Companion {
+public final class leakcanary/DatetimeFormattedHeapDumpFileProvider$Companion {
 }
 
-public final class leakcanary/DateFormatHeapDumpFileProviderKt {
-	public static final fun datetimeFormatted (Lleakcanary/HeapDumpFileProvider$Companion;Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;)Lleakcanary/HeapDumpFileProvider;
-	public static synthetic fun datetimeFormatted$default (Lleakcanary/HeapDumpFileProvider$Companion;Ljava/io/File;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lleakcanary/HeapDumpFileProvider;
-}
-
-public final class leakcanary/DumpingAndDeletingHeapGraphProvider : shark/HeapGraphProvider {
-	public fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lleakcanary/FileDeleter;)V
+public final class leakcanary/DumpingHeapGraphProvider : shark/HeapGraphProvider {
+	public fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lleakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener;)V
+	public synthetic fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lleakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun openHeapGraph ()Lshark/CloseableHeapGraph;
 }
 
-public final class leakcanary/DumpingAndDeletingHeapGraphProviderKt {
-	public static final fun dumpingAndDeleting (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;Lleakcanary/FileDeleter;)Lleakcanary/DumpingAndDeletingHeapGraphProvider;
-	public static synthetic fun dumpingAndDeleting$default (Lshark/HeapGraphProvider$Companion;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpFileProvider;Lleakcanary/FileDeleter;ILjava/lang/Object;)Lleakcanary/DumpingAndDeletingHeapGraphProvider;
+public abstract interface class leakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener {
+	public abstract fun onHeapDumpClosed (Ljava/io/File;)V
 }
 
-public abstract interface class leakcanary/FileDeleter {
-	public abstract fun delete (Ljava/io/File;)V
+public abstract interface class leakcanary/HeapDumpDirectoryProvider {
+	public abstract fun heapDumpDirectory ()Ljava/io/File;
 }
 
 public abstract interface class leakcanary/HeapDumpFileProvider {
-	public static final field Companion Lleakcanary/HeapDumpFileProvider$Companion;
 	public abstract fun newHeapDumpFile ()Ljava/io/File;
-}
-
-public final class leakcanary/HeapDumpFileProvider$Companion {
 }
 
 public abstract interface class leakcanary/HeapDumper {
@@ -62,12 +53,8 @@ public final class leakcanary/ObjectGrowthWarmupHeapDumperKt {
 	public static final fun withDetectorWarmup (Lleakcanary/HeapDumper;Lshark/ObjectGrowthDetector;Z)Lleakcanary/HeapDumper;
 }
 
-public final class leakcanary/TempHeapDumpFileProvider : leakcanary/HeapDumpFileProvider {
-	public static final field INSTANCE Lleakcanary/TempHeapDumpFileProvider;
-	public fun newHeapDumpFile ()Ljava/io/File;
-}
-
-public final class leakcanary/TempHeapDumpFileProviderKt {
-	public static final fun tempFile (Lleakcanary/HeapDumpFileProvider$Companion;)Lleakcanary/HeapDumpFileProvider;
+public final class leakcanary/WorkingDirectoryHeapDumpDirectoryProvider : leakcanary/HeapDumpDirectoryProvider {
+	public fun <init> (Ljava/lang/String;)V
+	public fun heapDumpDirectory ()Ljava/io/File;
 }
 

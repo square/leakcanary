@@ -68,7 +68,7 @@ class FirstHeapTraversal constructor(
   override val scenarioLoopsPerGraph = previousTraversal.scenarioLoopsPerGraph
 }
 
-class HeapGrowthTraversal(
+class HeapDiff(
   override val traversalCount: Int,
   override val shortestPathTree: ShortestPathObjectNode,
   /**
@@ -89,4 +89,6 @@ class HeapGrowthTraversal(
       "growingNodes=\n${growingObjects.joinToString("\n")}\n" +
       ")"
   }
+
+  companion object
 }
