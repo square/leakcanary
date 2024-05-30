@@ -15,7 +15,7 @@ fun HeapDiff.Companion.repeatingDumpingTestScenario(
   objectGrowthDetector: ObjectGrowthDetector,
   heapDumpDirectoryProvider: HeapDumpDirectoryProvider,
   heapDumper: HeapDumper,
-  heapDumpDeletionStrategy: HeapDumpDeletionStrategy,
+  heapDumpStorageStrategy: HeapDumpStorageStrategy,
 ): RepeatingScenarioObjectGrowthDetector {
   return RepeatingScenarioObjectGrowthDetector(
     heapGraphProvider = DumpingHeapGraphProvider(
@@ -30,11 +30,11 @@ fun HeapDiff.Companion.repeatingDumpingTestScenario(
             }
       ),
       heapDumper = heapDumper,
-      heapDumpClosedListener = heapDumpDeletionStrategy
+      heapDumpClosedListener = heapDumpStorageStrategy
     ),
     repeatingHeapGraphDetector = RepeatingHeapGraphObjectGrowthDetector(
       objectGrowthDetector = objectGrowthDetector,
-      completionListener = heapDumpDeletionStrategy
+      completionListener = heapDumpStorageStrategy
     ),
   )
 }

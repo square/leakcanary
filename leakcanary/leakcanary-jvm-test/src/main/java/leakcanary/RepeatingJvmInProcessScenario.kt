@@ -21,12 +21,12 @@ fun HeapDiff.Companion.repeatingJvmInProcessScenario(
   heapDumper: HeapDumper = HeapDumper.forJvmInProcess()
     .withGc(gcTrigger = GcTrigger.inProcess())
     .withDetectorWarmup(objectGrowthDetector, androidHeap = false),
-  heapDumpDeletionStrategy: HeapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnHeapDumpClose(),
+  heapDumpStorageStrategy: HeapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose(),
 ): RepeatingScenarioObjectGrowthDetector {
   return repeatingDumpingTestScenario(
     objectGrowthDetector = objectGrowthDetector,
     heapDumpDirectoryProvider = heapDumpDirectoryProvider,
     heapDumper = heapDumper,
-    heapDumpDeletionStrategy = heapDumpDeletionStrategy,
+    heapDumpStorageStrategy = heapDumpStorageStrategy,
   )
 }

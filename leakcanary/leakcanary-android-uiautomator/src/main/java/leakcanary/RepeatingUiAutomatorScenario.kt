@@ -23,7 +23,7 @@ fun HeapDiff.Companion.repeatingUiAutomatorScenario(
     withGc = true,
     dumpedAppPackageName = dumpedAppPackageName
   ),
-  heapDumpDeletionStrategy: HeapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnHeapDumpClose { heapDumpFile ->
+  heapDumpStorageStrategy: HeapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose { heapDumpFile ->
     UiAutomatorShellFileDeleter.deleteFileUsingShell(heapDumpFile)
   },
 ): RepeatingScenarioObjectGrowthDetector {
@@ -31,6 +31,6 @@ fun HeapDiff.Companion.repeatingUiAutomatorScenario(
     objectGrowthDetector = objectGrowthDetector,
     heapDumpDirectoryProvider = heapDumpDirectoryProvider,
     heapDumper = heapDumper,
-    heapDumpDeletionStrategy = heapDumpDeletionStrategy,
+    heapDumpStorageStrategy = heapDumpStorageStrategy,
   )
 }
