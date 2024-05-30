@@ -855,6 +855,10 @@
 <td>[androidJvm]<br>class <a href="-android-detect-leaks-interceptor/">AndroidDetectLeaksInterceptor</a>(instrumentation: <a href="https://developer.android.com/reference/kotlin/android/app/Instrumentation.html">Instrumentation</a> = InstrumentationRegistry.getInstrumentation(), retainedObjectTracker: RetainedObjectTracker = AppWatcher.objectWatcher, retainedDelayMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = AppWatcher.retainedDelayMillis) : <a href="-detect-leaks-interceptor/">DetectLeaksInterceptor</a></td>
 </tr>
 <tr>
+<td><a href="-android-device-temp-heap-dump-directory-provider/">AndroidDeviceTempHeapDumpDirectoryProvider</a></td>
+<td>[androidJvm]<br>class <a href="-android-device-temp-heap-dump-directory-provider/">AndroidDeviceTempHeapDumpDirectoryProvider</a>(heapDumpDirectoryName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : HeapDumpDirectoryProvider</td>
+</tr>
+<tr>
 <td><a href="-android-leak-fixes/">AndroidLeakFixes</a></td>
 <td>[androidJvm]<br>enum <a href="-android-leak-fixes/">AndroidLeakFixes</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a>&lt;<a href="-android-leak-fixes/">AndroidLeakFixes</a>&gt; <br>A collection of hacks to fix leaks in the Android Framework and other Google Android libraries.</td>
 </tr>
@@ -879,8 +883,8 @@
 <td>[androidJvm]<br>class <a href="-conditional-interceptor/">ConditionalInterceptor</a>(delegate: <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a>, evaluateCondition: (<a href="-heap-analysis-job/">HeapAnalysisJob</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>) : <a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a><br>An interceptor that runs only when evaluateCondition returns true.</td>
 </tr>
 <tr>
-<td><a href="-date-format-heap-dump-file-provider/">DateFormatHeapDumpFileProvider</a></td>
-<td>[jvm]<br>class <a href="-date-format-heap-dump-file-provider/">DateFormatHeapDumpFileProvider</a>(heapDumpDirectory: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, dateProvider: () -&gt; <a href="https://developer.android.com/reference/kotlin/java/util/Date.html">Date</a> = { Date() }, prefix: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, suffix: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;) : <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
+<td><a href="-datetime-formatted-heap-dump-file-provider/">DatetimeFormattedHeapDumpFileProvider</a></td>
+<td>[jvm]<br>class <a href="-datetime-formatted-heap-dump-file-provider/">DatetimeFormattedHeapDumpFileProvider</a>(heapDumpDirectoryProvider: <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a>, dateProvider: () -&gt; <a href="https://developer.android.com/reference/kotlin/java/util/Date.html">Date</a> = { Date() }, prefixProvider: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = { &quot;&quot; }, suffixProvider: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = { &quot;&quot; }) : <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
 </tr>
 <tr>
 <td><a href="-default-delay-deletable-object-reporter/">DefaultDelayDeletableObjectReporter</a></td>
@@ -911,16 +915,12 @@
 <td>[androidJvm]<br>fun interface <a href="-detect-leaks-interceptor/">DetectLeaksInterceptor</a><br>Decides whether to dump &amp; analyze the heap to look for leaks in instrumentation tests. The implementation might block for a while to allow temporary leaks to be flushed out, as those aren&rsquo;t that interesting to report and heap analysis increases test duration significantly.</td>
 </tr>
 <tr>
-<td><a href="-dumping-and-deleting-heap-graph-provider/">DumpingAndDeletingHeapGraphProvider</a></td>
-<td>[jvm]<br>class <a href="-dumping-and-deleting-heap-graph-provider/">DumpingAndDeletingHeapGraphProvider</a>(heapDumpFileProvider: <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a>, heapDumper: <a href="-heap-dumper/">HeapDumper</a>, fileDeleter: <a href="-file-deleter/">FileDeleter</a>) : <a href="../shark/-heap-graph-provider/">HeapGraphProvider</a></td>
+<td><a href="-dumping-heap-graph-provider/">DumpingHeapGraphProvider</a></td>
+<td>[jvm]<br>class <a href="-dumping-heap-graph-provider/">DumpingHeapGraphProvider</a>(heapDumpFileProvider: <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a>, heapDumper: <a href="-heap-dumper/">HeapDumper</a>, heapDumpClosedListener: <a href="-dumping-heap-graph-provider/-heap-dump-closed-listener/">DumpingHeapGraphProvider.HeapDumpClosedListener</a> = HeapDumpClosedListener {}) : <a href="../shark/-heap-graph-provider/">HeapGraphProvider</a></td>
 </tr>
 <tr>
 <td><a href="-event-listener/">EventListener</a></td>
 <td>[androidJvm]<br>fun interface <a href="-event-listener/">EventListener</a></td>
-</tr>
-<tr>
-<td><a href="-file-deleter/">FileDeleter</a></td>
-<td>[jvm]<br>fun interface <a href="-file-deleter/">FileDeleter</a></td>
 </tr>
 <tr>
 <td><a href="-finalizing-in-process-gc-trigger/">FinalizingInProcessGcTrigger</a></td>
@@ -963,12 +963,20 @@
 <td>[androidJvm]<br>fun interface <a href="-heap-analysis-reporter/">HeapAnalysisReporter</a><br>Reports the results of a heap analysis created by <a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a>.</td>
 </tr>
 <tr>
+<td><a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a></td>
+<td>[jvm]<br>fun interface <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a></td>
+</tr>
+<tr>
 <td><a href="-heap-dumper/">HeapDumper</a></td>
 <td>[jvm]<br>fun interface <a href="-heap-dumper/">HeapDumper</a></td>
 </tr>
 <tr>
 <td><a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
 <td>[jvm]<br>fun interface <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
+</tr>
+<tr>
+<td><a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a></td>
+<td>[jvm]<br>interface <a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a> : <a href="-dumping-heap-graph-provider/-heap-dump-closed-listener/">DumpingHeapGraphProvider.HeapDumpClosedListener</a>, <a href="../shark/-repeating-heap-graph-object-growth-detector/-completion-listener/">RepeatingHeapGraphObjectGrowthDetector.CompletionListener</a></td>
 </tr>
 <tr>
 <td><a href="-hot-spot-heap-dumper/">HotSpotHeapDumper</a></td>
@@ -1059,6 +1067,10 @@
 <td>[androidJvm]<br>object <a href="-remote-work-manager-heap-analyzer/">RemoteWorkManagerHeapAnalyzer</a> : <a href="-event-listener/">EventListener</a><br>When receiving a <a href="-event-listener/-event/-heap-dump/">HeapDump</a> event, starts a WorkManager worker that performs heap analysis in a dedicated :leakcanary process</td>
 </tr>
 <tr>
+<td><a href="-repository-root-heap-dump-directory-provider/">RepositoryRootHeapDumpDirectoryProvider</a></td>
+<td>[jvm]<br>class <a href="-repository-root-heap-dump-directory-provider/">RepositoryRootHeapDumpDirectoryProvider</a>(heapDumpDirectoryName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a></td>
+</tr>
+<tr>
 <td><a href="-retained-object-tracker/">RetainedObjectTracker</a></td>
 <td>[jvm]<br>interface <a href="-retained-object-tracker/">RetainedObjectTracker</a><br>Helper util for tracking retained objects.</td>
 </tr>
@@ -1083,12 +1095,20 @@
 <td>[androidJvm]<br>@<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-target/index.html">Target</a>(allowedTargets = [<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-c-l-a-s-s/index.html">AnnotationTarget.CLASS</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.annotation/-annotation-target/-f-u-n-c-t-i-o-n/index.html">AnnotationTarget.FUNCTION</a>])<br>annotation class <a href="-skip-leak-detection/">SkipLeakDetection</a>(val message: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val assertionTags: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>)<br>Annotation for skipping leak detection in a UI test that calls <a href="-leak-assertions/assert-no-leaks/">LeakAssertions.assertNoLeaks</a>. This annotation is useful to skip a leak detection in a test until the leaks are fixed.</td>
 </tr>
 <tr>
-<td><a href="-temp-heap-dump-file-provider/">TempHeapDumpFileProvider</a></td>
-<td>[jvm]<br>object <a href="-temp-heap-dump-file-provider/">TempHeapDumpFileProvider</a> : <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
+<td><a href="-target-context-heap-dump-directory-provider/">TargetContextHeapDumpDirectoryProvider</a></td>
+<td>[androidJvm]<br>class <a href="-target-context-heap-dump-directory-provider/">TargetContextHeapDumpDirectoryProvider</a>(heapDumpDirectoryName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : HeapDumpDirectoryProvider</td>
 </tr>
 <tr>
 <td><a href="-test-description-holder/">TestDescriptionHolder</a></td>
-<td>[androidJvm]<br>object <a href="-test-description-holder/">TestDescriptionHolder</a> : TestRule<br>A TestRule that holds onto the test Description in a thread local while evaluating, making it possible to retrieve that test Description from the test thread via <a href="-test-description-holder/test-description/">testDescription</a>.</td>
+<td>[jvm]<br>object <a href="-test-description-holder/">TestDescriptionHolder</a> : TestRule<br>A TestRule that holds onto the test Description in a thread local while evaluating, making it possible to retrieve that test Description from the test thread via <a href="-test-description-holder/test-description/">testDescription</a>.</td>
+</tr>
+<tr>
+<td><a href="-test-name/">TestName</a></td>
+<td>[jvm]<br>interface <a href="-test-name/">TestName</a></td>
+</tr>
+<tr>
+<td><a href="-test-name-provider/">TestNameProvider</a></td>
+<td>[jvm]<br>object <a href="-test-name-provider/">TestNameProvider</a></td>
 </tr>
 <tr>
 <td><a href="-toast-event-listener/">ToastEventListener</a></td>
@@ -1108,7 +1128,7 @@
 </tr>
 <tr>
 <td><a href="-ui-automator-shell-file-deleter/">UiAutomatorShellFileDeleter</a></td>
-<td>[androidJvm]<br>object <a href="-ui-automator-shell-file-deleter/">UiAutomatorShellFileDeleter</a> : FileDeleter</td>
+<td>[androidJvm]<br>object <a href="-ui-automator-shell-file-deleter/">UiAutomatorShellFileDeleter</a></td>
 </tr>
 <tr>
 <td><a href="-ui-automator-shell-heap-dumper/">UiAutomatorShellHeapDumper</a></td>
@@ -1138,14 +1158,6 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="datetime-formatted/">datetimeFormatted</a></td>
-<td>[jvm]<br>fun <a href="-heap-dump-file-provider/-companion/">HeapDumpFileProvider.Companion</a>.<a href="datetime-formatted/">datetimeFormatted</a>(directory: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, prefix: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, suffix: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = &quot;&quot;, dateProvider: () -&gt; <a href="https://developer.android.com/reference/kotlin/java/util/Date.html">Date</a> = { Date() }): <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
-</tr>
-<tr>
-<td><a href="dumping-and-deleting/">dumpingAndDeleting</a></td>
-<td>[jvm]<br>fun <a href="../shark/-heap-graph-provider/-companion/">HeapGraphProvider.Companion</a>.<a href="dumping-and-deleting/">dumpingAndDeleting</a>(heapDumper: <a href="-heap-dumper/">HeapDumper</a>, heapDumpFileProvider: <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a> = TempHeapDumpFileProvider, fileDeleter: <a href="-file-deleter/">FileDeleter</a> = FileDeleter { it.delete() }): <a href="-dumping-and-deleting-heap-graph-provider/">DumpingAndDeletingHeapGraphProvider</a></td>
-</tr>
-<tr>
 <td><a href="filtering-instances/">filteringInstances</a></td>
 <td>[jvm]<br>inline fun &lt;<a href="filtering-instances/">T</a>&gt; <a href="-deletable-object-reporter/">DeletableObjectReporter</a>.<a href="filtering-instances/">filteringInstances</a>(crossinline apply: (<a href="filtering-instances/">T</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a>): <a href="-deletable-object-reporter/">DeletableObjectReporter</a><br>Creates a wrapper around <a href="-deletable-object-reporter/">DeletableObjectReporter</a> that will run any instance of <a href="filtering-instances/">T</a> by <a href="filtering-instances/">apply</a> to decide whether to forward to <a href="-deletable-object-reporter/expect-deletion-for/">DeletableObjectReporter.expectDeletionFor</a> calls. Objects that do not extend <a href="filtering-instances/">T</a> will always be forwarded.</td>
 </tr>
@@ -1167,19 +1179,19 @@
 </tr>
 <tr>
 <td><a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a></td>
-<td>[androidJvm]<br>fun <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a>.<a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests. Typically called on a <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a> created via shark.forAndroidHeap.</td>
+<td>[androidJvm]<br>fun <a href="../shark/-heap-diff/-companion/#-693027720%2FMain%2F-467942417">HeapDiff.Companion</a>.<a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a>(objectGrowthDetector: ObjectGrowthDetector = ObjectGrowthDetector.forAndroidHeap(), heapDumpDirectoryProvider: HeapDumpDirectoryProvider = TargetContextHeapDumpDirectoryProvider(     heapDumpDirectoryName = &quot;heap_dumps_object_growth&quot;   ), heapDumper: HeapDumper = HeapDumper.forAndroidInProcess()     .withGc(gcTrigger = GcTrigger.inProcess())     .withDetectorWarmup(objectGrowthDetector, androidHeap = true), heapDumpStorageStrategy: HeapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose()): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests.</td>
+</tr>
+<tr>
+<td><a href="repeating-dumping-test-scenario/">repeatingDumpingTestScenario</a></td>
+<td>[jvm]<br>fun <a href="../shark/-heap-diff/-companion/">HeapDiff.Companion</a>.<a href="repeating-dumping-test-scenario/">repeatingDumpingTestScenario</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>, heapDumpDirectoryProvider: <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a>, heapDumper: <a href="-heap-dumper/">HeapDumper</a>, heapDumpStorageStrategy: <a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a>): <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>Creates a <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for junit based automated tests that can dump the heap.</td>
 </tr>
 <tr>
 <td><a href="repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a></td>
-<td>[jvm]<br>fun <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>.<a href="repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>Creates a <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for JVM in process tests. Typically called on a <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a> created via <a href="../shark/for-jvm-heap/">shark.forJvmHeap</a>.</td>
+<td>[jvm]<br>fun <a href="../shark/-heap-diff/-companion/">HeapDiff.Companion</a>.<a href="repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a> = ObjectGrowthDetector.forJvmHeap(), heapDumpDirectoryProvider: <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a> = RepositoryRootHeapDumpDirectoryProvider(     &quot;heap_dumps_object_growth&quot;   ), heapDumper: <a href="-heap-dumper/">HeapDumper</a> = HeapDumper.forJvmInProcess()     .withGc(gcTrigger = GcTrigger.inProcess())     .withDetectorWarmup(objectGrowthDetector, androidHeap = false), heapDumpStorageStrategy: <a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a> = HeapDumpStorageStrategy.DeleteOnHeapDumpClose()): <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>Creates a <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for JVM in process tests.</td>
 </tr>
 <tr>
 <td><a href="repeating-ui-automator-scenario/">repeatingUiAutomatorScenario</a></td>
-<td>[androidJvm]<br>fun <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a>.<a href="repeating-ui-automator-scenario/">repeatingUiAutomatorScenario</a>(dumpedAppPackageName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = InstrumentationRegistry.getInstrumentation().targetContext.packageName, maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android UI Automator tests. Typically called on a <a href="../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a> created via shark.forAndroidHeap.</td>
-</tr>
-<tr>
-<td><a href="temp-file/">tempFile</a></td>
-<td>[jvm]<br>fun <a href="-heap-dump-file-provider/-companion/">HeapDumpFileProvider.Companion</a>.<a href="temp-file/">tempFile</a>(): <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
+<td>[androidJvm]<br>fun <a href="../shark/-heap-diff/-companion/#-693027720%2FMain%2F-467942417">HeapDiff.Companion</a>.<a href="repeating-ui-automator-scenario/">repeatingUiAutomatorScenario</a>(objectGrowthDetector: ObjectGrowthDetector = ObjectGrowthDetector.forAndroidHeap(), dumpedAppPackageName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = InstrumentationRegistry.getInstrumentation().targetContext.packageName, heapDumpDirectoryProvider: HeapDumpDirectoryProvider = AndroidDeviceTempHeapDumpDirectoryProvider(     heapDumpDirectoryName = &quot;heap_dumps_object_growth_$dumpedAppPackageName&quot;   ), heapDumper: HeapDumper = HeapDumper.forUiAutomatorAsShell(     withGc = true,     dumpedAppPackageName = dumpedAppPackageName   ), heapDumpStorageStrategy: HeapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose { heapDumpFile -&gt;     UiAutomatorShellFileDeleter.deleteFileUsingShell(heapDumpFile)   }): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android UI Automator tests.</td>
 </tr>
 <tr>
 <td><a href="with-detector-warmup/">withDetectorWarmup</a></td>

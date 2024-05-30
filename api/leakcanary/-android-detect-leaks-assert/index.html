@@ -787,7 +787,7 @@
 <p>[androidJvm]\
 class <a href="./">AndroidDetectLeaksAssert</a>(detectLeaksInterceptor: <a href="../-detect-leaks-interceptor/">DetectLeaksInterceptor</a> = AndroidDetectLeaksInterceptor(), heapAnalysisReporter: <a href="../-heap-analysis-reporter/">HeapAnalysisReporter</a> = NoLeakAssertionFailedError.throwOnApplicationLeaks()) : <a href="../-detect-leaks-assert/">DetectLeaksAssert</a></p>
 <p>Default <a href="../-detect-leaks-assert/">DetectLeaksAssert</a> implementation. Uses public helpers so you should be able to create our own implementation if needed.</p>
-<p>Leak detection can be skipped by annotating tests with <a href="../-skip-leak-detection/">SkipLeakDetection</a> which requires the <a href="../-test-description-holder/">TestDescriptionHolder</a> test rule be applied and evaluating when <a href="assert-no-leaks/">assertNoLeaks</a> is called.</p>
+<p>Leak detection can be skipped by annotating tests with <a href="../-skip-leak-detection/">SkipLeakDetection</a> which requires the TestDescriptionHolder test rule be applied and evaluating when <a href="assert-no-leaks/">assertNoLeaks</a> is called.</p>
 <p>For improved leak detection, you should consider updating <a href="../-leak-canary/-config/leaking-object-finder/">LeakCanary.Config.leakingObjectFinder</a> to <code>FilteringLeakingObjectFinder(AndroidObjectInspectors.appLeakingObjectFilters)</code> when running in instrumentation tests. This changes leak detection from being incremental (based on <a href="../-app-watcher/">AppWatcher</a> to also scanning for all objects of known types in the heap).</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>

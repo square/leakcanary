@@ -1031,6 +1031,10 @@
 <td>[jvm]<br>class <a href="-heap-analyzer/">HeapAnalyzer</a>(listener: <a href="-on-analysis-progress-listener/">OnAnalysisProgressListener</a>)<br>Analyzes heap dumps to look for leaks.</td>
 </tr>
 <tr>
+<td><a href="-heap-diff/">HeapDiff</a></td>
+<td>[jvm]<br>class <a href="-heap-diff/">HeapDiff</a>(val traversalCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val shortestPathTree: <a href="-shortest-path-object-node/">ShortestPathObjectNode</a>, val growingObjects: <a href="./#2039552004%2FClasslikes%2F1504522321">GrowingObjectNodes</a>, previousTraversal: <a href="-heap-traversal-input/">HeapTraversalInput</a>) : <a href="-heap-traversal-output/">HeapTraversalOutput</a></td>
+</tr>
+<tr>
 <td><a href="-heap-dump-rule/">HeapDumpRule</a></td>
 <td>[jvm]<br>class <a href="-heap-dump-rule/">HeapDumpRule</a> : ExternalResource</td>
 </tr>
@@ -1049,10 +1053,6 @@
 <tr>
 <td><a href="-heap-growth-command/">HeapGrowthCommand</a></td>
 <td>[jvm]<br>class <a href="-heap-growth-command/">HeapGrowthCommand</a> : CliktCommand</td>
-</tr>
-<tr>
-<td><a href="-heap-growth-traversal/">HeapGrowthTraversal</a></td>
-<td>[jvm]<br>class <a href="-heap-growth-traversal/">HeapGrowthTraversal</a>(val traversalCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>, val shortestPathTree: <a href="-shortest-path-object-node/">ShortestPathObjectNode</a>, val growingObjects: <a href="./#2039552004%2FClasslikes%2F1504522321">GrowingObjectNodes</a>, previousTraversal: <a href="-heap-traversal-input/">HeapTraversalInput</a>) : <a href="-heap-traversal-output/">HeapTraversalOutput</a></td>
 </tr>
 <tr>
 <td><a href="-heap-object/">HeapObject</a></td>
@@ -1300,11 +1300,11 @@
 </tr>
 <tr>
 <td><a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a></td>
-<td>[jvm]<br>class <a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a>(objectGrowthDetector: <a href="-object-growth-detector/">ObjectGrowthDetector</a>)</td>
+<td>[jvm]<br>class <a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a>(objectGrowthDetector: <a href="-object-growth-detector/">ObjectGrowthDetector</a>, completionListener: <a href="-repeating-heap-graph-object-growth-detector/-completion-listener/">RepeatingHeapGraphObjectGrowthDetector.CompletionListener</a> = CompletionListener { })</td>
 </tr>
 <tr>
 <td><a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></td>
-<td>[jvm]<br>class <a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a>(heapGraphProvider: <a href="-heap-graph-provider/">HeapGraphProvider</a>, objectGrowthDetector: <a href="-object-growth-detector/">ObjectGrowthDetector</a>, maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_DUMP)</td>
+<td>[jvm]<br>class <a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a>(heapGraphProvider: <a href="-heap-graph-provider/">HeapGraphProvider</a>, repeatingHeapGraphDetector: <a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a>)</td>
 </tr>
 <tr>
 <td><a href="-retained/">Retained</a></td>
@@ -1404,14 +1404,6 @@
 <tr>
 <td><a href="main/">main</a></td>
 <td>[jvm]<br>fun <a href="main/">main</a>(args: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-array/index.html">Array</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;)</td>
-</tr>
-<tr>
-<td><a href="repeating-heap-graph/">repeatingHeapGraph</a></td>
-<td>[jvm]<br>fun <a href="-object-growth-detector/">ObjectGrowthDetector</a>.<a href="repeating-heap-graph/">repeatingHeapGraph</a>(): <a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a></td>
-</tr>
-<tr>
-<td><a href="repeating-scenario/">repeatingScenario</a></td>
-<td>[jvm]<br>fun <a href="-object-growth-detector/">ObjectGrowthDetector</a>.<a href="repeating-scenario/">repeatingScenario</a>(heapGraphProvider: <a href="-heap-graph-provider/">HeapGraphProvider</a>, maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP): <a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></td>
 </tr>
 <tr>
 <td><a href="-retained/">Retained</a></td>

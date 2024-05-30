@@ -787,7 +787,7 @@
 <p>[androidJvm]\
 class <a href="./">DetectLeaksAfterTestSuccess</a>(tag: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = DetectLeaksAfterTestSuccess::class.java.simpleName) : TestRule</p>
 <p>TestRule that invokes <a href="../-leak-assertions/assert-no-leaks/">LeakAssertions.assertNoLeaks</a> after the test successfully evaluates. Pay attention to where you set up this rule in the rule chain as you might detect different leaks (e.g. around vs wrapped by the activity rule). It&rsquo;s also possible to use this rule several times in a rule chain.</p>
-<p>This rule automatically applies the <a href="../-test-description-holder/">TestDescriptionHolder</a> rule.</p>
+<p>This rule automatically applies the TestDescriptionHolder rule.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

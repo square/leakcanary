@@ -771,9 +771,13 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">leakcanary</a>/<a href="./">repeatingAndroidInProcessScenario</a></p>
 <h1 id="repeatingandroidinprocessscenario">repeatingAndroidInProcessScenario<a class="headerlink" href="#repeatingandroidinprocessscenario" title="Permanent link">&para;</a></h1>
 <p>[androidJvm]\
-fun <a href="../../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a>.<a href="./">repeatingAndroidInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): RepeatingScenarioObjectGrowthDetector</p>
-<p>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests. Typically called on a <a href="../../shark/-object-growth-detector/#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a> created via shark.forAndroidHeap.</p>
-<p>Dumps the heap by leveraging Android APIs, running an in process GC right before dumping. Deletes the heap dump file as soon as we&rsquo;re done traversing it.</p>
+fun <a href="../../shark/-heap-diff/-companion/#-693027720%2FMain%2F-467942417">HeapDiff.Companion</a>.<a href="./">repeatingAndroidInProcessScenario</a>(objectGrowthDetector: ObjectGrowthDetector = ObjectGrowthDetector.forAndroidHeap(), heapDumpDirectoryProvider: HeapDumpDirectoryProvider = TargetContextHeapDumpDirectoryProvider(
+    heapDumpDirectoryName = &quot;heap_dumps_object_growth&quot;
+  ), heapDumper: HeapDumper = HeapDumper.forAndroidInProcess()
+    .withGc(gcTrigger = GcTrigger.inProcess())
+    .withDetectorWarmup(objectGrowthDetector, androidHeap = true), heapDumpStorageStrategy: HeapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose()): RepeatingScenarioObjectGrowthDetector</p>
+<p>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests.</p>
+<p>Dumps the heap by leveraging Android APIs, running an in process GC right before dumping.</p>
 <h4 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h4>
 <table>
 <thead>

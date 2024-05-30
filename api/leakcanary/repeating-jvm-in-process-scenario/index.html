@@ -771,8 +771,12 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">leakcanary</a>/<a href="./">repeatingJvmInProcessScenario</a></p>
 <h1 id="repeatingjvminprocessscenario">repeatingJvmInProcessScenario<a class="headerlink" href="#repeatingjvminprocessscenario" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-fun <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a>.<a href="./">repeatingJvmInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): <a href="../../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></p>
-<p>Creates a <a href="../../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for JVM in process tests. Typically called on a <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a> created via <a href="../../shark/for-jvm-heap/">shark.forJvmHeap</a>.</p>
+fun <a href="../../shark/-heap-diff/-companion/">HeapDiff.Companion</a>.<a href="./">repeatingJvmInProcessScenario</a>(objectGrowthDetector: <a href="../../shark/-object-growth-detector/">ObjectGrowthDetector</a> = ObjectGrowthDetector.forJvmHeap(), heapDumpDirectoryProvider: <a href="../-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a> = RepositoryRootHeapDumpDirectoryProvider(
+    &quot;heap_dumps_object_growth&quot;
+  ), heapDumper: <a href="../-heap-dumper/">HeapDumper</a> = HeapDumper.forJvmInProcess()
+    .withGc(gcTrigger = GcTrigger.inProcess())
+    .withDetectorWarmup(objectGrowthDetector, androidHeap = false), heapDumpStorageStrategy: <a href="../-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a> = HeapDumpStorageStrategy.DeleteOnHeapDumpClose()): <a href="../../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></p>
+<p>Creates a <a href="../../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for JVM in process tests.</p>
 <p>Dumps the heap by leveraging Hotspot APIs, running an in process GC right before dumping. Deletes the heap dump file as soon as we&rsquo;re done traversing it.</p>
 <h4 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h4>
 <table>

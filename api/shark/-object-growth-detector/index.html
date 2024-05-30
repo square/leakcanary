@@ -830,26 +830,6 @@ class <a href="./">ObjectGrowthDetector</a>(gcRootProvider: <a href="../-gc-root
 <td><a href="find-growing-objects/">findGrowingObjects</a></td>
 <td>[jvm]<br>fun <a href="find-growing-objects/">findGrowingObjects</a>(heapGraph: <a href="../-closeable-heap-graph/">CloseableHeapGraph</a>, previousTraversal: <a href="../-heap-traversal-input/">HeapTraversalInput</a> = InitialState()): <a href="../-heap-traversal-output/">HeapTraversalOutput</a></td>
 </tr>
-<tr>
-<td><a href="../../leakcanary/repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a></td>
-<td>[androidJvm]<br>fun <a href="./#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a>.<a href="../../leakcanary/repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests. Typically called on a <a href="./#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a> created via shark.forAndroidHeap.</td>
-</tr>
-<tr>
-<td><a href="../repeating-heap-graph/">repeatingHeapGraph</a></td>
-<td>[jvm]<br>fun <a href="./">ObjectGrowthDetector</a>.<a href="../repeating-heap-graph/">repeatingHeapGraph</a>(): <a href="../-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a></td>
-</tr>
-<tr>
-<td><a href="../../leakcanary/repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a></td>
-<td>[jvm]<br>fun <a href="./">ObjectGrowthDetector</a>.<a href="../../leakcanary/repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.IN_PROCESS_SCENARIO_LOOPS_PER_DUMP): <a href="../-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>Creates a <a href="../-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for JVM in process tests. Typically called on a <a href="./">ObjectGrowthDetector</a> created via <a href="../for-jvm-heap/">shark.forJvmHeap</a>.</td>
-</tr>
-<tr>
-<td><a href="../repeating-scenario/">repeatingScenario</a></td>
-<td>[jvm]<br>fun <a href="./">ObjectGrowthDetector</a>.<a href="../repeating-scenario/">repeatingScenario</a>(heapGraphProvider: <a href="../-heap-graph-provider/">HeapGraphProvider</a>, maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP): <a href="../-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></td>
-</tr>
-<tr>
-<td><a href="../../leakcanary/repeating-ui-automator-scenario/">repeatingUiAutomatorScenario</a></td>
-<td>[androidJvm]<br>fun <a href="./#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a>.<a href="../../leakcanary/repeating-ui-automator-scenario/">repeatingUiAutomatorScenario</a>(dumpedAppPackageName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = InstrumentationRegistry.getInstrumentation().targetContext.packageName, maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = RepeatingScenarioObjectGrowthDetector.DEFAULT_SCENARIO_LOOPS_PER_DUMP): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android UI Automator tests. Typically called on a <a href="./#908652315%2FMain%2F-467942417">ObjectGrowthDetector</a> created via shark.forAndroidHeap.</td>
-</tr>
 </tbody>
 </table>
   

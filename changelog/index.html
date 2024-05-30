@@ -743,6 +743,47 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-30-alpha-7-2024-05-30" class="md-nav__link">
+    Version 3.0 Alpha 7 (2024-05-30)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 3.0 Alpha 7 (2024-05-30)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-espresso-test-example" class="md-nav__link">
+    Heap Growth: Espresso test example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-jvm-junit-test-example" class="md-nav__link">
+    Heap Growth: JVM Junit test example.
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-ui-automator-test-example" class="md-nav__link">
+    Heap Growth: UI Automator test example.
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-shark-cli" class="md-nav__link">
+    Heap Growth: Shark CLI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-30-alpha-6-2024-05-21" class="md-nav__link">
     Version 3.0 Alpha 6 (2024-05-21)
   </a>
@@ -771,21 +812,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#heap-growth-espresso-test-example" class="md-nav__link">
+  <a href="#heap-growth-espresso-test-example_1" class="md-nav__link">
     Heap Growth: Espresso test example
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#heap-growth-ui-automator-test-example" class="md-nav__link">
+  <a href="#heap-growth-ui-automator-test-example_1" class="md-nav__link">
     Heap Growth: UI Automator test example.
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#heap-growth-shark-cli" class="md-nav__link">
+  <a href="#heap-growth-shark-cli_1" class="md-nav__link">
     Heap Growth: Shark CLI
   </a>
   
@@ -1666,6 +1707,47 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-30-alpha-7-2024-05-30" class="md-nav__link">
+    Version 3.0 Alpha 7 (2024-05-30)
+  </a>
+  
+    <nav class="md-nav" aria-label="Version 3.0 Alpha 7 (2024-05-30)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-espresso-test-example" class="md-nav__link">
+    Heap Growth: Espresso test example
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-jvm-junit-test-example" class="md-nav__link">
+    Heap Growth: JVM Junit test example.
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-ui-automator-test-example" class="md-nav__link">
+    Heap Growth: UI Automator test example.
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#heap-growth-shark-cli" class="md-nav__link">
+    Heap Growth: Shark CLI
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-30-alpha-6-2024-05-21" class="md-nav__link">
     Version 3.0 Alpha 6 (2024-05-21)
   </a>
@@ -1694,21 +1776,21 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#heap-growth-espresso-test-example" class="md-nav__link">
+  <a href="#heap-growth-espresso-test-example_1" class="md-nav__link">
     Heap Growth: Espresso test example
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#heap-growth-ui-automator-test-example" class="md-nav__link">
+  <a href="#heap-growth-ui-automator-test-example_1" class="md-nav__link">
     Heap Growth: UI Automator test example.
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#heap-growth-shark-cli" class="md-nav__link">
+  <a href="#heap-growth-shark-cli_1" class="md-nav__link">
     Heap Growth: Shark CLI
   </a>
   
@@ -2577,6 +2659,94 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
+<h2 id="version-30-alpha-7-2024-05-30">Version 3.0 Alpha 7 (2024-05-30)<a class="headerlink" href="#version-30-alpha-7-2024-05-30" title="Permanent link">&para;</a></h2>
+<p>Revisited a number of API choices for heap growth, to simplify but also support more advanced
+behavior such as keep heap dumps on test failure, or zipping heap dumps for CI upload.</p>
+<ul>
+<li><code>HeapGrowthTraversal</code> is now <code>HeapDiff</code></li>
+<li><code>ObjectGrowthDetector.forAndroidHeap().repeatingAndroidInProcessScenario()</code> is now HeapDiff.repeatingAndroidInProcessScenario()<code>which is now really just a wrapper for HeapDiff.repeatingDumpingTestScenario()</code> with Android UI test specific configuration.</li>
+<li><code>maxHeapDumps</code> and <code>scenarioLoopsPerDump</code> have moved from being factory parameters to being per scenario parameters.</li>
+<li>💥 <a href="https://github.com/square/leakcanary/pull/2683">#2683</a> Fix crash when java.lang.Object has multiple class load records in JVM heap dumps</li>
+<li>🔨 <a href="https://github.com/square/leakcanary/pull/2682">#2682</a> Add support for unload class tags and records</li>
+</ul>
+<h3 id="heap-growth-espresso-test-example">Heap Growth: Espresso test example<a class="headerlink" href="#heap-growth-espresso-test-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-test:3.0-alpha-7&#39;</span>
+<span class="o">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;</span>
+<span class="nt">&lt;manifest</span>
+<span class="w">    </span><span class="na">xmlns:android=</span><span class="s">&quot;http://schemas.android.com/apk/res/android&quot;</span><span class="nt">&gt;</span>
+
+<span class="w">  </span><span class="cm">&lt;!-- Performing the heap growth analysis in process requires more heap. --&gt;</span>
+<span class="w">  </span><span class="nt">&lt;application</span>
+<span class="w">      </span><span class="na">android:largeHeap=</span><span class="s">&quot;true&quot;</span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/manifest&gt;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">MyEspressoTest</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">detector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapDiff</span><span class="p">.</span><span class="na">repeatingAndroidInProcessScenario</span><span class="p">()</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">greeter_says_hello_does_not_grow_heap</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Runs repeatedly until the heap stops growing or we reach max heap dumps.</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDiff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">detector</span><span class="p">.</span><span class="na">findRepeatedlyGrowingObjects</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">name_field</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">typeText</span><span class="p">(</span><span class="s">&quot;Steve&quot;</span><span class="p">))</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withId</span><span class="p">(</span><span class="n">R</span><span class="p">.</span><span class="na">id</span><span class="p">.</span><span class="na">greet_button</span><span class="p">)).</span><span class="na">perform</span><span class="p">(</span><span class="n">click</span><span class="p">())</span>
+<span class="w">      </span><span class="n">onView</span><span class="p">(</span><span class="n">withText</span><span class="p">(</span><span class="s">&quot;Hello Steve!&quot;</span><span class="p">)).</span><span class="na">check</span><span class="p">(</span><span class="n">matches</span><span class="p">(</span><span class="n">isDisplayed</span><span class="p">()))</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">heapDiff</span><span class="p">.</span><span class="na">growingObjects</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="heap-growth-jvm-junit-test-example">Heap Growth: JVM Junit test example.<a class="headerlink" href="#heap-growth-jvm-junit-test-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-jvm-test:3.0-alpha-7&#39;</span>
+<span class="o">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">MyUnitTest</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">detector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapDiff</span><span class="p">.</span><span class="na">repeatingJvmInProcessScenario</span><span class="p">()</span>
+
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">growingList</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mutableListOf</span><span class="o">&lt;</span><span class="kt">String</span><span class="o">&gt;</span><span class="p">()</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">failing_test</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Runs repeatedly until the heap stops growing or we reach max heap dumps.</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDiff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">detector</span><span class="p">.</span><span class="na">findRepeatedlyGrowingObjects</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">growingList</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s">&quot;Hi at </span><span class="si">${</span><span class="n">System</span><span class="p">.</span><span class="na">currentTimeMillis</span><span class="p">()</span><span class="si">}</span><span class="s">&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// This should fail.</span>
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">heapDiff</span><span class="p">.</span><span class="na">growingObjects</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="heap-growth-ui-automator-test-example">Heap Growth: UI Automator test example.<a class="headerlink" href="#heap-growth-ui-automator-test-example" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-uiautomator:3.0-alpha-7&#39;</span>
+<span class="o">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="kd">class</span><span class="w"> </span><span class="nc">MyUiAutomatorTest</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">val</span><span class="w"> </span><span class="nv">detector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">HeapDiff</span><span class="p">.</span><span class="na">repeatingUiAutomatorScenario</span><span class="p">()</span>
+
+<span class="w">  </span><span class="nd">@Test</span>
+<span class="w">  </span><span class="kd">fun</span><span class="w"> </span><span class="nf">clicking_welcome_does_not_grow_heap</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">device</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">UiDevice</span><span class="p">.</span><span class="na">getInstance</span><span class="p">(</span><span class="n">InstrumentationRegistry</span><span class="p">.</span><span class="na">getInstrumentation</span><span class="p">())</span>
+<span class="w">    </span><span class="c1">// Runs repeatedly until the heap stops growing or we reach max heap dumps.</span>
+<span class="w">    </span><span class="kd">val</span><span class="w"> </span><span class="nv">heapDiff</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">detector</span><span class="p">.</span><span class="na">findRepeatedlyGrowingObjects</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">device</span><span class="p">.</span><span class="na">findObject</span><span class="p">(</span><span class="n">By</span><span class="p">.</span><span class="na">text</span><span class="p">(</span><span class="s">&quot;Welcome!&quot;</span><span class="p">)).</span><span class="na">click</span><span class="p">()</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="n">assertThat</span><span class="p">(</span><span class="n">heapDiff</span><span class="p">.</span><span class="na">growingObjects</span><span class="p">).</span><span class="na">isEmpty</span><span class="p">()</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="heap-growth-shark-cli">Heap Growth: Shark CLI<a class="headerlink" href="#heap-growth-shark-cli" title="Permanent link">&para;</a></h3>
+<p>Download the <a href="https://github.com/square/leakcanary/releases/download/v3.0-alpha-7/shark-cli-3.0-alpha-7.zip">Shark CLI Zip</a> (alphas cannot be released to brew) and unzip it.</p>
+<p>Run the <code>heap-growth</code> command:</p>
+<div class="highlight"><pre><span></span><code>$ ~/Downloads/shark-cli-3.0-alpha-7/bin/shark-cli -p com.example.app.debug heap-growth
+</code></pre></div>
+<p>See the <a href="https://github.com/square/leakcanary/compare/v3.0-alpha-6...v3.0-alpha-7">full diff</a>.</p>
 <h2 id="version-30-alpha-6-2024-05-21">Version 3.0 Alpha 6 (2024-05-21)<a class="headerlink" href="#version-30-alpha-6-2024-05-21" title="Permanent link">&para;</a></h2>
 <ul>
 <li>🐛 <a href="https://github.com/square/leakcanary/pull/2670">#2670</a> Use <code>RequestPermissionActivity</code> context for <code>Toast.makeText</code>.</li>
@@ -2602,7 +2772,7 @@ footprint and the IO reads.</li>
 <li>Revamped the heap growth detection APIs, added support for UI Automator and Shark CLI.</li>
 </ul>
 <p>(<em>note: I skipped from alpha 1 to alpha 4 because I messed up a few releases. Sorry!</em>)</p>
-<h3 id="heap-growth-espresso-test-example">Heap Growth: Espresso test example<a class="headerlink" href="#heap-growth-espresso-test-example" title="Permanent link">&para;</a></h3>
+<h3 id="heap-growth-espresso-test-example_1">Heap Growth: Espresso test example<a class="headerlink" href="#heap-growth-espresso-test-example_1" title="Permanent link">&para;</a></h3>
 <p>Add the dependency:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
 <span class="w">  </span><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-test:3.0-alpha-2&#39;</span>
@@ -2636,7 +2806,7 @@ footprint and the IO reads.</li>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<h3 id="heap-growth-ui-automator-test-example">Heap Growth: UI Automator test example.<a class="headerlink" href="#heap-growth-ui-automator-test-example" title="Permanent link">&para;</a></h3>
+<h3 id="heap-growth-ui-automator-test-example_1">Heap Growth: UI Automator test example.<a class="headerlink" href="#heap-growth-ui-automator-test-example_1" title="Permanent link">&para;</a></h3>
 <p>Add the dependency:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dependencies</span><span class="w"> </span><span class="o">{</span>
 <span class="w">  </span><span class="n">androidTestImplementation</span><span class="w"> </span><span class="s1">&#39;com.squareup.leakcanary:leakcanary-android-uiautomator:3.0-alpha-4&#39;</span>
@@ -2659,7 +2829,7 @@ footprint and the IO reads.</li>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-<h3 id="heap-growth-shark-cli">Heap Growth: Shark CLI<a class="headerlink" href="#heap-growth-shark-cli" title="Permanent link">&para;</a></h3>
+<h3 id="heap-growth-shark-cli_1">Heap Growth: Shark CLI<a class="headerlink" href="#heap-growth-shark-cli_1" title="Permanent link">&para;</a></h3>
 <p>Download the <a href="https://github.com/square/leakcanary/releases/download/v3.0-alpha-4/shark-cli-3.0-alpha-4.zip">Shark CLI Zip</a> (alphas cannot be released to brew) and unzip it.</p>
 <p>Run the <code>heap-growth</code> command:</p>
 <div class="highlight"><pre><span></span><code>$ ~/Downloads/shark-cli-3.0-alpha-2/bin/shark-cli -p com.example.app.debug heap-growth

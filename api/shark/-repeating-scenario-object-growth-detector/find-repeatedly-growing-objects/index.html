@@ -734,6 +734,21 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#parameters" class="md-nav__link">
+    Parameters
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -756,8 +771,24 @@
   <p>//<a href="../../../../">leakcanary-repo</a>/<a href="../../">shark</a>/<a href="../">RepeatingScenarioObjectGrowthDetector</a>/<a href="./">findRepeatedlyGrowingObjects</a></p>
 <h1 id="findrepeatedlygrowingobjects">findRepeatedlyGrowingObjects<a class="headerlink" href="#findrepeatedlygrowingobjects" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-fun <a href="./">findRepeatedlyGrowingObjects</a>(roundTripScenario: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="../../-heap-growth-traversal/">HeapGrowthTraversal</a></p>
-<p>Detects object growth by iterating through <a href="./">roundTripScenario</a> repeatedly and dumping the heap every <code>scenarioLoopsPerDump</code> until no object growth is detected or we reach <code>maxHeapDumps</code>. Returns the <a href="../../-heap-growth-traversal/">HeapGrowthTraversal</a> for the last iteration. You can check <a href="../../-heap-growth-traversal/is-growing/">HeapGrowthTraversal.isGrowing</a> and <a href="../../-heap-growth-traversal/growing-objects/">HeapGrowthTraversal.growingObjects</a> to report object growth.</p>
+fun <a href="./">findRepeatedlyGrowingObjects</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_DUMP, roundTripScenario: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="../../-heap-diff/">HeapDiff</a></p>
+<p>Detects object growth by iterating through <a href="./">roundTripScenario</a> repeatedly and dumping the heap every <code>scenarioLoopsPerDump</code> until no object growth is detected or we reach <code>maxHeapDumps</code>. Returns the <a href="../../-heap-diff/">HeapDiff</a> for the last iteration. You can check <a href="../../-heap-diff/is-growing/">HeapDiff.isGrowing</a> and <a href="../../-heap-diff/growing-objects/">HeapDiff.growingObjects</a> to report object growth.</p>
+<h4 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h4>
+<p>jvm</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>scenarioLoopsPerDump</td>
+<td>How many times a scenario that might cause heap growth is repeated in between each dump and traversal. This leads the traversal algorithm to only look at objects that are growing at least <a href="./">scenarioLoopsPerDump</a> times since the previous traversal. While 1 can work fine, we recommend at least 2 to ignore any side effect of dumping the heap.</td>
+</tr>
+</tbody>
+</table>
   
 
               </article>

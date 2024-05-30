@@ -756,8 +756,8 @@
   <p>//<a href="../../../../">leakcanary-repo</a>/<a href="../../">shark</a>/<a href="../">RepeatingHeapGraphObjectGrowthDetector</a>/<a href="./">findRepeatedlyGrowingObjects</a></p>
 <h1 id="findrepeatedlygrowingobjects">findRepeatedlyGrowingObjects<a class="headerlink" href="#findrepeatedlygrowingobjects" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-fun <a href="./">findRepeatedlyGrowingObjects</a>(initialState: <a href="../../-initial-state/">InitialState</a> = InitialState(), heapGraphSequence: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../../-closeable-heap-graph/">CloseableHeapGraph</a>&gt;): <a href="../../-heap-growth-traversal/">HeapGrowthTraversal</a></p>
-<p>Detects object growth by iterating through <a href="./">heapGraphSequence</a> repeatedly until no object growth is detected or the sequence ends. Returns the <a href="../../-heap-growth-traversal/">HeapGrowthTraversal</a> for the last iteration. You can check <a href="../../-heap-growth-traversal/is-growing/">HeapGrowthTraversal.isGrowing</a> and <a href="../../-heap-growth-traversal/growing-objects/">HeapGrowthTraversal.growingObjects</a> to report object growth.</p>
+fun <a href="./">findRepeatedlyGrowingObjects</a>(scenarioLoopsPerGraph: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH, heapGraphSequence: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="../../-closeable-heap-graph/">CloseableHeapGraph</a>&gt;): <a href="../../-heap-diff/">HeapDiff</a></p>
+<p>Detects object growth by iterating through <a href="./">heapGraphSequence</a> repeatedly until no object growth is detected or the sequence ends. Returns the <a href="../../-heap-diff/">HeapDiff</a> for the last iteration. You can check <a href="../../-heap-diff/is-growing/">HeapDiff.isGrowing</a> and <a href="../../-heap-diff/growing-objects/">HeapDiff.growingObjects</a> to report object growth.</p>
   
 
               </article>
