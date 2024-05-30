@@ -3,17 +3,16 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Version 3.0 Alpha 7 (TBD)
+## Version 3.0 Alpha 7 (2024-05-30)
 
 Revisited a number of API choices for heap growth, to simplify but also support more advanced
 behavior such as keep heap dumps on test failure, or zipping heap dumps for CI upload.
 
-- `HeapGrowthTraversal` is now `HeapDiff`
-- `ObjectGrowthDetector.forAndroidHeap().repeatingAndroidInProcessScenario()` is now
-`HeapDiff.repeatingAndroidInProcessScenario()` which is now really just a wrapper for
-`HeapDiff.repeatingDumpingTestScenario()` with Android UI test specific configuration.
-- `maxHeapDumps` and `scenarioLoopsPerDump` have moved from being factory parameters to being per
-scenario parameters.
+* `HeapGrowthTraversal` is now `HeapDiff`
+* `ObjectGrowthDetector.forAndroidHeap().repeatingAndroidInProcessScenario()` is now HeapDiff.repeatingAndroidInProcessScenario()` which is now really just a wrapper for HeapDiff.repeatingDumpingTestScenario()` with Android UI test specific configuration.
+* `maxHeapDumps` and `scenarioLoopsPerDump` have moved from being factory parameters to being per scenario parameters.
+* 💥 [#2683](https://github.com/square/leakcanary/pull/2683) Fix crash when java.lang.Object has multiple class load records in JVM heap dumps
+* 🔨 [#2682](https://github.com/square/leakcanary/pull/2682) Add support for unload class tags and records
 
 ### Heap Growth: Espresso test example
 
