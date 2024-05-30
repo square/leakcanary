@@ -3,6 +3,120 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 3.0 Alpha 7 (TBD)
+
+Revisited a number of API choices for heap growth, to simplify but also support more advanced
+behavior such as keep heap dumps on test failure, or zipping heap dumps for CI upload.
+
+- `HeapGrowthTraversal` is now `HeapDiff`
+- `ObjectGrowthDetector.forAndroidHeap().repeatingAndroidInProcessScenario()` is now
+`HeapDiff.repeatingAndroidInProcessScenario()` which is now really just a wrapper for
+`HeapDiff.repeatingDumpingTestScenario()` with Android UI test specific configuration.
+- `maxHeapDumps` and `scenarioLoopsPerDump` have moved from being factory parameters to being per
+scenario parameters.
+
+### Heap Growth: Espresso test example
+
+```groovy
+dependencies {
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-test:3.0-alpha-7'
+}
+```
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Performing the heap growth analysis in process requires more heap. -->
+  <application
+      android:largeHeap="true"/>
+</manifest>
+```
+
+```kotlin
+class MyEspressoTest {
+  val detector = HeapDiff.repeatingAndroidInProcessScenario()
+
+  @Test
+  fun greeter_says_hello_does_not_grow_heap() {
+    // Runs repeatedly until the heap stops growing or we reach max heap dumps.
+    val heapDiff = detector.findRepeatedlyGrowingObjects {
+      onView(withId(R.id.name_field)).perform(typeText("Steve"))
+      onView(withId(R.id.greet_button)).perform(click())
+      onView(withText("Hello Steve!")).check(matches(isDisplayed()))
+    }
+
+    assertThat(heapDiff.growingObjects).isEmpty()
+  }
+}
+```
+
+### Heap Growth: JVM Junit test example.
+
+```groovy
+dependencies {
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-jvm-test:3.0-alpha-7'
+}
+```
+
+```kotlin
+class MyUnitTest {
+  val detector = HeapDiff.repeatingJvmInProcessScenario()
+
+  val growingList = mutableListOf<String>()
+
+  @Test
+  fun failing_test() {
+    // Runs repeatedly until the heap stops growing or we reach max heap dumps.
+    val heapDiff = detector.findRepeatedlyGrowingObjects {
+      growingList += "Hi at ${System.currentTimeMillis()}"
+    }
+
+    // This should fail.
+    assertThat(heapDiff.growingObjects).isEmpty()
+  }
+}
+```
+
+### Heap Growth: UI Automator test example.
+
+```groovy
+dependencies {
+  androidTestImplementation 'com.squareup.leakcanary:leakcanary-android-uiautomator:3.0-alpha-7'
+}
+```
+
+```kotlin
+class MyUiAutomatorTest {
+  val detector = HeapDiff.repeatingUiAutomatorScenario()
+
+  @Test
+  fun clicking_welcome_does_not_grow_heap() {
+    val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+    // Runs repeatedly until the heap stops growing or we reach max heap dumps.
+    val heapDiff = detector.findRepeatedlyGrowingObjects {
+      device.findObject(By.text("Welcome!")).click()
+    }
+
+    assertThat(heapDiff.growingObjects).isEmpty()
+  }
+}
+```
+
+### Heap Growth: Shark CLI
+
+Download the [Shark CLI Zip](https://github.com/square/leakcanary/releases/download/v3.0-alpha-7/shark-cli-3.0-alpha-7.zip) (alphas cannot be released to brew) and unzip it.
+
+Run the `heap-growth` command:
+
+```
+$ ~/Downloads/shark-cli-3.0-alpha-7/bin/shark-cli -p com.example.app.debug heap-growth
+```
+
+See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-6...v3.0-alpha-7).
+
+
 ## Version 3.0 Alpha 6 (2024-05-21)
 
 * 🐛 [#2670](https://github.com/square/leakcanary/pull/2670) Use `RequestPermissionActivity` context for `Toast.makeText`.
@@ -15,7 +129,6 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 * Fix retained size not being computed when analysis stops at the second heap dump.
 * Removed `InitialState.heapGraphCount`
 * Ignore static `<resolved_references>` in all classes on JVM
-
 
 See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-4...v3.0-alpha-6).
 
