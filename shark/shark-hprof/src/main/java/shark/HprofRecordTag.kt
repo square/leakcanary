@@ -6,7 +6,6 @@ enum class HprofRecordTag(val tag: Int) {
   STRING_IN_UTF8(0x01),
   LOAD_CLASS(0x02),
 
-  // Currently ignored
   UNLOAD_CLASS(0x03),
   STACK_FRAME(0x04),
   STACK_TRACE(0x05),

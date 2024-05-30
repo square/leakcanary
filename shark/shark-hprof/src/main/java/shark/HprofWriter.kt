@@ -40,6 +40,7 @@ import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StackFrameRecord
 import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecord.StringRecord
+import shark.HprofRecord.UnloadClassRecord
 import shark.HprofRecordTag.CLASS_DUMP
 import shark.HprofRecordTag.HEAP_DUMP_INFO
 import shark.HprofRecordTag.INSTANCE_DUMP
@@ -64,6 +65,7 @@ import shark.HprofRecordTag.ROOT_UNREACHABLE
 import shark.HprofRecordTag.ROOT_VM_INTERNAL
 import shark.HprofRecordTag.STACK_TRACE
 import shark.HprofRecordTag.STRING_IN_UTF8
+import shark.HprofRecordTag.UNLOAD_CLASS
 import shark.HprofWriter.Companion.openWriterFor
 import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.BYTE
@@ -155,6 +157,11 @@ class HprofWriter private constructor(
           writeId(record.id)
           writeInt(record.stackTraceSerialNumber)
           writeId(record.classNameStringId)
+        }
+      }
+      is UnloadClassRecord -> {
+        writeNonHeapRecord(UNLOAD_CLASS.tag) {
+          writeInt(record.classSerialNumber)
         }
       }
       is StackTraceRecord -> {

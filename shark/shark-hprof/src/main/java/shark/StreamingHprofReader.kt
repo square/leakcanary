@@ -31,6 +31,7 @@ import shark.HprofRecordTag.ROOT_VM_INTERNAL
 import shark.HprofRecordTag.STACK_FRAME
 import shark.HprofRecordTag.STACK_TRACE
 import shark.HprofRecordTag.STRING_IN_UTF8
+import shark.HprofRecordTag.UNLOAD_CLASS
 import shark.PrimitiveType.Companion.REFERENCE_HPROF_TYPE
 import shark.PrimitiveType.INT
 import shark.StreamingHprofReader.Companion.readerFor
@@ -77,6 +78,13 @@ class StreamingHprofReader private constructor(
           STRING_IN_UTF8.tag -> {
             if (STRING_IN_UTF8 in recordTags) {
               listener.onHprofRecord(STRING_IN_UTF8, length, reader)
+            } else {
+              reader.skip(length)
+            }
+          }
+          UNLOAD_CLASS.tag -> {
+            if (UNLOAD_CLASS in recordTags) {
+              listener.onHprofRecord(UNLOAD_CLASS, length, reader)
             } else {
               reader.skip(length)
             }

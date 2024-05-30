@@ -337,6 +337,11 @@ public final class shark/HprofRecord$StringRecord : shark/HprofRecord {
 	public final fun getString ()Ljava/lang/String;
 }
 
+public final class shark/HprofRecord$UnloadClassRecord : shark/HprofRecord {
+	public fun <init> (I)V
+	public final fun getClassSerialNumber ()I
+}
+
 public final class shark/HprofRecordReader {
 	public static final field Companion Lshark/HprofRecordReader$Companion;
 	public final fun getBytesRead ()J
@@ -382,6 +387,7 @@ public final class shark/HprofRecordReader {
 	public final fun readThreadBlockGcRootRecord ()Lshark/GcRoot$ThreadBlock;
 	public final fun readThreadObjectGcRootRecord ()Lshark/GcRoot$ThreadObject;
 	public final fun readUnknownGcRootRecord ()Lshark/GcRoot$Unknown;
+	public final fun readUnloadClassRecord ()Lshark/HprofRecord$UnloadClassRecord;
 	public final fun readUnreachableGcRootRecord ()Lshark/GcRoot$Unreachable;
 	public final fun readUnsignedByte ()I
 	public final fun readUnsignedInt ()J

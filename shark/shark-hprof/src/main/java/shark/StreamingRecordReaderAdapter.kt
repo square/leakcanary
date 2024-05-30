@@ -41,6 +41,7 @@ import shark.HprofRecordTag.STACK_TRACE
 import shark.HprofRecordTag.STRING_IN_UTF8
 import java.util.EnumSet
 import kotlin.reflect.KClass
+import shark.HprofRecordTag.UNLOAD_CLASS
 
 /**
  * Wraps a [StreamingHprofReader] to provide a higher level API that streams [HprofRecord]
@@ -72,6 +73,11 @@ class StreamingRecordReaderAdapter(private val streamingHprofReader: StreamingHp
         LOAD_CLASS -> {
           val recordPosition = reader.bytesRead
           val record = reader.readLoadClassRecord()
+          listener.onHprofRecord(recordPosition, record)
+        }
+        UNLOAD_CLASS -> {
+          val recordPosition = reader.bytesRead
+          val record = reader.readUnloadClassRecord()
           listener.onHprofRecord(recordPosition, record)
         }
         STACK_FRAME -> {
