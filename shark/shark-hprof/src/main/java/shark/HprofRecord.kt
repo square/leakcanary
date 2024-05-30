@@ -16,6 +16,10 @@ sealed class HprofRecord {
     val classNameStringId: Long
   ) : HprofRecord()
 
+  class UnloadClassRecord(
+    val classSerialNumber: Int,
+  ) : HprofRecord()
+
   /**
    * Terminates a series of heap dump segments. Concatenation of heap dump segments equals a
    * heap dump.

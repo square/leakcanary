@@ -108,6 +108,10 @@ class HprofRecordReader internal constructor(
     classNameStringId = readId()
   )
 
+  fun readUnloadClassRecord() = HprofRecord.UnloadClassRecord(
+    classSerialNumber = readInt()
+  )
+
   fun readStackFrameRecord() = StackFrameRecord(
     id = readId(),
     methodNameStringId = readId(),
