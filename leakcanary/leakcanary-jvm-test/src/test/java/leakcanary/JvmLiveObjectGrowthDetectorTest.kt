@@ -212,7 +212,7 @@ class JvmLiveObjectGrowthDetectorTest {
     var didDeleteFile = true
     val detector = HeapDiff.repeatingJvmInProcessScenario(
       objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
-      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.DeleteOnHeapDumpClose {
+      heapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose {
         it.delete()
         didDeleteFile = true
       }
@@ -233,7 +233,7 @@ class JvmLiveObjectGrowthDetectorTest {
     val maxHeapDump = 5
     val detector = HeapDiff.repeatingJvmInProcessScenario(
       objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
-      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.KeepHeapDumps,
+      heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepHeapDumps,
       heapDumpDirectoryProvider = { heapDumpDirectory }
     )
 
@@ -254,7 +254,7 @@ class JvmLiveObjectGrowthDetectorTest {
     val heapDumpDirectory = tempFolder.newFolder()
     val detector = HeapDiff.repeatingJvmInProcessScenario(
       objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
-      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.KeepHeapDumpsOnObjectsGrowing {
+      heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepHeapDumpsOnObjectsGrowing {
         didDeleteFile = true
         it.delete()
       },
@@ -276,7 +276,7 @@ class JvmLiveObjectGrowthDetectorTest {
     val heapDumpDirectory = tempFolder.newFolder()
     val detector = HeapDiff.repeatingJvmInProcessScenario(
       objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
-      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.KeepHeapDumpsOnObjectsGrowing(),
+      heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepHeapDumpsOnObjectsGrowing(),
       heapDumpDirectoryProvider = { heapDumpDirectory }
     )
 
@@ -297,7 +297,7 @@ class JvmLiveObjectGrowthDetectorTest {
     val heapDumpDirectory = tempFolder.newFolder()
     val detector = HeapDiff.repeatingJvmInProcessScenario(
       objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
-      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.KeepHeapDumpsOnObjectsGrowing {
+      heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepHeapDumpsOnObjectsGrowing {
         filesDeleted++
         it.delete()
       },
@@ -326,7 +326,7 @@ class JvmLiveObjectGrowthDetectorTest {
     val heapDumpDirectory = tempFolder.newFolder()
     val detector = HeapDiff.repeatingJvmInProcessScenario(
       objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
-      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.KeepZippedHeapDumpsOnObjectsGrowing(),
+      heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepZippedHeapDumpsOnObjectsGrowing(),
       heapDumpDirectoryProvider = { heapDumpDirectory }
     )
 
@@ -347,7 +347,7 @@ class JvmLiveObjectGrowthDetectorTest {
     val heapDumpDirectory = tempFolder.newFolder()
     val detector = HeapDiff.repeatingJvmInProcessScenario(
       objectGrowthDetector = ObjectGrowthDetector.forJvmHeapNoSyntheticRefs(),
-      heapDumpDeletionStrategy = HeapDumpDeletionStrategy.KeepZippedHeapDumpsOnObjectsGrowing(),
+      heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepZippedHeapDumpsOnObjectsGrowing(),
       heapDumpDirectoryProvider = { heapDumpDirectory }
     )
     val leakyScenarioRuns = 3

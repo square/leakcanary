@@ -6,7 +6,7 @@ import java.util.zip.ZipOutputStream
 import shark.HeapDiff
 import shark.RepeatingHeapGraphObjectGrowthDetector
 
-interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedListener,
+interface HeapDumpStorageStrategy : DumpingHeapGraphProvider.HeapDumpClosedListener,
   RepeatingHeapGraphObjectGrowthDetector.CompletionListener {
 
   /**
@@ -15,7 +15,7 @@ interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedList
    */
   class DeleteOnHeapDumpClose(
     private val deleteFile: (File) -> Unit = { it.delete() }
-  ) : HeapDumpDeletionStrategy {
+  ) : HeapDumpStorageStrategy {
     override fun onHeapDumpClosed(heapDumpFile: File) {
       deleteFile(heapDumpFile)
     }
@@ -25,7 +25,7 @@ interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedList
    * No deletion of heap dump files. This is useful if you intend to open up the heap dumps
    * directly or re run the analysis no matter the outcome.
    */
-  object KeepHeapDumps : HeapDumpDeletionStrategy
+  object KeepHeapDumps : HeapDumpStorageStrategy
 
   /**
    * Keeps the heap dumps until we're done diffing, then delete them only if there are no growing
@@ -34,7 +34,7 @@ interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedList
    */
   class KeepHeapDumpsOnObjectsGrowing(
     private val deleteFile: (File) -> Unit = { it.delete() }
-  ) : HeapDumpDeletionStrategy {
+  ) : HeapDumpStorageStrategy {
     // This assumes the detector instance is always used from the same thread, which seems like a
     // safe enough assumption for tests.
     private val closedHeapDumpFiles = mutableListOf<File>()
@@ -63,7 +63,7 @@ interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedList
    */
   class KeepZippedHeapDumpsOnObjectsGrowing(
     private val deleteFile: (File) -> Unit = { it.delete() }
-  ) : HeapDumpDeletionStrategy {
+  ) : HeapDumpStorageStrategy {
     // This assumes the detector instance is always used from the same thread, which seems like a
     // safe enough assumption for tests.
     private val closedHeapDumpFiles = mutableListOf<File>()

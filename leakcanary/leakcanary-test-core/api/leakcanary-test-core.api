@@ -1,14 +1,14 @@
-public abstract interface class leakcanary/HeapDumpDeletionStrategy : leakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener, shark/RepeatingHeapGraphObjectGrowthDetector$CompletionListener {
+public abstract interface class leakcanary/HeapDumpStorageStrategy : leakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener, shark/RepeatingHeapGraphObjectGrowthDetector$CompletionListener {
 	public abstract fun onHeapDumpClosed (Ljava/io/File;)V
 	public abstract fun onObjectGrowthDetectionComplete (Lshark/HeapDiff;)V
 }
 
-public final class leakcanary/HeapDumpDeletionStrategy$DefaultImpls {
-	public static fun onHeapDumpClosed (Lleakcanary/HeapDumpDeletionStrategy;Ljava/io/File;)V
-	public static fun onObjectGrowthDetectionComplete (Lleakcanary/HeapDumpDeletionStrategy;Lshark/HeapDiff;)V
+public final class leakcanary/HeapDumpStorageStrategy$DefaultImpls {
+	public static fun onHeapDumpClosed (Lleakcanary/HeapDumpStorageStrategy;Ljava/io/File;)V
+	public static fun onObjectGrowthDetectionComplete (Lleakcanary/HeapDumpStorageStrategy;Lshark/HeapDiff;)V
 }
 
-public final class leakcanary/HeapDumpDeletionStrategy$DeleteOnHeapDumpClose : leakcanary/HeapDumpDeletionStrategy {
+public final class leakcanary/HeapDumpStorageStrategy$DeleteOnHeapDumpClose : leakcanary/HeapDumpStorageStrategy {
 	public fun <init> ()V
 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -16,13 +16,13 @@ public final class leakcanary/HeapDumpDeletionStrategy$DeleteOnHeapDumpClose : l
 	public fun onObjectGrowthDetectionComplete (Lshark/HeapDiff;)V
 }
 
-public final class leakcanary/HeapDumpDeletionStrategy$KeepHeapDumps : leakcanary/HeapDumpDeletionStrategy {
-	public static final field INSTANCE Lleakcanary/HeapDumpDeletionStrategy$KeepHeapDumps;
+public final class leakcanary/HeapDumpStorageStrategy$KeepHeapDumps : leakcanary/HeapDumpStorageStrategy {
+	public static final field INSTANCE Lleakcanary/HeapDumpStorageStrategy$KeepHeapDumps;
 	public fun onHeapDumpClosed (Ljava/io/File;)V
 	public fun onObjectGrowthDetectionComplete (Lshark/HeapDiff;)V
 }
 
-public final class leakcanary/HeapDumpDeletionStrategy$KeepHeapDumpsOnObjectsGrowing : leakcanary/HeapDumpDeletionStrategy {
+public final class leakcanary/HeapDumpStorageStrategy$KeepHeapDumpsOnObjectsGrowing : leakcanary/HeapDumpStorageStrategy {
 	public fun <init> ()V
 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -30,7 +30,7 @@ public final class leakcanary/HeapDumpDeletionStrategy$KeepHeapDumpsOnObjectsGro
 	public fun onObjectGrowthDetectionComplete (Lshark/HeapDiff;)V
 }
 
-public final class leakcanary/HeapDumpDeletionStrategy$KeepZippedHeapDumpsOnObjectsGrowing : leakcanary/HeapDumpDeletionStrategy {
+public final class leakcanary/HeapDumpStorageStrategy$KeepZippedHeapDumpsOnObjectsGrowing : leakcanary/HeapDumpStorageStrategy {
 	public fun <init> ()V
 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
@@ -39,7 +39,7 @@ public final class leakcanary/HeapDumpDeletionStrategy$KeepZippedHeapDumpsOnObje
 }
 
 public final class leakcanary/RepeatingScenarioKt {
-	public static final fun repeatingDumpingTestScenario (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static final fun repeatingDumpingTestScenario (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpStorageStrategy;)Lshark/RepeatingScenarioObjectGrowthDetector;
 }
 
 public final class leakcanary/TestDescriptionHolder : org/junit/rules/TestRule {

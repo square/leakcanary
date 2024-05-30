@@ -4,8 +4,8 @@ public final class leakcanary/AndroidDeviceTempHeapDumpDirectoryProvider : leakc
 }
 
 public final class leakcanary/RepeatingUiAutomatorScenarioKt {
-	public static final fun repeatingUiAutomatorScenario (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Ljava/lang/String;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;)Lshark/RepeatingScenarioObjectGrowthDetector;
-	public static synthetic fun repeatingUiAutomatorScenario$default (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Ljava/lang/String;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpDeletionStrategy;ILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static final fun repeatingUiAutomatorScenario (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Ljava/lang/String;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpStorageStrategy;)Lshark/RepeatingScenarioObjectGrowthDetector;
+	public static synthetic fun repeatingUiAutomatorScenario$default (Lshark/HeapDiff$Companion;Lshark/ObjectGrowthDetector;Ljava/lang/String;Lleakcanary/HeapDumpDirectoryProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpStorageStrategy;ILjava/lang/Object;)Lshark/RepeatingScenarioObjectGrowthDetector;
 }
 
 public final class leakcanary/UiAutomatorShellFileDeleter {
