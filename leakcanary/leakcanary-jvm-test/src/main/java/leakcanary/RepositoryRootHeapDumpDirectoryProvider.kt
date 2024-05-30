@@ -6,14 +6,7 @@ class RepositoryRootHeapDumpDirectoryProvider(
   private val heapDumpDirectoryName: String
 ) : HeapDumpDirectoryProvider {
 
-  private val heapDumpDirectory by lazy {
-    File(projectRootDirectory(), heapDumpDirectoryName).apply {
-      mkdir()
-      check(exists()) {
-        "Expected heap dump directory $absolutePath to exist"
-      }
-    }
-  }
+  override fun heapDumpDirectory() = File(projectRootDirectory(), heapDumpDirectoryName)
 
   private fun projectRootDirectory(): File {
     var currentDirectory = File("")
@@ -28,6 +21,4 @@ class RepositoryRootHeapDumpDirectoryProvider(
   private operator fun File.contains(filename: String): Boolean {
     return listFiles()?.any { it.name == filename } ?: false
   }
-
-  override fun heapDumpDirectory() = heapDumpDirectory
 }

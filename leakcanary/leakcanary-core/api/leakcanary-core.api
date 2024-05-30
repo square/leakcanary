@@ -53,8 +53,3 @@ public final class leakcanary/ObjectGrowthWarmupHeapDumperKt {
 	public static final fun withDetectorWarmup (Lleakcanary/HeapDumper;Lshark/ObjectGrowthDetector;Z)Lleakcanary/HeapDumper;
 }
 
-public final class leakcanary/WorkingDirectoryHeapDumpDirectoryProvider : leakcanary/HeapDumpDirectoryProvider {
-	public fun <init> (Ljava/lang/String;)V
-	public fun heapDumpDirectory ()Ljava/io/File;
-}
-
