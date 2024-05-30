@@ -132,6 +132,9 @@ internal class HprofInMemoryIndex private constructor(
     while(classNamesIterator.hasNext()) {
       val (classId, classNameStringId) = classNamesIterator.next()
       if (hprofStringId == classNameStringId) {
+        if (classId !in classIndex) {
+          continue
+        }
         if (classId in stickyClassGcRootIds) {
           return classId
         } else {
