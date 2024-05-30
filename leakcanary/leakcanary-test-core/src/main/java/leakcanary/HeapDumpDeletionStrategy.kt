@@ -32,7 +32,7 @@ interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedList
    * objects. This is useful if you intend to open up the heap dumps directly or re run
    * the analysis on failure.
    */
-  class DeleteOnObjectsNotGrowing(
+  class KeepHeapDumpsOnObjectsGrowing(
     private val deleteFile: (File) -> Unit = { it.delete() }
   ) : HeapDumpDeletionStrategy {
     // This assumes the detector instance is always used from the same thread, which seems like a
@@ -54,13 +54,14 @@ interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedList
   }
 
   /**
-   * Zips the heap dumps until we're done diffing, then delete them only if there are no growing
-   * objects. This is useful if you intend to upload the heap dumps on failure in CI and you
+   * Keeps the heap dumps until we're done diffing, then on completion creates a zip for each heap
+   * dump if there are growing object, and delete all the source heap dumps.
+   * This is useful if you intend to upload the heap dumps on failure in CI and you
    * want to keep disk space, network usage and cloud storage low. Zipped heap dumps are typically
    * 4x smaller so this is worth it, although the trade off is that zipping can add a few seconds
    * per heap dump to the runtime duration of a test.
    */
-  class ZipAndDeleteOnObjectsNotGrowing(
+  class KeepZippedHeapDumpsOnObjectsGrowing(
     private val deleteFile: (File) -> Unit = { it.delete() }
   ) : HeapDumpDeletionStrategy {
     // This assumes the detector instance is always used from the same thread, which seems like a
@@ -68,16 +69,17 @@ interface HeapDumpDeletionStrategy : DumpingHeapGraphProvider.HeapDumpClosedList
     private val closedHeapDumpFiles = mutableListOf<File>()
 
     override fun onHeapDumpClosed(heapDumpFile: File) {
-      val zippedHeapDumpFile = heapDumpFile.zipFile()
-      deleteFile(heapDumpFile)
-      closedHeapDumpFiles += zippedHeapDumpFile
+      closedHeapDumpFiles += heapDumpFile
     }
 
     override fun onObjectGrowthDetectionComplete(result: HeapDiff) {
-      if (!result.isGrowing) {
+      if (result.isGrowing) {
         closedHeapDumpFiles.forEach {
-          deleteFile(it)
+          it.zipFile()
         }
+      }
+      closedHeapDumpFiles.forEach {
+        deleteFile(it)
       }
       closedHeapDumpFiles.clear()
     }
