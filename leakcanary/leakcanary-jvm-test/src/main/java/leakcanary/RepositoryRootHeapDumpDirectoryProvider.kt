@@ -9,7 +9,7 @@ class RepositoryRootHeapDumpDirectoryProvider(
   override fun heapDumpDirectory() = File(projectRootDirectory(), heapDumpDirectoryName)
 
   private fun projectRootDirectory(): File {
-    var currentDirectory = File("")
+    var currentDirectory = File("./")
     // Going through absolute path string otherwise parentFile returns null.
     currentDirectory = File(currentDirectory.absolutePath)
     while (".git" !in currentDirectory) {
