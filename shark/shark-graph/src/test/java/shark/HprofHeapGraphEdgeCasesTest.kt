@@ -14,7 +14,7 @@ import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
 import shark.internal.HprofInMemoryIndex
 
-class HprofHeapGraphTest {
+class HprofHeapGraphEdgeCasesTest {
 
   @get:Rule
   val testFolder = TemporaryFolder()
