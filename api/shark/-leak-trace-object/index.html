@@ -792,7 +792,7 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">shark</a>/<a href="./">LeakTraceObject</a></p>
 <h1 id="leaktraceobject">LeakTraceObject<a class="headerlink" href="#leaktraceobject" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
+data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a></p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -857,7 +857,7 @@ data class <a href="./">LeakTraceObject</a>(val type: <a href="-object-type/">Le
 <tbody>
 <tr>
 <td><a href="class-name/">className</a></td>
-<td>[jvm]<br>val <a href="class-name/">className</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Class name of the object. The class name format is the same as what would be returned by <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html#getname">Class.getName</a>.</td>
+<td>[jvm]<br>val <a href="class-name/">className</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>Class name of the object. The class name format is the same as what would be returned by <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html#getName--">Class.getName</a>.</td>
 </tr>
 <tr>
 <td><a href="class-simple-name/">classSimpleName</a></td>

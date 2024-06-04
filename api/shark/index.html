@@ -936,7 +936,7 @@
 </tr>
 <tr>
 <td><a href="-closeable-heap-graph/">CloseableHeapGraph</a></td>
-<td>[jvm]<br>interface <a href="-closeable-heap-graph/">CloseableHeapGraph</a> : <a href="-heap-graph/">HeapGraph</a>, <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>A <a href="-heap-graph/">HeapGraph</a> that should be closed after being used.</td>
+<td>[jvm]<br>interface <a href="-closeable-heap-graph/">CloseableHeapGraph</a> : <a href="-heap-graph/">HeapGraph</a>, <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a><br>A <a href="-heap-graph/">HeapGraph</a> that should be closed after being used.</td>
 </tr>
 <tr>
 <td><a href="-constant-memory-metrics-dual-source-provider/">ConstantMemoryMetricsDualSourceProvider</a></td>
@@ -952,7 +952,7 @@
 </tr>
 <tr>
 <td><a href="-dominators/">Dominators</a></td>
-<td>[jvm]<br>class <a href="-dominators/">Dominators</a>(val dominatorNodes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, <a href="-object-dominators/-dominator-node/">ObjectDominators.DominatorNode</a>&gt;) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></td>
+<td>[jvm]<br>class <a href="-dominators/">Dominators</a>(val dominatorNodes: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, <a href="-object-dominators/-dominator-node/">ObjectDominators.DominatorNode</a>&gt;) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a></td>
 </tr>
 <tr>
 <td><a href="-dominator-tree/">DominatorTree</a></td>
@@ -972,7 +972,7 @@
 </tr>
 <tr>
 <td><a href="-file-source-provider/">FileSourceProvider</a></td>
-<td>[jvm]<br>class <a href="-file-source-provider/">FileSourceProvider</a>(file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
+<td>[jvm]<br>class <a href="-file-source-provider/">FileSourceProvider</a>(file: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>) : <a href="-dual-source-provider/">DualSourceProvider</a></td>
 </tr>
 <tr>
 <td><a href="-filtering-leaking-object-finder/">FilteringLeakingObjectFinder</a></td>
@@ -1012,19 +1012,19 @@
 </tr>
 <tr>
 <td><a href="-heap-analysis/">HeapAnalysis</a></td>
-<td>[jvm]<br>sealed class <a href="-heap-analysis/">HeapAnalysis</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>The result of an analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>, either a <a href="-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</td>
+<td>[jvm]<br>sealed class <a href="-heap-analysis/">HeapAnalysis</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>The result of an analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>, either a <a href="-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-exception/">HeapAnalysisException</a></td>
-<td>[jvm]<br>class <a href="-heap-analysis-exception/">HeapAnalysisException</a>(cause: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>) : <a href="https://developer.android.com/reference/kotlin/java/lang/RuntimeException.html">RuntimeException</a></td>
+<td>[jvm]<br>class <a href="-heap-analysis-exception/">HeapAnalysisException</a>(cause: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-throwable/index.html">Throwable</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/RuntimeException.html">RuntimeException</a></td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-failure/">HeapAnalysisFailure</a></td>
-<td>[jvm]<br>data class <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val exception: <a href="-heap-analysis-exception/">HeapAnalysisException</a>) : <a href="-heap-analysis/">HeapAnalysis</a><br>The analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</td>
+<td>[jvm]<br>data class <a href="-heap-analysis-failure/">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val exception: <a href="-heap-analysis-exception/">HeapAnalysisException</a>) : <a href="-heap-analysis/">HeapAnalysis</a><br>The analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-success/">HeapAnalysisSuccess</a></td>
-<td>[jvm]<br>data class <a href="-heap-analysis-success/">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-application-leak/">ApplicationLeak</a>&gt;, val libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-library-leak/">LibraryLeak</a>&gt;, val unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-object/">LeakTraceObject</a>&gt;) : <a href="-heap-analysis/">HeapAnalysis</a><br>The result of a successful heap analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>.</td>
+<td>[jvm]<br>data class <a href="-heap-analysis-success/">HeapAnalysisSuccess</a>(val heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val metadata: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val applicationLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-application-leak/">ApplicationLeak</a>&gt;, val libraryLeaks: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-library-leak/">LibraryLeak</a>&gt;, val unreachableObjects: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-object/">LeakTraceObject</a>&gt;) : <a href="-heap-analysis/">HeapAnalysis</a><br>The result of a successful heap analysis performed by <a href="-heap-analyzer/">HeapAnalyzer</a>.</td>
 </tr>
 <tr>
 <td><a href="-heap-analyzer/">HeapAnalyzer</a></td>
@@ -1045,10 +1045,6 @@
 <tr>
 <td><a href="-heap-graph/">HeapGraph</a></td>
 <td>[jvm]<br>interface <a href="-heap-graph/">HeapGraph</a><br>Enables navigation through the heap graph of objects.</td>
-</tr>
-<tr>
-<td><a href="-heap-graph-provider/">HeapGraphProvider</a></td>
-<td>[jvm]<br>fun interface <a href="-heap-graph-provider/">HeapGraphProvider</a></td>
 </tr>
 <tr>
 <td><a href="-heap-growth-command/">HeapGrowthCommand</a></td>
@@ -1108,11 +1104,11 @@
 </tr>
 <tr>
 <td><a href="-hprof-writer/">HprofWriter</a></td>
-<td>[jvm]<br>class <a href="-hprof-writer/">HprofWriter</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>Generates Hprof files.</td>
+<td>[jvm]<br>class <a href="-hprof-writer/">HprofWriter</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a><br>Generates Hprof files.</td>
 </tr>
 <tr>
 <td><a href="-hprof-writer-helper/">HprofWriterHelper</a></td>
-<td>[jvm]<br>class <a href="-hprof-writer-helper/">HprofWriterHelper</a>(writer: <a href="-hprof-writer/">HprofWriter</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></td>
+<td>[jvm]<br>class <a href="-hprof-writer-helper/">HprofWriterHelper</a>(writer: <a href="-hprof-writer/">HprofWriter</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a></td>
 </tr>
 <tr>
 <td><a href="-ignored-reference-matcher/">IgnoredReferenceMatcher</a></td>
@@ -1148,7 +1144,7 @@
 </tr>
 <tr>
 <td><a href="-leak/">Leak</a></td>
-<td>[jvm]<br>sealed class <a href="-leak/">Leak</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, either an <a href="-application-leak/">ApplicationLeak</a> or a <a href="-library-leak/">LibraryLeak</a>.</td>
+<td>[jvm]<br>sealed class <a href="-leak/">Leak</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>A leak found by <a href="-heap-analyzer/">HeapAnalyzer</a>, either an <a href="-application-leak/">ApplicationLeak</a> or a <a href="-library-leak/">LibraryLeak</a>.</td>
 </tr>
 <tr>
 <td><a href="-leaking-object-finder/">LeakingObjectFinder</a></td>
@@ -1160,11 +1156,11 @@
 </tr>
 <tr>
 <td><a href="-leak-trace/">LeakTrace</a></td>
-<td>[jvm]<br>data class <a href="-leak-trace/">LeakTrace</a>(val gcRootType: <a href="-leak-trace/-gc-root-type/">LeakTrace.GcRootType</a>, val referencePath: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-reference/">LeakTraceReference</a>&gt;, val leakingObject: <a href="-leak-trace-object/">LeakTraceObject</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>The best strong reference path from a GC root to the leaking object. &quot;Best&quot; here means the shortest prioritized path. A large number of distinct paths can generally be found leading to a leaking object. Shark prioritizes paths that don&rsquo;t go through known <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> (because those are known to create leaks so it&rsquo;s more interesting to find other paths causing leaks), then it prioritize paths that don&rsquo;t go through java local gc roots (because those are harder to reason about). Taking those priorities into account, finding the shortest path means there are less <a href="-leak-trace-reference/">LeakTraceReference</a> that can be suspected to cause the leak.</td>
+<td>[jvm]<br>data class <a href="-leak-trace/">LeakTrace</a>(val gcRootType: <a href="-leak-trace/-gc-root-type/">LeakTrace.GcRootType</a>, val referencePath: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-leak-trace-reference/">LeakTraceReference</a>&gt;, val leakingObject: <a href="-leak-trace-object/">LeakTraceObject</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>The best strong reference path from a GC root to the leaking object. &quot;Best&quot; here means the shortest prioritized path. A large number of distinct paths can generally be found leading to a leaking object. Shark prioritizes paths that don&rsquo;t go through known <a href="-library-leak-reference-matcher/">LibraryLeakReferenceMatcher</a> (because those are known to create leaks so it&rsquo;s more interesting to find other paths causing leaks), then it prioritize paths that don&rsquo;t go through java local gc roots (because those are harder to reason about). Taking those priorities into account, finding the shortest path means there are less <a href="-leak-trace-reference/">LeakTraceReference</a> that can be suspected to cause the leak.</td>
 </tr>
 <tr>
 <td><a href="-leak-trace-object/">LeakTraceObject</a></td>
-<td>[jvm]<br>data class <a href="-leak-trace-object/">LeakTraceObject</a>(val type: <a href="-leak-trace-object/-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leak-trace-object/-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></td>
+<td>[jvm]<br>data class <a href="-leak-trace-object/">LeakTraceObject</a>(val type: <a href="-leak-trace-object/-object-type/">LeakTraceObject.ObjectType</a>, val className: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val labels: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>&gt;, val leakingStatus: <a href="-leak-trace-object/-leaking-status/">LeakTraceObject.LeakingStatus</a>, val leakingStatusReason: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val retainedHeapByteSize: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?, val retainedObjectCount: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a>?) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a></td>
 </tr>
 <tr>
 <td><a href="-leak-tracer/">LeakTracer</a></td>
@@ -1172,7 +1168,7 @@
 </tr>
 <tr>
 <td><a href="-leak-trace-reference/">LeakTraceReference</a></td>
-<td>[jvm]<br>data class <a href="-leak-trace-reference/">LeakTraceReference</a>(val originObject: <a href="-leak-trace-object/">LeakTraceObject</a>, val referenceType: <a href="-leak-trace-reference/-reference-type/">LeakTraceReference.ReferenceType</a>, val owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A <a href="-leak-trace-reference/">LeakTraceReference</a> represents an origin <a href="-leak-trace-object/">LeakTraceObject</a> and either a reference from that object to the <a href="-leak-trace-object/">LeakTraceObject</a> in the next <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>, or to <a href="-leak-trace/leaking-object/">LeakTrace.leakingObject</a> if this is the last <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>.</td>
+<td>[jvm]<br>data class <a href="-leak-trace-reference/">LeakTraceReference</a>(val originObject: <a href="-leak-trace-object/">LeakTraceObject</a>, val referenceType: <a href="-leak-trace-reference/-reference-type/">LeakTraceReference.ReferenceType</a>, val owningClassName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val referenceName: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>A <a href="-leak-trace-reference/">LeakTraceReference</a> represents an origin <a href="-leak-trace-object/">LeakTraceObject</a> and either a reference from that object to the <a href="-leak-trace-object/">LeakTraceObject</a> in the next <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>, or to <a href="-leak-trace/leaking-object/">LeakTrace.leakingObject</a> if this is the last <a href="-leak-trace-reference/">LeakTraceReference</a> in <a href="-leak-trace/reference-path/">LeakTrace.referencePath</a>.</td>
 </tr>
 <tr>
 <td><a href="-library-leak/">LibraryLeak</a></td>
@@ -1260,15 +1256,15 @@
 </tr>
 <tr>
 <td><a href="-proguard-mapping-reader/">ProguardMappingReader</a></td>
-<td>[jvm]<br>class <a href="-proguard-mapping-reader/">ProguardMappingReader</a>(proguardMappingInputStream: <a href="https://developer.android.com/reference/kotlin/java/io/InputStream.html">InputStream</a>)</td>
+<td>[jvm]<br>class <a href="-proguard-mapping-reader/">ProguardMappingReader</a>(proguardMappingInputStream: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html">InputStream</a>)</td>
 </tr>
 <tr>
 <td><a href="-random-access-hprof-reader/">RandomAccessHprofReader</a></td>
-<td>[jvm]<br>class <a href="-random-access-hprof-reader/">RandomAccessHprofReader</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a><br>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-random-access-hprof-reader/-companion/open-reader-for/">openReaderFor</a> to obtain a new instance.</td>
+<td>[jvm]<br>class <a href="-random-access-hprof-reader/">RandomAccessHprofReader</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a><br>Reads records in a Hprof source, one at a time with a specific position and size. Call <a href="-random-access-hprof-reader/-companion/open-reader-for/">openReaderFor</a> to obtain a new instance.</td>
 </tr>
 <tr>
 <td><a href="-random-access-source/">RandomAccessSource</a></td>
-<td>[jvm]<br>interface <a href="-random-access-source/">RandomAccessSource</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Closeable.html">Closeable</a></td>
+<td>[jvm]<br>interface <a href="-random-access-source/">RandomAccessSource</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Closeable.html">Closeable</a></td>
 </tr>
 <tr>
 <td><a href="-random-access-source-provider/">RandomAccessSourceProvider</a></td>
@@ -1292,19 +1288,15 @@
 </tr>
 <tr>
 <td><a href="-reference-pattern/">ReferencePattern</a></td>
-<td>[jvm]<br>sealed class <a href="-reference-pattern/">ReferencePattern</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a><br>A pattern that will match references for a given <a href="-reference-matcher/">ReferenceMatcher</a>.</td>
+<td>[jvm]<br>sealed class <a href="-reference-pattern/">ReferencePattern</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a><br>A pattern that will match references for a given <a href="-reference-matcher/">ReferenceMatcher</a>.</td>
 </tr>
 <tr>
 <td><a href="-reference-reader/">ReferenceReader</a></td>
 <td>[jvm]<br>fun interface <a href="-reference-reader/">ReferenceReader</a>&lt;<a href="-reference-reader/">T</a> : <a href="-heap-object/">HeapObject</a>&gt;</td>
 </tr>
 <tr>
-<td><a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a></td>
-<td>[jvm]<br>class <a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a>(objectGrowthDetector: <a href="-object-growth-detector/">ObjectGrowthDetector</a>, completionListener: <a href="-repeating-heap-graph-object-growth-detector/-completion-listener/">RepeatingHeapGraphObjectGrowthDetector.CompletionListener</a> = CompletionListener { })</td>
-</tr>
-<tr>
 <td><a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></td>
-<td>[jvm]<br>class <a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a>(heapGraphProvider: <a href="-heap-graph-provider/">HeapGraphProvider</a>, repeatingHeapGraphDetector: <a href="-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a>)</td>
+<td>[jvm]<br>interface <a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></td>
 </tr>
 <tr>
 <td><a href="-retained/">Retained</a></td>
@@ -1344,7 +1336,7 @@
 </tr>
 <tr>
 <td><a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a></td>
-<td>[jvm]<br>class <a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a>(file: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, throwIfCanceled: <a href="https://developer.android.com/reference/kotlin/java/lang/Runnable.html">Runnable</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>A <a href="-dual-source-provider/">DualSourceProvider</a> that invokes throwIfCanceled before every read, allowing cancellation of IO based work built on top by throwing an exception.</td>
+<td>[jvm]<br>class <a href="-throwing-cancelable-file-source-provider/">ThrowingCancelableFileSourceProvider</a>(file: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, throwIfCanceled: <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Runnable.html">Runnable</a>) : <a href="-dual-source-provider/">DualSourceProvider</a><br>A <a href="-dual-source-provider/">DualSourceProvider</a> that invokes throwIfCanceled before every read, allowing cancellation of IO based work built on top by throwing an exception.</td>
 </tr>
 <tr>
 <td><a href="-value-holder/">ValueHolder</a></td>
@@ -1379,7 +1371,7 @@
 </tr>
 <tr>
 <td><a href="dump/">dump</a></td>
-<td>[jvm]<br>fun <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>.<a href="dump/">dump</a>(block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)</td>
+<td>[jvm]<br>fun <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>.<a href="dump/">dump</a>(block: <a href="-hprof-writer-helper/">HprofWriterHelper</a>.() -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>)</td>
 </tr>
 <tr>
 <td><a href="dump-to-bytes/">dumpToBytes</a></td>

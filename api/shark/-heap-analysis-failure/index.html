@@ -792,7 +792,7 @@
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">shark</a>/<a href="./">HeapAnalysisFailure</a></p>
 <h1 id="heapanalysisfailure">HeapAnalysisFailure<a class="headerlink" href="#heapanalysisfailure" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-data class <a href="./">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val exception: <a href="../-heap-analysis-exception/">HeapAnalysisException</a>) : <a href="../-heap-analysis/">HeapAnalysis</a></p>
+data class <a href="./">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, val createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, val analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, val exception: <a href="../-heap-analysis-exception/">HeapAnalysisException</a>) : <a href="../-heap-analysis/">HeapAnalysis</a></p>
 <p>The analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a> did not complete successfully.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -805,7 +805,7 @@ data class <a href="./">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https
 <tbody>
 <tr>
 <td><a href="-heap-analysis-failure/">HeapAnalysisFailure</a></td>
-<td>[jvm]<br>constructor(heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, exception: <a href="../-heap-analysis-exception/">HeapAnalysisException</a>)</td>
+<td>[jvm]<br>constructor(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, createdAtTimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, dumpDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a> = DUMP_DURATION_UNKNOWN, analysisDurationMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, exception: <a href="../-heap-analysis-exception/">HeapAnalysisException</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -854,7 +854,7 @@ data class <a href="./">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https
 </tr>
 <tr>
 <td><a href="created-at-time-millis/">createdAtTimeMillis</a></td>
-<td>[jvm]<br>open override val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#currenttimemillis">System.currentTimeMillis</a> when this <a href="../-heap-analysis/">HeapAnalysis</a> instance was created.</td>
+<td>[jvm]<br>open override val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--">System.currentTimeMillis</a> when this <a href="../-heap-analysis/">HeapAnalysis</a> instance was created.</td>
 </tr>
 <tr>
 <td><a href="dump-duration-millis/">dumpDurationMillis</a></td>
@@ -866,7 +866,7 @@ data class <a href="./">HeapAnalysisFailure</a>(val heapDumpFile: <a href="https
 </tr>
 <tr>
 <td><a href="heap-dump-file/">heapDumpFile</a></td>
-<td>[jvm]<br>open override val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
+<td>[jvm]<br>open override val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
 </tr>
 </tbody>
 </table>

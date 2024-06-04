@@ -758,7 +758,7 @@
 <p>[jvm]\
 val <a href="./">trackedWeakReferences</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="../../-keyed-weak-reference/">KeyedWeakReference</a>&gt;</p>
 <p>List of <a href="../../-keyed-weak-reference/">KeyedWeakReference</a> that have not been enqueued in the reference queue yet, which means their referent is most likely still strongly reachable.</p>
-<p>DO NOT CALL <a href="https://developer.android.com/reference/kotlin/java/lang/ref/Reference.html#get">java.lang.ref.Reference.get</a> on the returned references, otherwise you will end up creating local references to the objects, preventing them from be becoming weakly reachable, and creating a leak. If you need to check for identity equality, use Reference.refersTo instead.</p>
+<p>DO NOT CALL <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/ref/Reference.html#get--">java.lang.ref.Reference.get</a> on the returned references, otherwise you will end up creating local references to the objects, preventing them from be becoming weakly reachable, and creating a leak. If you need to check for identity equality, use Reference.refersTo instead.</p>
   
 
               </article>

@@ -784,7 +784,7 @@
   
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">shark</a>/<a href="./">HeapAnalysis</a></p>
 <h1 id="heapanalysis">HeapAnalysis<a class="headerlink" href="#heapanalysis" title="Permanent link">&para;</a></h1>
-<p>sealed class <a href="./">HeapAnalysis</a> : <a href="https://developer.android.com/reference/kotlin/java/io/Serializable.html">Serializable</a></p>
+<p>sealed class <a href="./">HeapAnalysis</a> : <a href="https://docs.oracle.com/javase/8/docs/api/java/io/Serializable.html">Serializable</a></p>
 <p>The result of an analysis performed by <a href="../-heap-analyzer/">HeapAnalyzer</a>, either a <a href="../-heap-analysis-success/">HeapAnalysisSuccess</a> or a <a href="../-heap-analysis-failure/">HeapAnalysisFailure</a>. This class is serializable however there are no guarantees of forward compatibility.</p>
 <h4 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h4>
 <table>
@@ -832,7 +832,7 @@
 </tr>
 <tr>
 <td><a href="created-at-time-millis/">createdAtTimeMillis</a></td>
-<td>[jvm]<br>abstract val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#currenttimemillis">System.currentTimeMillis</a> when this <a href="./">HeapAnalysis</a> instance was created.</td>
+<td>[jvm]<br>abstract val <a href="created-at-time-millis/">createdAtTimeMillis</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><br>The <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--">System.currentTimeMillis</a> when this <a href="./">HeapAnalysis</a> instance was created.</td>
 </tr>
 <tr>
 <td><a href="dump-duration-millis/">dumpDurationMillis</a></td>
@@ -840,7 +840,7 @@
 </tr>
 <tr>
 <td><a href="heap-dump-file/">heapDumpFile</a></td>
-<td>[jvm]<br>abstract val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
+<td>[jvm]<br>abstract val <a href="heap-dump-file/">heapDumpFile</a>: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a><br>The hprof file that was analyzed.</td>
 </tr>
 </tbody>
 </table>

@@ -784,7 +784,7 @@
   
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">leakcanary</a>/<a href="./">HeapDumpStorageStrategy</a></p>
 <h1 id="heapdumpstoragestrategy">HeapDumpStorageStrategy<a class="headerlink" href="#heapdumpstoragestrategy" title="Permanent link">&para;</a></h1>
-<p>interface <a href="./">HeapDumpStorageStrategy</a> : <a href="../-dumping-heap-graph-provider/-heap-dump-closed-listener/">DumpingHeapGraphProvider.HeapDumpClosedListener</a>, <a href="../../shark/-repeating-heap-graph-object-growth-detector/-completion-listener/">RepeatingHeapGraphObjectGrowthDetector.CompletionListener</a></p>
+<p>interface <a href="./">HeapDumpStorageStrategy</a></p>
 <h4 id="inheritors">Inheritors<a class="headerlink" href="#inheritors" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -818,7 +818,7 @@
 <tbody>
 <tr>
 <td><a href="-delete-on-heap-dump-close/">DeleteOnHeapDumpClose</a></td>
-<td>[jvm]<br>class <a href="-delete-on-heap-dump-close/">DeleteOnHeapDumpClose</a>(deleteFile: (<a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="./">HeapDumpStorageStrategy</a><br>Deletes heap dumps as soon as we&rsquo;re done traversing them. This is the most disk space efficient strategy.</td>
+<td>[jvm]<br>class <a href="-delete-on-heap-dump-close/">DeleteOnHeapDumpClose</a>(deleteFile: (<a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="./">HeapDumpStorageStrategy</a><br>Deletes heap dumps as soon as we&rsquo;re done traversing them. This is the most disk space efficient strategy.</td>
 </tr>
 <tr>
 <td><a href="-keep-heap-dumps/">KeepHeapDumps</a></td>
@@ -826,11 +826,11 @@
 </tr>
 <tr>
 <td><a href="-keep-heap-dumps-on-objects-growing/">KeepHeapDumpsOnObjectsGrowing</a></td>
-<td>[jvm]<br>class <a href="-keep-heap-dumps-on-objects-growing/">KeepHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="./">HeapDumpStorageStrategy</a><br>Keeps the heap dumps until we&rsquo;re done diffing, then delete them only if there are no growing objects. This is useful if you intend to open up the heap dumps directly or re run the analysis on failure.</td>
+<td>[jvm]<br>class <a href="-keep-heap-dumps-on-objects-growing/">KeepHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="./">HeapDumpStorageStrategy</a><br>Keeps the heap dumps until we&rsquo;re done diffing, then delete them only if there are no growing objects. This is useful if you intend to open up the heap dumps directly or re run the analysis on failure.</td>
 </tr>
 <tr>
 <td><a href="-keep-zipped-heap-dumps-on-objects-growing/">KeepZippedHeapDumpsOnObjectsGrowing</a></td>
-<td>[jvm]<br>class <a href="-keep-zipped-heap-dumps-on-objects-growing/">KeepZippedHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="./">HeapDumpStorageStrategy</a><br>Keeps the heap dumps until we&rsquo;re done diffing, then on completion creates a zip for each heap dump if there are growing object, and delete all the source heap dumps. This is useful if you intend to upload the heap dumps on failure in CI and you want to keep disk space, network usage and cloud storage low. Zipped heap dumps are typically 4x smaller so this is worth it, although the trade off is that zipping can add a few seconds per heap dump to the runtime duration of a test.</td>
+<td>[jvm]<br>class <a href="-keep-zipped-heap-dumps-on-objects-growing/">KeepZippedHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="./">HeapDumpStorageStrategy</a><br>Keeps the heap dumps until we&rsquo;re done diffing, then on completion creates a zip for each heap dump if there are growing object, and delete all the source heap dumps. This is useful if you intend to upload the heap dumps on failure in CI and you want to keep disk space, network usage and cloud storage low. Zipped heap dumps are typically 4x smaller so this is worth it, although the trade off is that zipping can add a few seconds per heap dump to the runtime duration of a test.</td>
 </tr>
 </tbody>
 </table>
@@ -844,12 +844,16 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="on-heap-dump-closed/">onHeapDumpClosed</a></td>
-<td>[jvm]<br>open override fun <a href="on-heap-dump-closed/">onHeapDumpClosed</a>(heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>)</td>
+<td><a href="on-heap-diff-result/">onHeapDiffResult</a></td>
+<td>[jvm]<br>open fun <a href="on-heap-diff-result/">onHeapDiffResult</a>(result: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/index.html">Result</a>&lt;<a href="../../shark/-heap-diff/">HeapDiff</a>&gt;)</td>
 </tr>
 <tr>
-<td><a href="on-object-growth-detection-complete/">onObjectGrowthDetectionComplete</a></td>
-<td>[jvm]<br>open override fun <a href="on-object-growth-detection-complete/">onObjectGrowthDetectionComplete</a>(result: <a href="../../shark/-heap-diff/">HeapDiff</a>)</td>
+<td><a href="on-heap-dump-closed/">onHeapDumpClosed</a></td>
+<td>[jvm]<br>open fun <a href="on-heap-dump-closed/">onHeapDumpClosed</a>(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>)</td>
+</tr>
+<tr>
+<td><a href="on-heap-dumped/">onHeapDumped</a></td>
+<td>[jvm]<br>open fun <a href="on-heap-dumped/">onHeapDumped</a>(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>)</td>
 </tr>
 </tbody>
 </table>

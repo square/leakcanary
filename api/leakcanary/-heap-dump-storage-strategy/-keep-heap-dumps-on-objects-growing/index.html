@@ -778,7 +778,7 @@
   <p>//<a href="../../../../">leakcanary-repo</a>/<a href="../../">leakcanary</a>/<a href="../">HeapDumpStorageStrategy</a>/<a href="./">KeepHeapDumpsOnObjectsGrowing</a></p>
 <h1 id="keepheapdumpsonobjectsgrowing">KeepHeapDumpsOnObjectsGrowing<a class="headerlink" href="#keepheapdumpsonobjectsgrowing" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
-class <a href="./">KeepHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="../">HeapDumpStorageStrategy</a></p>
+class <a href="./">KeepHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() }) : <a href="../">HeapDumpStorageStrategy</a></p>
 <p>Keeps the heap dumps until we&rsquo;re done diffing, then delete them only if there are no growing objects. This is useful if you intend to open up the heap dumps directly or re run the analysis on failure.</p>
 <h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
 <table>
@@ -791,7 +791,7 @@ class <a href="./">KeepHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https
 <tbody>
 <tr>
 <td><a href="-keep-heap-dumps-on-objects-growing/">KeepHeapDumpsOnObjectsGrowing</a></td>
-<td>[jvm]<br>constructor(deleteFile: (<a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() })</td>
+<td>[jvm]<br>constructor(deleteFile: (<a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { it.delete() })</td>
 </tr>
 </tbody>
 </table>
@@ -805,12 +805,16 @@ class <a href="./">KeepHeapDumpsOnObjectsGrowing</a>(deleteFile: (<a href="https
 </thead>
 <tbody>
 <tr>
-<td><a href="on-heap-dump-closed/">onHeapDumpClosed</a></td>
-<td>[jvm]<br>open override fun <a href="on-heap-dump-closed/">onHeapDumpClosed</a>(heapDumpFile: <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>)</td>
+<td><a href="on-heap-diff-result/">onHeapDiffResult</a></td>
+<td>[jvm]<br>open override fun <a href="on-heap-diff-result/">onHeapDiffResult</a>(result: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-result/index.html">Result</a>&lt;<a href="../../../shark/-heap-diff/">HeapDiff</a>&gt;)</td>
 </tr>
 <tr>
-<td><a href="on-object-growth-detection-complete/">onObjectGrowthDetectionComplete</a></td>
-<td>[jvm]<br>open override fun <a href="on-object-growth-detection-complete/">onObjectGrowthDetectionComplete</a>(result: <a href="../../../shark/-heap-diff/">HeapDiff</a>)</td>
+<td><a href="../on-heap-dump-closed/">onHeapDumpClosed</a></td>
+<td>[jvm]<br>open fun <a href="../on-heap-dump-closed/">onHeapDumpClosed</a>(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>)</td>
+</tr>
+<tr>
+<td><a href="on-heap-dumped/">onHeapDumped</a></td>
+<td>[jvm]<br>open override fun <a href="on-heap-dumped/">onHeapDumped</a>(heapDumpFile: <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>)</td>
 </tr>
 </tbody>
 </table>

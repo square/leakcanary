@@ -743,6 +743,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-30-alpha-8-2024-06-04" class="md-nav__link">
+    Version 3.0 Alpha 8 (2024-06-04)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-30-alpha-7-2024-05-30" class="md-nav__link">
     Version 3.0 Alpha 7 (2024-05-30)
   </a>
@@ -1707,6 +1714,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#version-30-alpha-8-2024-06-04" class="md-nav__link">
+    Version 3.0 Alpha 8 (2024-06-04)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#version-30-alpha-7-2024-05-30" class="md-nav__link">
     Version 3.0 Alpha 7 (2024-05-30)
   </a>
@@ -2659,6 +2673,11 @@
   
   <h1 id="change-log">Change Log<a class="headerlink" href="#change-log" title="Permanent link">&para;</a></h1>
 <p>Please thank our <a href="https://github.com/square/leakcanary/graphs/contributors">contributors</a> 🙏 🙏 🙏.</p>
+<h2 id="version-30-alpha-8-2024-06-04">Version 3.0 Alpha 8 (2024-06-04)<a class="headerlink" href="#version-30-alpha-8-2024-06-04" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Added support for proper hprof handling on heap growth detection failures. Also inlined some public collaborators to achieve that. We now have a single class that&rsquo;s a bit larger but also a lot more obvious.</li>
+<li><code>findGrowingObjects</code> does not take a <code>CloseableHeapGraph</code> anymore (just a <code>HeapGraph</code>) and does not close that graph.</li>
+</ul>
 <h2 id="version-30-alpha-7-2024-05-30">Version 3.0 Alpha 7 (2024-05-30)<a class="headerlink" href="#version-30-alpha-7-2024-05-30" title="Permanent link">&para;</a></h2>
 <p>Revisited a number of API choices for heap growth, to simplify but also support more advanced
 behavior such as keep heap dumps on test failure, or zipping heap dumps for CI upload.</p>

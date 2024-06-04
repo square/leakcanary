@@ -862,7 +862,7 @@ class <a href="./">HeapClass</a> : <a href="../">HeapObject</a></p>
 </tr>
 <tr>
 <td><a href="class-hierarchy/">classHierarchy</a></td>
-<td>[jvm]<br>val <a href="class-hierarchy/">classHierarchy</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="./">HeapObject.HeapClass</a>&gt;<br>The class hierarchy starting at this class (included) and ending at the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class (included).</td>
+<td>[jvm]<br>val <a href="class-hierarchy/">classHierarchy</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.sequences/-sequence/index.html">Sequence</a>&lt;<a href="./">HeapObject.HeapClass</a>&gt;<br>The class hierarchy starting at this class (included) and ending at the <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html">Object</a> class (included).</td>
 </tr>
 <tr>
 <td><a href="direct-instances/">directInstances</a></td>
@@ -902,7 +902,7 @@ class <a href="./">HeapClass</a> : <a href="../">HeapObject</a></p>
 </tr>
 <tr>
 <td><a href="name/">name</a></td>
-<td>[jvm]<br>val <a href="name/">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>The name of this class, identical to <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html#getname">Class.getName</a>. If this class is an array class, the name has a suffix of brackets for each dimension of the array, e.g. <code>com.Foo[][]</code> is a class for 2 dimensional arrays of <code>com.Foo</code>.</td>
+<td>[jvm]<br>val <a href="name/">name</a>: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><br>The name of this class, identical to <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html#getName--">Class.getName</a>. If this class is an array class, the name has a suffix of brackets for each dimension of the array, e.g. <code>com.Foo[][]</code> is a class for 2 dimensional arrays of <code>com.Foo</code>.</td>
 </tr>
 <tr>
 <td><a href="object-array-instances/">objectArrayInstances</a></td>
@@ -938,7 +938,7 @@ class <a href="./">HeapClass</a> : <a href="../">HeapObject</a></p>
 </tr>
 <tr>
 <td><a href="superclass/">superclass</a></td>
-<td>[jvm]<br>val <a href="superclass/">superclass</a>: <a href="./">HeapObject.HeapClass</a>?<br>The <a href="./">HeapClass</a> representing the superclass of this <a href="./">HeapClass</a>. If this <a href="./">HeapClass</a> represents either the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class or a primitive type, then null is returned. If this <a href="./">HeapClass</a> represents an array class then the <a href="./">HeapClass</a> object representing the <a href="https://developer.android.com/reference/kotlin/java/lang/Object.html">Object</a> class is returned.</td>
+<td>[jvm]<br>val <a href="superclass/">superclass</a>: <a href="./">HeapObject.HeapClass</a>?<br>The <a href="./">HeapClass</a> representing the superclass of this <a href="./">HeapClass</a>. If this <a href="./">HeapClass</a> represents either the <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html">Object</a> class or a primitive type, then null is returned. If this <a href="./">HeapClass</a> represents an array class then the <a href="./">HeapClass</a> object representing the <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Object.html">Object</a> class is returned.</td>
 </tr>
 </tbody>
 </table>

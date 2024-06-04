@@ -757,7 +757,7 @@
 <h1 id="getandleakreferent">getAndLeakReferent<a class="headerlink" href="#getandleakreferent" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
 fun <a href="./">getAndLeakReferent</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>?</p>
-<p>Same as <a href="https://developer.android.com/reference/kotlin/java/lang/ref/WeakReference.html#get">WeakReference.get</a> but does not trigger an intentional crash.</p>
+<p>Same as <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/ref/WeakReference.html#get--">WeakReference.get</a> but does not trigger an intentional crash.</p>
 <p>Calling this method will end up creating local references to the objects, preventing them from becoming weakly reachable, and creating a leak. If you need to check for identity equality, use Reference.refersTo instead.</p>
   
 

@@ -757,8 +757,8 @@
 <h1 id="uptime">uptime<a class="headerlink" href="#uptime" title="Permanent link">&para;</a></h1>
 <p>[jvm]\
 abstract fun <a href="./">uptime</a>(): <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a></p>
-<p>On JVMs this should return <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#nanotime">System.nanoTime</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a>.</p>
-<p>On Android VMs, this should return either <a href="https://developer.android.com/reference/kotlin/java/lang/System.html#nanotime">System.nanoTime</a> on Android 11 (when the method was annotated with @CriticalNative) or android.os.SystemClock.uptimeMillis() before Android 11.</p>
+<p>On JVMs this should return <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#nanoTime--">System.nanoTime</a> as a <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.time/-duration/index.html">Duration</a>.</p>
+<p>On Android VMs, this should return either <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#nanoTime--">System.nanoTime</a> on Android 11 (when the method was annotated with @CriticalNative) or android.os.SystemClock.uptimeMillis() before Android 11.</p>
   
 
               </article>

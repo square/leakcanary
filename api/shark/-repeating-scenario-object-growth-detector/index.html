@@ -748,13 +748,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#constructors" class="md-nav__link">
-    Constructors
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#types" class="md-nav__link">
     Types
   </a>
@@ -791,7 +784,7 @@
   
   <p>//<a href="../../../">leakcanary-repo</a>/<a href="../">shark</a>/<a href="./">RepeatingScenarioObjectGrowthDetector</a></p>
 <h1 id="repeatingscenarioobjectgrowthdetector">RepeatingScenarioObjectGrowthDetector<a class="headerlink" href="#repeatingscenarioobjectgrowthdetector" title="Permanent link">&para;</a></h1>
-<p>class <a href="./">RepeatingScenarioObjectGrowthDetector</a>(heapGraphProvider: <a href="../-heap-graph-provider/">HeapGraphProvider</a>, repeatingHeapGraphDetector: <a href="../-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a>)</p>
+<p>interface <a href="./">RepeatingScenarioObjectGrowthDetector</a></p>
 <h4 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h4>
 <table>
 <thead>
@@ -802,21 +795,6 @@
 <tbody>
 <tr>
 <td><a href="find-repeatedly-growing-objects/">RepeatingScenarioObjectGrowthDetector.findRepeatedlyGrowingObjects</a></td>
-</tr>
-</tbody>
-</table>
-<h2 id="constructors">Constructors<a class="headerlink" href="#constructors" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th></th>
-<th></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a></td>
-<td>[jvm]<br>constructor(heapGraphProvider: <a href="../-heap-graph-provider/">HeapGraphProvider</a>, repeatingHeapGraphDetector: <a href="../-repeating-heap-graph-object-growth-detector/">RepeatingHeapGraphObjectGrowthDetector</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -846,7 +824,7 @@
 <tbody>
 <tr>
 <td><a href="find-repeatedly-growing-objects/">findRepeatedlyGrowingObjects</a></td>
-<td>[jvm]<br>fun <a href="find-repeatedly-growing-objects/">findRepeatedlyGrowingObjects</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_DUMP, roundTripScenario: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="../-heap-diff/">HeapDiff</a><br>Detects object growth by iterating through <a href="find-repeatedly-growing-objects/">roundTripScenario</a> repeatedly and dumping the heap every <code>scenarioLoopsPerDump</code> until no object growth is detected or we reach <code>maxHeapDumps</code>. Returns the <a href="../-heap-diff/">HeapDiff</a> for the last iteration. You can check <a href="../-heap-diff/is-growing/">HeapDiff.isGrowing</a> and <a href="../-heap-diff/growing-objects/">HeapDiff.growingObjects</a> to report object growth.</td>
+<td>[jvm]<br>abstract fun <a href="find-repeatedly-growing-objects/">findRepeatedlyGrowingObjects</a>(maxHeapDumps: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_MAX_HEAP_DUMPS, scenarioLoopsPerDump: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a> = DEFAULT_SCENARIO_LOOPS_PER_DUMP, roundTripScenario: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a>): <a href="../-heap-diff/">HeapDiff</a><br>Detects object growth by iterating through <a href="find-repeatedly-growing-objects/">roundTripScenario</a> repeatedly and dumping the heap every <a href="find-repeatedly-growing-objects/">scenarioLoopsPerDump</a> until no object growth is detected or we reach <a href="find-repeatedly-growing-objects/">maxHeapDumps</a>. Returns the <a href="../-heap-diff/">HeapDiff</a> for the last iteration. You can check <a href="../-heap-diff/is-growing/">HeapDiff.isGrowing</a> and <a href="../-heap-diff/growing-objects/">HeapDiff.growingObjects</a> to report object growth.</td>
 </tr>
 </tbody>
 </table>

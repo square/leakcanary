@@ -797,7 +797,7 @@ enum <a href="./">AndroidReferenceMatchers</a> : <a href="https://kotlinlang.org
 <p><a href="./">AndroidReferenceMatchers</a> is used to build the list of known references that cannot ever create leaks (via <a href="../-ignored-reference-matcher/">IgnoredReferenceMatcher</a>) as well as the list of known leaks in the Android Framework and in manufacturer specific Android implementations.</p>
 <p>This class is a work in progress. You can help by reporting leak traces that seem to be caused by the Android SDK, here: <a href="https://github.com/square/leakcanary/issues/new">https://github.com/square/leakcanary/issues/new</a></p>
 <p>We filter on SDK versions and Manufacturers because many of those leaks are specific to a given manufacturer implementation, they usually share their builds across multiple models, and the leaks eventually get fixed in newer versions.</p>
-<p>Most app developers should use <a href="-companion/app-defaults/">appDefaults</a>. However, you can also use a subset of <a href="./">AndroidReferenceMatchers</a> by creating an <a href="https://developer.android.com/reference/kotlin/java/util/EnumSet.html">EnumSet</a> that matches your needs and calling buildKnownReferences.</p>
+<p>Most app developers should use <a href="-companion/app-defaults/">appDefaults</a>. However, you can also use a subset of <a href="./">AndroidReferenceMatchers</a> by creating an <a href="https://docs.oracle.com/javase/8/docs/api/java/util/EnumSet.html">EnumSet</a> that matches your needs and calling buildKnownReferences.</p>
 <h2 id="entries">Entries<a class="headerlink" href="#entries" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

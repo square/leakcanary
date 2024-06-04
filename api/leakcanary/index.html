@@ -840,11 +840,11 @@
 <tbody>
 <tr>
 <td><a href="-activity-watcher/">ActivityWatcher</a></td>
-<td>[androidJvm]<br>class <a href="-activity-watcher/">ActivityWatcher</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, deletableObjectReporter: DeletableObjectReporter) : <a href="-installable-watcher/">InstallableWatcher</a><br>Expects activities to become weakly reachable soon after they receive the <a href="https://developer.android.com/reference/kotlin/android/app/Activity.html#ondestroy">Activity.onDestroy</a> callback.</td>
+<td>[androidJvm]<br>class <a href="-activity-watcher/">ActivityWatcher</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, deletableObjectReporter: DeletableObjectReporter) : <a href="-installable-watcher/">InstallableWatcher</a><br>Expects activities to become weakly reachable soon after they receive the <a href="https://developer.android.com/reference/kotlin/android/app/Activity.html#onDestroy--">Activity.onDestroy</a> callback.</td>
 </tr>
 <tr>
 <td><a href="-android-debug-heap-dumper/">AndroidDebugHeapDumper</a></td>
-<td>[androidJvm]<br>object <a href="-android-debug-heap-dumper/">AndroidDebugHeapDumper</a> : HeapDumper<br>Dumps the Android heap using <a href="https://developer.android.com/reference/kotlin/android/os/Debug.html#dumphprofdata">Debug.dumpHprofData</a>.</td>
+<td>[androidJvm]<br>object <a href="-android-debug-heap-dumper/">AndroidDebugHeapDumper</a> : HeapDumper<br>Dumps the Android heap using <a href="https://developer.android.com/reference/kotlin/android/os/Debug.html#dumpHprofData-kotlin.String-">Debug.dumpHprofData</a>.</td>
 </tr>
 <tr>
 <td><a href="-android-detect-leaks-assert/">AndroidDetectLeaksAssert</a></td>
@@ -876,7 +876,7 @@
 </tr>
 <tr>
 <td><a href="-background-trigger/">BackgroundTrigger</a></td>
-<td>[androidJvm]<br>class <a href="-background-trigger/">BackgroundTrigger</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, analysisClient: <a href="-heap-analysis-client/">HeapAnalysisClient</a>, analysisExecutor: <a href="https://developer.android.com/reference/kotlin/java/util/concurrent/Executor.html">Executor</a>, processInfo: <a href="-process-info/">ProcessInfo</a> = ProcessInfo.Real, analysisCallback: (<a href="-heap-analysis-job/-result/">HeapAnalysisJob.Result</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { result -&gt;     SharkLog.d { &quot;$result&quot; }   })</td>
+<td>[androidJvm]<br>class <a href="-background-trigger/">BackgroundTrigger</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, analysisClient: <a href="-heap-analysis-client/">HeapAnalysisClient</a>, analysisExecutor: <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html">Executor</a>, processInfo: <a href="-process-info/">ProcessInfo</a> = ProcessInfo.Real, analysisCallback: (<a href="-heap-analysis-job/-result/">HeapAnalysisJob.Result</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { result -&gt;     SharkLog.d { &quot;$result&quot; }   })</td>
 </tr>
 <tr>
 <td><a href="-conditional-interceptor/">ConditionalInterceptor</a></td>
@@ -884,7 +884,7 @@
 </tr>
 <tr>
 <td><a href="-datetime-formatted-heap-dump-file-provider/">DatetimeFormattedHeapDumpFileProvider</a></td>
-<td>[jvm]<br>class <a href="-datetime-formatted-heap-dump-file-provider/">DatetimeFormattedHeapDumpFileProvider</a>(heapDumpDirectoryProvider: <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a>, dateProvider: () -&gt; <a href="https://developer.android.com/reference/kotlin/java/util/Date.html">Date</a> = { Date() }, prefixProvider: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = { &quot;&quot; }, suffixProvider: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = { &quot;&quot; }) : <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
+<td>[jvm]<br>class <a href="-datetime-formatted-heap-dump-file-provider/">DatetimeFormattedHeapDumpFileProvider</a>(heapDumpDirectoryProvider: <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a>, dateProvider: () -&gt; <a href="https://docs.oracle.com/javase/8/docs/api/java/util/Date.html">Date</a> = { Date() }, prefixProvider: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = { &quot;&quot; }, suffixProvider: () -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> = { &quot;&quot; }) : <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
 </tr>
 <tr>
 <td><a href="-default-delay-deletable-object-reporter/">DefaultDelayDeletableObjectReporter</a></td>
@@ -915,8 +915,8 @@
 <td>[androidJvm]<br>fun interface <a href="-detect-leaks-interceptor/">DetectLeaksInterceptor</a><br>Decides whether to dump &amp; analyze the heap to look for leaks in instrumentation tests. The implementation might block for a while to allow temporary leaks to be flushed out, as those aren&rsquo;t that interesting to report and heap analysis increases test duration significantly.</td>
 </tr>
 <tr>
-<td><a href="-dumping-heap-graph-provider/">DumpingHeapGraphProvider</a></td>
-<td>[jvm]<br>class <a href="-dumping-heap-graph-provider/">DumpingHeapGraphProvider</a>(heapDumpFileProvider: <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a>, heapDumper: <a href="-heap-dumper/">HeapDumper</a>, heapDumpClosedListener: <a href="-dumping-heap-graph-provider/-heap-dump-closed-listener/">DumpingHeapGraphProvider.HeapDumpClosedListener</a> = HeapDumpClosedListener {}) : <a href="../shark/-heap-graph-provider/">HeapGraphProvider</a></td>
+<td><a href="-dumping-repeating-scenario-object-growth-detector/">DumpingRepeatingScenarioObjectGrowthDetector</a></td>
+<td>[jvm]<br>class <a href="-dumping-repeating-scenario-object-growth-detector/">DumpingRepeatingScenarioObjectGrowthDetector</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>, heapDumpFileProvider: <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a>, heapDumper: <a href="-heap-dumper/">HeapDumper</a>, heapDumpStorageStrategy: <a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a>) : <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>A <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for junit based automated tests that can dump the heap.</td>
 </tr>
 <tr>
 <td><a href="-event-listener/">EventListener</a></td>
@@ -940,7 +940,7 @@
 </tr>
 <tr>
 <td><a href="-heap-analysis-client/">HeapAnalysisClient</a></td>
-<td>[androidJvm]<br>class <a href="-heap-analysis-client/">HeapAnalysisClient</a>(heapDumpDirectoryProvider: () -&gt; <a href="https://developer.android.com/reference/kotlin/java/io/File.html">File</a>, config: <a href="-heap-analysis-config/">HeapAnalysisConfig</a>, interceptors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a>&gt;)</td>
+<td>[androidJvm]<br>class <a href="-heap-analysis-client/">HeapAnalysisClient</a>(heapDumpDirectoryProvider: () -&gt; <a href="https://docs.oracle.com/javase/8/docs/api/java/io/File.html">File</a>, config: <a href="-heap-analysis-config/">HeapAnalysisConfig</a>, interceptors: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a>&lt;<a href="-heap-analysis-interceptor/">HeapAnalysisInterceptor</a>&gt;)</td>
 </tr>
 <tr>
 <td><a href="-heap-analysis-config/">HeapAnalysisConfig</a></td>
@@ -976,7 +976,7 @@
 </tr>
 <tr>
 <td><a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a></td>
-<td>[jvm]<br>interface <a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a> : <a href="-dumping-heap-graph-provider/-heap-dump-closed-listener/">DumpingHeapGraphProvider.HeapDumpClosedListener</a>, <a href="../shark/-repeating-heap-graph-object-growth-detector/-completion-listener/">RepeatingHeapGraphObjectGrowthDetector.CompletionListener</a></td>
+<td>[jvm]<br>interface <a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a></td>
 </tr>
 <tr>
 <td><a href="-hot-spot-heap-dumper/">HotSpotHeapDumper</a></td>
@@ -988,11 +988,11 @@
 </tr>
 <tr>
 <td><a href="-job-context/">JobContext</a></td>
-<td>[androidJvm]<br>class <a href="-job-context/">JobContext</a>(val starter: <a href="https://developer.android.com/reference/kotlin/java/lang/Class.html">Class</a>&lt;*&gt;? = null)<br>In memory store that can be used to store objects in a given <a href="-heap-analysis-job/">HeapAnalysisJob</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
+<td>[androidJvm]<br>class <a href="-job-context/">JobContext</a>(val starter: <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/Class.html">Class</a>&lt;*&gt;? = null)<br>In memory store that can be used to store objects in a given <a href="-heap-analysis-job/">HeapAnalysisJob</a> instance. This is a simple <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-mutable-map/index.html">MutableMap</a> of <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a> to <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, but with unsafe generics access.</td>
 </tr>
 <tr>
 <td><a href="-keyed-weak-reference/">KeyedWeakReference</a></td>
-<td>[jvm]<br>class <a href="-keyed-weak-reference/">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, val key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val watchUptimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, referenceQueue: <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;) : <a href="https://developer.android.com/reference/kotlin/java/lang/ref/WeakReference.html">WeakReference</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt; <br>A weak reference used by <a href="-reference-queue-retained-object-tracker/">ReferenceQueueRetainedObjectTracker</a> to determine which objects become weakly reachable and which don&rsquo;t. <a href="-reference-queue-retained-object-tracker/">ReferenceQueueRetainedObjectTracker</a> uses <a href="-keyed-weak-reference/key/">key</a> to keep track of <a href="-keyed-weak-reference/">KeyedWeakReference</a> instances that haven&rsquo;t made it into the associated <a href="https://developer.android.com/reference/kotlin/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a> yet.</td>
+<td>[jvm]<br>class <a href="-keyed-weak-reference/">KeyedWeakReference</a>(referent: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>, val key: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val description: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a>, val watchUptimeMillis: <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a>, referenceQueue: <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt;) : <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/ref/WeakReference.html">WeakReference</a>&lt;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a>&gt; <br>A weak reference used by <a href="-reference-queue-retained-object-tracker/">ReferenceQueueRetainedObjectTracker</a> to determine which objects become weakly reachable and which don&rsquo;t. <a href="-reference-queue-retained-object-tracker/">ReferenceQueueRetainedObjectTracker</a> uses <a href="-keyed-weak-reference/key/">key</a> to keep track of <a href="-keyed-weak-reference/">KeyedWeakReference</a> instances that haven&rsquo;t made it into the associated <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/ref/ReferenceQueue.html">ReferenceQueue</a> yet.</td>
 </tr>
 <tr>
 <td><a href="-lazy-forwarding-event-listener/">LazyForwardingEventListener</a></td>
@@ -1032,7 +1032,7 @@
 </tr>
 <tr>
 <td><a href="-no-leak-assertion-failed-error/">NoLeakAssertionFailedError</a></td>
-<td>[androidJvm]<br>class <a href="-no-leak-assertion-failed-error/">NoLeakAssertionFailedError</a>(val heapAnalysis: <a href="../shark/-heap-analysis-success/#955217568%2FMain%2F-467942417">HeapAnalysisSuccess</a>) : <a href="https://developer.android.com/reference/kotlin/java/lang/AssertionError.html">AssertionError</a><br>Thrown when using the <a href="-no-leak-assertion-failed-error/-companion/throw-on-application-leaks/">NoLeakAssertionFailedError.throwOnApplicationLeaks</a> HeapAnalysisReporter</td>
+<td>[androidJvm]<br>class <a href="-no-leak-assertion-failed-error/">NoLeakAssertionFailedError</a>(val heapAnalysis: <a href="../shark/-heap-analysis-success/#955217568%2FMain%2F-467942417">HeapAnalysisSuccess</a>) : <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/AssertionError.html">AssertionError</a><br>Thrown when using the <a href="-no-leak-assertion-failed-error/-companion/throw-on-application-leaks/">NoLeakAssertionFailedError.throwOnApplicationLeaks</a> HeapAnalysisReporter</td>
 </tr>
 <tr>
 <td><a href="-notification-event-listener/">NotificationEventListener</a></td>
@@ -1084,11 +1084,11 @@
 </tr>
 <tr>
 <td><a href="-screen-off-trigger/">ScreenOffTrigger</a></td>
-<td>[androidJvm]<br>class <a href="-screen-off-trigger/">ScreenOffTrigger</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, analysisClient: <a href="-heap-analysis-client/">HeapAnalysisClient</a>, analysisExecutor: <a href="https://developer.android.com/reference/kotlin/java/util/concurrent/Executor.html">Executor</a>, analysisCallback: (<a href="-heap-analysis-job/-result/">HeapAnalysisJob.Result</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { result -&gt;     SharkLog.d { &quot;$result&quot; }   })</td>
+<td>[androidJvm]<br>class <a href="-screen-off-trigger/">ScreenOffTrigger</a>(application: <a href="https://developer.android.com/reference/kotlin/android/app/Application.html">Application</a>, analysisClient: <a href="-heap-analysis-client/">HeapAnalysisClient</a>, analysisExecutor: <a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executor.html">Executor</a>, analysisCallback: (<a href="-heap-analysis-job/-result/">HeapAnalysisJob.Result</a>) -&gt; <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html">Unit</a> = { result -&gt;     SharkLog.d { &quot;$result&quot; }   })</td>
 </tr>
 <tr>
 <td><a href="-service-watcher/">ServiceWatcher</a></td>
-<td>[androidJvm]<br>class <a href="-service-watcher/">ServiceWatcher</a>(deletableObjectReporter: DeletableObjectReporter) : <a href="-installable-watcher/">InstallableWatcher</a><br>Expects services to become weakly reachable soon after they receive the <a href="https://developer.android.com/reference/kotlin/android/app/Service.html#ondestroy">Service.onDestroy</a> callback.</td>
+<td>[androidJvm]<br>class <a href="-service-watcher/">ServiceWatcher</a>(deletableObjectReporter: DeletableObjectReporter) : <a href="-installable-watcher/">InstallableWatcher</a><br>Expects services to become weakly reachable soon after they receive the <a href="https://developer.android.com/reference/kotlin/android/app/Service.html#onDestroy--">Service.onDestroy</a> callback.</td>
 </tr>
 <tr>
 <td><a href="-skip-leak-detection/">SkipLeakDetection</a></td>
@@ -1101,6 +1101,10 @@
 <tr>
 <td><a href="-test-description-holder/">TestDescriptionHolder</a></td>
 <td>[jvm]<br>object <a href="-test-description-holder/">TestDescriptionHolder</a> : TestRule<br>A TestRule that holds onto the test Description in a thread local while evaluating, making it possible to retrieve that test Description from the test thread via <a href="-test-description-holder/test-description/">testDescription</a>.</td>
+</tr>
+<tr>
+<td><a href="-test-heap-dump-file-provider/">TestHeapDumpFileProvider</a></td>
+<td>[jvm]<br>class <a href="-test-heap-dump-file-provider/">TestHeapDumpFileProvider</a>(heapDumpDirectoryProvider: <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a>) : <a href="-heap-dump-file-provider/">HeapDumpFileProvider</a></td>
 </tr>
 <tr>
 <td><a href="-test-name/">TestName</a></td>
@@ -1180,10 +1184,6 @@
 <tr>
 <td><a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a></td>
 <td>[androidJvm]<br>fun <a href="../shark/-heap-diff/-companion/#-693027720%2FMain%2F-467942417">HeapDiff.Companion</a>.<a href="repeating-android-in-process-scenario/">repeatingAndroidInProcessScenario</a>(objectGrowthDetector: ObjectGrowthDetector = ObjectGrowthDetector.forAndroidHeap(), heapDumpDirectoryProvider: HeapDumpDirectoryProvider = TargetContextHeapDumpDirectoryProvider(     heapDumpDirectoryName = &quot;heap_dumps_object_growth&quot;   ), heapDumper: HeapDumper = HeapDumper.forAndroidInProcess()     .withGc(gcTrigger = GcTrigger.inProcess())     .withDetectorWarmup(objectGrowthDetector, androidHeap = true), heapDumpStorageStrategy: HeapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose()): RepeatingScenarioObjectGrowthDetector<br>Creates a RepeatingScenarioObjectGrowthDetector suitable for Android in process tests, such as Espresso tests.</td>
-</tr>
-<tr>
-<td><a href="repeating-dumping-test-scenario/">repeatingDumpingTestScenario</a></td>
-<td>[jvm]<br>fun <a href="../shark/-heap-diff/-companion/">HeapDiff.Companion</a>.<a href="repeating-dumping-test-scenario/">repeatingDumpingTestScenario</a>(objectGrowthDetector: <a href="../shark/-object-growth-detector/">ObjectGrowthDetector</a>, heapDumpDirectoryProvider: <a href="-heap-dump-directory-provider/">HeapDumpDirectoryProvider</a>, heapDumper: <a href="-heap-dumper/">HeapDumper</a>, heapDumpStorageStrategy: <a href="-heap-dump-storage-strategy/">HeapDumpStorageStrategy</a>): <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a><br>Creates a <a href="../shark/-repeating-scenario-object-growth-detector/">RepeatingScenarioObjectGrowthDetector</a> suitable for junit based automated tests that can dump the heap.</td>
 </tr>
 <tr>
 <td><a href="repeating-jvm-in-process-scenario/">repeatingJvmInProcessScenario</a></td>
