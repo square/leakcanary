@@ -87,35 +87,33 @@ class HeapGrowthCommand : CliktCommand(
             "order:\n${hprofFiles.joinToString("\n") { it.name }}"
         )
 
-        var previous: ConstantMemoryMetricsDualSourceProvider? = null
-        var previousStartTime = 0L.nanoseconds
-
-        val heapGraphs = hprofFiles.asSequence().map { file ->
-          val openTime = System.nanoTime().nanoseconds
-          previous?.let {
-            metrics += Metrics(
-              it.randomAccessByteReads, it.randomAccessReadCount, openTime - previousStartTime
+        var lastTraversal: HeapTraversalInput = InitialState(scenarioLoopsPerDump)
+        for (hprofFile in hprofFiles) {
+          val start = System.nanoTime().nanoseconds
+          val sourceProvider =
+            ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(hprofFile))
+          val heapTraversal = sourceProvider.openHeapGraph().use { heapGraph ->
+            androidDetector.findGrowingObjects(
+              heapGraph = heapGraph,
+              previousTraversal = lastTraversal,
             )
           }
-          val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(file))
-          previous = sourceProvider
-          previousStartTime = openTime
-          sourceProvider.openHeapGraph()
-        }
-        val detector = RepeatingHeapGraphObjectGrowthDetector(androidDetector)
-        val results = detector.findRepeatedlyGrowingObjects(
-          scenarioLoopsPerGraph = scenarioLoopsPerDump,
-          heapGraphSequence = heapGraphs,
-        ).also {
-          previous?.let {
-            val finishTime = System.nanoTime().nanoseconds
-            metrics += Metrics(
-              it.randomAccessByteReads, it.randomAccessReadCount, finishTime - previousStartTime
-            )
+          val duration = System.nanoTime().nanoseconds - start
+          metrics += Metrics(
+            sourceProvider.randomAccessByteReads, sourceProvider.randomAccessReadCount, duration
+          )
+          lastTraversal = heapTraversal
+          if (heapTraversal is HeapDiff && !heapTraversal.isGrowing) {
+            break
           }
         }
-        echo("Results: $results")
-        echo("Found ${results.growingObjects.size} growing objects")
+        val heapDiff = lastTraversal as HeapDiff
+        if (heapDiff.isGrowing) {
+          echo("Results: $heapDiff")
+          echo("Found ${heapDiff.growingObjects.size} growing objects")
+        } else {
+          echo("Results: not growing")
+        }
       }
 
       is ProcessSource -> {
@@ -123,10 +121,12 @@ class HeapGrowthCommand : CliktCommand(
 
         ConsoleReader().readLine("Press ENTER to dump heap when ready to start")
 
-        val firstTraversal = androidDetector.findGrowingObjects(
-          heapGraph = source.dumpHeapAndOpenGraph(),
-          previousTraversal = InitialState(scenarioLoopsPerDump)
-        )
+        val firstTraversal = source.dumpHeapAndOpenGraph().use { heapGraph ->
+          androidDetector.findGrowingObjects(
+            heapGraph = heapGraph,
+            previousTraversal = InitialState(scenarioLoopsPerDump)
+          )
+        }
 
         val nTimes = if (scenarioLoopsPerDump > 1) "$scenarioLoopsPerDump times" else "once"
 
@@ -151,7 +151,9 @@ class HeapGrowthCommand : CliktCommand(
           while (promptForCommand) {
             if (latestTraversal.isGrowing) {
               echo("To keep going, go through scenario $nTimes.")
-              echo("Then, either press ENTER or enter 'r' to reset and use the last heap dump as the new baseline.")
+              echo(
+                "Then, either press ENTER or enter 'r' to reset and use the last heap dump as the new baseline."
+              )
               echo("To quit, enter 'q'.")
               val command = consoleReader.readCommand(
 
@@ -169,8 +171,12 @@ class HeapGrowthCommand : CliktCommand(
                 }
               }
             } else {
-              echo("As the last heap dump found 0 growing objects, there's no point continuing with the same heap dump baseline.")
-              echo("To keep going, go through scenario $nTimes then press ENTER to use the last heap dump as the NEW baseline.")
+              echo(
+                "As the last heap dump found 0 growing objects, there's no point continuing with the same heap dump baseline."
+              )
+              echo(
+                "To keep going, go through scenario $nTimes then press ENTER to use the last heap dump as the NEW baseline."
+              )
               echo("To quit, enter 'q'.")
               when (val command = consoleReader.readCommand()) {
                 "q" -> throw PrintMessage("Quitting.")

@@ -9,14 +9,9 @@ public final class leakcanary/DatetimeFormattedHeapDumpFileProvider : leakcanary
 public final class leakcanary/DatetimeFormattedHeapDumpFileProvider$Companion {
 }
 
-public final class leakcanary/DumpingHeapGraphProvider : shark/HeapGraphProvider {
-	public fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lleakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener;)V
-	public synthetic fun <init> (Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lleakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public fun openHeapGraph ()Lshark/CloseableHeapGraph;
-}
-
-public abstract interface class leakcanary/DumpingHeapGraphProvider$HeapDumpClosedListener {
-	public abstract fun onHeapDumpClosed (Ljava/io/File;)V
+public final class leakcanary/DumpingRepeatingScenarioObjectGrowthDetector : shark/RepeatingScenarioObjectGrowthDetector {
+	public fun <init> (Lshark/ObjectGrowthDetector;Lleakcanary/HeapDumpFileProvider;Lleakcanary/HeapDumper;Lleakcanary/HeapDumpStorageStrategy;)V
+	public fun findRepeatedlyGrowingObjects (IILkotlin/jvm/functions/Function0;)Lshark/HeapDiff;
 }
 
 public abstract interface class leakcanary/HeapDumpDirectoryProvider {
@@ -25,6 +20,52 @@ public abstract interface class leakcanary/HeapDumpDirectoryProvider {
 
 public abstract interface class leakcanary/HeapDumpFileProvider {
 	public abstract fun newHeapDumpFile ()Ljava/io/File;
+}
+
+public abstract interface class leakcanary/HeapDumpStorageStrategy {
+	public abstract fun onHeapDiffResult (Ljava/lang/Object;)V
+	public abstract fun onHeapDumpClosed (Ljava/io/File;)V
+	public abstract fun onHeapDumped (Ljava/io/File;)V
+}
+
+public final class leakcanary/HeapDumpStorageStrategy$DefaultImpls {
+	public static fun onHeapDiffResult (Lleakcanary/HeapDumpStorageStrategy;Ljava/lang/Object;)V
+	public static fun onHeapDumpClosed (Lleakcanary/HeapDumpStorageStrategy;Ljava/io/File;)V
+	public static fun onHeapDumped (Lleakcanary/HeapDumpStorageStrategy;Ljava/io/File;)V
+}
+
+public final class leakcanary/HeapDumpStorageStrategy$DeleteOnHeapDumpClose : leakcanary/HeapDumpStorageStrategy {
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun onHeapDiffResult (Ljava/lang/Object;)V
+	public fun onHeapDumpClosed (Ljava/io/File;)V
+	public fun onHeapDumped (Ljava/io/File;)V
+}
+
+public final class leakcanary/HeapDumpStorageStrategy$KeepHeapDumps : leakcanary/HeapDumpStorageStrategy {
+	public static final field INSTANCE Lleakcanary/HeapDumpStorageStrategy$KeepHeapDumps;
+	public fun onHeapDiffResult (Ljava/lang/Object;)V
+	public fun onHeapDumpClosed (Ljava/io/File;)V
+	public fun onHeapDumped (Ljava/io/File;)V
+}
+
+public final class leakcanary/HeapDumpStorageStrategy$KeepHeapDumpsOnObjectsGrowing : leakcanary/HeapDumpStorageStrategy {
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun onHeapDiffResult (Ljava/lang/Object;)V
+	public fun onHeapDumpClosed (Ljava/io/File;)V
+	public fun onHeapDumped (Ljava/io/File;)V
+}
+
+public final class leakcanary/HeapDumpStorageStrategy$KeepZippedHeapDumpsOnObjectsGrowing : leakcanary/HeapDumpStorageStrategy {
+	public fun <init> ()V
+	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun onHeapDiffResult (Ljava/lang/Object;)V
+	public fun onHeapDumpClosed (Ljava/io/File;)V
+	public fun onHeapDumped (Ljava/io/File;)V
 }
 
 public abstract interface class leakcanary/HeapDumper {

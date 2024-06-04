@@ -3,10 +3,10 @@ package leakcanary
 import java.io.File
 import okio.ByteString.Companion.decodeHex
 import shark.ByteArraySourceProvider
+import shark.HeapTraversalInput
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.InitialState
 import shark.ObjectGrowthDetector
-import shark.RepeatingHeapGraphObjectGrowthDetector
-import shark.RepeatingScenarioObjectGrowthDetector
 
 class ObjectGrowthWarmupHeapDumper(
   private val objectGrowthDetector: ObjectGrowthDetector,
@@ -25,22 +25,19 @@ class ObjectGrowthWarmupHeapDumper(
   }
 
   private fun warmup() {
-    val heapDumpsAsHex = listOf({ heapDump1Hex(androidHeap) }, { heapDump2Hex(androidHeap) },
-      { heapDump3Hex(androidHeap) })
-    val heapDumpsAsHexIterator = heapDumpsAsHex.iterator()
-    val warmupDetector = RepeatingScenarioObjectGrowthDetector(
-      heapGraphProvider = {
-        ByteArraySourceProvider(
-          heapDumpsAsHexIterator.next()().decodeHex().toByteArray()
-        ).openHeapGraph()
-      },
-      repeatingHeapGraphDetector = RepeatingHeapGraphObjectGrowthDetector(objectGrowthDetector),
+    val heapDumpsAsHex = listOf(
+      { heapDump1Hex(androidHeap) },
+      { heapDump2Hex(androidHeap) },
+      { heapDump3Hex(androidHeap) }
     )
-    warmupDetector.findRepeatedlyGrowingObjects(
-      maxHeapDumps = heapDumpsAsHex.size,
-      scenarioLoopsPerDump = 1,
-      roundTripScenario = {}
-    )
+    var lastTraversalOutput: HeapTraversalInput = InitialState(1)
+    for (heapDumpAsHex in heapDumpsAsHex) {
+      lastTraversalOutput = ByteArraySourceProvider(
+        heapDumpAsHex().decodeHex().toByteArray()
+      ).openHeapGraph().use { heapGraph ->
+        objectGrowthDetector.findGrowingObjects(heapGraph, lastTraversalOutput)
+      }
+    }
   }
 
   @SuppressWarnings("MaxLineLength")

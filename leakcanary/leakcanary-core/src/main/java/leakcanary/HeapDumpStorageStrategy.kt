@@ -4,10 +4,9 @@ import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import shark.HeapDiff
-import shark.RepeatingHeapGraphObjectGrowthDetector
+import shark.SharkLog
 
-interface HeapDumpStorageStrategy : DumpingHeapGraphProvider.HeapDumpClosedListener,
-  RepeatingHeapGraphObjectGrowthDetector.CompletionListener {
+interface HeapDumpStorageStrategy {
 
   /**
    * Deletes heap dumps as soon as we're done traversing them. This is the most disk space
@@ -17,6 +16,7 @@ interface HeapDumpStorageStrategy : DumpingHeapGraphProvider.HeapDumpClosedListe
     private val deleteFile: (File) -> Unit = { it.delete() }
   ) : HeapDumpStorageStrategy {
     override fun onHeapDumpClosed(heapDumpFile: File) {
+      SharkLog.d { "DeleteOnHeapDumpClose: deleting closed heap dump ${heapDumpFile.absolutePath}" }
       deleteFile(heapDumpFile)
     }
   }
@@ -37,19 +37,34 @@ interface HeapDumpStorageStrategy : DumpingHeapGraphProvider.HeapDumpClosedListe
   ) : HeapDumpStorageStrategy {
     // This assumes the detector instance is always used from the same thread, which seems like a
     // safe enough assumption for tests.
-    private val closedHeapDumpFiles = mutableListOf<File>()
+    private val heapDumpFiles = mutableListOf<File>()
 
-    override fun onHeapDumpClosed(heapDumpFile: File) {
-      closedHeapDumpFiles += heapDumpFile
+    override fun onHeapDumped(heapDumpFile: File) {
+      heapDumpFiles += heapDumpFile
     }
 
-    override fun onObjectGrowthDetectionComplete(result: HeapDiff) {
-      if (!result.isGrowing) {
-        closedHeapDumpFiles.forEach {
+    override fun onHeapDiffResult(result: Result<HeapDiff>) {
+      if (result.isSuccess && !result.getOrThrow().isGrowing) {
+        SharkLog.d {
+          "KeepHeapDumpsOnObjectsGrowing: not growing, deleting heap dumps:" +
+            heapDumpFiles.joinToString(
+              prefix = "\n",
+              separator = "\n"
+            ) { it.absolutePath }
+        }
+        heapDumpFiles.forEach {
           deleteFile(it)
         }
+      } else {
+        SharkLog.d {
+          "KeepHeapDumpsOnObjectsGrowing: failure or growing, keeping heap dumps:" +
+            heapDumpFiles.joinToString(
+              prefix = "\n",
+              separator = "\n"
+            ) { it.absolutePath }
+        }
       }
-      closedHeapDumpFiles.clear()
+      heapDumpFiles.clear()
     }
   }
 
@@ -66,22 +81,37 @@ interface HeapDumpStorageStrategy : DumpingHeapGraphProvider.HeapDumpClosedListe
   ) : HeapDumpStorageStrategy {
     // This assumes the detector instance is always used from the same thread, which seems like a
     // safe enough assumption for tests.
-    private val closedHeapDumpFiles = mutableListOf<File>()
+    private val heapDumpFiles = mutableListOf<File>()
 
-    override fun onHeapDumpClosed(heapDumpFile: File) {
-      closedHeapDumpFiles += heapDumpFile
+    override fun onHeapDumped(heapDumpFile: File) {
+      heapDumpFiles += heapDumpFile
     }
 
-    override fun onObjectGrowthDetectionComplete(result: HeapDiff) {
-      if (result.isGrowing) {
-        closedHeapDumpFiles.forEach {
+    override fun onHeapDiffResult(result: Result<HeapDiff>) {
+      if (result.isFailure || result.getOrThrow().isGrowing) {
+        SharkLog.d {
+          "KeepZippedHeapDumpsOnObjectsGrowing: failure or growing, zipping heap dumps:" +
+            heapDumpFiles.joinToString(
+              prefix = "\n",
+              separator = "\n"
+            ) { it.absolutePath }
+        }
+        heapDumpFiles.forEach {
           it.zipFile()
         }
+      } else {
+        SharkLog.d {
+          "KeepZippedHeapDumpsOnObjectsGrowing: not growing, deleting heap dumps:" +
+            heapDumpFiles.joinToString(
+              prefix = "\n",
+              separator = "\n"
+            ) { it.absolutePath }
+        }
       }
-      closedHeapDumpFiles.forEach {
+      heapDumpFiles.forEach {
         deleteFile(it)
       }
-      closedHeapDumpFiles.clear()
+      heapDumpFiles.clear()
     }
 
     private fun File.zipFile(destination: File = File(parent, "$nameWithoutExtension.zip")): File {
@@ -101,7 +131,9 @@ interface HeapDumpStorageStrategy : DumpingHeapGraphProvider.HeapDumpClosedListe
     }
   }
 
-  override fun onHeapDumpClosed(heapDumpFile: File) = Unit
+  fun onHeapDumpClosed(heapDumpFile: File) = Unit
 
-  override fun onObjectGrowthDetectionComplete(result: HeapDiff) = Unit
+  fun onHeapDumped(heapDumpFile: File) = Unit
+
+  fun onHeapDiffResult(result: Result<HeapDiff>) = Unit
 }

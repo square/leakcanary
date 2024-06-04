@@ -27,9 +27,9 @@ fun HeapDiff.Companion.repeatingUiAutomatorScenario(
     UiAutomatorShellFileDeleter.deleteFileUsingShell(heapDumpFile)
   },
 ): RepeatingScenarioObjectGrowthDetector {
-  return repeatingDumpingTestScenario(
+  return DumpingRepeatingScenarioObjectGrowthDetector(
     objectGrowthDetector = objectGrowthDetector,
-    heapDumpDirectoryProvider = heapDumpDirectoryProvider,
+    heapDumpFileProvider = TestHeapDumpFileProvider(heapDumpDirectoryProvider),
     heapDumper = heapDumper,
     heapDumpStorageStrategy = heapDumpStorageStrategy,
   )

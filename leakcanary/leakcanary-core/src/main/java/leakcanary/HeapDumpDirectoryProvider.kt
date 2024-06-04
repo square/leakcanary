@@ -4,7 +4,7 @@ import java.io.File
 
 fun interface HeapDumpDirectoryProvider {
   /**
-   * Expected to be only once per [HeapDumpFileProvider] implementation instance.
+   * Expected to be called only once per [HeapDumpFileProvider] implementation instance.
    */
   fun heapDumpDirectory(): File
 }

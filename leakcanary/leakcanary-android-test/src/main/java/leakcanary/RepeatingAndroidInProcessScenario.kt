@@ -23,9 +23,9 @@ fun HeapDiff.Companion.repeatingAndroidInProcessScenario(
     .withDetectorWarmup(objectGrowthDetector, androidHeap = true),
   heapDumpStorageStrategy: HeapDumpStorageStrategy = HeapDumpStorageStrategy.DeleteOnHeapDumpClose(),
 ): RepeatingScenarioObjectGrowthDetector {
-  return repeatingDumpingTestScenario(
+  return DumpingRepeatingScenarioObjectGrowthDetector(
     objectGrowthDetector = objectGrowthDetector,
-    heapDumpDirectoryProvider = heapDumpDirectoryProvider,
+    heapDumpFileProvider = TestHeapDumpFileProvider(heapDumpDirectoryProvider),
     heapDumper = heapDumper,
     heapDumpStorageStrategy = heapDumpStorageStrategy,
   )

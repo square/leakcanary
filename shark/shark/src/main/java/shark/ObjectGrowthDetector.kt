@@ -26,7 +26,7 @@ class ObjectGrowthDetector(
 ) {
 
   fun findGrowingObjects(
-    heapGraph: CloseableHeapGraph,
+    heapGraph: HeapGraph,
     previousTraversal: HeapTraversalInput = InitialState(),
   ): HeapTraversalOutput {
     check(previousTraversal !is HeapDiff || previousTraversal.isGrowing) {
@@ -38,20 +38,10 @@ class ObjectGrowthDetector(
     // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (heapGraph.instanceCount / 2).coerceAtLeast(4)
     val state = TraversalState(estimatedVisitedObjects = estimatedVisitedObjects)
-    return heapGraph.use {
-      state.traverseHeapDiffingShortestPaths(
-        heapGraph,
-        previousTraversal
-      )
-    }.also { output ->
-      if (output is HeapDiff) {
-        val scenarioCount = output.traversalCount * output.scenarioLoopsPerGraph
-        SharkLog.d {
-          "After $scenarioCount scenario iterations and ${output.traversalCount} heap dumps, " +
-            "${output.growingObjects.size} growing nodes:\n" + output.growingObjects
-        }
-      }
-    }
+    return state.traverseHeapDiffingShortestPaths(
+      heapGraph,
+      previousTraversal
+    )
   }
 
   // data class to be a properly implemented key.
@@ -94,7 +84,7 @@ class ObjectGrowthDetector(
 
   @Suppress("ComplexMethod")
   private fun TraversalState.traverseHeapDiffingShortestPaths(
-    graph: CloseableHeapGraph,
+    graph: HeapGraph,
     previousTraversal: HeapTraversalInput
   ): HeapTraversalOutput {
     val previousTree = when (previousTraversal) {
@@ -402,7 +392,7 @@ class ObjectGrowthDetector(
 
   private fun TraversalState.enqueueRoots(
     previousTree: ShortestPathObjectNode?,
-    heapGraph: CloseableHeapGraph
+    heapGraph: HeapGraph
   ) {
     val previousTreeRootMap = previousTree?.let { tree ->
       tree.children.associateBy { it.name }

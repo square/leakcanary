@@ -19,9 +19,6 @@ class JvmLiveObjectGrowthDetectorTest {
 
   class CustomLinkedList(var next: CustomLinkedList? = null)
 
-  @get:Rule
-  val testFolder = TemporaryFolder()
-
   val leakies = mutableListOf<Any>()
 
   val stringLeaks = mutableListOf<String>()

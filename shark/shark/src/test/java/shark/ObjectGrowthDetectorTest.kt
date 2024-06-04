@@ -99,7 +99,7 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val heapTraversal =  detector.findRepeatedlyGrowingObjects(dumps)
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
@@ -122,14 +122,13 @@ class ObjectGrowthDetectorTest {
       }
     )
 
-    val heapTraversal =  detector.findRepeatedlyGrowingObjects(dumps)
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
     val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).bytes
     assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
   }
-
 
   @Test
   fun `detect growth of custom linked list`() {
@@ -433,11 +432,15 @@ class ObjectGrowthDetectorTest {
     val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
-        val pairClass = clazz("Pair", fields = listOf(
+        val pairClass = clazz(
+          "Pair", fields = listOf(
           "first" to ValueHolder.ReferenceHolder::class,
           "second" to ValueHolder.ReferenceHolder::class,
-        ))
-        val growingClass = clazz("GrowingClass", fields = listOf("growingField" to ValueHolder.ReferenceHolder::class))
+        )
+        )
+        val growingClass = clazz(
+          "GrowingClass", fields = listOf("growingField" to ValueHolder.ReferenceHolder::class)
+        )
         val pair = instance(pairClass, listOf(instance(objectClassId), instance(objectClassId)))
         clazz(
           "ClassWithStatics",
@@ -449,11 +452,15 @@ class ObjectGrowthDetectorTest {
         )
       },
       dump {
-        val pairClass = clazz("Pair", fields = listOf(
+        val pairClass = clazz(
+          "Pair", fields = listOf(
           "first" to ValueHolder.ReferenceHolder::class,
           "second" to ValueHolder.ReferenceHolder::class,
-        ))
-        val growingClass = clazz("GrowingClass", fields = listOf("growingField" to ValueHolder.ReferenceHolder::class))
+        )
+        )
+        val growingClass = clazz(
+          "GrowingClass", fields = listOf("growingField" to ValueHolder.ReferenceHolder::class)
+        )
         val pair1 = instance(pairClass, listOf(instance(objectClassId), instance(objectClassId)))
         val pair2 = instance(pairClass, listOf(instance(objectClassId), instance(objectClassId)))
         clazz(
@@ -475,22 +482,23 @@ class ObjectGrowthDetectorTest {
   }
 
   class ListRepeatingHeapGraphObjectGrowthDetector(
-    objectGrowthDetector: ObjectGrowthDetector
+    private val objectGrowthDetector: ObjectGrowthDetector
   ) {
-    private val delegate = RepeatingHeapGraphObjectGrowthDetector(objectGrowthDetector)
 
     fun findRepeatedlyGrowingObjects(
-      heapGraphs: List<CloseableHeapGraph>,
+      heapGraphs: List<HeapGraph>,
       scenarioLoopsPerGraph: Int = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
     ): HeapDiff {
-      return delegate.findRepeatedlyGrowingObjects(
-        scenarioLoopsPerGraph = scenarioLoopsPerGraph,
-        heapGraphSequence = heapGraphs.asSequence()
-      ).apply {
-        check(traversalCount == heapGraphs.size) {
-          "Expected traversalCount $traversalCount to be equal to heapGraphs size ${heapGraphs.size} for $this"
+      var previousTraversal: HeapTraversalInput = InitialState(scenarioLoopsPerGraph)
+      for (heapGraph in heapGraphs) {
+        previousTraversal = objectGrowthDetector.findGrowingObjects(heapGraph, previousTraversal)
+        if (previousTraversal is HeapDiff && !previousTraversal.isGrowing) {
+          check(previousTraversal.traversalCount == heapGraphs.size) {
+            "Expected to go through all ${heapGraphs.size} heap dumps, stopped at ${previousTraversal.traversalCount}"
+          }
         }
       }
+      return previousTraversal as HeapDiff
     }
   }
 

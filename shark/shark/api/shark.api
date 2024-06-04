@@ -644,8 +644,8 @@ public final class shark/ObjectDominators$OfflineDominatorNode : java/io/Seriali
 public final class shark/ObjectGrowthDetector {
 	public static final field Companion Lshark/ObjectGrowthDetector$Companion;
 	public fun <init> (Lshark/GcRootProvider;Lshark/ReferenceReader$Factory;)V
-	public final fun findGrowingObjects (Lshark/CloseableHeapGraph;Lshark/HeapTraversalInput;)Lshark/HeapTraversalOutput;
-	public static synthetic fun findGrowingObjects$default (Lshark/ObjectGrowthDetector;Lshark/CloseableHeapGraph;Lshark/HeapTraversalInput;ILjava/lang/Object;)Lshark/HeapTraversalOutput;
+	public final fun findGrowingObjects (Lshark/HeapGraph;Lshark/HeapTraversalInput;)Lshark/HeapTraversalOutput;
+	public static synthetic fun findGrowingObjects$default (Lshark/ObjectGrowthDetector;Lshark/HeapGraph;Lshark/HeapTraversalInput;ILjava/lang/Object;)Lshark/HeapTraversalOutput;
 }
 
 public final class shark/ObjectGrowthDetector$Companion {
@@ -930,27 +930,20 @@ public abstract interface class shark/ReferenceReader$Factory {
 	public abstract fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
 }
 
-public final class shark/RepeatingHeapGraphObjectGrowthDetector {
-	public fun <init> (Lshark/ObjectGrowthDetector;Lshark/RepeatingHeapGraphObjectGrowthDetector$CompletionListener;)V
-	public synthetic fun <init> (Lshark/ObjectGrowthDetector;Lshark/RepeatingHeapGraphObjectGrowthDetector$CompletionListener;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
-	public final fun findRepeatedlyGrowingObjects (ILkotlin/sequences/Sequence;)Lshark/HeapDiff;
-	public static synthetic fun findRepeatedlyGrowingObjects$default (Lshark/RepeatingHeapGraphObjectGrowthDetector;ILkotlin/sequences/Sequence;ILjava/lang/Object;)Lshark/HeapDiff;
-}
-
-public abstract interface class shark/RepeatingHeapGraphObjectGrowthDetector$CompletionListener {
-	public abstract fun onObjectGrowthDetectionComplete (Lshark/HeapDiff;)V
-}
-
-public final class shark/RepeatingScenarioObjectGrowthDetector {
+public abstract interface class shark/RepeatingScenarioObjectGrowthDetector {
 	public static final field Companion Lshark/RepeatingScenarioObjectGrowthDetector$Companion;
 	public static final field DEFAULT_MAX_HEAP_DUMPS I
 	public static final field DEFAULT_SCENARIO_LOOPS_PER_DUMP I
-	public fun <init> (Lshark/HeapGraphProvider;Lshark/RepeatingHeapGraphObjectGrowthDetector;)V
-	public final fun findRepeatedlyGrowingObjects (IILkotlin/jvm/functions/Function0;)Lshark/HeapDiff;
-	public static synthetic fun findRepeatedlyGrowingObjects$default (Lshark/RepeatingScenarioObjectGrowthDetector;IILkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lshark/HeapDiff;
+	public abstract fun findRepeatedlyGrowingObjects (IILkotlin/jvm/functions/Function0;)Lshark/HeapDiff;
 }
 
 public final class shark/RepeatingScenarioObjectGrowthDetector$Companion {
+	public static final field DEFAULT_MAX_HEAP_DUMPS I
+	public static final field DEFAULT_SCENARIO_LOOPS_PER_DUMP I
+}
+
+public final class shark/RepeatingScenarioObjectGrowthDetector$DefaultImpls {
+	public static synthetic fun findRepeatedlyGrowingObjects$default (Lshark/RepeatingScenarioObjectGrowthDetector;IILkotlin/jvm/functions/Function0;ILjava/lang/Object;)Lshark/HeapDiff;
 }
 
 public final class shark/Retained {
