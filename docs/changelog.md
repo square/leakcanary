@@ -3,6 +3,11 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Version 3.0 Alpha 8 (2024-06-04)
+
+* Added support for proper hprof handling on heap growth detection failures. Also inlined some public collaborators to achieve that. We now have a single class that's a bit larger but also a lot more obvious.
+* `findGrowingObjects` does not take a `CloseableHeapGraph` anymore (just a `HeapGraph`) and does not close that graph.
+
 ## Version 3.0 Alpha 7 (2024-05-30)
 
 Revisited a number of API choices for heap growth, to simplify but also support more advanced
