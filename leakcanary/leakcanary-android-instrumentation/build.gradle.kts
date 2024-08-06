@@ -5,40 +5,40 @@ plugins {
 }
 
 dependencies {
-  api projects.leakcanary.leakcanaryAndroidCore
-  api projects.leakcanary.leakcanaryAndroidTest
-  api projects.leakcanary.leakcanaryTestCore
-  api projects.shark.sharkAndroid
+  api(projects.leakcanary.leakcanaryAndroidCore)
+  api(projects.leakcanary.leakcanaryAndroidTest)
+  api(projects.leakcanary.leakcanaryTestCore)
+  api(projects.shark.sharkAndroid)
 
-  implementation libs.androidX.test.runner
-  implementation libs.kotlin.stdlib
+  implementation(libs.androidX.test.runner)
+  implementation(libs.kotlin.stdlib)
 
   // AppWatcher auto installer for running tests
-  androidTestImplementation projects.objectWatcher.objectWatcherAndroid
+  androidTestImplementation(projects.objectWatcher.objectWatcherAndroid)
   // Plumber auto installer for running tests
-  androidTestImplementation projects.plumber.plumberAndroid
-  androidTestImplementation libs.androidX.multidex
-  androidTestImplementation libs.androidX.test.core
-  androidTestImplementation libs.androidX.test.espresso
-  androidTestImplementation libs.androidX.test.rules
-  androidTestImplementation libs.androidX.fragment
-  androidTestImplementation libs.assertjCore
+  androidTestImplementation(projects.plumber.plumberAndroid)
+  androidTestImplementation(libs.androidX.multidex)
+  androidTestImplementation(libs.androidX.test.core)
+  androidTestImplementation(libs.androidX.test.espresso)
+  androidTestImplementation(libs.androidX.test.rules)
+  androidTestImplementation(libs.androidX.fragment)
+  androidTestImplementation(libs.assertjCore)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    targetSdk versions.compileSdk
-    minSdk versions.minSdk
-    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    multiDexEnabled true
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
+    minSdk = libs.versions.androidMinSdk.get().toInt()
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    multiDexEnabled = true
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.instrumentation'
-  testNamespace 'com.squareup.leakcanary.instrumentation.test'
+  namespace = "com.squareup.leakcanary.instrumentation"
+  testNamespace = "com.squareup.leakcanary.instrumentation.test"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    ignore 'InvalidPackage'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    ignore += "InvalidPackage"
   }
 }

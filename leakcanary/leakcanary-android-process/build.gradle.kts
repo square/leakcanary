@@ -5,23 +5,23 @@ plugins {
 }
 
 dependencies {
-  api projects.shark.sharkLog
-  api projects.objectWatcher.objectWatcherAndroidCore
+  api(projects.shark.sharkLog)
+  api(projects.objectWatcher.objectWatcherAndroidCore)
 
-  implementation libs.kotlin.stdlib
-  implementation libs.androidX.work.multiprocess
+  implementation(libs.kotlin.stdlib)
+  implementation(libs.androidX.work.multiprocess)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk versions.minSdk
+    minSdk = libs.versions.androidMinSdk.get().toInt()
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary'
+  namespace = "com.squareup.leakcanary"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    ignore 'InvalidPackage'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    ignore += "InvalidPackage"
   }
 }

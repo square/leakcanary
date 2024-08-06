@@ -5,22 +5,22 @@ plugins {
 }
 
 dependencies {
-  api projects.leakcanary.leakcanaryCore
-  api projects.shark.sharkLog
+  api(projects.leakcanary.leakcanaryCore)
+  api(projects.shark.sharkLog)
 
-  implementation libs.kotlin.stdlib
+  implementation(libs.kotlin.stdlib)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk versions.minSdk
+    minSdk = libs.versions.androidMinSdk.get().toInt()
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.utils'
+  namespace = "com.squareup.leakcanary.utils"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    error 'ObsoleteSdkInt'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    error += "ObsoleteSdkInt"
   }
 }

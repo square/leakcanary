@@ -5,20 +5,20 @@ plugins {
 }
 
 dependencies {
-  api projects.leakcanary.leakcanaryCore
-  api projects.leakcanary.leakcanaryTestCore
-  api projects.shark.sharkAndroid
-  api libs.androidX.test.uiautomator
+  api(projects.leakcanary.leakcanaryCore)
+  api(projects.leakcanary.leakcanaryTestCore)
+  api(projects.shark.sharkAndroid)
+  api(libs.androidX.test.uiautomator)
 
-  implementation libs.androidX.test.monitor
+  implementation(libs.androidX.test.monitor)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    targetSdk versions.compileSdk
-    minSdk 18
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
+    minSdk = 18
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.android.uiautomator'
+  namespace = "com.squareup.leakcanary.android.uiautomator"
 }

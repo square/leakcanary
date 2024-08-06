@@ -3,15 +3,17 @@ plugins {
   id("com.vanniktech.maven.publish")
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
 
 dependencies {
-  api projects.leakcanary.leakcanaryGc
-  api projects.shark.shark
-  implementation libs.okio2
+  api(projects.leakcanary.leakcanaryGc)
+  api(projects.shark.shark)
+  implementation(libs.okio2)
 
-  testImplementation libs.assertjCore
-  testImplementation libs.junit
-  testImplementation projects.shark.sharkHprofTest
+  testImplementation(libs.assertjCore)
+  testImplementation(libs.junit)
+  testImplementation(projects.shark.sharkHprofTest)
 }

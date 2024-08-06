@@ -5,23 +5,23 @@ plugins {
 }
 
 dependencies {
-  api projects.leakcanary.leakcanaryAndroidCore
+  api(projects.leakcanary.leakcanaryAndroidCore)
   // AppWatcher AndroidX Startup installer
-  implementation projects.objectWatcher.objectWatcherAndroidStartup
+  implementation(projects.objectWatcher.objectWatcherAndroidStartup)
   // Plumber AndroidX Startup installer
-  implementation projects.plumber.plumberAndroidStartup
+  implementation(projects.plumber.plumberAndroidStartup)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk versions.minSdk
+    minSdk = libs.versions.androidMinSdk.get().toInt()
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.startup'
+  namespace = "com.squareup.leakcanary.startup"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    ignore 'InvalidPackage'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    ignore += "InvalidPackage"
   }
 }

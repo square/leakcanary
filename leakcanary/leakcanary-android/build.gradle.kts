@@ -5,31 +5,31 @@ plugins {
 }
 
 dependencies {
-  api projects.leakcanary.leakcanaryAndroidCore
+  api(projects.leakcanary.leakcanaryAndroidCore)
   // AppWatcher auto installer
-  api projects.objectWatcher.objectWatcherAndroid
+  api(projects.objectWatcher.objectWatcherAndroid)
   // Plumber auto installer
-  implementation projects.plumber.plumberAndroid
-  implementation libs.kotlin.stdlib
+  implementation(projects.plumber.plumberAndroid)
+  implementation(libs.kotlin.stdlib)
 
-  androidTestImplementation libs.androidX.test.espresso
-  androidTestImplementation libs.androidX.test.rules
-  androidTestImplementation libs.androidX.test.runner
-  androidTestImplementation libs.assertjCore
-  androidTestImplementation projects.shark.sharkHprofTest
+  androidTestImplementation(libs.androidX.test.espresso)
+  androidTestImplementation(libs.androidX.test.rules)
+  androidTestImplementation(libs.androidX.test.runner)
+  androidTestImplementation(libs.assertjCore)
+  androidTestImplementation(projects.shark.sharkHprofTest)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk versions.minSdk
-    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    minSdk = libs.versions.androidMinSdk.get().toInt()
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary'
+  namespace = "com.squareup.leakcanary"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    ignore 'InvalidPackage'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    ignore += "InvalidPackage"
   }
 }

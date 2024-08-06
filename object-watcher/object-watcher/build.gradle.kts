@@ -3,14 +3,16 @@ plugins {
   id("com.vanniktech.maven.publish")
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
 
 dependencies {
-  implementation libs.kotlin.stdlib
-  api projects.shark.sharkLog
-  api projects.leakcanary.leakcanaryGc
+  implementation(libs.kotlin.stdlib)
+  api(projects.shark.sharkLog)
+  api(projects.leakcanary.leakcanaryGc)
 
-  testImplementation libs.assertjCore
-  testImplementation libs.junit
+  testImplementation(libs.assertjCore)
+  testImplementation(libs.junit)
 }

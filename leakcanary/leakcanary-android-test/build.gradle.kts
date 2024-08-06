@@ -5,28 +5,28 @@ plugins {
 }
 
 dependencies {
-  api projects.leakcanary.leakcanaryCore
-  api projects.leakcanary.leakcanaryAndroidUtils
-  api projects.leakcanary.leakcanaryTestCore
-  api projects.shark.sharkAndroid
+  api(projects.leakcanary.leakcanaryCore)
+  api(projects.leakcanary.leakcanaryAndroidUtils)
+  api(projects.leakcanary.leakcanaryTestCore)
+  api(projects.shark.sharkAndroid)
 
-  implementation libs.androidX.test.runner
+  implementation(libs.androidX.test.runner)
 
-  androidTestImplementation libs.androidX.multidex
-  androidTestImplementation libs.androidX.test.core
-  androidTestImplementation libs.androidX.test.runner
-  androidTestImplementation libs.assertjCore
+  androidTestImplementation(libs.androidX.multidex)
+  androidTestImplementation(libs.androidX.test.core)
+  androidTestImplementation(libs.androidX.test.runner)
+  androidTestImplementation(libs.assertjCore)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    targetSdk versions.compileSdk
-    minSdk versions.minSdk
-    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    multiDexEnabled true
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
+    minSdk = libs.versions.androidMinSdk.get().toInt()
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    multiDexEnabled = true
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.android.test'
-  testNamespace 'com.squareup.leakcanary.android.test.test'
+  namespace = "com.squareup.leakcanary.android.test"
+  testNamespace = "com.squareup.leakcanary.android.test.test"
 }

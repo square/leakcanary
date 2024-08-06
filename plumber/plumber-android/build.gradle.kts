@@ -5,23 +5,23 @@ plugins {
 }
 
 dependencies {
-  api projects.plumber.plumberAndroidCore
+  api(projects.plumber.plumberAndroidCore)
 
-  implementation libs.kotlin.stdlib
+  implementation(libs.kotlin.stdlib)
 }
 
 android {
-  resourcePrefix 'leak_canary_plumber'
-  compileSdk versions.compileSdk
+  resourcePrefix = "leak_canary_plumber"
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk versions.minSdk
-    consumerProguardFiles 'consumer-proguard-rules.pro'
+    minSdk = libs.versions.androidMinSdk.get().toInt()
+    consumerProguardFiles("consumer-proguard-rules.pro")
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.plumber'
+  namespace = "com.squareup.leakcanary.plumber"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    error 'ObsoleteSdkInt'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    error += "ObsoleteSdkInt"
   }
 }

@@ -5,23 +5,23 @@ plugins {
 }
 
 dependencies {
-  implementation libs.kotlin.stdlib
-  implementation projects.shark.shark
+  implementation(libs.kotlin.stdlib)
+  implementation(projects.shark.shark)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk versions.minSdk
+    minSdk = libs.versions.androidMinSdk.get().toInt()
   }
   buildFeatures {
-    aidl true
+    aidl = true
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.app.aidl'
+  namespace = "com.squareup.leakcanary.app.aidl"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    ignore 'InvalidPackage'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    ignore += "InvalidPackage"
   }
 }

@@ -5,32 +5,32 @@ plugins {
 }
 
 dependencies {
-  api projects.objectWatcher.objectWatcher
-  api projects.leakcanary.leakcanaryAndroidUtils
+  api(projects.objectWatcher.objectWatcher)
+  api(projects.leakcanary.leakcanaryAndroidUtils)
 
-  implementation libs.curtains
-  implementation libs.kotlin.stdlib
+  implementation(libs.curtains)
+  implementation(libs.kotlin.stdlib)
 
-  testImplementation libs.assertjCore
-  testImplementation libs.junit
-  testImplementation libs.kotlin.reflect
+  testImplementation(libs.assertjCore)
+  testImplementation(libs.junit)
+  testImplementation(libs.kotlin.reflect)
 }
 
 android {
-  resourcePrefix 'leak_canary_watcher_'
-  compileSdk versions.compileSdk
+  resourcePrefix = "leak_canary_watcher_"
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
 
   defaultConfig {
-    minSdk versions.minSdk
-    consumerProguardFiles 'consumer-proguard-rules.pro'
+    minSdk = libs.versions.androidMinSdk.get().toInt()
+    consumerProguardFiles("consumer-proguard-rules.pro")
   }
 
   buildFeatures {
     buildConfig = false
   }
-  namespace 'com.squareup.leakcanary.objectwatcher.core'
+  namespace = "com.squareup.leakcanary.objectwatcher.core"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
   }
 }

@@ -5,27 +5,27 @@ plugins {
 }
 
 dependencies {
-  api projects.shark.sharkLog
-  api projects.leakcanary.leakcanaryAndroidUtils
+  api(projects.shark.sharkLog)
+  api(projects.leakcanary.leakcanaryAndroidUtils)
 
-  implementation libs.kotlin.stdlib
-  implementation libs.curtains
+  implementation(libs.kotlin.stdlib)
+  implementation(libs.curtains)
   // Optional dependency
-  compileOnly libs.androidX.fragment
+  compileOnly(libs.androidX.fragment)
 }
 
 android {
-  resourcePrefix 'leak_canary_plumber'
-  compileSdk versions.compileSdk
+  resourcePrefix = "leak_canary_plumber"
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk versions.minSdk
-    consumerProguardFiles 'consumer-proguard-rules.pro'
+    minSdk = libs.versions.androidMinSdk.get().toInt()
+    consumerProguardFiles("consumer-proguard-rules.pro")
   }
   buildFeatures.buildConfig = false
-  namespace 'com.squareup.leakcanary.plumber.core'
+  namespace = "com.squareup.leakcanary.plumber.core"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
-    error 'ObsoleteSdkInt'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
+    error += "ObsoleteSdkInt"
   }
 }

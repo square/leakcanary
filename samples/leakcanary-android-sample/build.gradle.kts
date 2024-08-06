@@ -8,91 +8,92 @@ plugins {
 
 keeper {
   variantFilter {
-    setIgnore(!project.hasProperty('minify'))
+    setIgnore(!project.hasProperty("minify"))
   }
 }
 
 dependencies {
-  debugImplementation projects.leakcanary.leakcanaryAndroid
-  debugImplementation projects.leakcanary.leakcanaryAppService
-  // debugImplementation projects.leakcanary.leakcanaryAndroidStartup
+  debugImplementation(projects.leakcanary.leakcanaryAndroid)
+  debugImplementation(projects.leakcanary.leakcanaryAppService)
+  // debugImplementation(projects.leakcanary.leakcanaryAndroidStartup)
 
   // Uncomment to use the :leakcanary process
-  // debugImplementation projects.leakcanary.leakcanaryAndroidProcess
-  releaseImplementation projects.leakcanary.leakcanaryAndroidRelease
+  // debugImplementation(projects.leakcanary.leakcanaryAndroidProcess)
+  releaseImplementation(projects.leakcanary.leakcanaryAndroidRelease)
   // Optional
-  releaseImplementation projects.objectWatcher.objectWatcherAndroid
+  releaseImplementation(projects.objectWatcher.objectWatcherAndroid)
 
-  implementation libs.kotlin.stdlib
+  implementation(libs.kotlin.stdlib)
   // Uncomment to use WorkManager
-  // implementation libs.androidX.work.runtime
+  // implementation(libs.androidX.work.runtime)
 
-  testImplementation libs.junit
-  testImplementation libs.robolectric
+  testImplementation(libs.junit)
+  testImplementation(libs.robolectric)
 
-  androidTestImplementation projects.leakcanary.leakcanaryAndroidInstrumentation
-  androidTestImplementation libs.androidX.test.espresso
-  androidTestImplementation libs.androidX.test.rules
-  androidTestImplementation libs.androidX.test.runner
-  androidTestImplementation libs.androidX.test.junit
-  androidTestImplementation libs.androidX.test.junitKtx
-  androidTestUtil libs.androidX.test.orchestrator
+  androidTestImplementation(projects.leakcanary.leakcanaryAndroidInstrumentation)
+  androidTestImplementation(libs.androidX.test.espresso)
+  androidTestImplementation(libs.androidX.test.rules)
+  androidTestImplementation(libs.androidX.test.runner)
+  androidTestImplementation(libs.androidX.test.junit)
+  androidTestImplementation(libs.androidX.test.junitKtx)
+  androidTestUtil(libs.androidX.test.orchestrator)
 }
 
 android {
-  compileSdk versions.compileSdk
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
 
   compileOptions {
-    sourceCompatibility JavaVersion.VERSION_1_8
-    targetCompatibility JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
   }
 
   defaultConfig {
-    applicationId "com.example.leakcanary"
-    minSdk 16
-    targetSdk versions.compileSdk
+    applicationId = "com.example.leakcanary"
+    minSdk = 16
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
 
-    versionCode 1
-    versionName "1.0"
+    versionCode = 1
+    versionName = "1.0"
 
-    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     // Run ./gradlew leakcanary-android-sample:connectedCheck -Porchestrator
-    if (project.hasProperty('orchestrator')) {
-      testInstrumentationRunnerArguments clearPackageData: 'true'
+    if (project.hasProperty("orchestrator")) {
+      testInstrumentationRunnerArguments(mapOf("clearPackageData" to "true"))
       testOptions {
-        execution 'ANDROIDX_TEST_ORCHESTRATOR'
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
       }
     }
   }
 
   buildTypes {
     // Build with ./gradlew leakcanary-android-sample:installDebug -Pminify
-    if (project.hasProperty('minify')) {
+    if (project.hasProperty("minify")) {
       debug {
-        minifyEnabled true
-        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+        isMinifyEnabled = true
+        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
       }
     } else {
-      debug
+      debug {
+      }
     }
     release {
-      signingConfig signingConfigs.debug
+      signingConfig = signingConfigs["debug"]
     }
   }
 
   dexOptions {
-    dexInProcess false
+    dexInProcess = false
   }
 
   testOptions {
     unitTests {
-      includeAndroidResources = true
+      isIncludeAndroidResources = true
     }
   }
-  namespace 'com.example.leakcanary'
-  testNamespace 'com.squareup.leakcanary.instrumentation.test'
+  namespace = "com.example.leakcanary"
+  testNamespace = "com.squareup.leakcanary.instrumentation.test"
   lint {
-    disable 'GoogleAppIndexingWarning'
+    disable += "GoogleAppIndexingWarning"
   }
 }

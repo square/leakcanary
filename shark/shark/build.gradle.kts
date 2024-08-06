@@ -3,18 +3,20 @@ plugins {
   id("com.vanniktech.maven.publish")
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
 
 dependencies {
-  api projects.shark.sharkGraph
+  api(projects.shark.sharkGraph)
 
-  implementation libs.coroutines.core
-  implementation libs.kotlin.stdlib
-  implementation libs.okio2
+  implementation(libs.coroutines.core)
+  implementation(libs.kotlin.stdlib)
+  implementation(libs.okio2)
 
-  testImplementation libs.assertjCore
-  testImplementation libs.junit
-  testImplementation projects.shark.sharkTest
-  testImplementation projects.shark.sharkHprofTest
+  testImplementation(libs.assertjCore)
+  testImplementation(libs.junit)
+  testImplementation(projects.shark.sharkTest)
+  testImplementation(projects.shark.sharkHprofTest)
 }

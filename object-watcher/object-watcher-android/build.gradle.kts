@@ -5,24 +5,24 @@ plugins {
 }
 
 dependencies {
-  api projects.objectWatcher.objectWatcherAndroidCore
+  api(projects.objectWatcher.objectWatcherAndroidCore)
 }
 
 android {
-  resourcePrefix 'leak_canary_watcher_'
-  compileSdk versions.compileSdk
+  resourcePrefix = "leak_canary_watcher_"
+  compileSdk = libs.versions.androidCompileSdk.get().toInt()
 
   defaultConfig {
-    minSdk versions.minSdk
-    consumerProguardFiles 'consumer-proguard-rules.pro'
+    minSdk = libs.versions.androidMinSdk.get().toInt()
+    consumerProguardFiles("consumer-proguard-rules.pro")
   }
 
   buildFeatures {
     buildConfig = false
   }
-  namespace 'com.squareup.leakcanary.objectwatcher'
+  namespace = "com.squareup.leakcanary.objectwatcher"
   lint {
-    checkOnly 'Interoperability'
-    disable 'GoogleAppIndexingWarning'
+    checkOnly += "Interoperability"
+    disable += "GoogleAppIndexingWarning"
   }
 }
