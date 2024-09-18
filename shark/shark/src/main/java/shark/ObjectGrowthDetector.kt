@@ -8,6 +8,7 @@ import androidx.collection.MutableLongSet
 import androidx.collection.mutableLongListOf
 import java.util.ArrayDeque
 import java.util.Deque
+import me.saket.bytesize.decimalBytes
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -231,7 +232,7 @@ class ObjectGrowthDetector(
       // A map that stores two ints, size and count, in a single long value with bit packing.
       val retainedSizeAndCountMap = MutableLongLongMap(dequeuedNodes.size)
       for (node in dequeuedNodes.asReversed()) {
-        var nodeRetainedSize = ZERO_BYTES
+        var nodeRetainedSize = 0.decimalBytes
         var nodeRetainedCount = 0
 
         for (objectId in node.objectIds) {
@@ -248,7 +249,7 @@ class ObjectGrowthDetector(
           if (dominatorObjectId != ValueHolder.NULL_REFERENCE) {
             retainedSizeAndCountMap.increase(dominatorObjectId, retainedSize, retainedCount)
           }
-          nodeRetainedSize += retainedSize.bytes
+          nodeRetainedSize += retainedSize.decimalBytes
           nodeRetainedCount += retainedCount
         }
 
@@ -353,13 +354,13 @@ class ObjectGrowthDetector(
           return@reportedGrowingNodeRetainedSize
         }
 
-        var heapSize = ZERO_BYTES
+        var heapSize = 0.decimalBytes
         var objectCount = 0
         for (objectId in node.objectIds) {
           val packed = retainedMap[objectId]
           val additionalByteSize = packed.unpackAsFirstInt
           val additionalObjectCount = packed.unpackAsSecondInt
-          heapSize += additionalByteSize.bytes
+          heapSize += additionalByteSize.decimalBytes
           objectCount += additionalObjectCount
         }
         shortestPathNode.retained = Retained(
