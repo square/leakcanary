@@ -10,6 +10,7 @@ import androidx.collection.MutableLongObjectMap
 import androidx.collection.emptyLongObjectMap
 import java.util.ArrayDeque
 import java.util.Deque
+import me.saket.bytesize.decimalBytes
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
 import shark.Reference.LazyDetails
 import shark.internal.HeapObjectIdSet
@@ -390,7 +391,7 @@ class PrioritizingShortestPathFinder private constructor(
         sizes?.put(
           leakingObjectId,
           Retained(
-            heapSize = retainedSize.coerceAtMost(Int.MAX_VALUE.toLong()).toInt().bytes,
+            heapSize = retainedSize.coerceAtMost(Int.MAX_VALUE.toLong()).toInt().decimalBytes,
             objectCount = retainedCount
           )
         )

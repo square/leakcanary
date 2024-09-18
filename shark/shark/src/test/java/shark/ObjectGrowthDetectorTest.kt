@@ -1,6 +1,7 @@
 package shark
 
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import me.saket.bytesize.decimalBytes
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 
@@ -119,7 +120,7 @@ class ObjectGrowthDetectorTest {
     val growingObject = heapTraversal.growingObjects.single()
     // The string array and the 2 strings it holds.
     assertThat(growingObject.retained.objectCount).isEqualTo(3)
-    val expectedRetainedSize = (2 * 4 + (8 + "Hello".length * 2) + (8 + "World!".length * 2)).bytes
+    val expectedRetainedSize = (2 * 4 + (8 + "Hello".length * 2) + (8 + "World!".length * 2)).decimalBytes
     assertThat(growingObject.retained.heapSize).isEqualTo(expectedRetainedSize)
     // The first traversal has no growing objects to compute a retained size from, so there's
     // nothing to diff the retained size of the second traversal against.
@@ -146,7 +147,7 @@ class ObjectGrowthDetectorTest {
     assertThat(growingObject.retained.objectCount).isEqualTo(3)
     val arraySize = 2 * 4
     val wrappersSize = 2 * 4
-    assertThat(growingObject.retained.heapSize).isEqualTo((arraySize + wrappersSize).bytes)
+    assertThat(growingObject.retained.heapSize).isEqualTo((arraySize + wrappersSize).decimalBytes)
     // Nothing is shared with another growing object, so all of it is this node's alone.
     assertThat(growingObject.exclusiveRetained).isEqualTo(growingObject.retained)
   }
@@ -173,11 +174,11 @@ class ObjectGrowthDetectorTest {
       val wrappersSize = 2 * 4
       val halfOfSharedSize = 2 * 4 / 2
       assertThat(growingObject.retained.heapSize)
-        .isEqualTo((arraySize + wrappersSize + halfOfSharedSize).bytes)
+        .isEqualTo((arraySize + wrappersSize + halfOfSharedSize).decimalBytes)
       // The shared instances are the other growing object's too, so they're not counted here.
       assertThat(growingObject.exclusiveRetained.objectCount).isEqualTo(3)
       assertThat(growingObject.exclusiveRetained.heapSize)
-        .isEqualTo((arraySize + wrappersSize).bytes)
+        .isEqualTo((arraySize + wrappersSize).decimalBytes)
     }
   }
 
@@ -207,10 +208,10 @@ class ObjectGrowthDetectorTest {
       val wrappersSize = 2 * 4
       val shareOfSharedSize = 2 * 4 / arrayCount
       assertThat(growingObject.retained.heapSize)
-        .isEqualTo((arraySize + wrappersSize + shareOfSharedSize).bytes)
+        .isEqualTo((arraySize + wrappersSize + shareOfSharedSize).decimalBytes)
       assertThat(growingObject.exclusiveRetained.objectCount).isEqualTo(3)
       assertThat(growingObject.exclusiveRetained.heapSize)
-        .isEqualTo((arraySize + wrappersSize).bytes)
+        .isEqualTo((arraySize + wrappersSize).decimalBytes)
     }
   }
 
@@ -235,7 +236,7 @@ class ObjectGrowthDetectorTest {
     val growingArraySize = 2 * 4
     val heldInstancesSize = 2 * 4
     assertThat(growingObject.retained.heapSize)
-      .isEqualTo((growingArraySize + heldInstancesSize).bytes)
+      .isEqualTo((growingArraySize + heldInstancesSize).decimalBytes)
   }
 
   @Test
@@ -280,7 +281,7 @@ class ObjectGrowthDetectorTest {
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
-    val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).bytes
+    val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).decimalBytes
     assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
   }
 
