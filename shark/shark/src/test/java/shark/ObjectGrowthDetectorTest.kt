@@ -1,5 +1,6 @@
 package shark
 
+import me.saket.bytesize.decimalBytes
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.HprofHeapGraph.Companion.openHeapGraph
@@ -103,7 +104,7 @@ class ObjectGrowthDetectorTest {
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
-    val expectedRetainedSizeIncrease = (12 + "World!".length * 2).bytes
+    val expectedRetainedSizeIncrease = (12 + "World!".length * 2).decimalBytes
     assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
   }
 
@@ -126,7 +127,7 @@ class ObjectGrowthDetectorTest {
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
-    val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).bytes
+    val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).decimalBytes
     assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
   }
 
