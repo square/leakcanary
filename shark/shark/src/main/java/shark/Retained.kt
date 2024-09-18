@@ -1,5 +1,7 @@
 package shark
 
+import me.saket.bytesize.ByteSize
+import me.saket.bytesize.decimalBytes
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
@@ -29,7 +31,7 @@ value class Retained @PublishedApi internal constructor(
   internal val packedValue: Long
 ) {
   inline val heapSize: ByteSize
-    get() = packedValue.unpackAsFirstInt.bytes
+    get() = packedValue.unpackAsFirstInt.decimalBytes
 
   inline val objectCount: Int
     get() = packedValue.unpackAsSecondInt
@@ -41,5 +43,5 @@ value class Retained @PublishedApi internal constructor(
     get() = this == ZERO_RETAINED
 }
 
-val ZERO_RETAINED = Retained(ZERO_BYTES, 0)
-val UNKNOWN_RETAINED = Retained((-1).bytes, -1)
+val ZERO_RETAINED = Retained(0.decimalBytes, 0)
+val UNKNOWN_RETAINED = Retained((-1).decimalBytes, -1)
