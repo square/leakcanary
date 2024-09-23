@@ -539,25 +539,14 @@ enum class AndroidLeakFixes {
     private val Context.activityOrNull: Activity?
       get() {
         var context = this
-        while (true) {
-          if (context is Application) {
-            return null
-          }
-          if (context is Activity) {
-            return context
-          }
-          if (context is ContextWrapper) {
-            val baseContext = context.baseContext
-            // Prevent Stack Overflow.
-            if (baseContext === this) {
-              return null
+        while (context is ContextWrapper) {
+            if (context is Activity) {
+                return context
             }
-            context = baseContext
-          } else {
-            return null
-          }
+            context = context.baseContext
         }
-      }
+        return if (context is Activity) context else null
+    }
   },
 
   /**
