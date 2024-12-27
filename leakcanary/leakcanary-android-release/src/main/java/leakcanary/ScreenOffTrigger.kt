@@ -8,7 +8,12 @@ import android.content.Intent.ACTION_SCREEN_OFF
 import android.content.Intent.ACTION_SCREEN_ON
 import android.content.IntentFilter
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import java.util.concurrent.Executor
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import leakcanary.internal.friendly.checkMainThread
 import shark.SharkLog
 
@@ -32,29 +37,38 @@ class ScreenOffTrigger(
   private val analysisCallback: (HeapAnalysisJob.Result) -> Unit = { result ->
     SharkLog.d { "$result" }
   },
+
+  /**
+   * Initial delay to wait for analysisExecutor to start analysis
+   *
+   * If not specified, the initial delay is 500 ms
+   */
+  private val analysisExecutorDelay: Duration = DEFAULT_ANALYSIS_DELAY
 ) {
 
-  @Volatile
-  private var currentJob: HeapAnalysisJob? = null
+  private val currentJob = AtomicReference<HeapAnalysisJob?>()
+  private val analysisHandler = Handler(Looper.getMainLooper())
+  private var submitAnalysisToExecutor: Runnable? = null
 
   private val screenReceiver = object : BroadcastReceiver() {
     override fun onReceive(
       context: Context,
       intent: Intent
     ) {
-      analysisExecutor.execute {
-        if (intent.action == ACTION_SCREEN_OFF) {
-          if (currentJob == null) {
-            val job =
-              analysisClient.newJob(JobContext(ScreenOffTrigger::class))
-            currentJob = job
+      if (intent.shouldScheduleAnalysis()) {
+        val job =
+          analysisClient.newJob(JobContext(ScreenOffTrigger::class))
+        if (currentJob.compareAndSet(null, job)) {
+          schedule {
             val result = job.execute()
-            currentJob = null
             analysisCallback(result)
           }
-        } else {
-          currentJob?.cancel("screen on again")
-          currentJob = null
+        }
+      } else {
+        cancelScheduledAnalysis()
+        currentJob.getAndUpdate { job ->
+          job?.cancel("screen on again")
+          null
         }
       }
     }
@@ -77,5 +91,23 @@ class ScreenOffTrigger(
   fun stop() {
     checkMainThread()
     application.unregisterReceiver(screenReceiver)
+  }
+
+  private fun Intent.shouldScheduleAnalysis(): Boolean {
+    return this.action == ACTION_SCREEN_OFF && currentJob.get() == null
+  }
+
+  private fun schedule(action: Runnable) {
+    submitAnalysisToExecutor = Runnable {
+      analysisExecutor.execute(action)
+    }.also { analysisHandler.postDelayed(it, analysisExecutorDelay.inWholeMilliseconds) }
+  }
+
+  private fun cancelScheduledAnalysis() {
+    submitAnalysisToExecutor?.let { analysisHandler.removeCallbacks(it) }
+  }
+
+  companion object {
+    private val DEFAULT_ANALYSIS_DELAY = 500.milliseconds
   }
 }
