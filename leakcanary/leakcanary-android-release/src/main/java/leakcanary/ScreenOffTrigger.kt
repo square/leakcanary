@@ -42,20 +42,20 @@ class ScreenOffTrigger(
       context: Context,
       intent: Intent
     ) {
-      if (intent.action == ACTION_SCREEN_OFF) {
-        if (currentJob == null) {
-          val job =
-            analysisClient.newJob(JobContext(ScreenOffTrigger::class))
-          currentJob = job
-          analysisExecutor.execute {
+      analysisExecutor.execute {
+        if (intent.action == ACTION_SCREEN_OFF) {
+          if (currentJob == null) {
+            val job =
+              analysisClient.newJob(JobContext(ScreenOffTrigger::class))
+            currentJob = job
             val result = job.execute()
             currentJob = null
             analysisCallback(result)
           }
+        } else {
+          currentJob?.cancel("screen on again")
+          currentJob = null
         }
-      } else {
-        currentJob?.cancel("screen on again")
-        currentJob = null
       }
     }
   }
