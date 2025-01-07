@@ -1,25 +1,127 @@
-package shark
+#!/usr/bin/env kotlin -language-version 1.9
 
-/*
- * Copyright (C) 2015 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Make sure you run "brew install kotlin graphviz" first.
+
+@file:Repository("https://repo.maven.apache.org/maven2/")
+@file:Repository("https://dl.google.com/dl/android/maven2/")
+@file:DependsOn("com.squareup.leakcanary:shark-android:3.0-alpha-8")
+@file:DependsOn("androidx.collection:collection-jvm:1.4.0")
 
 import androidx.collection.IntList
 import androidx.collection.MutableIntList
-import java.util.IdentityHashMap
+import java.io.File
+import java.io.PrintWriter
 import java.util.Stack
+import kotlin.math.max
+import shark.ActualMatchingReferenceReaderFactory
+import shark.AndroidObjectSizeCalculator
+import shark.GcRoot.JavaFrame
+import shark.HprofHeapGraph.Companion.openHeapGraph
+
+val heapDumpFile = File("/Users/py/Desktop/memory-20240919T161101.hprof")
+
+heapDumpFile.openHeapGraph().use { graph ->
+  val referenceReader = ActualMatchingReferenceReaderFactory(emptyList()).createFor(graph)
+
+  val traversalRoots = graph.gcRoots
+    // Exclude Java local references
+    .filter { it !is JavaFrame }
+    .map { HeapNode(it.id) }.toSet()
+
+  val (sortedHeapNodes, immediateDominators) = with(LinkEvalDominators()) {
+    computeDominators(traversalRoots) { (sourceObjectId) ->
+      val sourceObject = graph.findObjectById(sourceObjectId)
+      referenceReader.read(sourceObject).map { reference ->
+        HeapNode(reference.valueObjectId)
+      }
+    }
+  }
+
+  val objectIdsInTopologicalOrder = sortedHeapNodes.map { it?.objectId }
+
+  val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
+  val dominatorsByObjectId = objectIdsInTopologicalOrder.mapNotNull { objectIdOrNull ->
+    objectIdOrNull?.let { objectId ->
+      val name = graph.findObjectById(objectId).toString()
+      val shallowSize = objectSizeCalculator.computeSize(objectId)
+      objectId to DominatorObject(name, shallowSize = shallowSize)
+    }
+  }.toMap()
+
+  for (dominatedObjectIndex in objectIdsInTopologicalOrder.indices.reversed()) {
+    immediateDominators[dominatedObjectIndex]?.let { (dominatorObjectId) ->
+      val dominatedObjectId = objectIdsInTopologicalOrder[dominatedObjectIndex]!!
+      val dominator = dominatorsByObjectId.getValue(dominatorObjectId)
+      val dominated = dominatorsByObjectId.getValue(dominatedObjectId)
+      dominator.retainedSize += dominated.retainedSize
+      dominator.dominatedNodes += dominated
+      dominated.parent = dominator
+    }
+  }
+
+  var maxDepth = 0
+  dominatorsByObjectId.values.forEach { dominator ->
+    var parent = dominator.parent
+    var depth = 1
+    while(parent != null) {
+      parent = parent.parent
+      depth++
+    }
+    dominator.depth = depth
+    maxDepth = max(maxDepth, depth)
+  }
+
+  val rootDominators = dominatorsByObjectId.values.filter { it.parent == null }
+
+  val shallowSizeSum = dominatorsByObjectId.values.sumOf { it.shallowSize }
+  val retainedSum = rootDominators.sumOf { it.retainedSize }
+  val traversalRootIds = traversalRoots.map { it.objectId }
+  val gcRootShallowSizeSum = dominatorsByObjectId.entries.filter { (key, value) ->
+    value.parent == null && key in traversalRootIds
+  }.sumOf { it.value.shallowSize }
+  val rootDominatorShallowSize = rootDominators.sumOf { it.shallowSize }
+
+  println("Found ${rootDominators.size} root dominators, for ${traversalRoots.size} gc roots, max depth $maxDepth, shallowSizeSum:$shallowSizeSum retainedSum:$retainedSum , gcRootShallowSizeSum:$gcRootShallowSizeSum rootDominatorShallowSize:$rootDominatorShallowSize")
+
+  val csv = File(heapDumpFile.parent, "${heapDumpFile.nameWithoutExtension}-whole-graph.csv")
+  csv.printWriter().use { writer ->
+    with(writer) {
+      println("\"Child\",\"Parent\",\"Value\",\"Depth\"")
+      println("\"root\",\"\",\"${shallowSizeSum}\",0")
+      rootDominators.forEach { rootDominator ->
+        printDominatorCsvRow(rootDominator)
+      }
+    }
+  }
+  println("Done generating ${csv.absolutePath}")
+}
+
+
+data class HeapNode(val objectId: Long)
+
+class DominatorObject(
+  val name: String,
+  val shallowSize: Int
+) {
+  var parent: DominatorObject? = null
+  val dominatedNodes = mutableListOf<DominatorObject>()
+  var retainedSize = shallowSize
+  var depth = 0
+}
+
+fun PrintWriter.printDominatorCsvRow(
+  node: DominatorObject,
+) {
+  val parent = node.parent
+  if (parent == null) {
+    println("\"${node.name}\",\"root\",\"${node.retainedSize}\", ${node.depth}")
+  } else {
+    println("\"${node.name}\",\"${parent.name}\",\"${node.retainedSize}\", ${node.depth}")
+  }
+  for (child in node.dominatedNodes) {
+    printDominatorCsvRow(child)
+  }
+}
 
 /**
  * Based on https://cs.android.com/android-studio/platform/tools/base/+/mirror-goog-studio-main:perflib/src/main/java/com/android/tools/perflib/heap/analysis/LinkEvalDominators.kt;l=36;drc=499fa43009666c0f0a686d8e21722dbea8b2ecf0
@@ -28,13 +130,13 @@ import java.util.Stack
  * on a copy of the paper available at:
  * http://www.cc.gatech.edu/~harrold/6340/cs6340_fall2009/Readings/lengauer91jul.pdf
  */
-object LinkEvalDominators {
+class LinkEvalDominators {
 
   /**
    * @return 2 parallel lists of each node and its immediate dominator,
    *         with `null` being the auxiliary root.
    */
-  fun <T : Any> computeDominators(
+  fun <T> computeDominators(
     roots: Set<T>,
     next: (T) -> Sequence<T>
   ): Result<T> {
@@ -43,7 +145,9 @@ object LinkEvalDominators {
     // tree.
     // Also gather predecessors and initialize semi-dominators in the same pass.
     val (instances, parents, preds) = computeIndicesAndParents(roots, next)
+
     val semis = IntArray(instances.size) { it }
+    // For each node, list of the nodes it semi-dominates.
     val buckets = Array(instances.size) {
       // This was using Trove4j's default capacity, 10 entries.
       MutableIntList(10)
@@ -52,6 +156,7 @@ object LinkEvalDominators {
     val ancestors = IntArray(instances.size) { INVALID_ANCESTOR }
     val labels = IntArray(instances.size) { it }
     val immDom = MutableList<T?>(instances.size) { null }
+
     for (currentNode in instances.size - 1 downTo 1) {
       // Step 2 of paper.
       // Compute each instance's semi-dominator
@@ -89,7 +194,7 @@ object LinkEvalDominators {
   }
 
   /** Traverse the instances depth-first, marking their order and parents in the DFS-tree  */
-  private fun <T : Any> computeIndicesAndParents(
+  private fun <T> computeIndicesAndParents(
     roots: Set<T>,
     next: (T) -> Sequence<T>
   ): DFSResult<T> {
@@ -119,7 +224,7 @@ object LinkEvalDominators {
     val parentIndices = IntArray(instances.size)
     // Note: this was changed from an array of int arrays which would use only the exactly memory
     // needed but would have required array copies.
-    val predIndices = ArrayList<IntList?>(instances.size)
+    val predIndices = arrayOfNulls<IntList?>(instances.size)
     for (i in 1 until instances.size) { // omit auxiliary root at [0]
       val instance = instances[i]!!
       parentIndices[i] = instance.parent
@@ -137,7 +242,7 @@ object LinkEvalDominators {
 private data class DFSResult<T>(
   val instances: List<T?>,
   val parents: IntArray, // Predecessors not involved in DFS, but lumped in here for 1 pass. Paper did same.
-  val predecessors: List<IntList?>
+  val predecessors: Array<IntList?>
 )
 
 private fun eval(
@@ -181,7 +286,7 @@ private fun compress(
 }
 
 // 0 would coincide with valid parent. Paper uses 0 because they count from 1.
-private const val INVALID_ANCESTOR = -1
+private val INVALID_ANCESTOR = -1
 
 // Augment the original graph with additional information (e.g. topological order, predecessors'
 // orders, etc.)
@@ -199,8 +304,9 @@ private class Node<T> private constructor(
 
   companion object {
     fun <T> newFactory(next: (T) -> Sequence<T>): (T) -> Node<T> =
-      IdentityHashMap<T, Node<T>>().let { cache ->
-        fun wrap(content: T): Node<T> = cache.getOrPut(content) { Node(content, next, ::wrap) }
+      HashMap<T, Node<T>>().let { cache ->
+        fun wrap(content: T): Node<T> =
+          cache.getOrPut(content) { Node(content, next, ::wrap) }
         ::wrap
       }
   }
