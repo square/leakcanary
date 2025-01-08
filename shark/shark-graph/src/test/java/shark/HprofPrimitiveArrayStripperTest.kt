@@ -72,6 +72,22 @@ class HprofPrimitiveArrayStripperTest {
     assertThat(strippedString).isEqualTo("?".repeat(stringSavedToDump.length))
   }
 
+  @Test
+  fun `input file deleted after stripping`() {
+    val hprofFolder = testFolder.newFolder()
+    val hprofFile = File(hprofFolder, "jvm_heap.hprof")
+    val stringSavedToDump = "Yo!"
+    hold(TestStringHolder(stringSavedToDump)) {
+      JvmTestHeapDumper.dumpHeap(hprofFile.absolutePath)
+    }
+
+    val strippedFile =
+      HprofPrimitiveArrayStripper().stripPrimitiveArrays(hprofFile, deleteInputHprofFile = true)
+    assertThat(hprofFile).doesNotExist()
+    // Ensures stripped file exists and can be read
+    assertThat(strippedFile.readHolderString()).isEqualTo("?".repeat(stringSavedToDump.length))
+  }
+
   class Secret(
     val secretArray: IntArray
   ) {

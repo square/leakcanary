@@ -2,6 +2,7 @@ package shark
 
 import java.io.File
 import okio.BufferedSink
+import okio.BufferedSource
 import okio.Okio
 import shark.HprofRecord.HeapDumpEndRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
@@ -50,11 +51,21 @@ class HprofPrimitiveArrayStripper {
     outputHprofFile: File = File(
       inputHprofFile.parent, inputHprofFile.name.replace(
       ".hprof", "-stripped.hprof"
-    ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" })
+    ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" }),
+    deleteInputHprofFile: Boolean = false
   ): File {
     stripPrimitiveArrays(
       hprofSourceProvider = FileSourceProvider(inputHprofFile),
-      hprofSink = Okio.buffer(Okio.sink(outputHprofFile.outputStream()))
+      hprofSink = Okio.buffer(Okio.sink(outputHprofFile.outputStream())),
+      onDoneOpeningNewSources = {
+        if (deleteInputHprofFile) {
+          // Using the Unix trick of deleting the file as soon as all readers have opened it.
+          // No new readers/writers will be able to access the file, but all existing
+          // ones will still have access until the last one closes the file.
+          SharkLog.d { "Deleting $inputHprofFile eagerly" }
+          inputHprofFile.delete()
+        }
+      }
     )
     return outputHprofFile
   }
@@ -64,7 +75,8 @@ class HprofPrimitiveArrayStripper {
    */
   fun stripPrimitiveArrays(
     hprofSourceProvider: StreamingSourceProvider,
-    hprofSink: BufferedSink
+    hprofSink: BufferedSink,
+    onDoneOpeningNewSources: () -> Unit = {}
   ) {
     val header = hprofSourceProvider.openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
     val useForwardSlashClassPackageSeparator = header.version != ANDROID
@@ -86,8 +98,11 @@ class HprofPrimitiveArrayStripper {
       }
     }
 
+    val notifyingSourceProvider =
+      NotifyingStreamingSourceProvider(hprofSourceProvider, onSourceOpened = onDoneOpeningNewSources)
+
     val reader =
-      StreamingHprofReader.readerFor(hprofSourceProvider, header).asStreamingRecordReader()
+      StreamingHprofReader.readerFor(notifyingSourceProvider, header).asStreamingRecordReader()
     HprofWriter.openWriterFor(
       hprofSink,
       hprofHeader = header
@@ -241,5 +256,16 @@ class HprofPrimitiveArrayStripper {
     private val SHORT_TYPE = SHORT.hprofType
     private val INT_TYPE = INT.hprofType
     private val LONG_TYPE = LONG.hprofType
+  }
+
+  private class NotifyingStreamingSourceProvider(
+    private val delegate: StreamingSourceProvider,
+    private val onSourceOpened: () -> Unit = {}
+  ) : StreamingSourceProvider {
+    override fun openStreamingSource(): BufferedSource {
+      return delegate.openStreamingSource().apply {
+        onSourceOpened()
+      }
+    }
   }
 }
