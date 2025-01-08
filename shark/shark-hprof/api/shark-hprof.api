@@ -150,9 +150,10 @@ public final class shark/HprofHeader$Companion {
 
 public final class shark/HprofPrimitiveArrayStripper {
 	public fun <init> ()V
-	public final fun stripPrimitiveArrays (Ljava/io/File;Ljava/io/File;)Ljava/io/File;
-	public final fun stripPrimitiveArrays (Lshark/StreamingSourceProvider;Lokio/BufferedSink;)V
-	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Ljava/io/File;Ljava/io/File;ILjava/lang/Object;)Ljava/io/File;
+	public final fun stripPrimitiveArrays (Ljava/io/File;Ljava/io/File;Z)Ljava/io/File;
+	public final fun stripPrimitiveArrays (Lshark/StreamingSourceProvider;Lokio/BufferedSink;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Ljava/io/File;Ljava/io/File;ZILjava/lang/Object;)Ljava/io/File;
+	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Lshark/StreamingSourceProvider;Lokio/BufferedSink;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 }
 
 public abstract class shark/HprofRecord {
