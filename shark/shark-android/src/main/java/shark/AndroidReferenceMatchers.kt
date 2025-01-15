@@ -219,7 +219,7 @@ enum class AndroidReferenceMatchers : ReferenceMatcher.ListBuilder {
         "android.view.inputmethod.InputMethodManager", "mNextServedView"
       ).leak(
         description = description,
-        patternApplies = applyIf { sdkInt in 15..33 }
+        patternApplies = applyIf { sdkInt in 15..35 }
       )
 
       references += instanceField(
