@@ -38,6 +38,7 @@ coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", ve
 
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlin-html-jvm = { module ="org.jetbrains.kotlinx:kotlinx-html-jvm", version ="0.11.0"}
 
 # We don't need the latest version of AndroidX (there are no bugs that impact what LeakCanary
 # relies on), we're sticking a bit older because most apps will be using a more recent version
