@@ -16,6 +16,9 @@ import leakcanary.ProcessInfo.AvailableRam.BelowThreshold
 import leakcanary.ProcessInfo.AvailableRam.LowRamDevice
 import leakcanary.ProcessInfo.AvailableRam.Memory
 
+/**
+ * To be removed just testing c.i.
+ */
 interface ProcessInfo {
 
   val isImportanceBackground: Boolean
