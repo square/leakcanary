@@ -1,6 +1,7 @@
 package leakcanary
 
 import android.content.Intent
+import java.util.ServiceLoader
 import leakcanary.LeakCanary.config
 import leakcanary.internal.HeapDumpControl
 import leakcanary.internal.InternalLeakCanary
@@ -88,9 +89,13 @@ object LeakCanary {
      * heap. You can create your own [ObjectInspector] implementations, and also add
      * a [shark.AppSingletonInspector] instance created with the list of internal singletons.
      *
-     * Defaults to [AndroidObjectInspectors.appDefaults]
+     * Defaults to [AndroidObjectInspectors.appDefaults] and any discoverable [ObjectInspector]
+     * through the classpath at `META-INF/services/shark.ObjectInspector`.
+     *
+     * @see [ServiceLoader]
      */
-    val objectInspectors: List<ObjectInspector> = AndroidObjectInspectors.appDefaults,
+    val objectInspectors: List<ObjectInspector> =
+      AndroidObjectInspectors.appDefaults + ServiceLoader.load(ObjectInspector::class.java),
 
     /**
      * Extracts metadata from a hprof to be reported in [HeapAnalysisSuccess.metadata].
@@ -182,6 +187,11 @@ object LeakCanary {
      *   )
      * }
      * ```
+     *
+     * Any [EventListener] discoverable through the classpath at
+     * `META-INF/services/leakcanary.EventListener` will be automatically loaded.
+     *
+     * @see [ServiceLoader]
      */
     val eventListeners: List<EventListener> = listOf(
       LogcatEventListener,
@@ -194,8 +204,8 @@ object LeakCanary {
             RemoteWorkManagerHeapAnalyzer
           WorkManagerHeapAnalyzer.validWorkManagerInClasspath -> WorkManagerHeapAnalyzer
           else -> BackgroundThreadHeapAnalyzer
-      }
-    ),
+      },
+    ) + ServiceLoader.load(EventListener::class.java),
 
     /**
      * Whether to show LeakCanary notifications. When [showNotifications] is true, LeakCanary
