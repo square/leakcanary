@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>SafeCast:AndroidLeakFixes.kt$AndroidLeakFixes.Companion$if (it is HandlerThread) it else null</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,49 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ChainWrapping:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$+</ID>
+    <ID>EqualsWithHashCodeExist:SortedBytesMapTest.kt$SortedBytesMapTest$Entry : Comparable</ID>
+    <ID>FinalNewline:ByteSubArray.kt$shark.internal.ByteSubArray.kt</ID>
+    <ID>FinalNewline:CloseableHeapGraph.kt$shark.CloseableHeapGraph.kt</ID>
+    <ID>FinalNewline:FieldValuesReader.kt$shark.internal.FieldValuesReader.kt</ID>
+    <ID>FinalNewline:HeapField.kt$shark.HeapField.kt</ID>
+    <ID>FinalNewline:IndexedObject.kt$shark.internal.IndexedObject.kt</ID>
+    <ID>FinalNewline:LruCache.kt$shark.internal.LruCache.kt</ID>
+    <ID>FinalNewline:SortedBytesMap.kt$shark.internal.SortedBytesMap.kt</ID>
+    <ID>MaximumLineLength:ByteArrayTimSort.kt$ByteArrayTimSort$ </ID>
+    <ID>MaximumLineLength:HeapObject.kt$HeapObject.HeapInstance$ </ID>
+    <ID>MaximumLineLength:HprofHeapGraphEdgeCasesTest.kt$HprofHeapGraphEdgeCasesTest$ </ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$INITIAL_TMP_STORAGE_LENGTH</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$break@outer</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$len.ushr(1)</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$mergeHi(base1, len1, base2, len2)</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$mergeLo(base1, len1, base2, len2)</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$min(newSize, (a.size / entrySize).ushr(1))</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$minCapacity</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$minGallop = 0</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$n--</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$return</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$lastOfs = m + 1</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$left = mid + 1</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$ofs = m</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$ofs = maxOfs</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$return</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$return 1</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$right = mid</ID>
+    <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$start++</ID>
+    <ID>MultiLineIfElse:HeapObject.kt$HeapObject.HeapClass$PrimitiveType.byteSizeByHprofType.getValue(it.type)</ID>
+    <ID>MultiLineIfElse:HeapObject.kt$HeapObject.HeapInstance$offset + count</ID>
+    <ID>MultiLineIfElse:HprofInMemoryIndex.kt$HprofInMemoryIndex$className</ID>
+    <ID>MultiLineIfElse:HprofInMemoryIndex.kt$HprofInMemoryIndex$this</ID>
+    <ID>MultiLineIfElse:UnsortedByteEntries.kt$UnsortedByteEntries$entries</ID>
+    <ID>NoConsecutiveBlankLines:HeapObject.kt$HeapObject.HeapObjectArray$ </ID>
+    <ID>NoConsecutiveBlankLines:HeapObject.kt$HeapObject.HeapPrimitiveArray$ </ID>
+    <ID>NoConsecutiveBlankLines:UnsortedByteEntries.kt$ </ID>
+    <ID>NoMultipleSpaces:ByteArrayTimSort.kt$ByteArrayTimSort$ </ID>
+    <ID>NoMultipleSpaces:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$ </ID>
+    <ID>SpacingAroundCurly:HprofInMemoryIndex.kt$HprofInMemoryIndex.Builder${</ID>
+    <ID>SpacingAroundKeyword:HprofInMemoryIndex.kt$HprofInMemoryIndex$while</ID>
+    <ID>SpacingAroundOperators:HprofHeapGraph.kt$HprofHeapGraph$?:</ID>
+  </CurrentIssues>
+</SmellBaseline>

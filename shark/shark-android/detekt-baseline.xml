@@ -1,0 +1,59 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ChainWrapping:AndroidObjectInspectorsTest.kt$AndroidObjectInspectorsTest$&amp;&amp;</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.ACCESSIBILITY_NODE_INFO__MORIGINALTEXT$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.ACTIVITY_CHOOSE_MODEL$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.ACTIVITY_MANAGER_MCONTEXT$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.APP_WIDGET_HOST_CALLBACKS$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.AUDIO_MANAGER$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.AUDIO_MANAGER__MCONTEXT_STATIC$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.BACKDROP_FRAME_RENDERER__MDECORVIEW$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.BLOCKING_QUEUE$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.CLIPBOARD_UI_MANAGER__SINSTANCE$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.CONNECTIVITY_MANAGER__SINSTANCE$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.DEVICE_POLICY_MANAGER__SETTINGS_OBSERVER$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.EDITTEXT_BLINK_MESSAGEQUEUE$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.INPUT_METHOD_MANAGER_IS_TERRIBLE$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.INSTRUMENTATION_RECOMMEND_ACTIVITY$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.LAYOUT_TRANSITION$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.MAPPER_CLIENT$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.MEDIA_SCANNER_CONNECTION$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.MEDIA_SESSION_LEGACY_HELPER__SINSTANCE$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.PERSONA_MANAGER$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.RESOURCES__MCONTEXT$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.SPAN_CONTROLLER$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.SPEECH_RECOGNIZER$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.SPELL_CHECKER$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.SPELL_CHECKER_SESSION$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.SYSTEM_SENSOR_MANAGER__MAPPCONTEXTIMPL$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.TEXT_LINE__SCACHED$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.USER_MANAGER__SINSTANCE$+</ID>
+    <ID>ChainWrapping:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.VIEW_CONFIGURATION__MCONTEXT$+</ID>
+    <ID>ChainWrapping:AndroidServices.kt$AndroidServices$&amp;&amp;</ID>
+    <ID>ChainWrapping:LegacyHprofTest.kt$LegacyHprofTest$&amp;&amp;</ID>
+    <ID>Filename:AndroidReferenceMatcher_XIAMI__RESOURCES_IMPL_Test.kt$shark.AndroidReferenceMatcher_XIAMI__RESOURCES_IMPL_Test.kt</ID>
+    <ID>FinalNewline:AndroidResourceIdNames.kt$shark.AndroidResourceIdNames.kt</ID>
+    <ID>FinalNewline:AndroidServices.kt$shark.AndroidServices.kt</ID>
+    <ID>FinalNewline:Resources.kt$shark.Resources.kt</ID>
+    <ID>MaximumLineLength:AndroidObjectInspectors.kt$AndroidObjectInspectors.CONTEXT_FIELD$ </ID>
+    <ID>MaximumLineLength:AndroidObjectInspectors.kt$AndroidObjectInspectors.CONTEXT_WRAPPER$ </ID>
+    <ID>MaximumLineLength:AndroidObjectInspectors.kt$AndroidObjectInspectors.OBJECT_ANIMATOR$ </ID>
+    <ID>MaximumLineLength:AndroidObjectInspectors.kt$AndroidObjectInspectors.VIEW$ </ID>
+    <ID>MaximumLineLength:AndroidObjectInspectors.kt$AndroidObjectInspectors.VIEW_ROOT_IMPL$ </ID>
+    <ID>MaximumLineLength:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.INPUT_METHOD_MANAGER_IS_TERRIBLE$ </ID>
+    <ID>MaximumLineLength:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.SPEN_GESTURE_MANAGER$ </ID>
+    <ID>MaximumLineLength:HprofRetainedHeapPerfTest.kt$HprofRetainedHeapPerfTest$ </ID>
+    <ID>MaximumLineLength:LegacyHprofTest.kt$LegacyHprofTest$ </ID>
+    <ID>MultiLineIfElse:AndroidExtensions.kt$null</ID>
+    <ID>MultiLineIfElse:AndroidObjectInspectors.kt$AndroidObjectInspectors.TOAST$false</ID>
+    <ID>MultiLineIfElse:AndroidObjectInspectors.kt$AndroidObjectInspectors.VIEW_ROOT_IMPL$""</ID>
+    <ID>MultiLineIfElse:HprofRetainedHeapPerfTest.kt$HprofRetainedHeapPerfTest$""</ID>
+    <ID>MultiLineIfElse:LegacyHprofTest.kt$LegacyHprofTest$throw IllegalStateException( "Unexpected, should have 1 leaking status ${reporter.leakingReasons} or one label ${reporter.labels}" )</ID>
+    <ID>NoConsecutiveBlankLines:AndroidReferenceMatchers.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.ACTIVITY_CHOOSE_MODEL$ </ID>
+    <ID>SpacingAroundCurly:AndroidResourceIdNamesTest.kt$AndroidResourceIdNamesTest${</ID>
+    <ID>SpacingAroundKeyword:AndroidMetadataExtractor.kt$AndroidMetadataExtractor$when</ID>
+  </CurrentIssues>
+</SmellBaseline>

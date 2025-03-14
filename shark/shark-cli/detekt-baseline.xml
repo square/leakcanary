@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:DeobfuscateHprofCommand.kt$shark.DeobfuscateHprofCommand.kt</ID>
+    <ID>FinalNewline:StripHprofCommand.kt$shark.StripHprofCommand.kt</ID>
+    <ID>MaximumLineLength:DumpProcessCommand.kt$DumpProcessCommand.Companion$ </ID>
+    <ID>MaximumLineLength:HeapGrowthCommand.kt$HeapGrowthCommand$ </ID>
+    <ID>MaximumLineLength:StripHprofCommand.kt$StripHprofCommand$ </ID>
+    <ID>MultiLineIfElse:InteractiveCommand.kt$InteractiveCommand$""</ID>
+    <ID>NoConsecutiveBlankLines:Neo4JCommand.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:Neo4JCommand.kt$Neo4JCommand.Companion$ </ID>
+    <ID>SpacingAroundParens:HeapGrowthCommand.kt$HeapGrowthCommand$(</ID>
+    <ID>StringTemplate:InteractiveCommand.kt$InteractiveCommand$${instanceCount}</ID>
+  </CurrentIssues>
+</SmellBaseline>

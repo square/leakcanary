@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MultiLineIfElse:DeletableObjectReporter.kt$object : TrackedObjectReachability { override val isStronglyReachable: Boolean get() = false override val isRetained: Boolean get() = false }</ID>
+  </CurrentIssues>
+</SmellBaseline>

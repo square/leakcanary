@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>StringTemplate:TestHeapDumpFileProvider.kt$TestHeapDumpFileProvider$${classSimpleName}</ID>
+    <ID>StringTemplate:TestHeapDumpFileProvider.kt$TestHeapDumpFileProvider$${escapedMethodName}</ID>
+  </CurrentIssues>
+</SmellBaseline>

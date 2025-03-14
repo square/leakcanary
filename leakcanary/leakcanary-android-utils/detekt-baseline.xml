@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:LogcatSharkLog.kt$leakcanary.LogcatSharkLog.kt</ID>
+    <ID>FinalNewline:Objects.kt$leakcanary.internal.Objects.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

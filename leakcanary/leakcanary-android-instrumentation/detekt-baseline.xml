@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MaximumLineLength:NoLeakAssertionFailedError.kt$NoLeakAssertionFailedError.Companion$ </ID>
+    <ID>MultiLineIfElse:InstrumentationHeapAnalyzer.kt$InstrumentationHeapAnalyzer$result</ID>
+    <ID>NoConsecutiveBlankLines:DetectLeaksAfterTestSuccess.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:LeakAssertions.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:SkipLeakDetection.kt$ </ID>
+    <ID>StringTemplate:AndroidDetectLeaksAssert.kt$AndroidDetectLeaksAssert$${classSimpleName}</ID>
+    <ID>StringTemplate:AndroidDetectLeaksAssert.kt$AndroidDetectLeaksAssert$${methodName}</ID>
+  </CurrentIssues>
+</SmellBaseline>

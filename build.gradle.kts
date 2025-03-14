@@ -84,6 +84,10 @@ subprojects {
     }
   }
 
+  dependencies {
+    "detektPlugins"(rootProject.libs.detekt.formatting)
+  }
+
   extensions.configure<DetektExtension> {
     config = rootProject.files("config/detekt-config.yml")
     parallel = true

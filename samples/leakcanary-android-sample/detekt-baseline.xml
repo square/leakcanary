@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:LeakingService.kt$com.example.leakcanary.LeakingService.kt</ID>
+    <ID>FinalNewline:LeakingSingleton.kt$com.example.leakcanary.LeakingSingleton.kt</ID>
+    <ID>FinalNewline:LeakingThread.kt$com.example.leakcanary.LeakingThread.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

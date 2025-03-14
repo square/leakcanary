@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:AppSingletonInspector.kt$shark.AppSingletonInspector.kt</ID>
+    <ID>FinalNewline:FieldIdReader.kt$shark.internal.FieldIdReader.kt</ID>
+    <ID>FinalNewline:HeapAnalysis.kt$shark.HeapAnalysis.kt</ID>
+    <ID>FinalNewline:HeapAnalysisException.kt$shark.HeapAnalysisException.kt</ID>
+    <ID>FinalNewline:HeapAnalysisStringRenderingTest.kt$shark.HeapAnalysisStringRenderingTest.kt</ID>
+    <ID>FinalNewline:HprofHeapGraphTest.kt$shark.HprofHeapGraphTest.kt</ID>
+    <ID>FinalNewline:KeyedWeakReferenceFinder.kt$shark.KeyedWeakReferenceFinder.kt</ID>
+    <ID>FinalNewline:LeakNodeStatus.kt$shark.LeakNodeStatus.kt</ID>
+    <ID>FinalNewline:LeakTraceObject.kt$shark.LeakTraceObject.kt</ID>
+    <ID>FinalNewline:ShallowSizeCalculatorTest.kt$shark.internal.ShallowSizeCalculatorTest.kt</ID>
+    <ID>FinalNewline:UnreachableObjectRenderingTest.kt$shark.UnreachableObjectRenderingTest.kt</ID>
+    <ID>MaximumLineLength:AndroidNativeSizeMapper.kt$AndroidNativeSizeMapper$ </ID>
+    <ID>MaximumLineLength:DominatorTree.kt$DominatorTree$ </ID>
+    <ID>MaximumLineLength:HeapAnalysis.kt$Leak$ </ID>
+    <ID>MaximumLineLength:KeyedWeakReferenceFinder.kt$KeyedWeakReferenceFinder$ </ID>
+    <ID>MaximumLineLength:ObjectDominators.kt$ObjectDominators$ </ID>
+    <ID>MaximumLineLength:RetainedSizeTest.kt$RetainedSizeTest$ </ID>
+    <ID>MultiLineIfElse:ClassReferenceReader.kt$ClassReferenceReader$mapOrNull</ID>
+    <ID>MultiLineIfElse:FieldInstanceReferenceReader.kt$FieldInstanceReferenceReader$mapOrNull</ID>
+    <ID>MultiLineIfElse:HeapAnalysis.kt$HeapAnalysisSuccess$""</ID>
+    <ID>MultiLineIfElse:HeapAnalysis.kt$HeapAnalysisSuccess$"\n" + applicationLeaks.joinToString( "\n\n" ) + "\n"</ID>
+    <ID>MultiLineIfElse:HeapAnalysis.kt$HeapAnalysisSuccess$"\n" + libraryLeaks.joinToString( "\n\n" ) + "\n"</ID>
+    <ID>MultiLineIfElse:HeapAnalysis.kt$HeapAnalysisSuccess$"\n" + metadata.map { "${it.key}: ${it.value}" }.joinToString( "\n" )</ID>
+    <ID>MultiLineIfElse:HeapAnalysis.kt$HeapAnalysisSuccess$"\n" + unreachableObjects.joinToString( "\n\n" ) + "\n"</ID>
+    <ID>MultiLineIfElse:HeapAnalyzer.kt$HeapAnalyzer$result</ID>
+    <ID>MultiLineIfElse:InternalSharedExpanderHelpers.kt$InternalSharedHashMapReferenceReader$null</ID>
+    <ID>MultiLineIfElse:InternalSharedExpanderHelpers.kt$InternalSharedWeakHashMapReferenceReader$null</ID>
+    <ID>MultiLineIfElse:ObjectDominators.kt$ObjectDominators$" \"${heapObject.readAsJavaString()}\""</ID>
+    <ID>MultiLineIfElse:ObjectDominators.kt$ObjectDominators$""</ID>
+    <ID>MultiLineIfElse:ObjectDominators.kt$ObjectDominators$when (val heapObject = graph.findObjectById(objectId)) { is HeapClass -> "class ${heapObject.name}" is HeapInstance -> heapObject.instanceClassName is HeapObjectArray -> heapObject.arrayClassName is HeapPrimitiveArray -> heapObject.arrayClassName }</ID>
+    <ID>MultiLineIfElse:RealLeakTracerFactory.kt$RealLeakTracerFactory$statusPair</ID>
+    <ID>MultiLineIfElse:RealLeakTracerFactory.kt$RealLeakTracerFactory.ShortestPath$null</ID>
+    <ID>NoBlankLineBeforeRbrace:HeapDumps.kt$ </ID>
+    <ID>NoBlankLineBeforeRbrace:UnreachableObjectRenderingTest.kt$UnreachableObjectRenderingTest$ </ID>
+    <ID>NoConsecutiveBlankLines:AndroidReferenceReadersHprofTest.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:DominatorTree.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:HeapAnalysisStringRenderingTest.kt$HeapAnalysisStringRenderingTest$ </ID>
+    <ID>NoConsecutiveBlankLines:HeapAnalyzer.kt$HeapAnalyzer$ </ID>
+    <ID>NoConsecutiveBlankLines:KeyedWeakReferenceMirror.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:PrioritizingShortestPathFinder.kt$ </ID>
+    <ID>NoMultipleSpaces:HeapAnalyzer.kt$HeapAnalyzer$ </ID>
+    <ID>NoMultipleSpaces:JavaLocalReferenceReader.kt$JavaLocalReferenceReader$ </ID>
+    <ID>NoMultipleSpaces:ObjectDominators.kt$ObjectDominators$ </ID>
+    <ID>NoSemicolons:ApacheHarmonyInstanceRefReaders.kt$ApacheHarmonyInstanceRefReaders.HASH_SET$;</ID>
+    <ID>NoSemicolons:LeakNodeStatus.kt$LeakNodeStatus.UNKNOWN$;</ID>
+    <ID>NoSemicolons:LeakTraceObject.kt$LeakTraceObject.LeakingStatus.UNKNOWN$;</ID>
+    <ID>NoSemicolons:OpenJdkInstanceRefReaders.kt$OpenJdkInstanceRefReaders.HASH_SET$;</ID>
+    <ID>NoUnusedImports:AndroidReferenceReaders.kt$shark.AndroidReferenceReaders.kt</ID>
+    <ID>NoUnusedImports:OpenJdkInstanceRefReadersTest.kt$shark.OpenJdkInstanceRefReadersTest.kt</ID>
+    <ID>SpacingAroundCurly:JavaLocalReferenceReader.kt$JavaLocalReferenceReader$}</ID>
+    <ID>SpacingAroundKeyword:DelegatingObjectReferenceReader.kt$DelegatingObjectReferenceReader$when</ID>
+    <ID>SpacingAroundOperators:JavaLocalReferenceReader.kt$JavaLocalReferenceReader$?:</ID>
+    <ID>StringTemplate:ObjectGrowthDetector.kt$ObjectGrowthDetector$${owningClassSimpleName}</ID>
+    <ID>StringTemplate:ObjectGrowthDetector.kt$ObjectGrowthDetector$${refName}</ID>
+    <ID>StringTemplate:ShortestPathObjectNode.kt$ShortestPathObjectNode$${increase}</ID>
+  </CurrentIssues>
+</SmellBaseline>
