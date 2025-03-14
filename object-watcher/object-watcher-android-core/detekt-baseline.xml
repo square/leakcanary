@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:Applications.kt$leakcanary.internal.Applications.kt</ID>
+    <ID>FinalNewline:InstallableWatcher.kt$leakcanary.InstallableWatcher.kt</ID>
+    <ID>FinalNewline:LeakCanaryDelegate.kt$leakcanary.internal.LeakCanaryDelegate.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

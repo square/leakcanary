@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>NoUnusedImports:LeakCanaryLeakDeobfuscationPlugin.kt$com.squareup.leakcanary.deobfuscation.LeakCanaryLeakDeobfuscationPlugin.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

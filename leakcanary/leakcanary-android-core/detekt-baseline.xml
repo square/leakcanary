@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ChainWrapping:HeapDumpRenderer.kt$HeapDumpRenderer$&amp;&amp;</ID>
+    <ID>ChainWrapping:LeakCanaryTextView.kt$LeakCanaryTextView$+</ID>
+    <ID>ChainWrapping:SquigglySpanRenderer.kt$SquigglySpanRenderer.Companion$||</ID>
+    <ID>FinalNewline:HeapAnalysisTable.kt$leakcanary.internal.activity.db.HeapAnalysisTable.kt</ID>
+    <ID>FinalNewline:LeakTraceTable.kt$leakcanary.internal.activity.db.LeakTraceTable.kt</ID>
+    <ID>FinalNewline:LeakTraceWrapper.kt$leakcanary.internal.activity.screen.LeakTraceWrapper.kt</ID>
+    <ID>FinalNewline:LeakTraceWrapperTest.kt$leakcanary.internal.activity.screen.LeakTraceWrapperTest.kt</ID>
+    <ID>FinalNewline:LeaksDbHelper.kt$leakcanary.internal.activity.db.LeaksDbHelper.kt</ID>
+    <ID>FinalNewline:NotificationReceiver.kt$leakcanary.internal.NotificationReceiver.kt</ID>
+    <ID>FinalNewline:NotificationType.kt$leakcanary.internal.NotificationType.kt</ID>
+    <ID>FinalNewline:Screen.kt$leakcanary.internal.navigation.Screen.kt</ID>
+    <ID>FinalNewline:Serializables.kt$leakcanary.internal.Serializables.kt</ID>
+    <ID>FinalNewline:SimpleListAdapter.kt$leakcanary.internal.activity.ui.SimpleListAdapter.kt</ID>
+    <ID>FinalNewline:TimeFormatter.kt$leakcanary.internal.activity.ui.TimeFormatter.kt</ID>
+    <ID>FinalNewline:UiUtils.kt$leakcanary.internal.activity.ui.UiUtils.kt</ID>
+    <ID>MaximumLineLength:HeapDumpTrigger.kt$HeapDumpTrigger$ </ID>
+    <ID>MaximumLineLength:LeakActivity.kt$LeakActivity$ </ID>
+    <ID>MaximumLineLength:LeakScreen.kt$LeakScreen$ </ID>
+    <ID>MaximumLineLength:LogcatEventListener.kt$LogcatEventListener$ </ID>
+    <ID>MaximumLineLength:WorkManagerHeapAnalyzer.kt$WorkManagerHeapAnalyzer$ </ID>
+    <ID>MultiLineIfElse:AndroidDebugHeapAnalyzer.kt$AndroidDebugHeapAnalyzer$result</ID>
+    <ID>MultiLineIfElse:DisplayLeakAdapter.kt$DisplayLeakAdapter$"${ extra( className.substring( 0, packageEnd ) ) }.$styledClassName"</ID>
+    <ID>MultiLineIfElse:DisplayLeakAdapter.kt$DisplayLeakAdapter$END</ID>
+    <ID>MultiLineIfElse:DisplayLeakAdapter.kt$DisplayLeakAdapter$START</ID>
+    <ID>MultiLineIfElse:DisplayLeakAdapter.kt$DisplayLeakAdapter$leakTrace.leakingObject</ID>
+    <ID>MultiLineIfElse:DisplayLeakAdapter.kt$DisplayLeakAdapter$leakTrace.referencePath[elementIndex( position + 1 )].originObject</ID>
+    <ID>MultiLineIfElse:DisplayLeakAdapter.kt$DisplayLeakAdapter$styledClassName</ID>
+    <ID>MultiLineIfElse:HeapAnalysisFailureScreen.kt$HeapAnalysisFailureScreen$""</ID>
+    <ID>MultiLineIfElse:HeapDumpControl.kt$HeapDumpControl$Yup</ID>
+    <ID>MultiLineIfElse:LeakScreen.kt$LeakScreen$""</ID>
+    <ID>MultiLineIfElse:LeakScreen.kt$LeakScreen$"&lt;br>&lt;br>" + "A &lt;font color='#FFCC32'>Library Leak&lt;/font> is a leak caused by a known bug in 3rd party code that you do not have control over. " + "(&lt;a href=\"https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks\">Learn More&lt;/a>)&lt;br>&lt;br>" + "&lt;b>Leak pattern&lt;/b>: ${selectedLeak.pattern}&lt;br>&lt;br>" + "&lt;b>Description&lt;/b>: ${parseLinks(selectedLeak.description)}"</ID>
+    <ID>MultiLineIfElse:LeakTable.kt$LeakTable$cursor.getLong(0)</ID>
+    <ID>MultiLineIfElse:LeakTable.kt$LeakTable$throw IllegalStateException( "No id found for leak with signature '${leak.signature}'" )</ID>
+    <ID>MultiLineIfElse:LeakTraceWrapper.kt$LeakTraceWrapper$null</ID>
+    <ID>MultiLineIfElse:Notifications.kt$Notifications$Notification.Builder(context)</ID>
+    <ID>NoBlankLineBeforeRbrace:HeapDumpsScreen.kt$HeapDumpsScreen$ </ID>
+    <ID>NoBlankLineBeforeRbrace:LeakCanaryConfigTest.kt$LeakCanaryConfigTest$ </ID>
+    <ID>NoConsecutiveBlankLines:DisplayLeakConnectorView.kt$DisplayLeakConnectorView$ </ID>
+    <ID>NoConsecutiveBlankLines:InternalLeakCanary.kt$InternalLeakCanary$ </ID>
+    <ID>NoConsecutiveBlankLines:LeakCanary.kt$LeakCanary.Config.Builder$ </ID>
+    <ID>NoConsecutiveBlankLines:LeakCanaryAndroidInternalUtils.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:RenderHeapDumpScreen.kt$ </ID>
+    <ID>NoMultipleSpaces:LogcatEventListener.kt$LogcatEventListener$ </ID>
+    <ID>NoMultipleSpaces:NotificationEventListener.kt$NotificationEventListener$ </ID>
+    <ID>NoSemicolons:NotificationType.kt$NotificationType.LEAKCANARY_MAX$;</ID>
+    <ID>SpacingAroundComma:NotificationEventListener.kt$NotificationEventListener$,</ID>
+    <ID>SpacingAroundCurly:TvEventListener.kt$TvEventListener${</ID>
+    <ID>SpacingAroundKeyword:InternalLeakCanary.kt$InternalLeakCanary$for</ID>
+    <ID>SpacingAroundKeyword:LogcatEventListener.kt$LogcatEventListener$when</ID>
+    <ID>StringTemplate:DisplayLeakAdapter.kt$DisplayLeakAdapter$${leakingStatusReason}</ID>
+    <ID>StringTemplate:LeakScreen.kt$LeakScreen$${word}</ID>
+  </CurrentIssues>
+</SmellBaseline>

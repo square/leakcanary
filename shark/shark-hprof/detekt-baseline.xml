@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:ConstantMemoryMetricsDualSourceProvider.kt$shark.ConstantMemoryMetricsDualSourceProvider.kt</ID>
+    <ID>FinalNewline:GcRoot.kt$shark.GcRoot.kt</ID>
+    <ID>FinalNewline:ProguardMappingReader.kt$shark.ProguardMappingReader.kt</ID>
+    <ID>FinalNewline:ProguardMappingTest.kt$shark.ProguardMappingTest.kt</ID>
+    <ID>FinalNewline:RandomAccessHprofReader.kt$shark.RandomAccessHprofReader.kt</ID>
+    <ID>FinalNewline:ValueHolder.kt$shark.ValueHolder.kt</ID>
+    <ID>NoConsecutiveBlankLines:ConstantMemoryMetricsDualSourceProvider.kt$ConstantMemoryMetricsDualSourceProvider$ </ID>
+    <ID>NoConsecutiveBlankLines:FileSourceProvider.kt$ </ID>
+    <ID>NoMultipleSpaces:HprofReaderPrimitiveArrayTest.kt$HprofReaderPrimitiveArrayTest$ </ID>
+    <ID>NoUnusedImports:ThrowingCancelableFileSourceProvider.kt$shark.ThrowingCancelableFileSourceProvider.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CommentSpacing:GoodAndroidVersionInterceptor.kt$GoodAndroidVersionInterceptor$// findObjectById() sometimes failing. See #1759</ID>
+    <ID>FinalNewline:BackgroundTrigger.kt$leakcanary.BackgroundTrigger.kt</ID>
+    <ID>FinalNewline:ConditionalInterceptor.kt$leakcanary.ConditionalInterceptor.kt</ID>
+    <ID>FinalNewline:Friendly.kt$leakcanary.internal.friendly.Friendly.kt</ID>
+    <ID>FinalNewline:GoodAndroidVersionInterceptor.kt$leakcanary.GoodAndroidVersionInterceptor.kt</ID>
+    <ID>FinalNewline:HeapAnalysisInterceptor.kt$leakcanary.HeapAnalysisInterceptor.kt</ID>
+    <ID>FinalNewline:HeapAnalysisJob.kt$leakcanary.HeapAnalysisJob.kt</ID>
+    <ID>FinalNewline:MinimumElapsedSinceStartInterceptor.kt$leakcanary.MinimumElapsedSinceStartInterceptor.kt</ID>
+    <ID>FinalNewline:MinimumMemoryInterceptor.kt$leakcanary.MinimumMemoryInterceptor.kt</ID>
+    <ID>FinalNewline:OncePerPeriodInterceptor.kt$leakcanary.OncePerPeriodInterceptor.kt</ID>
+    <ID>FinalNewline:SaveResourceIdsInterceptor.kt$leakcanary.SaveResourceIdsInterceptor.kt</ID>
+    <ID>MaximumLineLength:OncePerPeriodInterceptor.kt$OncePerPeriodInterceptor$ </ID>
+    <ID>MultiLineIfElse:RealHeapAnalysisJob.kt$RealHeapAnalysisJob$null</ID>
+  </CurrentIssues>
+</SmellBaseline>

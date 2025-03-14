@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MaximumLineLength:DumpingRepeatingScenarioObjectGrowthDetector.kt$DumpingRepeatingScenarioObjectGrowthDetector$ </ID>
+    <ID>MaximumLineLength:ObjectGrowthWarmupHeapDumperTest.kt$ObjectGrowthWarmupHeapDumperTest$ </ID>
+    <ID>NoConsecutiveBlankLines:DatetimeFormattedHeapDumpFileProvider.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:DumpingRepeatingScenarioObjectGrowthDetector.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:DumpingRepeatingScenarioObjectGrowthDetectorTest.kt$DumpingRepeatingScenarioObjectGrowthDetectorTest$ </ID>
+    <ID>NoConsecutiveBlankLines:ObjectGrowthWarmupHeapDumperTest.kt$ObjectGrowthWarmupHeapDumperTest$ </ID>
+    <ID>NoUnusedImports:HeapDumpFileProvider.kt$leakcanary.HeapDumpFileProvider.kt</ID>
+  </CurrentIssues>
+</SmellBaseline>
