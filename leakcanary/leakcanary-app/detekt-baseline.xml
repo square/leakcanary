@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>FinalNewline:Color.kt$org.leakcanary.ui.theme.Color.kt</ID>
+    <ID>FinalNewline:Theme.kt$org.leakcanary.ui.theme.Theme.kt</ID>
+    <ID>FinalNewline:Type.kt$org.leakcanary.ui.theme.Type.kt</ID>
+    <ID>MaximumLineLength:LeakScreen.kt$LeakViewModel$ </ID>
+    <ID>MultiLineIfElse:LeakTraceWrapper.kt$LeakTraceWrapper$null</ID>
+    <ID>NoBlankLineBeforeRbrace:ClientAppAnalysesScreen.kt$ </ID>
+    <ID>NoConsecutiveBlankLines:TreeMapScreen.kt$ </ID>
+    <ID>ParameterListWrapping:DatabaseModule.kt$DatabaseModule$( app: Application, @WriteAheadLoggingEnabled wolEnabled: Boolean )</ID>
+    <ID>SpacingAroundKeyword:HeapRepository.kt$HeapRepository$if</ID>
+    <ID>StringTemplate:LeakScreen.kt$${leakingStatusReason}</ID>
+  </CurrentIssues>
+</SmellBaseline>
