@@ -38,7 +38,7 @@ jobs:
         api-level:
           - 21
           - 23
-          - 26
+          # - 26 WIP - Temp disabling due to ERROR | FB: openColorBuffer cb handle 0xb5 not found
           # - 29 flaky
         include:
           - arch: x86
