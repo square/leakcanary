@@ -2,21 +2,33 @@ package shark
 
 import java.io.File
 import okio.BufferedSink
-import okio.BufferedSource
 import okio.Okio
-import shark.HprofRecord.HeapDumpEndRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.HprofRecord.LoadClassRecord
-import shark.HprofRecord.StringRecord
+import shark.HprofRecordTag.CLASS_DUMP
+import shark.HprofRecordTag.HEAP_DUMP
+import shark.HprofRecordTag.HEAP_DUMP_INFO
+import shark.HprofRecordTag.HEAP_DUMP_SEGMENT
+import shark.HprofRecordTag.INSTANCE_DUMP
+import shark.HprofRecordTag.LOAD_CLASS
+import shark.HprofRecordTag.OBJECT_ARRAY_DUMP
+import shark.HprofRecordTag.PRIMITIVE_ARRAY_DUMP
+import shark.HprofRecordTag.PRIMITIVE_ARRAY_NODATA
+import shark.HprofRecordTag.ROOT_DEBUGGER
+import shark.HprofRecordTag.ROOT_FINALIZING
+import shark.HprofRecordTag.ROOT_INTERNED_STRING
+import shark.HprofRecordTag.ROOT_JAVA_FRAME
+import shark.HprofRecordTag.ROOT_JNI_GLOBAL
+import shark.HprofRecordTag.ROOT_JNI_LOCAL
+import shark.HprofRecordTag.ROOT_JNI_MONITOR
+import shark.HprofRecordTag.ROOT_MONITOR_USED
+import shark.HprofRecordTag.ROOT_NATIVE_STACK
+import shark.HprofRecordTag.ROOT_REFERENCE_CLEANUP
+import shark.HprofRecordTag.ROOT_STICKY_CLASS
+import shark.HprofRecordTag.ROOT_THREAD_BLOCK
+import shark.HprofRecordTag.ROOT_THREAD_OBJECT
+import shark.HprofRecordTag.ROOT_UNKNOWN
+import shark.HprofRecordTag.ROOT_UNREACHABLE
+import shark.HprofRecordTag.ROOT_VM_INTERNAL
+import shark.HprofRecordTag.STRING_IN_UTF8
 import shark.HprofVersion.ANDROID
 import shark.PrimitiveType.BOOLEAN
 import shark.PrimitiveType.BYTE
@@ -26,7 +38,6 @@ import shark.PrimitiveType.FLOAT
 import shark.PrimitiveType.INT
 import shark.PrimitiveType.LONG
 import shark.PrimitiveType.SHORT
-import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 
 /**
  * Converts a Hprof file to another file with all primitive arrays replaced with arrays of zeroes,
@@ -49,20 +60,28 @@ class HprofPrimitiveArrayStripper {
      * is not ".hprof", then "-stripped" is added at the end of the file.
      */
     outputHprofFile: File = File(
-      inputHprofFile.parent, inputHprofFile.name.replace(
-      ".hprof", "-stripped.hprof"
-    ).let { if (it != inputHprofFile.name) it else inputHprofFile.name + "-stripped" }),
+      inputHprofFile.parent,
+      inputHprofFile.name.replace(
+        ".hprof",
+        "-stripped.hprof"
+      ).let {
+        if (it != inputHprofFile.name) {
+          it
+        } else {
+          inputHprofFile.name + "-stripped"
+        }
+      }
+    ),
     deleteInputHprofFile: Boolean = false
   ): File {
     stripPrimitiveArrays(
       hprofSourceProvider = FileSourceProvider(inputHprofFile),
-      hprofSink = Okio.buffer(Okio.sink(outputHprofFile.outputStream())),
+      sink = Okio.buffer(Okio.sink(outputHprofFile.outputStream())),
       onDoneOpeningNewSources = {
         if (deleteInputHprofFile) {
           // Using the Unix trick of deleting the file as soon as all readers have opened it.
           // No new readers/writers will be able to access the file, but all existing
           // ones will still have access until the last one closes the file.
-          SharkLog.d { "Deleting $inputHprofFile eagerly" }
           inputHprofFile.delete()
         }
       }
@@ -75,197 +94,316 @@ class HprofPrimitiveArrayStripper {
    */
   fun stripPrimitiveArrays(
     hprofSourceProvider: StreamingSourceProvider,
-    hprofSink: BufferedSink,
+    sink: BufferedSink,
     onDoneOpeningNewSources: () -> Unit = {}
   ) {
-    val header = hprofSourceProvider.openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
-    val useForwardSlashClassPackageSeparator = header.version != ANDROID
+    hprofSourceProvider.openStreamingSource().use { rawSource ->
+      onDoneOpeningNewSources()
+      val source = CopyingSource(rawSource, sink)
+      val endOfString = rawSource.indexOf(0)
+      val versionName = source.transferUtf8(endOfString)
+      // Skip the 0 at the end of the version string.
+      source.transfer(1)
+      val identifierByteSize = source.transferInt()
+      // heapDumpTimestamp
+      source.transfer(LONG.byteSize)
 
-    val primitiveWrapperClassNames = mapOf(
-      Boolean::class.javaObjectType.name to BOOLEAN_SIZE,
-      Char::class.javaObjectType.name to CHAR_SIZE,
-      Float::class.javaObjectType.name to FLOAT_SIZE,
-      Double::class.javaObjectType.name to DOUBLE_SIZE,
-      Byte::class.javaObjectType.name to BYTE_SIZE,
-      Short::class.javaObjectType.name to SHORT_SIZE,
-      Int::class.javaObjectType.name to INT_SIZE,
-      Long::class.javaObjectType.name to LONG_SIZE
-    ).mapKeys { (key, _) ->
-      if (useForwardSlashClassPackageSeparator) {
-        key.replace('.', '/')
-      } else {
-        key
+      val useForwardSlashClassPackageSeparator = versionName != ANDROID.versionString
+      val primitiveWrapperClassNameAndValueSizes = mapOf(
+        Boolean::class.javaObjectType.name to BOOLEAN.byteSize,
+        Char::class.javaObjectType.name to CHAR.byteSize,
+        Float::class.javaObjectType.name to FLOAT.byteSize,
+        Double::class.javaObjectType.name to DOUBLE.byteSize,
+        Byte::class.javaObjectType.name to BYTE.byteSize,
+        Short::class.javaObjectType.name to SHORT.byteSize,
+        Int::class.javaObjectType.name to INT.byteSize,
+        Long::class.javaObjectType.name to LONG.byteSize
+      ).mapKeys { (key, _) ->
+        if (useForwardSlashClassPackageSeparator) {
+          key.replace('.', '/')
+        } else {
+          key
+        }
       }
-    }
 
-    val notifyingSourceProvider =
-      NotifyingStreamingSourceProvider(hprofSourceProvider, onSourceOpened = onDoneOpeningNewSources)
+      val typeSizesRawMap =
+        PrimitiveType.byteSizeByHprofType +
+          (PrimitiveType.REFERENCE_HPROF_TYPE to identifierByteSize)
 
-    val reader =
-      StreamingHprofReader.readerFor(notifyingSourceProvider, header).asStreamingRecordReader()
-    HprofWriter.openWriterFor(
-      hprofSink,
-      hprofHeader = header
-    )
-      .use { writer ->
-        val primitiveWrapperStringIdsWithValueSize = mutableMapOf<Long, Int>()
-        val primitiveWrapperClassIdsWithValueSize = mutableMapOf<Long, Int>()
-        val primitiveWrapperClassValueFields = mutableMapOf<Long, PrimitiveWrapperValueField>()
-        var valueStringId = 0L
-        reader.readRecords(setOf(HprofRecord::class),
-          OnHprofRecordListener { _, record ->
-            // HprofWriter automatically emits HeapDumpEndRecord, because it flushes
-            // all continuous heap dump sub records as one heap dump record.
-            if (record is HeapDumpEndRecord) {
-              return@OnHprofRecordListener
+      val maxKey = typeSizesRawMap.keys.max()
+
+      // An efficient map of type to size. Some entries aren't used.
+      val typeSizes = IntArray(maxKey + 1) { key ->
+        typeSizesRawMap[key] ?: 0
+      }
+
+      fun CopyingSource.transferId(): Long {
+        // As long as we don't interpret IDs, reading signed values here is fine.
+        return when (identifierByteSize) {
+          1 -> transferByte().toLong()
+          2 -> transferShort().toLong()
+          4 -> transferInt().toLong()
+          8 -> transferLong()
+          else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
+        }
+      }
+
+      // Local ref optimizations
+      val intByteSize = INT.byteSize
+
+      val hprofTags = HprofRecordTag.values().associateBy { it.tag }
+
+      val primitiveWrapperStringIdsWithValueSize = mutableMapOf<Long, Int>()
+      val primitiveWrapperClassIdsWithValueSize = mutableMapOf<Long, Int>()
+      val primitiveWrapperClassValueFields = mutableMapOf<Long, PrimitiveWrapperValueField>()
+      var valueStringId = 0L
+
+      while (!source.exhausted()) {
+        // type of the record
+        val tag = source.transferUnsignedByte()
+
+        // Int, number of microseconds since the time stamp in the header
+        source.transfer(intByteSize)
+
+        // number of bytes that follow and belong to this record
+        val length = source.transferUnsignedInt()
+        val bytesReadBeforeTagContent = source.bytesRead
+
+        when (val hprofTag = hprofTags[tag]) {
+          STRING_IN_UTF8 -> {
+            val id = source.transferId()
+            val string = source.transferUtf8(length - identifierByteSize)
+            val size = primitiveWrapperClassNameAndValueSizes[string]
+            if (size != null) {
+              primitiveWrapperStringIdsWithValueSize[id] = size
+            } else if (string == "value") {
+              valueStringId = id
             }
-            writer.write(
-              when (record) {
-                is BooleanArrayDump -> BooleanArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  BooleanArray(record.array.size)
-                )
+          }
 
-                is CharArrayDump -> CharArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  CharArray(record.array.size) {
-                    '?'
-                  }
-                )
+          LOAD_CLASS -> {
+            // classSerialNumber
+            source.transfer(intByteSize)
+            val id = source.transferId()
+            // stackTraceSerialNumber
+            source.transfer(intByteSize)
+            val classNameStringId = source.transferId()
+            val size = primitiveWrapperStringIdsWithValueSize[classNameStringId]
+            if (size != null) {
+              primitiveWrapperClassIdsWithValueSize[id] = size
+            }
+          }
 
-                is FloatArrayDump -> FloatArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  FloatArray(record.array.size)
-                )
-
-                is DoubleArrayDump -> DoubleArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  DoubleArray(record.array.size)
-                )
-
-                is ByteArrayDump -> ByteArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  ByteArray(record.array.size) {
-                    // Converts to '?' in UTF-8 for byte backed strings
-                    63
-                  }
-                )
-
-                is ShortArrayDump -> ShortArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  ShortArray(record.array.size)
-                )
-
-                is IntArrayDump -> IntArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  IntArray(record.array.size)
-                )
-
-                is LongArrayDump -> LongArrayDump(
-                  record.id, record.stackTraceSerialNumber,
-                  LongArray(record.array.size)
-                )
-
-                is StringRecord -> {
-                  val size = primitiveWrapperClassNames[record.string]
-                  if (size != null) {
-                    primitiveWrapperStringIdsWithValueSize[record.id] = size
-                  } else if (record.string == "value") {
-                    valueStringId = record.id
-                  }
-                  record
+          HEAP_DUMP, HEAP_DUMP_SEGMENT -> {
+            var previousTag = 0
+            var previousTagPosition = 0L
+            val bytesReadStart = source.bytesRead
+            while ((source.bytesRead - bytesReadStart) < length) {
+              val heapDumpTagPosition = source.bytesRead
+              val heapDumpTag = source.transferUnsignedByte()
+              when (hprofTags[heapDumpTag]) {
+                ROOT_UNKNOWN,
+                ROOT_STICKY_CLASS,
+                ROOT_MONITOR_USED,
+                ROOT_INTERNED_STRING,
+                ROOT_FINALIZING,
+                ROOT_DEBUGGER,
+                ROOT_REFERENCE_CLEANUP,
+                ROOT_VM_INTERNAL,
+                ROOT_UNREACHABLE
+                  -> {
+                  source.transfer(identifierByteSize)
                 }
 
-                is LoadClassRecord -> {
-                  val size = primitiveWrapperStringIdsWithValueSize[record.classNameStringId]
-                  if (size != null) {
-                    primitiveWrapperClassIdsWithValueSize[record.id] = size
-                  }
-                  record
+                ROOT_JNI_GLOBAL -> {
+                  source.transfer(identifierByteSize + identifierByteSize)
                 }
 
-                is ClassDumpRecord -> {
-                  val size = primitiveWrapperClassIdsWithValueSize[record.id]
-                  if (size != null) {
-                    var valuePosition = 0
-                    record.fields.forEach { fieldRecord ->
-                      if (fieldRecord.nameStringId == valueStringId) {
-                        return@forEach
-                      } else {
-                        valuePosition += when (fieldRecord.type) {
-                          PrimitiveType.REFERENCE_HPROF_TYPE -> header.identifierByteSize
-                          BOOLEAN_TYPE -> BOOLEAN_SIZE
-                          CHAR_TYPE -> CHAR_SIZE
-                          FLOAT_TYPE -> FLOAT_SIZE
-                          DOUBLE_TYPE -> DOUBLE_SIZE
-                          BYTE_TYPE -> BYTE_SIZE
-                          SHORT_TYPE -> SHORT_SIZE
-                          INT_TYPE -> INT_SIZE
-                          LONG_TYPE -> LONG_SIZE
-                          else -> error("Unexpected field record type ${fieldRecord.type}")
-                        }
-                      }
+                ROOT_JNI_LOCAL,
+                ROOT_JAVA_FRAME,
+                ROOT_THREAD_OBJECT,
+                ROOT_JNI_MONITOR -> {
+                  source.transfer(identifierByteSize + intByteSize + intByteSize)
+                }
+
+                ROOT_NATIVE_STACK,
+                ROOT_THREAD_BLOCK -> {
+                  source.transfer(identifierByteSize + intByteSize)
+                }
+
+                CLASS_DUMP -> {
+                  val id = source.transferId()
+
+                  val size = primitiveWrapperClassIdsWithValueSize[id]
+
+                  val byteSize =
+                    // stack trace serial number
+                    intByteSize +
+                      // superclassId
+                      identifierByteSize +
+                      // class loader object ID
+                      identifierByteSize +
+                      // signers object ID
+                      identifierByteSize +
+                      // protection domain object ID
+                      identifierByteSize +
+                      // reserved
+                      identifierByteSize +
+                      // reserved
+                      identifierByteSize +
+                      // instance size (in bytes)
+                      intByteSize
+                  source.transfer(byteSize)
+
+                  // Skip over the constant pool
+                  val constantPoolCount = source.transferUnsignedShort()
+                  for (i in 0 until constantPoolCount) {
+                    // constant pool index
+                    source.transfer(SHORT.byteSize)
+                    val type = source.transferUnsignedByte()
+                    val byteCount = typeSizes[type]
+                    source.transfer(byteCount)
+                  }
+
+                  val staticFieldCount = source.transferUnsignedShort()
+                  for (i in 0 until staticFieldCount) {
+                    // nameStringId
+                    source.transfer(identifierByteSize)
+                    val type = source.transferUnsignedByte()
+                    val byteCount = typeSizes[type]
+                    source.transfer(byteCount)
+                  }
+
+                  val fieldCount = source.transferUnsignedShort()
+                  var fieldPosition = 0
+                  for (i in 0 until fieldCount) {
+                    val nameStringId = source.transferId()
+                    val type = source.transferUnsignedByte()
+                    if (size != null && nameStringId == valueStringId) {
+                      primitiveWrapperClassValueFields[id] =
+                        PrimitiveWrapperValueField(fieldPosition, size)
                     }
-                    primitiveWrapperClassValueFields[record.id] =
-                      PrimitiveWrapperValueField(valuePosition, size)
+                    fieldPosition = typeSizes[type]
                   }
-                  record
                 }
 
-                is InstanceDumpRecord -> {
-                  val wrapperClassValueField = primitiveWrapperClassValueFields[record.classId]
+                INSTANCE_DUMP -> {
+                  source.transfer(
+                    // id
+                    identifierByteSize +
+                      // stackTraceSerialNumber
+                      identifierByteSize
+                  )
+
+                  val classId = source.transferId()
+                  val wrapperClassValueField = primitiveWrapperClassValueFields[classId]
+
+                  val remainingBytesInInstance = source.transferInt()
+
                   if (wrapperClassValueField != null) {
-                    for (i in wrapperClassValueField.range) {
-                      record.fieldValues[i] = 0
-                    }
+                    source.transfer(wrapperClassValueField.position)
+                    source.overwrite(ByteArray(wrapperClassValueField.byteSize))
+                    val remaining =
+                      remainingBytesInInstance - (wrapperClassValueField.byteSize + wrapperClassValueField.position)
+                    source.transfer(remaining)
+                  } else {
+                    source.transfer(remainingBytesInInstance)
                   }
-                  record
                 }
 
-                else -> {
-                  record
+                OBJECT_ARRAY_DUMP -> {
+                  source.transfer(
+                    // id
+                    identifierByteSize +
+                      // stackTraceSerialNumber
+                      intByteSize
+                  )
+                  val arrayLength = source.transferInt()
+                  // arrayClassId
+                  source.transfer(identifierByteSize)
+                  source.transfer(arrayLength * identifierByteSize)
                 }
+
+                PRIMITIVE_ARRAY_DUMP -> {
+                  source.transfer(identifierByteSize + intByteSize)
+                  val arrayLength = source.transferInt()
+                  val type = source.transferUnsignedByte()
+                  sink.writeByte(type)
+                  when (val primitiveType = PrimitiveType.primitiveTypeByHprofType.getValue(type)) {
+                    CHAR -> {
+                      // TODO Make sure this is right, correct number of bytes and '?' is in the result
+                      val byteArray = String(CharArray(arrayLength) {
+                        '?'
+                      }).toByteArray(Charsets.UTF_16BE)
+                      check(byteArray.size == arrayLength * primitiveType.byteSize) {
+                        "Unexpected byteArray size ${byteArray.size} instead of " +
+                          "${arrayLength * primitiveType.byteSize} ($arrayLength chars)"
+                      }
+                      source.overwrite(byteArray)
+                    }
+
+                    BYTE -> {
+                      source.overwrite(ByteArray(arrayLength) {
+                        // Strings are stored as byte arrays and we can't distinguish between those
+                        // and random byte arrays, so we're updating all byte arrays the same way.
+                        // Converts to '?' in UTF-8 for byte backed strings
+                        63
+                      })
+                    }
+
+                    else -> {
+                      source.overwrite(ByteArray(arrayLength * primitiveType.byteSize) {
+                        0
+                      })
+                    }
+                  }
+                }
+
+                PRIMITIVE_ARRAY_NODATA -> {
+                  throw UnsupportedOperationException("$PRIMITIVE_ARRAY_NODATA cannot be parsed")
+                }
+
+                HEAP_DUMP_INFO -> {
+                  source.transfer(identifierByteSize + identifierByteSize)
+                }
+
+                else -> throw IllegalStateException(
+                  "Unknown tag $hprofTag ${
+                    "0x%02x".format(
+                      heapDumpTag
+                    )
+                  } at $heapDumpTagPosition after ${hprofTags[previousTag]} ${
+                    "0x%02x".format(
+                      previousTag
+                    )
+                  } at $previousTagPosition, heap dump segment started at $bytesReadStart, " +
+                    "length $length, ${(bytesReadStart + length) - heapDumpTagPosition} remaining"
+                )
               }
-            )
-          })
+              previousTag = heapDumpTag
+              previousTagPosition = heapDumpTagPosition
+            }
+          }
+
+          else -> {
+            source.transfer(length)
+          }
+        }
+
+        check(bytesReadBeforeTagContent + length == source.bytesRead) {
+          "Started tag content at $bytesReadBeforeTagContent, " +
+            "expected to read $length bytes, " +
+            "ended up at ${source.bytesRead} " +
+            "reading ${source.bytesRead - bytesReadBeforeTagContent} bytes"
+        }
       }
+
+    }
   }
 
   private class PrimitiveWrapperValueField(
-    position: Int,
-    size: Int
-  ) {
-    val range: IntRange = position until (position + size)
-  }
-
-  private companion object {
-    private val BOOLEAN_SIZE = BOOLEAN.byteSize
-    private val CHAR_SIZE = CHAR.byteSize
-    private val FLOAT_SIZE = FLOAT.byteSize
-    private val DOUBLE_SIZE = DOUBLE.byteSize
-    private val BYTE_SIZE = BYTE.byteSize
-    private val SHORT_SIZE = SHORT.byteSize
-    private val INT_SIZE = INT.byteSize
-    private val LONG_SIZE = LONG.byteSize
-
-    private val BOOLEAN_TYPE = BOOLEAN.hprofType
-    private val CHAR_TYPE = CHAR.hprofType
-    private val FLOAT_TYPE = FLOAT.hprofType
-    private val DOUBLE_TYPE = DOUBLE.hprofType
-    private val BYTE_TYPE = BYTE.hprofType
-    private val SHORT_TYPE = SHORT.hprofType
-    private val INT_TYPE = INT.hprofType
-    private val LONG_TYPE = LONG.hprofType
-  }
-
-  private class NotifyingStreamingSourceProvider(
-    private val delegate: StreamingSourceProvider,
-    private val onSourceOpened: () -> Unit = {}
-  ) : StreamingSourceProvider {
-    override fun openStreamingSource(): BufferedSource {
-      return delegate.openStreamingSource().apply {
-        onSourceOpened()
-      }
-    }
-  }
+    val position: Int,
+    val byteSize: Int
+  )
 }
+
