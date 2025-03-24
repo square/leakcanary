@@ -10,14 +10,14 @@ jobs:
   validation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: gradle/wrapper-validation-action@v1
 
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: 'zulu'
@@ -27,33 +27,36 @@ jobs:
 
   instrumentation-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       # Allow tests to continue on other devices if they fail on one device.
       fail-fast: false
       matrix:
-        arch: [ x86_64 ]
-        target: [ google_apis ]
-        channel: [ stable ]
-        api-level:
-          - 21
-          - 23
-          # - 26 WIP - Temp disabling due to ERROR | FB: openColorBuffer cb handle 0xb5 not found
-          # - 29 flaky
         include:
           - arch: x86
-            api-level: 16
             target: google_apis
-            channel: stable
-          - arch: x86
+            os: android-4.4
             api-level: 19
+          - arch: x86
             target: google_apis
-            channel: stable
-        # Failing (something about permissions maybe?
-        #  - arch: x86
-        #    api-level: 30
-        #    target: aosp_atd
-        #    channel: canary
+            os: android-5.0
+            api-level: 21
+          - arch: x86_64
+            target: google_apis
+            os: android-11
+            api-level: 30
+          - arch: x86_64
+            target: google_apis
+            os: android-12
+            api-level: 31
+          - arch: x86_64
+            target: google_apis
+            os: android-13
+            api-level: 33
+          - arch: x86_64
+            target: google_apis
+            os: android-14
+            api-level: 34
     steps:
       - name: Enable KVM group perms
         run: |
@@ -74,7 +77,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-cached-${{ matrix.api-level }}-${{ matrix.os }}-${{ matrix.target }}
+          key: avd-cached-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.target }}
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
@@ -82,28 +85,40 @@ jobs:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
           arch: ${{ matrix.arch }}
+          os: ${{ matrix.os }}
           force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load
-          disable-animations: false
-          script: echo "Generated AVD snapshot for caching."
+          disable-animations: true
+          script: |
+            echo "Waiting for emulator to be ready"
+            adb wait-for-device
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
+            sleep 30
+            echo "Generated AVD snapshot for caching."
+
       - name: Instrumentation Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
-          force-avd-creation: false
           target: ${{ matrix.target }}
           arch: ${{ matrix.arch }}
+          os: ${{ matrix.os }}
+          force-avd-creation: false
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
+          disable-animations: true
           script: |
             touch emulator.log                    # create log file
             chmod 777 emulator.log                # allow writing to log file
             adb logcat >> emulator.log &          # pipe all logcat messages into log file as a background process
+            adb wait-for-device # Wait for emulator to be fully ready
             ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
       - name: Upload results
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.api-level }}-${{ matrix.arch }}-instrumentation-test-results
+          name: ${{ matrix.os }}-${{ matrix.arch }}-instrumentation-test-results
           path: |
             emulator.log
             ./**/build/reports/androidTests/connected/**
@@ -113,8 +128,8 @@ jobs:
     needs: [ checks ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: 17
           distribution: 'zulu'
