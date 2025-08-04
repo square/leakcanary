@@ -1448,7 +1448,8 @@ enum class AndroidReferenceMatchers : ReferenceMatcher.ListBuilder {
         LENOVO,
         XIAOMI,
         TES,
-        REALME
+        REALME,
+        MOTOROLA
       )
       references += staticField("android.content.res.ResourcesImpl", "mAppContext").leak(
         description = """

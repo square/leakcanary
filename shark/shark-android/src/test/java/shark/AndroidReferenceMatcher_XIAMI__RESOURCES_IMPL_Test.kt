@@ -10,6 +10,7 @@ import shark.AndroidReferenceMatcher_XIAMI__RESOURCES_IMPL_Test.Companion.expect
 import shark.AndroidReferenceMatchers.Companion.HMD_GLOBAL
 import shark.AndroidReferenceMatchers.Companion.INFINIX
 import shark.AndroidReferenceMatchers.Companion.LENOVO
+import shark.AndroidReferenceMatchers.Companion.MOTOROLA
 import shark.AndroidReferenceMatchers.Companion.NVIDIA
 import shark.AndroidReferenceMatchers.Companion.XIAOMI
 import shark.HprofHeapGraph.Companion.openHeapGraph
@@ -55,6 +56,7 @@ class AndroidReferenceMatcher_XIAMI__RESOURCES_IMPL_Test(
       arrayOf(LENOVO, 30, HeapAnalysisSuccess::expectKnownLibraryLeak),
       arrayOf(INFINIX, 30, HeapAnalysisSuccess::expectKnownLibraryLeak),
       arrayOf(HMD_GLOBAL, 30, HeapAnalysisSuccess::expectKnownLibraryLeak),
+      arrayOf(MOTOROLA, 30, HeapAnalysisSuccess::expectKnownLibraryLeak),
     )
   }
 
