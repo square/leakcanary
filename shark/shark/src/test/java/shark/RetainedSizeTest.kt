@@ -10,9 +10,14 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 import java.io.File
+import okio.Okio
+import okio.buffer
+import okio.sink
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.ThreadObject
 import shark.HeapObject.HeapInstance
+import shark.HprofRecord.HeapDumpEndRecord
+import shark.StreamingRecordReaderAdapter.Companion.asStreamingRecordReader
 
 class RetainedSizeTest {
 
@@ -270,6 +275,32 @@ class RetainedSizeTest {
       // 4 byte reference
       assertThat(instance.totalRetainedHeapByteSize).isEqualTo(4)
     }
+  }
+
+  @Test fun `Updating first dominator through longer path after already updated to common ancestor denominator removes retained size`() {
+    hprofFile.dump {
+      val answer = string("42")
+      val life = "com.example.Life" instance { field["answer"] = answer }
+      val universe = "com.example.Universe" instance { field["answer"] = answer }
+      val everything = "com.example.Everything" watchedInstance {
+        field["life"] = life
+        field["universe"] = universe
+      }
+      val fiber = "com.example.Fiber" instance { field["life"] = life }
+      val towel = "com.example.Towel" instance { field["fiber"] = fiber }
+      "Hitchhiker" clazz {
+        staticField["guide"] = everything
+        staticField["practicalTool"] = towel
+      }
+    }
+
+    val everythingInstanceLeak = retainedInstances().single().leakTraces.first()
+    // Only "Universe" is dominated by "Everything", the watched instance.
+    // shallow size for "everything" is 2 refs (life + universe) => 8 bytes
+    // Universe has one ref: 4 bytes => 8 + 4 = 12.
+    // Instead we get 24 because the incorrect algorithm is including the answer string
+    // which is 4 bytes for int size, 2 bytes per char => 12 bytes
+    assertThat(everythingInstanceLeak.retainedObjectCount).isEqualTo(2)
   }
 
   @Test fun nativeSizeAccountedFor() {
