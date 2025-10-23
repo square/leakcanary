@@ -2,6 +2,9 @@ package leakcanary
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.app.AlertDialog
+import android.content.DialogInterface
+import android.content.Intent
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -14,12 +17,13 @@ import leakcanary.EventListener.Event.DumpingHeap
 import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.InternalLeakCanary
+import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.friendly.mainHandler
 
 object ToastEventListener : EventListener {
 
   // Only accessed from the main thread
-  private var toastCurrentlyShown: Toast? = null
+  private var toastCurrentlyShown: DialogInterface? = null
 
   override fun onEvent(event: Event) {
     when (event) {
@@ -46,30 +50,22 @@ object ToastEventListener : EventListener {
         waitingForToast.countDown()
         return@Runnable
       }
-      val toast = Toast(resumedActivity)
-      // Resources from application context: https://github.com/square/leakcanary/issues/2023
-      val iconSize = appContext.resources.getDimensionPixelSize(
-        R.dimen.leak_canary_toast_icon_size
-      )
-      toast.setGravity(Gravity.CENTER_VERTICAL, 0, -iconSize)
-      toast.duration = Toast.LENGTH_LONG
-      // Need an activity context because StrictMode added new stupid checks:
-      // https://github.com/square/leakcanary/issues/2153
-      val inflater = LayoutInflater.from(resumedActivity)
-      toast.view = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null)
-      toast.show()
 
-      val toastIcon = toast.view!!.findViewById<View>(R.id.leak_canary_toast_icon)
-      toastIcon.translationY = -iconSize.toFloat()
-      toastIcon
-        .animate()
-        .translationY(0f)
-        .setListener(object : AnimatorListenerAdapter() {
-          override fun onAnimationEnd(animation: Animator) {
-            toastCurrentlyShown = toast
-            waitingForToast.countDown()
-          }
-        })
+      AlertDialog.Builder(resumedActivity)
+        .setTitle(resumedActivity.packageName)
+        .setIcon(R.drawable.leak_canary_icon)
+        .setMessage(R.string.leak_canary_toast_heap_dump)
+        .setPositiveButton(
+          "View Details"
+        ) { dialog, which ->
+          toastCurrentlyShown = dialog
+          waitingForToast.countDown()
+          val intent = Intent()
+          intent.setClass(resumedActivity.application, LeakActivity::class.java)
+          resumedActivity.startActivity(intent)
+        }
+        .show()
+
     })
     waitingForToast.await(5, SECONDS)
   }
