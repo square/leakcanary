@@ -152,8 +152,18 @@ configure(subprojects.filter {
 
   pluginManager.withPlugin("com.vanniktech.maven.publish") {
     extensions.configure<MavenPublishBaseExtension> {
-      publishToMavenCentral(SonatypeHost.S01)
-      signAllPublications()
+      extensions.configure<PublishingExtension> {
+        repositories {
+          maven {
+            isAllowInsecureProtocol = true
+            url = uri("http://nexus.ehome.com/repository/hardware-hosted/")
+            credentials {
+              username = "hardware_user"
+              password = "ulfvJVAYFKrspYI0"
+            }
+          }
+        }
+      }
     }
   }
 }

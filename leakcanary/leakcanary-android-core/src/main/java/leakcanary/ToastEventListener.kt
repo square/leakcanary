@@ -1,21 +1,15 @@
 package leakcanary
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.View
-import android.widget.Toast
 import com.squareup.leakcanary.core.R
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit.SECONDS
 import leakcanary.EventListener.Event
 import leakcanary.EventListener.Event.DumpingHeap
-import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.EventListener.Event.HeapDump
+import leakcanary.EventListener.Event.HeapDumpFailed
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.friendly.mainHandler
@@ -65,7 +59,6 @@ object ToastEventListener : EventListener {
           resumedActivity.startActivity(intent)
         }
         .show()
-
     })
     waitingForToast.await(5, SECONDS)
   }
