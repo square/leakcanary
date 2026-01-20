@@ -4,7 +4,8 @@ import java.io.Closeable
 import java.io.File
 import okio.Buffer
 import okio.BufferedSink
-import okio.Okio
+import okio.buffer
+import okio.sink
 import shark.GcRoot.Debugger
 import shark.GcRoot.Finalizing
 import shark.GcRoot.InternedString
@@ -422,13 +423,13 @@ class HprofWriter private constructor(
   ) {
     flushHeapBuffer()
     workBuffer.block()
-    writeTagHeader(tag, workBuffer.size())
+    writeTagHeader(tag, workBuffer.size)
     writeAll(workBuffer)
   }
 
   private fun BufferedSink.flushHeapBuffer() {
-    if (workBuffer.size() > 0) {
-      writeTagHeader(HprofRecordTag.HEAP_DUMP.tag, workBuffer.size())
+    if (workBuffer.size > 0) {
+      writeTagHeader(HprofRecordTag.HEAP_DUMP.tag, workBuffer.size)
       writeAll(workBuffer)
       writeTagHeader(HprofRecordTag.HEAP_DUMP_END.tag, 0)
     }
@@ -460,7 +461,7 @@ class HprofWriter private constructor(
       hprofFile: File,
       hprofHeader: HprofHeader = HprofHeader()
     ): HprofWriter {
-      return openWriterFor(Okio.buffer(Okio.sink(hprofFile.outputStream())), hprofHeader)
+      return openWriterFor(hprofFile.outputStream().sink().buffer(), hprofHeader)
     }
 
     fun openWriterFor(
