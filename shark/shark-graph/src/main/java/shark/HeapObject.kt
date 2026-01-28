@@ -623,7 +623,7 @@ sealed class HeapObject {
      * The name of the class of this array, identical to [Class.getName].
      */
     val arrayClassName: String
-      get() = "${primitiveType.name.toLowerCase(Locale.US)}[]"
+      get() = "${primitiveType.name.lowercase(Locale.US)}[]"
 
     /**
      * The class of this array.
@@ -651,7 +651,7 @@ sealed class HeapObject {
   companion object {
 
     internal val primitiveTypesByPrimitiveArrayClassName =
-      PrimitiveType.values().associateBy { "${it.name.toLowerCase(Locale.US)}[]" }
+      PrimitiveType.values().associateBy { "${it.name.lowercase(Locale.US)}[]" }
 
     private val primitiveWrapperClassNames = setOf<String>(
       Boolean::class.javaObjectType.name, Char::class.javaObjectType.name,

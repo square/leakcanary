@@ -41,8 +41,8 @@ class RandomAccessHprofReader private constructor(
       mutableByteCount -= bytesRead
     }
     return withRecordReader(reader).apply {
-      check(buffer.size() == 0L) {
-        "Buffer not fully consumed: ${buffer.size()} bytes left"
+      check(buffer.size == 0L) {
+        "Buffer not fully consumed: ${buffer.size} bytes left"
       }
     }
   }

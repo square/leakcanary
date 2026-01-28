@@ -6,6 +6,8 @@ import okio.Buffer
 import okio.BufferedSource
 import okio.Okio
 import okio.Source
+import okio.buffer
+import okio.source
 
 /**
  * A [DualSourceProvider] that invokes [throwIfCanceled] before every read, allowing
@@ -17,8 +19,8 @@ class ThrowingCancelableFileSourceProvider(
 ) : DualSourceProvider {
 
   override fun openStreamingSource(): BufferedSource {
-    val realSource = Okio.source(file.inputStream())
-    return Okio.buffer(object : Source by realSource {
+    val realSource = file.inputStream().source()
+    return (object : Source by realSource {
       override fun read(
         sink: Buffer,
         byteCount: Long
@@ -26,7 +28,7 @@ class ThrowingCancelableFileSourceProvider(
         throwIfCanceled.run()
         return realSource.read(sink, byteCount)
       }
-    })
+    }).buffer()
   }
 
   override fun openRandomAccessSource(): RandomAccessSource {

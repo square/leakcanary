@@ -5,10 +5,11 @@ import java.io.RandomAccessFile
 import kotlin.math.min
 import okio.Buffer
 import okio.BufferedSource
-import okio.Okio
+import okio.buffer
+import okio.source
 
 class FileSourceProvider(private val file: File) : DualSourceProvider {
-  override fun openStreamingSource(): BufferedSource = Okio.buffer(Okio.source(file.inputStream()))
+  override fun openStreamingSource(): BufferedSource = file.inputStream().source().buffer()
 
   override fun openRandomAccessSource(): RandomAccessSource {
 
