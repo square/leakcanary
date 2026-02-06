@@ -63,6 +63,7 @@ androidX-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", 
 androidX-work-runtime = { module = "androidx.work:work-runtime", version.ref = "workManager" }
 androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", version.ref = "workManager" }
 androidX-collections = { module = "androidx.collection:collection-ktx", version = "1.4.0" }
+bytesize = { module = "me.saket.bytesize:bytesize", version = "2.0.0-beta04" }
 
 androidSupport = { module = "com.android.support:support-v4", version = "28.0.0" }
 assertjCore = { module = "org.assertj:assertj-core", version = "3.9.1" }
