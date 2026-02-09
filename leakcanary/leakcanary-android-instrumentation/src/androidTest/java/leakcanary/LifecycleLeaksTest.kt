@@ -105,7 +105,6 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
     }
 
     val fragment = getOnMainSync {
-      FragmentManager.enableDebugLogging(true)
       val fragment = Fragment()
       activity.addFragmentNow(fragment)
       activity.removeFragmentNow(fragment)
