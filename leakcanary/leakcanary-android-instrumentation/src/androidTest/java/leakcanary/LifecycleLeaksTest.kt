@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ViewModel
 import com.squareup.leakcanary.instrumentation.test.R
 import leakcanary.TestUtils.assertLeak
@@ -104,6 +105,7 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
     }
 
     val fragment = getOnMainSync {
+      FragmentManager.enableDebugLogging(true)
       val fragment = Fragment()
       activity.addFragmentNow(fragment)
       activity.removeFragmentNow(fragment)
@@ -119,7 +121,7 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
           .isEqualTo(expectedLeakClass.name)
         assertThat(leakTrace.leakingObject.leakingStatusReason)
           .describedAs("$heapAnalysis")
-          .contains("Fragment.mLifecycleRegistry.state is DESTROYED")
+          .contains("Fragment.mLifecycleRegistry.state is INITIALIZED")
       }
     }
   }

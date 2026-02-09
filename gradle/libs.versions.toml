@@ -46,7 +46,7 @@ detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", 
 # relies on), we're sticking a bit older because most apps will be using a more recent version
 # and they'll automatically resolve to higher version without having to necessarily resort to a
 # resolution strategy.
-androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
+androidX-fragment = { module = "androidx.fragment:fragment", version = "1.1.0" }
 androidX-multidex = { module = "androidx.multidex:multidex", version = "2.0.1" }
 androidX-appcompat = { module = "androidx.appcompat:appcompat", version = "1.2.0" }
 # Exposed transitively, avoid increasing
