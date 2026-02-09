@@ -12,6 +12,7 @@ dependencies {
   implementation(projects.plumber.plumberAndroid)
   implementation(libs.kotlin.stdlib)
 
+  androidTestImplementation(libs.androidX.multidex)
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.test.runner)
@@ -24,6 +25,7 @@ android {
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    multiDexEnabled = true
   }
   buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary"
