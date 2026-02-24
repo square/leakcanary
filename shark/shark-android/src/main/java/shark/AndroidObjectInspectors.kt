@@ -789,10 +789,30 @@ enum class AndroidObjectInspectors : ObjectInspector {
   COMPOSITION_IMPL {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("androidx.compose.runtime.CompositionImpl") { instance ->
-        if (instance["androidx.compose.runtime.CompositionImpl", "disposed"]!!.value.asBoolean!!) {
-          leakingReasons += "Composition disposed"
+        // Try the old "disposed" boolean field first (older Compose versions)
+        val disposedField = instance["androidx.compose.runtime.CompositionImpl", "disposed"]
+        if (disposedField != null) {
+          if (disposedField.value.asBoolean!!) {
+            leakingReasons += "Composition disposed"
+          } else {
+            notLeakingReasons += "Composition not disposed"
+          }
         } else {
-          notLeakingReasons += "Composition not disposed"
+          // Try the new "state" field (newer Compose versions)
+          // State is an int with constants: RUNNING=0, DEACTIVATED=1, INCONSISTENT=2, DISPOSED=3
+          val stateField = instance["androidx.compose.runtime.CompositionImpl", "state"]
+          if (stateField != null) {
+            when (val stateValue = stateField.value.asInt!!) {
+              3 -> leakingReasons += "Composition disposed" // DISPOSED state
+              0 -> notLeakingReasons += "Composition running" // RUNNING state
+              1 -> labels += "Composition deactivated" // DEACTIVATED state
+              2 -> labels += "Composition inconsistent" // INCONSISTENT state
+              else -> labels += "Composition state: $stateValue"
+            }
+          } else {
+            // Neither field exists - can't determine composition state
+            labels += "Composition disposal state unknown (no disposed or state field)"
+          }
         }
       }
     }
