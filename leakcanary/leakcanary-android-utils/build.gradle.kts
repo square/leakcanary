@@ -13,6 +13,12 @@ dependencies {
 
 android {
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
+
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+  }
+
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
   }

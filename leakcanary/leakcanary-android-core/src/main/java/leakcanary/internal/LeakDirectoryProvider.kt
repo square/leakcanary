@@ -80,6 +80,8 @@ internal class LeakDirectoryProvider constructor(
   }
 
   @TargetApi(M) fun hasStoragePermission(): Boolean {
+    // Defensive check: @TargetApi doesn't prevent this method from being called on older APIs
+    @Suppress("ObsoleteSdkInt") // Intentional safety check despite @TargetApi annotation
     if (SDK_INT < M) {
       return true
     }
