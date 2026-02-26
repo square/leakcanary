@@ -190,6 +190,18 @@ class DominatorTree(
   fun runConvergenceLoop(maxIterations: Int = Int.MAX_VALUE): Int {
     val edges = crossEdges
       ?: error("Cross-edge collection not enabled. Construct DominatorTree with collectCrossEdges = true.")
+
+    fun pruneSettled() {
+      edges.removeAll { edge ->
+        val slot = dominated.getSlot(edge[0])
+        slot == -1 || dominated.getSlotValue(slot) == ValueHolder.NULL_REFERENCE
+      }
+    }
+
+    // Prune edges already settled after the BFS traversal: these arise when the LCA computed
+    // inside updateDominated set dom(objectId) to NULL_REFERENCE after the cross-edge was
+    // already recorded (insertion happens before the LCA result is stored).
+    pruneSettled()
     var iterations = 0
     var changed = true
     while (changed && iterations < maxIterations) {
@@ -235,12 +247,7 @@ class DominatorTree(
         }
       }
       // Prune edges whose object has reached NULL_REFERENCE so subsequent passes are cheaper.
-      if (changed) {
-        edges.removeAll { edge ->
-          val slot = dominated.getSlot(edge[0])
-          slot == -1 || dominated.getSlotValue(slot) == ValueHolder.NULL_REFERENCE
-        }
-      }
+      if (changed) pruneSettled()
     }
     return iterations
   }
