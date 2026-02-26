@@ -85,7 +85,7 @@ internal class RequestPermissionActivity : Activity() {
     fun createPendingIntent(context: Context, permission: String): PendingIntent {
       val intent = createIntent(context, permission)
       // Defensive check: @TargetApi on class doesn't prevent this method from being called on older APIs
-      @Suppress("ObsoleteSdkInt") // Intentional safety check despite @TargetApi annotation
+      @Suppress("ObsoleteSdkInt")
       val flags = if (Build.VERSION.SDK_INT >= 23) {
         FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
       } else {
