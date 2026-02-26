@@ -65,8 +65,8 @@ class RetainedSizeTest {
     val retainedSize = retainedInstances()
       .firstRetainedSize()
 
-    // 4 byte reference, 2 bytes per char
-    assertThat(retainedSize).isEqualTo(8)
+    // 4 byte reference, 2 bytes per char, 12 byte array header
+    assertThat(retainedSize).isEqualTo(20)
   }
 
   @Test fun leakingInstanceWithString() {
@@ -81,8 +81,8 @@ class RetainedSizeTest {
     val retainedSize = retainedInstances()
       .firstRetainedSize()
 
-    // 4 byte reference, string (4 array ref + 4 int + 2 byte per char)
-    assertThat(retainedSize).isEqualTo(16)
+    // 4 byte reference, string (4 array ref + 4 int + 12 byte array header + 2 byte per char)
+    assertThat(retainedSize).isEqualTo(28)
   }
 
   @Test fun leakingInstanceWithInstance() {
@@ -145,8 +145,8 @@ class RetainedSizeTest {
     val retainedSize = retainedInstances()
       .firstRetainedSize()
 
-    // 4 byte reference * 3, 2 ints
-    assertThat(retainedSize).isEqualTo(20)
+    // 4 byte reference * 3, 2 ints, 12 byte array header
+    assertThat(retainedSize).isEqualTo(32)
   }
 
   @Test fun leakingInstanceWithObjectArray() {
@@ -161,8 +161,8 @@ class RetainedSizeTest {
     val retainedSize = retainedInstances()
       .firstRetainedSize()
 
-    // 4 byte reference, 4 bytes per object entry
-    assertThat(retainedSize).isEqualTo(12)
+    // 4 byte reference, 4 bytes per object entry, 12 byte array header
+    assertThat(retainedSize).isEqualTo(24)
   }
 
   @Test fun leakingInstanceWithDeepRetainedObjects() {
@@ -181,8 +181,8 @@ class RetainedSizeTest {
     val retainedSize = retainedInstances()
       .firstRetainedSize()
 
-    // 4 byte reference * 3, string (4 array ref + 4 int + 2 byte per char)
-    assertThat(retainedSize).isEqualTo(24)
+    // 4 byte reference * 3, string (4 array ref + 4 int + 12 byte array header + 2 byte per char)
+    assertThat(retainedSize).isEqualTo(36)
   }
 
   @Test fun leakingInstanceNotDominating() {
@@ -340,8 +340,8 @@ class RetainedSizeTest {
     val retainedInstances = analysis.applicationLeaks
     val retainedSize = retainedInstances.firstRetainedSize()
 
-    // LongArray(3), 8 bytes per long
-    assertThat(retainedSize).isEqualTo(3 * 8)
+    // LongArray(3), 8 bytes per long, 16 byte array header (long component_size == 8B)
+    assertThat(retainedSize).isEqualTo(3 * 8 + 16)
   }
 
   private fun retainedInstances(): List<Leak> {

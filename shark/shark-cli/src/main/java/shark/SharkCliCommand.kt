@@ -120,9 +120,10 @@ class SharkCliCommand : CliktCommand(
           obfuscationMappingPath = obfuscationMappingPath
         )
       }
-    } else {
-      throw UsageError("Must provide one of --process, --hprof")
     }
+    // else: no source provided. sharkCliParams is not set; subcommands that need it will
+    // throw UsageError when they access it. Subcommands that don't (e.g. ai-investigate-cmd)
+    // work fine without --hprof / --process.
   }
 
   private fun setupVerboseLogger() {
@@ -162,7 +163,7 @@ class SharkCliCommand : CliktCommand(
           if (ctx.obj is CommandParams) return ctx.obj as CommandParams
           ctx = ctx.parent
         }
-        throw IllegalStateException("CommandParams not found in Context.obj")
+        throw UsageError("Must provide one of --process, --hprof")
       }
       set(value) {
         obj = value

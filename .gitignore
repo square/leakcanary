@@ -32,6 +32,10 @@ bin
 project.properties
 out
 
+# Un-ignore the wrapper script shipped in the distribution
+!shark/shark-cli/src/dist/bin/
+!shark/shark-cli/src/dist/bin/shark-ai-investigate
+
 # Finder
 .DS_Store
 
@@ -43,3 +47,6 @@ docs/api
 
 # Python virtual env
 venv
+
+# Claude Code
+.claude

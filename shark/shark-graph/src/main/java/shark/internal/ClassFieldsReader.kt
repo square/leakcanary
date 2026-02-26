@@ -61,6 +61,13 @@ internal class ClassFieldsReader(
     }
   }
 
+  fun classDumpInstanceFieldCount(indexedClass: IndexedClass): Int {
+    return read(initialPosition = indexedClass.fieldsIndex) {
+      skipStaticFields()
+      readUnsignedShort()
+    }
+  }
+
   fun classDumpHasReferenceFields(indexedClass: IndexedClass): Boolean {
     return read(initialPosition = indexedClass.fieldsIndex) {
       skipStaticFields()

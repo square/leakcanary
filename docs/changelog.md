@@ -3,6 +3,16 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Unreleased
+
+`shark-cli` gains a new **AI-driven leak investigation skill**: run `shark-ai-investigate --hprof <file>` to load a heap dump and start a session. A shell wrapper prints a session shortcode, then starts the `ai-investigate` daemon in the background. An AI agent (or a human) can then send commands to the daemon via `ai-investigate-cmd <shortcode> <command>` — all over named pipes. Commands include `trace` (leak traces as structured JSON), `fields` / `string` / `array` (inspect objects), `mark-leaking` / `mark-not-leaking` (supply context), `retained-size` (memory retained by an object), and `human-readable-trace` (plain-text summary). The skill embeds a full algorithm guide in its `--help` output so an AI agent can drive the investigation autonomously.
+
+New in `shark`:
+
+* **`SingleObjectRetainedSizeCalculator`**: computes the retained size of a single heap object (the total memory freed if it were GC'd) using the provably-correct exclude-and-reach two-BFS algorithm.
+* **`HeapClass.readInstanceFieldCount()`**: reads the declared instance field count as a single unsigned short from the class fields buffer, without allocating field records.
+* **`ShallowSizeCalculator` accuracy improvements**: array objects now include the 12–16 byte ART object header that HPROF omits from array records; class object size now uses static field value sizes plus `ArtField` metadata (16 B × field count in `LinearAlloc`) instead of the raw HPROF record size.
+
 ## Version 3.0 Alpha 8 (2024-06-04)
 
 * Added support for proper hprof handling on heap growth detection failures. Also inlined some public collaborators to achieve that. We now have a single class that's a bit larger but also a lot more obvious.

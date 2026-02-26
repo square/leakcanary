@@ -221,6 +221,10 @@ class HprofHeapGraph internal constructor(
     return index.classFieldsReader.classDumpFields(indexedClass)
   }
 
+  internal fun classDumpInstanceFieldCount(indexedClass: IndexedClass): Int {
+    return index.classFieldsReader.classDumpInstanceFieldCount(indexedClass)
+  }
+
   internal fun classDumpHasReferenceFields(indexedClass: IndexedClass): Boolean {
     return index.classFieldsReader.classDumpHasReferenceFields(indexedClass)
   }
