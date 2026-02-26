@@ -10,11 +10,43 @@ import shark.ObjectDominators.DominatorNode
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongLongScatterMap.ForEachCallback
 import shark.internal.hppc.LongScatterSet
+import shark.internal.LongPairList
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
 
-class DominatorTree(expectedElements: Int = 4) {
+/**
+ * Builds a dominator tree incrementally during a BFS traversal of the heap graph, using a
+ * Lowest Common Ancestor (LCA) approach to update immediate dominators as new parents are
+ * discovered.
+ *
+ * **Known limitation**: this is an approximation, not an exact dominator algorithm (compare
+ * with Lengauer-Tarjan or Cooper et al.'s iterative algorithm). It can produce incorrect
+ * immediate dominators when a cross-edge (to an already-visited node) is processed using a
+ * stale parent dominator, and that parent's dominator is later raised by another cross-edge
+ * after the first cross-edge's children have already been settled. The child's dominator is then
+ * left too specific (too far from root), so its retained size is under-attributed — some
+ * objects that it truly retains exclusively are instead attributed to a higher ancestor. See
+ * [updateDominated] for a concrete example and [DominatorTreeTest] for a test documenting this
+ * behavior.
+ *
+ * **Fix**: pass `collectCrossEdges = true` to the constructor, then call [runConvergenceLoop]
+ * after the BFS traversal completes and before calling [computeRetainedSizes] or
+ * [buildFullDominatorTree]. The convergence loop re-processes stored cross-edges with updated
+ * dominator values until the tree stabilizes.
+ *
+ * **Performance warning**: [runConvergenceLoop] is an O(cross-edges × depth × iterations)
+ * algorithm. On real Android heap dumps the iteration count scales with the longest chain of
+ * stale-dominator propagation, which can reach hundreds of iterations. Benchmarks on a 25 MB
+ * heap dump show ~107 K cross-edges requiring ~780 iterations, adding ~62 seconds on top of a
+ * 1.5-second analysis — roughly 40× slower. The loop is therefore **not suitable for production
+ * use** in its current form and is provided only as an opt-in diagnostic / correctness-testing
+ * tool.
+ */
+class DominatorTree(
+  expectedElements: Int = 4,
+  collectCrossEdges: Boolean = false
+) {
 
   fun interface ObjectSizeCalculator {
     fun computeSize(objectId: Long): Int
@@ -27,6 +59,12 @@ class DominatorTree(expectedElements: Int = 4) {
    * [ValueHolder.NULL_REFERENCE].
    */
   private val dominated = LongLongScatterMap(expectedElements)
+
+  /**
+   * Stores cross-edges discovered during BFS, for use by [runConvergenceLoop].
+   * Only populated when `collectCrossEdges = true`.
+   */
+  private val crossEdges: LongPairList? = if (collectCrossEdges) LongPairList() else null
 
   operator fun contains(objectId: Long): Boolean = dominated.containsKey(objectId)
 
@@ -56,6 +94,25 @@ class DominatorTree(expectedElements: Int = 4) {
    * first search, so when objectId already has a known dominator then its dominator path is
    * shorter than the dominator path of [parentObjectId].
    *
+   * **Known limitation**: the BFS assumption breaks down when a cross-edge (to an already-visited
+   * node) is processed with a stale parent dominator. Consider:
+   * ```
+   *   root → A → B → C   (tree edges; B discovered first via A)
+   *   root → A → C       (C also directly reachable from A)
+   *   root → D → E → B   (E→B is a cross-edge at same BFS level as B)
+   * ```
+   * BFS dequeues B before E (both at level 2). When B is dequeued, B→C is processed as a
+   * cross-edge with dom(B) = A (stale — E→B hasn't been processed yet). LCA(dom(C)=A, B) with
+   * dom(B)=A returns A, so dom(C) stays A. Later, when E is dequeued, E→B is processed and
+   * correctly raises dom(B) to root (root→D→E→B bypasses A). But dom(C) is never revisited:
+   * it remains A, even though the path root→D→E→B→C bypasses A, making root the true idom(C).
+   *
+   * The consequence is that dom(C) is left too specific (too far from root), so C's retained
+   * size is incorrectly attributed to A instead of root. A's retained size is over-reported.
+   *
+   * To fix this, construct with `collectCrossEdges = true` and call [runConvergenceLoop] after
+   * the full BFS traversal and before [computeRetainedSizes] or [buildFullDominatorTree].
+   *
    * @return true if [objectId] already had a known dominator, false otherwise.
    */
   fun updateDominated(
@@ -71,6 +128,17 @@ class DominatorTree(expectedElements: Int = 4) {
     } else {
       val currentDominator = dominated.getSlotValue(dominatedSlot)
       if (currentDominator != ValueHolder.NULL_REFERENCE) {
+        // Only record this cross-edge if both dom(objectId) and dom(parentObjectId) are
+        // non-null. If either is already NULL_REFERENCE the convergence loop would always
+        // produce a no-op: a NULL_REFERENCE currentDominator can't be raised further, and a
+        // NULL_REFERENCE parent dominator means the LCA walk terminates in one step at the
+        // same value already set by this call.
+        if (crossEdges != null) {
+          val parentSlot = dominated.getSlot(parentObjectId)
+          if (parentSlot != -1 && dominated.getSlotValue(parentSlot) != ValueHolder.NULL_REFERENCE) {
+            crossEdges.add(objectId, parentObjectId)
+          }
+        }
         // We're looking for the Lowest Common Dominator between currentDominator and
         // parentObjectId. We know that currentDominator likely has a shorter dominator path than
         // parentObjectId since we're exploring the graph with a breadth first search. So we build
@@ -109,6 +177,87 @@ class DominatorTree(expectedElements: Int = 4) {
       }
     }
     return hasDominator
+  }
+
+  /**
+   * Re-processes stored cross-edges until the dominator tree stabilizes or [maxIterations] is
+   * reached. Must be called after the BFS traversal is complete and before calling
+   * [computeRetainedSizes] or [buildFullDominatorTree].
+   *
+   * This fixes cases where a cross-edge `P→C` was processed using a stale `dom(P)` value.
+   * When `dom(P)` is later raised by another cross-edge, `dom(C)` is not automatically updated.
+   * The convergence loop re-runs the LCA computation for each stored cross-edge until no
+   * further changes occur, propagating all such corrections.
+   *
+   * Requires `collectCrossEdges = true` to have been passed to the constructor; throws
+   * [IllegalStateException] otherwise.
+   *
+   * @param maxIterations maximum number of passes over the cross-edge set. Pass [Int.MAX_VALUE]
+   *   to run until fully stable. **Warning**: real heap graphs can require hundreds of iterations;
+   *   see the class-level KDoc for performance implications.
+   * @return the number of iterations performed.
+   */
+  fun runConvergenceLoop(maxIterations: Int = Int.MAX_VALUE): Int {
+    val edges = crossEdges
+      ?: error("Cross-edge collection not enabled. Construct DominatorTree with collectCrossEdges = true.")
+
+    var iterations = 0
+    var changed = true
+    while (changed && iterations < maxIterations) {
+      // Prune settled edges before each pass so we iterate fewer entries. This also covers
+      // edges already settled after the BFS traversal (when the LCA inside updateDominated
+      // set dom(objectId) to NULL_REFERENCE after the edge was recorded).
+      pruneSettledCrossEdges(edges)
+      changed = false
+      iterations++
+      edges.forEach { objectId, parentObjectId ->
+        val dominatedSlot = dominated.getSlot(objectId)
+        if (dominatedSlot == -1) return@forEach
+        val currentDominator = dominated.getSlotValue(dominatedSlot)
+        // If already attributed to the virtual root, it cannot be raised further.
+        if (currentDominator == ValueHolder.NULL_REFERENCE) return@forEach
+        // LCA computation: same approach as updateDominated.
+        val currentDominators = LongScatterSet()
+        var dominator = currentDominator
+        while (dominator != ValueHolder.NULL_REFERENCE) {
+          currentDominators.add(dominator)
+          val nextSlot = dominated.getSlot(dominator)
+          if (nextSlot == -1) {
+            throw IllegalStateException(
+              "Did not find dominator for $dominator when going through the dominator chain for $currentDominator: $currentDominators"
+            )
+          } else {
+            dominator = dominated.getSlotValue(nextSlot)
+          }
+        }
+        dominator = parentObjectId
+        while (dominator != ValueHolder.NULL_REFERENCE) {
+          if (dominator in currentDominators) break
+          val nextSlot = dominated.getSlot(dominator)
+          if (nextSlot == -1) {
+            throw IllegalStateException(
+              "Did not find dominator for $dominator when going through the dominator chain for $parentObjectId"
+            )
+          } else {
+            dominator = dominated.getSlotValue(nextSlot)
+          }
+        }
+        if (dominator != currentDominator) {
+          dominated[objectId] = dominator
+          changed = true
+        }
+      }
+    }
+    return iterations
+  }
+
+  private fun pruneSettledCrossEdges(edges: LongPairList) {
+    edges.forEachIndexed { index, objectId, _ ->
+      val slot = dominated.getSlot(objectId)
+      if (slot == -1 || dominated.getSlotValue(slot) == ValueHolder.NULL_REFERENCE) {
+        edges.clearAt(index)
+      }
+    }
   }
 
   private class MutableDominatorNode {
