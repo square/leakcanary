@@ -3,6 +3,10 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Unreleased
+
+* 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition retaining a finished `Toast` in the static `toastCurrentlyShown` field
+
 ## Version 3.0 Alpha 8 (2024-06-04)
 
 * Added support for proper hprof handling on heap growth detection failures. Also inlined some public collaborators to achieve that. We now have a single class that's a bit larger but also a lot more obvious.
