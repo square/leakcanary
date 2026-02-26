@@ -18,15 +18,16 @@
 compose = "1.4.3"
 kotlin = "1.8.21"
 coroutines = "1.7.3"
-androidXTest = "1.1.0"
-androidXJunit = "1.1.3"
+androidXTest = "1.5.0"
+androidXJunit = "1.1.5"
 workManager = "2.7.0"
 detekt = "1.23.8"
+hilt = "2.53"
 androidMinSdk = "14"
-androidCompileSdk = "34"
+androidCompileSdk = "35"
 
 [libraries]
-gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.0.0" }
+gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.2.2" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.8.10" }
 gradlePlugin-binaryCompatibility = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.13.1" }
@@ -34,6 +35,10 @@ gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plug
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradlePlugin-keeper = { module = "com.slack.keeper:keeper", version = "0.7.0" }
 gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version = "2.0.0-alpha05" }
+gradlePlugin-hilt = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
+
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
+hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
@@ -50,13 +55,13 @@ androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
 androidX-multidex = { module = "androidx.multidex:multidex", version = "2.0.1" }
 # Exposed transitively, avoid increasing
 androidX-startup = { module = "androidx.startup:startup-runtime", version = "1.0.0" }
-androidX-test-core = { module = "androidx.test:core", version = "1.4.0" }
-androidX-test-monitor = { module = "androidx.test:monitor", version = "1.4.0" }
+androidX-test-core = { module = "androidx.test:core", version = "1.5.0" }
+androidX-test-monitor = { module = "androidx.test:monitor", version = "1.6.1" }
 androidX-test-rules = { module = "androidx.test:rules", version.ref = "androidXTest" }
 # Exposed transitively, avoid increasing
-androidX-test-runner = { module = "androidx.test:runner", version = "1.4.0" }
-androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = "1.4.1" }
-androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.4.0" }
+androidX-test-runner = { module = "androidx.test:runner", version = "1.5.2" }
+androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = "1.4.2" } # 1.5.0+ requires API 21+, keeping at 1.4.2 for API 16 compatibility
+androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.5.1" }
 androidX-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidXJunit" }
 androidX-test-junitKtx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidXJunit" }
 androidX-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version = "2.2.0" }
@@ -70,7 +75,7 @@ clikt = { module = "com.github.ajalt:clikt", version = "2.3.0" }
 neo4j = { module = "org.neo4j:neo4j", version = "4.4.6" }
 curtains = { module = "com.squareup.curtains:curtains", version = "1.2.4" }
 jline = { module = "jline:jline", version = "2.14.6" }
-junit = { module = "junit:junit", version = "4.12" }
+junit = { module = "junit:junit", version = "4.13.2" }
 kotlinStatistics = { module = "org.nield:kotlin-statistics", version = "1.2.1" }
 mockito = { module = "org.mockito:mockito-core", version = "3.5.10" }
 mockitoKotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version = "2.2.0" }

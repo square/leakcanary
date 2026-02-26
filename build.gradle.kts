@@ -22,7 +22,7 @@ buildscript {
     classpath(libs.gradlePlugin.binaryCompatibility)
     classpath(libs.gradlePlugin.keeper)
     classpath(libs.gradlePlugin.sqldelight)
-    classpath("com.google.dagger:hilt-android-gradle-plugin:2.43.2")
+    classpath(libs.gradlePlugin.hilt)
   }
 }
 
@@ -68,6 +68,8 @@ subprojects {
         "-Xlint:all",
         "-Xlint:-serial",
         "-Xlint:-deprecation",
+        "-Xlint:-options",     // Silences Java 8 obsolete warning
+        // "-Xlint:-this-escape", // Silences Java 21+ leaking 'this' warning (Java 21+ only) (Currently we build with J17 so not needed)
         // espresso-core classes say they're compiled with 51.0 but contain 52.0 attributes.
         // warning: [classfile] MethodParameters attribute introduced in version 52.0 class files is ignored in version 51.0 class files
         // "-Werror"

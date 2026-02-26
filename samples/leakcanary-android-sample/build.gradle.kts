@@ -92,7 +92,7 @@ android {
     }
   }
   namespace = "com.example.leakcanary"
-  testNamespace = "com.squareup.leakcanary.instrumentation.test"
+  testNamespace = "com.example.leakcanary.test"
   lint {
     disable += "GoogleAppIndexingWarning"
   }

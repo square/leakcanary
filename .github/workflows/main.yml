@@ -71,7 +71,9 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-cached-${{ matrix.api-level }}-${{ matrix.os }}-${{ matrix.target }}
+          key: avd-cached-${{ matrix.api-level }}-${{ matrix.os }}-${{ matrix.target }}-${{ hashFiles('**/libs.versions.toml') }}
+          restore-keys: |
+            avd-cached-${{ matrix.api-level }}-${{ matrix.os }}-${{ matrix.target }}-
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
@@ -79,7 +81,8 @@ jobs:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
           arch: ${{ matrix.arch }}
-          force-avd-creation: false
+          # FORCE true here ensures if 'actions/cache' restored old avd, we wipe and start with a fresh image for the new dependency hash.
+          force-avd-creation: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
@@ -92,14 +95,6 @@ jobs:
           arch: ${{ matrix.arch }}
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
           script: |
-            # Uninstall existing packages to avoid INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES
-            # when a cached AVD snapshot has old APKs signed with different keys.
-            adb uninstall com.squareup.leakcanary || true
-            adb uninstall com.squareup.leakcanary.test || true
-            adb uninstall com.squareup.leakcanary.core || true
-            adb uninstall com.squareup.leakcanary.core.test || true
-            adb uninstall com.squareup.leakcanary.instrumentation || true
-            adb uninstall com.squareup.leakcanary.instrumentation.test || true
             touch emulator.log
             chmod 777 emulator.log
             adb logcat >> emulator.log &
