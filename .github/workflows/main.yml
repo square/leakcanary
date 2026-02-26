@@ -107,6 +107,11 @@ jobs:
             chmod 777 emulator.log
             adb logcat >> emulator.log &
             ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
+            # Force-kill the emulator before the action's post-step cleanup.
+            # On API 26 google_apis, the emulator process can hang for 20+ minutes after
+            # receiving adb emu kill, causing the job to hit its 30-minute timeout. Killing
+            # the qemu-system process here ensures the post-cleanup kill check exits immediately.
+            pkill -9 -f "qemu-system" || true
       - name: Upload results
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
