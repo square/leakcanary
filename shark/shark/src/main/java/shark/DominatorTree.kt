@@ -194,6 +194,13 @@ class DominatorTree(
     var iterations = 0
     var changed = true
     while (changed && iterations < maxIterations) {
+      // Prune settled edges before each pass so we iterate fewer edges. This also covers
+      // edges that were already settled after the BFS traversal (when the LCA inside
+      // updateDominated set dom(objectId) to NULL_REFERENCE after the edge was recorded).
+      edges.removeAll { edge ->
+        val slot = dominated.getSlot(edge[0])
+        slot == -1 || dominated.getSlotValue(slot) == ValueHolder.NULL_REFERENCE
+      }
       changed = false
       iterations++
       for (edge in edges) {
