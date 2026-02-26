@@ -302,13 +302,13 @@ class DominatorTreeTest {
     val e = newObjectId()
     tree.updateDominators {
       forestRoot > root
-      root > a       // tree edge
-      root > d       // tree edge
-      a > b          // tree edge: dom(B)=A
-      a > c          // tree edge: dom(C)=A
-      d > e          // tree edge: dom(E)=D
-      b > c          // cross-edge: B→C processed with stale dom(B)=A → dom(C) stays A
-      e > b          // cross-edge: E→B raises dom(B) to root ✓, but dom(C) never updated
+      root > a // tree edge
+      root > d // tree edge
+      a > b // tree edge: dom(B)=A
+      a > c // tree edge: dom(C)=A
+      d > e // tree edge: dom(E)=D
+      b > c // cross-edge: B→C processed with stale dom(B)=A → dom(C) stays A
+      e > b // cross-edge: E→B raises dom(B) to root ✓, but dom(C) never updated
     }
 
     val sizes = tree.computeRetainedSizes(mutableLongSetOf(a.id), `10 bytes per object`)
@@ -333,8 +333,8 @@ class DominatorTreeTest {
       a > b
       a > c
       d > e
-      b > c  // cross-edge: stale dom(B)=A at time of processing
-      e > b  // cross-edge: raises dom(B) to root
+      b > c // cross-edge: stale dom(B)=A at time of processing
+      e > b // cross-edge: raises dom(B) to root
     }
 
     tree.runConvergenceLoop(maxIterations = Int.MAX_VALUE)
