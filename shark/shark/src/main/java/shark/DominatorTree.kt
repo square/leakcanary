@@ -114,15 +114,22 @@ class DominatorTree(
 
     val hasDominator = dominatedSlot != -1
 
-    if (hasDominator && parentObjectId != ValueHolder.NULL_REFERENCE) {
-      crossEdges?.add(longArrayOf(objectId, parentObjectId))
-    }
-
     if (!hasDominator || parentObjectId == ValueHolder.NULL_REFERENCE) {
       dominated[objectId] = parentObjectId
     } else {
       val currentDominator = dominated.getSlotValue(dominatedSlot)
       if (currentDominator != ValueHolder.NULL_REFERENCE) {
+        // Only record this cross-edge if both dom(objectId) and dom(parentObjectId) are
+        // non-null. If either is already NULL_REFERENCE the convergence loop would always
+        // produce a no-op: a NULL_REFERENCE currentDominator can't be raised further, and a
+        // NULL_REFERENCE parent dominator means the LCA walk terminates in one step at the
+        // same value already set by this call.
+        if (crossEdges != null) {
+          val parentSlot = dominated.getSlot(parentObjectId)
+          if (parentSlot != -1 && dominated.getSlotValue(parentSlot) != ValueHolder.NULL_REFERENCE) {
+            crossEdges.add(longArrayOf(objectId, parentObjectId))
+          }
+        }
         // We're looking for the Lowest Common Dominator between currentDominator and
         // parentObjectId. We know that currentDominator likely has a shorter dominator path than
         // parentObjectId since we're exploring the graph with a breadth first search. So we build
@@ -225,6 +232,13 @@ class DominatorTree(
         if (dominator != currentDominator) {
           dominated[objectId] = dominator
           changed = true
+        }
+      }
+      // Prune edges whose object has reached NULL_REFERENCE so subsequent passes are cheaper.
+      if (changed) {
+        edges.removeAll { edge ->
+          val slot = dominated.getSlot(edge[0])
+          slot == -1 || dominated.getSlotValue(slot) == ValueHolder.NULL_REFERENCE
         }
       }
     }
