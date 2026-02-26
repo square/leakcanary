@@ -183,6 +183,48 @@ class DominatorTreeTest {
     assertThat(objectsWithComputedSize).containsOnly(child, grandChild)
   }
 
+  @Test fun `known bug - same level cross edge incorrectly raises child dominator`() {
+    // Graph (arrows = heap references):
+    //
+    //   root → A → C
+    //          ↓
+    //          B → C
+    //   root → D → B   ← D is at the same BFS level as A
+    //
+    // True immediate dominators:
+    //   dom(A) = root   (single path: root→A)
+    //   dom(D) = root   (single path: root→D)
+    //   dom(B) = root   (two paths: root→A→B and root→D→B; A is not on both)
+    //   dom(C) = A      (two paths: root→A→C and root→A→B→C; A IS on both)
+    //
+    // BUG: updates arrive in BFS order — A's children before D's edge to B.
+    // dom(B) is first set to A, then correctly raised to root when D→B is processed.
+    // But B→C is processed after that, and the LCA walk from B now finds dom(B)=root,
+    // returning root as the LCD of dom_old(C)=A and B. So dom(C) is incorrectly raised
+    // to root even though all paths to C still pass through A.
+    //
+    // Consequence: A's retained size should include C (both paths to C go through A),
+    // but because dom(C) is incorrectly root, C's size is attributed to root, not A.
+    val tree = DominatorTree()
+    val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
+    val a = newObjectId().apply { tree.updateDominated(this, root) }  // root→A (level 1)
+    val d = newObjectId().apply { tree.updateDominated(this, root) }  // root→D (level 1)
+    // BFS processes A's edges before D's (A was enqueued first)
+    val b = newObjectId().apply { tree.updateDominated(this, a) }     // A→B, dom(B)=A
+    val c = newObjectId().apply { tree.updateDominated(this, a) }     // A→C, dom(C)=A
+    // Then D's edges: correctly raises dom(B) from A to root
+    tree.updateDominated(b, d)  // D→B: LCA(A, D) = root → dom(B) = root  ✓
+    // Then B's edges: BUG - LCA uses the now-stale dom(B)=root and returns root instead of A
+    tree.updateDominated(c, b)  // B→C: LCA(A, B) = root → dom(C) = root  ✗ should be A
+
+    val sizes = tree.computeRetainedSizes(mutableLongSetOf(a), `10 bytes per object`)
+
+    // BUG: dom(C) was incorrectly set to root, so C is not attributed to A.
+    // A retains only itself: 10 bytes, 1 object.
+    // Correct expected value would be: assertThat(sizes[a]).isEqualTo(20 packedWith 2)
+    assertThat(sizes[a]).isEqualTo(10 packedWith 1)
+  }
+
   @Test fun `null ref dominates all`() {
     val tree = DominatorTree()
     val root1 = newObjectId().apply { tree.updateDominatedAsRoot(this) }

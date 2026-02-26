@@ -14,6 +14,20 @@ import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
 
+/**
+ * Builds a dominator tree incrementally during a BFS traversal of the heap graph, using a
+ * Lowest Common Ancestor (LCA) approach to update immediate dominators as new parents are
+ * discovered.
+ *
+ * **Important limitation**: this is an approximation, not an exact dominator algorithm (compare
+ * with Lengauer-Tarjan or Cooper et al.'s iterative algorithm). It produces incorrect immediate
+ * dominators in graphs with cross-edges between nodes at the same BFS level. When such a
+ * cross-edge causes a node's dominator to be raised (moved closer to root) *after* that node's
+ * children have already been discovered, those children retain stale dominator pointers that are
+ * too high in the tree. Their retained sizes are then attributed to the wrong ancestor. See
+ * [updateDominated] for a concrete example and [DominatorTreeTest] for a test documenting this
+ * behavior.
+ */
 class DominatorTree(expectedElements: Int = 4) {
 
   fun interface ObjectSizeCalculator {
@@ -55,6 +69,24 @@ class DominatorTree(expectedElements: Int = 4) {
    * This implementation is optimized with the assumption that the graph is visited as a breadth
    * first search, so when objectId already has a known dominator then its dominator path is
    * shorter than the dominator path of [parentObjectId].
+   *
+   * **Known limitation**: the BFS assumption breaks down for cross-edges between nodes at the
+   * same BFS level. Consider this graph:
+   * ```
+   *   root → A → C
+   *          ↓
+   *          B → C
+   *   root → D → B   (D is at the same BFS level as A)
+   * ```
+   * BFS processes A before D (both at level 1) and discovers A's children first, setting
+   * dom(B) = A and dom(C) = A. Then D's edge D→B is processed, correctly raising dom(B) to
+   * root (since root→D→B bypasses A). But when B→C is processed next, the LCA walk from B
+   * finds dom(B) = root and returns root as the LCD — even though the true immediate dominator
+   * of C is A (every path from root to C passes through A: root→A→C and root→A→B→C). The
+   * already-stale dom(B) causes dom(C) to be incorrectly set to root.
+   *
+   * This means retained sizes can be attributed to the wrong (too-high) ancestor when the
+   * true immediate dominator and a higher ancestor are both retained nodes.
    *
    * @return true if [objectId] already had a known dominator, false otherwise.
    */
