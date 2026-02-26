@@ -41,11 +41,16 @@ internal class LeakActivityTest {
   fun importHeapDumpFile() = tryAndRestoreConfig {
     val latch = CountDownLatch(1)
     LeakCanary.config = LeakCanary.config.run {
-      copy(eventListeners = eventListeners + EventListener { event ->
-        if (event is HeapAnalysisDone<*>) {
-          latch.countDown()
+      copy(
+        // Disable notifications to prevent RequestPermissionActivity from launching on API 33+
+        // (targetSdk >= 33 triggers POST_NOTIFICATIONS permission request which pauses LeakActivity)
+        showNotifications = false,
+        eventListeners = eventListeners + EventListener { event ->
+          if (event is HeapAnalysisDone<*>) {
+            latch.countDown()
+          }
         }
-      })
+      )
     }
     val hprof = writeHeapDump {
       "Holder" clazz {

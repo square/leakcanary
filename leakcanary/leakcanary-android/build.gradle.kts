@@ -29,6 +29,8 @@ android {
 
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
+    // Avoid DeprecatedTargetSdkVersionDialog / INSTALL_FAILED_DEPRECATED_SDK_VERSION on API 28+
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
   buildFeatures.buildConfig = false

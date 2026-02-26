@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: gradle/wrapper-validation-action@v1
+      - uses: gradle/actions/wrapper-validation@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
 
   checks:
     runs-on: ubuntu-latest
@@ -39,7 +39,9 @@ jobs:
           - 21
           - 23
           - 26
-          # - 29 flaky
+          - 31
+          - 33
+          - 34
         include:
           - arch: x86
             api-level: 16
@@ -49,11 +51,6 @@ jobs:
             api-level: 19
             target: google_apis
             channel: stable
-        # Failing (something about permissions maybe?
-        #  - arch: x86
-        #    api-level: 30
-        #    target: aosp_atd
-        #    channel: canary
     steps:
       - name: Enable KVM group perms
         run: |
@@ -102,6 +99,13 @@ jobs:
             chmod 777 emulator.log
             adb logcat >> emulator.log &
             ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
+            # Force-kill the emulator before the action's post-step cleanup.
+            # On API 26 google_apis, the emulator process can hang for 20+ minutes after
+            # receiving adb emu kill, causing the job to hit its 30-minute timeout. Killing
+            # the qemu-system process here ensures the post-cleanup kill check exits immediately.
+            # The [m] bracket trick avoids pkill matching its own parent shell process
+            # (whose cmdline contains the literal string "qemu-system" as an argument).
+            pkill -9 -f "qemu-syste[m]" || true
       - name: Upload results
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
