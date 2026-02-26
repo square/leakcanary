@@ -52,10 +52,10 @@ class DominatorTree(
   private val dominated = LongLongScatterMap(expectedElements)
 
   /**
-   * Stores cross-edges (each as a 2-element LongArray of [objectId, parentObjectId]) discovered
-   * during BFS, for use by [runConvergenceLoop]. Only populated when `collectCrossEdges = true`.
+   * Stores cross-edges discovered during BFS, for use by [runConvergenceLoop].
+   * Only populated when `collectCrossEdges = true`.
    */
-  private val crossEdges: MutableList<LongArray>? = if (collectCrossEdges) mutableListOf() else null
+  private val crossEdges: CrossEdgeBuffer? = if (collectCrossEdges) CrossEdgeBuffer() else null
 
   operator fun contains(objectId: Long): Boolean = dominated.containsKey(objectId)
 
@@ -127,7 +127,7 @@ class DominatorTree(
         if (crossEdges != null) {
           val parentSlot = dominated.getSlot(parentObjectId)
           if (parentSlot != -1 && dominated.getSlotValue(parentSlot) != ValueHolder.NULL_REFERENCE) {
-            crossEdges.add(longArrayOf(objectId, parentObjectId))
+            crossEdges.add(objectId, parentObjectId)
           }
         }
         // We're looking for the Lowest Common Dominator between currentDominator and
@@ -194,23 +194,18 @@ class DominatorTree(
     var iterations = 0
     var changed = true
     while (changed && iterations < maxIterations) {
-      // Prune settled edges before each pass so we iterate fewer edges. This also covers
-      // edges that were already settled after the BFS traversal (when the LCA inside
-      // updateDominated set dom(objectId) to NULL_REFERENCE after the edge was recorded).
-      edges.removeAll { edge ->
-        val slot = dominated.getSlot(edge[0])
-        slot == -1 || dominated.getSlotValue(slot) == ValueHolder.NULL_REFERENCE
-      }
+      // Prune settled edges before each pass so we iterate fewer entries. This also covers
+      // edges already settled after the BFS traversal (when the LCA inside updateDominated
+      // set dom(objectId) to NULL_REFERENCE after the edge was recorded).
+      edges.prune(dominated)
       changed = false
       iterations++
-      for (edge in edges) {
-        val objectId = edge[0]
-        val parentObjectId = edge[1]
+      edges.forEach { objectId, parentObjectId ->
         val dominatedSlot = dominated.getSlot(objectId)
-        if (dominatedSlot == -1) continue
+        if (dominatedSlot == -1) return@forEach
         val currentDominator = dominated.getSlotValue(dominatedSlot)
         // If already attributed to the virtual root, it cannot be raised further.
-        if (currentDominator == ValueHolder.NULL_REFERENCE) continue
+        if (currentDominator == ValueHolder.NULL_REFERENCE) return@forEach
         // LCA computation: same approach as updateDominated.
         val currentDominators = LongScatterSet()
         var dominator = currentDominator
@@ -244,6 +239,53 @@ class DominatorTree(
       }
     }
     return iterations
+  }
+
+  /**
+   * Flat storage for cross-edges as consecutive (objectId, parentObjectId) long pairs in a
+   * single array. More cache-friendly and memory-efficient than a list of LongArray objects.
+   *
+   * [prune] marks settled entries in-place using [ValueHolder.NULL_REFERENCE] as a sentinel
+   * (safe because heap object IDs are always > 0). The array never shrinks; [forEach] skips
+   * marked entries.
+   */
+  private class CrossEdgeBuffer {
+    private var data = LongArray(16) // initial capacity for 8 edges
+    var size = 0
+      private set
+
+    fun add(objectId: Long, parentObjectId: Long) {
+      if (size * 2 == data.size) {
+        data = data.copyOf(data.size * 2)
+      }
+      data[size * 2] = objectId
+      data[size * 2 + 1] = parentObjectId
+      size++
+    }
+
+    fun prune(dominated: LongLongScatterMap) {
+      for (i in 0 until size) {
+        val base = i * 2
+        val objectId = data[base]
+        if (objectId == ValueHolder.NULL_REFERENCE) continue // already pruned
+        val slot = dominated.getSlot(objectId)
+        if (slot == -1 || dominated.getSlotValue(slot) == ValueHolder.NULL_REFERENCE) {
+          data[base] = ValueHolder.NULL_REFERENCE
+        }
+      }
+    }
+
+    inline fun forEach(action: (objectId: Long, parentObjectId: Long) -> Unit) {
+      val d = data
+      val n = size
+      for (i in 0 until n) {
+        val base = i * 2
+        val objectId = d[base]
+        if (objectId != ValueHolder.NULL_REFERENCE) {
+          action(objectId, d[base + 1])
+        }
+      }
+    }
   }
 
   private class MutableDominatorNode {
