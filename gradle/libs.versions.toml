@@ -27,7 +27,7 @@ androidMinSdk = "14"
 androidCompileSdk = "35"
 
 [libraries]
-gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.8.0" }
+gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "8.2.2" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.8.10" }
 gradlePlugin-binaryCompatibility = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.13.1" }
