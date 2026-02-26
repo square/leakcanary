@@ -265,6 +265,12 @@ sealed class HeapObject {
     fun readRecordFields() = hprofGraph.classDumpFields(indexedObject)
 
     /**
+     * Returns the number of instance fields declared by this class, without allocating
+     * any field records. Cheaper than [readRecordFields].size when only the count is needed.
+     */
+    fun readInstanceFieldCount() = hprofGraph.classDumpInstanceFieldCount(indexedObject)
+
+    /**
      * Returns the name of the field declared in this class for the specified [fieldRecord].
      */
     fun instanceFieldName(fieldRecord: FieldRecord): String {

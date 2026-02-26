@@ -551,4 +551,90 @@ class RealLeakTracerFactory constructor(
       is HeapPrimitiveArray -> heap.arrayClassName
     }
   }
+
+  /**
+   * Runs the full analysis pipeline once: path finding (BFS) + deduplication + inspection +
+   * bisecting. Returns the grouped leaks together with the cached [ShortestPath] objects so that
+   * [reinspectPath] can re-run only the cheap inspection+bisecting step without re-doing BFS.
+   *
+   * [groupedPaths] is parallel to `(applicationLeaks + libraryLeaks)`: the outer list corresponds
+   * to each [Leak] group and the inner list corresponds to each [LeakTrace] instance inside that
+   * group, in the same order.
+   */
+  internal fun findLeaksWithCachedPaths(
+    graph: HeapGraph,
+    leakingObjectIds: Set<Long>
+  ): LeaksWithCachedPaths {
+    val helpers = FindLeakInput(graph, shortestPathFinderFactory.createFor(graph), objectInspectors)
+    val pathFindingResults = helpers.shortestPathFinder.findShortestPathsFromGcRoots(leakingObjectIds)
+    val shortestPaths = deduplicateShortestPaths(pathFindingResults.pathsToLeakingObjects)
+    val inspectedObjectsByPath = helpers.inspectObjects(shortestPaths)
+
+    // Build grouped leaks (same logic as buildLeakTraces but without retained sizes).
+    val (applicationLeaks, libraryLeaks) = helpers.buildLeakTraces(shortestPaths, inspectedObjectsByPath, null)
+
+    // Build a parallel grouping of ShortestPaths matching the (applicationLeaks + libraryLeaks)
+    // ordering. We replicate the same map-keyed grouping that buildLeakTraces uses so the indices
+    // align exactly.
+    val appPathsMap = linkedMapOf<String, MutableList<ShortestPath>>()
+    val libPathsMap = linkedMapOf<String, MutableList<ShortestPath>>()
+
+    shortestPaths.forEachIndexed { pathIndex, shortestPath ->
+      val inspectedObjects = inspectedObjectsByPath[pathIndex]
+      val leakTraceObjects = buildLeakTraceObjects(inspectedObjects, null)
+      val referencePath = helpers.buildReferencePath(shortestPath, leakTraceObjects)
+      val leakTrace = LeakTrace(
+        gcRootType = GcRootType.fromGcRoot(shortestPath.root.gcRoot),
+        referencePath = referencePath,
+        leakingObject = leakTraceObjects.last()
+      )
+      val firstLibraryLeakMatcher = shortestPath.firstLibraryLeakMatcher()
+      if (firstLibraryLeakMatcher != null) {
+        val signature = firstLibraryLeakMatcher.pattern.toString().createSHA1Hash()
+        libPathsMap.getOrPut(signature) { mutableListOf() } += shortestPath
+      } else {
+        appPathsMap.getOrPut(leakTrace.signature) { mutableListOf() } += shortestPath
+      }
+    }
+
+    val groupedPaths = (appPathsMap.values + libPathsMap.values).map { it.toList() }
+    return LeaksWithCachedPaths(applicationLeaks, libraryLeaks, groupedPaths)
+  }
+
+  /**
+   * Re-runs only the inspection + bisecting stages (stages 3 and 4) for a single previously
+   * found [ShortestPath], injecting [additionalInspectors] at the end of the inspector list.
+   *
+   * This is fast — no BFS graph traversal. Used by [LeakInvestigationSession] to reflect
+   * status overrides entered by the user/agent without restarting the entire analysis.
+   */
+  internal fun reinspectPath(
+    graph: HeapGraph,
+    path: ShortestPath,
+    additionalInspectors: List<ObjectInspector>
+  ): LeakTrace {
+    val allInspectors = objectInspectors + additionalInspectors
+    val helpers = FindLeakInput(graph, shortestPathFinderFactory.createFor(graph), allInspectors)
+    val inspectedObjects = helpers.inspectObjects(listOf(path)).first()
+    val leakTraceObjects = buildLeakTraceObjects(inspectedObjects, null)
+    val referencePath = helpers.buildReferencePath(path, leakTraceObjects)
+    return LeakTrace(
+      gcRootType = GcRootType.fromGcRoot(path.root.gcRoot),
+      referencePath = referencePath,
+      leakingObject = leakTraceObjects.last()
+    )
+  }
+
+  /**
+   * Result of [findLeaksWithCachedPaths]. Holds the grouped leaks alongside the [ShortestPath]
+   * objects cached from the BFS run, organised in the same nested structure so callers can map
+   * `(groupIndex, traceIndex)` to the corresponding [ShortestPath] for re-inspection.
+   */
+  internal class LeaksWithCachedPaths(
+    val applicationLeaks: List<ApplicationLeak>,
+    val libraryLeaks: List<LibraryLeak>,
+    /** Outer list = leak groups (parallel to applicationLeaks + libraryLeaks).
+     *  Inner list = trace instances within a group (parallel to Leak.leakTraces). */
+    val groupedPaths: List<List<ShortestPath>>
+  )
 }

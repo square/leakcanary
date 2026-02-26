@@ -11,7 +11,7 @@ import shark.ValueHolder.LongHolder
 import shark.dump
 import java.io.File
 
-private const val EMPTY_CLASS_SIZE = 42
+private const val EMPTY_CLASS_SIZE = 0
 
 class ShallowSizeCalculatorTest {
 
@@ -96,12 +96,12 @@ class ShallowSizeCalculatorTest {
       calculator.computeShallowSize(graph.findClassByName("SomeClass")!!.objectId)
     }
 
-    val bytesForFieldId = 4
-    val bytesForFieldType = 1
-    val bytesForFieldValue = 4
+    val bytesForStaticIntFieldValue = 4
+    // sizeof(ArtField): declaring_class_ GcRoot + access_flags_ + field_dex_idx_ + offset_ = 4*4
+    val bytesForArtField = 16
 
     assertThat(classSize).isEqualTo(
-      EMPTY_CLASS_SIZE + bytesForFieldId + bytesForFieldType + bytesForFieldValue
+      EMPTY_CLASS_SIZE + bytesForStaticIntFieldValue + bytesForArtField
     )
   }
 }

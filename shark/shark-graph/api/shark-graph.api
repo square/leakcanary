@@ -84,6 +84,7 @@ public final class shark/HeapObject$HeapClass : shark/HeapObject {
 	public final fun isPrimitiveArrayClass ()Z
 	public final fun isPrimitiveWrapperClass ()Z
 	public final fun readFieldsByteSize ()I
+	public final fun readInstanceFieldCount ()I
 	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ClassDumpRecord;
 	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
 	public final fun readRecordFields ()Ljava/util/List;

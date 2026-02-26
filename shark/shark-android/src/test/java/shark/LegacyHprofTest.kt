@@ -31,7 +31,7 @@ class LegacyHprofTest {
         "LeakCanary version" to "Unknown"
       )
     )
-    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(193431)
+    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(195007)
   }
 
   @Test fun androidM() {
@@ -41,14 +41,14 @@ class LegacyHprofTest {
     val leak = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leak.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")
     assertThat(leak.gcRootType).isEqualTo(GcRootType.STICKY_CLASS)
-    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(49584)
+    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(52824)
   }
 
   @Test fun gcRootReferencesUnknownObject() {
     val analysis = analyzeHprof("gcroot_unknown_object.hprof")
 
     assertThat(analysis.applicationLeaks).hasSize(2)
-    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(5306218)
+    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(5339418)
   }
 
   @Test fun androidMStripped() {
@@ -77,7 +77,7 @@ class LegacyHprofTest {
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leak.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")
-    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(211038)
+    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(214410)
   }
 
   private enum class WRAPS_ACTIVITY {

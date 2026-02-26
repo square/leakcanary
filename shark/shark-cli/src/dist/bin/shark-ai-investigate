@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+# Wrapper for 'shark-cli ... ai-investigate'.
+#
+# 1. Generates a unique session shortcode.
+# 2. Optionally prints the investigation instructions (--no-help skips this).
+# 3. Starts the ai-investigate daemon in the background with that shortcode.
+# 4. Waits until the daemon has created its named pipes (happens after heap
+#    analysis, so may take a minute on large dumps).
+# 5. Prints SHORT_CODE=<shortcode> — the AI agent uses this in every command.
+#
+# Usage:
+#   shark-ai-investigate --hprof <file>
+#   shark-ai-investigate --hprof <file> --obfuscation-mapping <map>
+#   shark-ai-investigate --hprof <file> --no-help   # skip instructions
+#
+
+# Resolve the directory that contains this script, following symlinks.
+app_path=$0
+while [ -h "$app_path" ]; do
+  ls=$(ls -ld "$app_path")
+  link=${ls#*' -> '}
+  case $link in
+    /*) app_path=$link ;;
+    *)  app_path=$(dirname "$app_path")/$link ;;
+  esac
+done
+SCRIPT_DIR=$(cd "$(dirname "$app_path")" && pwd -P)
+SHARK_CLI="$SCRIPT_DIR/shark-cli"
+
+# If the first argument is "cmd", forward the rest to ai-investigate-cmd and exit.
+#   shark-ai-investigate cmd <shortcode> <command...>
+if [ "$1" = "cmd" ]; then
+  shift
+  exec "$SHARK_CLI" ai-investigate-cmd "$@"
+fi
+
+# Generate a unique session shortcode.
+shortcode=$(uuidgen | tr -d '-' | tr '[:upper:]' '[:lower:]' | cut -c1-8)
+
+# Check whether --no-help was passed; if so skip the instructions step.
+no_help=false
+for arg in "$@"; do
+  case "$arg" in
+    --no-help) no_help=true ;;
+  esac
+done
+
+# --no-help is consumed by this wrapper and must not be forwarded to shark-cli.
+# Rebuild $@ without it using a POSIX-safe eval loop.
+orig_count=$#
+i=1
+while [ $i -le $orig_count ]; do
+  eval "arg=\$$i"
+  case "$arg" in
+    --no-help) ;;
+    *) set -- "$@" "$arg" ;;
+  esac
+  i=$((i + 1))
+done
+shift "$orig_count"
+# $@ now contains only the shark-cli global options (--hprof, --device, etc.)
+
+if ! "$no_help"; then
+  # Print instructions (blocking — agent reads them before the session opens).
+  "$SHARK_CLI" "$@" ai-investigate --instructions-only
+fi
+
+# Start the daemon in the background with the session shortcode.
+# Redirect stdout/stderr to /dev/null so the daemon does not inherit this
+# script's stdout pipe. Without this, any process that waits for stdout EOF
+# (e.g. a task runner) would block until the daemon exits, because the daemon
+# holds the write end of the pipe open. The daemon communicates via named
+# pipes, not stdout, so nothing useful is lost.
+"$SHARK_CLI" "$@" ai-investigate --session "$shortcode" >/dev/null 2>&1 &
+
+# Wait until the daemon creates its named pipes.
+# Pipes are created after heap analysis completes, so this may take a while.
+printf 'Running heap analysis and creating pipes\n'
+fifo="/tmp/shark-$shortcode.in"
+i=0
+while [ ! -p "$fifo" ] && [ "$i" -lt 600 ]; do
+  sleep 0.5
+  i=$((i + 1))
+done
+if [ ! -p "$fifo" ]; then
+  printf '{"error":"Daemon did not start within 5 minutes."}\n'
+  exit 1
+fi
+
+# Print a separator, then the shortcode.
+# The agent passes the shortcode as the first argument to every command:
+#   shark-ai-investigate cmd <shortcode> <command>
+printf '\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n'
+printf 'SHORT_CODE=%s\n' "$shortcode"

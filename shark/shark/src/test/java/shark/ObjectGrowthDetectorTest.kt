@@ -103,7 +103,7 @@ class ObjectGrowthDetectorTest {
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
-    val expectedRetainedSizeIncrease = (12 + "World!".length * 2).bytes
+    val expectedRetainedSizeIncrease = (24 + "World!".length * 2).bytes
     assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
   }
 
@@ -126,7 +126,7 @@ class ObjectGrowthDetectorTest {
 
     val growingObject = heapTraversal.growingObjects.single()
     assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
-    val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).bytes
+    val expectedRetainedSizeIncrease = (24 + "Turtles".length * 2).bytes
     assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
   }
 
