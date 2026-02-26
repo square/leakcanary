@@ -171,6 +171,7 @@ class ObjectDominators {
     val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
 
     val result = pathFinder.findShortestPathsFromGcRoots(setOf())
-    return result.dominatorTree!!.buildFullDominatorTree(objectSizeCalculator)
+    result.dominatorTree!!.runConvergenceLoop()
+    return result.dominatorTree.buildFullDominatorTree(objectSizeCalculator)
   }
 }

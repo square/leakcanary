@@ -76,7 +76,7 @@ class PrioritizingShortestPathFinder private constructor(
        * If an object is dominated by more than one GC root then its dominator is set to
        * [ValueHolder.NULL_REFERENCE].
        */
-      val dominatorTree = DominatorTree(expectedElements)
+      val dominatorTree = DominatorTree(expectedElements, collectCrossEdges = true)
       override fun visited(
         objectId: Long,
         parentObjectId: Long
