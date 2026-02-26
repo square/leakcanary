@@ -105,7 +105,6 @@ class RealLeakTracerFactory constructor(
 
     val retainedSizes =
       if (pathFindingResults.dominatorTree != null) {
-        pathFindingResults.dominatorTree.runConvergenceLoop()
         computeRetainedSizes(inspectedObjectsByPath, pathFindingResults.dominatorTree)
       } else {
         null
