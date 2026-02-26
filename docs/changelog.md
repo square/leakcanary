@@ -5,7 +5,7 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 ## Unreleased
 
-* 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition retaining a finished `Toast` in the static `toastCurrentlyShown` field
+* 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition leak where LeakCanary's toast was leaking and triggering LeakCanary
 
 ## Version 3.0 Alpha 8 (2024-06-04)
 
