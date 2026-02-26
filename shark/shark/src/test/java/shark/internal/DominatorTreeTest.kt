@@ -207,15 +207,15 @@ class DominatorTreeTest {
     // but because dom(C) is incorrectly root, C's size is attributed to root, not A.
     val tree = DominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
-    val a = newObjectId().apply { tree.updateDominated(this, root) }  // root→A (level 1)
-    val d = newObjectId().apply { tree.updateDominated(this, root) }  // root→D (level 1)
+    val a = newObjectId().apply { tree.updateDominated(this, root) } // root→A (level 1)
+    val d = newObjectId().apply { tree.updateDominated(this, root) } // root→D (level 1)
     // BFS processes A's edges before D's (A was enqueued first)
-    val b = newObjectId().apply { tree.updateDominated(this, a) }     // A→B, dom(B)=A
-    val c = newObjectId().apply { tree.updateDominated(this, a) }     // A→C, dom(C)=A
+    val b = newObjectId().apply { tree.updateDominated(this, a) } // A→B, dom(B)=A
+    val c = newObjectId().apply { tree.updateDominated(this, a) } // A→C, dom(C)=A
     // Then D's edges: correctly raises dom(B) from A to root
-    tree.updateDominated(b, d)  // D→B: LCA(A, D) = root → dom(B) = root  ✓
+    tree.updateDominated(b, d) // D→B: LCA(A, D) = root → dom(B) = root ✓
     // Then B's edges: BUG - LCA uses the now-stale dom(B)=root and returns root instead of A
-    tree.updateDominated(c, b)  // B→C: LCA(A, B) = root → dom(C) = root  ✗ should be A
+    tree.updateDominated(c, b) // B→C: LCA(A, B) = root → dom(C) = root ✗ should be A
 
     val sizes = tree.computeRetainedSizes(mutableLongSetOf(a), `10 bytes per object`)
 
