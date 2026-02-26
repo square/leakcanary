@@ -33,7 +33,15 @@ import shark.internal.unpackAsSecondInt
  * **Fix**: pass `collectCrossEdges = true` to the constructor, then call [runConvergenceLoop]
  * after the BFS traversal completes and before calling [computeRetainedSizes] or
  * [buildFullDominatorTree]. The convergence loop re-processes stored cross-edges with updated
- * dominator values until the tree stabilizes, typically within 2–3 extra passes.
+ * dominator values until the tree stabilizes.
+ *
+ * **Performance warning**: [runConvergenceLoop] is an O(cross-edges × depth × iterations)
+ * algorithm. On real Android heap dumps the iteration count scales with the longest chain of
+ * stale-dominator propagation, which can reach hundreds of iterations. Benchmarks on a 25 MB
+ * heap dump show ~107 K cross-edges requiring ~780 iterations, adding ~62 seconds on top of a
+ * 1.5-second analysis — roughly 40× slower. The loop is therefore **not suitable for production
+ * use** in its current form and is provided only as an opt-in diagnostic / correctness-testing
+ * tool.
  */
 class DominatorTree(
   expectedElements: Int = 4,
@@ -185,7 +193,8 @@ class DominatorTree(
    * [IllegalStateException] otherwise.
    *
    * @param maxIterations maximum number of passes over the cross-edge set. Pass [Int.MAX_VALUE]
-   *   to run until fully stable. Heap graphs typically converge in 2–3 iterations.
+   *   to run until fully stable. **Warning**: real heap graphs can require hundreds of iterations;
+   *   see the class-level KDoc for performance implications.
    * @return the number of iterations performed.
    */
   fun runConvergenceLoop(maxIterations: Int = Int.MAX_VALUE): Int {
