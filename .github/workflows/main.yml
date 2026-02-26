@@ -95,9 +95,17 @@ jobs:
           arch: ${{ matrix.arch }}
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
           script: |
-            touch emulator.log                    # create log file
-            chmod 777 emulator.log                # allow writing to log file
-            adb logcat >> emulator.log &          # pipe all logcat messages into log file as a background process
+            # Uninstall existing packages to avoid INSTALL_PARSE_FAILED_INCONSISTENT_CERTIFICATES
+            # when a cached AVD snapshot has old APKs signed with different keys.
+            adb uninstall com.squareup.leakcanary || true
+            adb uninstall com.squareup.leakcanary.test || true
+            adb uninstall com.squareup.leakcanary.core || true
+            adb uninstall com.squareup.leakcanary.core.test || true
+            adb uninstall com.squareup.leakcanary.instrumentation || true
+            adb uninstall com.squareup.leakcanary.instrumentation.test || true
+            touch emulator.log
+            chmod 777 emulator.log
+            adb logcat >> emulator.log &
             ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
       - name: Upload results
         if: ${{ always() }}
