@@ -5,7 +5,6 @@ import android.app.ActivityManager
 import android.app.ActivityManager.MemoryInfo
 import android.app.ActivityManager.RunningAppProcessInfo
 import android.content.Context
-import android.os.Build.VERSION.SDK_INT
 import android.os.Process
 import android.os.SystemClock
 import android.system.Os
@@ -52,11 +51,7 @@ interface ProcessInfo {
       }
 
     override val elapsedMillisSinceStart: Long
-      get() = if (SDK_INT >= 24) {
-        SystemClock.uptimeMillis() - processStartUptimeMillis
-      } else {
-        SystemClock.elapsedRealtime() - processForkRealtimeMillis
-      }
+      get() = SystemClock.uptimeMillis() - processStartUptimeMillis
 
     @SuppressLint("UsableSpace")
     override fun availableDiskSpaceBytes(path: File) = path.usableSpace

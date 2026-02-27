@@ -23,7 +23,7 @@ androidXJunit = "1.1.5"
 workManager = "2.7.0"
 detekt = "1.23.8"
 hilt = "2.53"
-androidMinSdk = "21"
+androidMinSdk = "26"
 androidCompileSdk = "35"
 
 [libraries]

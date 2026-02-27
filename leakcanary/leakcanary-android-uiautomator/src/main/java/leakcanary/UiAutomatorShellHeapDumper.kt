@@ -32,22 +32,13 @@ class UiAutomatorShellHeapDumper(
 
   // Based on https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:benchmark/benchmark-common/src/main/java/androidx/benchmark/Shell.kt;l=467;drc=8f2ba6a5469f67b7e385878d704f97bde22419ce
   private fun UiDevice.getPidsForProcess(processName: String): List<Int> {
-    if (Build.VERSION.SDK_INT >= 23) {
-      return pgrepLF(pattern = processName)
-        .mapNotNull { (pid, fullProcessName) ->
-          if (fullProcessNameMatchesProcess(fullProcessName, processName)) {
-            pid
-          } else {
-            null
-          }
+    return pgrepLF(pattern = processName)
+      .mapNotNull { (pid, fullProcessName) ->
+        if (fullProcessNameMatchesProcess(fullProcessName, processName)) {
+          pid
+        } else {
+          null
         }
-    }
-    val processList = executeShellCommand("ps")
-    return processList.lines()
-      .filter { psLineContainsProcess(it, processName) }
-      .map {
-        val columns = SPACE_PATTERN.split(it)
-        columns[1].toInt()
       }
   }
 
@@ -61,22 +52,11 @@ class UiAutomatorShellHeapDumper(
       }
   }
 
-  private fun psLineContainsProcess(
-    psOutputLine: String,
-    processName: String
-  ): Boolean {
-    return psOutputLine.endsWith(" $processName") || psOutputLine.endsWith("/$processName")
-  }
-
   private fun fullProcessNameMatchesProcess(
     fullProcessName: String,
     processName: String
   ): Boolean {
     return fullProcessName == processName || fullProcessName.endsWith("/$processName")
-  }
-
-  private companion object {
-    private val SPACE_PATTERN = Regex("\\s+")
   }
 }
 

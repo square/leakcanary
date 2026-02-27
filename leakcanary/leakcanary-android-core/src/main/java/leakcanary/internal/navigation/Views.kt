@@ -2,7 +2,6 @@ package leakcanary.internal.navigation
 
 import android.app.Activity
 import android.content.Context
-import android.os.Build.VERSION
 import android.os.Parcelable
 import android.util.SparseArray
 import android.view.LayoutInflater
@@ -41,11 +40,7 @@ internal fun View.goBack() {
 }
 
 internal fun Context.getColorCompat(id: Int): Int {
-  return if (VERSION.SDK_INT >= 23) {
-    getColor(id)
-  } else {
-    resources.getColor(id)
-  }
+  return getColor(id)
 }
 
 internal fun View.onScreenExiting(block: () -> Unit) {

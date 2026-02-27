@@ -15,7 +15,6 @@
  */
 package leakcanary.internal
 
-import android.annotation.TargetApi
 import android.app.Activity
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
@@ -26,12 +25,10 @@ import android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
-import android.os.Build
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
 import com.squareup.leakcanary.core.R
 
-@TargetApi(Build.VERSION_CODES.M) //
 internal class RequestPermissionActivity : Activity() {
 
   private val targetPermission: String
@@ -84,13 +81,7 @@ internal class RequestPermissionActivity : Activity() {
 
     fun createPendingIntent(context: Context, permission: String): PendingIntent {
       val intent = createIntent(context, permission)
-      // Defensive check: @TargetApi on class doesn't prevent this method from being called on older APIs
-      @Suppress("ObsoleteSdkInt")
-      val flags = if (Build.VERSION.SDK_INT >= 23) {
-        FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
-      } else {
-        FLAG_UPDATE_CURRENT
-      }
+      val flags = FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE
       return PendingIntent.getActivity(context, 1, intent, flags)
     }
   }

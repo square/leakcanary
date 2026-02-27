@@ -36,8 +36,6 @@ jobs:
         target: [ google_apis ]
         channel: [ stable ]
         api-level:
-          - 21
-          - 23
           - 26
           - 31
           - 33
