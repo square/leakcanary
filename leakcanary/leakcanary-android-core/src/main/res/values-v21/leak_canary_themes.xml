@@ -15,7 +15,7 @@
   ~ limitations under the License.
   -->
 <resources>
-  <style name="leak_canary_LeakCanary.Base" parent="android:Theme.Material">
+  <style name="leak_canary_LeakCanary.Base" parent="Theme.AppCompat">
     <item name="android:windowBackground">@color/leak_canary_background_color</item>
     <item name="android:actionBarStyle">@style/leak_canary_Widget.ActionBar</item>
   </style>

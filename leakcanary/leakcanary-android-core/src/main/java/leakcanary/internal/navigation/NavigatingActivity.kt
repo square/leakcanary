@@ -1,6 +1,5 @@
 package leakcanary.internal.navigation
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
@@ -10,12 +9,13 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils.loadAnimation
+import androidx.appcompat.app.AppCompatActivity
 import com.squareup.leakcanary.core.R
 
 /**
  * A simple backstack navigating activity
  */
-internal abstract class NavigatingActivity : Activity() {
+internal abstract class NavigatingActivity : AppCompatActivity() {
 
   private lateinit var backstack: ArrayList<BackstackFrame>
   private lateinit var currentScreen: Screen
