@@ -2,7 +2,6 @@ package leakcanary.internal.navigation
 
 import android.app.Activity
 import android.content.Intent
-import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Parcelable
 import android.view.Menu
@@ -155,12 +154,10 @@ internal abstract class NavigatingActivity : Activity() {
 
   private fun screenUpdated() {
     invalidateOptionsMenu()
-    if (SDK_INT >= 18) {
-      actionBar?.run {
-        val goBack = backstack.size > 0
-        val indicator = if (goBack) 0 else android.R.drawable.ic_menu_close_clear_cancel
-        setHomeAsUpIndicator(indicator)
-      }
+    actionBar?.run {
+      val goBack = backstack.size > 0
+      val indicator = if (goBack) 0 else android.R.drawable.ic_menu_close_clear_cancel
+      setHomeAsUpIndicator(indicator)
     }
     onNewScreen(currentScreen)
   }

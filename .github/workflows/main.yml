@@ -42,15 +42,6 @@ jobs:
           - 31
           - 33
           - 34
-        include:
-          - arch: x86
-            api-level: 16
-            target: google_apis
-            channel: stable
-          - arch: x86
-            api-level: 19
-            target: google_apis
-            channel: stable
     steps:
       - name: Enable KVM group perms
         run: |

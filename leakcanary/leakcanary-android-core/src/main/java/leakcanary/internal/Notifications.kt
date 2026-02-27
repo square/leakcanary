@@ -22,7 +22,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Build.VERSION.SDK_INT
-import android.os.Build.VERSION_CODES.JELLY_BEAN
 import android.os.Build.VERSION_CODES.O
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
@@ -130,11 +129,6 @@ internal object Notifications {
       builder.setGroup(type.name)
     }
 
-    return if (SDK_INT < JELLY_BEAN) {
-      @Suppress("DEPRECATION")
-      builder.notification
-    } else {
-      builder.build()
-    }
+    return builder.build()
   }
 }

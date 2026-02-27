@@ -64,7 +64,7 @@ interface ProcessInfo {
     override fun availableRam(context: Context): AvailableRam {
       val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
-      if (SDK_INT >= 19 && activityManager.isLowRamDevice) {
+      if (activityManager.isLowRamDevice) {
         return LowRamDevice
       } else {
         activityManager.getMemoryInfo(memoryInfo)
@@ -91,17 +91,7 @@ interface ProcessInfo {
       val myPid = Process.myPid()
       val ticksAtProcessStart = readProcessStartTicks(myPid)
 
-      val ticksPerSecond = if (SDK_INT >= 21) {
-        Os.sysconf(OsConstants._SC_CLK_TCK)
-      } else {
-        val tckConstant = try {
-          Class.forName("android.system.OsConstants").getField("_SC_CLK_TCK").getInt(null)
-        } catch (e: ClassNotFoundException) {
-          Class.forName("libcore.io.OsConstants").getField("_SC_CLK_TCK").getInt(null)
-        }
-        val os = Class.forName("libcore.io.Libcore").getField("os").get(null)!!
-        os::class.java.getMethod("sysconf", Integer.TYPE).invoke(os, tckConstant) as Long
-      }
+      val ticksPerSecond = Os.sysconf(OsConstants._SC_CLK_TCK)
       return ticksAtProcessStart * 1000 / ticksPerSecond
     }
 
