@@ -49,7 +49,7 @@ android {
 
   defaultConfig {
     applicationId = "com.example.leakcanary"
-    minSdk = 16
+    minSdk = libs.versions.androidMinSdk.get().toInt()
     targetSdk = libs.versions.androidCompileSdk.get().toInt()
 
     versionCode = 1

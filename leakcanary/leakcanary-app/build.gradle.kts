@@ -20,8 +20,8 @@ android {
 
   defaultConfig {
     applicationId = "org.leakcanary"
-    // 21 required by Compose
-    minSdk = 21
+    // 26 minimum SDK for modern Android features
+    minSdk = 26
     targetSdk = libs.versions.androidCompileSdk.get().toInt()
 
     buildConfigField("String", "GIT_SHA", "\"${gitSha()}\"")

@@ -1,7 +1,6 @@
 package leakcanary
 
 import android.annotation.SuppressLint
-import android.annotation.TargetApi
 import android.app.Activity
 import android.app.Application
 import android.content.Context
@@ -49,9 +48,8 @@ enum class AndroidLeakFixes {
    */
   MEDIA_SESSION_LEGACY_HELPER {
     override fun apply(application: Application) {
-      if (SDK_INT != 21) {
-        return
-      }
+      // This fix was only needed for API 21, minimum SDK is now 26+
+      return
       backgroundHandler.post {
         try {
           val clazz = Class.forName("android.media.session.MediaSessionLegacyHelper")
@@ -246,9 +244,8 @@ enum class AndroidLeakFixes {
    */
   CONNECTIVITY_MANAGER {
     override fun apply(application: Application) {
-      if (SDK_INT > 23) {
-        return
-      }
+      // This fix was only needed for API ≤23, minimum SDK is now 26+
+      return
 
       try {
         application.getSystemService(Context.CONNECTIVITY_SERVICE)
@@ -353,9 +350,8 @@ enum class AndroidLeakFixes {
    */
   ACTIVITY_MANAGER {
     override fun apply(application: Application) {
-      if (MANUFACTURER != SAMSUNG || SDK_INT != 22) {
-        return
-      }
+      // This fix was only needed for Samsung API 22, minimum SDK is now 26+
+      return
 
       backgroundHandler.post {
         val contextField: Field
@@ -416,15 +412,10 @@ enum class AndroidLeakFixes {
    * the reference to the detached view with a reference to the decor view.
    */
   IMM_FOCUSED_VIEW {
-    // mServedView should not be accessed on API 29+. Make this clear to Lint with the
-    // TargetApi annotation.
-    @TargetApi(23)
     @SuppressLint("PrivateApi")
     override fun apply(application: Application) {
-      // Fixed in API 24.
-      if (SDK_INT > 23) {
-        return
-      }
+      // This fix was only needed for API ≤23, minimum SDK is now 26+
+      return
       val inputMethodManager =
         application.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
       val mServedViewField: Field
@@ -612,12 +603,10 @@ enum class AndroidLeakFixes {
    * https://android.googlesource.com/platform/frameworks/base/+/marshmallow-release/core/java/android/view/ViewRootImpl.java
    */
   SPELL_CHECKER {
-    @TargetApi(23)
     @SuppressLint("PrivateApi")
     override fun apply(application: Application) {
-      if (SDK_INT != 23) {
-        return
-      }
+      // This fix was only needed for API 23, minimum SDK is now 26+
+      return
 
       try {
         val textServiceClass = TextServicesManager::class.java
