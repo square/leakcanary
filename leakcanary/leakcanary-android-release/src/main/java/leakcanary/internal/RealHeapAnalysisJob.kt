@@ -29,7 +29,6 @@ import shark.HprofPrimitiveArrayStripper
 import shark.OnAnalysisProgressListener
 import shark.RandomAccessSource
 import shark.SharkLog
-import shark.StreamingSourceProvider
 import shark.ThrowingCancelableFileSourceProvider
 
 internal class RealHeapAnalysisJob(
@@ -239,24 +238,19 @@ internal class RealHeapAnalysisJob(
         checkStopAnalysis("stripping heap dump")
       }
 
-    var openCalls = 0
-    val deletingFileSourceProvider = StreamingSourceProvider {
-      openCalls++
-      sensitiveSourceProvider.openStreamingSource().apply {
-        if (openCalls == 2) {
-          // Using the Unix trick of deleting the file as soon as all readers have opened it.
-          // No new readers/writers will be able to access the file, but all existing
-          // ones will still have access until the last one closes the file.
-          SharkLog.d { "Deleting $sourceHeapDumpFile eagerly" }
-          sourceHeapDumpFile.delete()
-        }
-      }
-    }
-
-    val strippedHprofSink = strippedHeapDumpFile.outputStream().sink().buffer()
     val stripper = HprofPrimitiveArrayStripper()
 
-    stripper.stripPrimitiveArrays(deletingFileSourceProvider, strippedHprofSink)
+    stripper.stripPrimitiveArrays(
+      hprofSourceProvider = sensitiveSourceProvider,
+      hprofSinkProvider = { strippedHeapDumpFile.outputStream().sink().buffer() },
+      onDoneOpeningNewSources = {
+        // Using the Unix trick of deleting the file as soon as all readers have opened it.
+        // No new readers/writers will be able to access the file, but all existing
+        // ones will still have access until the last one closes the file.
+        SharkLog.d { "Deleting $sourceHeapDumpFile eagerly" }
+        sourceHeapDumpFile.delete()
+      }
+    )
   }
 
   private fun analyzeHeapWithStats(heapDumpFile: File): Pair<HeapAnalysis, String> {
