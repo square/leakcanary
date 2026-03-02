@@ -12,6 +12,7 @@ dependencies {
   implementation(projects.plumber.plumberAndroid)
   implementation(libs.kotlin.stdlib)
 
+  androidTestImplementation(libs.androidX.multidex)
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.test.runner)
@@ -32,6 +33,7 @@ android {
     // Avoid DeprecatedTargetSdkVersionDialog / INSTALL_FAILED_DEPRECATED_SDK_VERSION on API 28+
     targetSdk = libs.versions.androidCompileSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    multiDexEnabled = true
   }
   buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary"

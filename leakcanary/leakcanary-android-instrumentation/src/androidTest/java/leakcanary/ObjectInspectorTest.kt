@@ -38,7 +38,7 @@ class ObjectInspectorTest : HasActivityTestRule<TestActivity> {
 
       val heapAnalysis = detectLeaks()
 
-      val leaktrace = heapAnalysis.allLeaks.single().leakTraces.single()
+      val leaktrace = heapAnalysis.allLeaks.first().leakTraces.single()
       val ref = leaktrace.referencePath.single { it.owningClassSimpleName == "LifecycleRegistry" }
       val lifecycleRegistry = ref.originObject
       assertThat(lifecycleRegistry.labels.single()).isEqualTo("state = DESTROYED")
