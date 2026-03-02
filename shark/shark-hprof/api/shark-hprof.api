@@ -14,6 +14,24 @@ public final class shark/ConstantMemoryMetricsDualSourceProvider : shark/DualSou
 	public fun openStreamingSource ()Lokio/BufferedSource;
 }
 
+public final class shark/CopyingSource {
+	public fun <init> (Lokio/BufferedSource;Lokio/BufferedSink;)V
+	public final fun exhausted ()Z
+	public final fun getBytesRead ()J
+	public final fun indexOf (B)J
+	public final fun overwrite ([B)V
+	public final fun transfer (I)V
+	public final fun transfer (J)V
+	public final fun transferByte ()B
+	public final fun transferInt ()I
+	public final fun transferLong ()J
+	public final fun transferShort ()I
+	public final fun transferUnsignedByte ()I
+	public final fun transferUnsignedInt ()J
+	public final fun transferUnsignedShort ()I
+	public final fun transferUtf8 (J)Ljava/lang/String;
+}
+
 public abstract interface class shark/DualSourceProvider : shark/RandomAccessSourceProvider, shark/StreamingSourceProvider {
 }
 
@@ -150,9 +168,10 @@ public final class shark/HprofHeader$Companion {
 
 public final class shark/HprofPrimitiveArrayStripper {
 	public fun <init> ()V
-	public final fun stripPrimitiveArrays (Ljava/io/File;Ljava/io/File;)Ljava/io/File;
-	public final fun stripPrimitiveArrays (Lshark/StreamingSourceProvider;Lokio/BufferedSink;)V
-	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Ljava/io/File;Ljava/io/File;ILjava/lang/Object;)Ljava/io/File;
+	public final fun stripPrimitiveArrays (Ljava/io/File;Ljava/io/File;Z)Ljava/io/File;
+	public final fun stripPrimitiveArrays (Lshark/StreamingSourceProvider;Lshark/StreamingSinkProvider;Lkotlin/jvm/functions/Function0;)V
+	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Ljava/io/File;Ljava/io/File;ZILjava/lang/Object;)Ljava/io/File;
+	public static synthetic fun stripPrimitiveArrays$default (Lshark/HprofPrimitiveArrayStripper;Lshark/StreamingSourceProvider;Lshark/StreamingSinkProvider;Lkotlin/jvm/functions/Function0;ILjava/lang/Object;)V
 }
 
 public abstract class shark/HprofRecord {
@@ -581,6 +600,10 @@ public final class shark/StreamingRecordReaderAdapter {
 public final class shark/StreamingRecordReaderAdapter$Companion {
 	public final fun asHprofTags (Ljava/util/Set;)Ljava/util/EnumSet;
 	public final fun asStreamingRecordReader (Lshark/StreamingHprofReader;)Lshark/StreamingRecordReaderAdapter;
+}
+
+public abstract interface class shark/StreamingSinkProvider {
+	public abstract fun openStreamingSink ()Lokio/BufferedSink;
 }
 
 public abstract interface class shark/StreamingSourceProvider {

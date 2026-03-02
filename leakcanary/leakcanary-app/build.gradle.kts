@@ -65,7 +65,7 @@ android {
     kotlinCompilerExtensionVersion = "1.4.7"
   }
 
-  packagingOptions {
+  packaging {
     resources {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -94,9 +94,9 @@ dependencies {
   debugImplementation("androidx.compose.ui:ui-test-manifest:${libs.versions.compose.get()}")
   // TODO Split out what's included in debug vs the subset for release
   implementation(projects.leakcanary.leakcanaryAndroid)
-  implementation("com.google.dagger:hilt-android:2.43.2")
+  implementation(libs.hilt.android)
   implementation(libs.okio2)
-  kapt("com.google.dagger:hilt-compiler:2.43.2")
+  kapt(libs.hilt.compiler)
 }
 
 kapt {

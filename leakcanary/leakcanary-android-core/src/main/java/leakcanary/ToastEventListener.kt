@@ -58,6 +58,7 @@ object ToastEventListener : EventListener {
       val inflater = LayoutInflater.from(resumedActivity)
       toast.view = inflater.inflate(R.layout.leak_canary_heap_dump_toast, null)
       toast.show()
+      toastCurrentlyShown = toast
 
       val toastIcon = toast.view!!.findViewById<View>(R.id.leak_canary_toast_icon)
       toastIcon.translationY = -iconSize.toFloat()
@@ -66,7 +67,6 @@ object ToastEventListener : EventListener {
         .translationY(0f)
         .setListener(object : AnimatorListenerAdapter() {
           override fun onAnimationEnd(animation: Animator) {
-            toastCurrentlyShown = toast
             waitingForToast.countDown()
           }
         })

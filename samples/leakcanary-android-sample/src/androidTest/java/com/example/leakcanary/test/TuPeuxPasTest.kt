@@ -1,4 +1,4 @@
-package leakcanary.tests
+package com.example.leakcanary.test
 
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.example.leakcanary.MainActivity

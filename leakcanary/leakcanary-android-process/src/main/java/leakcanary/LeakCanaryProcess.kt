@@ -50,7 +50,7 @@ object LeakCanaryProcess {
       return false
     }
 
-    val mainProcess = packageInfo.applicationInfo.processName
+    val mainProcess = packageInfo.applicationInfo?.processName ?: return false
 
     val component = ComponentName(context, serviceClass)
     val serviceInfo: ServiceInfo
