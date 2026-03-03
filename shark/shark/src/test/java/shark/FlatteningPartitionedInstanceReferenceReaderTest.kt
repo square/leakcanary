@@ -38,7 +38,7 @@ class FlatteningPartitionedInstanceReferenceReaderTest {
 
       val referenceNames = references.map { it.lazyDetailsResolver.resolve().name }
       assertThat(referenceNames).containsExactly(
-        // cut set should be first, then everything reachable, flattened as direct chilren.
+        // cut set should be first, then everything reachable, flattened as direct children.
         "bridge",
         "internals",
         "array",

@@ -1100,7 +1100,7 @@ internal fun HeapInstance.unwrapComponentContext(): HeapInstance? {
 }
 
 /**
- * Same as [HeapInstance.readField] but throws if the field doesnt exist
+ * Same as [HeapInstance.readField] but throws if the field doesn't exist
  */
 internal fun HeapInstance.getOrThrow(
   declaringClassName: String,
