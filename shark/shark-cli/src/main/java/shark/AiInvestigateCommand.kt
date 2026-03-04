@@ -6,6 +6,8 @@ import com.github.ajalt.clikt.parameters.options.option
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.CompletableFuture
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -16,6 +18,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import shark.HeapAnalysis.Companion.DUMP_DURATION_UNKNOWN
+import shark.HprofHeader
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -82,6 +86,8 @@ class AiInvestigateCommand : CliktCommand(
       ).findLeakingObjectIds(graph)
 
       val analysis = investigationSession.analyze(graph, leakingObjectIds)
+      val heapDumpTimestamp = HprofHeader.parseHeaderOf(heapDumpFile).heapDumpTimestamp
+      val metadata = AndroidMetadataExtractor.extractMetadata(graph)
 
       // Create named pipes after analysis so the wrapper's pipe-existence check
       // doubles as a signal that the heap is loaded and the daemon is ready.
@@ -91,8 +97,11 @@ class AiInvestigateCommand : CliktCommand(
         File(outPath).delete()
       })
 
-      val state = SessionState(graph, investigationSession, analysis, heapDumpFile.absolutePath)
-      state.runDaemon(inPath, outPath)
+      val state = SessionState(
+        graph, investigationSession, analysis, heapDumpFile.absolutePath,
+        heapDumpTimestamp, metadata
+      )
+      state.runDaemon(inPath, outPath, shortcode)
     }
   }
 }
@@ -130,6 +139,28 @@ private val INSTRUCTIONS = """
   |  5. Work the UNKNOWN nodes one at a time using bisection. Do not skip
   |     ahead or batch-mark nodes without individual evidence.
   |
+  |KEEPING NOTES — use "note TEXT" continuously throughout the investigation
+  |
+  |  Record a note every time you learn something or form a hypothesis.
+  |  Notes are written to the session log and help a human reviewer follow
+  |  your reasoning without re-running the investigation.
+  |
+  |  Record a note when you:
+  |    - Learn something from reading source code
+  |        note ClassName.fieldName is cleared in onDestroy(), so null means destroyed
+  |    - Observe a significant field value from a "fields" command
+  |        note node 4 mFinished=true — Activity has finished
+  |    - Form a hypothesis BEFORE you verify it
+  |        note hypothesis: the leak is caused by Foo holding a reference to Bar via mListener
+  |    - Confirm or refute a hypothesis after gathering evidence
+  |        note hypothesis confirmed: mListener is never cleared after onPause()
+  |    - Reach a conclusion about a node's status
+  |        note node 2 is NOT_LEAKING: it is the Application singleton and never destroyed
+  |
+  |  Notes have no required format — write whatever will be most useful to a
+  |  human reading the log. Do not wait until the end of the investigation to
+  |  record notes; write them as you go.
+  |
   |CONTEXT
   |
   |  This command must be run from the root of the application's source
@@ -153,30 +184,37 @@ private val INSTRUCTIONS = """
   |
   |Commands — send with: shark-ai-investigate cmd <shortcode> <command>
   |
+  |  Every command requires a REASON: a plain-English explanation of why you are
+  |  running it and what you are trying to learn. This is mandatory — the daemon
+  |  will reject any command sent without one.
+  |
   |  TRACE NAVIGATION
-  |  trace                         Show current leak trace JSON
-  |  human-readable-trace          Show trace as formatted by LeakCanary (for human sharing)
-  |  summary                       List all leak groups
-  |  select-group N                Switch to leak group N
-  |  select-trace N                Switch to trace instance N in current group
+  |  trace REASON                         Show current leak trace JSON
+  |  human-readable-trace REASON          Show trace as formatted by LeakCanary (for human sharing)
+  |  summary REASON                       List all leak groups
+  |  select-group N REASON                Switch to leak group N
+  |  select-trace N REASON                Switch to trace instance N in current group
   |
   |  NODE STATUS OVERRIDES  (bisect the UNKNOWN window to find the leak)
-  |  mark-leaking N REASON         Override node N -> LEAKING (reason required)
-  |  mark-not-leaking N REASON     Override node N -> NOT_LEAKING (reason required)
-  |  mark-unknown N                Remove override for node N
+  |  mark-leaking N REASON                Override node N -> LEAKING (reason required)
+  |  mark-not-leaking N REASON            Override node N -> NOT_LEAKING (reason required)
+  |  mark-unknown N REASON                Remove override for node N
   |
   |  HEAP QUERIES
-  |  node N                        Class, objectId, leaking status & labels for node N
-  |  fields N                      Instance fields of trace node N
-  |  fields @ID                    Instance fields of any object by heap ID
-  |  instances CLASS_NAME          All instances of a class in the heap
-  |  string @ID                    Read object as Java String
-  |  referrers @ID                 Objects holding a reference to @ID (slow scan)
-  |  retained-size @ID             Retained size of @ID: own size + all objects it exclusively dominates (slow scan)
+  |  node N REASON                        Class, objectId, leaking status & labels for node N
+  |  fields N REASON                      Instance fields of trace node N
+  |  fields @ID REASON                    Instance fields of any object by heap ID
+  |  instances CLASS_NAME REASON          All instances of a class in the heap
+  |  string @ID REASON                    Read object as Java String
+  |  referrers @ID REASON                 Objects holding a reference to @ID (slow scan)
+  |  retained-size @ID REASON             Retained size of @ID: own size + all objects it exclusively dominates (slow scan)
   |
-  |  ping                          Confirm daemon is alive; prints the heap dump path
-  |  help                          Show these full instructions
-  |  close-session                 Stop the daemon and clean up named pipes
+  |  ping REASON                          Confirm daemon is alive; prints the heap dump path
+  |  help                                 Show these full instructions
+  |  close-session REASON                 Stop the daemon and clean up named pipes
+  |
+  |  NOTES
+  |  note TEXT                            Append a note to the session log
   |
   |Node indices: 0 = GC root, last = leaking object (from "nodes" array in JSON).
   |Heap IDs come from the "objectId" field in JSON responses.
@@ -202,13 +240,13 @@ private val INSTRUCTIONS = """
   |THE INVESTIGATION ALGORITHM — run this loop until progressPct reaches 100
   |
   |  STEP 0 — Verify the session (do this once, before anything else)
-  |    Run: shark-ai-investigate cmd <shortcode> ping
+  |    Run: shark-ai-investigate cmd <shortcode> ping verifying session is alive before starting
   |    The response contains "heapDumpPath". Verify it matches the file the
   |    user asked you to analyze. If you get any error, or the path does not
   |    match, STOP and tell the user before proceeding.
   |
   |  STEP 1 — Check state
-  |    Run: shark-ai-investigate cmd <shortcode> trace
+  |    Run: shark-ai-investigate cmd <shortcode> trace checking progress and scanning for UNKNOWN nodes
   |    Check "progressPct". When it reaches 100, go to WIN CONDITION.
   |    Otherwise scan "nodes" for entries where "leakingStatus" is "UNKNOWN".
   |
@@ -223,19 +261,19 @@ private val INSTRUCTIONS = """
   |       locate it, or check cs.android.com for Android Framework classes.
   |       Understand what keeps this object alive vs. what should signal that
   |       it is done (destroyed, detached, finished, etc.).
-  |    b. Run: shark-ai-investigate cmd <shortcode> fields <N>
+  |    b. Run: shark-ai-investigate cmd <shortcode> fields <N> checking lifecycle state of <ClassName>
   |       Look for lifecycle indicators: mDestroyed=true, mDetached=true,
   |       mFinished=true, mAttachInfo==null (View not attached to a window),
   |       mParent==null, listener fields that are null/cleared, negative or
   |       zeroed counters, closed/cancelled flags.
   |       If a field references another object worth inspecting:
-  |       Run: shark-ai-investigate cmd <shortcode> fields @<objectId>
+  |       Run: shark-ai-investigate cmd <shortcode> fields @<objectId> inspecting <fieldName> to understand its state
   |
   |  STEP 4 — Mark the node
   |    Combine source knowledge + observed field values to answer:
   |    "Should this specific instance be alive right now?"
-  |      YES → shark-ai-investigate cmd <shortcode> mark-not-leaking <N> <reason>
-  |      NO  → shark-ai-investigate cmd <shortcode> mark-leaking <N> <reason>
+  |      YES → shark-ai-investigate cmd <shortcode> mark-not-leaking <N> <evidence-based reason>
+  |      NO  → shark-ai-investigate cmd <shortcode> mark-leaking <N> <evidence-based reason>
   |    Reason must cite specific field values or source code facts.
   |    Example reasons (derive yours from actual evidence):
   |      "mDestroyed is true, Activity has been destroyed"
@@ -255,7 +293,7 @@ private val INSTRUCTIONS = """
   |
   |AFTER THE WIN
   |
-  |  1. Identify the culprit: run "node N" at culpritReferenceIndex.
+  |  1. Identify the culprit: run "node N REASON" at culpritReferenceIndex.
   |
   |  2. Read the source of the class holding that field. Find why the
   |     reference is not cleared. Common root causes:
@@ -265,12 +303,12 @@ private val INSTRUCTIONS = """
   |       - Handler or Runnable with a pending message outliving its host
   |       - Coroutine or background thread holding a reference past teardown
   |
-  |  3. Make a fix hypothesis. The session remains open. Continue with "fields", "instances", and
-  |     "referrers", as well as exploring code, to gather further evidence or verify the fix
-  |     hypothesis.
+  |  3. Make a fix hypothesis. The session remains open. Continue with "fields N REASON",
+  |     "instances CLASS_NAME REASON", and "referrers @ID REASON", as well as exploring code,
+  |     to gather further evidence or verify the fix hypothesis.
   |
   |  4. Run retained-size using "firstLeakingObjectId" from the trace JSON:
-  |       shark-ai-investigate cmd <shortcode> retained-size @<firstLeakingObjectId>
+  |       shark-ai-investigate cmd <shortcode> retained-size @<firstLeakingObjectId> measuring memory impact of the leak
   |     Interpret the result:
   |       - If no UNKNOWN nodes remain (progressPct == 100):
   |           "retainedSize" is the exact memory this leak is retaining.
@@ -278,7 +316,7 @@ private val INSTRUCTIONS = """
   |           "retainedSize" is a lower bound — actual retained memory may be higher.
   |     Record this value; it MUST appear in your final reply to the human.
   |
-  |  5. Once done, run: shark-ai-investigate cmd <shortcode> human-readable-trace
+  |  5. Once done, run: shark-ai-investigate cmd <shortcode> human-readable-trace generating final output for the user
   |     Copy the output verbatim into your reply to the human.
   |     Do NOT render or reformat it yourself.
   |
@@ -290,7 +328,7 @@ private val INSTRUCTIONS = """
   |       d. Your conclusion: what holds what, through which field, why the
   |          reference was not cleared, what the fix should be and why.
   |
-  |  7. You are done, close the session with the "close-session" command.
+  |  7. You are done, close the session: shark-ai-investigate cmd <shortcode> close-session investigation complete
   |
   |MULTIPLE LEAK GROUPS
   |
@@ -330,7 +368,7 @@ private val INSTRUCTIONS = """
   |ENDING THE SESSION
   |
   |  Always close the session when done:
-  |    shark-ai-investigate cmd <shortcode> close-session
+  |    shark-ai-investigate cmd <shortcode> close-session investigation complete
   |  This stops the daemon and cleans up the named pipes.
 """.trimMargin()
 
@@ -345,6 +383,8 @@ private class SessionState(
   private val session: LeakInvestigationSession,
   val analysis: InitialAnalysis,
   private val heapDumpPath: String,
+  private val heapDumpTimestamp: Long,
+  private val metadata: Map<String, String>,
 ) {
   var currentGroupIndex = 0
   var currentTraceIndex = 0
@@ -360,44 +400,83 @@ private class SessionState(
   // FIFO daemon loop
   // ---------------------------------------------------------------------------
 
-  fun runDaemon(inPath: String, outPath: String) {
-    while (true) {
-      // Opening a FIFO blocks until both ends are open: open(RDONLY) blocks until
-      // another process opens the same path with open(WRONLY), and vice versa.
-      // The daemon needs to open two FIFOs — inPath for read and outPath for write.
-      // If we opened them sequentially the daemon would block on the first open,
-      // and if the client happened to open the second FIFO first, both sides would
-      // be waiting on the other to open the first one — a deadlock.
-      //
-      // The fix: start both opens concurrently via CompletableFuture so the daemon
-      // is always waiting on both FIFOs simultaneously. The client can then open
-      // them in any order and will always unblock one future first. The common
-      // fork-join pool used by supplyAsync uses daemon threads, so a SIGTERM while
-      // blocking here does not keep the JVM alive. get() returns non-null directly.
-      val readerFuture = CompletableFuture.supplyAsync { File(inPath).bufferedReader() }
-      val writerFuture =
-        CompletableFuture.supplyAsync { FileOutputStream(outPath).bufferedWriter() }
-      val reader = readerFuture.get()
-      val writer = writerFuture.get()
+  fun runDaemon(inPath: String, outPath: String, shortcode: String) {
+    val logWriter = File("shark-$shortcode.log").bufferedWriter()
+    logWriter.write("${timestamp()} daemon starting: $heapDumpPath")
+    logWriter.newLine()
+    logWriter.flush()
+    try {
+      while (true) {
+        // Opening a FIFO blocks until both ends are open: open(RDONLY) blocks until
+        // another process opens the same path with open(WRONLY), and vice versa.
+        // The daemon needs to open two FIFOs — inPath for read and outPath for write.
+        // If we opened them sequentially the daemon would block on the first open,
+        // and if the client happened to open the second FIFO first, both sides would
+        // be waiting on the other to open the first one — a deadlock.
+        //
+        // The fix: start both opens concurrently via CompletableFuture so the daemon
+        // is always waiting on both FIFOs simultaneously. The client can then open
+        // them in any order and will always unblock one future first. The common
+        // fork-join pool used by supplyAsync uses daemon threads, so a SIGTERM while
+        // blocking here does not keep the JVM alive. get() returns non-null directly.
+        val readerFuture = CompletableFuture.supplyAsync { File(inPath).bufferedReader() }
+        val writerFuture =
+          CompletableFuture.supplyAsync { FileOutputStream(outPath).bufferedWriter() }
+        val reader = readerFuture.get()
+        val writer = writerFuture.get()
 
-      val cmd = reader.use { it.readLine()?.trim() }
+        val cmd = reader.use { it.readLine()?.trim() }
 
-      if (cmd == null) {
-        writer.close()
-        continue
-      }
-
-      val response = handleCommand(cmd)
-      try {
-        writer.use {
-          it.write(response + "\n")
-          it.flush()
+        if (cmd == null) {
+          writer.close()
+          continue
         }
-      } catch (_: IOException) {
-        // Client disconnected before reading the response — ignore and loop.
-      }
 
-      if (cmd == "close-session") break
+        val cmdName = cmd.substringBefore(' ')
+
+        if (cmdName == "note") {
+          val noteText = cmd.substringAfter(' ', "").trim()
+          val response = if (noteText.isBlank()) {
+            Json.encodeToString(ErrorResponse("note: text required"))
+          } else {
+            logWriter.write("${timestamp()} [note] $noteText")
+            logWriter.newLine()
+            logWriter.flush()
+            Json.encodeToString(NoteResponse(noteText))
+          }
+          try {
+            writer.use { it.write(response + "\n"); it.flush() }
+          } catch (_: IOException) {}
+          continue
+        }
+
+        val response = handleCommand(cmd)
+        try {
+          writer.use {
+            it.write(response + "\n")
+            it.flush()
+          }
+        } catch (_: IOException) {
+          // Client disconnected before reading the response — ignore and loop.
+        }
+
+        val prettyResponse = PrettyPrintJson().format(response)
+        logWriter.write("${timestamp()} > $cmd")
+        logWriter.newLine()
+        logWriter.write(prettyResponse)
+        logWriter.newLine()
+        // The JSON trace is optimized for the AI agent; also log the human-readable
+        // form so a person reviewing the log can follow the investigation at a glance.
+        if (cmdName == "trace") {
+          logWriter.write(currentTrace.toString())
+          logWriter.newLine()
+        }
+        logWriter.flush()
+
+        if (cmdName == "close-session") break
+      }
+    } finally {
+      logWriter.close()
     }
   }
 
@@ -410,16 +489,16 @@ private class SessionState(
     val parts = cmd.split("\\s+".toRegex(), limit = 3)
     return try {
       when (parts[0]) {
-        "ping" -> Json.encodeToString(PingResponse(heapDumpPath))
-        "close-session" -> Json.encodeToString(CloseSession("Session closed."))
-        "summary" -> Json.encodeToString(buildSummary())
+        "ping" -> { requireReason(parts); Json.encodeToString(PingResponse(heapDumpPath)) }
+        "close-session" -> { requireReason(parts); Json.encodeToString(CloseSession("Session closed.")) }
+        "summary" -> { requireReason(parts); Json.encodeToString(buildSummary()) }
+        "human-readable-trace" -> { requireReason(parts); Json.encodeToString(HumanReadableTraceResponse(buildHumanReadableTrace())) }
         "node" -> Json.encodeToString(nodeResponse(parts))
         "fields" -> Json.encodeToString(fieldsResponse(parts))
         "instances" -> Json.encodeToString(instancesResponse(parts))
         "string" -> Json.encodeToString(stringResponse(parts))
         "referrers" -> Json.encodeToString(referrersResponse(parts))
         "retained-size" -> Json.encodeToString(retainedSizeResponse(parts))
-        "human-readable-trace" -> Json.encodeToString(HumanReadableTraceResponse(currentTrace.toString()))
         "trace",
         "mark-leaking",
         "mark-not-leaking",
@@ -427,6 +506,7 @@ private class SessionState(
         "select-group",
         "select-trace" -> {
           when (parts[0]) {
+            "trace" -> requireReason(parts)
             "mark-leaking" -> applyMark(parts, LEAKING)
             "mark-not-leaking" -> applyMark(parts, NOT_LEAKING)
             "mark-unknown" -> applyMarkUnknown(parts)
@@ -451,6 +531,7 @@ private class SessionState(
 
   private fun nodeResponse(parts: List<String>): NodeResponse {
     val index = requireTraceIndex(parts)
+    requireReason(parts, afterArgs = 1)
     val objectId = currentCachedPath().objectIds[index]
     val obj =
       graph.findObjectByIdOrNull(objectId) ?: cmdError("Object @$objectId not found in heap")
@@ -466,7 +547,8 @@ private class SessionState(
   }
 
   private fun fieldsResponse(parts: List<String>): FieldsResponse {
-    val arg = parts.getOrNull(1) ?: cmdError("Usage: fields N  or  fields @ID")
+    val arg = parts.getOrNull(1) ?: cmdError("Usage: fields N|@ID REASON")
+    requireReason(parts, afterArgs = 1)
     val obj = resolveObjectArg(arg)
     if (obj !is HeapInstance) cmdError("Not an instance: ${renderObjectClass(obj)}")
     val fields = obj.readFields().map { f ->
@@ -478,19 +560,22 @@ private class SessionState(
   }
 
   private fun instancesResponse(parts: List<String>): InstancesResponse {
-    val className = parts.getOrNull(1) ?: cmdError("Usage: instances CLASS_NAME")
+    val className = parts.getOrNull(1) ?: cmdError("Usage: instances CLASS_NAME REASON")
+    requireReason(parts, afterArgs = 1)
     val clazz = graph.findClassByName(className) ?: cmdError("Class not found: $className")
     val instances = clazz.instances.map { InstanceEntry(it.objectId) }.toList()
     return InstancesResponse(className = className, count = instances.size, instances = instances)
   }
 
   private fun stringResponse(parts: List<String>): StringResponse {
-    val arg = parts.getOrNull(1) ?: cmdError("Usage: string @ID")
+    val arg = parts.getOrNull(1) ?: cmdError("Usage: string @ID REASON")
+    requireReason(parts, afterArgs = 1)
     return StringResponse((resolveObjectArg(arg) as? HeapInstance)?.readAsJavaString())
   }
 
   private fun referrersResponse(parts: List<String>): ReferrersResponse {
-    val arg = parts.getOrNull(1) ?: cmdError("Usage: referrers @ID")
+    val arg = parts.getOrNull(1) ?: cmdError("Usage: referrers @ID REASON")
+    requireReason(parts, afterArgs = 1)
     val targetId = parseObjectId(arg)
     val referrers = graph.instances.filter { instance ->
       instance.readFields().any { field ->
@@ -502,7 +587,8 @@ private class SessionState(
   }
 
   private fun retainedSizeResponse(parts: List<String>): RetainedSizeResponse {
-    val arg = parts.getOrNull(1) ?: cmdError("Usage: retained-size @ID")
+    val arg = parts.getOrNull(1) ?: cmdError("Usage: retained-size @ID REASON")
+    requireReason(parts, afterArgs = 1)
     val targetId = parseObjectId(arg)
     graph.findObjectByIdOrNull(targetId) ?: cmdError("Object @$targetId not found")
     val result = SingleObjectRetainedSizeCalculator(graph).computeRetainedSize(targetId)
@@ -522,12 +608,14 @@ private class SessionState(
   }
 
   private fun applyMarkUnknown(parts: List<String>) {
+    requireReason(parts, afterArgs = 1)
     statusOverrides.remove(currentCachedPath().objectIds[requireTraceIndex(parts)])
     currentTrace = reinspect()
   }
 
   private fun applySelectGroup(parts: List<String>) {
-    val n = parts.getOrNull(1)?.toIntOrNull() ?: cmdError("Usage: select-group N")
+    val n = parts.getOrNull(1)?.toIntOrNull() ?: cmdError("Usage: select-group N REASON")
+    requireReason(parts, afterArgs = 1)
     if (n !in analysis.allLeaks.indices) {
       cmdError("Invalid group $n. Range: 0..${analysis.allLeaks.lastIndex}")
     }
@@ -537,7 +625,8 @@ private class SessionState(
   }
 
   private fun applySelectTrace(parts: List<String>) {
-    val n = parts.getOrNull(1)?.toIntOrNull() ?: cmdError("Usage: select-trace N")
+    val n = parts.getOrNull(1)?.toIntOrNull() ?: cmdError("Usage: select-trace N REASON")
+    requireReason(parts, afterArgs = 1)
     val max = currentLeak().leakTraces.lastIndex
     if (n !in 0..max) cmdError("Invalid trace $n. Range: 0..$max")
     currentTraceIndex = n
@@ -547,6 +636,23 @@ private class SessionState(
   // ---------------------------------------------------------------------------
   // Response builders
   // ---------------------------------------------------------------------------
+
+  fun buildHumanReadableTrace(): String {
+    val metadataSection = buildString {
+      append("====================================\n")
+      append("METADATA\n\n")
+      append("Please include this in bug reports and Stack Overflow questions.")
+      if (metadata.isNotEmpty()) {
+        append("\n")
+        append(metadata.map { "${it.key}: ${it.value}" }.joinToString("\n"))
+      }
+      append("\nHeap dump file path: $heapDumpPath")
+      append("\nHeap dump timestamp: $heapDumpTimestamp")
+      append("\nHeap dump duration: Unknown")
+      append("\n====================================")
+    }
+    return "${currentTrace}\n$metadataSection"
+  }
 
   fun buildSummary(): SummaryResponse {
     val groups = analysis.allLeaks.mapIndexed { i, leak ->
@@ -611,7 +717,10 @@ private class SessionState(
       key = currentTrace.leakingObject.labels
         .first { it.startsWith("key = ") }
         .removePrefix("key = "),
-      nodes = nodes
+      nodes = nodes,
+      heapDumpTimestamp = heapDumpTimestamp,
+      heapDumpDurationMillis = DUMP_DURATION_UNKNOWN,
+      metadata = metadata
     )
   }
 
@@ -660,6 +769,11 @@ private class SessionState(
     return allNodes[index]
   }
 
+  private fun requireReason(parts: List<String>, afterArgs: Int = 0) {
+    val reason = parts.drop(1 + afterArgs).joinToString(" ").trim()
+    if (reason.isBlank()) cmdError("${parts[0]}: reason required — explain what you are trying to learn")
+  }
+
   @Suppress("ThrowsCount")
   private fun requireTraceIndex(parts: List<String>): Int {
     val raw = parts.getOrNull(1) ?: cmdError("Usage: ${parts[0]} N")
@@ -688,6 +802,8 @@ private class SessionState(
     arg.removePrefix("@").toLongOrNull() ?: cmdError("Invalid object ID: $arg")
 }
 
+@Serializable private data class NoteResponse(val note: String)
+
 @Serializable private data class PingResponse(val heapDumpPath: String)
 
 @Serializable private data class HumanReadableTraceResponse(val trace: String)
@@ -697,6 +813,10 @@ private class SessionState(
 @Serializable private data class CloseSession(val message: String)
 
 @Serializable private data class ErrorResponse(val error: String)
+
+private val timestampFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+
+private fun timestamp(): String = "[${LocalDateTime.now().format(timestampFormatter)}]"
 
 private class CmdError(val json: String) : Exception(json)
 
@@ -788,5 +908,8 @@ private data class TraceResponse(
   val culpritReferenceIndex: Int,
   val firstLeakingObjectId: Long,
   val key: String,
-  val nodes: List<TraceNodeEntry>
+  val nodes: List<TraceNodeEntry>,
+  val heapDumpTimestamp: Long,
+  val heapDumpDurationMillis: Long,
+  val metadata: Map<String, String>
 )

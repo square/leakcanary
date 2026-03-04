@@ -77,29 +77,29 @@ class AiInvestigateDaemonTest {
     }
 
     // summary → exactly one leak group found in the heap dump
-    val summary = cmd("summary")
+    val summary = cmd("summary", "checking how many leak groups exist")
     assertThat(summary["leakGroups"]!!.jsonArray).hasSize(1)
 
     // trace → nodes array present; the last node (the leaking object) is LEAKING
-    val trace = cmd("trace")
+    val trace = cmd("trace", "checking progress and scanning for UNKNOWN nodes")
     val nodes = trace["nodes"]!!.jsonArray
     assertThat(nodes).isNotEmpty
     assertThat(nodes.last().jsonObject["leakingStatus"]!!.jsonPrimitive.content)
       .isEqualTo("LEAKING")
 
     // node 0 → has a className (the GC root end of the path)
-    val node0 = cmd("node", "0")
+    val node0 = cmd("node", "0", "inspecting GC root node class")
     assertThat(node0["className"]).isNotNull
 
     // fields @<objectId> → returns a FieldsResponse for the leaking instance
     // (node 0 is a class object, so we use the leaking instance via its objectId)
     val leakingObjectId = nodes.last().jsonObject["objectId"]!!.jsonPrimitive.content
-    val fields = cmd("fields", "@$leakingObjectId")
+    val fields = cmd("fields", "@$leakingObjectId", "reading lifecycle fields of leaking instance")
     assertThat(fields["objectId"]).isNotNull
     assertThat(fields["fields"]).isNotNull
 
     // close-session → daemon acknowledges, then exits with code 0
-    val close = cmd("close-session")
+    val close = cmd("close-session", "investigation complete")
     assertThat(close["message"]!!.jsonPrimitive.content).isEqualTo("Session closed.")
     assertThat(daemon!!.waitFor(10, TimeUnit.SECONDS)).isTrue
     assertThat(daemon!!.exitValue()).isZero
