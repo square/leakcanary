@@ -14,7 +14,25 @@ import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
 
-class DominatorTree(expectedElements: Int = 4) {
+/**
+ * Builds a dominator tree incrementally during a BFS traversal of the heap graph, using a
+ * Lowest Common Ancestor (LCA) approach to update immediate dominators as new parents are
+ * discovered.
+ *
+ * **Known limitation**: this is an approximation, not an exact dominator algorithm. It can
+ * produce incorrect immediate dominators when a cross-edge (to an already-visited node) is
+ * processed using a stale parent dominator, and that parent's dominator is later raised by
+ * another cross-edge after the first cross-edge's children have already been settled. The child's
+ * dominator is then left too specific (too far from root), so its retained size is
+ * under-attributed — some objects that it truly retains exclusively are instead attributed to a
+ * higher ancestor. See [updateDominated] for a concrete example and [DominatorTreeTest] for a
+ * test documenting this behavior.
+ *
+ * For an exact dominator tree, use [LinkEvalDominatorTree] instead.
+ */
+class DominatorTree(
+  expectedElements: Int = 4
+) {
 
   fun interface ObjectSizeCalculator {
     fun computeSize(objectId: Long): Int
@@ -55,6 +73,24 @@ class DominatorTree(expectedElements: Int = 4) {
    * This implementation is optimized with the assumption that the graph is visited as a breadth
    * first search, so when objectId already has a known dominator then its dominator path is
    * shorter than the dominator path of [parentObjectId].
+   *
+   * **Known limitation**: the BFS assumption breaks down when a cross-edge (to an already-visited
+   * node) is processed with a stale parent dominator. Consider:
+   * ```
+   *   root → A → B → C   (tree edges; B discovered first via A)
+   *   root → A → C       (C also directly reachable from A)
+   *   root → D → E → B   (E→B is a cross-edge at same BFS level as B)
+   * ```
+   * BFS dequeues B before E (both at level 2). When B is dequeued, B→C is processed as a
+   * cross-edge with dom(B) = A (stale — E→B hasn't been processed yet). LCA(dom(C)=A, B) with
+   * dom(B)=A returns A, so dom(C) stays A. Later, when E is dequeued, E→B is processed and
+   * correctly raises dom(B) to root (root→D→E→B bypasses A). But dom(C) is never revisited:
+   * it remains A, even though the path root→D→E→B→C bypasses A, making root the true idom(C).
+   *
+   * The consequence is that dom(C) is left too specific (too far from root), so C's retained
+   * size is incorrectly attributed to A instead of root. A's retained size is over-reported.
+   *
+   * For an exact dominator tree that avoids this issue entirely, use [LinkEvalDominatorTree].
    *
    * @return true if [objectId] already had a known dominator, false otherwise.
    */

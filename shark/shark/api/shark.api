@@ -583,6 +583,11 @@ public final class shark/LibraryLeakReferenceMatcher : shark/ReferenceMatcher {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class shark/LinkEvalDominatorTree {
+	public fun <init> (Lshark/HeapGraph;Lshark/ReferenceReader$Factory;Lshark/GcRootProvider;)V
+	public final fun compute (Lshark/DominatorTree$ObjectSizeCalculator;)Ljava/util/Map;
+}
+
 public final class shark/MatchingGcRootProvider : shark/GcRootProvider {
 	public fun <init> (Ljava/util/List;)V
 	public fun provideGcRoots (Lshark/HeapGraph;)Lkotlin/sequences/Sequence;
