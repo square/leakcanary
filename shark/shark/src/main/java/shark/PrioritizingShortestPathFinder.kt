@@ -7,7 +7,6 @@ import java.util.Deque
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
-import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongScatterSet
