@@ -159,18 +159,63 @@ class ObjectDominators {
     graph: HeapGraph,
     ignoredRefs: List<IgnoredReferenceMatcher>
   ): Map<Long, DominatorNode> {
-    val pathFinder = PrioritizingShortestPathFinder.Factory(
-      listener = {  },
-        referenceReaderFactory = ActualMatchingReferenceReaderFactory(
-          referenceMatchers = emptyList()
-        ),
-        gcRootProvider = MatchingGcRootProvider(ignoredRefs),
-        computeRetainedHeapSize = true,
+    val objectReferenceReader = ActualMatchingReferenceReaderFactory(
+      referenceMatchers = emptyList()
     ).createFor(graph)
+    val gcRootProvider = MatchingGcRootProvider(ignoredRefs)
+
+    val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
+    val dominatorTree = DominatorTree(estimatedVisitedObjects)
+
+    // BFS over the entire heap graph, building the dominator tree incrementally
+    val toVisitQueue = java.util.ArrayDeque<Long>()
+    val toVisitLastQueue = java.util.ArrayDeque<Long>()
+
+    // Seed from GC roots
+    gcRootProvider.provideGcRoots(graph).forEach { gcRootReference ->
+      val rootId = gcRootReference.gcRoot.id
+      if (rootId != ValueHolder.NULL_REFERENCE && graph.objectExists(rootId)) {
+        // updateDominatedAsRoot returns true if already had a dominator (already seen), false if new
+        val alreadySeen = dominatorTree.updateDominatedAsRoot(rootId)
+        if (!alreadySeen) {
+          if (gcRootReference.isLowPriority) {
+            toVisitLastQueue.add(rootId)
+          } else {
+            toVisitQueue.add(rootId)
+          }
+        }
+      }
+    }
+
+    while (toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()) {
+      val objectId = if (toVisitQueue.isNotEmpty()) {
+        toVisitQueue.poll()
+      } else {
+        toVisitLastQueue.poll()
+      }
+
+      val heapObject = try {
+        graph.findObjectById(objectId)
+      } catch (_: IllegalArgumentException) {
+        continue
+      }
+
+      objectReferenceReader.read(heapObject).forEach { reference ->
+        val refId = reference.valueObjectId
+        if (refId == ValueHolder.NULL_REFERENCE) return@forEach
+        // updateDominated returns true if already had a dominator (already seen), false if new
+        val alreadySeen = dominatorTree.updateDominated(refId, objectId)
+        if (!alreadySeen) {
+          if (reference.isLowPriority) {
+            toVisitLastQueue.add(refId)
+          } else {
+            toVisitQueue.add(refId)
+          }
+        }
+      }
+    }
 
     val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-
-    val result = pathFinder.findShortestPathsFromGcRoots(setOf())
-    return result.dominatorTree!!.buildFullDominatorTree(objectSizeCalculator)
+    return dominatorTree.buildFullDominatorTree(objectSizeCalculator)
   }
 }

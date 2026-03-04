@@ -22,12 +22,10 @@ import shark.OnAnalysisProgressListener.Step.BUILDING_LEAK_TRACES
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
-import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
-import shark.PrioritizingShortestPathFinder.Event.StartedFindingDominators
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
 import shark.RealLeakTracerFactory.Event.StartedBuildingLeakTraces
 import shark.RealLeakTracerFactory.Event.StartedComputingJavaHeapRetainedSize
@@ -69,7 +67,6 @@ class HeapAnalyzer constructor(
           graph,
           leakingObjectFinder,
           referenceMatchers,
-          computeRetainedHeapSize,
           objectInspectors,
           metadataExtractor
         ).let { result ->
@@ -107,7 +104,6 @@ class HeapAnalyzer constructor(
   // Ideally the result contains only what this can return. No file, etc.
   // File: used to create the graph + in result
   // leakingObjectFinder: Helper object, shared
-  // computeRetainedHeapSize: boolean param for single analysis
   // referenceMatchers: param?. though honestly not great.
   // objectInspectors: Helper object.
   // metadataExtractor: helper object, not needed for leak finding
@@ -115,14 +111,13 @@ class HeapAnalyzer constructor(
   // graph (and in the impl we give that thing the referenceMatchers)
   /**
    * Searches the heap dump for leaking instances and then computes the shortest strong reference
-   * path from those instances to the GC roots.
+   * path from those instances to the GC roots. Retained size is always computed.
    */
   fun analyze(
     heapDumpFile: File,
     graph: HeapGraph,
     leakingObjectFinder: LeakingObjectFinder,
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
-    computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   ): HeapAnalysis {
@@ -131,9 +126,8 @@ class HeapAnalyzer constructor(
     return try {
       val leakTracer = RealLeakTracerFactory(
         shortestPathFinderFactory = PrioritizingShortestPathFinder.Factory(
-          listener =  { event ->
+          listener = { event ->
             when (event) {
-              StartedFindingDominators -> listener.onAnalysisProgress(FINDING_DOMINATORS)
               StartedFindingPathsToRetainedObjects -> listener.onAnalysisProgress(
                 FINDING_PATHS_TO_RETAINED_OBJECTS
               )
@@ -141,7 +135,6 @@ class HeapAnalyzer constructor(
           },
           referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
-          computeRetainedHeapSize = computeRetainedHeapSize,
         ),
         objectInspectors
       ) { event ->
@@ -199,6 +192,28 @@ class HeapAnalyzer constructor(
     }
   }
 
+  /**
+   * Overload of [analyze] that accepts a [computeRetainedHeapSize] parameter for backward
+   * compatibility. The parameter is ignored since retained heap size is now always computed.
+   */
+  fun analyze(
+    heapDumpFile: File,
+    graph: HeapGraph,
+    leakingObjectFinder: LeakingObjectFinder,
+    referenceMatchers: List<ReferenceMatcher> = emptyList(),
+    @Suppress("UNUSED_PARAMETER") computeRetainedHeapSize: Boolean = false,
+    objectInspectors: List<ObjectInspector> = emptyList(),
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
+  ): HeapAnalysis {
+    return analyze(
+      heapDumpFile,
+      graph,
+      leakingObjectFinder,
+      referenceMatchers,
+      objectInspectors,
+      metadataExtractor
+    )
+  }
 
   private fun since(analysisStartNanoTime: Long): Long {
     return NANOSECONDS.toMillis(System.nanoTime() - analysisStartNanoTime)

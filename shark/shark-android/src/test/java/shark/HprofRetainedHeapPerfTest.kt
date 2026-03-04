@@ -110,14 +110,14 @@ class HprofRetainedHeapPerfTest {
       retainedPair.first - retainedBeforeAnalysis to retainedPair.second
     }
 
-    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(5.01 MB +-5 % margin)
-    assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.06 MB +-5 % margin)
-    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.16 MB +-5 % margin)
-    assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(6.56 MB +-5 % margin)
-    assertThat(retained after FINDING_DOMINATORS).isEqualTo(6.56 MB +-5 % margin)
-    assertThat(retained after INSPECTING_OBJECTS).isEqualTo(6.57 MB +-5 % margin)
-    assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(6.57 MB +-5 % margin)
-    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.49 MB +-5 % margin)
+    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(7.13 MB +-5 % margin)
+    assertThat(retained after EXTRACTING_METADATA).isEqualTo(7.36 MB +-5 % margin)
+    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(7.42 MB +-5 % margin)
+    assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(10.19 MB +-5 % margin)
+    assertThat(retained after FINDING_DOMINATORS).isEqualTo(10.19 MB +-5 % margin)
+    assertThat(retained after INSPECTING_OBJECTS).isEqualTo(10.19 MB +-5 % margin)
+    assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(10.19 MB +-5 % margin)
+    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(10.20 MB +-5 % margin)
   }
 
   private fun indexRecordsOf(hprofFile: File): HprofIndex {

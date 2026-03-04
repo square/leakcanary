@@ -47,7 +47,7 @@ data class LeakTraceObject(
   val classSimpleName: String get() = className.lastSegment('.')
 
   val typeName
-    get() = type.name.toLowerCase(Locale.US)
+    get() = type.name.lowercase(Locale.US)
 
   override fun toString(): String {
     val firstLinePrefix = ""

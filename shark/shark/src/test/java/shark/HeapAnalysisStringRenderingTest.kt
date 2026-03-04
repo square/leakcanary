@@ -103,6 +103,7 @@ class HeapAnalysisStringRenderingTest {
       |References underlined with "~~~" are likely causes.
       |Learn more at https://squ.re/leaks.
       |
+      |\d+ bytes retained by leaking objects
       |Signature: a49095c3373b957532aff14eb32987bb75ffe9d5
       |┬───
       |│ GC Root: System class
