@@ -62,14 +62,14 @@ class HeapAnalyzer constructor(
     val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
     return try {
       sourceProvider.openHeapGraph(proguardMapping).use { graph ->
-        analyzeImpl(
+        analyze(
           heapDumpFile,
           graph,
           leakingObjectFinder,
           referenceMatchers,
+          computeRetainedHeapSize,
           objectInspectors,
-          metadataExtractor,
-          computeRetainedHeapSize
+          metadataExtractor
         ).let { result ->
           if (result is HeapAnalysisSuccess) {
             val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
@@ -125,19 +125,6 @@ class HeapAnalyzer constructor(
     computeRetainedHeapSize: Boolean = false,
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-  ): HeapAnalysis = analyzeImpl(
-    heapDumpFile, graph, leakingObjectFinder, referenceMatchers, objectInspectors,
-    metadataExtractor, computeRetainedHeapSize
-  )
-
-  private fun analyzeImpl(
-    heapDumpFile: File,
-    graph: HeapGraph,
-    leakingObjectFinder: LeakingObjectFinder,
-    referenceMatchers: List<ReferenceMatcher>,
-    objectInspectors: List<ObjectInspector>,
-    metadataExtractor: MetadataExtractor,
-    computeRetainedHeapSize: Boolean,
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
