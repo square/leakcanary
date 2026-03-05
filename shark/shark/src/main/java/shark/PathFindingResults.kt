@@ -1,15 +1,16 @@
 package shark
 
+import androidx.collection.LongLongMap
 import shark.internal.ReferencePathNode
 
 // TODO Class name
 class PathFindingResults(
   val pathsToLeakingObjects: List<ReferencePathNode>,
   /**
-   * Map of leaked object id → retained heap byte size.
+   * Map of leaked object id → packed (retainedBytes, retainedCount).
    * Null when [PrioritizingShortestPathFinder.Factory.objectSizeCalculatorFactory] is not provided.
    */
-  val retainedSizes: Map<Long, Long>?,
+  val retainedSizes: LongLongMap?,
   /**
    * Map of parent leaked object id → list of sub-leaked object ids.
    * Sub-leaked objects are reachable from GC roots only through another leaked object, so they

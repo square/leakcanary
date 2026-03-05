@@ -76,8 +76,7 @@ data class LeakTraceObject(
     if (retainedHeapByteSize != null) {
       val humanReadableRetainedHeapSize =
         humanReadableByteCount(retainedHeapByteSize.toLong())
-      val objectCountSuffix = if (retainedObjectCount != null) " in $retainedObjectCount objects" else ""
-      result += "\n${additionalLinesPrefix}Retaining $humanReadableRetainedHeapSize$objectCountSuffix"
+      result += "\n${additionalLinesPrefix}Retaining $humanReadableRetainedHeapSize in $retainedObjectCount objects"
     }
     for (label in labels) {
       result += "\n${additionalLinesPrefix}$label"

@@ -344,7 +344,7 @@ class LeakTraceRenderingTest {
     │                    ~~~~
     ╰→ Leaking instance
     ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     Retaining 0 B
+    ​     Retaining 0 B in 1 objects
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
