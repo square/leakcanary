@@ -2,6 +2,7 @@
 
 package shark
 
+import androidx.collection.LongLongMap
 import androidx.collection.MutableLongLongMap
 import java.util.ArrayDeque
 import java.util.Deque
@@ -23,7 +24,7 @@ import shark.internal.unpackAsSecondInt
  * High-priority references are visited first; low-priority references (e.g. library leak
  * matchers) are deferred to a second queue and only visited if needed.
  *
- * ## Phase 1 — GC root BFS ([findShortestPathsFromGcRoots])
+ * ## Phase 1 — GC root BFS
  *
  * BFS from GC roots where **leaked objects are treated as leaf nodes**: when a leaked object
  * is reached its path is recorded, but its outgoing references are never enqueued. The visited
@@ -33,13 +34,14 @@ import shark.internal.unpackAsSecondInt
  * Stopping depends on [Factory.computeRetainedHeapSize]:
  * - `false` and all N found before queues empty → stop immediately (R₀ need not be complete)
  * - `true` or queues empty before all N found → drain both queues to build a complete R₀,
- *   then [computeRetainedSizes] handles finding remaining leaked objects and sizing.
+ *   then Phase 2 handles finding remaining leaked objects and sizing.
  *
- * ## Phase 2 — [computeRetainedSizes]
+ * ## Phase 2 — retained size BFS
  *
  * Processes found leaked object ids **one at a time**. For each seed:
  * - BFS from it, extending R₀ as objects are visited
  * - Shallow size of each newly visited object is attributed to this seed
+ *   (only when [Factory.objectSizeCalculatorFactory] is non-null)
  * - Other Phase 1 seeds encountered are skipped (treated as leaves — they will be processed
  *   in their own turn, preserving first-BFS-wins attribution)
  * - Leaked object ids not found in Phase 1 that are encountered become **sub-leaked** objects
@@ -54,6 +56,7 @@ class PrioritizingShortestPathFinder private constructor(
   private val objectReferenceReader: ReferenceReader<HeapObject>,
   private val gcRootProvider: GcRootProvider,
   private val computeRetainedHeapSize: Boolean,
+  private val objectSizeCalculator: ObjectSizeCalculator?,
 ) : ShortestPathFinder {
 
   class Factory(
@@ -61,11 +64,17 @@ class PrioritizingShortestPathFinder private constructor(
     private val referenceReaderFactory: ReferenceReader.Factory<HeapObject>,
     private val gcRootProvider: GcRootProvider,
     /**
-     * When true, [computeRetainedSizes] will compute retained heap size for each leaked object
-     * id. When false, [findShortestPathsFromGcRoots] stops as soon as all leaked objects are
-     * found, and [computeRetainedSizes] only runs to discover sub-leaked objects.
+     * When true, Phase 1 drains both queues to build a complete R₀, and Phase 2 computes
+     * retained heap size for each leaked object id (requires [objectSizeCalculatorFactory]).
+     * When false, Phase 1 stops as soon as all leaked objects are found, and Phase 2 only
+     * runs to discover sub-leaked objects.
      */
-    val computeRetainedHeapSize: Boolean = false,
+    val computeRetainedHeapSize: Boolean,
+    /**
+     * Factory for [ObjectSizeCalculator]. Required when [computeRetainedHeapSize] is true;
+     * ignored otherwise. Called once per [HeapGraph] to create the calculator.
+     */
+    val objectSizeCalculatorFactory: ((HeapGraph) -> ObjectSizeCalculator)? = null,
   ) : ShortestPathFinder.Factory {
     override fun createFor(heapGraph: HeapGraph): ShortestPathFinder {
       return PrioritizingShortestPathFinder(
@@ -74,6 +83,7 @@ class PrioritizingShortestPathFinder private constructor(
         objectReferenceReader = referenceReaderFactory.createFor(heapGraph),
         gcRootProvider = gcRootProvider,
         computeRetainedHeapSize = computeRetainedHeapSize,
+        objectSizeCalculator = objectSizeCalculatorFactory?.invoke(heapGraph),
       )
     }
   }
@@ -85,21 +95,6 @@ class PrioritizingShortestPathFinder private constructor(
       fun onEvent(event: Event)
     }
   }
-
-  /**
-   * Result of [computeRetainedSizes].
-   *
-   * @property retainedSizes map of leaked object id → packed (retainedBytes, retainedCount).
-   *   Only populated when [Factory.computeRetainedHeapSize] is true.
-   * @property subLeakedObjectPaths map of sub-leaked object id → list of parent leaked object
-   *   ids that can reach it. Sub-leaked objects are reachable from GC roots only through another
-   *   leaked object, so they are reported as labels on the parent's leak trace rather than as
-   *   independent leaks.
-   */
-  class RetainedSizeResults(
-    val retainedSizes: MutableLongLongMap,
-    val subLeakedObjectPaths: Map<Long, List<Long>>,
-  )
 
   private class State(
     val leakingObjectIds: LongScatterSet,
@@ -137,51 +132,80 @@ class PrioritizingShortestPathFinder private constructor(
     return state.findPathsFromGcRoots()
   }
 
-  /**
-   * Phase 2: sequential BFS from each found leaked object id, computing retained sizes and
-   * discovering sub-leaked objects.
-   *
-   * Must be called after [findShortestPathsFromGcRoots]. The [results] visitedSet (R₀) is
-   * extended in-place as new objects are discovered.
-   *
-   * Retained size is computed for the **leaked object ids** (objects passed to
-   * [findShortestPathsFromGcRoots]), not the "first LEAKING node" determined by object
-   * inspection. This avoids the R₀ bug: nodes on the path to a leaked object are in R₀, so
-   * starting retained size BFS from them would immediately exclude all their outgoing refs.
-   *
-   * Attribution rule: an object's shallow size is attributed to the **first leaked object id
-   * whose BFS reaches it**. Since seeds are processed sequentially and share the visitedSet,
-   * objects found by seed N are unavailable to seeds N+1, N+2, etc.
-   */
-  fun computeRetainedSizes(
-    results: PathFindingResults,
-    objectSizeCalculator: ObjectSizeCalculator,
-  ): RetainedSizeResults {
-    val visitedSet = results.visitedSet
+  private fun Set<Long>.toLongScatterSet(): LongScatterSet {
+    val longScatterSet = LongScatterSet()
+    longScatterSet.ensureCapacity(size)
+    forEach { longScatterSet.add(it) }
+    return longScatterSet
+  }
 
-    // Phase 1 seeds: leaked objects found directly from GC roots.
-    val phase1Seeds = results.pathsToLeakingObjects.map { it.objectId }.toHashSet()
+  private fun State.findPathsFromGcRoots(): PathFindingResults {
+    enqueueGcRoots()
 
-    // Leaked objects not found in Phase 1: only reachable through other leaked objects.
-    // These will be discovered during the sequential BFS below.
-    val notYetFoundLeakingIds = mutableSetOf<Long>()
-    results.leakingObjectIds.elementSequence().forEach { id ->
-      if (id !in phase1Seeds) notYetFoundLeakingIds.add(id)
+    val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
+    val foundLeakingObjectIds = LongScatterSet()
+
+    // Phase 1: BFS from GC roots, leaked objects treated as leaves.
+    visitingQueue@ while (queuesNotEmpty) {
+      val node = poll()
+
+      if (leakingObjectIds.contains(node.objectId)) {
+        shortestPathsToLeakingObjects.add(node)
+        foundLeakingObjectIds.add(node.objectId)
+        val allFound = foundLeakingObjectIds.size() == leakingObjectIds.size()
+        if (allFound && !computeRetainedHeapSize) {
+          // All leaked objects found and retained size not needed: stop immediately.
+          break@visitingQueue
+        }
+        // Treat leaked objects as leaves: do NOT enqueue their children.
+        continue@visitingQueue
+      }
+
+      val heapObject = try {
+        graph.findObjectById(node.objectId)
+      } catch (objectIdNotFound: IllegalArgumentException) {
+        throw RuntimeException(graph.invalidObjectIdErrorMessage(node), objectIdNotFound)
+      }
+      objectReferenceReader.read(heapObject).forEach { reference ->
+        val newNode = ChildNode(
+          objectId = reference.valueObjectId,
+          parent = node,
+          lazyDetailsResolver = reference.lazyDetailsResolver
+        )
+        enqueue(
+          node = newNode,
+          isLowPriority = reference.isLowPriority,
+          isLeafObject = reference.isLeafObject
+        )
+      }
     }
 
-    // Retained sizes: leaked object id → packed (retainedBytes, retainedCount).
-    val retainedSizes = MutableLongLongMap(results.leakingObjectIds.size())
-    results.leakingObjectIds.elementSequence().forEach { id ->
+    // Remove leaked object ids from R₀. They will be seeds in Phase 2 and must
+    // not be pre-excluded from retained size attribution.
+    leakingObjectIds.elementSequence().forEach { visitedSet.remove(it) }
+
+    // Phase 2: Sequential BFS from each found leaked object id, computing retained sizes
+    // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
+    val retainedSizes = MutableLongLongMap(leakingObjectIds.size())
+    leakingObjectIds.elementSequence().forEach { id ->
       retainedSizes[id] = 0 packedWith 0
     }
 
     val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
 
+    val phase1SeedIds = shortestPathsToLeakingObjects.map { it.objectId }.toHashSet()
+
+    // Leaked objects not found in Phase 1: only reachable through other leaked objects.
+    val notYetFoundLeakingIds = mutableSetOf<Long>()
+    leakingObjectIds.elementSequence().forEach { id ->
+      if (id !in phase1SeedIds) notYetFoundLeakingIds.add(id)
+    }
+
     // Phase 1 seeds not yet processed — used to detect when another Phase 1 seed is
     // encountered during the current seed's BFS (treat it as a leaf, let it be its own seed).
-    val unprocessedSeedIds = phase1Seeds.toMutableSet()
+    val unprocessedSeedIds = phase1SeedIds.toMutableSet()
 
-    for (seedPathNode in results.pathsToLeakingObjects) {
+    for (seedPathNode in shortestPathsToLeakingObjects) {
       val seedId = seedPathNode.objectId
       unprocessedSeedIds.remove(seedId)
 
@@ -193,8 +217,8 @@ class PrioritizingShortestPathFinder private constructor(
       while (bfsQueue.isNotEmpty()) {
         val objectId = bfsQueue.poll()
 
-        if (computeRetainedHeapSize) {
-          val shallowSize = objectSizeCalculator.computeSize(objectId)
+        objectSizeCalculator?.let { calc ->
+          val shallowSize = calc.computeSize(objectId)
           val current = retainedSizes.getOrDefault(seedId, 0 packedWith 0)
           retainedSizes[seedId] =
             (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
@@ -237,64 +261,10 @@ class PrioritizingShortestPathFinder private constructor(
       if (!computeRetainedHeapSize && notYetFoundLeakingIds.isEmpty()) break
     }
 
-    return RetainedSizeResults(retainedSizes, subLeakedObjectPaths)
-  }
-
-  private fun Set<Long>.toLongScatterSet(): LongScatterSet {
-    val longScatterSet = LongScatterSet()
-    longScatterSet.ensureCapacity(size)
-    forEach { longScatterSet.add(it) }
-    return longScatterSet
-  }
-
-  private fun State.findPathsFromGcRoots(): PathFindingResults {
-    enqueueGcRoots()
-
-    val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
-    val foundLeakingObjectIds = LongScatterSet()
-
-    visitingQueue@ while (queuesNotEmpty) {
-      val node = poll()
-
-      if (leakingObjectIds.contains(node.objectId)) {
-        shortestPathsToLeakingObjects.add(node)
-        foundLeakingObjectIds.add(node.objectId)
-        val allFound = foundLeakingObjectIds.size() == leakingObjectIds.size()
-        if (allFound && !computeRetainedHeapSize) {
-          // All leaked objects found and retained size not needed: stop immediately.
-          break@visitingQueue
-        }
-        // Treat leaked objects as leaves: do NOT enqueue their children.
-        continue@visitingQueue
-      }
-
-      val heapObject = try {
-        graph.findObjectById(node.objectId)
-      } catch (objectIdNotFound: IllegalArgumentException) {
-        throw RuntimeException(graph.invalidObjectIdErrorMessage(node), objectIdNotFound)
-      }
-      objectReferenceReader.read(heapObject).forEach { reference ->
-        val newNode = ChildNode(
-          objectId = reference.valueObjectId,
-          parent = node,
-          lazyDetailsResolver = reference.lazyDetailsResolver
-        )
-        enqueue(
-          node = newNode,
-          isLowPriority = reference.isLowPriority,
-          isLeafObject = reference.isLeafObject
-        )
-      }
-    }
-
-    // Remove leaked object ids from R₀. They will be seeds in computeRetainedSizes and must
-    // not be pre-excluded from retained size attribution.
-    leakingObjectIds.elementSequence().forEach { visitedSet.remove(it) }
-
     return PathFindingResults(
       pathsToLeakingObjects = shortestPathsToLeakingObjects,
-      visitedSet = visitedSet,
-      leakingObjectIds = leakingObjectIds,
+      retainedSizes = retainedSizes,
+      subLeakedObjectPaths = subLeakedObjectPaths,
     )
   }
 

@@ -167,6 +167,11 @@ class HeapAnalyzer constructor(
           referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
           computeRetainedHeapSize = computeRetainedHeapSize,
+          objectSizeCalculatorFactory = if (computeRetainedHeapSize) {
+            { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
+          } else {
+            null
+          },
         ),
         objectInspectors
       ) { event ->

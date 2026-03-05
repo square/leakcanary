@@ -17,7 +17,7 @@
 
 package shark
 
-import androidx.collection.MutableLongLongMap
+import androidx.collection.LongLongMap
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -95,19 +95,7 @@ class RealLeakTracerFactory constructor(
     val pathFindingResults =
       shortestPathFinder.findShortestPathsFromGcRoots(leakingObjectIds)
 
-    // Phase 2: sequential BFS from each found leaked object id.
-    // This finds sub-leaked objects and computes retained sizes.
-    // Must run before findUnreachableObjects (needs subLeakedObjectPaths).
-    val retainedSizeResults = if (shortestPathFinder is PrioritizingShortestPathFinder) {
-      val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-      shortestPathFinder.computeRetainedSizes(pathFindingResults, objectSizeCalculator)
-    } else {
-      null
-    }
-    val retainedSizes = retainedSizeResults?.retainedSizes ?: MutableLongLongMap()
-    val subLeakedObjectPaths = retainedSizeResults?.subLeakedObjectPaths ?: emptyMap()
-
-    val unreachableObjects = findUnreachableObjects(pathFindingResults, leakingObjectIds, subLeakedObjectPaths)
+    val unreachableObjects = findUnreachableObjects(pathFindingResults, leakingObjectIds)
 
     val shortestPaths = buildShortestPaths(pathFindingResults.pathsToLeakingObjects)
 
@@ -115,12 +103,11 @@ class RealLeakTracerFactory constructor(
 
     // Emit the COMPUTING_RETAINED_SIZE event after inspecting objects, matching the original
     // event ordering (INSPECTING_OBJECTS fires before COMPUTING_RETAINED_SIZE).
-    if (shortestPathFinder is PrioritizingShortestPathFinder) {
-      listener.onEvent(StartedComputingJavaHeapRetainedSize)
-    }
+    listener.onEvent(StartedComputingJavaHeapRetainedSize)
 
     val (applicationLeaks, libraryLeaks) = buildLeakTraces(
-      shortestPaths, inspectedObjectsByPath, retainedSizes, subLeakedObjectPaths
+      shortestPaths, inspectedObjectsByPath, pathFindingResults.retainedSizes,
+      pathFindingResults.subLeakedObjectPaths
     )
     return LeaksAndUnreachableObjects(applicationLeaks, libraryLeaks, unreachableObjects)
   }
@@ -128,12 +115,11 @@ class RealLeakTracerFactory constructor(
   private fun FindLeakInput.findUnreachableObjects(
     pathFindingResults: PathFindingResults,
     leakingObjectIds: Set<Long>,
-    subLeakedObjectPaths: Map<Long, List<Long>>
   ): List<LeakTraceObject> {
     val reachableLeakingObjectIds =
       pathFindingResults.pathsToLeakingObjects.map { it.objectId }.toSet()
     // Also objects reachable via secondary BFS (sub-leaked objects) are not truly unreachable
-    val subLeakedObjectIds = subLeakedObjectPaths.keys
+    val subLeakedObjectIds = pathFindingResults.subLeakedObjectPaths.keys
 
     val unreachableLeakingObjectIds = leakingObjectIds - reachableLeakingObjectIds - subLeakedObjectIds
 
@@ -213,7 +199,7 @@ class RealLeakTracerFactory constructor(
   private fun FindLeakInput.buildLeakTraces(
     shortestPaths: List<ShortestPath>,
     inspectedObjectsByPath: List<List<InspectedObject>>,
-    retainedSizes: MutableLongLongMap,
+    retainedSizes: LongLongMap,
     subLeakedObjectPaths: Map<Long, List<Long>>
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
     listener.onEvent(StartedBuildingLeakTraces)
@@ -332,7 +318,7 @@ class RealLeakTracerFactory constructor(
    */
   private fun buildLeakTraceObjects(
     inspectedObjects: List<InspectedObject>,
-    retainedSizes: MutableLongLongMap?,
+    retainedSizes: LongLongMap?,
     leakingNodeIndex: Int
   ): List<LeakTraceObject> {
     return inspectedObjects.mapIndexed { index, inspectedObject ->

@@ -179,7 +179,7 @@ class HprofIOPerfTest {
     )
       .isEqualTo(
         listOf(
-          20973, 40.0, 1078305, 20978, 40.0, 1078485
+          19711, 40.0, 1021265, 20979, 40.0, 1078529
         )
       )
   }
@@ -260,6 +260,11 @@ class HprofIOPerfTest {
           referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
           computeRetainedHeapSize = computeRetainedHeapSize,
+          objectSizeCalculatorFactory = if (computeRetainedHeapSize) {
+            { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
+          } else {
+            null
+          },
         ),
         objectInspectors = AndroidObjectInspectors.appDefaults,
         listener = {}

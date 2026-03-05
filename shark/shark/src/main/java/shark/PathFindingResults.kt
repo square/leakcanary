@@ -1,25 +1,21 @@
-@file:Suppress("INVISIBLE_REFERENCE", "INVISIBLE_MEMBER")
-
 package shark
 
+import androidx.collection.LongLongMap
 import shark.internal.ReferencePathNode
-import shark.internal.hppc.LongScatterSet
 
 // TODO Class name
 class PathFindingResults internal constructor(
   val pathsToLeakingObjects: List<ReferencePathNode>,
   /**
-   * R₀: the set of all object ids visited during Phase 1 (GC root BFS treating leaked objects
-   * as leaves). Objects in this set are independently reachable from GC roots and should NOT
-   * be attributed to any leaked node's retained size.
-   *
-   * Kept as a [LongScatterSet] internally to avoid copying. Not part of the public API surface.
+   * Map of leaked object id → packed (retainedBytes, retainedCount).
+   * Only populated when [PrioritizingShortestPathFinder.Factory.objectSizeCalculatorFactory]
+   * is provided.
    */
-  internal val visitedSet: LongScatterSet,
+  val retainedSizes: LongLongMap,
   /**
-   * The original set of leaking object ids passed to [ShortestPathFinder.findShortestPathsFromGcRoots].
-   * Kept internally so [PrioritizingShortestPathFinder.computeRetainedSizes] can determine which
-   * leaked objects were not found in Phase 1 (reachable only through other leaked objects).
+   * Map of sub-leaked object id → list of parent leaked object ids that can reach it.
+   * Sub-leaked objects are reachable from GC roots only through another leaked object, so they
+   * are reported as labels on the parent's leak trace rather than as independent leaks.
    */
-  internal val leakingObjectIds: LongScatterSet,
+  val subLeakedObjectPaths: Map<Long, List<Long>>,
 )
