@@ -248,7 +248,7 @@ class RetainedSizeTest {
     assertThat(instance.totalRetainedHeapByteSize).isEqualTo(22)
   }
 
-  @Test fun crossLeakedObjectsAttributedToBothLeaks() {
+  @Test fun crossLeakedObjectsFirstBfsWins() {
     hprofFile.dump {
       val fortyTwo = string("42")
       "GcRoot1" clazz {
@@ -266,12 +266,14 @@ class RetainedSizeTest {
     val retainedInstances = retainedInstances()
     require(retainedInstances.size == 2)
 
-    retainedInstances.forEach { instance ->
-      // 4 byte reference + string (4 array ref + 4 int + 2 byte per char)
-      // fortyTwo is NOT independently reachable from GC roots (only reachable through each
-      // Leaking instance), so it is attributed to both leaks.
-      assertThat(instance.totalRetainedHeapByteSize).isEqualTo(16)
-    }
+    // With first-BFS-wins attribution, fortyTwo is attributed exclusively to the first leaked
+    // object whose BFS reaches it. The first leak retains:
+    //   4 byte reference + string (4 array ref + 4 int + 2 byte per char) = 16 bytes
+    // The second leak retains only itself:
+    //   4 byte reference = 4 bytes
+    // Total across both = 20 bytes.
+    val retainedSizes = retainedInstances.map { it.totalRetainedHeapByteSize!! }.sorted()
+    assertThat(retainedSizes).containsExactly(4, 16)
   }
 
   @Test fun nativeSizeAccountedFor() {

@@ -5,7 +5,7 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
 
 fun <T : HeapAnalysis> DualSourceProvider.checkForLeaks(
   objectInspectors: List<ObjectInspector> = emptyList(),
-  computeRetainedHeapSize: Boolean = false,
+  computeRetainedHeapSize: Boolean = true,
   referenceMatchers: List<ReferenceMatcher> = JdkReferenceMatchers.defaults,
   metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null,
@@ -41,7 +41,7 @@ fun <T : HeapAnalysis> DualSourceProvider.checkForLeaks(
 
 fun <T : HeapAnalysis> File.checkForLeaks(
   objectInspectors: List<ObjectInspector> = emptyList(),
-  computeRetainedHeapSize: Boolean = false,
+  computeRetainedHeapSize: Boolean = true,
   referenceMatchers: List<ReferenceMatcher> = JdkReferenceMatchers.defaults,
   metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
   proguardMapping: ProguardMapping? = null,

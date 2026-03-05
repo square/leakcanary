@@ -120,6 +120,37 @@ class HeapAnalyzer constructor(
     referenceMatchers: List<ReferenceMatcher> = emptyList(),
     objectInspectors: List<ObjectInspector> = emptyList(),
     metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
+  ): HeapAnalysis = analyzeImpl(
+    heapDumpFile, graph, leakingObjectFinder, referenceMatchers, objectInspectors,
+    metadataExtractor, computeRetainedHeapSize = true
+  )
+
+  /**
+   * Overload of [analyze] that accepts a [computeRetainedHeapSize] parameter.
+   * When [computeRetainedHeapSize] is false, retained heap sizes will not be computed
+   * and the analysis will be faster.
+   */
+  fun analyze(
+    heapDumpFile: File,
+    graph: HeapGraph,
+    leakingObjectFinder: LeakingObjectFinder,
+    referenceMatchers: List<ReferenceMatcher> = emptyList(),
+    computeRetainedHeapSize: Boolean = false,
+    objectInspectors: List<ObjectInspector> = emptyList(),
+    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
+  ): HeapAnalysis = analyzeImpl(
+    heapDumpFile, graph, leakingObjectFinder, referenceMatchers, objectInspectors,
+    metadataExtractor, computeRetainedHeapSize
+  )
+
+  private fun analyzeImpl(
+    heapDumpFile: File,
+    graph: HeapGraph,
+    leakingObjectFinder: LeakingObjectFinder,
+    referenceMatchers: List<ReferenceMatcher>,
+    objectInspectors: List<ObjectInspector>,
+    metadataExtractor: MetadataExtractor,
+    computeRetainedHeapSize: Boolean,
   ): HeapAnalysis {
     val analysisStartNanoTime = System.nanoTime()
 
@@ -135,6 +166,7 @@ class HeapAnalyzer constructor(
           },
           referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
+          computeRetainedHeapSize = computeRetainedHeapSize,
         ),
         objectInspectors
       ) { event ->
@@ -190,29 +222,6 @@ class HeapAnalyzer constructor(
         exception = HeapAnalysisException(exception)
       )
     }
-  }
-
-  /**
-   * Overload of [analyze] that accepts a [computeRetainedHeapSize] parameter for backward
-   * compatibility. The parameter is ignored since retained heap size is now always computed.
-   */
-  fun analyze(
-    heapDumpFile: File,
-    graph: HeapGraph,
-    leakingObjectFinder: LeakingObjectFinder,
-    referenceMatchers: List<ReferenceMatcher> = emptyList(),
-    @Suppress("UNUSED_PARAMETER") computeRetainedHeapSize: Boolean = false,
-    objectInspectors: List<ObjectInspector> = emptyList(),
-    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-  ): HeapAnalysis {
-    return analyze(
-      heapDumpFile,
-      graph,
-      leakingObjectFinder,
-      referenceMatchers,
-      objectInspectors,
-      metadataExtractor
-    )
   }
 
   private fun since(analysisStartNanoTime: Long): Long {

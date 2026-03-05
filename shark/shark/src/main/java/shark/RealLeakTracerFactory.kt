@@ -38,7 +38,6 @@ import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.createSHA1Hash
-import shark.internal.hppc.LongScatterSet
 import shark.internal.lastSegment
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
@@ -96,21 +95,30 @@ class RealLeakTracerFactory constructor(
     val pathFindingResults =
       shortestPathFinder.findShortestPathsFromGcRoots(leakingObjectIds)
 
-    val unreachableObjects = findUnreachableObjects(pathFindingResults, leakingObjectIds)
+    // Phase 2: sequential BFS from each found leaked object id.
+    // This finds sub-leaked objects and computes retained sizes.
+    // Must run before findUnreachableObjects (needs subLeakedObjectPaths).
+    val (retainedSizes, updatedResults) = if (shortestPathFinder is PrioritizingShortestPathFinder) {
+      val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
+      shortestPathFinder.computeRetainedSizes(pathFindingResults, objectSizeCalculator)
+    } else {
+      MutableLongLongMap() to pathFindingResults
+    }
 
-    val shortestPaths = buildShortestPaths(pathFindingResults.pathsToLeakingObjects)
+    val unreachableObjects = findUnreachableObjects(updatedResults, leakingObjectIds)
+
+    val shortestPaths = buildShortestPaths(updatedResults.pathsToLeakingObjects)
 
     val inspectedObjectsByPath = inspectObjects(shortestPaths)
 
-    val retainedSizes = computeRetainedSizesForFirstLeakingNodes(
-      inspectedObjectsByPath,
-      shortestPaths,
-      pathFindingResults.visitedSet,
-      pathFindingResults.objectReferenceReader
-    )
+    // Emit the COMPUTING_RETAINED_SIZE event after inspecting objects, matching the original
+    // event ordering (INSPECTING_OBJECTS fires before COMPUTING_RETAINED_SIZE).
+    if (shortestPathFinder is PrioritizingShortestPathFinder) {
+      listener.onEvent(StartedComputingJavaHeapRetainedSize)
+    }
 
     val (applicationLeaks, libraryLeaks) = buildLeakTraces(
-      shortestPaths, inspectedObjectsByPath, retainedSizes, pathFindingResults.subLeakedObjectPaths
+      shortestPaths, inspectedObjectsByPath, retainedSizes, updatedResults.subLeakedObjectPaths
     )
     return LeaksAndUnreachableObjects(applicationLeaks, libraryLeaks, unreachableObjects)
   }
@@ -155,7 +163,7 @@ class RealLeakTracerFactory constructor(
   /**
    * Builds [ShortestPath] list from the raw path nodes returned by the path finder.
    * This replaces the old deduplicateShortestPaths. Since leaked objects are treated as leaves
-   * in Phase 1a, a leaked object can never appear as an intermediate node in another path,
+   * in Phase 1, a leaked object can never appear as an intermediate node in another path,
    * so trie deduplication is unnecessary.
    */
   private fun buildShortestPaths(
@@ -173,83 +181,6 @@ class RealLeakTracerFactory constructor(
       val rootNode = node as RootNode
       ShortestPath(rootNode, shortestChildPath)
     }
-  }
-
-  /**
-   * Phase 2: multi-source BFS seeded from the first LEAKING node in each path.
-   * Only visits objects NOT in R₀ (visitedSet from Phase 1a).
-   * Attributes shallow size to ALL leaked nodes that can reach a shared object.
-   *
-   * Runs one BFS per seed (leaked node). This is O(N * (V+E)) but N is typically small.
-   * Each BFS is restricted to objects not already in R₀.
-   *
-   * Returns a MutableLongLongMap of objectId → packed (retainedBytes, retainedCount).
-   */
-  private fun FindLeakInput.computeRetainedSizesForFirstLeakingNodes(
-    inspectedObjectsByPath: List<List<InspectedObject>>,
-    shortestPaths: List<ShortestPath>,
-    visitedSet: HashSet<Long>,
-    objectReferenceReader: ReferenceReader<HeapObject>
-  ): MutableLongLongMap {
-    listener.onEvent(StartedComputingJavaHeapRetainedSize)
-
-    // Identify the first LEAKING node per path
-    val uniqueSeedIds = mutableSetOf<Long>()
-    inspectedObjectsByPath.forEachIndexed { pathIndex, inspectedObjects ->
-      val firstLeakingIndex = inspectedObjects.indexOfFirst { it.leakingStatus == LEAKING }
-      if (firstLeakingIndex >= 0) {
-        val node = shortestPaths[pathIndex].asNodesWithMatchers()[firstLeakingIndex].first
-        uniqueSeedIds.add(node.objectId)
-      }
-    }
-
-    val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-    val retainedSizes = MutableLongLongMap(uniqueSeedIds.size)
-    uniqueSeedIds.forEach { seedId ->
-      retainedSizes[seedId] = 0 packedWith 0
-    }
-
-    // Run one BFS per seed, accumulating sizes
-    uniqueSeedIds.forEach { seedId ->
-      // Skip seeds that are in R₀: independently reachable from GC roots, so not exclusively
-      // retained by this leaked object.
-      if (seedId in visitedSet) return@forEach
-
-      val bfsQueue: java.util.ArrayDeque<Long> = java.util.ArrayDeque()
-      val seedVisited = LongScatterSet()
-
-      // Seed itself is retained by itself
-      seedVisited.add(seedId)
-      bfsQueue.add(seedId)
-
-      while (bfsQueue.isNotEmpty()) {
-        val objectId = bfsQueue.poll()
-
-        // Attribute this object's size to the seed
-        val shallowSize = objectSizeCalculator.computeSize(objectId)
-        val current = retainedSizes.getOrDefault(seedId, 0 packedWith 0)
-        retainedSizes[seedId] = (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
-
-        val heapObject = try {
-          graph.findObjectById(objectId)
-        } catch (_: IllegalArgumentException) {
-          continue
-        }
-
-        objectReferenceReader.read(heapObject).forEach { reference ->
-          val refId = reference.valueObjectId
-          if (refId == ValueHolder.NULL_REFERENCE) return@forEach
-          // Skip objects in R₀ (independently reachable from GC roots)
-          if (refId in visitedSet) return@forEach
-          // Skip already visited by this seed's BFS
-          if (!seedVisited.add(refId)) return@forEach
-
-          bfsQueue.add(refId)
-        }
-      }
-    }
-
-    return retainedSizes
   }
 
   internal class ShortestPath(
@@ -299,66 +230,48 @@ class RealLeakTracerFactory constructor(
     shortestPaths.forEachIndexed { pathIndex, shortestPath ->
       val inspectedObjects = inspectedObjectsByPath[pathIndex]
 
-      // Find index of first LEAKING node
-      val firstLeakingIndex = inspectedObjects.indexOfFirst { it.leakingStatus == LEAKING }
+      // The leaked object id is the last inspected object in the path (the terminal/leaking object)
+      val leakingObjectId = inspectedObjects.last().heapObject.objectId
 
-      val leakTraceObjects = buildLeakTraceObjects(inspectedObjects, retainedSizes, firstLeakingIndex)
+      val leakTraceObjects = buildLeakTraceObjects(
+        inspectedObjects, retainedSizes, inspectedObjects.size - 1
+      )
 
-      // Add sub-leaked labels to the first leaking node if applicable
-      if (firstLeakingIndex >= 0) {
-        val firstLeakingObjectId =
-          shortestPaths[pathIndex].asNodesWithMatchers()[firstLeakingIndex].first.objectId
-        val subLeakedIds = leakedToSubLeaked[firstLeakingObjectId]
-        if (subLeakedIds != null) {
-          val firstLeakingLeakTraceObject = leakTraceObjects[firstLeakingIndex]
-          val updatedLabels = firstLeakingLeakTraceObject.labels.toMutableSet()
-          subLeakedIds.forEach { subLeakedId ->
-            val subLeakedObject = graph.findObjectById(subLeakedId)
-            val subLeakedClassName = when (subLeakedObject) {
-              is HeapClass -> subLeakedObject.name
-              is HeapInstance -> subLeakedObject.instanceClassName
-              is HeapObjectArray -> subLeakedObject.arrayClassName
-              is HeapPrimitiveArray -> subLeakedObject.arrayClassName
-            }
-            updatedLabels.add(
-              "Also retains leaking object 0x${subLeakedId.toString(16)} ($subLeakedClassName)"
-            )
+      // Add sub-leaked labels to the leaking object node if applicable
+      val subLeakedIds = leakedToSubLeaked[leakingObjectId]
+      val finalLeakTraceObjects = if (subLeakedIds != null) {
+        val leakingNodeIndex = inspectedObjects.size - 1
+        val leakingLeakTraceObject = leakTraceObjects[leakingNodeIndex]
+        val updatedLabels = leakingLeakTraceObject.labels.toMutableSet()
+        subLeakedIds.forEach { subLeakedId ->
+          val subLeakedObject = graph.findObjectById(subLeakedId)
+          val subLeakedClassName = when (subLeakedObject) {
+            is HeapClass -> subLeakedObject.name
+            is HeapInstance -> subLeakedObject.instanceClassName
+            is HeapObjectArray -> subLeakedObject.arrayClassName
+            is HeapPrimitiveArray -> subLeakedObject.arrayClassName
           }
-          // Rebuild leakTraceObjects with updated labels for the first leaking node
-          val updatedLeakTraceObjects = leakTraceObjects.toMutableList()
-          updatedLeakTraceObjects[firstLeakingIndex] = firstLeakingLeakTraceObject.copy(
-            labels = updatedLabels
+          updatedLabels.add(
+            "Also retains leaking object 0x${subLeakedId.toString(16)} ($subLeakedClassName)"
           )
-          val referencePath = buildReferencePath(shortestPath, updatedLeakTraceObjects)
-          val leakTrace = LeakTrace(
-            gcRootType = GcRootType.fromGcRoot(shortestPath.root.gcRoot),
-            referencePath = referencePath,
-            leakingObject = updatedLeakTraceObjects.last()
-          )
-          val firstLibraryLeakMatcher = shortestPath.firstLibraryLeakMatcher()
-          if (firstLibraryLeakMatcher != null) {
-            val signature: String = firstLibraryLeakMatcher.pattern.toString().createSHA1Hash()
-            libraryLeaksMap.getOrPut(signature) { firstLibraryLeakMatcher to mutableListOf() }
-              .second += leakTrace
-          } else {
-            applicationLeaksMap.getOrPut(leakTrace.signature) { mutableListOf() } += leakTrace
-          }
-          return@forEachIndexed
         }
+        val updatedList = leakTraceObjects.toMutableList()
+        updatedList[leakingNodeIndex] = leakingLeakTraceObject.copy(labels = updatedLabels)
+        updatedList
+      } else {
+        leakTraceObjects
       }
 
-      val referencePath = buildReferencePath(shortestPath, leakTraceObjects)
-
+      val referencePath = buildReferencePath(shortestPath, finalLeakTraceObjects)
       val leakTrace = LeakTrace(
         gcRootType = GcRootType.fromGcRoot(shortestPath.root.gcRoot),
         referencePath = referencePath,
-        leakingObject = leakTraceObjects.last()
+        leakingObject = finalLeakTraceObjects.last()
       )
 
       val firstLibraryLeakMatcher = shortestPath.firstLibraryLeakMatcher()
       if (firstLibraryLeakMatcher != null) {
-        val signature: String = firstLibraryLeakMatcher.pattern.toString()
-          .createSHA1Hash()
+        val signature: String = firstLibraryLeakMatcher.pattern.toString().createSHA1Hash()
         libraryLeaksMap.getOrPut(signature) { firstLibraryLeakMatcher to mutableListOf() }
           .second += leakTrace
       } else {
@@ -406,10 +319,18 @@ class RealLeakTracerFactory constructor(
     }
   }
 
+  /**
+   * Builds [LeakTraceObject] list from [inspectedObjects].
+   *
+   * [retainedSizes] is keyed by leaked object id. Only the node at [leakingNodeIndex] gets
+   * retained size applied (the terminal leaked object, whose object id is the leaked object id).
+   *
+   * If [retainedSizes] is null or the lookup fails, retained size fields are null.
+   */
   private fun buildLeakTraceObjects(
     inspectedObjects: List<InspectedObject>,
     retainedSizes: MutableLongLongMap?,
-    firstLeakingIndex: Int
+    leakingNodeIndex: Int
   ): List<LeakTraceObject> {
     return inspectedObjects.mapIndexed { index, inspectedObject ->
       val heapObject = inspectedObject.heapObject
@@ -424,11 +345,11 @@ class RealLeakTracerFactory constructor(
       var retainedHeapByteSize: Int? = null
       var retainedObjectCount: Int? = null
 
-      // Only apply retained size to the first LEAKING node
-      if (retainedSizes != null && index == firstLeakingIndex) {
+      // Only apply retained size to the leaking node (last node in path = leaked object id)
+      if (retainedSizes != null && index == leakingNodeIndex) {
+        val objectId = inspectedObject.heapObject.objectId
         val missing = -1 packedWith -1
-        val retainedSizeAndObjectCount =
-          retainedSizes.getOrDefault(inspectedObject.heapObject.objectId, missing)
+        val retainedSizeAndObjectCount = retainedSizes.getOrDefault(objectId, missing)
         if (retainedSizeAndObjectCount != missing) {
           retainedHeapByteSize = retainedSizeAndObjectCount.unpackAsFirstInt
           retainedObjectCount = retainedSizeAndObjectCount.unpackAsSecondInt
