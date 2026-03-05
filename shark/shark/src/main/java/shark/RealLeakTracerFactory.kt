@@ -98,16 +98,18 @@ class RealLeakTracerFactory constructor(
     // Phase 2: sequential BFS from each found leaked object id.
     // This finds sub-leaked objects and computes retained sizes.
     // Must run before findUnreachableObjects (needs subLeakedObjectPaths).
-    val (retainedSizes, updatedResults) = if (shortestPathFinder is PrioritizingShortestPathFinder) {
+    val retainedSizeResults = if (shortestPathFinder is PrioritizingShortestPathFinder) {
       val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
       shortestPathFinder.computeRetainedSizes(pathFindingResults, objectSizeCalculator)
     } else {
-      MutableLongLongMap() to pathFindingResults
+      null
     }
+    val retainedSizes = retainedSizeResults?.retainedSizes ?: MutableLongLongMap()
+    val subLeakedObjectPaths = retainedSizeResults?.subLeakedObjectPaths ?: emptyMap()
 
-    val unreachableObjects = findUnreachableObjects(updatedResults, leakingObjectIds)
+    val unreachableObjects = findUnreachableObjects(pathFindingResults, leakingObjectIds, subLeakedObjectPaths)
 
-    val shortestPaths = buildShortestPaths(updatedResults.pathsToLeakingObjects)
+    val shortestPaths = buildShortestPaths(pathFindingResults.pathsToLeakingObjects)
 
     val inspectedObjectsByPath = inspectObjects(shortestPaths)
 
@@ -118,19 +120,20 @@ class RealLeakTracerFactory constructor(
     }
 
     val (applicationLeaks, libraryLeaks) = buildLeakTraces(
-      shortestPaths, inspectedObjectsByPath, retainedSizes, updatedResults.subLeakedObjectPaths
+      shortestPaths, inspectedObjectsByPath, retainedSizes, subLeakedObjectPaths
     )
     return LeaksAndUnreachableObjects(applicationLeaks, libraryLeaks, unreachableObjects)
   }
 
   private fun FindLeakInput.findUnreachableObjects(
     pathFindingResults: PathFindingResults,
-    leakingObjectIds: Set<Long>
+    leakingObjectIds: Set<Long>,
+    subLeakedObjectPaths: Map<Long, List<Long>>
   ): List<LeakTraceObject> {
     val reachableLeakingObjectIds =
       pathFindingResults.pathsToLeakingObjects.map { it.objectId }.toSet()
     // Also objects reachable via secondary BFS (sub-leaked objects) are not truly unreachable
-    val subLeakedObjectIds = pathFindingResults.subLeakedObjectPaths.keys
+    val subLeakedObjectIds = subLeakedObjectPaths.keys
 
     val unreachableLeakingObjectIds = leakingObjectIds - reachableLeakingObjectIds - subLeakedObjectIds
 

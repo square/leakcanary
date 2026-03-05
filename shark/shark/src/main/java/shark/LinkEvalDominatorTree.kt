@@ -56,7 +56,7 @@ class LinkEvalDominatorTree(
 ) {
 
   fun compute(
-    objectSizeCalculator: DominatorTree.ObjectSizeCalculator
+    objectSizeCalculator: ObjectSizeCalculator
   ): Map<Long, DominatorNode> {
     val referenceReader = referenceReaderFactory.createFor(graph)
     val objectCount = graph.objectCount

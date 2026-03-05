@@ -32,14 +32,14 @@ import shark.internal.unpackAsSecondInt
  *
  * @deprecated For an exact dominator tree, use [LinkEvalDominatorTree] instead.
  */
+fun interface ObjectSizeCalculator {
+  fun computeSize(objectId: Long): Int
+}
+
 @Deprecated("Use LinkEvalDominatorTree for an exact dominator tree.")
 class DominatorTree(
   expectedElements: Int = 4
 ) {
-
-  fun interface ObjectSizeCalculator {
-    fun computeSize(objectId: Long): Int
-  }
 
   /**
    * Map of objects to their dominator.

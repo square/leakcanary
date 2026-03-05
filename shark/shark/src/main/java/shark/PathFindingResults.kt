@@ -13,14 +13,13 @@ class PathFindingResults internal constructor(
    * as leaves). Objects in this set are independently reachable from GC roots and should NOT
    * be attributed to any leaked node's retained size.
    *
-   * This is kept as a [LongScatterSet] internally to avoid copying. It is not part of the
-   * public API surface.
+   * Kept as a [LongScatterSet] internally to avoid copying. Not part of the public API surface.
    */
   internal val visitedSet: LongScatterSet,
   /**
-   * Map of sub-leaked object id → list of parent leaked object ids that can reach it.
-   * Only populated after [PrioritizingShortestPathFinder.computeRetainedSizes] is called.
-   * Empty when first returned from [ShortestPathFinder.findShortestPathsFromGcRoots].
+   * The original set of leaking object ids passed to [ShortestPathFinder.findShortestPathsFromGcRoots].
+   * Kept internally so [PrioritizingShortestPathFinder.computeRetainedSizes] can determine which
+   * leaked objects were not found in Phase 1 (reachable only through other leaked objects).
    */
-  val subLeakedObjectPaths: Map<Long, List<Long>>,
+  internal val leakingObjectIds: LongScatterSet,
 )
