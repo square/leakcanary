@@ -105,6 +105,7 @@ class HeapAnalyzer constructor(
   // Ideally the result contains only what this can return. No file, etc.
   // File: used to create the graph + in result
   // leakingObjectFinder: Helper object, shared
+  // computeRetainedHeapSize: boolean param for single analysis
   // referenceMatchers: param?. though honestly not great.
   // objectInspectors: Helper object.
   // metadataExtractor: helper object, not needed for leak finding

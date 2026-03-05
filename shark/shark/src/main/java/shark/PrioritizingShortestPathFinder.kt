@@ -114,6 +114,11 @@ class PrioritizingShortestPathFinder private constructor(
      */
     val visitedSet = LongScatterSet(estimatedVisitedObjects)
 
+    /**
+     * A marker for when we're done exploring the graph of higher priority references and start
+     * visiting the lower priority references, at which point we won't add any reference to
+     * the high priority queue anymore.
+     */
     var visitingLast = false
   }
 
@@ -121,6 +126,8 @@ class PrioritizingShortestPathFinder private constructor(
     leakingObjectIds: Set<Long>
   ): PathFindingResults {
     listener.onEvent(StartedFindingPathsToRetainedObjects)
+    // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
+    // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
 
     val state = State(
@@ -163,6 +170,8 @@ class PrioritizingShortestPathFinder private constructor(
       val heapObject = try {
         graph.findObjectById(node.objectId)
       } catch (objectIdNotFound: IllegalArgumentException) {
+        // This should never happen (a heap should only have references to objects that exist)
+        // but when it does happen, let's at least display how we got there.
         throw RuntimeException(graph.invalidObjectIdErrorMessage(node), objectIdNotFound)
       }
       objectReferenceReader.read(heapObject).forEach { reference ->
@@ -333,6 +342,7 @@ class PrioritizingShortestPathFinder private constructor(
             node.objectId in toVisitLastSet
 
         if (bumpPriority) {
+          // Move from "visit last" to "visit first" queue.
           toVisitQueue.add(node)
           toVisitSet.add(node.objectId)
           val nodeToRemove = toVisitLastQueue.first { it.objectId == node.objectId }
