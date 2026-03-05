@@ -160,7 +160,9 @@ class PrioritizingShortestPathFinder private constructor(
         MutableLongLongMap(leakingObjectIds.size()).also { map ->
           leakingObjectIds.elementSequence().forEach { id -> map[id] = 0 packedWith 0 }
         }
-      } else null
+      } else {
+        null
+      }
       val phase1SeedIds = shortestPathsToLeakingObjects.map { it.objectId }.toHashSet()
       leakingObjectIds.elementSequence().forEach { id ->
         if (id !in phase1SeedIds) notYetFoundLeakingIds.add(id)
