@@ -37,14 +37,12 @@ import shark.internal.unpackAsSecondInt
  *
  * ## Phase 2 — retained size BFS
  *
- * Uses the same visited set and outer loop as Phase 1, advancing to the next seed whenever the
- * current seed's BFS queue drains. For each seed:
- * - The seed's own shallow size is attributed directly (it is already in the visited set from
- *   Phase 1, so only its children are enqueued into the Phase 2 queue)
- * - Shallow size of each newly visited child is attributed to this seed
+ * Processes found leaked object ids **one at a time**. For each seed:
+ * - BFS from it, extending R₀ as objects are visited
+ * - Shallow size of each newly visited object is attributed to this seed
  *   (only when [Factory.objectSizeCalculatorFactory] is non-null)
- * - Other Phase 1 seeds are naturally skipped: they remain in the visited set from Phase 1,
- *   so the visited-set check prevents re-exploration and treats them as leaves
+ * - Other Phase 1 seeds encountered are skipped (treated as leaves — they will be processed
+ *   in their own turn, preserving first-BFS-wins attribution)
  * - Leaked object ids not found in Phase 1 that are encountered become **sub-leaked** objects
  *   of the current seed, and their subgraphs continue to be explored under the current seed
  *
@@ -104,9 +102,9 @@ class PrioritizingShortestPathFinder private constructor(
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
 
     /**
-     * Tracks all objects visited across both phases. Phase 1 seeds remain in this set throughout
-     * Phase 2; the visited-set check naturally prevents re-exploration of any seed encountered
-     * during another seed's BFS.
+     * Tracks all objects enqueued during Phase 1. After Phase 1, leaked object ids are removed
+     * so that R₀ does not include them — they are seeds for Phase 2 and must not be pre-excluded
+     * from retained size attribution.
      */
     val visitedSet = LongScatterSet(estimatedVisitedObjects)
 
@@ -147,117 +145,125 @@ class PrioritizingShortestPathFinder private constructor(
     val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
     val foundLeakingObjectIds = LongScatterSet()
 
-    val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
-    val phase2Queue = ArrayDeque<Long>()
-    var currentSeedId = ValueHolder.NULL_REFERENCE
-    var retainedSizes: MutableLongLongMap? = null
-    val notYetFoundLeakingIds = mutableSetOf<Long>()
-    // null = Phase 1 not yet complete; non-null = Phase 2 in progress.
-    var seedsIterator: Iterator<ReferencePathNode>? = null
+    // Phase 1: BFS from GC roots, leaked objects treated as leaves.
+    visitingQueue@ while (queuesNotEmpty) {
+      val node = poll()
 
-    fun transitionToPhase2() {
-      retainedSizes = if (objectSizeCalculator != null) {
-        MutableLongLongMap(leakingObjectIds.size()).also { map ->
-          leakingObjectIds.elementSequence().forEach { id -> map[id] = 0 packedWith 0 }
+      if (leakingObjectIds.contains(node.objectId)) {
+        shortestPathsToLeakingObjects.add(node)
+        foundLeakingObjectIds.add(node.objectId)
+        val allFound = foundLeakingObjectIds.size() == leakingObjectIds.size()
+        if (allFound && objectSizeCalculator == null) {
+          // All leaked objects found and retained size not needed: stop immediately.
+          break@visitingQueue
         }
-      } else null
-      val phase1SeedIds = shortestPathsToLeakingObjects.map { it.objectId }.toHashSet()
-      leakingObjectIds.elementSequence().forEach { id ->
-        if (id !in phase1SeedIds) notYetFoundLeakingIds.add(id)
+        // Treat leaked objects as leaves: do NOT enqueue their children.
+        continue@visitingQueue
       }
-      seedsIterator = shortestPathsToLeakingObjects.iterator()
-    }
 
-    // Attributes the shallow size of objectId to currentSeedId and enqueues its children.
-    // Phase 1 seeds in visitedSet are naturally skipped by the visitedSet check.
-    fun processPhase2Object(objectId: Long) {
-      val rs = retainedSizes
-      if (rs != null && objectSizeCalculator != null) {
-        val shallowSize = objectSizeCalculator.computeSize(objectId)
-        val current = rs.getOrDefault(currentSeedId, 0 packedWith 0)
-        rs[currentSeedId] =
-          (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
-      }
       val heapObject = try {
-        graph.findObjectById(objectId)
-      } catch (_: IllegalArgumentException) {
-        return
+        graph.findObjectById(node.objectId)
+      } catch (objectIdNotFound: IllegalArgumentException) {
+        // This should never happen (a heap should only have references to objects that exist)
+        // but when it does happen, let's at least display how we got there.
+        throw RuntimeException(graph.invalidObjectIdErrorMessage(node), objectIdNotFound)
       }
       objectReferenceReader.read(heapObject).forEach { reference ->
-        val refId = reference.valueObjectId
-        if (refId == ValueHolder.NULL_REFERENCE) return@forEach
-        // A leaked object only reachable through other leaked objects (not found in Phase 1):
-        // record as sub-leaked, remove from the not-yet-found set, and continue exploring
-        // its subgraph under the current seed.
-        if (refId in notYetFoundLeakingIds) {
-          notYetFoundLeakingIds.remove(refId)
-          subLeakedObjectPaths.getOrPut(currentSeedId) { mutableListOf() }.add(refId)
-          if (visitedSet.add(refId)) phase2Queue.add(refId)
-          return@forEach
-        }
-        // Skip objects already in R₀ or already attributed to a previous seed.
-        // Phase 1 seeds still in visitedSet are also skipped here, treating them as leaves.
-        if (!visitedSet.add(refId)) return@forEach
-        phase2Queue.add(refId)
+        val newNode = ChildNode(
+          objectId = reference.valueObjectId,
+          parent = node,
+          lazyDetailsResolver = reference.lazyDetailsResolver
+        )
+        enqueue(
+          node = newNode,
+          isLowPriority = reference.isLowPriority,
+          isLeafObject = reference.isLeafObject
+        )
       }
     }
 
-    while (true) {
-      val iter = seedsIterator
-      if (iter == null) {
-        // Phase 1: BFS from GC roots, leaked objects treated as leaves.
-        if (queuesNotEmpty) {
-          val node = poll()
-          if (leakingObjectIds.contains(node.objectId)) {
-            shortestPathsToLeakingObjects.add(node)
-            foundLeakingObjectIds.add(node.objectId)
-            val allFound = foundLeakingObjectIds.size() == leakingObjectIds.size()
-            if (allFound && objectSizeCalculator == null) {
-              // All leaked objects found and retained size not needed: transition immediately.
-              transitionToPhase2()
-            }
-            // Treat leaked objects as leaves: do NOT enqueue their children.
-          } else {
-            val heapObject = try {
-              graph.findObjectById(node.objectId)
-            } catch (objectIdNotFound: IllegalArgumentException) {
-              // This should never happen (a heap should only have references to objects that exist)
-              // but when it does happen, let's at least display how we got there.
-              throw RuntimeException(graph.invalidObjectIdErrorMessage(node), objectIdNotFound)
-            }
-            objectReferenceReader.read(heapObject).forEach { reference ->
-              enqueue(
-                node = ChildNode(
-                  objectId = reference.valueObjectId,
-                  parent = node,
-                  lazyDetailsResolver = reference.lazyDetailsResolver
-                ),
-                isLowPriority = reference.isLowPriority,
-                isLeafObject = reference.isLeafObject
-              )
-            }
-          }
-        } else {
-          // Phase 1 queues drained naturally: transition to Phase 2.
-          transitionToPhase2()
+    // Remove leaked object ids from R₀. They will be seeds in Phase 2 and must
+    // not be pre-excluded from retained size attribution.
+    leakingObjectIds.elementSequence().forEach { visitedSet.remove(it) }
+
+    // Phase 2: Sequential BFS from each found leaked object id, computing retained sizes
+    // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
+    val retainedSizes = if (objectSizeCalculator != null) {
+      MutableLongLongMap(leakingObjectIds.size()).also { map ->
+        leakingObjectIds.elementSequence().forEach { id -> map[id] = 0 packedWith 0 }
+      }
+    } else {
+      null
+    }
+
+    val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
+
+    val phase1SeedIds = shortestPathsToLeakingObjects.map { it.objectId }.toHashSet()
+
+    // Leaked objects not found in Phase 1: only reachable through other leaked objects.
+    val notYetFoundLeakingIds = mutableSetOf<Long>()
+    leakingObjectIds.elementSequence().forEach { id ->
+      if (id !in phase1SeedIds) notYetFoundLeakingIds.add(id)
+    }
+
+    // Phase 1 seeds not yet processed — used to detect when another Phase 1 seed is
+    // encountered during the current seed's BFS (treat it as a leaf, let it be its own seed).
+    val unprocessedSeedIds = phase1SeedIds.toMutableSet()
+
+    for (seedPathNode in shortestPathsToLeakingObjects) {
+      val seedId = seedPathNode.objectId
+      unprocessedSeedIds.remove(seedId)
+
+      val bfsQueue = ArrayDeque<Long>()
+      // The seed itself was removed from R₀ at the end of Phase 1; add it back now.
+      visitedSet.add(seedId)
+      bfsQueue.add(seedId)
+
+      while (bfsQueue.isNotEmpty()) {
+        val objectId = bfsQueue.poll()
+
+        if (retainedSizes != null && objectSizeCalculator != null) {
+          val shallowSize = objectSizeCalculator.computeSize(objectId)
+          val current = retainedSizes.getOrDefault(seedId, 0 packedWith 0)
+          retainedSizes[seedId] =
+            (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
         }
-        continue
+
+        val heapObject = try {
+          graph.findObjectById(objectId)
+        } catch (_: IllegalArgumentException) {
+          continue
+        }
+
+        objectReferenceReader.read(heapObject).forEach { reference ->
+          val refId = reference.valueObjectId
+          if (refId == ValueHolder.NULL_REFERENCE) return@forEach
+
+          // Another Phase 1 seed: treat as leaf. It will be processed as its own seed and
+          // must not have its subgraph attributed to the current seed.
+          if (refId in unprocessedSeedIds) return@forEach
+
+          // A leaked object only reachable through other leaked objects (not found in Phase 1):
+          // record as sub-leaked, remove from the not-yet-found set, and continue exploring
+          // its subgraph under the current seed.
+          if (refId in notYetFoundLeakingIds) {
+            notYetFoundLeakingIds.remove(refId)
+            subLeakedObjectPaths.getOrPut(seedId) { mutableListOf() }.add(refId)
+            if (visitedSet.add(refId)) {
+              bfsQueue.add(refId)
+            }
+            return@forEach
+          }
+
+          // Skip objects already in R₀ or already attributed to a previous seed.
+          if (!visitedSet.add(refId)) return@forEach
+          bfsQueue.add(refId)
+        }
       }
 
-      // Phase 2: process next object for currentSeedId, or advance to the next seed.
-      if (phase2Queue.isNotEmpty()) {
-        processPhase2Object(phase2Queue.poll())
-        continue
-      }
-
-      // Current seed's queue drained: stop if done, otherwise advance to next seed.
+      // If we only need to find remaining leaked objects (not compute sizes), stop as soon as
+      // all leaked object ids have been found.
       if (objectSizeCalculator == null && notYetFoundLeakingIds.isEmpty()) break
-      if (!iter.hasNext()) break
-
-      // Advance to next seed. The seed is already in visitedSet from Phase 1, so attribute
-      // its own shallow size directly and enqueue only its children.
-      currentSeedId = iter.next().objectId
-      processPhase2Object(currentSeedId)
     }
 
     return PathFindingResults(
