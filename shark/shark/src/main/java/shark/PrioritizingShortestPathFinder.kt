@@ -30,9 +30,9 @@ import shark.internal.unpackAsSecondInt
  * set at the end of this phase is **R₀** — all objects reachable from GC roots without passing
  * through any leaked object.
  *
- * Stopping depends on [Factory.computeRetainedHeapSize]:
- * - `false` and all N found before queues empty → stop immediately (R₀ need not be complete)
- * - `true` or queues empty before all N found → drain both queues to build a complete R₀,
+ * Stopping depends on [Factory.objectSizeCalculatorFactory]:
+ * - `null` and all N found before queues empty → stop immediately (R₀ need not be complete)
+ * - non-null or queues empty before all N found → drain both queues to build a complete R₀,
  *   then Phase 2 handles finding remaining leaked objects and sizing.
  *
  * ## Phase 2 — retained size BFS
@@ -46,15 +46,14 @@ import shark.internal.unpackAsSecondInt
  * - Leaked object ids not found in Phase 1 that are encountered become **sub-leaked** objects
  *   of the current seed, and their subgraphs continue to be explored under the current seed
  *
- * If `computeRetainedHeapSize=false`, Phase 2 only runs to find any remaining leaked objects;
- * it stops as soon as all leaked object ids have been accounted for.
+ * If [Factory.objectSizeCalculatorFactory] is null, Phase 2 only runs to find any remaining
+ * leaked objects; it stops as soon as all leaked object ids have been accounted for.
  */
 class PrioritizingShortestPathFinder private constructor(
   private val graph: HeapGraph,
   private val listener: Event.Listener,
   private val objectReferenceReader: ReferenceReader<HeapObject>,
   private val gcRootProvider: GcRootProvider,
-  private val computeRetainedHeapSize: Boolean,
   private val objectSizeCalculator: ObjectSizeCalculator?,
 ) : ShortestPathFinder {
 
@@ -63,15 +62,11 @@ class PrioritizingShortestPathFinder private constructor(
     private val referenceReaderFactory: ReferenceReader.Factory<HeapObject>,
     private val gcRootProvider: GcRootProvider,
     /**
-     * When true, Phase 1 drains both queues to build a complete R₀, and Phase 2 computes
-     * retained heap size for each leaked object id (requires [objectSizeCalculatorFactory]).
-     * When false, Phase 1 stops as soon as all leaked objects are found, and Phase 2 only
+     * When non-null, Phase 1 drains both queues to build a complete R₀, and Phase 2 computes
+     * retained heap size for each leaked object id.
+     * When null, Phase 1 stops as soon as all leaked objects are found, and Phase 2 only
      * runs to discover sub-leaked objects.
-     */
-    val computeRetainedHeapSize: Boolean,
-    /**
-     * Factory for [ObjectSizeCalculator]. Required when [computeRetainedHeapSize] is true;
-     * ignored otherwise. Called once per [HeapGraph] to create the calculator.
+     * Called once per [HeapGraph] to create the calculator.
      */
     val objectSizeCalculatorFactory: ObjectSizeCalculator.Factory? = null,
   ) : ShortestPathFinder.Factory {
@@ -81,7 +76,6 @@ class PrioritizingShortestPathFinder private constructor(
         listener = listener,
         objectReferenceReader = referenceReaderFactory.createFor(heapGraph),
         gcRootProvider = gcRootProvider,
-        computeRetainedHeapSize = computeRetainedHeapSize,
         objectSizeCalculator = objectSizeCalculatorFactory?.createFor(heapGraph),
       )
     }
@@ -159,7 +153,7 @@ class PrioritizingShortestPathFinder private constructor(
         shortestPathsToLeakingObjects.add(node)
         foundLeakingObjectIds.add(node.objectId)
         val allFound = foundLeakingObjectIds.size() == leakingObjectIds.size()
-        if (allFound && !computeRetainedHeapSize) {
+        if (allFound && objectSizeCalculator == null) {
           // All leaked objects found and retained size not needed: stop immediately.
           break@visitingQueue
         }
@@ -228,7 +222,7 @@ class PrioritizingShortestPathFinder private constructor(
       while (bfsQueue.isNotEmpty()) {
         val objectId = bfsQueue.poll()
 
-        if (objectSizeCalculator != null && retainedSizes != null) {
+        if (retainedSizes != null && objectSizeCalculator != null) {
           val shallowSize = objectSizeCalculator.computeSize(objectId)
           val current = retainedSizes.getOrDefault(seedId, 0 packedWith 0)
           retainedSizes[seedId] =
@@ -269,7 +263,7 @@ class PrioritizingShortestPathFinder private constructor(
 
       // If we only need to find remaining leaked objects (not compute sizes), stop as soon as
       // all leaked object ids have been found.
-      if (!computeRetainedHeapSize && notYetFoundLeakingIds.isEmpty()) break
+      if (objectSizeCalculator == null && notYetFoundLeakingIds.isEmpty()) break
     }
 
     return PathFindingResults(
