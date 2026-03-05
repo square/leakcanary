@@ -17,7 +17,6 @@
 
 package shark
 
-import androidx.collection.LongLongMap
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -39,9 +38,6 @@ import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.createSHA1Hash
 import shark.internal.lastSegment
-import shark.internal.packedWith
-import shark.internal.unpackAsFirstInt
-import shark.internal.unpackAsSecondInt
 
 // TODO kdoc
 // TODO better name than "real"
@@ -199,7 +195,7 @@ class RealLeakTracerFactory constructor(
   private fun FindLeakInput.buildLeakTraces(
     shortestPaths: List<ShortestPath>,
     inspectedObjectsByPath: List<List<InspectedObject>>,
-    retainedSizes: LongLongMap?,
+    retainedSizes: Map<Long, Long>?,
     subLeakedObjectPaths: Map<Long, List<Long>>,
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
     listener.onEvent(StartedBuildingLeakTraces)
@@ -310,7 +306,7 @@ class RealLeakTracerFactory constructor(
    */
   private fun buildLeakTraceObjects(
     inspectedObjects: List<InspectedObject>,
-    retainedSizes: LongLongMap?,
+    retainedSizes: Map<Long, Long>?,
     leakingNodeIndex: Int
   ): List<LeakTraceObject> {
     return inspectedObjects.mapIndexed { index, inspectedObject ->
@@ -324,16 +320,13 @@ class RealLeakTracerFactory constructor(
       }
 
       var retainedHeapByteSize: Int? = null
-      var retainedObjectCount: Int? = null
 
       // Only apply retained size to the leaking node (last node in path = leaked object id)
       if (retainedSizes != null && index == leakingNodeIndex) {
         val objectId = inspectedObject.heapObject.objectId
-        val missing = -1 packedWith -1
-        val retainedSizeAndObjectCount = retainedSizes.getOrDefault(objectId, missing)
-        if (retainedSizeAndObjectCount != missing) {
-          retainedHeapByteSize = retainedSizeAndObjectCount.unpackAsFirstInt
-          retainedObjectCount = retainedSizeAndObjectCount.unpackAsSecondInt
+        val retainedByteSize = retainedSizes[objectId]
+        if (retainedByteSize != null) {
+          retainedHeapByteSize = retainedByteSize.toInt()
         }
       }
 
@@ -344,7 +337,7 @@ class RealLeakTracerFactory constructor(
         leakingStatus = inspectedObject.leakingStatus,
         leakingStatusReason = inspectedObject.leakingStatusReason,
         retainedHeapByteSize = retainedHeapByteSize,
-        retainedObjectCount = retainedObjectCount
+        retainedObjectCount = null
       )
     }
   }

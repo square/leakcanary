@@ -2,7 +2,6 @@
 
 package shark
 
-import androidx.collection.MutableLongLongMap
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
@@ -12,9 +11,6 @@ import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongScatterSet
 import shark.internal.invalidObjectIdErrorMessage
-import shark.internal.packedWith
-import shark.internal.unpackAsFirstInt
-import shark.internal.unpackAsSecondInt
 
 /**
  * Not thread safe.
@@ -189,8 +185,8 @@ class PrioritizingShortestPathFinder private constructor(
     // Phase 2: Sequential BFS from each found leaked object id, computing retained sizes
     // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
     val retainedSizes = if (objectSizeCalculator != null) {
-      MutableLongLongMap(leakingObjectIds.size()).also { map ->
-        leakingObjectIds.elementSequence().forEach { id -> map[id] = 0 packedWith 0 }
+      mutableMapOf<Long, Long>().also { map ->
+        leakingObjectIds.elementSequence().forEach { id -> map[id] = 0L }
       }
     } else {
       null
@@ -224,9 +220,7 @@ class PrioritizingShortestPathFinder private constructor(
 
         if (retainedSizes != null && objectSizeCalculator != null) {
           val shallowSize = objectSizeCalculator.computeSize(objectId)
-          val current = retainedSizes.getOrDefault(seedId, 0 packedWith 0)
-          retainedSizes[seedId] =
-            (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
+          retainedSizes[seedId] = (retainedSizes[seedId] ?: 0L) + shallowSize
         }
 
         val heapObject = try {
