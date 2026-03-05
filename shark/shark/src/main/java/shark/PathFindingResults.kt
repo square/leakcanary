@@ -4,7 +4,7 @@ import androidx.collection.LongLongMap
 import shark.internal.ReferencePathNode
 
 // TODO Class name
-class PathFindingResults internal constructor(
+class PathFindingResults(
   val pathsToLeakingObjects: List<ReferencePathNode>,
   /**
    * Map of leaked object id → packed (retainedBytes, retainedCount).

@@ -48,9 +48,9 @@ class HprofRetainedHeapPerfTest {
       baselineHeap to heapWithIndex
     }
 
-    val (analysisRetained, _) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
+    val analysisRetained = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
 
-    val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
+    val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD)
 
     assertThat(retained).isEqualTo(4.5 MB +-5 % margin)
   }
@@ -65,9 +65,9 @@ class HprofRetainedHeapPerfTest {
       baselineHeap to heapWithIndex
     }
 
-    val (analysisRetained, _) = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
+    val analysisRetained = heapWithIndex.retainedHeap(ANALYSIS_THREAD)
 
-    val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
+    val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD)
 
     assertThat(retained).isEqualTo(4.4 MB +-5 % margin)
   }
@@ -103,10 +103,9 @@ class HprofRetainedHeapPerfTest {
       baselineHeap
     }
 
-    val retainedBeforeAnalysis = baselineHeap.retainedHeap(ANALYSIS_THREAD).first
+    val retainedBeforeAnalysis = baselineHeap.retainedHeap(ANALYSIS_THREAD)
     val retained = stepsToHeapDumpFile.mapValues {
-      val retainedPair = it.value.retainedHeap(ANALYSIS_THREAD, computeDominators = true)
-      retainedPair.first - retainedBeforeAnalysis to retainedPair.second
+      it.value.retainedHeap(ANALYSIS_THREAD) - retainedBeforeAnalysis
     }
 
     assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(4.98 MB +-10 % margin)
@@ -159,14 +158,12 @@ class HprofRetainedHeapPerfTest {
     return result
   }
 
-  private infix fun Map<OnAnalysisProgressListener.Step, Pair<Bytes, String>>.after(step: OnAnalysisProgressListener.Step): Pair<Bytes, String> {
+  private infix fun Map<OnAnalysisProgressListener.Step, Bytes>.after(step: OnAnalysisProgressListener.Step): Bytes {
     val values = OnAnalysisProgressListener.Step.values()
     for (nextOrdinal in step.ordinal + 1 until values.size) {
-      val pair = this[values[nextOrdinal]]
-      if (pair != null) {
-        val (nextStepRetained, dominatorTree) = pair
-
-        return nextStepRetained to "\n$nextStepRetained retained by analysis thread after step ${step.name} not valid\n" + dominatorTree
+      val bytes = this[values[nextOrdinal]]
+      if (bytes != null) {
+        return bytes
       }
     }
     error("No step in $this after $step")
@@ -174,11 +171,10 @@ class HprofRetainedHeapPerfTest {
 
   private fun File.retainedHeap(
     threadName: String,
-    computeDominators: Boolean = false
-  ): Pair<Bytes, String> {
+  ): Bytes {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
 
-    val (analysis, dominatorTree) = openHeapGraph().use { graph ->
+    val analysis = openHeapGraph().use { graph ->
       val analysis = heapAnalyzer.analyze(
         heapDumpFile = this,
         graph = graph,
@@ -199,20 +195,10 @@ class HprofRetainedHeapPerfTest {
       check(analysis is HeapAnalysisSuccess) {
         "Expected success not $analysis"
       }
-
-      val dominatorTree = if (computeDominators) {
-        val weakAndFinalizerRefs = EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
-        val ignoredRefs = ReferenceMatcher.fromListBuilders(weakAndFinalizerRefs).map { matcher ->
-          matcher as IgnoredReferenceMatcher
-        }
-        ObjectDominators().renderDominatorTree(
-          graph, ignoredRefs, 200, threadName, true
-        )
-      } else ""
-      analysis to dominatorTree
+      analysis
     }
 
-    return analysis.applicationLeaks.single().leakTraces.single().retainedHeapByteSize!!.bytes to dominatorTree
+    return analysis.applicationLeaks.single().leakTraces.single().retainedHeapByteSize!!.bytes
   }
 
   class BytesAssert(
@@ -236,8 +222,6 @@ class HprofRetainedHeapPerfTest {
   }
 
   private fun assertThat(bytes: Bytes) = BytesAssert(bytes, "")
-
-  private fun assertThat(pair: Pair<Bytes, String>) = BytesAssert(pair.first, pair.second)
 
   data class Bytes(val count: Int)
 

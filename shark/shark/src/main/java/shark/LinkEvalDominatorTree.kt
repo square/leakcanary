@@ -2,7 +2,14 @@
 
 package shark
 
-import shark.ObjectDominators.DominatorNode
+import java.io.Serializable
+
+data class DominatorNode(
+  val shallowSize: Int,
+  val retainedSize: Int,
+  val retainedCount: Int,
+  val dominatedObjectIds: List<Long>
+) : Serializable
 
 /**
  * Computes an exact dominator tree using the Lengauer-Tarjan algorithm with link-eval
@@ -10,9 +17,7 @@ import shark.ObjectDominators.DominatorNode
  * `perflib/.../LinkEvalDominators.kt` (Apache 2.0,
  * http://adambuchsbaum.com/papers/dom-toplas.pdf).
  *
- * Unlike [DominatorTree], which builds an approximate dominator tree incrementally during
- * BFS and can leave dominators too specific when cross-edges are processed with stale
- * parent dominators, this class performs a dedicated pass and produces always-exact results.
+ * This class performs a dedicated pass and produces always-exact results.
  *
  * ## Algorithm (4 phases)
  *
@@ -32,8 +37,8 @@ import shark.ObjectDominators.DominatorNode
  * The link-eval `compress` function is iterative (not recursive) to avoid stack overflow on
  * heap graphs with deep object chains.
  *
- * **Phase 4 — retained sizes**: maps DFN results back to object IDs, populates a
- * [DominatorTree] instance, and delegates to [DominatorTree.buildFullDominatorTree].
+ * **Phase 4 — retained sizes**: maps DFN results back to object IDs and builds a
+ * `Map<Long, DominatorNode>` with retained sizes computed bottom-up.
  *
  * ## Memory design
  *
@@ -47,7 +52,7 @@ import shark.ObjectDominators.DominatorNode
  *
  * Memory on a 193 MB heap dump (~983 K reachable objects, 2.5 M edges):
  * ~48 MB peak during CSR construction, ~43 MB during L-T, ~13 MB during retained-size
- * computation (only `doms[]` + id-mapping arrays remain alongside `DominatorTree.dominated`).
+ * computation (only `doms[]` + id-mapping arrays remain).
  */
 class LinkEvalDominatorTree(
   private val graph: HeapGraph,
@@ -297,23 +302,56 @@ class LinkEvalDominatorTree(
       }
     }
 
-    // ── Phase 4: Populate DominatorTree and compute retained sizes ────────────────────
+    // ── Phase 4: Compute retained sizes and build Map<Long, DominatorNode> ─────────────
     //
-    // L-T guarantees doms[v] < v for all v >= 1, so processing in order 1..n ensures
-    // each dominator is inserted before the nodes it dominates.
+    // L-T guarantees doms[v] < v for all v >= 1, so processing in order 1..n is
+    // a topological order: each dominator is already accumulated before its children.
+    //
+    // DFN 0 = virtual root → ValueHolder.NULL_REFERENCE in the result map.
 
-    val dominatorTree = DominatorTree(reachableCount)
+    // Build children lists in DFN space (index 0 = virtual root).
+    val childrenOfDfn = Array(n + 1) { mutableListOf<Int>() }
     for (v in 1..n) {
-      val objectId = dfnToObjectId[v]
-      val domDfn = doms[v]
-      if (domDfn == 0) {
-        dominatorTree.updateDominatedAsRoot(objectId)
-      } else {
-        dominatorTree.updateDominated(objectId, dfnToObjectId[domDfn])
-      }
+      childrenOfDfn[doms[v]].add(v)
     }
 
-    return dominatorTree.buildFullDominatorTree(objectSizeCalculator)
+    // Shallow sizes (index 0 = virtual root, shallow = 0).
+    val shallowSizeDfn = IntArray(n + 1)
+    for (v in 1..n) {
+      shallowSizeDfn[v] = objectSizeCalculator.computeSize(dfnToObjectId[v])
+    }
+
+    // Retained sizes — bottom-up (doms[v] < v guarantees topological order).
+    val retainedSizeDfn = shallowSizeDfn.copyOf()
+    val retainedCountDfn = IntArray(n + 1)
+    for (v in 1..n) retainedCountDfn[v] = 1
+    for (v in n downTo 1) {
+      val domDfn = doms[v]
+      retainedSizeDfn[domDfn] += retainedSizeDfn[v]
+      retainedCountDfn[domDfn] += retainedCountDfn[v]
+    }
+
+    // Build result map, sorting children by descending retained size.
+    val result = HashMap<Long, DominatorNode>(n + 1)
+    result[ValueHolder.NULL_REFERENCE] = DominatorNode(
+      shallowSize = 0,
+      retainedSize = retainedSizeDfn[0],
+      retainedCount = retainedCountDfn[0],
+      dominatedObjectIds = childrenOfDfn[0]
+        .sortedByDescending { retainedSizeDfn[it] }
+        .map { dfnToObjectId[it] }
+    )
+    for (v in 1..n) {
+      result[dfnToObjectId[v]] = DominatorNode(
+        shallowSize = shallowSizeDfn[v],
+        retainedSize = retainedSizeDfn[v],
+        retainedCount = retainedCountDfn[v],
+        dominatedObjectIds = childrenOfDfn[v]
+          .sortedByDescending { retainedSizeDfn[it] }
+          .map { dfnToObjectId[it] }
+      )
+    }
+    return result
   }
 }
 
