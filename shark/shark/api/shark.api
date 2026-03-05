@@ -706,7 +706,6 @@ public final class shark/OnAnalysisProgressListener$Step : java/lang/Enum {
 	public static final field COMPUTING_NATIVE_RETAINED_SIZE Lshark/OnAnalysisProgressListener$Step;
 	public static final field COMPUTING_RETAINED_SIZE Lshark/OnAnalysisProgressListener$Step;
 	public static final field EXTRACTING_METADATA Lshark/OnAnalysisProgressListener$Step;
-	public static final field FINDING_DOMINATORS Lshark/OnAnalysisProgressListener$Step;
 	public static final field FINDING_PATHS_TO_RETAINED_OBJECTS Lshark/OnAnalysisProgressListener$Step;
 	public static final field FINDING_RETAINED_OBJECTS Lshark/OnAnalysisProgressListener$Step;
 	public static final field INSPECTING_OBJECTS Lshark/OnAnalysisProgressListener$Step;

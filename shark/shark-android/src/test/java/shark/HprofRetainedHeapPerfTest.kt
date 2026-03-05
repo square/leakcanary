@@ -19,7 +19,6 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
-import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
@@ -114,7 +113,6 @@ class HprofRetainedHeapPerfTest {
     assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.20 MB +-10 % margin)
     assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.25 MB +-10 % margin)
     assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(6.00 MB +-10 % margin)
-    assertThat(retained after FINDING_DOMINATORS).isEqualTo(6.00 MB +-10 % margin)
     assertThat(retained after INSPECTING_OBJECTS).isEqualTo(6.00 MB +-10 % margin)
     assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(6.00 MB +-10 % margin)
     assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(6.00 MB +-10 % margin)
