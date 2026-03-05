@@ -16,11 +16,8 @@
 package leakcanary.internal
 
 import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.pm.PackageManager.PERMISSION_GRANTED
-import android.os.Build.VERSION.SDK_INT
-import android.os.Build.VERSION_CODES.M
 import android.os.Environment
 import android.os.Environment.DIRECTORY_DOWNLOADS
 import com.squareup.leakcanary.core.R
@@ -79,12 +76,7 @@ internal class LeakDirectoryProvider constructor(
     return File(storageDirectory, fileName)
   }
 
-  @TargetApi(M) fun hasStoragePermission(): Boolean {
-    // Defensive check: @TargetApi doesn't prevent this method from being called on older APIs
-    @Suppress("ObsoleteSdkInt")
-    if (SDK_INT < M) {
-      return true
-    }
+  fun hasStoragePermission(): Boolean {
     // Once true, this won't change for the life of the process so we can cache it.
     if (writeExternalStorageGranted) {
       return true

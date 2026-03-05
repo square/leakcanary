@@ -24,7 +24,6 @@ import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.os.StrictMode
@@ -499,7 +498,7 @@ internal class LeakCanaryFileProvider : ContentProvider() {
             if (externalCacheDirs.isNotEmpty()) {
               target = externalCacheDirs[0]
             }
-          } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && TAG_EXTERNAL_MEDIA == tag) {
+          } else if (TAG_EXTERNAL_MEDIA == tag) {
             val externalMediaDirs = context.externalMediaDirs
             if (externalMediaDirs.isNotEmpty()) {
               target = externalMediaDirs[0]
@@ -519,19 +518,11 @@ internal class LeakCanaryFileProvider : ContentProvider() {
       context: Context,
       type: String?
     ): Array<File> {
-      return if (Build.VERSION.SDK_INT >= 19) {
-        context.getExternalFilesDirs(type)
-      } else {
-        arrayOf(context.getExternalFilesDir(type)!!)
-      }
+      return context.getExternalFilesDirs(type)
     }
 
     private fun getExternalCacheDirs(context: Context): Array<File> {
-      return if (Build.VERSION.SDK_INT >= 19) {
-        context.externalCacheDirs
-      } else {
-        arrayOf(context.externalCacheDir!!)
-      }
+      return context.externalCacheDirs
     }
 
     /**
