@@ -15,9 +15,58 @@ import shark.internal.invalidObjectIdErrorMessage
 /**
  * Not thread safe.
  *
- * Finds the shortest path from leaking references to a gc root, first ignoring references
- * identified as "to visit last" and then visiting them as needed if no path is
- * found.
+ * Finds the shortest path from each leaking object to a GC root, using a prioritized BFS.
+ * High-priority references are visited first; low-priority references (e.g. library leak
+ * matchers) are deferred to a second queue and only visited if needed.
+ *
+ * ## Two-phase algorithm for retained size
+ *
+ * In addition to finding paths, this finder computes the inputs needed for retained size
+ * calculation by the caller ([RealLeakTracerFactory]).
+ *
+ * ### Phase 1a — GC root BFS (leaked objects treated as leaves)
+ *
+ * BFS from GC roots where **leaked objects are treated as leaf nodes**: when a leaked object
+ * is reached its path is recorded, but its outgoing references are never enqueued. This means
+ * the BFS only visits objects that are reachable from GC roots *without* going through any
+ * leaked object.
+ *
+ * The set of all objects visited during this traversal is called **R₀** (exposed as
+ * [PathFindingResults.visitedSet]). R₀ represents objects that are independently reachable
+ * from GC roots — they would survive even if all leaked objects were removed.
+ *
+ * There are two stopping cases:
+ *
+ * - **Case A**: all N leaked objects are found before both queues are exhausted. The BFS
+ *   stops immediately. R₀ is the visited set at that moment (may not cover the full graph
+ *   at depths greater than the deepest leaked object, but is sufficient in practice).
+ *
+ * - **Case B**: both queues are exhausted before all N leaked objects are found. This means
+ *   some leaked objects are only reachable *through* other leaked objects (e.g.
+ *   `GcRoot → LeakedA → LeakedB`: treating LeakedA as a leaf means LeakedB is never
+ *   enqueued). At this point R₀ is complete (the full non-leaked subgraph has been
+ *   traversed), and Phase 1b begins.
+ *
+ * ### Phase 1b — secondary BFS (Case B only)
+ *
+ * A secondary BFS is seeded from all leaked objects found in Phase 1a, now traversed
+ * normally (their children are enqueued). Objects already in R₀ are skipped. Any leaked
+ * objects discovered in this pass are called **sub-leaked objects**: they are reachable
+ * from GC roots only through another leaked object.
+ *
+ * Sub-leaked object paths are **not** added to [PathFindingResults.pathsToLeakingObjects].
+ * Instead, each sub-leaked object is mapped to the parent leaked object(s) that can reach
+ * it, exposed as [PathFindingResults.subLeakedObjectPaths]. The caller uses this to add
+ * labels to the parent's leak trace rather than reporting them as independent leaks.
+ *
+ * Leaked objects not found in either phase are truly unreachable from GC roots and are
+ * reported separately by the caller as unreachable objects.
+ *
+ * ### Phase 2 (performed by the caller)
+ *
+ * After this finder returns, [RealLeakTracerFactory] performs a multi-source BFS seeded
+ * from the first LEAKING node in each path, visiting only objects not in R₀, to compute
+ * the retained size of each leaked object.
  */
 class PrioritizingShortestPathFinder private constructor(
   private val graph: HeapGraph,
@@ -303,10 +352,8 @@ class PrioritizingShortestPathFinder private constructor(
         }
         current = current.parent
       }
-      // If we walked all the way up and hit a root seed (the seed is directly a leaked object)
+      // If we walked all the way up to the root: the seed leaked object is the direct parent.
       if (current !is ChildNode) {
-        // The root itself is a leaked object seed — shouldn't normally happen since seeds are
-        // leaked objects that became BFS nodes, but handle gracefully
         val rootId = current.objectId
         if (foundLeakingObjectIds.contains(rootId)) {
           subLeakedObjectPaths.getOrPut(subLeakedId) { mutableListOf() }.add(rootId)

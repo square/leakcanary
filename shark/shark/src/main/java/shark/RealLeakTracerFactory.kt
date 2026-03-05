@@ -211,7 +211,8 @@ class RealLeakTracerFactory constructor(
 
     // Run one BFS per seed, accumulating sizes
     uniqueSeedIds.forEach { seedId ->
-      // Skip seeds that are in R₀ (independently reachable — shouldn't normally happen)
+      // Skip seeds that are in R₀: independently reachable from GC roots, so not exclusively
+      // retained by this leaked object.
       if (seedId in visitedSet) return@forEach
 
       val bfsQueue: java.util.ArrayDeque<Long> = java.util.ArrayDeque()

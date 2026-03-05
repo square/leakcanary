@@ -29,7 +29,10 @@ import shark.internal.unpackAsSecondInt
  * test documenting this behavior.
  *
  * For an exact dominator tree, use [LinkEvalDominatorTree] instead.
+ *
+ * @deprecated For an exact dominator tree, use [LinkEvalDominatorTree] instead.
  */
+@Deprecated("Use LinkEvalDominatorTree for an exact dominator tree.")
 class DominatorTree(
   expectedElements: Int = 4
 ) {
