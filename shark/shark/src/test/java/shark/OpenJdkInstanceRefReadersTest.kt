@@ -483,8 +483,12 @@ class OpenJdkInstanceRefReadersTest {
           referenceReaderFactory = { referenceReader },
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
           objectSizeCalculatorFactory = if (computeRetainedHeapSize) {
-            ObjectSizeCalculator.Factory { heapGraph -> ObjectSizeCalculator { heapGraph.findObjectById(it).recordSize } }
-          } else null,
+            ObjectSizeCalculator.Factory { heapGraph ->
+              ObjectSizeCalculator { heapGraph.findObjectById(it).recordSize }
+            }
+          } else {
+            null
+          },
         ),
         objectInspectors = emptyList(),
         listener = {}
