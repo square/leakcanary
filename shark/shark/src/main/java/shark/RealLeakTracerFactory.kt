@@ -119,7 +119,7 @@ class RealLeakTracerFactory constructor(
     val reachableLeakingObjectIds =
       pathFindingResults.pathsToLeakingObjects.map { it.objectId }.toSet()
     // Also objects reachable via secondary BFS (sub-leaked objects) are not truly unreachable
-    val subLeakedObjectIds = pathFindingResults.subLeakedObjectPaths.keys
+    val subLeakedObjectIds = pathFindingResults.subLeakedObjectPaths.values.flatten().toSet()
 
     val unreachableLeakingObjectIds = leakingObjectIds - reachableLeakingObjectIds - subLeakedObjectIds
 
@@ -200,19 +200,13 @@ class RealLeakTracerFactory constructor(
     shortestPaths: List<ShortestPath>,
     inspectedObjectsByPath: List<List<InspectedObject>>,
     retainedSizes: LongLongMap?,
-    subLeakedObjectPaths: Map<Long, Long>,
+    subLeakedObjectPaths: Map<Long, List<Long>>,
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
     listener.onEvent(StartedBuildingLeakTraces)
 
     val applicationLeaksMap = mutableMapOf<String, MutableList<LeakTrace>>()
     val libraryLeaksMap =
       mutableMapOf<String, Pair<LibraryLeakReferenceMatcher, MutableList<LeakTrace>>>()
-
-    // Build a reverse map: leaked object id → list of sub-leaked object ids it parents
-    val leakedToSubLeaked = mutableMapOf<Long, MutableList<Long>>()
-    subLeakedObjectPaths.forEach { (subLeakedId, parentId) ->
-      leakedToSubLeaked.getOrPut(parentId) { mutableListOf() }.add(subLeakedId)
-    }
 
     shortestPaths.forEachIndexed { pathIndex, shortestPath ->
       val inspectedObjects = inspectedObjectsByPath[pathIndex]
@@ -225,7 +219,7 @@ class RealLeakTracerFactory constructor(
       )
 
       // Add sub-leaked labels to the leaking object node if applicable
-      val subLeakedIds = leakedToSubLeaked[leakingObjectId]
+      val subLeakedIds = subLeakedObjectPaths[leakingObjectId]
       val finalLeakTraceObjects = if (subLeakedIds != null) {
         val leakingNodeIndex = inspectedObjects.size - 1
         val leakingLeakTraceObject = leakTraceObjects[leakingNodeIndex]

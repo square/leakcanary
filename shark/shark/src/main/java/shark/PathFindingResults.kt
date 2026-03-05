@@ -12,11 +12,9 @@ class PathFindingResults(
    */
   val retainedSizes: LongLongMap?,
   /**
-   * Map of sub-leaked object id → parent leaked object id.
+   * Map of parent leaked object id → list of sub-leaked object ids.
    * Sub-leaked objects are reachable from GC roots only through another leaked object, so they
    * are reported as labels on the parent's leak trace rather than as independent leaks.
-   * Each sub-leaked object has exactly one parent because once found it is added to the visited
-   * set and will not be attributed to any other seed.
    */
-  val subLeakedObjectPaths: Map<Long, Long>,
+  val subLeakedObjectPaths: Map<Long, List<Long>>,
 )

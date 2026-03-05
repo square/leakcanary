@@ -196,7 +196,7 @@ class PrioritizingShortestPathFinder private constructor(
       null
     }
 
-    val subLeakedObjectPaths = mutableMapOf<Long, Long>()
+    val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
 
     val phase1SeedIds = shortestPathsToLeakingObjects.map { it.objectId }.toHashSet()
 
@@ -248,7 +248,7 @@ class PrioritizingShortestPathFinder private constructor(
           // its subgraph under the current seed.
           if (refId in notYetFoundLeakingIds) {
             notYetFoundLeakingIds.remove(refId)
-            subLeakedObjectPaths[refId] = seedId
+            subLeakedObjectPaths.getOrPut(seedId) { mutableListOf() }.add(refId)
             if (visitedSet.add(refId)) {
               bfsQueue.add(refId)
             }
