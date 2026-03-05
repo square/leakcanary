@@ -101,11 +101,7 @@ class PrioritizingShortestPathFinder private constructor(
     val queuesNotEmpty: Boolean
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
 
-    /**
-     * Tracks all objects enqueued during Phase 1. After Phase 1, leaked object ids are removed
-     * so that R₀ does not include them — they are seeds for Phase 2 and must not be pre-excluded
-     * from retained size attribution.
-     */
+    /** Tracks all objects visited during Phase 1 (R₀). Shared with Phase 2. */
     val visitedSet = LongScatterSet(estimatedVisitedObjects)
 
     /**
@@ -182,10 +178,6 @@ class PrioritizingShortestPathFinder private constructor(
       }
     }
 
-    // Remove leaked object ids from R₀. They will be seeds in Phase 2 and must
-    // not be pre-excluded from retained size attribution.
-    leakingObjectIds.elementSequence().forEach { visitedSet.remove(it) }
-
     // Phase 2: Sequential BFS from each found leaked object id, computing retained sizes
     // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
     val retainedSizes = if (objectSizeCalculator != null) {
@@ -215,7 +207,6 @@ class PrioritizingShortestPathFinder private constructor(
       unprocessedSeedIds.remove(seedId)
 
       val bfsQueue = ArrayDeque<Long>()
-      // The seed itself was removed from R₀ at the end of Phase 1; add it back now.
       visitedSet.add(seedId)
       bfsQueue.add(seedId)
 
