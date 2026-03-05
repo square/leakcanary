@@ -189,7 +189,9 @@ class PrioritizingShortestPathFinder private constructor(
       MutableLongLongMap(leakingObjectIds.size()).also { map ->
         leakingObjectIds.elementSequence().forEach { id -> map[id] = 0 packedWith 0 }
       }
-    } else null
+    } else {
+      null
+    }
 
     val subLeakedObjectPaths = mutableMapOf<Long, Long>()
 
