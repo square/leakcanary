@@ -8,14 +8,15 @@ class PathFindingResults internal constructor(
   val pathsToLeakingObjects: List<ReferencePathNode>,
   /**
    * Map of leaked object id → packed (retainedBytes, retainedCount).
-   * Only populated when [PrioritizingShortestPathFinder.Factory.objectSizeCalculatorFactory]
-   * is provided.
+   * Null when [PrioritizingShortestPathFinder.Factory.objectSizeCalculatorFactory] is not provided.
    */
-  val retainedSizes: LongLongMap,
+  val retainedSizes: LongLongMap?,
   /**
-   * Map of sub-leaked object id → list of parent leaked object ids that can reach it.
+   * Map of sub-leaked object id → parent leaked object id.
    * Sub-leaked objects are reachable from GC roots only through another leaked object, so they
    * are reported as labels on the parent's leak trace rather than as independent leaks.
+   * Each sub-leaked object has exactly one parent because once found it is added to the visited
+   * set and will not be attributed to any other seed.
    */
-  val subLeakedObjectPaths: Map<Long, List<Long>>,
+  val subLeakedObjectPaths: Map<Long, Long>,
 )

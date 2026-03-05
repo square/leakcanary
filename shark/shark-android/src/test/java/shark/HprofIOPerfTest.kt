@@ -261,7 +261,7 @@ class HprofIOPerfTest {
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
           computeRetainedHeapSize = computeRetainedHeapSize,
           objectSizeCalculatorFactory = if (computeRetainedHeapSize) {
-            { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
+            ObjectSizeCalculator.Factory { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
           } else {
             null
           },

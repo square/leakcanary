@@ -199,8 +199,8 @@ class RealLeakTracerFactory constructor(
   private fun FindLeakInput.buildLeakTraces(
     shortestPaths: List<ShortestPath>,
     inspectedObjectsByPath: List<List<InspectedObject>>,
-    retainedSizes: LongLongMap,
-    subLeakedObjectPaths: Map<Long, List<Long>>
+    retainedSizes: LongLongMap?,
+    subLeakedObjectPaths: Map<Long, Long>,
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
     listener.onEvent(StartedBuildingLeakTraces)
 
@@ -210,10 +210,8 @@ class RealLeakTracerFactory constructor(
 
     // Build a reverse map: leaked object id → list of sub-leaked object ids it parents
     val leakedToSubLeaked = mutableMapOf<Long, MutableList<Long>>()
-    subLeakedObjectPaths.forEach { (subLeakedId, parentLeakedIds) ->
-      parentLeakedIds.forEach { parentId ->
-        leakedToSubLeaked.getOrPut(parentId) { mutableListOf() }.add(subLeakedId)
-      }
+    subLeakedObjectPaths.forEach { (subLeakedId, parentId) ->
+      leakedToSubLeaked.getOrPut(parentId) { mutableListOf() }.add(subLeakedId)
     }
 
     shortestPaths.forEachIndexed { pathIndex, shortestPath ->

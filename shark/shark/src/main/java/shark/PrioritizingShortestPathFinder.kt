@@ -73,7 +73,7 @@ class PrioritizingShortestPathFinder private constructor(
      * Factory for [ObjectSizeCalculator]. Required when [computeRetainedHeapSize] is true;
      * ignored otherwise. Called once per [HeapGraph] to create the calculator.
      */
-    val objectSizeCalculatorFactory: ((HeapGraph) -> ObjectSizeCalculator)? = null,
+    val objectSizeCalculatorFactory: ObjectSizeCalculator.Factory? = null,
   ) : ShortestPathFinder.Factory {
     override fun createFor(heapGraph: HeapGraph): ShortestPathFinder {
       return PrioritizingShortestPathFinder(
@@ -82,7 +82,7 @@ class PrioritizingShortestPathFinder private constructor(
         objectReferenceReader = referenceReaderFactory.createFor(heapGraph),
         gcRootProvider = gcRootProvider,
         computeRetainedHeapSize = computeRetainedHeapSize,
-        objectSizeCalculator = objectSizeCalculatorFactory?.invoke(heapGraph),
+        objectSizeCalculator = objectSizeCalculatorFactory?.createFor(heapGraph),
       )
     }
   }
@@ -185,12 +185,13 @@ class PrioritizingShortestPathFinder private constructor(
 
     // Phase 2: Sequential BFS from each found leaked object id, computing retained sizes
     // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
-    val retainedSizes = MutableLongLongMap(leakingObjectIds.size())
-    leakingObjectIds.elementSequence().forEach { id ->
-      retainedSizes[id] = 0 packedWith 0
-    }
+    val retainedSizes = if (objectSizeCalculator != null) {
+      MutableLongLongMap(leakingObjectIds.size()).also { map ->
+        leakingObjectIds.elementSequence().forEach { id -> map[id] = 0 packedWith 0 }
+      }
+    } else null
 
-    val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
+    val subLeakedObjectPaths = mutableMapOf<Long, Long>()
 
     val phase1SeedIds = shortestPathsToLeakingObjects.map { it.objectId }.toHashSet()
 
@@ -216,8 +217,8 @@ class PrioritizingShortestPathFinder private constructor(
       while (bfsQueue.isNotEmpty()) {
         val objectId = bfsQueue.poll()
 
-        objectSizeCalculator?.let { calc ->
-          val shallowSize = calc.computeSize(objectId)
+        if (objectSizeCalculator != null && retainedSizes != null) {
+          val shallowSize = objectSizeCalculator.computeSize(objectId)
           val current = retainedSizes.getOrDefault(seedId, 0 packedWith 0)
           retainedSizes[seedId] =
             (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
@@ -242,7 +243,7 @@ class PrioritizingShortestPathFinder private constructor(
           // its subgraph under the current seed.
           if (refId in notYetFoundLeakingIds) {
             notYetFoundLeakingIds.remove(refId)
-            subLeakedObjectPaths.getOrPut(refId) { mutableListOf() }.add(seedId)
+            subLeakedObjectPaths[refId] = seedId
             if (visitedSet.add(refId)) {
               bfsQueue.add(refId)
             }

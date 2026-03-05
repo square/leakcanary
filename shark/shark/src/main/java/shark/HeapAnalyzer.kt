@@ -62,13 +62,14 @@ class HeapAnalyzer constructor(
     val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
     return try {
       sourceProvider.openHeapGraph(proguardMapping).use { graph ->
-        analyze(
+        analyzeImpl(
           heapDumpFile,
           graph,
           leakingObjectFinder,
           referenceMatchers,
           objectInspectors,
-          metadataExtractor
+          metadataExtractor,
+          computeRetainedHeapSize
         ).let { result ->
           if (result is HeapAnalysisSuccess) {
             val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
@@ -111,22 +112,7 @@ class HeapAnalyzer constructor(
   // graph (and in the impl we give that thing the referenceMatchers)
   /**
    * Searches the heap dump for leaking instances and then computes the shortest strong reference
-   * path from those instances to the GC roots. Retained size is always computed.
-   */
-  fun analyze(
-    heapDumpFile: File,
-    graph: HeapGraph,
-    leakingObjectFinder: LeakingObjectFinder,
-    referenceMatchers: List<ReferenceMatcher> = emptyList(),
-    objectInspectors: List<ObjectInspector> = emptyList(),
-    metadataExtractor: MetadataExtractor = MetadataExtractor.NO_OP,
-  ): HeapAnalysis = analyzeImpl(
-    heapDumpFile, graph, leakingObjectFinder, referenceMatchers, objectInspectors,
-    metadataExtractor, computeRetainedHeapSize = true
-  )
-
-  /**
-   * Overload of [analyze] that accepts a [computeRetainedHeapSize] parameter.
+   * path from those instances to the GC roots.
    * When [computeRetainedHeapSize] is false, retained heap sizes will not be computed
    * and the analysis will be faster.
    */
@@ -168,7 +154,7 @@ class HeapAnalyzer constructor(
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
           computeRetainedHeapSize = computeRetainedHeapSize,
           objectSizeCalculatorFactory = if (computeRetainedHeapSize) {
-            { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
+            ObjectSizeCalculator.Factory { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
           } else {
             null
           },
