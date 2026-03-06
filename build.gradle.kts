@@ -164,7 +164,13 @@ configure(subprojects.filter {
 //Git hook installation
 tasks.register<Copy>("installGitHooks") {
   from(File(rootProject.rootDir, "config/hooks"))
-  into({ File(rootProject.rootDir, ".git/hooks") })
+  into({
+    val gitCommonDir = providers.exec {
+      commandLine("git", "rev-parse", "--git-common-dir")
+      workingDir = rootProject.rootDir
+    }.standardOutput.asText.get().trim()
+    File(gitCommonDir, "hooks")
+  })
   fileMode = "0777".toInt(8) // Make files executable
 }
 

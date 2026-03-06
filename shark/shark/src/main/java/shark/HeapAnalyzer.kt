@@ -22,12 +22,10 @@ import shark.OnAnalysisProgressListener.Step.BUILDING_LEAK_TRACES
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.EXTRACTING_METADATA
-import shark.OnAnalysisProgressListener.Step.FINDING_DOMINATORS
 import shark.OnAnalysisProgressListener.Step.FINDING_PATHS_TO_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.FINDING_RETAINED_OBJECTS
 import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
-import shark.PrioritizingShortestPathFinder.Event.StartedFindingDominators
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
 import shark.RealLeakTracerFactory.Event.StartedBuildingLeakTraces
 import shark.RealLeakTracerFactory.Event.StartedComputingJavaHeapRetainedSize
@@ -116,6 +114,8 @@ class HeapAnalyzer constructor(
   /**
    * Searches the heap dump for leaking instances and then computes the shortest strong reference
    * path from those instances to the GC roots.
+   * When [computeRetainedHeapSize] is false, retained heap sizes will not be computed
+   * and the analysis will be faster.
    */
   fun analyze(
     heapDumpFile: File,
@@ -131,9 +131,8 @@ class HeapAnalyzer constructor(
     return try {
       val leakTracer = RealLeakTracerFactory(
         shortestPathFinderFactory = PrioritizingShortestPathFinder.Factory(
-          listener =  { event ->
+          listener = { event ->
             when (event) {
-              StartedFindingDominators -> listener.onAnalysisProgress(FINDING_DOMINATORS)
               StartedFindingPathsToRetainedObjects -> listener.onAnalysisProgress(
                 FINDING_PATHS_TO_RETAINED_OBJECTS
               )
@@ -141,7 +140,11 @@ class HeapAnalyzer constructor(
           },
           referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
-          computeRetainedHeapSize = computeRetainedHeapSize,
+          objectSizeCalculatorFactory = if (computeRetainedHeapSize) {
+            ObjectSizeCalculator.Factory { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
+          } else {
+            null
+          },
         ),
         objectInspectors
       ) { event ->
@@ -198,7 +201,6 @@ class HeapAnalyzer constructor(
       )
     }
   }
-
 
   private fun since(analysisStartNanoTime: Long): Long {
     return NANOSECONDS.toMillis(System.nanoTime() - analysisStartNanoTime)

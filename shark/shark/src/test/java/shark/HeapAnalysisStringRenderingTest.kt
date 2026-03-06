@@ -131,6 +131,53 @@ class HeapAnalysisStringRenderingTest {
       |===================================="""
   }
 
+  @Test fun successWithLeaksAndRetainedHeapSize() {
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["leak"] = "Leaking" watchedInstance {}
+      }
+    }
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysis>(computeRetainedHeapSize = true)
+
+    analysis renders """
+      |====================================
+      |HEAP ANALYSIS RESULT
+      |====================================
+      |1 APPLICATION LEAKS
+      |
+      |References underlined with "~~~" are likely causes.
+      |Learn more at https://squ.re/leaks.
+      |
+      |\d+ bytes retained by leaking objects
+      |Signature: a49095c3373b957532aff14eb32987bb75ffe9d5
+      |┬───
+      |│ GC Root: System class
+      |│
+      |├─ GcRoot class
+      |.*
+      |====================================
+      |0 LIBRARY LEAKS
+      |
+      |A Library Leak is a leak caused by a known bug in 3rd party code that you do not have control over.
+      |See https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks
+      |====================================
+      |0 UNREACHABLE OBJECTS
+      |
+      |An unreachable object is still in memory but LeakCanary could not find a strong reference path
+      |from GC roots.
+      |====================================
+      |METADATA
+      |
+      |Please include this in bug reports and Stack Overflow questions.
+      |
+      |Analysis duration: \d* ms
+      |Heap dump file path: ${hprofFile.absolutePath}
+      |Heap dump timestamp: \d*
+      |Heap dump duration: Unknown
+      |===================================="""
+  }
+
   private infix fun HeapAnalysis.renders(multilineRegexString: String) {
     val regex: Pattern =
       Pattern.compile("^" + multilineRegexString.trimMargin() + "$", Pattern.DOTALL)

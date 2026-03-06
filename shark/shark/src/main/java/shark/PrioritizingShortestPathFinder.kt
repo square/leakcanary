@@ -4,13 +4,9 @@ package shark
 
 import java.util.ArrayDeque
 import java.util.Deque
-import shark.PrioritizingShortestPathFinder.Event.StartedFindingDominators
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
-import shark.PrioritizingShortestPathFinder.VisitTracker.Dominated
-import shark.PrioritizingShortestPathFinder.VisitTracker.Visited
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
-import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongScatterSet
@@ -19,23 +15,56 @@ import shark.internal.invalidObjectIdErrorMessage
 /**
  * Not thread safe.
  *
- * Finds the shortest path from leaking references to a gc root, first ignoring references
- * identified as "to visit last" and then visiting them as needed if no path is
- * found.
+ * Finds the shortest path from each leaking object to a GC root, using a prioritized BFS.
+ * High-priority references are visited first; low-priority references (e.g. library leak
+ * matchers) are deferred to a second queue and only visited if needed.
+ *
+ * ## Phase 1 — GC root BFS
+ *
+ * BFS from GC roots where **leaked objects are treated as leaf nodes**: when a leaked object
+ * is reached its path is recorded, but its outgoing references are never enqueued. The visited
+ * set at the end of this phase is **R₀** — all objects reachable from GC roots without passing
+ * through any leaked object.
+ *
+ * Stopping depends on [Factory.objectSizeCalculatorFactory]:
+ * - `null` and all N found before queues empty → stop immediately (R₀ need not be complete)
+ * - non-null or queues empty before all N found → drain both queues to build a complete R₀,
+ *   then Phase 2 handles finding remaining leaked objects and sizing.
+ *
+ * ## Phase 2 — retained size BFS
+ *
+ * Processes found leaked object ids **one at a time**. For each seed:
+ * - BFS from it, extending R₀ as objects are visited
+ * - Shallow size of each newly visited object is attributed to this seed
+ *   (only when [Factory.objectSizeCalculatorFactory] is non-null)
+ * - Other Phase 1 seeds encountered are skipped (treated as leaves — they will be processed
+ *   in their own turn, preserving first-BFS-wins attribution)
+ * - Leaked object ids not found in Phase 1 that are encountered become **sub-leaked** objects
+ *   of the current seed, and their subgraphs continue to be explored under the current seed
+ *
+ * If [Factory.objectSizeCalculatorFactory] is null, Phase 2 only runs to find any remaining
+ * leaked objects; it stops as soon as all leaked object ids have been accounted for.
  */
 class PrioritizingShortestPathFinder private constructor(
   private val graph: HeapGraph,
   private val listener: Event.Listener,
   private val objectReferenceReader: ReferenceReader<HeapObject>,
   private val gcRootProvider: GcRootProvider,
-  private val computeRetainedHeapSize: Boolean
+  private val objectSizeCalculator: ObjectSizeCalculator?,
 ) : ShortestPathFinder {
 
   class Factory(
     private val listener: Event.Listener,
     private val referenceReaderFactory: ReferenceReader.Factory<HeapObject>,
     private val gcRootProvider: GcRootProvider,
-    private val computeRetainedHeapSize: Boolean
+    /**
+     * When non-null, Phase 1 drains both queues to build a complete R₀, and Phase 2 computes
+     * retained heap size for each leaked object id.
+     * When null, Phase 1 stops as soon as all leaked objects are found, and Phase 2 only
+     * runs to discover sub-leaked objects.
+     * Called once per [HeapGraph] to create the calculator.
+     */
+    val objectSizeCalculatorFactory: ObjectSizeCalculator.Factory? = null,
   ) : ShortestPathFinder.Factory {
     override fun createFor(heapGraph: HeapGraph): ShortestPathFinder {
       return PrioritizingShortestPathFinder(
@@ -43,90 +72,33 @@ class PrioritizingShortestPathFinder private constructor(
         listener = listener,
         objectReferenceReader = referenceReaderFactory.createFor(heapGraph),
         gcRootProvider = gcRootProvider,
-        computeRetainedHeapSize = computeRetainedHeapSize
+        objectSizeCalculator = objectSizeCalculatorFactory?.createFor(heapGraph),
       )
     }
   }
 
-  // TODO Enum or sealed? class makes it possible to report progress. Enum
-  // provides ordering of events.
   sealed interface Event {
     object StartedFindingPathsToRetainedObjects : Event
-    object StartedFindingDominators : Event
 
     fun interface Listener {
       fun onEvent(event: Event)
     }
   }
 
-  private sealed class VisitTracker {
-
-    abstract fun visited(
-      objectId: Long,
-      parentObjectId: Long
-    ): Boolean
-
-    class Dominated(expectedElements: Int) : VisitTracker() {
-      /**
-       * Tracks visited objects and their dominator.
-       * If an object is not in [dominatorTree] then it hasn't been enqueued yet.
-       * If an object is in [dominatorTree] but not in [State.toVisitSet] nor [State.toVisitLastSet]
-       * then it has already been dequeued.
-       *
-       * If an object is dominated by more than one GC root then its dominator is set to
-       * [ValueHolder.NULL_REFERENCE].
-       */
-      val dominatorTree = DominatorTree(expectedElements)
-      override fun visited(
-        objectId: Long,
-        parentObjectId: Long
-      ): Boolean {
-        return dominatorTree.updateDominated(objectId, parentObjectId)
-      }
-    }
-
-    class Visited(expectedElements: Int) : VisitTracker() {
-      /**
-       * Set of visited objects.
-       */
-      private val visitedSet = LongScatterSet(expectedElements)
-      override fun visited(
-        objectId: Long,
-        parentObjectId: Long
-      ): Boolean {
-        return !visitedSet.add(objectId)
-      }
-    }
-  }
-
   private class State(
     val leakingObjectIds: LongScatterSet,
-    val computeRetainedHeapSize: Boolean,
     estimatedVisitedObjects: Int
   ) {
-
-    /** Set of objects to visit */
     val toVisitQueue: Deque<ReferencePathNode> = ArrayDeque()
-
-    /**
-     * Objects to visit when [toVisitQueue] is empty.
-     */
     val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
-
-    /**
-     * Enables fast checking of whether a node is already in the queue.
-     */
     val toVisitSet = LongScatterSet()
     val toVisitLastSet = LongScatterSet()
 
     val queuesNotEmpty: Boolean
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
 
-    val visitTracker = if (computeRetainedHeapSize) {
-      Dominated(estimatedVisitedObjects)
-    } else {
-      Visited(estimatedVisitedObjects)
-    }
+    /** Tracks all objects visited during Phase 1 (R₀). Shared with Phase 2. */
+    val visitedSet = LongScatterSet(estimatedVisitedObjects)
 
     /**
      * A marker for when we're done exploring the graph of higher priority references and start
@@ -134,6 +106,21 @@ class PrioritizingShortestPathFinder private constructor(
      * the high priority queue anymore.
      */
     var visitingLast = false
+  }
+
+  private inner class RetainedSizeAccumulator(seedIds: LongScatterSet) {
+    val sizes: MutableMap<Long, Retained> = mutableMapOf<Long, Retained>().also { map ->
+      seedIds.elementSequence().forEach { id -> map[id] = ZERO_RETAINED }
+    }
+
+    fun accumulate(objectId: Long, seedId: Long) {
+      val shallowSize = objectSizeCalculator!!.computeSize(objectId)
+      val current = sizes[seedId] ?: ZERO_RETAINED
+      sizes[seedId] = Retained(
+        heapSize = (current.heapSize.inWholeBytes + shallowSize).toInt().bytes,
+        objectCount = current.objectCount + 1
+      )
+    }
   }
 
   override fun findShortestPathsFromGcRoots(
@@ -146,7 +133,6 @@ class PrioritizingShortestPathFinder private constructor(
 
     val state = State(
       leakingObjectIds = leakingObjectIds.toLongScatterSet(),
-      computeRetainedHeapSize = computeRetainedHeapSize,
       estimatedVisitedObjects = estimatedVisitedObjects
     )
 
@@ -164,18 +150,22 @@ class PrioritizingShortestPathFinder private constructor(
     enqueueGcRoots()
 
     val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
+    val foundLeakingObjectIds = LongScatterSet()
+
+    // Phase 1: BFS from GC roots, leaked objects treated as leaves.
     visitingQueue@ while (queuesNotEmpty) {
       val node = poll()
+
       if (leakingObjectIds.contains(node.objectId)) {
         shortestPathsToLeakingObjects.add(node)
-        // Found all refs, stop searching (unless computing retained size)
-        if (shortestPathsToLeakingObjects.size == leakingObjectIds.size()) {
-          if (computeRetainedHeapSize) {
-            listener.onEvent(StartedFindingDominators)
-          } else {
-            break@visitingQueue
-          }
+        foundLeakingObjectIds.add(node.objectId)
+        val allFound = foundLeakingObjectIds.size() == leakingObjectIds.size()
+        if (allFound && objectSizeCalculator == null) {
+          // All leaked objects found and retained size not needed: stop immediately.
+          break@visitingQueue
         }
+        // Treat leaked objects as leaves: do NOT enqueue their children.
+        continue@visitingQueue
       }
 
       val heapObject = try {
@@ -198,9 +188,75 @@ class PrioritizingShortestPathFinder private constructor(
         )
       }
     }
+
+    // Phase 2: Sequential BFS from each found leaked object id, computing retained sizes
+    // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
+    val accumulator = objectSizeCalculator?.let { RetainedSizeAccumulator(leakingObjectIds) }
+
+    val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
+
+    // Leaked objects not found in Phase 1: only reachable through other leaked objects.
+    val notYetFoundLeakingIds = mutableSetOf<Long>()
+    leakingObjectIds.elementSequence().forEach { id ->
+      if (!foundLeakingObjectIds.contains(id)) notYetFoundLeakingIds.add(id)
+    }
+
+    val unprocessedSeedIds = LongScatterSet().also { set ->
+      foundLeakingObjectIds.elementSequence().forEach { set.add(it) }
+    }
+
+    var currentSeedId = 0L
+    val bfsQueue = ArrayDeque<Long>()
+    if (unprocessedSeedIds.size() > 0) {
+      currentSeedId = unprocessedSeedIds.elementSequence().first()
+      unprocessedSeedIds.remove(currentSeedId)
+      bfsQueue.add(currentSeedId)
+    }
+
+    bfsLoop@ while (bfsQueue.isNotEmpty()) {
+      val objectId = bfsQueue.poll()
+
+      accumulator?.accumulate(objectId, currentSeedId)
+
+      val heapObject = try {
+        graph.findObjectById(objectId)
+      } catch (objectIdNotFound: IllegalArgumentException) {
+        throw RuntimeException("Object id $objectId not found in heap", objectIdNotFound)
+      }
+
+      for (reference in objectReferenceReader.read(heapObject)) {
+        val refId = reference.valueObjectId
+        if (refId == ValueHolder.NULL_REFERENCE) continue
+
+        // A leaked object only reachable through other leaked objects (not found in Phase 1):
+        // record as sub-leaked, remove from the not-yet-found set, and continue exploring
+        // its subgraph under the current seed.
+        if (refId in notYetFoundLeakingIds) {
+          notYetFoundLeakingIds.remove(refId)
+          subLeakedObjectPaths.getOrPut(currentSeedId) { mutableListOf() }.add(refId)
+          visitedSet.add(refId)
+          bfsQueue.add(refId)
+          if (accumulator == null && notYetFoundLeakingIds.isEmpty()) break@bfsLoop
+          continue
+        }
+
+        // Skip objects already in R₀ or already attributed to a previous seed.
+        if (!visitedSet.add(refId)) continue
+        bfsQueue.add(refId)
+      }
+
+      // Current seed's subgraph fully explored: advance to the next seed if any.
+      if (bfsQueue.isEmpty() && unprocessedSeedIds.size() > 0) {
+        currentSeedId = unprocessedSeedIds.elementSequence().first()
+        unprocessedSeedIds.remove(currentSeedId)
+        bfsQueue.add(currentSeedId)
+      }
+    }
+
     return PathFindingResults(
-      shortestPathsToLeakingObjects,
-      if (visitTracker is Dominated) visitTracker.dominatorTree else null
+      pathsToLeakingObjects = shortestPathsToLeakingObjects,
+      retainedSizes = accumulator?.sizes,
+      subLeakedObjectPaths = subLeakedObjectPaths,
     )
   }
 
@@ -244,18 +300,11 @@ class PrioritizingShortestPathFinder private constructor(
       return
     }
 
-    val parentObjectId = when (node) {
-      is RootNode -> ValueHolder.NULL_REFERENCE
-      is ChildNode -> node.parent.objectId
-    }
-
-    // Note: when computing dominators, this has a side effects of updating
-    // the dominator for node.objectId.
-    val alreadyEnqueued = visitTracker.visited(node.objectId, parentObjectId)
+    val alreadyEnqueued = !visitedSet.add(node.objectId)
 
     /**
      * A leaf object has no children to explore. We're calling into enqueue() only so that
-     * VisitTracker.visited() gets invoked so we know that we've seen it.
+     * the visitedSet gets updated so we know that we've seen it.
      *
      * However, if this is an object we're looking for, we shouldn't skip.
      */
@@ -295,4 +344,3 @@ class PrioritizingShortestPathFinder private constructor(
     }
   }
 }
-
