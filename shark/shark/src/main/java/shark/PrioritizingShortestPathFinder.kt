@@ -222,35 +222,33 @@ class PrioritizingShortestPathFinder private constructor(
 
       val heapObject = try {
         graph.findObjectById(objectId)
-      } catch (_: IllegalArgumentException) {
-        null
+      } catch (objectIdNotFound: IllegalArgumentException) {
+        throw RuntimeException("Object id $objectId not found in heap", objectIdNotFound)
       }
 
-      if (heapObject != null) {
-        objectReferenceReader.read(heapObject).forEach { reference ->
-          val refId = reference.valueObjectId
-          if (refId == ValueHolder.NULL_REFERENCE) return@forEach
+      objectReferenceReader.read(heapObject).forEach { reference ->
+        val refId = reference.valueObjectId
+        if (refId == ValueHolder.NULL_REFERENCE) return@forEach
 
-          // Another Phase 1 seed: treat as leaf. It will be processed as its own seed and
-          // must not have its subgraph attributed to the current seed.
-          if (refId in unprocessedSeedIds) return@forEach
+        // Another Phase 1 seed: treat as leaf. It will be processed as its own seed and
+        // must not have its subgraph attributed to the current seed.
+        if (refId in unprocessedSeedIds) return@forEach
 
-          // A leaked object only reachable through other leaked objects (not found in Phase 1):
-          // record as sub-leaked, remove from the not-yet-found set, and continue exploring
-          // its subgraph under the current seed.
-          if (refId in notYetFoundLeakingIds) {
-            notYetFoundLeakingIds.remove(refId)
-            subLeakedObjectPaths.getOrPut(currentSeedId) { mutableListOf() }.add(refId)
-            if (visitedSet.add(refId)) {
-              bfsQueue.add(refId)
-            }
-            return@forEach
+        // A leaked object only reachable through other leaked objects (not found in Phase 1):
+        // record as sub-leaked, remove from the not-yet-found set, and continue exploring
+        // its subgraph under the current seed.
+        if (refId in notYetFoundLeakingIds) {
+          notYetFoundLeakingIds.remove(refId)
+          subLeakedObjectPaths.getOrPut(currentSeedId) { mutableListOf() }.add(refId)
+          if (visitedSet.add(refId)) {
+            bfsQueue.add(refId)
           }
-
-          // Skip objects already in R₀ or already attributed to a previous seed.
-          if (!visitedSet.add(refId)) return@forEach
-          bfsQueue.add(refId)
+          return@forEach
         }
+
+        // Skip objects already in R₀ or already attributed to a previous seed.
+        if (!visitedSet.add(refId)) return@forEach
+        bfsQueue.add(refId)
       }
 
       // Current seed's subgraph fully explored: advance to the next seed if any.
