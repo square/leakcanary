@@ -18,7 +18,6 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import shark.HeapAnalysis.Companion.DUMP_DURATION_UNKNOWN
 import shark.HprofHeader
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
@@ -138,6 +137,10 @@ private val INSTRUCTIONS = """
   |
   |  5. Work the UNKNOWN nodes one at a time using bisection. Do not skip
   |     ahead or batch-mark nodes without individual evidence.
+  |
+  |  6. Never summarize or paraphrase a leak trace. Whenever you include a
+  |     leak trace somewhere, always paste it verbatim. Do not shorten it,
+  |     strip fields, or reformat it.
   |
   |KEEPING NOTES — use "note TEXT" continuously throughout the investigation
   |
@@ -648,7 +651,6 @@ private class SessionState(
       }
       append("\nHeap dump file path: $heapDumpPath")
       append("\nHeap dump timestamp: $heapDumpTimestamp")
-      append("\nHeap dump duration: Unknown")
       append("\n====================================")
     }
     return "${currentTrace}\n$metadataSection"
@@ -719,7 +721,6 @@ private class SessionState(
         .removePrefix("key = "),
       nodes = nodes,
       heapDumpTimestamp = heapDumpTimestamp,
-      heapDumpDurationMillis = DUMP_DURATION_UNKNOWN,
       metadata = metadata
     )
   }
@@ -910,6 +911,5 @@ private data class TraceResponse(
   val key: String,
   val nodes: List<TraceNodeEntry>,
   val heapDumpTimestamp: Long,
-  val heapDumpDurationMillis: Long,
   val metadata: Map<String, String>
 )
