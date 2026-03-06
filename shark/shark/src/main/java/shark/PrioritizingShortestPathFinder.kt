@@ -2,7 +2,6 @@
 
 package shark
 
-import androidx.collection.MutableLongLongMap
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
@@ -12,9 +11,6 @@ import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongScatterSet
 import shark.internal.invalidObjectIdErrorMessage
-import shark.internal.packedWith
-import shark.internal.unpackAsFirstInt
-import shark.internal.unpackAsSecondInt
 
 /**
  * Not thread safe.
@@ -112,6 +108,21 @@ class PrioritizingShortestPathFinder private constructor(
     var visitingLast = false
   }
 
+  private inner class RetainedSizeAccumulator(seedIds: LongScatterSet) {
+    val sizes: MutableMap<Long, Retained> = mutableMapOf<Long, Retained>().also { map ->
+      seedIds.elementSequence().forEach { id -> map[id] = ZERO_RETAINED }
+    }
+
+    fun accumulate(objectId: Long, seedId: Long) {
+      val shallowSize = objectSizeCalculator!!.computeSize(objectId)
+      val current = sizes[seedId] ?: ZERO_RETAINED
+      sizes[seedId] = Retained(
+        heapSize = (current.heapSize.inWholeBytes + shallowSize).toInt().bytes,
+        objectCount = current.objectCount + 1
+      )
+    }
+  }
+
   override fun findShortestPathsFromGcRoots(
     leakingObjectIds: Set<Long>
   ): PathFindingResults {
@@ -180,13 +191,7 @@ class PrioritizingShortestPathFinder private constructor(
 
     // Phase 2: Sequential BFS from each found leaked object id, computing retained sizes
     // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
-    val retainedSizes = if (objectSizeCalculator != null) {
-      MutableLongLongMap(leakingObjectIds.size()).also { map ->
-        leakingObjectIds.elementSequence().forEach { id -> map[id] = 0 packedWith 0 }
-      }
-    } else {
-      null
-    }
+    val accumulator = objectSizeCalculator?.let { RetainedSizeAccumulator(leakingObjectIds) }
 
     val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
 
@@ -196,8 +201,6 @@ class PrioritizingShortestPathFinder private constructor(
       if (!foundLeakingObjectIds.contains(id)) notYetFoundLeakingIds.add(id)
     }
 
-    // Phase 1 seeds not yet processed — used to detect when another Phase 1 seed is
-    // encountered during the current seed's BFS (treat it as a leaf, let it be its own seed).
     val unprocessedSeedIds = LongScatterSet().also { set ->
       foundLeakingObjectIds.elementSequence().forEach { set.add(it) }
     }
@@ -210,15 +213,10 @@ class PrioritizingShortestPathFinder private constructor(
       bfsQueue.add(currentSeedId)
     }
 
-    while (bfsQueue.isNotEmpty()) {
+    bfsLoop@ while (bfsQueue.isNotEmpty()) {
       val objectId = bfsQueue.poll()
 
-      if (retainedSizes != null && objectSizeCalculator != null) {
-        val shallowSize = objectSizeCalculator.computeSize(objectId)
-        val current = retainedSizes.getOrDefault(currentSeedId, 0 packedWith 0)
-        retainedSizes[currentSeedId] =
-          (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
-      }
+      accumulator?.accumulate(objectId, currentSeedId)
 
       val heapObject = try {
         graph.findObjectById(objectId)
@@ -226,13 +224,9 @@ class PrioritizingShortestPathFinder private constructor(
         throw RuntimeException("Object id $objectId not found in heap", objectIdNotFound)
       }
 
-      objectReferenceReader.read(heapObject).forEach { reference ->
+      for (reference in objectReferenceReader.read(heapObject)) {
         val refId = reference.valueObjectId
-        if (refId == ValueHolder.NULL_REFERENCE) return@forEach
-
-        // Another Phase 1 seed: treat as leaf. It will be processed as its own seed and
-        // must not have its subgraph attributed to the current seed.
-        if (refId in unprocessedSeedIds) return@forEach
+        if (refId == ValueHolder.NULL_REFERENCE) continue
 
         // A leaked object only reachable through other leaked objects (not found in Phase 1):
         // record as sub-leaked, remove from the not-yet-found set, and continue exploring
@@ -240,33 +234,28 @@ class PrioritizingShortestPathFinder private constructor(
         if (refId in notYetFoundLeakingIds) {
           notYetFoundLeakingIds.remove(refId)
           subLeakedObjectPaths.getOrPut(currentSeedId) { mutableListOf() }.add(refId)
-          if (visitedSet.add(refId)) {
-            bfsQueue.add(refId)
-          }
-          return@forEach
+          visitedSet.add(refId)
+          bfsQueue.add(refId)
+          if (accumulator == null && notYetFoundLeakingIds.isEmpty()) break@bfsLoop
+          continue
         }
 
         // Skip objects already in R₀ or already attributed to a previous seed.
-        if (!visitedSet.add(refId)) return@forEach
+        if (!visitedSet.add(refId)) continue
         bfsQueue.add(refId)
       }
 
       // Current seed's subgraph fully explored: advance to the next seed if any.
-      if (bfsQueue.isEmpty()) {
-        // If we only need to find remaining leaked objects (not compute sizes), stop as soon as
-        // all leaked object ids have been found.
-        if (objectSizeCalculator == null && notYetFoundLeakingIds.isEmpty()) break
-        if (unprocessedSeedIds.size() > 0) {
-          currentSeedId = unprocessedSeedIds.elementSequence().first()
-          unprocessedSeedIds.remove(currentSeedId)
-          bfsQueue.add(currentSeedId)
-        }
+      if (bfsQueue.isEmpty() && unprocessedSeedIds.size() > 0) {
+        currentSeedId = unprocessedSeedIds.elementSequence().first()
+        unprocessedSeedIds.remove(currentSeedId)
+        bfsQueue.add(currentSeedId)
       }
     }
 
     return PathFindingResults(
       pathsToLeakingObjects = shortestPathsToLeakingObjects,
-      retainedSizes = retainedSizes,
+      retainedSizes = accumulator?.sizes,
       subLeakedObjectPaths = subLeakedObjectPaths,
     )
   }
