@@ -15,5 +15,5 @@ class PathFindingResults(
    * Sub-leaked objects are reachable from GC roots only through another leaked object, so they
    * are reported as labels on the parent's leak trace rather than as independent leaks.
    */
-  val subLeakedObjectPaths: Map<Long, List<Long>>,
+  val subLeakedObjectsByParentLeakedObject: Map<Long, List<Long>>,
 )

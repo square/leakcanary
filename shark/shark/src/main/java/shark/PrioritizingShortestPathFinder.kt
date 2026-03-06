@@ -150,7 +150,7 @@ class PrioritizingShortestPathFinder private constructor(
     enqueueGcRoots()
 
     val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
-    val foundLeakingObjectIds = LongScatterSet()
+    val foundLeakingObjectIds = HashSet<Long>()
 
     // Phase 1: BFS from GC roots, leaked objects treated as leaves.
     visitingQueue@ while (queuesNotEmpty) {
@@ -159,7 +159,7 @@ class PrioritizingShortestPathFinder private constructor(
       if (leakingObjectIds.contains(node.objectId)) {
         shortestPathsToLeakingObjects.add(node)
         foundLeakingObjectIds.add(node.objectId)
-        val allFound = foundLeakingObjectIds.size() == leakingObjectIds.size()
+        val allFound = foundLeakingObjectIds.size == leakingObjectIds.size()
         if (allFound && objectSizeCalculator == null) {
           // All leaked objects found and retained size not needed: stop immediately.
           break@visitingQueue
@@ -193,30 +193,29 @@ class PrioritizingShortestPathFinder private constructor(
     // and discovering sub-leaked objects (leaked objects only reachable through other leaks).
     val accumulator = objectSizeCalculator?.let { RetainedSizeAccumulator(leakingObjectIds) }
 
-    val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
+    // sub-leaked object id → parent leaked object id
+    val subLeakedByParent = mutableMapOf<Long, Long>()
 
     // Leaked objects not found in Phase 1: only reachable through other leaked objects.
     val notYetFoundLeakingIds = mutableSetOf<Long>()
     leakingObjectIds.elementSequence().forEach { id ->
-      if (!foundLeakingObjectIds.contains(id)) notYetFoundLeakingIds.add(id)
+      if (id !in foundLeakingObjectIds) notYetFoundLeakingIds.add(id)
     }
 
-    val unprocessedSeedIds = LongScatterSet().also { set ->
-      foundLeakingObjectIds.elementSequence().forEach { set.add(it) }
-    }
+    val unprocessedLeakingIds = HashSet<Long>(foundLeakingObjectIds)
 
-    var currentSeedId = 0L
+    var currentLeakingId = 0L
     val bfsQueue = ArrayDeque<Long>()
-    if (unprocessedSeedIds.size() > 0) {
-      currentSeedId = unprocessedSeedIds.elementSequence().first()
-      unprocessedSeedIds.remove(currentSeedId)
-      bfsQueue.add(currentSeedId)
+    if (unprocessedLeakingIds.isNotEmpty()) {
+      currentLeakingId = unprocessedLeakingIds.first()
+      unprocessedLeakingIds.remove(currentLeakingId)
+      bfsQueue.add(currentLeakingId)
     }
 
     bfsLoop@ while (bfsQueue.isNotEmpty()) {
       val objectId = bfsQueue.poll()
 
-      accumulator?.accumulate(objectId, currentSeedId)
+      accumulator?.accumulate(objectId, currentLeakingId)
 
       val heapObject = try {
         graph.findObjectById(objectId)
@@ -226,37 +225,45 @@ class PrioritizingShortestPathFinder private constructor(
 
       for (reference in objectReferenceReader.read(heapObject)) {
         val refId = reference.valueObjectId
-        if (refId == ValueHolder.NULL_REFERENCE) continue
-
-        // A leaked object only reachable through other leaked objects (not found in Phase 1):
-        // record as sub-leaked, remove from the not-yet-found set, and continue exploring
-        // its subgraph under the current seed.
-        if (refId in notYetFoundLeakingIds) {
-          notYetFoundLeakingIds.remove(refId)
-          subLeakedObjectPaths.getOrPut(currentSeedId) { mutableListOf() }.add(refId)
-          visitedSet.add(refId)
-          bfsQueue.add(refId)
-          if (accumulator == null && notYetFoundLeakingIds.isEmpty()) break@bfsLoop
+        if (refId == ValueHolder.NULL_REFERENCE) {
           continue
         }
 
-        // Skip objects already in R₀ or already attributed to a previous seed.
-        if (!visitedSet.add(refId)) continue
+        // A leaked object only reachable through other leaked objects (not found in Phase 1):
+        // record as sub-leaked, remove from the not-yet-found set, and continue exploring
+        // its subgraph under the current leaking object.
+        if (refId in notYetFoundLeakingIds) {
+          notYetFoundLeakingIds.remove(refId)
+          subLeakedByParent[refId] = currentLeakingId
+          if (accumulator == null && notYetFoundLeakingIds.isEmpty()) {
+            break@bfsLoop
+          }
+        }
+
+        // Skip objects already in R₀ or already attributed to a previous leaking object.
+        if (!visitedSet.add(refId)) {
+          continue
+        }
         bfsQueue.add(refId)
       }
 
-      // Current seed's subgraph fully explored: advance to the next seed if any.
-      if (bfsQueue.isEmpty() && unprocessedSeedIds.size() > 0) {
-        currentSeedId = unprocessedSeedIds.elementSequence().first()
-        unprocessedSeedIds.remove(currentSeedId)
-        bfsQueue.add(currentSeedId)
+      // Current leaking object's subgraph fully explored: advance to the next one if any.
+      if (bfsQueue.isEmpty() && unprocessedLeakingIds.isNotEmpty()) {
+        currentLeakingId = unprocessedLeakingIds.first()
+        unprocessedLeakingIds.remove(currentLeakingId)
+        bfsQueue.add(currentLeakingId)
       }
+    }
+
+    val subLeakedObjectsByParentLeakedObject = mutableMapOf<Long, MutableList<Long>>()
+    subLeakedByParent.forEach { (subLeaked, parent) ->
+      subLeakedObjectsByParentLeakedObject.getOrPut(parent) { mutableListOf() }.add(subLeaked)
     }
 
     return PathFindingResults(
       pathsToLeakingObjects = shortestPathsToLeakingObjects,
       retainedSizes = accumulator?.sizes,
-      subLeakedObjectPaths = subLeakedObjectPaths,
+      subLeakedObjectsByParentLeakedObject = subLeakedObjectsByParentLeakedObject,
     )
   }
 
