@@ -190,17 +190,17 @@ class PrioritizingShortestPathFinder private constructor(
 
     val subLeakedObjectPaths = mutableMapOf<Long, MutableList<Long>>()
 
-    val phase1SeedIds = shortestPathsToLeakingObjects.map { it.objectId }.toHashSet()
-
     // Leaked objects not found in Phase 1: only reachable through other leaked objects.
     val notYetFoundLeakingIds = mutableSetOf<Long>()
     leakingObjectIds.elementSequence().forEach { id ->
-      if (id !in phase1SeedIds) notYetFoundLeakingIds.add(id)
+      if (!foundLeakingObjectIds.contains(id)) notYetFoundLeakingIds.add(id)
     }
 
     // Phase 1 seeds not yet processed — used to detect when another Phase 1 seed is
     // encountered during the current seed's BFS (treat it as a leaf, let it be its own seed).
-    val unprocessedSeedIds = phase1SeedIds.toMutableSet()
+    val unprocessedSeedIds = LongScatterSet().also { set ->
+      foundLeakingObjectIds.elementSequence().forEach { set.add(it) }
+    }
 
     for (seedPathNode in shortestPathsToLeakingObjects) {
       val seedId = seedPathNode.objectId
