@@ -202,8 +202,8 @@ class PrioritizingShortestPathFinder private constructor(
       foundLeakingObjectIds.elementSequence().forEach { set.add(it) }
     }
 
-    for (seedPathNode in shortestPathsToLeakingObjects) {
-      val seedId = seedPathNode.objectId
+    while (unprocessedSeedIds.size() > 0) {
+      val seedId = unprocessedSeedIds.elementSequence().first()
       unprocessedSeedIds.remove(seedId)
 
       val bfsQueue = ArrayDeque<Long>()
