@@ -207,7 +207,6 @@ class PrioritizingShortestPathFinder private constructor(
       unprocessedSeedIds.remove(seedId)
 
       val bfsQueue = ArrayDeque<Long>()
-      visitedSet.add(seedId)
       bfsQueue.add(seedId)
 
       while (bfsQueue.isNotEmpty()) {
