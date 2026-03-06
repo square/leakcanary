@@ -18,7 +18,6 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import shark.HprofHeader
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -495,7 +494,10 @@ private class SessionState(
         "ping" -> { requireReason(parts); Json.encodeToString(PingResponse(heapDumpPath)) }
         "close-session" -> { requireReason(parts); Json.encodeToString(CloseSession("Session closed.")) }
         "summary" -> { requireReason(parts); Json.encodeToString(buildSummary()) }
-        "human-readable-trace" -> { requireReason(parts); Json.encodeToString(HumanReadableTraceResponse(buildHumanReadableTrace())) }
+        "human-readable-trace" -> {
+          requireReason(parts)
+          Json.encodeToString(HumanReadableTraceResponse(buildHumanReadableTrace()))
+        }
         "node" -> Json.encodeToString(nodeResponse(parts))
         "fields" -> Json.encodeToString(fieldsResponse(parts))
         "instances" -> Json.encodeToString(instancesResponse(parts))
