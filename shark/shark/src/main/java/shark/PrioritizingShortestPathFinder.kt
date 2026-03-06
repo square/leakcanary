@@ -202,29 +202,31 @@ class PrioritizingShortestPathFinder private constructor(
       foundLeakingObjectIds.elementSequence().forEach { set.add(it) }
     }
 
-    while (unprocessedSeedIds.size() > 0) {
-      val seedId = unprocessedSeedIds.elementSequence().first()
-      unprocessedSeedIds.remove(seedId)
+    var currentSeedId = 0L
+    val bfsQueue = ArrayDeque<Long>()
+    if (unprocessedSeedIds.size() > 0) {
+      currentSeedId = unprocessedSeedIds.elementSequence().first()
+      unprocessedSeedIds.remove(currentSeedId)
+      bfsQueue.add(currentSeedId)
+    }
 
-      val bfsQueue = ArrayDeque<Long>()
-      bfsQueue.add(seedId)
+    while (bfsQueue.isNotEmpty()) {
+      val objectId = bfsQueue.poll()
 
-      while (bfsQueue.isNotEmpty()) {
-        val objectId = bfsQueue.poll()
+      if (retainedSizes != null && objectSizeCalculator != null) {
+        val shallowSize = objectSizeCalculator.computeSize(objectId)
+        val current = retainedSizes.getOrDefault(currentSeedId, 0 packedWith 0)
+        retainedSizes[currentSeedId] =
+          (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
+      }
 
-        if (retainedSizes != null && objectSizeCalculator != null) {
-          val shallowSize = objectSizeCalculator.computeSize(objectId)
-          val current = retainedSizes.getOrDefault(seedId, 0 packedWith 0)
-          retainedSizes[seedId] =
-            (current.unpackAsFirstInt + shallowSize) packedWith (current.unpackAsSecondInt + 1)
-        }
+      val heapObject = try {
+        graph.findObjectById(objectId)
+      } catch (_: IllegalArgumentException) {
+        null
+      }
 
-        val heapObject = try {
-          graph.findObjectById(objectId)
-        } catch (_: IllegalArgumentException) {
-          continue
-        }
-
+      if (heapObject != null) {
         objectReferenceReader.read(heapObject).forEach { reference ->
           val refId = reference.valueObjectId
           if (refId == ValueHolder.NULL_REFERENCE) return@forEach
@@ -238,7 +240,7 @@ class PrioritizingShortestPathFinder private constructor(
           // its subgraph under the current seed.
           if (refId in notYetFoundLeakingIds) {
             notYetFoundLeakingIds.remove(refId)
-            subLeakedObjectPaths.getOrPut(seedId) { mutableListOf() }.add(refId)
+            subLeakedObjectPaths.getOrPut(currentSeedId) { mutableListOf() }.add(refId)
             if (visitedSet.add(refId)) {
               bfsQueue.add(refId)
             }
@@ -251,9 +253,17 @@ class PrioritizingShortestPathFinder private constructor(
         }
       }
 
-      // If we only need to find remaining leaked objects (not compute sizes), stop as soon as
-      // all leaked object ids have been found.
-      if (objectSizeCalculator == null && notYetFoundLeakingIds.isEmpty()) break
+      // Current seed's subgraph fully explored: advance to the next seed if any.
+      if (bfsQueue.isEmpty()) {
+        // If we only need to find remaining leaked objects (not compute sizes), stop as soon as
+        // all leaked object ids have been found.
+        if (objectSizeCalculator == null && notYetFoundLeakingIds.isEmpty()) break
+        if (unprocessedSeedIds.size() > 0) {
+          currentSeedId = unprocessedSeedIds.elementSequence().first()
+          unprocessedSeedIds.remove(currentSeedId)
+          bfsQueue.add(currentSeedId)
+        }
+      }
     }
 
     return PathFindingResults(
