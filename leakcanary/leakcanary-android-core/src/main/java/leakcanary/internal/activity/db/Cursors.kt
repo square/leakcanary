@@ -9,19 +9,14 @@ import kotlin.concurrent.getOrSet
  * Cursor implements Closable on all supported API levels (26+).
  */
 internal inline fun <R> Cursor.use(block: (Cursor) -> R): R {
-  var exception: Throwable? = null
-  try {
-    return block(this)
+  return try {
+    block(this)
   } catch (e: Throwable) {
-    exception = e
     throw e
   } finally {
-    when (exception) {
-      null -> close()
-      else -> try {
+    try {
         close()
-      } catch (_: Throwable) {
-      }
+    } catch (_: Throwable) {
     }
   }
 }
