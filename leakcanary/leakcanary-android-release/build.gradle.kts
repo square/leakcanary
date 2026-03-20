@@ -23,7 +23,7 @@ android {
   resourcePrefix = "leak_canary_"
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    minSdk = 16
+    minSdk = libs.versions.androidMinSdk.get().toInt()
     buildConfigField("String", "LIBRARY_VERSION", "\"${rootProject.property("VERSION_NAME")}\"")
     buildConfigField("String", "GIT_SHA", "\"${gitSha()}\"")
     consumerProguardFiles("consumer-proguard-rules.pro")

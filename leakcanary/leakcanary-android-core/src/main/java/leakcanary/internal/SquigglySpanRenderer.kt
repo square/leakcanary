@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
-import android.os.Build
 import android.text.Layout
 import com.squareup.leakcanary.core.R
 import kotlin.math.max
@@ -107,7 +106,7 @@ internal abstract class SquigglySpanRenderer(context: Context) {
 
     private fun Layout.getLineBottomWithoutSpacing(line: Int): Int {
       val lineBottom = getLineBottom(line)
-      val lastLineSpacingNotAdded = Build.VERSION.SDK_INT >= 19
+      val lastLineSpacingNotAdded = true
       val isLastLine = line == lineCount - 1
 
       val lineBottomWithoutSpacing: Int

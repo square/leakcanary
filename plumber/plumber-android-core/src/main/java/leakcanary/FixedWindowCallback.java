@@ -105,7 +105,6 @@ class FixedWindowCallback implements Window.Callback {
     return delegate.onSearchRequested();
   }
 
-  @RequiresApi(23)
   @Override public boolean onSearchRequested(SearchEvent searchEvent) {
     return delegate.onSearchRequested(searchEvent);
   }
@@ -114,7 +113,7 @@ class FixedWindowCallback implements Window.Callback {
     return delegate.onWindowStartingActionMode(callback);
   }
 
-  @RequiresApi(23) @Nullable @Override
+  @Nullable @Override
   public ActionMode onWindowStartingActionMode(ActionMode.Callback callback,
       int type) {
     return delegate.onWindowStartingActionMode(callback, type);
@@ -128,13 +127,11 @@ class FixedWindowCallback implements Window.Callback {
     delegate.onActionModeFinished(mode);
   }
 
-  @RequiresApi(24)
   @Override public void onProvideKeyboardShortcuts(List<KeyboardShortcutGroup> data,
       @Nullable Menu menu, int deviceId) {
     delegate.onProvideKeyboardShortcuts(data, menu, deviceId);
   }
 
-  @RequiresApi(26)
   @Override public void onPointerCaptureChanged(boolean hasCapture) {
     delegate.onPointerCaptureChanged(hasCapture);
   }
