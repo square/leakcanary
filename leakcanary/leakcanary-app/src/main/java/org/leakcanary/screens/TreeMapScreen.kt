@@ -33,13 +33,26 @@ import org.leakcanary.screens.Destination.TreeMapDestination
 import org.leakcanary.screens.TreeMapState.Loading
 import org.leakcanary.screens.TreeMapState.Success
 import org.leakcanary.screens.TreemapLayout.NodeValue
+import java.io.Serializable
+import shark.ActualMatchingReferenceReaderFactory
+import shark.AndroidObjectSizeCalculator
 import shark.AndroidReferenceMatchers
+import shark.DominatorNode
+import shark.HeapObject.HeapClass
+import shark.HeapObject.HeapInstance
+import shark.HeapObject.HeapObjectArray
+import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.IgnoredReferenceMatcher
-import shark.ObjectDominators
-import shark.ObjectDominators.OfflineDominatorNode
+import shark.LinkEvalDominatorTree
+import shark.MatchingGcRootProvider
 import shark.ReferenceMatcher
 import shark.ValueHolder
+
+data class OfflineDominatorNode(
+  val node: DominatorNode,
+  val name: String
+) : Serializable
 
 sealed interface TreeMapState {
   object Loading : TreeMapState
@@ -70,7 +83,24 @@ class TreeMapViewModel @Inject constructor(
             matcher as IgnoredReferenceMatcher
           }
 
-        ObjectDominators().buildOfflineDominatorTree(heapGraph, ignoredRefs)
+        val dominators = LinkEvalDominatorTree(
+          heapGraph,
+          ActualMatchingReferenceReaderFactory(emptyList()),
+          MatchingGcRootProvider(ignoredRefs)
+        ).compute(AndroidObjectSizeCalculator(heapGraph))
+        dominators.mapValues { (objectId, node) ->
+          val name = if (objectId == ValueHolder.NULL_REFERENCE) {
+            "root"
+          } else {
+            when (val heapObject = heapGraph.findObjectById(objectId)) {
+              is HeapClass -> "class ${heapObject.name}"
+              is HeapInstance -> heapObject.instanceClassName
+              is HeapObjectArray -> heapObject.arrayClassName
+              is HeapPrimitiveArray -> heapObject.arrayClassName
+            }
+          }
+          OfflineDominatorNode(node, name)
+        }
       }
     }
     emit(Success(result))
@@ -158,7 +188,24 @@ fun OnDeviceHeapTreemapPreview() {
         matcher as IgnoredReferenceMatcher
       }
 
-    ObjectDominators().buildOfflineDominatorTree(heapGraph, ignoredRefs)
+    val dominators = LinkEvalDominatorTree(
+      heapGraph,
+      ActualMatchingReferenceReaderFactory(emptyList()),
+      MatchingGcRootProvider(ignoredRefs)
+    ).compute(AndroidObjectSizeCalculator(heapGraph))
+    dominators.mapValues { (objectId, node) ->
+      val name = if (objectId == ValueHolder.NULL_REFERENCE) {
+        "root"
+      } else {
+        when (val heapObject = heapGraph.findObjectById(objectId)) {
+          is HeapClass -> "class ${heapObject.name}"
+          is HeapInstance -> heapObject.instanceClassName
+          is HeapObjectArray -> heapObject.arrayClassName
+          is HeapPrimitiveArray -> heapObject.arrayClassName
+        }
+      }
+      OfflineDominatorNode(node, name)
+    }
   }
   val root = ValueHolder.NULL_REFERENCE
   val treemapInput = DominatorNodeMapper(
