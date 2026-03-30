@@ -7,8 +7,6 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.multiprocess.RemoteListenableWorker.ARGUMENT_CLASS_NAME
 import androidx.work.multiprocess.RemoteListenableWorker.ARGUMENT_PACKAGE_NAME
-import android.os.Handler
-import android.os.Looper
 import java.io.File
 import leakcanary.EventListener.Event
 import leakcanary.EventListener.Event.HeapAnalysisDone
@@ -17,6 +15,7 @@ import leakcanary.internal.HeapAnalyzerWorker.Companion.asWorkerInputData
 import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.RemoteHeapAnalyzerWorker
 import leakcanary.internal.Serializables
+import leakcanary.internal.friendly.mainHandler
 import shark.SharkLog
 
 /**
@@ -34,6 +33,35 @@ object RemoteWorkManagerHeapAnalyzer : EventListener {
       true
     } catch (ignored: Throwable) {
       false
+    }
+  }
+
+  /**
+   * Cleans up orphaned event files from previous remote worker runs.
+   * If the main process died after a remote worker completed, the result file
+   * would never be read or deleted. This dispatches any recoverable events
+   * and deletes all leftover files.
+   *
+   * Called from [InternalLeakCanary.invoke] on startup.
+   */
+  internal fun dispatchAndCleanupOrphanedEventFiles() {
+    val application = InternalLeakCanary.application
+    val filesDir = application.filesDir
+    val orphanedFiles = filesDir.listFiles { file ->
+      file.name.startsWith(RemoteHeapAnalyzerWorker.EVENT_FILE_PREFIX)
+    } ?: return
+    for (eventFile in orphanedFiles) {
+      try {
+        val doneEvent = Serializables.fromByteArray<HeapAnalysisDone<*>>(eventFile.readBytes())
+        if (doneEvent != null) {
+          SharkLog.d { "Recovering orphaned remote event from ${eventFile.name}" }
+          InternalLeakCanary.sendEvent(doneEvent)
+        }
+      } catch (e: Throwable) {
+        SharkLog.d(e) { "Failed to recover orphaned event file ${eventFile.name}" }
+      } finally {
+        eventFile.delete()
+      }
     }
   }
 
@@ -57,7 +85,7 @@ object RemoteWorkManagerHeapAnalyzer : EventListener {
       // Observe the remote worker's completion from the main process so we can
       // re-dispatch the HeapAnalysisDone event to listeners running here.
       val workInfoLiveData = workManager.getWorkInfoByIdLiveData(heapAnalysisRequest.id)
-      Handler(Looper.getMainLooper()).post {
+      mainHandler.post {
         workInfoLiveData.observeForever(object : Observer<WorkInfo> {
           override fun onChanged(workInfo: WorkInfo) {
             if (workInfo.state.isFinished) {
@@ -86,7 +114,6 @@ object RemoteWorkManagerHeapAnalyzer : EventListener {
     try {
       val doneEvent = Serializables.fromByteArray<HeapAnalysisDone<*>>(eventFile.readBytes())
       if (doneEvent != null) {
-        SharkLog.d { "Dispatching remote heap analysis result to main process listeners" }
         InternalLeakCanary.sendEvent(doneEvent)
       } else {
         SharkLog.d { "Failed to deserialize remote worker event" }
