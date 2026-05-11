@@ -51,8 +51,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         // This filter only cares for root view because we only need one view in a view hierarchy.
         if (isRootView) {
-          val mContext = heapObject["android.view.View", "mContext"]!!.value.asObject!!.asInstance!!
-          val activityContext = mContext.unwrapActivityContext()
+          val mContext = heapObject["android.view.View", "mContext"]?.value?.asObject?.asInstance
+          val activityContext = mContext?.unwrapActivityContext()
           val mContextIsDestroyedActivity = (activityContext != null &&
             activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true)
           if (mContextIsDestroyedActivity) {
