@@ -54,10 +54,10 @@ internal class HprofInMemoryIndex private constructor(
   private val positionSize: Int,
   private val hprofStringCache: LongObjectScatterMap<String>,
   private val classNames: LongLongScatterMap,
-  private val classIndex: SortedBytesMap,
-  private val instanceIndex: SortedBytesMap,
-  private val objectArrayIndex: SortedBytesMap,
-  private val primitiveArrayIndex: SortedBytesMap,
+  private val classIndex: ShardedSortedBytesMap,
+  private val instanceIndex: ShardedSortedBytesMap,
+  private val objectArrayIndex: ShardedSortedBytesMap,
+  private val primitiveArrayIndex: ShardedSortedBytesMap,
   private val gcRoots: List<GcRoot>,
   private val proguardMapping: ProguardMapping?,
   private val bytesForClassSize: Int,
@@ -325,7 +325,7 @@ internal class HprofInMemoryIndex private constructor(
   }
 
   private class Builder(
-    longIdentifiers: Boolean,
+    private val longIdentifiers: Boolean,
     maxPosition: Long,
     classCount: Int,
     instanceCount: Int,
@@ -364,26 +364,48 @@ internal class HprofInMemoryIndex private constructor(
 
     private var classFieldsIndex = 0
 
-    private val classIndex = UnsortedByteEntries(
+    private val classIndex = shardedUnsortedEntries(
       bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize + classFieldsIndexSize,
-      longIdentifiers = longIdentifiers,
-      initialCapacity = classCount
+      entryCount = classCount
     )
-    private val instanceIndex = UnsortedByteEntries(
+    private val classShardMask = classIndex.size - 1
+
+    private val instanceIndex = shardedUnsortedEntries(
       bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
-      longIdentifiers = longIdentifiers,
-      initialCapacity = instanceCount
+      entryCount = instanceCount
     )
-    private val objectArrayIndex = UnsortedByteEntries(
+    private val instanceShardMask = instanceIndex.size - 1
+
+    private val objectArrayIndex = shardedUnsortedEntries(
       bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
-      longIdentifiers = longIdentifiers,
-      initialCapacity = objectArrayCount
+      entryCount = objectArrayCount
     )
-    private val primitiveArrayIndex = UnsortedByteEntries(
+    private val objectArrayShardMask = objectArrayIndex.size - 1
+
+    private val primitiveArrayIndex = shardedUnsortedEntries(
       bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
-      longIdentifiers = longIdentifiers,
-      initialCapacity = primitiveArrayCount
+      entryCount = primitiveArrayCount
     )
+    private val primitiveArrayShardMask = primitiveArrayIndex.size - 1
+
+    private fun shardedUnsortedEntries(
+      bytesPerValue: Int,
+      entryCount: Int
+    ): Array<UnsortedByteEntries> {
+      val keyBytes = if (longIdentifiers) 8 else 4
+      val shardCount = ShardedSortedBytesMap.pickShardCount(
+        entryCount = entryCount,
+        bytesPerEntry = bytesPerValue + keyBytes
+      )
+      val perShard = (entryCount + shardCount - 1) / shardCount
+      return Array(shardCount) {
+        UnsortedByteEntries(
+          bytesPerValue = bytesPerValue,
+          longIdentifiers = longIdentifiers,
+          initialCapacity = if (perShard == 0) 4 else perShard
+        )
+      }
+    }
 
     // Pre seeding gc roots with the sticky class gc roots we've already parsed.
     private val gcRoots: MutableList<GcRoot> = ArrayList<GcRoot>(stickyClassGcRootIds.size()).apply {
@@ -570,7 +592,7 @@ internal class HprofInMemoryIndex private constructor(
           val fieldsSize = (reader.bytesRead - bytesReadFieldStart).toInt()
           val recordSize = reader.bytesRead - bytesReadStart
 
-          classIndex.append(id)
+          classIndex[ShardedSortedBytesMap.shardOf(id, classShardMask)].append(id)
             .apply {
               writeTruncatedLong(bytesReadStart, positionSize)
               writeId(superclassId)
@@ -590,7 +612,7 @@ internal class HprofInMemoryIndex private constructor(
           val remainingBytesInInstance = reader.readInt()
           reader.skip(remainingBytesInInstance)
           val recordSize = reader.bytesRead - bytesReadStart
-          instanceIndex.append(id)
+          instanceIndex[ShardedSortedBytesMap.shardOf(id, instanceShardMask)].append(id)
             .apply {
               writeTruncatedLong(bytesReadStart, positionSize)
               writeId(classId)
@@ -607,7 +629,7 @@ internal class HprofInMemoryIndex private constructor(
           reader.skip(identifierSize * size)
           // record size - (ID+INT + INT + ID)
           val recordSize = reader.bytesRead - bytesReadStart
-          objectArrayIndex.append(id)
+          objectArrayIndex[ShardedSortedBytesMap.shardOf(id, objectArrayShardMask)].append(id)
             .apply {
               writeTruncatedLong(bytesReadStart, positionSize)
               writeId(arrayClassId)
@@ -622,7 +644,7 @@ internal class HprofInMemoryIndex private constructor(
           val type = PrimitiveType.primitiveTypeByHprofType.getValue(reader.readUnsignedByte())
           reader.skip(size * type.byteSize)
           val recordSize = reader.bytesRead - bytesReadStart
-          primitiveArrayIndex.append(id)
+          primitiveArrayIndex[ShardedSortedBytesMap.shardOf(id, primitiveArrayShardMask)].append(id)
             .apply {
               writeTruncatedLong(bytesReadStart, positionSize)
               writeByte(type.ordinal.toByte())
@@ -643,10 +665,18 @@ internal class HprofInMemoryIndex private constructor(
         "Read $classFieldsIndex into fields bytes instead of expected ${classFieldBytes.size}"
       }
 
-      val sortedInstanceIndex = instanceIndex.moveToSortedMap()
-      val sortedObjectArrayIndex = objectArrayIndex.moveToSortedMap()
-      val sortedPrimitiveArrayIndex = primitiveArrayIndex.moveToSortedMap()
-      val sortedClassIndex = classIndex.moveToSortedMap()
+      val sortedInstanceIndex = ShardedSortedBytesMap(Array(instanceIndex.size) {
+        instanceIndex[it].moveToSortedMap()
+      })
+      val sortedObjectArrayIndex = ShardedSortedBytesMap(Array(objectArrayIndex.size) {
+        objectArrayIndex[it].moveToSortedMap()
+      })
+      val sortedPrimitiveArrayIndex = ShardedSortedBytesMap(Array(primitiveArrayIndex.size) {
+        primitiveArrayIndex[it].moveToSortedMap()
+      })
+      val sortedClassIndex = ShardedSortedBytesMap(Array(classIndex.size) {
+        classIndex[it].moveToSortedMap()
+      })
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
         positionSize = positionSize,
