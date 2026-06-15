@@ -136,6 +136,13 @@ data class LeakTrace(
     ),
     THREAD_OBJECT("Thread object"),
     JNI_MONITOR("Root JNI monitor"),
+    UNKNOWN("Unknown GC root type"),
+    INTERNED_STRING("Interned string"),
+    FINALIZING("Object awaiting finalization"),
+    DEBUGGER("Debugger reference"),
+    REFERENCE_CLEANUP("Reference cleanup"),
+    VM_INTERNAL("VM internal reference"),
+    UNREACHABLE("Unreachable object"),
     ;
 
     companion object {
@@ -149,7 +156,13 @@ data class LeakTrace(
         is GcRoot.MonitorUsed -> MONITOR_USED
         is GcRoot.ThreadObject -> THREAD_OBJECT
         is GcRoot.JniMonitor -> JNI_MONITOR
-        else -> throw IllegalStateException("Unexpected gc root $gcRoot")
+        is GcRoot.Unknown -> UNKNOWN
+        is GcRoot.InternedString -> INTERNED_STRING
+        is GcRoot.Finalizing -> FINALIZING
+        is GcRoot.Debugger -> DEBUGGER
+        is GcRoot.ReferenceCleanup -> REFERENCE_CLEANUP
+        is GcRoot.VmInternal -> VM_INTERNAL
+        is GcRoot.Unreachable -> UNREACHABLE
       }
     }
   }

@@ -423,15 +423,22 @@ public final class shark/LeakTrace$Companion {
 
 public final class shark/LeakTrace$GcRootType : java/lang/Enum {
 	public static final field Companion Lshark/LeakTrace$GcRootType$Companion;
+	public static final field DEBUGGER Lshark/LeakTrace$GcRootType;
+	public static final field FINALIZING Lshark/LeakTrace$GcRootType;
+	public static final field INTERNED_STRING Lshark/LeakTrace$GcRootType;
 	public static final field JAVA_FRAME Lshark/LeakTrace$GcRootType;
 	public static final field JNI_GLOBAL Lshark/LeakTrace$GcRootType;
 	public static final field JNI_LOCAL Lshark/LeakTrace$GcRootType;
 	public static final field JNI_MONITOR Lshark/LeakTrace$GcRootType;
 	public static final field MONITOR_USED Lshark/LeakTrace$GcRootType;
 	public static final field NATIVE_STACK Lshark/LeakTrace$GcRootType;
+	public static final field REFERENCE_CLEANUP Lshark/LeakTrace$GcRootType;
 	public static final field STICKY_CLASS Lshark/LeakTrace$GcRootType;
 	public static final field THREAD_BLOCK Lshark/LeakTrace$GcRootType;
 	public static final field THREAD_OBJECT Lshark/LeakTrace$GcRootType;
+	public static final field UNKNOWN Lshark/LeakTrace$GcRootType;
+	public static final field UNREACHABLE Lshark/LeakTrace$GcRootType;
+	public static final field VM_INTERNAL Lshark/LeakTrace$GcRootType;
 	public final fun getDescription ()Ljava/lang/String;
 	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTrace$GcRootType;
 	public static fun values ()[Lshark/LeakTrace$GcRootType;
