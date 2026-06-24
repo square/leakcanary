@@ -2,6 +2,12 @@
 
 ## Preparing the release environment
 
+> **Note:** Publishing to Maven Central now runs on GitHub Actions (see the
+> `publish-release.yml` workflow) against the [Maven Central Portal](https://central.sonatype.com/).
+> The Central Portal token and GPG signing key live as GitHub secrets, so the
+> Sonatype account, signing key, and `gradle.properties` setup below are **no longer
+> required for cutting a release** — they're kept for reference / local publishing only.
+
 ### Set up your Sonatype OSSRH account
 
 * Create a [Sonatype OSSRH JIRA account](https://issues.sonatype.org/secure/Signup!default.jspa).
@@ -114,19 +120,23 @@ sed -i '' 's/{{ leak_canary.next_release }}/NEXT/' mkdocs.yml
 sed -i '' 's/{{ leak_canary.release }}/{{ leak_canary.next_release }}/' mkdocs.yml
 ```
 
-* Create the release
+* Commit, tag, push, and trigger the publish workflow. Publishing runs on GitHub
+  Actions (`.github/workflows/publish-release.yml`), which builds, signs, and
+  uploads to the [Maven Central Portal](https://central.sonatype.com/). Credentials
+  (Central Portal token + GPG signing key) are configured as GitHub secrets, so no
+  local signing setup is required.
 ```bash
 git commit -am "Prepare {{ leak_canary.next_release }} release" && \
-./gradlew clean && \
-./gradlew build && \
 git tag v{{ leak_canary.next_release }} && \
 git push origin v{{ leak_canary.next_release }} && \
-./gradlew publish --no-daemon --no-parallel && \
-./gradlew closeAndReleaseRepository && \
-./gradlew shark:shark-cli:distZip
+gh workflow run publish-release.yml --ref v{{ leak_canary.next_release }} && \
+sleep 5 && \
+gh run list --workflow=publish-release.yml --branch v{{ leak_canary.next_release }} --json databaseId --jq ".[].databaseId" | xargs -I{} gh run watch {} --exit-status
 ```
 
-Note: if anything goes wrong, you can manually drop the release at https://s01.oss.sonatype.org/
+Note: the `publish-release.yml` workflow must already exist on the `main` branch to
+be dispatchable. You can monitor or drop deployments at
+https://central.sonatype.com/publishing/deployments
 
 * Merge back to main
 ```bash
@@ -160,6 +170,7 @@ mkdocs serve
 ```bash
 git commit -am "Prepare for next development iteration" && \
 git push && \
+./gradlew shark:shark-cli:distZip && \
 source venv/bin/activate && \
 mkdocs gh-deploy && \
 gh release create v{{ leak_canary.next_release }} ./shark/shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)' && \

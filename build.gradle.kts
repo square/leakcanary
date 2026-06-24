@@ -154,7 +154,7 @@ configure(subprojects.filter {
 
   pluginManager.withPlugin("com.vanniktech.maven.publish") {
     extensions.configure<MavenPublishBaseExtension> {
-      publishToMavenCentral(SonatypeHost.S01)
+      publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
       signAllPublications()
     }
   }
