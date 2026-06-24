@@ -5,7 +5,15 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 ## Unreleased
 
+* 🐛 [#2732](https://github.com/square/leakcanary/pull/2732) Fix `ScreenOffTrigger` ANR by registering its `BroadcastReceiver` off the main thread.
+* 💥 [#2806](https://github.com/square/leakcanary/pull/2806) Raise the minimum SDK to API 26 (Android 8.0 Oreo) and remove the now obsolete `AndroidLeakFixes`.
+* 🔨 [#2736](https://github.com/square/leakcanary/pull/2736) Fix `HprofPrimitiveArrayStripper` bugs and add a `StreamingSinkProvider` for stripping heap dumps.
+* 🔨 [#2737](https://github.com/square/leakcanary/pull/2737) Extend the API level range for the `InputMethodManager.mNextServedView` reference matcher in `AndroidReferenceMatchers`.
 * 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition leak where LeakCanary's toast was leaking and triggering LeakCanary
+* 🐛 [#2797](https://github.com/square/leakcanary/pull/2797) Fix the `COMPOSITION_IMPL` inspector for the new Compose state field structure.
+* 🔨 [#2788](https://github.com/square/leakcanary/pull/2788) Update Shark for newer Okio and Kotlin compliance, and drop Okio 1.x from the version catalog.
+* 🐛 [#2779](https://github.com/square/leakcanary/pull/2779) Enforce `LeakActivity` to fit system windows so its content isn't cut off on Android 15+.
+* 🔨 [#2772](https://github.com/square/leakcanary/pull/2772) Add Motorola to the OEMs causing a static context leak in `AndroidReferenceMatchers`.
 
 ## Version 3.0 Alpha 8 (2024-06-04)
 
