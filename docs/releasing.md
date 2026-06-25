@@ -138,15 +138,27 @@ Note: the `publish-release.yml` workflow must already exist on the `main` branch
 be dispatchable. You can monitor or drop deployments at
 https://central.sonatype.com/publishing/deployments
 
+* Build the `shark-cli` distribution and create the GitHub release. Do this while
+  `VERSION_NAME` is still the release version (before bumping to `-SNAPSHOT`), otherwise
+  the zip is named after the snapshot version.
+```bash
+./gradlew shark:shark-cli:distZip && \
+gh release create v{{ leak_canary.next_release }} ./shark/shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)'
+```
+
 * Merge back to main
 ```bash
 git checkout main && \
 git pull && \
 git merge --no-ff release_{{ leak_canary.next_release }}
 ```
-* Update `VERSION_NAME` in `gradle.properties` (increase version and add `-SNAPSHOT`)
+* Update `VERSION_NAME` in `gradle.properties` to the **next** version with a
+  `-SNAPSHOT` suffix. Replace `<NEXT>` with the next version number and keep the
+  `-SNAPSHOT` suffix (e.g. having released `3.0-alpha-9`, set `3.0-alpha-10-SNAPSHOT`).
+  Forgetting `-SNAPSHOT` here means `main` carries a release-style version for the whole
+  dev cycle, which breaks snapshot deployment.
 ```gradle
-sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}/VERSION_NAME=NEXT-SNAPSHOT/' gradle.properties
+sed -i '' 's/VERSION_NAME={{ leak_canary.next_release }}/VERSION_NAME=<NEXT>-SNAPSHOT/' gradle.properties
 ```
 
 * Generate the Dokka docs
@@ -170,10 +182,8 @@ mkdocs serve
 ```bash
 git commit -am "Prepare for next development iteration" && \
 git push && \
-./gradlew shark:shark-cli:distZip && \
 source venv/bin/activate && \
 mkdocs gh-deploy && \
-gh release create v{{ leak_canary.next_release }} ./shark/shark-cli/build/distributions/shark-cli-{{ leak_canary.next_release }}.zip --title v{{ leak_canary.next_release }} --notes 'See [Change Log](https://square.github.io/leakcanary/changelog)' && \
 gh listOpenMilestones | jq '.data.repository.milestones.nodes[0].number' | xargs gh closeMilestone && \
 echo '{
   "title": "REPLACE_WITH_NEXT_VERSION_NUMBER",
