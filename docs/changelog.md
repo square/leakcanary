@@ -3,8 +3,9 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-## Unreleased
+## Version 3.0 Alpha 9 (2026-06-25)
 
+* 🐛 [#2733](https://github.com/square/leakcanary/pull/2733) Fix reading `ActivityRecord`'s fields for `ACTIVITY_THREAD__NEW_ACTIVITIES` in `AndroidReferenceReaders`.
 * 🐛 [#2732](https://github.com/square/leakcanary/pull/2732) Fix `ScreenOffTrigger` ANR by registering its `BroadcastReceiver` off the main thread.
 * 💥 [#2806](https://github.com/square/leakcanary/pull/2806) Raise the minimum SDK to API 26 (Android 8.0 Oreo) and remove the now obsolete `AndroidLeakFixes`.
 * 🔨 [#2736](https://github.com/square/leakcanary/pull/2736) Fix `HprofPrimitiveArrayStripper` bugs and add a `StreamingSinkProvider` for stripping heap dumps.
