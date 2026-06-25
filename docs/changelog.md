@@ -16,10 +16,14 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 * 🐛 [#2779](https://github.com/square/leakcanary/pull/2779) Enforce `LeakActivity` to fit system windows so its content isn't cut off on Android 15+.
 * 🔨 [#2772](https://github.com/square/leakcanary/pull/2772) Add Motorola to the OEMs causing a static context leak in `AndroidReferenceMatchers`.
 
+See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-8...v3.0-alpha-9).
+
 ## Version 3.0 Alpha 8 (2024-06-04)
 
 * Added support for proper hprof handling on heap growth detection failures. Also inlined some public collaborators to achieve that. We now have a single class that's a bit larger but also a lot more obvious.
 * `findGrowingObjects` does not take a `CloseableHeapGraph` anymore (just a `HeapGraph`) and does not close that graph.
+
+See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-7...v3.0-alpha-8).
 
 ## Version 3.0 Alpha 7 (2024-05-30)
 
