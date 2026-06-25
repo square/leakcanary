@@ -10,5 +10,6 @@ fun main(args: Array<String>) =
     DumpProcessCommand(),
     StripHprofCommand(),
     DeobfuscateHprofCommand(),
+    DominatorTreeCommand(),
     HeapGrowthCommand()
   ).main(args)
