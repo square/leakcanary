@@ -402,7 +402,7 @@ internal class HprofInMemoryIndex private constructor(
         UnsortedByteEntries(
           bytesPerValue = bytesPerValue,
           longIdentifiers = longIdentifiers,
-          initialCapacity = if (perShard == 0) 4 else perShard
+          initialCapacity = perShard
         )
       }
     }
