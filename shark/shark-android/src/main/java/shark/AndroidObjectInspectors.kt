@@ -51,6 +51,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         // This filter only cares for root view because we only need one view in a view hierarchy.
         if (isRootView) {
+          // View.mContext is expected to never be null, but it can be null in a context
+          // environment where the view was mocked by Mockito, so we handle that gracefully here.
           val mContext = heapObject["android.view.View", "mContext"]?.value?.asObject?.asInstance
           val activityContext = mContext?.unwrapActivityContext()
           val mContextIsDestroyedActivity = (activityContext != null &&
