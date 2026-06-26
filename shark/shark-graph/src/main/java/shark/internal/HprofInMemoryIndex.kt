@@ -395,7 +395,7 @@ internal class HprofInMemoryIndex private constructor(
       val keyBytes = if (longIdentifiers) 8 else 4
       val shardCount = ShardedSortedBytesMap.pickShardCount(
         entryCount = entryCount,
-        bytesPerEntry = bytesPerValue + keyBytes
+        bytesPerEntry = keyBytes + bytesPerValue
       )
       val perShard = (entryCount + shardCount - 1) / shardCount
       return Array(shardCount) {
