@@ -40,41 +40,12 @@ internal object SortedBytesMaps {
    */
   const val TARGET_BYTES_PER_PAGE: Long = 1L shl 30  // 1 GB
 
-  /**
-   * Visible for testing only: when non-null, [newBuilder] always returns a paged builder using this
-   * many entries per page. Lets small heap dumps exercise the paged index path without allocating
-   * the multi-GB index that would otherwise be required to cross [MAX_SINGLE_ARRAY_BYTES].
-   */
-  var forcedEntriesPerPageForTesting: Int? = null
-
-  /**
-   * Visible for testing only: when true, [newBuilder] always returns the single [ByteArray] backed
-   * builder, reproducing the pre-paging behaviour (and its [NegativeArraySizeException] on indexes
-   * larger than [MAX_SINGLE_ARRAY_BYTES]).
-   */
-  var forceSingleArrayForTesting = false
-
   fun newBuilder(
     bytesPerValue: Int,
     longIdentifiers: Boolean,
     entryCount: Int
   ): SortedBytesMapBuilder {
     val bytesPerEntry = bytesPerValue + if (longIdentifiers) 8 else 4
-    if (forceSingleArrayForTesting) {
-      return UnsortedByteEntries(
-        bytesPerValue = bytesPerValue,
-        longIdentifiers = longIdentifiers,
-        initialCapacity = entryCount
-      )
-    }
-    forcedEntriesPerPageForTesting?.let { forcedEntriesPerPage ->
-      return PagedUnsortedByteEntries(
-        bytesPerValue = bytesPerValue,
-        longIdentifiers = longIdentifiers,
-        entryCount = entryCount,
-        entriesPerPage = forcedEntriesPerPage
-      )
-    }
     val totalBytes = entryCount.toLong() * bytesPerEntry
     return if (totalBytes <= MAX_SINGLE_ARRAY_BYTES) {
       UnsortedByteEntries(
