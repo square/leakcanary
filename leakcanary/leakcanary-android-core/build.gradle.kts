@@ -11,6 +11,7 @@ dependencies {
   api(projects.objectWatcher.objectWatcherAndroidCore)
   api(projects.objectWatcher.objectWatcherAndroidAndroidx)
   api(projects.leakcanary.leakcanaryAndroidUtils)
+  implementation(libs.androidX.appcompat)
   implementation(libs.kotlin.stdlib)
 
   // Optional dependency
@@ -22,6 +23,7 @@ dependencies {
   testImplementation(libs.kotlin.reflect)
   testImplementation(libs.mockito)
   testImplementation(libs.mockitoKotlin)
+  androidTestImplementation(libs.androidX.multidex)
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.test.runner)
@@ -52,6 +54,7 @@ android {
     buildConfigField("String", "GIT_SHA", "\"${gitSha()}\"")
     consumerProguardFiles("consumer-proguard-rules.pro")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    multiDexEnabled = true
 
     testInstrumentationRunnerArguments(
       mapOf(
