@@ -10,10 +10,10 @@
     <ID>FinalNewline:HeapField.kt$shark.HeapField.kt</ID>
     <ID>FinalNewline:IndexedObject.kt$shark.internal.IndexedObject.kt</ID>
     <ID>FinalNewline:LruCache.kt$shark.internal.LruCache.kt</ID>
-    <ID>FinalNewline:SortedBytesMap.kt$shark.internal.SortedBytesMap.kt</ID>
     <ID>MaximumLineLength:ByteArrayTimSort.kt$ByteArrayTimSort$ </ID>
     <ID>MaximumLineLength:HeapObject.kt$HeapObject.HeapInstance$ </ID>
     <ID>MaximumLineLength:HprofHeapGraphEdgeCasesTest.kt$HprofHeapGraphEdgeCasesTest$ </ID>
+    <ID>MaximumLineLength:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$ </ID>
     <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$INITIAL_TMP_STORAGE_LENGTH</ID>
     <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$break@outer</ID>
     <ID>MultiLineIfElse:ByteArrayTimSort.kt$ByteArrayTimSort$len.ushr(1)</ID>
@@ -36,12 +36,30 @@
     <ID>MultiLineIfElse:HeapObject.kt$HeapObject.HeapInstance$offset + count</ID>
     <ID>MultiLineIfElse:HprofInMemoryIndex.kt$HprofInMemoryIndex$className</ID>
     <ID>MultiLineIfElse:HprofInMemoryIndex.kt$HprofInMemoryIndex$this</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$break@outer</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$lastOfs = m + 1</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$left = mid + 1</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$mergeHi(base1, len1, base2, len2)</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$mergeLo(base1, len1, base2, len2)</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$min(newSize, a.entryCount ushr 1)</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$minCapacity</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$minGallop = 0</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$n--</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$ofs = m</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$ofs = maxOfs</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$return</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$return 1</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$right = mid</ID>
+    <ID>MultiLineIfElse:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$start++</ID>
     <ID>MultiLineIfElse:UnsortedByteEntries.kt$UnsortedByteEntries$entries</ID>
     <ID>NoConsecutiveBlankLines:HeapObject.kt$HeapObject.HeapObjectArray$ </ID>
     <ID>NoConsecutiveBlankLines:HeapObject.kt$HeapObject.HeapPrimitiveArray$ </ID>
     <ID>NoConsecutiveBlankLines:UnsortedByteEntries.kt$ </ID>
     <ID>NoMultipleSpaces:ByteArrayTimSort.kt$ByteArrayTimSort$ </ID>
     <ID>NoMultipleSpaces:ByteArrayTimSort.kt$ByteArrayTimSort.Companion$ </ID>
+    <ID>NoMultipleSpaces:PagedByteArrayTimSort.kt$PagedByteArrayTimSort$ </ID>
+    <ID>NoMultipleSpaces:PagedByteArrayTimSort.kt$PagedByteArrayTimSort.Companion$ </ID>
+    <ID>NoMultipleSpaces:SortedBytesMapBuilder.kt$SortedBytesMaps$ </ID>
     <ID>SpacingAroundCurly:HprofInMemoryIndex.kt$HprofInMemoryIndex.Builder${</ID>
     <ID>SpacingAroundKeyword:HprofInMemoryIndex.kt$HprofInMemoryIndex$while</ID>
     <ID>SpacingAroundOperators:HprofHeapGraph.kt$HprofHeapGraph$?:</ID>
