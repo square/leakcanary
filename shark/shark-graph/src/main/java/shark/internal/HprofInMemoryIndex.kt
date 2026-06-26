@@ -237,7 +237,7 @@ internal class HprofInMemoryIndex private constructor(
       )
     }
     shiftedIndex -= objectArrayIndex.size
-    require(index < primitiveArrayIndex.size)
+    require(shiftedIndex < primitiveArrayIndex.size)
     val objectId = primitiveArrayIndex.keyAt(shiftedIndex)
     val array = primitiveArrayIndex.getAtIndex(shiftedIndex)
     return objectId to IndexedPrimitiveArray(
@@ -276,7 +276,7 @@ internal class HprofInMemoryIndex private constructor(
     index = primitiveArrayIndex.indexOf(objectId)
     if (index >= 0) {
       val array = primitiveArrayIndex.getAtIndex(index)
-      return classIndex.size + instanceIndex.size + index + primitiveArrayIndex.size to IndexedPrimitiveArray(
+      return classIndex.size + instanceIndex.size + objectArrayIndex.size + index to IndexedPrimitiveArray(
         position = array.readTruncatedLong(positionSize),
         primitiveType = PrimitiveType.values()[array.readByte()
           .toInt()],
