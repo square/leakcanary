@@ -210,7 +210,7 @@ internal class HprofInMemoryIndex private constructor(
   }
 
   fun objectAtIndex(index: Int): LongObjectPair<IndexedObject> {
-    require(index > 0)
+    require(index >= 0)
     if (index < classIndex.size) {
       val objectId = classIndex.keyAt(index)
       val array = classIndex.getAtIndex(index)
