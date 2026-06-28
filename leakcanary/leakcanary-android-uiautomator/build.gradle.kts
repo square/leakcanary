@@ -15,8 +15,10 @@ dependencies {
 android {
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    targetSdk = libs.versions.androidCompileSdk.get().toInt()
     minSdk = libs.versions.androidMinSdk.get().toInt()
   }
   namespace = "com.squareup.leakcanary.android.uiautomator"
+  testOptions {
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
+  }
 }

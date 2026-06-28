@@ -27,13 +27,15 @@ dependencies {
 android {
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    targetSdk = libs.versions.androidCompileSdk.get().toInt()
     minSdk = libs.versions.androidMinSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     multiDexEnabled = true
   }
   namespace = "com.squareup.leakcanary.instrumentation"
   testNamespace = "com.squareup.leakcanary.instrumentation.test"
+  testOptions {
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
+  }
   lint {
     checkOnly += "Interoperability"
     disable += "GoogleAppIndexingWarning"

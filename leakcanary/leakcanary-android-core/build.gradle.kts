@@ -46,8 +46,6 @@ android {
 
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
-    // Avoid DeprecatedTargetSdkVersionDialog during UI tests
-    targetSdk = libs.versions.androidCompileSdk.get().toInt()
     buildConfigField("String", "LIBRARY_VERSION", "\"${rootProject.property("VERSION_NAME")}\"")
     buildConfigField("String", "GIT_SHA", "\"${gitSha()}\"")
     consumerProguardFiles("consumer-proguard-rules.pro")
@@ -60,6 +58,8 @@ android {
     )
     testOptions {
       execution = "ANDROIDX_TEST_ORCHESTRATOR"
+      // Avoid DeprecatedTargetSdkVersionDialog during UI tests
+      targetSdk = libs.versions.androidCompileSdk.get().toInt()
     }
   }
   namespace = "com.squareup.leakcanary.core"
