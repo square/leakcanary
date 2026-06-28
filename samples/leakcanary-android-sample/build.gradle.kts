@@ -58,7 +58,7 @@ android {
 
     // Run ./gradlew leakcanary-android-sample:connectedCheck -Porchestrator
     if (project.hasProperty("orchestrator")) {
-      testInstrumentationRunnerArguments(mapOf("clearPackageData" to "true"))
+      testInstrumentationRunnerArguments["clearPackageData"] = "true"
       testOptions {
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
       }

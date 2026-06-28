@@ -51,11 +51,7 @@ android {
     consumerProguardFiles("consumer-proguard-rules.pro")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-    testInstrumentationRunnerArguments(
-      mapOf(
-        "clearPackageData" to "true",
-      )
-    )
+    testInstrumentationRunnerArguments["clearPackageData"] = "true"
     testOptions {
       execution = "ANDROIDX_TEST_ORCHESTRATOR"
       // Avoid DeprecatedTargetSdkVersionDialog during UI tests
