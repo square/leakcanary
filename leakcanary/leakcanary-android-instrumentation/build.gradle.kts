@@ -39,6 +39,6 @@ android {
   lint {
     checkOnly += "Interoperability"
     disable += "GoogleAppIndexingWarning"
-    ignore += "InvalidPackage"
+    disable += "InvalidPackage"
   }
 }
