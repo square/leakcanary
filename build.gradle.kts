@@ -25,6 +25,7 @@ buildscript {
     classpath(libs.gradlePlugin.sqldelight)
     classpath(libs.gradlePlugin.ksp)
     classpath(libs.gradlePlugin.hilt)
+    classpath(libs.gradlePlugin.composeCompiler)
   }
 }
 

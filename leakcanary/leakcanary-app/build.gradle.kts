@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 plugins {
   id("com.android.application")
   id("app.cash.sqldelight")
+  id("org.jetbrains.kotlin.plugin.compose")
   id("com.google.dagger.hilt.android")
   id("com.google.devtools.ksp")
   id("kotlin-parcelize")

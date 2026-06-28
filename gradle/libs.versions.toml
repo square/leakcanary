@@ -37,6 +37,7 @@ gradlePlugin-keeper = { module = "com.slack.keeper:keeper", version = "0.7.0" }
 gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version = "2.0.0-alpha05" }
 gradlePlugin-hilt = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
 gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version = "2.3.9" }
+gradlePlugin-composeCompiler = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
 
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
