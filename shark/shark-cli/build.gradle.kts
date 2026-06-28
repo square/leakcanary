@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -14,8 +15,8 @@ java {
 
 // Workaround for https://stackoverflow.com/questions/48988778
 // /cannot-inline-bytecode-built-with-jvm-target-1-8-into-bytecode-that-is-being-bui
-tasks.withType<KotlinCompile> {
-  kotlinOptions.jvmTarget = JavaVersion.VERSION_1_8.toString()
+kotlin {
+  compilerOptions.jvmTarget = JVM_1_8
 }
 
 dependencies {

@@ -1,4 +1,5 @@
 import java.io.InputStreamReader
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 
 plugins {
   id("com.android.application")
@@ -52,10 +53,6 @@ android {
     targetCompatibility = JavaVersion.VERSION_1_8
   }
 
-  kotlinOptions {
-    jvmTarget = "1.8"
-  }
-
   buildFeatures {
     compose = true
   }
@@ -69,6 +66,10 @@ android {
       excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
   }
+}
+
+kotlin {
+  compilerOptions.jvmTarget = JVM_1_8
 }
 
 dependencies {
