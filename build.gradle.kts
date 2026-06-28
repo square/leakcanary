@@ -22,6 +22,7 @@ buildscript {
     classpath(libs.gradlePlugin.binaryCompatibility)
     classpath(libs.gradlePlugin.keeper)
     classpath(libs.gradlePlugin.sqldelight)
+    classpath(libs.gradlePlugin.ksp)
     classpath(libs.gradlePlugin.hilt)
   }
 }

@@ -4,7 +4,7 @@ plugins {
   id("com.android.application")
   id("app.cash.sqldelight")
   id("com.google.dagger.hilt.android")
-  id("kotlin-kapt")
+  id("com.google.devtools.ksp")
   id("kotlin-parcelize")
 }
 
@@ -95,9 +95,5 @@ dependencies {
   implementation(projects.leakcanary.leakcanaryAndroid)
   implementation(libs.hilt.android)
   implementation(libs.okio2)
-  kapt(libs.hilt.compiler)
-}
-
-kapt {
-  correctErrorTypes = true
+  ksp(libs.hilt.compiler)
 }
