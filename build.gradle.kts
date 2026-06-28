@@ -48,7 +48,6 @@ subprojects {
     //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
     //    }
     //    mavenLocal()
-    jcenter()
   }
 
   apply(plugin = "io.gitlab.arturbosch.detekt")
