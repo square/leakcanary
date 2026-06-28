@@ -95,4 +95,5 @@ dependencies {
   implementation(libs.hilt.android)
   implementation(libs.okio2)
   ksp(libs.hilt.compiler)
+  ksp(libs.kotlin.metadata.jvm)
 }
