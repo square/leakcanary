@@ -80,11 +80,6 @@ android {
       signingConfig = signingConfigs["debug"]
     }
   }
-
-  dexOptions {
-    dexInProcess = false
-  }
-
   testOptions {
     unitTests {
       isIncludeAndroidResources = true
