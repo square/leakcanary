@@ -1,7 +1,7 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
-import java.net.URL
+import java.net.URI
 import kotlinx.validation.ApiValidationExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.dokka.gradle.DokkaTask
@@ -147,10 +147,10 @@ configure(subprojects.filter {
       }
       skipDeprecated.set(true)
       externalDocumentationLink {
-        url.set(URL("https://square.github.io/okio/2.x/okio/"))
+        url.set(URI("https://square.github.io/okio/2.x/okio/").toURL())
       }
       externalDocumentationLink {
-        url.set(URL("https://square.github.io/moshi/1.x/moshi/"))
+        url.set(URI("https://square.github.io/moshi/1.x/moshi/").toURL())
       }
     }
   }
