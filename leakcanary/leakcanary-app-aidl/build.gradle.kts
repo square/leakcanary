@@ -16,7 +16,6 @@ android {
   buildFeatures {
     aidl = true
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary.app.aidl"
   lint {
     checkOnly += "Interoperability"

@@ -32,7 +32,6 @@ android {
     targetSdk = libs.versions.androidCompileSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary"
   lint {
     checkOnly += "Interoperability"

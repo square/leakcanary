@@ -17,6 +17,7 @@ fun gitSha(): String {
 android {
   namespace = "org.leakcanary"
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
+  buildFeatures.buildConfig = true
 
   defaultConfig {
     applicationId = "org.leakcanary"

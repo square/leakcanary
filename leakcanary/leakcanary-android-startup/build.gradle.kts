@@ -16,7 +16,6 @@ android {
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary.startup"
   lint {
     checkOnly += "Interoperability"

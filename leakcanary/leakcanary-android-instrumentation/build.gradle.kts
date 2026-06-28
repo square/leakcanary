@@ -32,7 +32,6 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     multiDexEnabled = true
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary.instrumentation"
   testNamespace = "com.squareup.leakcanary.instrumentation.test"
   lint {

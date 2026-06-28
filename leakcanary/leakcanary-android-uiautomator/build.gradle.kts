@@ -18,6 +18,5 @@ android {
     targetSdk = libs.versions.androidCompileSdk.get().toInt()
     minSdk = libs.versions.androidMinSdk.get().toInt()
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary.android.uiautomator"
 }
