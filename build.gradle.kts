@@ -2,11 +2,11 @@ import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import java.net.URI
-import kotlinx.validation.ApiValidationExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.dokka.gradle.DokkaTask
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 buildscript {
   repositories {
@@ -27,18 +27,6 @@ buildscript {
     classpath(libs.gradlePlugin.hilt)
     classpath(libs.gradlePlugin.composeCompiler)
   }
-}
-
-// We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
-// APIs.
-// When making a change that results in a public ABI change, the apiCheck task will fail. When this
-// happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
-// See https://github.com/Kotlin/binary-compatibility-validator
-apply(plugin = "binary-compatibility-validator")
-
-extensions.configure<ApiValidationExtension> {
-  // Ignore projects that are not uploaded to Maven Central
-  ignoredProjects += listOf("leakcanary-app", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli")
 }
 
 // This plugin needs to be applied to the root projects for the dokkaGfmCollector task we use to
@@ -167,6 +155,20 @@ configure(subprojects.filter {
     extensions.configure<MavenPublishBaseExtension> {
       publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
       signAllPublications()
+    }
+
+    // We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
+    // APIs.
+    // When making a change that results in a public ABI change, the apiCheck task will fail. When this
+    // happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
+    // See https://kotlinlang.org/docs/gradle-binary-compatibility-validation.html
+    // Unfortunately, this is only compatible with the base JVM plugin:
+    // See https://youtrack.jetbrains.com/projects/KT/issues/KT-83410/
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+      extensions.configure<KotlinJvmProjectExtension> {
+        @OptIn(ExperimentalAbiValidation::class)
+        abiValidation()
+      }
     }
   }
 }
