@@ -168,7 +168,9 @@ configure(subprojects.filter {
 tasks.register<Copy>("installGitHooks") {
   from(File(rootProject.rootDir, "config/hooks"))
   into({ File(rootProject.rootDir, ".git/hooks") })
-  fileMode = "0777".toInt(8) // Make files executable
+  filePermissions {
+    unix("rwxrwxrwx") // Make files executable
+  }
 }
 
 tasks.register<Copy>("siteDokka") {
