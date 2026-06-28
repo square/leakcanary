@@ -16,7 +16,7 @@
 # We would like to use Kotlin recent language features but keep Kotlin 1.3 library APIs
 # The benefit is that depending clients do not have to upgrade to Kotlin 1.4
 compose = "1.4.3"
-kotlin = "1.9.25"
+kotlin = "2.4.0"
 coroutines = "1.7.3"
 androidXTest = "1.5.0"
 androidXJunit = "1.1.5"
