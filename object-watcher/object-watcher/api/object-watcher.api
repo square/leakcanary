@@ -67,7 +67,7 @@ public abstract interface class leakcanary/OnObjectRetainedListener {
 }
 
 public abstract interface class leakcanary/ReachabilityWatcher {
-	public abstract fun asDeletableObjectReporter ()Lleakcanary/DeletableObjectReporter;
+	public fun asDeletableObjectReporter ()Lleakcanary/DeletableObjectReporter;
 	public abstract fun expectWeaklyReachable (Ljava/lang/Object;Ljava/lang/String;)V
 }
 
@@ -98,7 +98,7 @@ public abstract interface class leakcanary/RetainedObjectTracker {
 }
 
 public abstract interface class leakcanary/TrackedObjectReachability {
-	public abstract fun isDeletable ()Z
+	public fun isDeletable ()Z
 	public abstract fun isRetained ()Z
 	public abstract fun isStronglyReachable ()Z
 }

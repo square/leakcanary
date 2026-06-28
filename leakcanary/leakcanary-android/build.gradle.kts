@@ -1,6 +1,5 @@
 plugins {
   id("com.android.library")
-  id("org.jetbrains.kotlin.android")
   id("com.vanniktech.maven.publish")
 }
 
@@ -29,15 +28,18 @@ android {
 
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
+    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunnerArguments["clearPackageData"] = "true"
+  }
+  namespace = "com.squareup.leakcanary"
+  testOptions {
+    execution = "ANDROIDX_TEST_ORCHESTRATOR"
     // Avoid DeprecatedTargetSdkVersionDialog / INSTALL_FAILED_DEPRECATED_SDK_VERSION on API 28+
     targetSdk = libs.versions.androidCompileSdk.get().toInt()
-    testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
-  buildFeatures.buildConfig = false
-  namespace = "com.squareup.leakcanary"
   lint {
     checkOnly += "Interoperability"
     disable += "GoogleAppIndexingWarning"
-    ignore += "InvalidPackage"
+    disable += "InvalidPackage"
   }
 }

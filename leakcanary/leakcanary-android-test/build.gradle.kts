@@ -1,6 +1,5 @@
 plugins {
   id("com.android.library")
-  id("org.jetbrains.kotlin.android")
   id("com.vanniktech.maven.publish")
 }
 
@@ -21,12 +20,13 @@ dependencies {
 android {
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
-    targetSdk = libs.versions.androidCompileSdk.get().toInt()
     minSdk = libs.versions.androidMinSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     multiDexEnabled = true
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary.android.test"
   testNamespace = "com.squareup.leakcanary.android.test.test"
+  testOptions {
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
+  }
 }

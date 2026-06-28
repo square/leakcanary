@@ -493,7 +493,6 @@ public final class shark/HprofVersion : java/lang/Enum {
 
 public final class shark/HprofWriter : java/io/Closeable {
 	public static final field Companion Lshark/HprofWriter$Companion;
-	public synthetic fun <init> (Lokio/BufferedSink;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun close ()V
 	public final fun getHprofHeader ()Lshark/HprofHeader;
 	public final fun valuesToBytes (Ljava/util/List;)[B
@@ -556,7 +555,6 @@ public final class shark/ProguardMappingReader$Companion {
 
 public final class shark/RandomAccessHprofReader : java/io/Closeable {
 	public static final field Companion Lshark/RandomAccessHprofReader$Companion;
-	public synthetic fun <init> (Lshark/RandomAccessSource;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun close ()V
 	public final fun readRecord (JJLkotlin/jvm/functions/Function1;)Ljava/lang/Object;
 }
@@ -569,7 +567,7 @@ public final class shark/RandomAccessHprofReader$Companion {
 }
 
 public abstract interface class shark/RandomAccessSource : java/io/Closeable {
-	public abstract fun asStreamingSource ()Lokio/BufferedSource;
+	public fun asStreamingSource ()Lokio/BufferedSource;
 	public abstract fun read (Lokio/Buffer;JJ)J
 }
 
@@ -583,7 +581,6 @@ public abstract interface class shark/RandomAccessSourceProvider {
 
 public final class shark/StreamingHprofReader {
 	public static final field Companion Lshark/StreamingHprofReader$Companion;
-	public synthetic fun <init> (Lshark/StreamingSourceProvider;Lshark/HprofHeader;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun readRecords (Ljava/util/Set;Lshark/OnHprofRecordTagListener;)J
 }
 

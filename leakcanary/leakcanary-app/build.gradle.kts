@@ -1,11 +1,11 @@
 import java.io.InputStreamReader
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
 
 plugins {
   id("com.android.application")
-  id("org.jetbrains.kotlin.android")
-  id("app.cash.sqldelight")
+  id("org.jetbrains.kotlin.plugin.compose")
   id("com.google.dagger.hilt.android")
-  id("kotlin-kapt")
+  id("com.google.devtools.ksp")
   id("kotlin-parcelize")
 }
 
@@ -17,6 +17,7 @@ fun gitSha(): String {
 android {
   namespace = "org.leakcanary"
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
+  buildFeatures.buildConfig = true
 
   defaultConfig {
     applicationId = "org.leakcanary"
@@ -53,16 +54,8 @@ android {
     targetCompatibility = JavaVersion.VERSION_1_8
   }
 
-  kotlinOptions {
-    jvmTarget = "1.8"
-  }
-
   buildFeatures {
     compose = true
-  }
-
-  composeOptions {
-    kotlinCompilerExtensionVersion = "1.5.15"
   }
 
   packaging {
@@ -72,11 +65,16 @@ android {
   }
 }
 
+kotlin {
+  compilerOptions.jvmTarget = JVM_1_8
+}
+
 dependencies {
   implementation(projects.leakcanary.leakcanaryAppAidl)
+  implementation(projects.leakcanary.leakcanaryAppDb)
   // TODO Move these to ./gradle/libs/versions/toml
-  implementation("app.cash.sqldelight:android-driver:2.0.0-alpha05")
-  implementation("app.cash.sqldelight:coroutines-extensions:2.0.0-alpha05")
+  implementation(libs.sqldelight.android)
+  implementation(libs.sqldelight.coroutines)
   implementation("androidx.core:core-ktx:1.9.0")
   implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
   implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.5.1")
@@ -96,9 +94,6 @@ dependencies {
   implementation(projects.leakcanary.leakcanaryAndroid)
   implementation(libs.hilt.android)
   implementation(libs.okio2)
-  kapt(libs.hilt.compiler)
-}
-
-kapt {
-  correctErrorTypes = true
+  ksp(libs.hilt.compiler)
+  ksp(libs.kotlin.metadata.jvm)
 }
