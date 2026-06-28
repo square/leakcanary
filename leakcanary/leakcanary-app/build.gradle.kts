@@ -2,7 +2,6 @@ import java.io.InputStreamReader
 
 plugins {
   id("com.android.application")
-  id("org.jetbrains.kotlin.android")
   id("app.cash.sqldelight")
   id("com.google.dagger.hilt.android")
   id("kotlin-kapt")
