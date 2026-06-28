@@ -1,4 +1,4 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
   id("org.jetbrains.kotlin.jvm")
@@ -37,6 +37,6 @@ java {
   targetCompatibility = JavaVersion.VERSION_11
 }
 
-kotlin{
-  compilerOptions.jvmTarget = JVM_11
+kotlin {
+  compilerOptions.jvmTarget = JvmTarget.JVM_11
 }

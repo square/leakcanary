@@ -5,8 +5,8 @@ import java.net.URI
 import kotlinx.validation.ApiValidationExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.dokka.gradle.DokkaTask
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
 buildscript {
   repositories {
@@ -112,9 +112,17 @@ subprojects {
 configure(subprojects.filter {
   it.name !in listOf("leakcanary-deobfuscation-gradle-plugin")
 }) {
-  tasks.withType<KotlinCompile> {
-    compilerOptions {
-      jvmTarget = JVM_1_8
+  plugins.withId("java") {
+    extensions.configure<JavaPluginExtension> {
+      sourceCompatibility = JavaVersion.VERSION_1_8
+      targetCompatibility = JavaVersion.VERSION_1_8
+    }
+  }
+  plugins.withId("org.jetbrains.kotlin.jvm") {
+    extensions.configure<KotlinJvmProjectExtension> {
+      compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+      }
     }
   }
 }
