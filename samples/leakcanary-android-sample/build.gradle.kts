@@ -2,14 +2,17 @@ plugins {
   id("com.android.application")
   // Required to run obfuscated instrumentation tests:
   // ./gradlew leakcanary-android-sample:connectedCheck -Pminify
-  id("com.slack.keeper")
+  // id("com.slack.keeper")
 }
 
+
+/*
 keeper {
   variantFilter {
     setIgnore(!project.hasProperty("minify"))
   }
 }
+*/
 
 dependencies {
   debugImplementation(projects.leakcanary.leakcanaryAndroid)
