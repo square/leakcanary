@@ -15,37 +15,33 @@
  */
 package com.squareup.leakcanary.deobfuscation
 
-import java.io.File
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
+import org.gradle.api.tasks.PathSensitivity.NONE
 import org.gradle.api.tasks.TaskAction
 
 @CacheableTask
 abstract class CopyObfuscationMappingFileTask : DefaultTask() {
 
-  @Input
-  var variantName: String = ""
+  @get:Input
+  abstract val variantName: Property<String>
 
-  @get:InputFile @get:Optional
-  @get:PathSensitive(PathSensitivity.RELATIVE)
-  abstract val mappingFile: Property<File>
+  @get:InputFile
+  @get:Optional
+  @get:PathSensitive(NONE)
+  abstract val mappingFile: RegularFileProperty
 
-  @get:InputDirectory
-  @get:PathSensitive(PathSensitivity.RELATIVE)
-  abstract val mergeAssetsDirectory: Property<File>
-
-  @get:OutputFile
-  val leakCanaryAssetsOutputFile: File
-    get() = File(mergeAssetsDirectory.orNull, "leakCanaryObfuscationMapping.txt")
+  @get:OutputDirectory
+  abstract val outputDir: DirectoryProperty
 
   init {
     description = "Puts obfuscation mapping file in assets directory."
@@ -53,34 +49,16 @@ abstract class CopyObfuscationMappingFileTask : DefaultTask() {
 
   @TaskAction
   fun copyObfuscationMappingFile() {
-    val mapping = validateMappingFile()
-    validateMergeAssetsDir()
-    mapping.copyTo(leakCanaryAssetsOutputFile, overwrite = true)
-  }
-
-  private fun validateMappingFile(): File {
-    val mapping = mappingFile.orNull
-    if (mapping == null || !mapping.exists()) {
+    val mappingFile = mappingFile.orNull?.asFile
+    if (mappingFile == null || !mappingFile.exists()) {
       throw GradleException(
-        """
-        The plugin was configured to be applied to a variant which doesn't define
-        an obfuscation mapping file: make sure that isMinified is true for variant: $variantName.
-        """
+        "The plugin was configured to be applied to a variant which doesn't define an obfuscation " +
+          "mapping file. Make sure that isMinified is true for variant: ${variantName.get()}."
       )
     }
-    return mapping
-  }
-
-  private fun validateMergeAssetsDir() {
-    mergeAssetsDirectory.orNull?.let { mergeAssetsDir ->
-      if (!mergeAssetsDir.exists()) {
-        val mergeAssetsDirCreated = mergeAssetsDir.mkdirs()
-        if (!mergeAssetsDirCreated) {
-          throw GradleException(
-            "Obfuscation mapping destination dir doesn't exist and it's impossible to create it."
-          )
-        }
-      }
-    } ?: throw GradleException("Obfuscation mapping is null.")
+    val outputFile = outputDir.get().asFile
+      .also { it.mkdirs() }
+      .resolve("leakCanaryObfuscationMapping.txt")
+    mappingFile.copyTo(outputFile, overwrite = true)
   }
 }

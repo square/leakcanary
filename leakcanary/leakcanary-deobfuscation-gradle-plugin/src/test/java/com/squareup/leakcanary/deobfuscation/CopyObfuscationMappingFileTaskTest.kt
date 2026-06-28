@@ -1,13 +1,11 @@
 package com.squareup.leakcanary.deobfuscation
 
+import java.io.File
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatExceptionOfType
-import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.File
 
 class CopyObfuscationMappingFileTaskTest {
 
@@ -25,43 +23,21 @@ class CopyObfuscationMappingFileTaskTest {
       )
 
   @Test
-  fun `should throw if mapping file and merge assets dir are not specified`() {
-    assertThatExceptionOfType(GradleException::class.java)
-      .isThrownBy { task.copyObfuscationMappingFile() }
-  }
-
-  @Test
-  fun `should throw if mapping file is not specified`() {
-    task.mergeAssetsDirectory.set(tempFolder.newFolder("mergeAssetsDir"))
-
-    assertThatExceptionOfType(GradleException::class.java)
-      .isThrownBy { task.copyObfuscationMappingFile() }
-  }
-
-  @Test
-  fun `should throw if merge assets dir is not specified`() {
-    task.mappingFile.set(tempFolder.newFile("mapping.txt"))
-
-    assertThatExceptionOfType(GradleException::class.java)
-      .isThrownBy { task.copyObfuscationMappingFile() }
-  }
-
-  @Test
   fun `existing mapping copied and merge assets dir generated if not exists`() {
     task.mappingFile.set(tempFolder.newFile("mapping.txt"))
-    task.mergeAssetsDirectory.set(File(tempFolder.root, "mergeAssetsDir"))
+    task.outputDir.set(File(tempFolder.root, "mergeAssetsDir"))
 
-    assertThat(task.mergeAssetsDirectory.get().exists()).isFalse()
+    assertThat(task.outputDir.get().asFile.exists()).isFalse()
 
     task.copyObfuscationMappingFile()
 
-    assertThat(task.mergeAssetsDirectory.get().exists()).isTrue()
-    assertThat(task.leakCanaryAssetsOutputFile.exists()).isTrue()
+    assertThat(task.outputDir.get().asFile.exists()).isTrue()
+    assertThat(task.mappingFile.get().asFile.exists()).isTrue()
   }
 
   @Test
   fun `previous mapping overwritten`() {
-    task.mergeAssetsDirectory.set(tempFolder.newFolder("mergeAssetsDir"))
+    task.outputDir.set(tempFolder.newFolder("mergeAssetsDir"))
 
     // create first mapping file
     task.mappingFile.set(tempFolder.newFile("firstMappingFile.txt")
@@ -77,7 +53,7 @@ class CopyObfuscationMappingFileTaskTest {
       })
     task.copyObfuscationMappingFile()
 
-    assertThat(task.leakCanaryAssetsOutputFile.exists()).isTrue()
-    assertThat(task.leakCanaryAssetsOutputFile.readText()).isEqualTo("secondMappingFile")
+    assertThat(task.mappingFile.get().asFile.exists()).isTrue()
+    assertThat(task.mappingFile.get().asFile.readText()).isEqualTo("secondMappingFile")
   }
 }
