@@ -54,7 +54,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
-            jcenter()
           }
         }
 
@@ -124,7 +123,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
-            jcenter()
           }
         }
 
@@ -179,7 +177,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
-            jcenter()
           }
         }
 
