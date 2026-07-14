@@ -63,6 +63,67 @@ class HprofHeapGraph internal constructor(
   override val gcRoots: List<GcRoot>
     get() = index.gcRoots()
 
+  override val threads: Sequence<HeapThread>
+    get() =
+      // Android heap dumps contain thread objects but no stack trace records, so there's no thread
+      // dump to expose. Gate on stack trace presence to keep this empty for those dumps.
+      if (!index.hasStackTraces) {
+        emptySequence()
+      } else {
+        index.threadObjects()
+          .asSequence()
+          // GC roots can point to objects that don't exist in the heap dump; skip those so that
+          // HeapThread.threadInstance is always resolvable.
+          .filter { objectExists(it.id) }
+          .map { HeapThread(it, this) }
+      }
+
+  /**
+   * Maps a thread serial number to a map of frame number to the object ids that are local
+   * variables of that frame, reconstructed from [GcRoot.JavaFrame] and [GcRoot.JniLocal] roots.
+   * Built lazily and only once, since it requires a full scan of the gc roots.
+   */
+  private val localObjectIdsByThreadAndFrame: Map<Int, Map<Int, List<Long>>> by lazy {
+    val result = HashMap<Int, HashMap<Int, MutableList<Long>>>()
+    index.gcRoots().forEach { gcRoot ->
+      val threadSerialNumber: Int
+      val frameNumber: Int
+      when (gcRoot) {
+        is GcRoot.JavaFrame -> {
+          threadSerialNumber = gcRoot.threadSerialNumber
+          frameNumber = gcRoot.frameNumber
+        }
+        is GcRoot.JniLocal -> {
+          threadSerialNumber = gcRoot.threadSerialNumber
+          frameNumber = gcRoot.frameNumber
+        }
+        else -> return@forEach
+      }
+      result.getOrPut(threadSerialNumber) { HashMap() }
+        .getOrPut(frameNumber) { mutableListOf() }
+        .add(gcRoot.id)
+    }
+    result
+  }
+
+  internal fun readThreadStackTrace(gcRoot: GcRoot.ThreadObject): List<HeapStackFrame> {
+    val stackTrace = index.stackTrace(gcRoot.stackTraceSerialNumber) ?: return emptyList()
+    val localsByFrame = localObjectIdsByThreadAndFrame[gcRoot.threadSerialNumber]
+    return stackTrace.stackFrameIds.asList().mapIndexedNotNull { frameNumber, frameId ->
+      val frameRecord = index.stackFrame(frameId) ?: return@mapIndexedNotNull null
+      val locals = localsByFrame?.get(frameNumber)
+        ?.mapNotNull { findObjectByIdOrNull(it) }
+        ?: emptyList()
+      HeapStackFrame(
+        className = index.classNameBySerial(frameRecord.classSerialNumber),
+        methodName = index.hprofStringOrNull(frameRecord.methodNameStringId) ?: "",
+        sourceFileName = index.hprofStringOrNull(frameRecord.sourceFileNameStringId),
+        lineNumber = frameRecord.lineNumber,
+        locals = locals
+      )
+    }
+  }
+
   override val objects: Sequence<HeapObject>
     get() {
       var objectIndex = 0
