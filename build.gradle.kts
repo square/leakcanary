@@ -154,19 +154,22 @@ configure(subprojects.filter {
       publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
       signAllPublications()
     }
+}
 
-    // We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
-    // APIs.
-    // When making a change that results in a public ABI change, the apiCheck task will fail. When this
-    // happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
-    // See https://kotlinlang.org/docs/gradle-binary-compatibility-validation.html
-    // Unfortunately, this is only compatible with the base JVM plugin:
-    // See https://youtrack.jetbrains.com/projects/KT/issues/KT-83410/
-    plugins.withId("org.jetbrains.kotlin.jvm") {
-      extensions.configure<KotlinJvmProjectExtension> {
-        @OptIn(ExperimentalAbiValidation::class)
-        abiValidation()
-      }
+// We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
+// APIs.
+// When making a change that results in a public ABI change, the apiCheck task will fail. When this
+// happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
+// See https://kotlinlang.org/docs/gradle-binary-compatibility-validation.html
+// Unfortunately, this is only compatible with the base JVM plugin:
+// See https://youtrack.jetbrains.com/projects/KT/issues/KT-83410/
+configure(subprojects.filter {
+  it.name !in listOf("leakcanary-app", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli")
+}) {
+  plugins.withId("org.jetbrains.kotlin.jvm") {
+    extensions.configure<KotlinJvmProjectExtension> {
+      @OptIn(ExperimentalAbiValidation::class)
+      abiValidation()
     }
   }
 }
