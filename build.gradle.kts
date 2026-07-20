@@ -21,7 +21,6 @@ buildscript {
     classpath(libs.gradlePlugin.mavenPublish)
     classpath(libs.gradlePlugin.detekt)
     classpath(libs.gradlePlugin.binaryCompatibility)
-    classpath(libs.gradlePlugin.keeper)
     classpath(libs.gradlePlugin.sqldelight)
     classpath(libs.gradlePlugin.ksp)
     classpath(libs.gradlePlugin.hilt)
