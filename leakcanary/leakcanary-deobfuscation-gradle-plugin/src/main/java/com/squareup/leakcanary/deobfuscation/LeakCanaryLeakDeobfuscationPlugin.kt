@@ -38,7 +38,6 @@ class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
       ) {
         it.variantName.set(variant.name)
         it.mappingFile.set(mappingFile)
-        it.outputDir.set(layout.buildDirectory.dir("generated/assets/${variant.name}"))
       }
       variant.sources.assets?.addGeneratedSourceDirectory(
         copyTask,
