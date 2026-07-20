@@ -2,6 +2,8 @@ package com.squareup.leakcanary.deobfuscation
 
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatExceptionOfType
+import org.gradle.api.GradleException
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Rule
 import org.junit.Test
@@ -21,6 +23,18 @@ class CopyObfuscationMappingFileTaskTest {
         "testCopyObfuscationMappingFileTask",
         CopyObfuscationMappingFileTask::class.java
       )
+
+  @Test
+  fun `should throw if mapping file is not specified`() {
+    task.variantName.set("debug")
+
+    assertThatExceptionOfType(GradleException::class.java)
+      .isThrownBy { task.copyObfuscationMappingFile() }
+      .withMessage(
+        "The plugin was configured to be applied to a variant which doesn't define an obfuscation mapping file. " +
+          "Make sure that isMinified is true for variant: debug."
+      )
+  }
 
   @Test
   fun `existing mapping copied and merge assets dir generated if not exists`() {
