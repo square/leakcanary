@@ -31,8 +31,9 @@ class CopyObfuscationMappingFileTaskTest {
 
     task.copyObfuscationMappingFile()
 
-    assertThat(task.outputDir.get().asFile.exists()).isTrue()
-    assertThat(task.mappingFile.get().asFile.exists()).isTrue()
+    val output = task.outputDir.get().asFile.resolve("leakCanaryObfuscationMapping.txt")
+    assertThat(output.exists()).isTrue()
+    assertThat(output.readText()).isEqualTo(task.mappingFile.get().asFile.readText())
   }
 
   @Test
@@ -53,7 +54,8 @@ class CopyObfuscationMappingFileTaskTest {
       })
     task.copyObfuscationMappingFile()
 
-    assertThat(task.mappingFile.get().asFile.exists()).isTrue()
-    assertThat(task.mappingFile.get().asFile.readText()).isEqualTo("secondMappingFile")
+    val output = task.outputDir.get().asFile.resolve("leakCanaryObfuscationMapping.txt")
+    assertThat(output.exists()).isTrue()
+    assertThat(output.readText()).isEqualTo("secondMappingFile")
   }
 }
