@@ -32,8 +32,7 @@ class HeapAnalysisStringRenderingTest {
       |====================================
       |STACKTRACE
       |
-      |java.lang.IllegalArgumentException: Source has no available bytes
-      |.*
+      |java.lang.IllegalArgumentException: Source has no available bytes.*?
       |====================================
       |METADATA
       |
@@ -41,7 +40,7 @@ class HeapAnalysisStringRenderingTest {
       |Build.MANUFACTURER: Unknown
       |LeakCanary version: Unknown
       |Analysis duration: \d* ms
-      |Heap dump file path: ${hprofFile.absolutePath}
+      |Heap dump file path: ${Regex.escape(hprofFile.absolutePath)}
       |Heap dump timestamp: \d*
       |===================================="""
   }
@@ -78,7 +77,7 @@ class HeapAnalysisStringRenderingTest {
       |Please include this in bug reports and Stack Overflow questions.
       |
       |Analysis duration: \d* ms
-      |Heap dump file path: ${hprofFile.absolutePath}
+      |Heap dump file path: ${Regex.escape(hprofFile.absolutePath)}
       |Heap dump timestamp: \d*
       |Heap dump duration: Unknown
       |===================================="""
@@ -108,7 +107,7 @@ class HeapAnalysisStringRenderingTest {
       |│ GC Root: System class
       |│
       |├─ GcRoot class
-      |.*
+      |.*?
       |====================================
       |0 LIBRARY LEAKS
       |
@@ -125,7 +124,7 @@ class HeapAnalysisStringRenderingTest {
       |Please include this in bug reports and Stack Overflow questions.
       |
       |Analysis duration: \d* ms
-      |Heap dump file path: ${hprofFile.absolutePath}
+      |Heap dump file path: ${Regex.escape(hprofFile.absolutePath)}
       |Heap dump timestamp: \d*
       |Heap dump duration: Unknown
       |===================================="""

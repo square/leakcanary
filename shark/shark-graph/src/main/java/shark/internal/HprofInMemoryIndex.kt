@@ -364,25 +364,25 @@ internal class HprofInMemoryIndex private constructor(
 
     private var classFieldsIndex = 0
 
-    private val classIndex = UnsortedByteEntries(
+    private val classIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize + classFieldsIndexSize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = classCount
+      entryCount = classCount
     )
-    private val instanceIndex = UnsortedByteEntries(
+    private val instanceIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = instanceCount
+      entryCount = instanceCount
     )
-    private val objectArrayIndex = UnsortedByteEntries(
+    private val objectArrayIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = objectArrayCount
+      entryCount = objectArrayCount
     )
-    private val primitiveArrayIndex = UnsortedByteEntries(
+    private val primitiveArrayIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = primitiveArrayCount
+      entryCount = primitiveArrayCount
     )
 
     // Pre seeding gc roots with the sticky class gc roots we've already parsed.
