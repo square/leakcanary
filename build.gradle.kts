@@ -154,6 +154,7 @@ configure(subprojects.filter {
       publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
       signAllPublications()
     }
+  }
 }
 
 // We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
