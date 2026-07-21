@@ -1,11 +1,9 @@
 public abstract class com/squareup/leakcanary/deobfuscation/CopyObfuscationMappingFileTask : org/gradle/api/DefaultTask {
 	public fun <init> ()V
 	public final fun copyObfuscationMappingFile ()V
-	public final fun getLeakCanaryAssetsOutputFile ()Ljava/io/File;
-	public abstract fun getMappingFile ()Lorg/gradle/api/provider/Property;
-	public abstract fun getMergeAssetsDirectory ()Lorg/gradle/api/provider/Property;
-	public final fun getVariantName ()Ljava/lang/String;
-	public final fun setVariantName (Ljava/lang/String;)V
+	public abstract fun getMappingFile ()Lorg/gradle/api/file/RegularFileProperty;
+	public abstract fun getOutputDir ()Lorg/gradle/api/file/DirectoryProperty;
+	public abstract fun getVariantName ()Lorg/gradle/api/provider/Property;
 }
 
 public class com/squareup/leakcanary/deobfuscation/LeakCanaryDeobfuscationExtension {

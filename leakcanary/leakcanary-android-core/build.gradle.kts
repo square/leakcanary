@@ -2,7 +2,6 @@ import java.io.InputStreamReader
 
 plugins {
   id("com.android.library")
-  id("org.jetbrains.kotlin.android")
   id("com.vanniktech.maven.publish")
 }
 
@@ -38,6 +37,7 @@ fun gitSha(): String {
 android {
   resourcePrefix = "leak_canary_"
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
+  buildFeatures.buildConfig = true
 
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -46,20 +46,16 @@ android {
 
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
-    // Avoid DeprecatedTargetSdkVersionDialog during UI tests
-    targetSdk = libs.versions.androidCompileSdk.get().toInt()
     buildConfigField("String", "LIBRARY_VERSION", "\"${rootProject.property("VERSION_NAME")}\"")
     buildConfigField("String", "GIT_SHA", "\"${gitSha()}\"")
     consumerProguardFiles("consumer-proguard-rules.pro")
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-    testInstrumentationRunnerArguments(
-      mapOf(
-        "clearPackageData" to "true",
-      )
-    )
+    testInstrumentationRunnerArguments["clearPackageData"] = "true"
     testOptions {
       execution = "ANDROIDX_TEST_ORCHESTRATOR"
+      // Avoid DeprecatedTargetSdkVersionDialog during UI tests
+      targetSdk = libs.versions.androidCompileSdk.get().toInt()
     }
   }
   namespace = "com.squareup.leakcanary.core"

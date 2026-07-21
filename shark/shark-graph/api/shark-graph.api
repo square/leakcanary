@@ -252,7 +252,6 @@ public final class shark/HprofHeapGraph$Companion {
 
 public final class shark/HprofIndex {
 	public static final field Companion Lshark/HprofIndex$Companion;
-	public synthetic fun <init> (Lshark/RandomAccessSourceProvider;Lshark/HprofHeader;Lshark/internal/HprofInMemoryIndex;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun openHeapGraph ()Lshark/CloseableHeapGraph;
 }
 

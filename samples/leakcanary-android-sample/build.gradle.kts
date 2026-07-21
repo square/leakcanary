@@ -1,15 +1,5 @@
 plugins {
   id("com.android.application")
-  id("org.jetbrains.kotlin.android")
-  // Required to run obfuscated instrumentation tests:
-  // ./gradlew leakcanary-android-sample:connectedCheck -Pminify
-  id("com.slack.keeper")
-}
-
-keeper {
-  variantFilter {
-    setIgnore(!project.hasProperty("minify"))
-  }
 }
 
 dependencies {
@@ -59,7 +49,7 @@ android {
 
     // Run ./gradlew leakcanary-android-sample:connectedCheck -Porchestrator
     if (project.hasProperty("orchestrator")) {
-      testInstrumentationRunnerArguments(mapOf("clearPackageData" to "true"))
+      testInstrumentationRunnerArguments["clearPackageData"] = "true"
       testOptions {
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
       }
@@ -81,11 +71,6 @@ android {
       signingConfig = signingConfigs["debug"]
     }
   }
-
-  dexOptions {
-    dexInProcess = false
-  }
-
   testOptions {
     unitTests {
       isIncludeAndroidResources = true

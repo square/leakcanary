@@ -57,21 +57,22 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
+            mavenCentral()
           }
         }
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 29
+          compileSdk 35
 
           defaultConfig {
-            minSdk 29
+            minSdk 35
           }
 
           buildTypes {
             debug {
               minifyEnabled true
-              proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+              debuggable false
             }
           }
         }
@@ -92,7 +93,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
     // task has been run
     assertThat(
-      result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
+      result.task(":copyDebugLeakCanaryObfuscationMapping")?.outcome == SUCCESS
     ).isTrue()
 
     // apk has been built
@@ -108,7 +109,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     // apk contains obfuscation mapping file in assets dir
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
       zipFile.entries().toList().firstOrNull { entry ->
-        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
+        entry.name == "assets/leakCanaryObfuscationMapping.txt"
       }
     }
     assertThat(obfuscationMappingEntry != null).isTrue()
@@ -119,28 +120,29 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     buildFile.writeText(
       """
         plugins {
-          id 'com.squareup.leakcanary.deobfuscation'
           id 'com.android.application'
+          id 'com.squareup.leakcanary.deobfuscation'
         }
 
         allprojects {
           repositories {
             google()
+            mavenCentral()
           }
         }
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 29
+          compileSdk 35
 
           defaultConfig {
-            minSdk 29
+            minSdk 35
           }
 
           buildTypes {
             debug {
               minifyEnabled true
-              proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+              debuggable false
             }
           }
         }
@@ -162,7 +164,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     // apk doesn't contain obfuscation mapping file in assets dir
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
       zipFile.entries().toList().firstOrNull { entry ->
-        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
+        entry.name == "assets/leakCanaryObfuscationMapping.txt"
       }
     }
     assertThat(obfuscationMappingEntry == null).isTrue()
@@ -180,15 +182,16 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
+            mavenCentral()
           }
         }
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 29
+          compileSdk 35
 
           defaultConfig {
-            minSdk 29
+            minSdk 35
           }
 
           buildTypes {
@@ -212,7 +215,8 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
     assertThat(
       result.output.contains(
-        "LeakCanary deobfuscation plugin couldn't find any variant with minification enabled."
+        "The plugin was configured to be applied to a variant which doesn't define " +
+          "an obfuscation mapping file. Make sure that isMinified is true for variant: debug"
       )
     ).isTrue()
   }

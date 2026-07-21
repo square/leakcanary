@@ -1,11 +1,12 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
-import java.net.URL
-import kotlinx.validation.ApiValidationExtension
+import java.net.URI
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.dokka.gradle.DokkaTask
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
+import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
 
 buildscript {
   repositories {
@@ -20,22 +21,11 @@ buildscript {
     classpath(libs.gradlePlugin.mavenPublish)
     classpath(libs.gradlePlugin.detekt)
     classpath(libs.gradlePlugin.binaryCompatibility)
-    classpath(libs.gradlePlugin.keeper)
     classpath(libs.gradlePlugin.sqldelight)
+    classpath(libs.gradlePlugin.ksp)
     classpath(libs.gradlePlugin.hilt)
+    classpath(libs.gradlePlugin.composeCompiler)
   }
-}
-
-// We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
-// APIs.
-// When making a change that results in a public ABI change, the apiCheck task will fail. When this
-// happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
-// See https://github.com/Kotlin/binary-compatibility-validator
-apply(plugin = "binary-compatibility-validator")
-
-extensions.configure<ApiValidationExtension> {
-  // Ignore projects that are not uploaded to Maven Central
-  ignoredProjects += listOf("leakcanary-app", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli")
 }
 
 // This plugin needs to be applied to the root projects for the dokkaGfmCollector task we use to
@@ -108,9 +98,17 @@ subprojects {
 configure(subprojects.filter {
   it.name !in listOf("leakcanary-deobfuscation-gradle-plugin")
 }) {
-  tasks.withType<KotlinCompile> {
-    kotlinOptions {
-      jvmTarget = "1.8"
+  plugins.withId("java") {
+    extensions.configure<JavaPluginExtension> {
+      sourceCompatibility = JavaVersion.VERSION_1_8
+      targetCompatibility = JavaVersion.VERSION_1_8
+    }
+  }
+  plugins.withId("org.jetbrains.kotlin.jvm") {
+    extensions.configure<KotlinJvmProjectExtension> {
+      compilerOptions {
+        jvmTarget = JvmTarget.JVM_1_8
+      }
     }
   }
 }
@@ -143,10 +141,10 @@ configure(subprojects.filter {
       }
       skipDeprecated.set(true)
       externalDocumentationLink {
-        url.set(URL("https://square.github.io/okio/2.x/okio/"))
+        url.set(URI("https://square.github.io/okio/2.x/okio/").toURL())
       }
       externalDocumentationLink {
-        url.set(URL("https://square.github.io/moshi/1.x/moshi/"))
+        url.set(URI("https://square.github.io/moshi/1.x/moshi/").toURL())
       }
     }
   }
@@ -159,12 +157,32 @@ configure(subprojects.filter {
   }
 }
 
+// We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
+// APIs.
+// When making a change that results in a public ABI change, the apiCheck task will fail. When this
+// happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
+// See https://kotlinlang.org/docs/gradle-binary-compatibility-validation.html
+// Unfortunately, this is only compatible with the base JVM plugin:
+// See https://youtrack.jetbrains.com/projects/KT/issues/KT-83410/
+configure(subprojects.filter {
+  it.name !in listOf("leakcanary-app", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli")
+}) {
+  plugins.withId("org.jetbrains.kotlin.jvm") {
+    extensions.configure<KotlinJvmProjectExtension> {
+      @OptIn(ExperimentalAbiValidation::class)
+      abiValidation()
+    }
+  }
+}
+
 //Copies git hooks from /hooks folder into .git; currently used to run Detekt during push
 //Git hook installation
 tasks.register<Copy>("installGitHooks") {
   from(File(rootProject.rootDir, "config/hooks"))
   into({ File(rootProject.rootDir, ".git/hooks") })
-  fileMode = "0777".toInt(8) // Make files executable
+  filePermissions {
+    unix("rwxrwxrwx") // Make files executable
+  }
 }
 
 tasks.register<Copy>("siteDokka") {

@@ -4,6 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOne
+import com.squareup.leakcanary.app.db.Database
 import dev.leakcanary.sqldelight.App
 import dev.leakcanary.sqldelight.RetrieveLeakBySignature
 import dev.leakcanary.sqldelight.SelectAllByApp
@@ -12,7 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.leakcanary.Database
 import org.leakcanary.util.Serializables
 import org.leakcanary.util.toByteArray
 import shark.HeapAnalysis

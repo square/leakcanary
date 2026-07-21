@@ -15,7 +15,7 @@
  */
 package com.squareup.leakcanary.deobfuscation
 
-import com.android.build.gradle.api.BaseVariant
+import com.android.build.api.variant.Variant
 
 /**
  * Extension for the gradle plugin. It allows the user to configure the plugin.
@@ -34,5 +34,5 @@ open class LeakCanaryDeobfuscationExtension {
    *
    * Default value is *false* so no variant will have the obfuscation mapping file copied.
    */
-  var filterObfuscatedVariants: (BaseVariant) -> Boolean = { false }
+  var filterObfuscatedVariants: (Variant) -> Boolean = { false }
 }
