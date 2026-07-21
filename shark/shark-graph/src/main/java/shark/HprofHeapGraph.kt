@@ -63,6 +63,35 @@ class HprofHeapGraph internal constructor(
   override val gcRoots: List<GcRoot>
     get() = index.gcRoots()
 
+  override val threads: Sequence<HeapThread>
+    get() =
+      // Android heap dumps contain thread objects but no stack trace records, so there's no thread
+      // dump to expose. Gate on stack trace presence to keep this empty for those dumps.
+      if (!index.hasStackTraces) {
+        emptySequence()
+      } else {
+        index.threadObjects()
+          .asSequence()
+          // GC roots can point to objects that don't exist in the heap dump; skip those so that
+          // HeapThread.threadInstance is always resolvable.
+          .filter { objectExists(it.id) }
+          .map { HeapThread(it, this) }
+      }
+
+  internal fun readThreadStackTrace(threadObject: GcRoot.ThreadObject): List<HeapStackFrame> {
+    // The index resolves everything but the local variables, which need the graph to turn object
+    // ids into heap objects.
+    return index.readThreadStackTrace(threadObject).map { frame ->
+      HeapStackFrame(
+        className = frame.className,
+        methodName = frame.methodName,
+        sourceFileName = frame.sourceFileName,
+        lineNumber = frame.lineNumber,
+        locals = frame.localObjectIds.mapNotNull { findObjectByIdOrNull(it) }
+      )
+    }
+  }
+
   override val objects: Sequence<HeapObject>
     get() {
       var objectIndex = 0

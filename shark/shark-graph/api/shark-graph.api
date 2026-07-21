@@ -41,6 +41,7 @@ public abstract interface class shark/HeapGraph {
 	public abstract fun getObjects ()Lkotlin/sequences/Sequence;
 	public abstract fun getPrimitiveArrayCount ()I
 	public abstract fun getPrimitiveArrays ()Lkotlin/sequences/Sequence;
+	public abstract fun getThreads ()Lkotlin/sequences/Sequence;
 	public abstract fun objectExists (J)Z
 }
 
@@ -151,6 +152,48 @@ public final class shark/HeapObject$HeapPrimitiveArray : shark/HeapObject {
 	public fun toString ()Ljava/lang/String;
 }
 
+public final class shark/HeapStackFrame {
+	public static final field Companion Lshark/HeapStackFrame$Companion;
+	public final fun getClassName ()Ljava/lang/String;
+	public final fun getLineNumber ()I
+	public final fun getLineNumberKind ()Lshark/HeapStackFrame$LineNumberKind;
+	public final fun getLocals ()Ljava/util/List;
+	public final fun getMethodName ()Ljava/lang/String;
+	public final fun getSourceFileName ()Ljava/lang/String;
+	public final fun toStackTraceElement ()Ljava/lang/StackTraceElement;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapStackFrame$Companion {
+}
+
+public final class shark/HeapStackFrame$LineNumberKind : java/lang/Enum {
+	public static final field COMPILED_METHOD Lshark/HeapStackFrame$LineNumberKind;
+	public static final field HAS_LINE_NUMBER Lshark/HeapStackFrame$LineNumberKind;
+	public static final field NATIVE_METHOD Lshark/HeapStackFrame$LineNumberKind;
+	public static final field NO_LINE_INFO Lshark/HeapStackFrame$LineNumberKind;
+	public static final field UNKNOWN_LOCATION Lshark/HeapStackFrame$LineNumberKind;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lshark/HeapStackFrame$LineNumberKind;
+	public static fun values ()[Lshark/HeapStackFrame$LineNumberKind;
+}
+
+public final class shark/HeapThread {
+	public static final field Companion Lshark/HeapThread$Companion;
+	public static final field UNKNOWN_THREAD_NAME Ljava/lang/String;
+	public final fun getGraph ()Lshark/HeapGraph;
+	public final fun getName ()Ljava/lang/String;
+	public final fun getStackTrace ()Ljava/util/List;
+	public final fun getThreadInstance ()Lshark/HeapObject$HeapInstance;
+	public final fun getThreadObject ()Lshark/GcRoot$ThreadObject;
+	public final fun stackTraceAsString ()Ljava/lang/String;
+	public final fun toStackTrace ()Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/HeapThread$Companion {
+}
+
 public final class shark/HeapValue {
 	public fun <init> (Lshark/HeapGraph;Lshark/ValueHolder;)V
 	public final fun getAsBoolean ()Ljava/lang/Boolean;
@@ -193,6 +236,7 @@ public final class shark/HprofHeapGraph : shark/CloseableHeapGraph {
 	public fun getObjects ()Lkotlin/sequences/Sequence;
 	public fun getPrimitiveArrayCount ()I
 	public fun getPrimitiveArrays ()Lkotlin/sequences/Sequence;
+	public fun getThreads ()Lkotlin/sequences/Sequence;
 	public final fun lruCacheStats ()Ljava/lang/String;
 	public fun objectExists (J)Z
 }
