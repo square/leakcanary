@@ -3,6 +3,7 @@ package shark
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.locks.LockSupport
+import kotlin.time.Duration.Companion.seconds
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
@@ -57,7 +58,7 @@ class JvmThreadDumpTest {
     keepRunning = false
     if (::workerThread.isInitialized) {
       LockSupport.unpark(workerThread)
-      workerThread.join(SECONDS_TO_MILLIS)
+      workerThread.join(1.seconds.inWholeMilliseconds)
     }
   }
 
@@ -106,9 +107,5 @@ class JvmThreadDumpTest {
 
     assertThat(rendered).contains(threadName)
     assertThat(rendered).contains("\tat ${JvmThreadDumpTest::class.java.name}.$workerMethodName")
-  }
-
-  companion object {
-    private const val SECONDS_TO_MILLIS = 1000L
   }
 }

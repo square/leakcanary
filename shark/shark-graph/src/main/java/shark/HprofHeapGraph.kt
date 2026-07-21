@@ -78,48 +78,16 @@ class HprofHeapGraph internal constructor(
           .map { HeapThread(it, this) }
       }
 
-  /**
-   * Maps a thread serial number to a map of frame number to the object ids that are local
-   * variables of that frame, reconstructed from [GcRoot.JavaFrame] and [GcRoot.JniLocal] roots.
-   * Built lazily and only once, since it requires a full scan of the gc roots.
-   */
-  private val localObjectIdsByThreadAndFrame: Map<Int, Map<Int, List<Long>>> by lazy {
-    val result = HashMap<Int, HashMap<Int, MutableList<Long>>>()
-    index.gcRoots().forEach { gcRoot ->
-      val threadSerialNumber: Int
-      val frameNumber: Int
-      when (gcRoot) {
-        is GcRoot.JavaFrame -> {
-          threadSerialNumber = gcRoot.threadSerialNumber
-          frameNumber = gcRoot.frameNumber
-        }
-        is GcRoot.JniLocal -> {
-          threadSerialNumber = gcRoot.threadSerialNumber
-          frameNumber = gcRoot.frameNumber
-        }
-        else -> return@forEach
-      }
-      result.getOrPut(threadSerialNumber) { HashMap() }
-        .getOrPut(frameNumber) { mutableListOf() }
-        .add(gcRoot.id)
-    }
-    result
-  }
-
-  internal fun readThreadStackTrace(gcRoot: GcRoot.ThreadObject): List<HeapStackFrame> {
-    val stackTrace = index.stackTrace(gcRoot.stackTraceSerialNumber) ?: return emptyList()
-    val localsByFrame = localObjectIdsByThreadAndFrame[gcRoot.threadSerialNumber]
-    return stackTrace.stackFrameIds.asList().mapIndexedNotNull { frameNumber, frameId ->
-      val frameRecord = index.stackFrame(frameId) ?: return@mapIndexedNotNull null
-      val locals = localsByFrame?.get(frameNumber)
-        ?.mapNotNull { findObjectByIdOrNull(it) }
-        ?: emptyList()
+  internal fun readThreadStackTrace(threadObject: GcRoot.ThreadObject): List<HeapStackFrame> {
+    // The index resolves everything but the local variables, which need the graph to turn object
+    // ids into heap objects.
+    return index.readThreadStackTrace(threadObject).map { frame ->
       HeapStackFrame(
-        className = index.classNameBySerial(frameRecord.classSerialNumber),
-        methodName = index.hprofStringOrNull(frameRecord.methodNameStringId) ?: "",
-        sourceFileName = index.hprofStringOrNull(frameRecord.sourceFileNameStringId),
-        lineNumber = frameRecord.lineNumber,
-        locals = locals
+        className = frame.className,
+        methodName = frame.methodName,
+        sourceFileName = frame.sourceFileName,
+        lineNumber = frame.lineNumber,
+        locals = frame.localObjectIds.mapNotNull { findObjectByIdOrNull(it) }
       )
     }
   }

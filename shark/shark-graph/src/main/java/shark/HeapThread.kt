@@ -1,6 +1,5 @@
 package shark
 
-import kotlin.LazyThreadSafetyMode.NONE
 import shark.HeapObject.HeapInstance
 
 /**
@@ -14,7 +13,7 @@ class HeapThread internal constructor(
   /**
    * The [GcRoot.ThreadObject] this thread was reconstructed from.
    */
-  val gcRoot: GcRoot.ThreadObject,
+  val threadObject: GcRoot.ThreadObject,
   private val hprofGraph: HprofHeapGraph
 ) {
 
@@ -25,29 +24,26 @@ class HeapThread internal constructor(
     get() = hprofGraph
 
   /**
-   * The [HeapInstance] (a `java.lang.Thread` or subclass) backing this thread. Never null:
-   * [HeapGraph.threads] only yields threads whose object exists in the heap dump.
+   * The [HeapInstance] (a `java.lang.Thread` or subclass) backing this thread.
    */
-  val threadInstance: HeapInstance by lazy(NONE) {
-    hprofGraph.findObjectById(gcRoot.id) as HeapInstance
-  }
+  val threadInstance: HeapInstance
+    get() = hprofGraph.findObjectById(threadObject.id) as HeapInstance
 
   /**
    * The thread name, read from the backing `java.lang.Thread` instance. A live JVM thread always
    * has a non-null name, so this falls back to [UNKNOWN_THREAD_NAME] only when the name can't be
    * resolved from the heap object (e.g. a malformed dump or a non-standard Thread subtype).
    */
-  val name: String by lazy(NONE) {
-    threadInstance["java.lang.Thread", "name"]?.value?.readAsJavaString() ?: UNKNOWN_THREAD_NAME
-  }
+  val name: String
+    get() =
+      threadInstance["java.lang.Thread", "name"]?.value?.readAsJavaString() ?: UNKNOWN_THREAD_NAME
 
   /**
    * This thread's stack trace, deepest call last (same order as the HPROF stack trace record).
    * Empty when the heap dump has no stack trace for this thread.
    */
-  val stackTrace: List<HeapStackFrame> by lazy(NONE) {
-    hprofGraph.readThreadStackTrace(gcRoot)
-  }
+  val stackTrace: List<HeapStackFrame>
+    get() = hprofGraph.readThreadStackTrace(threadObject)
 
   /**
    * Converts [stackTrace] into a list of [StackTraceElement], so the stack can be handed to
@@ -64,8 +60,8 @@ class HeapThread internal constructor(
   fun stackTraceAsString(): String {
     return buildString {
       append('"').append(name).append('"')
-      stackTrace.forEach { frame ->
-        append("\n\tat ").append(frame)
+      toStackTrace().forEach { element ->
+        append("\n\tat ").append(element)
       }
     }
   }
@@ -132,13 +128,24 @@ class HeapStackFrame internal constructor(
   /**
    * Converts this frame into a [StackTraceElement]. [className] falls back to an empty string when
    * unresolved, since [StackTraceElement] requires a non-null declaring class.
+   *
+   * The line number is translated from the HPROF encoding to the [StackTraceElement] one: HPROF
+   * uses `-3` for native methods, but [StackTraceElement] uses `-2` (its `isNativeMethod` sentinel),
+   * and HPROF's `-2` (compiled method) has no [StackTraceElement] equivalent. Non-positive HPROF
+   * values other than native therefore map to `-1` so [StackTraceElement] renders `(SourceFile)` or
+   * `(Unknown Source)` rather than a misleading negative line number.
    */
   fun toStackTraceElement(): StackTraceElement {
+    val stackTraceElementLineNumber = when (lineNumberKind) {
+      LineNumberKind.HAS_LINE_NUMBER -> lineNumber
+      LineNumberKind.NATIVE_METHOD -> NATIVE_METHOD_STACK_TRACE_ELEMENT
+      else -> UNKNOWN_STACK_TRACE_ELEMENT
+    }
     return StackTraceElement(
       className ?: "",
       methodName,
       sourceFileName,
-      lineNumber
+      stackTraceElementLineNumber
     )
   }
 
@@ -170,5 +177,9 @@ class HeapStackFrame internal constructor(
     private const val UNKNOWN_LOCATION = -1
     private const val COMPILED_METHOD = -2
     private const val NATIVE_METHOD = -3
+
+    // StackTraceElement's own line number sentinels, which differ from HPROF's.
+    private const val NATIVE_METHOD_STACK_TRACE_ELEMENT = -2
+    private const val UNKNOWN_STACK_TRACE_ELEMENT = -1
   }
 }

@@ -53,6 +53,19 @@ import shark.internal.hppc.LongScatterSet
 import shark.internal.hppc.to
 
 /**
+ * A stack frame of a thread's stack trace, as reconstructed by
+ * [HprofInMemoryIndex.readThreadStackTrace]. Strings and the declaring class name are already
+ * resolved; [localObjectIds] are left as ids for the graph layer to resolve to heap objects.
+ */
+internal class ThreadStackFrame(
+  val className: String?,
+  val methodName: String,
+  val sourceFileName: String?,
+  val lineNumber: Int,
+  val localObjectIds: List<Long>
+)
+
+/**
  * This class is not thread safe, should be used from a single thread.
  */
 internal class HprofInMemoryIndex private constructor(
@@ -234,19 +247,73 @@ internal class HprofInMemoryIndex private constructor(
     return threadObjects
   }
 
-  fun stackTrace(stackTraceSerialNumber: Int): StackTraceRecord? {
-    return stackTraces[stackTraceSerialNumber.toLong()]
+  /**
+   * Reconstructs the stack trace of [threadObject] from the stack trace and stack frame records in
+   * the heap dump, resolving method names, source files and declaring class names. Each frame also
+   * carries the object ids of its local variables (from [GcRoot.JavaFrame] / [GcRoot.JniLocal]
+   * roots); resolving those ids to heap objects is left to the caller, which holds the graph.
+   * Returns an empty list when the dump has no stack trace for this thread.
+   */
+  fun readThreadStackTrace(threadObject: ThreadObject): List<ThreadStackFrame> {
+    val stackTrace = stackTraces[threadObject.stackTraceSerialNumber.toLong()] ?: return emptyList()
+    val threadSerialNumber = threadObject.threadSerialNumber
+    return stackTrace.stackFrameIds.asList().mapIndexedNotNull { frameNumber, frameId ->
+      val frameRecord = stackFrames[frameId] ?: return@mapIndexedNotNull null
+      val localObjectIds =
+        localObjectIdsByThreadAndFrame[packThreadAndFrame(threadSerialNumber, frameNumber)]
+          ?: emptyList<Long>()
+      ThreadStackFrame(
+        className = classNameBySerial(frameRecord.classSerialNumber),
+        methodName = hprofStringOrNull(frameRecord.methodNameStringId) ?: "",
+        sourceFileName = hprofStringOrNull(frameRecord.sourceFileNameStringId),
+        lineNumber = frameRecord.lineNumber,
+        localObjectIds = localObjectIds
+      )
+    }
   }
 
-  fun stackFrame(stackFrameId: Long): StackFrameRecord? {
-    return stackFrames[stackFrameId]
+  /**
+   * Maps a packed (thread serial number, frame number) key (see [packThreadAndFrame]) to the object
+   * ids that are local variables of that frame, reconstructed from [GcRoot.JavaFrame] and
+   * [GcRoot.JniLocal] roots. Built lazily on the first thread stack trace read, since it requires a
+   * full scan of the gc roots.
+   */
+  private val localObjectIdsByThreadAndFrame: LongObjectScatterMap<MutableList<Long>> by lazy {
+    val result = LongObjectScatterMap<MutableList<Long>>()
+    gcRoots.forEach { gcRoot ->
+      val threadSerialNumber: Int
+      val frameNumber: Int
+      when (gcRoot) {
+        is GcRoot.JavaFrame -> {
+          threadSerialNumber = gcRoot.threadSerialNumber
+          frameNumber = gcRoot.frameNumber
+        }
+        is GcRoot.JniLocal -> {
+          threadSerialNumber = gcRoot.threadSerialNumber
+          frameNumber = gcRoot.frameNumber
+        }
+        else -> return@forEach
+      }
+      val key = packThreadAndFrame(threadSerialNumber, frameNumber)
+      val locals = result[key] ?: mutableListOf<Long>().also { result[key] = it }
+      locals.add(gcRoot.id)
+    }
+    result
+  }
+
+  /** Packs a thread serial number and a frame number into a single map key. */
+  private fun packThreadAndFrame(
+    threadSerialNumber: Int,
+    frameNumber: Int
+  ): Long {
+    return (threadSerialNumber.toLong() shl 32) or (frameNumber.toLong() and 0xFFFFFFFFL)
   }
 
   /**
    * Resolves an hprof string by id (e.g. a stack frame method or source file name), or null if
    * the id is unknown (including the 0 id used when no string is available).
    */
-  fun hprofStringOrNull(stringId: Long): String? {
+  private fun hprofStringOrNull(stringId: Long): String? {
     return hprofStringCache[stringId]
   }
 
@@ -256,7 +323,7 @@ internal class HprofInMemoryIndex private constructor(
    * resolve to a known class. Mirrors [className] but keyed by class serial number rather than
    * class object id.
    */
-  fun classNameBySerial(classSerialNumber: Int): String? {
+  private fun classNameBySerial(classSerialNumber: Int): String? {
     val slot = classSerialNameStringIds.getSlot(classSerialNumber.toLong())
     if (slot == -1) {
       return null
