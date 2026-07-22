@@ -3,7 +3,6 @@
 package shark
 
 import androidx.collection.MutableLongList
-import androidx.collection.MutableLongLongMap
 import androidx.collection.MutableLongSet
 import androidx.collection.mutableLongListOf
 import java.util.ArrayDeque
@@ -13,8 +12,6 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferenceLocationType.ARRAY_ENTRY
-import shark.internal.unpackAsFirstInt
-import shark.internal.unpackAsSecondInt
 
 /**
  * Looks for objects that have grown in outgoing references in a new heap dump compared to a
@@ -73,7 +70,6 @@ class ObjectGrowthDetector(
     // Not using estimatedVisitedObjects because there could be a lot less nodes than objects.
     // This is a list because order matters.
     val dequeuedNodes = mutableListOf<DequeuedNode>()
-    val dominatorTree = DominatorTree(estimatedVisitedObjects)
 
     val tree = ShortestPathObjectNode("root", null).apply {
       selfObjectCount = 1
@@ -128,14 +124,6 @@ class ObjectGrowthDetector(
         val heapObject = graph.findObjectById(objectId)
         val refs = objectReferenceReader.read(heapObject)
         refs.forEach recordEdge@{ reference ->
-          // dominatorTree is updated prior to enqueueing, because that's where we have the
-          // parent object id information. visitedSet is updated on dequeuing, because bumping
-          // node priority would be complex when as we'd need to move object ids between nodes
-          // rather than just move nodes.
-          dominatorTree.updateDominated(
-            objectId = reference.valueObjectId,
-            parentObjectId = objectId
-          )
           // note: we only update visitedSet once dequeued. This could lead
           // to duplicates in queue, but avoids having to bump priority of already
           // enqueued low priority nodes.
@@ -225,31 +213,18 @@ class ObjectGrowthDetector(
     }
 
     return if (previousTraversal is InitialState) {
-      // Iterating on last dequeued first means we'll get dominated first and progressively go
-      // up the dominator tree.
       val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-      // A map that stores two ints, size and count, in a single long value with bit packing.
-      val retainedSizeAndCountMap = MutableLongLongMap(dequeuedNodes.size)
-      for (node in dequeuedNodes.asReversed()) {
+      val retainedMap = LinkEvalDominatorTree(
+        graph, referenceReaderFactory, gcRootProvider
+      ).compute(objectSizeCalculator)
+      for (node in dequeuedNodes) {
         var nodeRetainedSize = ZERO_BYTES
         var nodeRetainedCount = 0
 
         for (objectId in node.objectIds) {
-          val objectShallowSize = objectSizeCalculator.computeSize(objectId)
-
-          val packedSizeAndCount = retainedSizeAndCountMap.increase(
-            objectId, objectShallowSize, 1
-          )
-
-          val retainedSize = packedSizeAndCount.unpackAsFirstInt
-          val retainedCount = packedSizeAndCount.unpackAsSecondInt
-
-          val dominatorObjectId = dominatorTree[objectId]
-          if (dominatorObjectId != ValueHolder.NULL_REFERENCE) {
-            retainedSizeAndCountMap.increase(dominatorObjectId, retainedSize, retainedCount)
-          }
-          nodeRetainedSize += retainedSize.bytes
-          nodeRetainedCount += retainedCount
+          val dominatorNode = retainedMap[objectId]
+          nodeRetainedSize += (dominatorNode?.retainedSize ?: 0).bytes
+          nodeRetainedCount += (dominatorNode?.retainedCount ?: 0)
         }
 
         if (node.shortestPathNode.growing) {
@@ -341,9 +316,9 @@ class ObjectGrowthDetector(
         return@reportedGrowingNodeOrNull shortestPathNode
       }
       val objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-      val retainedMap = dominatorTree.computeRetainedSizes(
-        reportedGrowingNodeObjectIdsForRetainedSize, objectSizeCalculator
-      )
+      val retainedMap = LinkEvalDominatorTree(
+        graph, referenceReaderFactory, gcRootProvider
+      ).compute(objectSizeCalculator)
       dequeuedNodes.forEach reportedGrowingNodeRetainedSize@{ node ->
         val shortestPathNode = node.shortestPathNode
         // If not growing, or growing but with a parent that's growing, skip.
@@ -356,11 +331,9 @@ class ObjectGrowthDetector(
         var heapSize = ZERO_BYTES
         var objectCount = 0
         for (objectId in node.objectIds) {
-          val packed = retainedMap[objectId]
-          val additionalByteSize = packed.unpackAsFirstInt
-          val additionalObjectCount = packed.unpackAsSecondInt
-          heapSize += additionalByteSize.bytes
-          objectCount += additionalObjectCount
+          val dominatorNode = retainedMap[objectId]
+          heapSize += (dominatorNode?.retainedSize ?: 0).bytes
+          objectCount += (dominatorNode?.retainedCount ?: 0)
         }
         shortestPathNode.retained = Retained(
           heapSize = heapSize,
@@ -420,10 +393,6 @@ class ObjectGrowthDetector(
     val enqueuedCount = edgesByNodeName.count { (edgeKey, edgeObjectIds) ->
       val previousPathNode = previousTreeRootMap?.get(edgeKey.nodeAndEdgeName)
 
-      edgeObjectIds.forEach { objectId ->
-        dominatorTree.updateDominatedAsRoot(objectId)
-      }
-
       val edgeObjectIdsArray = LongArray(edgeObjectIds.size)
 
       edgeObjectIds.forEachIndexed { index, objectId ->
@@ -462,28 +431,6 @@ class ObjectGrowthDetector(
       toVisitLastQueue += node
     } else {
       toVisitQueue += node
-    }
-  }
-
-  private fun MutableLongLongMap.increase(
-    objectId: Long,
-    addedValue1: Int,
-    addedValue2: Int,
-  ): Long {
-    val missing = ValueHolder.NULL_REFERENCE
-    val packedValue = getOrDefault(objectId, ValueHolder.NULL_REFERENCE)
-    return if (packedValue == missing) {
-      val newPackedValue = ((addedValue1.toLong()) shl 32) or (addedValue2.toLong() and 0xffffffffL)
-      put(objectId, newPackedValue)
-      newPackedValue
-    } else {
-      val existingValue1 = (packedValue shr 32).toInt()
-      val existingValue2 = (packedValue and 0xFFFFFFFF).toInt()
-      val newValue1 = existingValue1 + addedValue1
-      val newValue2 = existingValue2 + addedValue2
-      val newPackedValue = ((newValue1.toLong()) shl 32) or (newValue2.toLong() and 0xffffffffL)
-      put(objectId, newPackedValue)
-      newPackedValue
     }
   }
 
