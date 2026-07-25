@@ -24,7 +24,7 @@ workManager = "2.7.0"
 detekt = "1.23.8"
 hilt = "2.59.2"
 sqldelight = "2.3.2"
-androidMinSdk = "26"
+androidMinSdk = "24"
 androidCompileSdk = "35"
 
 [libraries]

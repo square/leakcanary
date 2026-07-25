@@ -22,6 +22,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES.O
 import com.squareup.leakcanary.core.R
 import leakcanary.LeakCanary
 import leakcanary.internal.InternalLeakCanary.FormFactor.MOBILE
@@ -88,7 +89,9 @@ internal object Notifications {
       return
     }
 
-    val builder = Notification.Builder(context, type.name)
+    val builder = if (SDK_INT >= O) {
+      Notification.Builder(context, type.name)
+    } else Notification.Builder(context)
 
     builder
       .setContentText(contentText)
@@ -111,18 +114,20 @@ internal object Notifications {
     builder.setSmallIcon(R.drawable.leak_canary_leak)
       .setWhen(System.currentTimeMillis())
 
-    val notificationManager =
-      context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    var notificationChannel: NotificationChannel? =
-      notificationManager.getNotificationChannel(type.name)
-    if (notificationChannel == null) {
-      val channelName = context.getString(type.nameResId)
-      notificationChannel =
-        NotificationChannel(type.name, channelName, type.importance)
-      notificationManager.createNotificationChannel(notificationChannel)
+    if (SDK_INT >= O) {
+      val notificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      var notificationChannel: NotificationChannel? =
+        notificationManager.getNotificationChannel(type.name)
+      if (notificationChannel == null) {
+        val channelName = context.getString(type.nameResId)
+        notificationChannel =
+          NotificationChannel(type.name, channelName, type.importance)
+        notificationManager.createNotificationChannel(notificationChannel)
+      }
+      builder.setChannelId(type.name)
+      builder.setGroup(type.name)
     }
-    builder.setChannelId(type.name)
-    builder.setGroup(type.name)
 
     return builder.build()
   }

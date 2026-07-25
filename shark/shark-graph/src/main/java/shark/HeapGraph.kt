@@ -35,6 +35,14 @@ interface HeapGraph {
   val gcRoots: List<GcRoot>
 
   /**
+   * The threads that were running when the heap dump was captured, with their stack traces,
+   * reconstructed from the thread object and stack trace records present in JVM HPROF heap dumps.
+   *
+   * Empty for Android heap dumps, which don't contain thread stack trace records.
+   */
+  val threads: Sequence<HeapThread>
+
+  /**
    * Sequence of all objects in the heap dump.
    *
    * This sequence does not trigger any IO reads.
