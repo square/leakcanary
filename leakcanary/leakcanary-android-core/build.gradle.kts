@@ -52,11 +52,11 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     testInstrumentationRunnerArguments["clearPackageData"] = "true"
-    testOptions {
-      execution = "ANDROIDX_TEST_ORCHESTRATOR"
-      // Avoid DeprecatedTargetSdkVersionDialog during UI tests
-      targetSdk = libs.versions.androidCompileSdk.get().toInt()
-    }
+  }
+  testOptions {
+    execution = "ANDROIDX_TEST_ORCHESTRATOR"
+    // Avoid DeprecatedTargetSdkVersionDialog during UI tests
+    targetSdk = libs.versions.androidCompileSdk.get().toInt()
   }
   namespace = "com.squareup.leakcanary.core"
   testNamespace = "com.squareup.leakcanary.core.test"
