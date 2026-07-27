@@ -16,6 +16,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
   @get:Rule
   val tempFolder = TemporaryFolder()
 
+  /** Set by the build script so the generated project tracks the SDK versions we build against. */
+  private val compileSdk = System.getProperty("androidCompileSdk")
+  private val minSdk = System.getProperty("androidMinSdk")
+
   private lateinit var buildFile: File
 
   @Before
@@ -63,16 +67,16 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 35
+          compileSdk $compileSdk
 
           defaultConfig {
-            minSdk 35
+            minSdk $minSdk
           }
 
           buildTypes {
             debug {
               minifyEnabled true
-              debuggable false
+              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             }
           }
         }
@@ -134,16 +138,16 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 35
+          compileSdk $compileSdk
 
           defaultConfig {
-            minSdk 35
+            minSdk $minSdk
           }
 
           buildTypes {
             debug {
               minifyEnabled true
-              debuggable false
+              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             }
           }
         }
@@ -189,10 +193,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 35
+          compileSdk $compileSdk
 
           defaultConfig {
-            minSdk 35
+            minSdk $minSdk
           }
 
           buildTypes {
