@@ -31,13 +31,14 @@ androidCompileSdk = "35"
 gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "9.2.1" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.8.10" }
-gradlePlugin-binaryCompatibility = { module = "org.jetbrains.kotlinx:binary-compatibility-validator", version = "0.13.1" }
 gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.32.0" }
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version.ref = "sqldelight" }
 gradlePlugin-hilt = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
 gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version = "2.3.9" }
 gradlePlugin-composeCompiler = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
+# Used by the root build script to validate the ABI of Android library modules, see KT-83410.
+kotlin-abi-tools = { module = "org.jetbrains.kotlin:abi-tools", version.ref = "kotlin" }
 
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }

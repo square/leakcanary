@@ -1,9 +1,14 @@
+import com.android.build.api.artifact.ScopedArtifact
+import com.android.build.api.variant.LibraryAndroidComponentsExtension
+import com.android.build.api.variant.ScopedArtifacts
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import com.vanniktech.maven.publish.SonatypeHost
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import java.net.URI
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.kotlin.abi.tools.AbiFilters
+import org.jetbrains.kotlin.abi.tools.AbiTools
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
@@ -20,11 +25,11 @@ buildscript {
     classpath(libs.gradlePlugin.dokka)
     classpath(libs.gradlePlugin.mavenPublish)
     classpath(libs.gradlePlugin.detekt)
-    classpath(libs.gradlePlugin.binaryCompatibility)
     classpath(libs.gradlePlugin.sqldelight)
     classpath(libs.gradlePlugin.ksp)
     classpath(libs.gradlePlugin.hilt)
     classpath(libs.gradlePlugin.composeCompiler)
+    classpath(libs.kotlin.abi.tools)
   }
 }
 
@@ -159,18 +164,152 @@ configure(subprojects.filter {
 
 // We use JetBrain's Kotlin Binary Compatibility Validator to track changes to our public binary
 // APIs.
-// When making a change that results in a public ABI change, the apiCheck task will fail. When this
-// happens, run ./gradlew apiDump to generate updated *.api files, and add those to your commit.
+// When making a change that results in a public ABI change, the checkKotlinAbi task will fail. When
+// this happens, run ./gradlew updateKotlinAbi to generate updated *.api files, and add those to
+// your commit.
 // See https://kotlinlang.org/docs/gradle-binary-compatibility-validation.html
-// Unfortunately, this is only compatible with the base JVM plugin:
-// See https://youtrack.jetbrains.com/projects/KT/issues/KT-83410/
 configure(subprojects.filter {
-  it.name !in listOf("leakcanary-app", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli")
+  it.name !in listOf("leakcanary-app", "leakcanary-app-db", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli")
 }) {
   plugins.withId("org.jetbrains.kotlin.jvm") {
     extensions.configure<KotlinJvmProjectExtension> {
       @OptIn(ExperimentalAbiValidation::class)
       abiValidation()
+    }
+  }
+  // The Kotlin Gradle plugin only wires up ABI validation for the JVM plugin, so Android library
+  // modules get an equivalent pair of tasks built on the same engine (org.jetbrains.kotlin:abi-tools),
+  // producing the exact same dump format. Delete this once KT-83410 ships.
+  // See https://youtrack.jetbrains.com/issue/KT-83410
+  plugins.withId("com.android.library") {
+    registerAndroidAbiValidationTasks()
+  }
+}
+
+/**
+ * Registers `checkKotlinAbi` and `updateKotlinAbi` for an Android library module, mirroring the
+ * tasks the Kotlin Gradle plugin registers for JVM modules. The ABI of the release variant is
+ * dumped with the same engine the Kotlin Gradle plugin uses, so the dump format is identical.
+ */
+fun Project.registerAndroidAbiValidationTasks() {
+  val dumpFileName = "$name.api"
+  val referenceDumpFile = layout.projectDirectory.file("api/$dumpFileName")
+
+  val dumpTask = tasks.register<AndroidAbiDumpTask>("internalDumpKotlinAbi") {
+    description = "Dumps the public Application Binary Interface (ABI) into a file in the build directory."
+    dumpFile.set(layout.buildDirectory.file("abi-validation/$dumpFileName"))
+  }
+
+  val checkTask = tasks.register<AndroidAbiCheckTask>("checkKotlinAbi") {
+    description = "Checks that the public Application Binary Interface (ABI) of the current " +
+      "project code matches the reference dump file"
+    referenceDump.from(referenceDumpFile)
+    actualDump.set(dumpTask.flatMap { it.dumpFile })
+    projectPath.set(this@registerAndroidAbiValidationTasks.path)
+  }
+  tasks.named("check") {
+    dependsOn(checkTask)
+  }
+
+  tasks.register<AndroidAbiUpdateTask>("updateKotlinAbi") {
+    description = "Writes the public Application Binary Interface (ABI) of the current code to " +
+      "the reference dump file."
+    actualDump.set(dumpTask.flatMap { it.dumpFile })
+    referenceDump.set(referenceDumpFile)
+  }
+
+  val androidComponents = extensions.getByType<LibraryAndroidComponentsExtension>()
+  androidComponents.onVariants(androidComponents.selector().withName("release")) { variant ->
+    variant.artifacts.forScope(ScopedArtifacts.Scope.PROJECT)
+      .use(dumpTask)
+      .toGet(ScopedArtifact.CLASSES, AndroidAbiDumpTask::classJars, AndroidAbiDumpTask::classDirs)
+  }
+}
+
+@CacheableTask
+abstract class AndroidAbiDumpTask : DefaultTask() {
+
+  @get:Classpath
+  abstract val classJars: ListProperty<RegularFile>
+
+  @get:Classpath
+  abstract val classDirs: ListProperty<Directory>
+
+  @get:OutputFile
+  abstract val dumpFile: RegularFileProperty
+
+  @TaskAction
+  fun dump() {
+    // The ABI printer expects the individual class files, not the directories holding them.
+    val classfiles = classJars.get().map { it.asFile } +
+      classDirs.get().flatMap { dir ->
+        dir.asFile.walkTopDown().filter { it.isFile && it.extension == "class" }
+      }
+    val file = dumpFile.get().asFile
+    file.parentFile.mkdirs()
+    file.bufferedWriter().use { writer ->
+      AbiTools.getInstance().printJvmDump(writer, classfiles, AbiFilters.EMPTY)
+    }
+  }
+}
+
+@CacheableTask
+abstract class AndroidAbiCheckTask : DefaultTask() {
+
+  /**
+   * Declared as a file collection rather than an input file so that a missing reference dump is
+   * reported by the task action instead of failing while Gradle snapshots the inputs.
+   */
+  @get:InputFiles
+  @get:PathSensitive(PathSensitivity.NONE)
+  abstract val referenceDump: ConfigurableFileCollection
+
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.NONE)
+  abstract val actualDump: RegularFileProperty
+
+  @get:Input
+  abstract val projectPath: Property<String>
+
+  @TaskAction
+  fun check() {
+    val reference = referenceDump.singleFile
+    val actual = actualDump.get().asFile
+    if (!reference.exists()) {
+      // A module without any public API has no reference dump, same as for JVM modules.
+      if (actual.length() == 0L) return
+      throw GradleException(
+        "Reference ABI dump file $reference does not exist. Run ./gradlew updateKotlinAbi to create it."
+      )
+    }
+    val diff = AbiTools.getInstance().filesDiff(reference, actual)
+    if (!diff.isNullOrEmpty()) {
+      throw GradleException(
+        "ABI check failed for project ${projectPath.get()}.\n" +
+          "Run ./gradlew updateKotlinAbi to overwrite the reference ABI dump.\n$diff"
+      )
+    }
+  }
+}
+
+abstract class AndroidAbiUpdateTask : DefaultTask() {
+
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.NONE)
+  abstract val actualDump: RegularFileProperty
+
+  @get:OutputFile
+  abstract val referenceDump: RegularFileProperty
+
+  @TaskAction
+  fun update() {
+    val actual = actualDump.get().asFile
+    val reference = referenceDump.get().asFile
+    // A module without any public API has no reference dump, same as for JVM modules.
+    if (actual.length() == 0L) {
+      reference.delete()
+    } else {
+      actual.copyTo(reference, overwrite = true)
     }
   }
 }
