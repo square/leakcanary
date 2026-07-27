@@ -22,7 +22,6 @@ import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanaryAndroidInternalUtils
 import leakcanary.OnObjectRetainedListener
-import leakcanary.RemoteWorkManagerHeapAnalyzer
 import leakcanary.inProcess
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
@@ -142,14 +141,6 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
     }
     registerResumedActivityListener(application)
     LeakCanaryAndroidInternalUtils.addLeakActivityDynamicShortcut(application)
-
-    // Recover any heap analysis results from remote workers that completed
-    // while the main process was dead, and clean up orphaned event files.
-    if (RemoteWorkManagerHeapAnalyzer.remoteLeakCanaryServiceInClasspath) {
-      backgroundHandler.post {
-        RemoteWorkManagerHeapAnalyzer.dispatchAndCleanupOrphanedEventFiles()
-      }
-    }
 
     // We post so that the log happens after Application.onCreate() where
     // the config could be updated.

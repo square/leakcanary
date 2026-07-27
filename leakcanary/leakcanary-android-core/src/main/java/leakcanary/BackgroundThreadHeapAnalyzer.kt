@@ -21,10 +21,10 @@ object BackgroundThreadHeapAnalyzer : EventListener {
   override fun onEvent(event: Event) {
     if (event is HeapDump) {
       heapAnalyzerThreadHandler.post {
-        val doneEvent = AndroidDebugHeapAnalyzer.runAnalysisBlocking(event) { event ->
+        val analysisResult = AndroidDebugHeapAnalyzer.runAnalysisBlocking(event) { event ->
           InternalLeakCanary.sendEvent(event)
         }
-        InternalLeakCanary.sendEvent(doneEvent)
+        InternalLeakCanary.sendEvent(analysisResult.doneEvent)
       }
     }
   }
