@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.artifact.ScopedArtifact
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.ScopedArtifacts
@@ -113,6 +115,24 @@ configure(subprojects.filter {
     extensions.configure<KotlinJvmProjectExtension> {
       compilerOptions {
         jvmTarget = JvmTarget.JVM_1_8
+      }
+    }
+  }
+  // Android modules don't apply the java or Kotlin JVM plugin, and the Android Gradle Plugin
+  // defaults to Java 11. Setting compileOptions also aligns the Kotlin jvmTarget.
+  plugins.withId("com.android.library") {
+    extensions.configure<LibraryExtension> {
+      compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+      }
+    }
+  }
+  plugins.withId("com.android.application") {
+    extensions.configure<ApplicationExtension> {
+      compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
       }
     }
   }
