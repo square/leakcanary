@@ -3,6 +3,10 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Unreleased
+
+* 🔨 [#2841](https://github.com/square/leakcanary/pull/2841) The deobfuscation Gradle plugin moved to the Android Gradle Plugin Variant API and now requires AGP 8.0 or newer. `leakCanary.filterObfuscatedVariants` receives a `com.android.build.api.variant.Variant` instead of the removed `BaseVariant`, the task that copies the mapping file is renamed from `leakCanaryCopyObfuscationMappingFor${VariantName}` to `copy${VariantName}LeakCanaryObfuscationMapping`, and `CopyObfuscationMappingFileTask` no longer exposes `mergeAssetsDirectory` or `leakCanaryAssetsOutputFile`. Applying the plugin to a variant that doesn't have minification enabled now fails when the task runs rather than when the project is configured.
+
 ## Version 3.0 Alpha 9 (2026-06-25)
 
 * 🐛 [#2733](https://github.com/square/leakcanary/pull/2733) Fix reading `ActivityRecord`'s fields for `ACTIVITY_THREAD__NEW_ACTIVITIES` in `AndroidReferenceReaders`.
