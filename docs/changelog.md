@@ -6,6 +6,9 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 ## Unreleased
 
 * 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition leak where LeakCanary's toast was leaking and triggering LeakCanary
+* 🐛 [#1789](https://github.com/square/leakcanary/issues/1789) When running the analysis in a separate process (`leakcanary-android-process`), the `HeapAnalysisDone` event is now dispatched to the `LeakCanary.Config.eventListeners` configured in the **main** process, instead of only to the ones configured in the `:leakcanary` process. The analysis result is stored in LeakCanary's database by the `:leakcanary` process, then a chained WorkManager worker running in the main process reads it back and dispatches the event, which also means the event still gets dispatched if the main process dies while the analysis is running.
+    * 💥 This is a behavior change: `HeapAnalysisDone` is **no longer dispatched in the `:leakcanary` process**, so it's now dispatched exactly once instead of once per process. If you were relying on an `EventListener` configured in the `:leakcanary` process receiving `HeapAnalysisDone`, configure it in the main process instead. `HeapAnalysisProgress` events are still dispatched from the `:leakcanary` process. See [Running the LeakCanary analysis in a separate process](recipes.md#running-the-leakcanary-analysis-in-a-separate-process).
+* 🐛 The `dumpDurationMillis` and `"Heap dump reason"` metadata were added to the heap analysis *after* it was stored in LeakCanary's database, so the analysis shown in the LeakCanary activity was missing both. They're now stored as well.
 
 ## Version 3.0 Alpha 8 (2024-06-04)
 
