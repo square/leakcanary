@@ -40,16 +40,6 @@ internal object AndroidDebugHeapAnalyzer {
   private val application = InternalLeakCanary.application
 
   /**
-   * The result of a heap analysis: the [HeapAnalysisDone] event to dispatch, as well as the id
-   * the analysis was stored under in the LeakCanary database, which callers can use to retrieve
-   * the event again later (see [retrieveAnalysisDoneEvent]).
-   */
-  class AnalysisResult(
-    val analysisId: Long,
-    val doneEvent: HeapAnalysisDone<*>
-  )
-
-  /**
    * Runs the heap analysis on the current thread, stores the result in the LeakCanary database and
    * returns the [EventListener.Event.HeapAnalysisDone] event for it. Callers are responsible for
    * dispatching that event.
@@ -58,7 +48,7 @@ internal object AndroidDebugHeapAnalyzer {
     heapDumped: HeapDump,
     isCanceled: () -> Boolean = { false },
     progressEventListener: (HeapAnalysisProgress) -> Unit
-  ): AnalysisResult {
+  ): HeapAnalysisDone<*> {
     val progressListener = OnAnalysisProgressListener { step ->
       val percent = (step.ordinal * 1.0) / OnAnalysisProgressListener.Step.values().size
       progressEventListener(HeapAnalysisProgress(heapDumped.uniqueId, step, percent))
@@ -105,10 +95,7 @@ internal object AndroidDebugHeapAnalyzer {
 
     return ScopedLeaksDb.writableDatabase(application) { db ->
       val analysisId = HeapAnalysisTable.insert(db, fullHeapAnalysis)
-      AnalysisResult(
-        analysisId = analysisId,
-        doneEvent = analysisDoneEvent(db, heapDumped.uniqueId, analysisId, fullHeapAnalysis)
-      )
+      analysisDoneEvent(db, heapDumped.uniqueId, analysisId, fullHeapAnalysis)
     }
   }
 
@@ -153,6 +140,7 @@ internal object AndroidDebugHeapAnalyzer {
           .toSet()
         HeapAnalysisSucceeded(
           uniqueId,
+          analysisId,
           heapAnalysis,
           unreadLeakSignatures,
           showIntent
@@ -160,7 +148,7 @@ internal object AndroidDebugHeapAnalyzer {
       }
       is HeapAnalysisFailure -> {
         val showIntent = LeakActivity.createFailureIntent(application, analysisId)
-        HeapAnalysisFailed(uniqueId, heapAnalysis, showIntent)
+        HeapAnalysisFailed(uniqueId, analysisId, heapAnalysis, showIntent)
       }
     }
   }

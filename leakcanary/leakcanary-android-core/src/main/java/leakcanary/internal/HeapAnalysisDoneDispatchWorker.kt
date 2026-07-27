@@ -6,7 +6,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.common.util.concurrent.ListenableFuture
-import leakcanary.internal.AndroidDebugHeapAnalyzer.AnalysisResult
+import leakcanary.EventListener.Event.HeapAnalysisDone
 import leakcanary.internal.HeapAnalyzerWorker.Companion.heapAnalysisForegroundInfo
 import shark.SharkLog
 
@@ -55,9 +55,9 @@ internal class HeapAnalysisDoneDispatchWorker(
     private const val UNIQUE_ID = "UNIQUE_ID"
     private const val NO_ANALYSIS_ID = -1L
 
-    fun AnalysisResult.asDispatchWorkerOutputData() = Data.Builder()
+    fun HeapAnalysisDone<*>.asDispatchWorkerOutputData() = Data.Builder()
       .putLong(ANALYSIS_ID, analysisId)
-      .putString(UNIQUE_ID, doneEvent.uniqueId)
+      .putString(UNIQUE_ID, uniqueId)
       .build()
   }
 }

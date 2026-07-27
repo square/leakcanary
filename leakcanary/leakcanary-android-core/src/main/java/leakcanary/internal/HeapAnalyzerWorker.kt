@@ -16,11 +16,11 @@ internal class HeapAnalyzerWorker(
 ) :
   Worker(appContext, workerParams) {
   override fun doWork(): Result {
-    val analysisResult =
+    val doneEvent =
       AndroidDebugHeapAnalyzer.runAnalysisBlocking(inputData.asEvent()) { event ->
         InternalLeakCanary.sendEvent(event)
       }
-    InternalLeakCanary.sendEvent(analysisResult.doneEvent)
+    InternalLeakCanary.sendEvent(doneEvent)
     return Result.success()
   }
 

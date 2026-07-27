@@ -64,6 +64,7 @@ internal class RetrieveAnalysisDoneEventTest {
     assertThat(event).isInstanceOf(HeapAnalysisSucceeded::class.java)
     val succeeded = event as HeapAnalysisSucceeded
     assertThat(succeeded.uniqueId).isEqualTo("unique-id")
+    assertThat(succeeded.analysisId).isEqualTo(analysisId)
     assertThat(succeeded.heapAnalysis.allLeaks.map { it.signature }.toList())
       .isEqualTo(analysis.allLeaks.map { it.signature }.toList())
   }
@@ -82,6 +83,7 @@ internal class RetrieveAnalysisDoneEventTest {
     assertThat(event).isInstanceOf(HeapAnalysisFailed::class.java)
     val failed = event as HeapAnalysisFailed
     assertThat(failed.uniqueId).isEqualTo("unique-id")
+    assertThat(failed.analysisId).isEqualTo(analysisId)
     assertThat(failed.heapAnalysis.exception.cause).hasMessage("Boom")
   }
 

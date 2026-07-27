@@ -23,7 +23,7 @@ internal class RemoteHeapAnalyzerWorker(
     val heapDump = inputData.asEvent<HeapDump>()
     val result = SettableFuture.create<Result>()
     heapAnalyzerThreadHandler.post {
-      val analysisResult = AndroidDebugHeapAnalyzer.runAnalysisBlocking(heapDump, isCanceled = {
+      val doneEvent = AndroidDebugHeapAnalyzer.runAnalysisBlocking(heapDump, isCanceled = {
         result.isCancelled
       }) { progressEvent ->
         if (!result.isCancelled) {
@@ -36,7 +36,7 @@ internal class RemoteHeapAnalyzerWorker(
         // We're in the :leakcanary process here, so sending the done event would only reach the
         // listeners configured in this process. Instead we hand the analysis id over to
         // HeapAnalysisDoneDispatchWorker, which runs in the main process and dispatches from there.
-        result.set(Result.success(analysisResult.asDispatchWorkerOutputData()))
+        result.set(Result.success(doneEvent.asDispatchWorkerOutputData()))
       }
     }
     return result

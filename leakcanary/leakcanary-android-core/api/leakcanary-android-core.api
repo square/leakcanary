@@ -26,17 +26,18 @@ public final class leakcanary/EventListener$Event$DumpingHeap : leakcanary/Event
 }
 
 public abstract class leakcanary/EventListener$Event$HeapAnalysisDone : leakcanary/EventListener$Event {
-	public synthetic fun <init> (Ljava/lang/String;Lshark/HeapAnalysis;Landroid/content/Intent;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;JLshark/HeapAnalysis;Landroid/content/Intent;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getAnalysisId ()J
 	public final fun getHeapAnalysis ()Lshark/HeapAnalysis;
 	public final fun getShowIntent ()Landroid/content/Intent;
 }
 
 public final class leakcanary/EventListener$Event$HeapAnalysisDone$HeapAnalysisFailed : leakcanary/EventListener$Event$HeapAnalysisDone {
-	public fun <init> (Ljava/lang/String;Lshark/HeapAnalysisFailure;Landroid/content/Intent;)V
+	public fun <init> (Ljava/lang/String;JLshark/HeapAnalysisFailure;Landroid/content/Intent;)V
 }
 
 public final class leakcanary/EventListener$Event$HeapAnalysisDone$HeapAnalysisSucceeded : leakcanary/EventListener$Event$HeapAnalysisDone {
-	public fun <init> (Ljava/lang/String;Lshark/HeapAnalysisSuccess;Ljava/util/Set;Landroid/content/Intent;)V
+	public fun <init> (Ljava/lang/String;JLshark/HeapAnalysisSuccess;Ljava/util/Set;Landroid/content/Intent;)V
 	public final fun getUnreadLeakSignatures ()Ljava/util/Set;
 }
 
