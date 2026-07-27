@@ -23,7 +23,6 @@ public class org/leakcanary/internal/LeakUiApp$_Parcel {
 public final class org/leakcanary/internal/ParcelableHeapAnalysis : android/os/Parcelable {
 	public static final field CREATOR Landroid/os/Parcelable$Creator;
 	public static final field Companion Lorg/leakcanary/internal/ParcelableHeapAnalysis$Companion;
-	public synthetic fun <init> (Landroid/os/Parcel;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun <init> (Lshark/HeapAnalysis;)V
 	public fun describeContents ()I
 	public final fun getWrapped ()Lshark/HeapAnalysis;
