@@ -120,8 +120,9 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     buildFile.writeText(
       """
         plugins {
-          id 'com.android.application'
+          // Applied before the Android plugin on purpose: plugin order must not matter.
           id 'com.squareup.leakcanary.deobfuscation'
+          id 'com.android.application'
         }
 
         allprojects {

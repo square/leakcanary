@@ -17,17 +17,35 @@ package com.squareup.leakcanary.deobfuscation
 
 import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.variant.AndroidComponentsExtension
+import org.gradle.api.Action
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.AppliedPlugin
 
 class LeakCanaryLeakDeobfuscationPlugin : Plugin<Project> {
 
   override fun apply(target: Project) = with(target) {
+    val leakCanaryExtension = createLeakCanaryExtension(project)
+
+    // The Android plugin may be applied after this one, so react to it rather than looking it up
+    // eagerly.
+    var androidPluginApplied = false
+    val configure = Action<AppliedPlugin> {
+      androidPluginApplied = true
+      configureVariants(leakCanaryExtension)
+    }
+    pluginManager.withPlugin("com.android.application", configure)
+    pluginManager.withPlugin("com.android.library", configure)
+    afterEvaluate {
+      if (!androidPluginApplied) throwNoAndroidPluginException()
+    }
+  }
+
+  private fun Project.configureVariants(leakCanaryExtension: LeakCanaryDeobfuscationExtension) {
     val androidComponents = extensions.findByType(AndroidComponentsExtension::class.java)
       ?: throwNoAndroidPluginException()
 
-    val leakCanaryExtension = createLeakCanaryExtension(project)
     androidComponents.onVariants { variant ->
       if (!leakCanaryExtension.filterObfuscatedVariants(variant)) return@onVariants
       val mappingFile = variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE)
