@@ -95,8 +95,4 @@ dependencies {
   implementation(libs.hilt.android)
   implementation(libs.okio2)
   ksp(libs.hilt.compiler)
-  // Hilt bundles an older kotlin-metadata-jvm that can't read the metadata emitted by the Kotlin
-  // version we compile with, so upgrade it on the annotation processor classpath. Remove once Hilt
-  // ships a version that keeps up.
-  ksp(libs.kotlin.metadata.jvm)
 }
