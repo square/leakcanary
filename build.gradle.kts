@@ -308,8 +308,6 @@ abstract class AndroidAbiCheckTask : DefaultTask() {
     val reference = referenceDump.singleFile
     val actual = actualDump.get().asFile
     if (!reference.exists()) {
-      // A module without any public API has no reference dump, same as for JVM modules.
-      if (actual.length() == 0L) return
       throw GradleException(
         "Reference ABI dump file $reference does not exist. Run ./gradlew updateKotlinAbi to create it."
       )
@@ -335,14 +333,9 @@ abstract class AndroidAbiUpdateTask : DefaultTask() {
 
   @TaskAction
   fun update() {
-    val actual = actualDump.get().asFile
-    val reference = referenceDump.get().asFile
-    // A module without any public API has no reference dump, same as for JVM modules.
-    if (actual.length() == 0L) {
-      reference.delete()
-    } else {
-      actual.copyTo(reference, overwrite = true)
-    }
+    // A module that exposes no public API gets an empty dump file rather than no file at all, so
+    // that gaining a public API is always a visible diff.
+    actualDump.get().asFile.copyTo(referenceDump.get().asFile, overwrite = true)
   }
 }
 
