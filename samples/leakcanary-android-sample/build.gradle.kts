@@ -53,12 +53,6 @@ android {
     }
   }
 
-  if (project.hasProperty("orchestrator")) {
-    testOptions {
-      execution = "ANDROIDX_TEST_ORCHESTRATOR"
-    }
-  }
-
   buildTypes {
     // Build with ./gradlew leakcanary-android-sample:installDebug -Pminify
     if (project.hasProperty("minify")) {
@@ -75,6 +69,9 @@ android {
     }
   }
   testOptions {
+    if (project.hasProperty("orchestrator")) {
+      execution = "ANDROIDX_TEST_ORCHESTRATOR"
+    }
     unitTests {
       isIncludeAndroidResources = true
     }

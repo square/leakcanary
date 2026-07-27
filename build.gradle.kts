@@ -1,6 +1,6 @@
+import com.android.build.api.artifact.ScopedArtifact
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
-import com.android.build.api.artifact.ScopedArtifact
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.ScopedArtifacts
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
