@@ -168,8 +168,20 @@ configure(subprojects.filter {
 // this happens, run ./gradlew updateKotlinAbi to generate updated *.api files, and add those to
 // your commit.
 // See https://kotlinlang.org/docs/gradle-binary-compatibility-validation.html
+// Only modules that ship an API meant to be consumed by others are tracked. Apps, samples, command
+// line tools and the internal plumbing of the LeakCanary UI app are not.
+val modulesWithoutTrackedApi = listOf(
+  "leakcanary-android-sample",
+  "leakcanary-app",
+  "leakcanary-app-aidl",
+  "leakcanary-app-db",
+  "leakcanary-app-service",
+  "shark-cli",
+  "shark-hprof-test",
+  "shark-test",
+)
 configure(subprojects.filter {
-  it.name !in listOf("leakcanary-app", "leakcanary-app-db", "leakcanary-android-sample", "shark-test", "shark-hprof-test", "shark-cli")
+  it.name !in modulesWithoutTrackedApi
 }) {
   plugins.withId("org.jetbrains.kotlin.jvm") {
     extensions.configure<KotlinJvmProjectExtension> {
