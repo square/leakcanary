@@ -14,6 +14,9 @@
 
 [versions]
 compose = "1.11.4"
+# Compose Multiplatform, used by the Shark explorer desktop app. Unrelated to the `compose`
+# version above, which is the Jetpack Compose version the Android app builds against.
+composeMultiplatform = "1.11.1"
 # androidx.lifecycle 2.11.0 requires compiling against the Android 37 SDK
 lifecycle = "2.10.0"
 kotlin = "2.4.10"
@@ -43,6 +46,7 @@ gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", versio
 gradlePlugin-hilt = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
 gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version = "2.3.10" }
 gradlePlugin-composeCompiler = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
+gradlePlugin-composeMultiplatform = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "composeMultiplatform" }
 # Used by the root build script to validate the ABI of Android library modules, see KT-83410.
 kotlin-abi-tools = { module = "org.jetbrains.kotlin:abi-tools", version.ref = "kotlin" }
 

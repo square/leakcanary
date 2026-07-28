@@ -34,6 +34,7 @@ buildscript {
     classpath(libs.gradlePlugin.ksp)
     classpath(libs.gradlePlugin.hilt)
     classpath(libs.gradlePlugin.composeCompiler)
+    classpath(libs.gradlePlugin.composeMultiplatform)
     classpath(libs.kotlin.abi.tools)
   }
 }
@@ -140,9 +141,11 @@ subprojects {
   }
 }
 
-// Config shared for subprojects except leakcanary-deobfuscation-gradle-plugin
+// Config shared for subprojects except the Gradle plugin, which runs on Gradle's own JVM, and the
+// Shark explorer desktop app, which needs a newer JVM target than the rest of the repo because
+// Compose Multiplatform's artifacts do not support Java 8. Both set their own targets.
 configure(subprojects.filter {
-  it.name !in listOf("leakcanary-deobfuscation-gradle-plugin")
+  it.name !in listOf("leakcanary-deobfuscation-gradle-plugin", "shark-explorer-app")
 }) {
   plugins.withId("java") {
     extensions.configure<JavaPluginExtension> {
@@ -178,10 +181,10 @@ configure(subprojects.filter {
 }
 
 // Modules that don't ship an API meant to be consumed by others: the sample app, the LeakCanary UI
-// app and its internal plumbing, the test fixtures for Shark, and the Shark command line tool,
-// which is distributed as a zip attached to the Github release rather than as a dependency. They
-// are not published to Maven Central, their ABI isn't tracked and they're left out of the
-// documentation site.
+// app and its internal plumbing, the Shark explorer desktop app and the heap model it renders, the
+// test fixtures for Shark, and the Shark command line tool, which is distributed as a zip attached
+// to the Github release rather than as a dependency. They are not published to Maven Central, their
+// ABI isn't tracked and they're left out of the documentation site.
 val modulesWithoutPublicApi = listOf(
   "leakcanary-android-sample",
   "leakcanary-app",
@@ -189,6 +192,8 @@ val modulesWithoutPublicApi = listOf(
   "leakcanary-app-db",
   "leakcanary-app-service",
   "shark-cli",
+  "shark-explorer-app",
+  "shark-explorer-core",
   "shark-hprof-test",
   "shark-test",
 )

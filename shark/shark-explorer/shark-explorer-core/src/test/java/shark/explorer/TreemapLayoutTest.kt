@@ -1,0 +1,224 @@
+package shark.explorer
+
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.Test
+
+class TreemapLayoutTest {
+
+  /** A tree of named nodes, where a parent's weight is the sum of its children's. */
+  private class Node(
+    val name: String,
+    val ownWeight: Long = 0,
+    val children: List<Node> = emptyList()
+  ) {
+    val weight: Long = ownWeight + children.sumOf { it.weight }
+  }
+
+  private class NodeTree(override val root: Node) : TreemapTree<Node> {
+    override fun weight(node: Node) = node.weight
+    override fun children(node: Node) = node.children
+  }
+
+  /** A node with [breadth] children at every level, [depth] levels deep. */
+  private fun uniformTree(
+    name: String,
+    depth: Int,
+    breadth: Int,
+    leafWeight: Long
+  ): Node = if (depth == 0) {
+    Node(name, ownWeight = leafWeight)
+  } else {
+    Node(
+      name,
+      children = (0 until breadth).map { uniformTree("$name.$it", depth - 1, breadth, leafWeight) }
+    )
+  }
+
+  private val viewport = TreemapRect(0.0, 0.0, 1000.0, 800.0)
+
+  @Test fun `root is laid out into the whole viewport`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("a", 10), Node("b", 5))))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    val rootCell = result.cells.first()
+    assertThat(rootCell.node.name).isEqualTo("root")
+    assertThat(rootCell.depth).isEqualTo(0)
+    assertThat(rootCell.rect).isEqualTo(viewport)
+  }
+
+  @Test fun `a parent is always laid out before its descendants`() {
+    val tree = NodeTree(uniformTree("root", depth = 3, breadth = 3, leafWeight = 100))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    val positions = result.cells.withIndex().associate { (index, cell) -> cell.node.name to index }
+    result.cells.forEach { cell ->
+      cell.node.children.forEach { child ->
+        val childPosition = positions[child.name]
+        if (childPosition != null) {
+          assertThat(childPosition)
+            .describedAs("${child.name} must come after its parent ${cell.node.name}")
+            .isGreaterThan(positions.getValue(cell.node.name))
+        }
+      }
+    }
+  }
+
+  @Test fun `a node with more room is subdivided deeper than a node with less`() {
+    // Both subtrees have the same shape, and it's deeper than either can fully expand into, so the
+    // only thing separating them is area: "big" holds 50x the weight of "small". Much beyond 50x
+    // and "small" is too thin to draw at all, which is a different behaviour.
+    val tree = NodeTree(
+      Node(
+        "root",
+        children = listOf(
+          uniformTree("big", depth = 10, breadth = 2, leafWeight = 50_000),
+          uniformTree("small", depth = 10, breadth = 2, leafWeight = 1_000)
+        )
+      )
+    )
+
+    // A budget high enough that it never binds, isolating the area driven behaviour.
+    val result = TreemapLayout<Node>(maxCells = Int.MAX_VALUE).layout(tree, viewport)
+
+    val bigDepth = result.cells.filter { it.node.name.startsWith("big") }.maxOf { it.depth }
+    val smallDepth = result.cells.filter { it.node.name.startsWith("small") }.maxOf { it.depth }
+    assertThat(bigDepth).isGreaterThan(smallDepth)
+  }
+
+  @Test fun `subdivision stops when rectangles get too small`() {
+    // A deep tree in a small viewport: depth has to bottom out well short of the tree's depth.
+    val tree = NodeTree(uniformTree("root", depth = 10, breadth = 4, leafWeight = 1))
+
+    val result = TreemapLayout<Node>().layout(tree, TreemapRect(0.0, 0.0, 200.0, 200.0))
+
+    assertThat(result.cells.maxOf { it.depth }).isLessThan(10)
+  }
+
+  @Test fun `no cell is smaller than the minimum drawable size`() {
+    val tree = NodeTree(uniformTree("root", depth = 6, breadth = 4, leafWeight = 1))
+    val minDrawSize = 4.0
+
+    val result = TreemapLayout<Node>(minDrawSize = minDrawSize).layout(tree, viewport)
+
+    // The root takes the viewport as given; every cell the layout places must be drawable.
+    result.cells.drop(1).forEach { cell ->
+      assertThat(cell.rect.width).describedAs("width of $cell").isGreaterThanOrEqualTo(minDrawSize)
+      assertThat(cell.rect.height).describedAs("height of $cell").isGreaterThanOrEqualTo(minDrawSize)
+    }
+  }
+
+  @Test fun `cell count stays within the budget`() {
+    val tree = NodeTree(uniformTree("root", depth = 8, breadth = 4, leafWeight = 1))
+
+    val result = TreemapLayout<Node>(maxCells = 50).layout(tree, viewport)
+
+    assertThat(result.cells.size).isLessThanOrEqualTo(50)
+  }
+
+  @Test fun `reaching the budget is reported as truncation`() {
+    val tree = NodeTree(uniformTree("root", depth = 8, breadth = 4, leafWeight = 1))
+
+    val result = TreemapLayout<Node>(maxCells = 50).layout(tree, viewport)
+
+    assertThat(result.truncatedNodeCount).isGreaterThan(0)
+  }
+
+  @Test fun `a tree that fits is not reported as truncated`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("a", 10), Node("b", 5))))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    assertThat(result.truncatedNodeCount).isEqualTo(0)
+  }
+
+  @Test fun `the budget is spent on the largest rectangles first`() {
+    // Only one of the two subtrees can be subdivided within the budget, and it should be the
+    // one holding almost all the weight.
+    val tree = NodeTree(
+      Node(
+        "root",
+        children = listOf(
+          uniformTree("big", depth = 2, breadth = 4, leafWeight = 1_000_000),
+          uniformTree("small", depth = 2, breadth = 4, leafWeight = 1_000)
+        )
+      )
+    )
+
+    val result = TreemapLayout<Node>(maxCells = 8).layout(tree, viewport)
+
+    val names = result.cells.map { it.node.name }
+    assertThat(names).contains("big.0")
+    assertThat(names).doesNotContain("small.0")
+  }
+
+  @Test fun `layout is deterministic`() {
+    val tree = NodeTree(uniformTree("root", depth = 5, breadth = 3, leafWeight = 7))
+
+    val first = TreemapLayout<Node>().layout(tree, viewport)
+    val second = TreemapLayout<Node>().layout(tree, viewport)
+
+    assertThat(first.cells.map { it.node.name to it.rect })
+      .isEqualTo(second.cells.map { it.node.name to it.rect })
+  }
+
+  @Test fun `zero weight children are left out`() {
+    val tree = NodeTree(
+      Node("root", children = listOf(Node("a", 10), Node("empty", 0)))
+    )
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    assertThat(result.cells.map { it.node.name }).doesNotContain("empty")
+  }
+
+  @Test fun `an empty viewport lays out only the root`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("a", 10))))
+
+    val result = TreemapLayout<Node>().layout(tree, TreemapRect(0.0, 0.0, 0.0, 0.0))
+
+    assertThat(result.cells).hasSize(1)
+  }
+
+  @Test fun `a leaf root lays out only the root`() {
+    val tree = NodeTree(Node("root", ownWeight = 10))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    assertThat(result.cells).hasSize(1)
+  }
+
+  @Test fun `hit testing returns the deepest cell at a point`() {
+    val tree = NodeTree(uniformTree("root", depth = 3, breadth = 2, leafWeight = 1_000_000))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    val deepest = result.cells.maxBy { it.depth }
+    val insideDeepest = TreemapPoint(
+      x = deepest.rect.left + deepest.rect.width / 2,
+      y = deepest.rect.top + deepest.rect.height / 2
+    )
+    assertThat(result.cellAt(insideDeepest)).isEqualTo(deepest)
+  }
+
+  @Test fun `hit testing a header returns the parent`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("a", 10), Node("b", 5))))
+    val headerHeight = 18.0
+
+    val result = TreemapLayout<Node>(headerHeight = headerHeight).layout(tree, viewport)
+
+    // The top strip of the root is reserved for its label, so no child covers it.
+    val inHeader = TreemapPoint(viewport.width / 2, headerHeight / 2)
+    assertThat(result.cellAt(inHeader)!!.node.name).isEqualTo("root")
+  }
+
+  @Test fun `hit testing outside the treemap returns null`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("a", 10))))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    assertThat(result.cellAt(TreemapPoint(-1.0, -1.0))).isNull()
+    assertThat(result.cellAt(TreemapPoint(viewport.right + 1, viewport.bottom + 1))).isNull()
+  }
+}
