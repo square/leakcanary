@@ -253,7 +253,8 @@ class ObjectGrowthDetector(
           // ByteSize interface and so boxes both operands. HotSpot scalar replaces those boxes but
           // ART does not, and this loop runs once per object: measured over large-dump.hprof on an
           // Android 14 arm64 device, the operator costs 32 bytes per iteration and 9MB of extra
-          // garbage per traversal.
+          // garbage per traversal. Can be reverted to nodeRetainedSize += retainedSize.decimalBytes
+          // once https://github.com/saket/byte-size/pull/24 ships.
           nodeRetainedSize = DecimalByteSize(nodeRetainedSize.inWholeBytes + retainedSize)
           nodeRetainedCount += retainedCount
         }
