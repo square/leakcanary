@@ -1,3 +1,4 @@
+import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -22,14 +23,28 @@ gradlePlugin {
   }
 }
 
+val agpTestClasspath: Configuration by configurations.creating {
+  isCanBeConsumed = false
+  isCanBeResolved = true
+}
+
 dependencies {
   implementation(libs.kotlin.stdlib)
-  implementation(libs.gradlePlugin.kotlin)
-  implementation(libs.gradlePlugin.android)
+  // The Android Gradle Plugin is always on the buildscript classpath of a project that applies this
+  // plugin, so depend on it at compile time only. Declaring it as `implementation` would publish it
+  // as a runtime dependency and force our version onto everyone applying the plugin.
+  compileOnly(libs.gradlePlugin.android)
   compileOnly(gradleApi())
 
   testImplementation(libs.assertjCore)
   testImplementation(libs.junit)
+  agpTestClasspath(libs.gradlePlugin.android)
+}
+
+// GradleRunner.withPluginClasspath() derives the classpath from the main source set, where the
+// Android plugin is now compileOnly. The generated test project applies it, so add it back.
+tasks.withType<PluginUnderTestMetadata>().configureEach {
+  pluginClasspath.from(agpTestClasspath)
 }
 
 tasks.withType<Test>().configureEach {
