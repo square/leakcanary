@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
   id("org.jetbrains.kotlin.jvm")
   id("application")
-  id("com.vanniktech.maven.publish")
 }
 
 dependencies {

@@ -82,6 +82,10 @@ repositories {
 
 // Config shared for all subprojects
 subprojects {
+  // Set on every module, not just the published ones: shark-cli isn't published but the zip it
+  // distributes is named after the version.
+  group = property("GROUP").toString()
+  version = property("VERSION_NAME").toString()
 
   repositories {
     google()
@@ -174,9 +178,11 @@ configure(subprojects.filter {
   }
 }
 
-// Modules that don't ship an API meant to be consumed by others: apps, samples, command line tools
-// and the internal plumbing of the LeakCanary UI app. Their ABI isn't tracked and they're left out
-// of the documentation site.
+// Modules that don't ship an API meant to be consumed by others: the sample app, the LeakCanary UI
+// app and its internal plumbing, the test fixtures for Shark, and the Shark command line tool,
+// which is distributed as a zip attached to the Github release rather than as a dependency. They
+// are not published to Maven Central, their ABI isn't tracked and they're left out of the
+// documentation site.
 val modulesWithoutPublicApi = listOf(
   "leakcanary-android-sample",
   "leakcanary-app",
@@ -188,29 +194,19 @@ val modulesWithoutPublicApi = listOf(
   "shark-test",
 )
 
-// Config shared for subprojects except apps. The parent projects of the module groups, e.g.
-// :shark, hold no code of their own.
-val codeProjects = subprojects.filter {
-  it.subprojects.isEmpty() && it.name !in listOf("leakcanary-app", "leakcanary-android-sample")
+// The parent projects of the module groups, e.g. :shark, hold no code of their own.
+val publicApiProjects = subprojects.filter {
+  it.subprojects.isEmpty() && it.name !in modulesWithoutPublicApi
 }
 
-// Some of the modules without a public API are still published, e.g. shark-cli, so they need the
-// group and version set below, they just don't belong on the documentation site.
-val documentedProjects = codeProjects.filter { it.name !in modulesWithoutPublicApi }
-
-configure(codeProjects) {
-  group = property("GROUP").toString()
-  version = property("VERSION_NAME").toString()
-
+configure(publicApiProjects) {
   pluginManager.withPlugin("com.vanniktech.maven.publish") {
     extensions.configure<MavenPublishBaseExtension> {
       publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
       signAllPublications()
     }
   }
-}
 
-configure(documentedProjects) {
   // The Android Gradle Plugin only creates the kotlin extension that Dokka reads its source sets
   // from once the project build script has run, so hold off until the project is evaluated.
   afterEvaluate {
@@ -252,9 +248,7 @@ configure(documentedProjects) {
 // this happens, run ./gradlew updateKotlinAbi to generate updated *.api files, and add those to
 // your commit.
 // See https://kotlinlang.org/docs/gradle-binary-compatibility-validation.html
-configure(subprojects.filter {
-  it.name !in modulesWithoutPublicApi
-}) {
+configure(publicApiProjects) {
   plugins.withId("org.jetbrains.kotlin.jvm") {
     extensions.configure<KotlinJvmProjectExtension> {
       @OptIn(ExperimentalAbiValidation::class)
@@ -403,7 +397,7 @@ tasks.register<Copy>("installGitHooks") {
 
 dependencies {
   // Aggregates every documented module into the root project's Dokka publication.
-  documentedProjects.forEach { add("dokka", project(it.path)) }
+  publicApiProjects.forEach { add("dokka", project(it.path)) }
 }
 
 tasks.register<Copy>("siteDokka") {
