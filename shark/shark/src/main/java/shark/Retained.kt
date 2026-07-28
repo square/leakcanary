@@ -1,6 +1,6 @@
 package shark
 
-import me.saket.bytesize.ByteSize
+import me.saket.bytesize.DecimalByteSize
 import me.saket.bytesize.decimalBytes
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
@@ -15,7 +15,7 @@ inline fun Retained(
    * held by several objects is attributed to depends on the analysis that computed this. Should
    * not exceed [Int.MAX_VALUE] bytes.
    */
-  heapSize: ByteSize,
+  heapSize: DecimalByteSize,
 
   /**
    * The number of objects attributed to this object.
@@ -30,7 +30,7 @@ value class Retained @PublishedApi internal constructor(
   @PublishedApi @JvmField
   internal val packedValue: Long
 ) {
-  inline val heapSize: ByteSize
+  inline val heapSize: DecimalByteSize
     get() = packedValue.unpackAsFirstInt.decimalBytes
 
   inline val objectCount: Int
