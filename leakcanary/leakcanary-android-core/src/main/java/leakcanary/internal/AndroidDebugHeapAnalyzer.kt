@@ -1,5 +1,6 @@
 package leakcanary.internal
 
+import android.database.sqlite.SQLiteDatabase
 import java.io.File
 import java.io.IOException
 import leakcanary.EventListener
@@ -25,6 +26,7 @@ import shark.OnAnalysisProgressListener
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.ProguardMappingReader
+import shark.SharkLog
 import shark.ThrowingCancelableFileSourceProvider
 
 /**
@@ -38,8 +40,9 @@ internal object AndroidDebugHeapAnalyzer {
   private val application = InternalLeakCanary.application
 
   /**
-   * Runs the heap analysis on the current thread and then sends a
-   * [EventListener.Event.HeapAnalysisDone] event with the result (from the current thread as well).
+   * Runs the heap analysis on the current thread, stores the result in the LeakCanary database and
+   * returns the [EventListener.Event.HeapAnalysisDone] event for it. Callers are responsible for
+   * dispatching that event.
    */
   fun runAnalysisBlocking(
     heapDumped: HeapDump,
@@ -90,32 +93,64 @@ internal object AndroidDebugHeapAnalyzer {
     }
     progressListener.onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
 
-    val analysisDoneEvent = ScopedLeaksDb.writableDatabase(application) { db ->
-      val id = HeapAnalysisTable.insert(db, heapAnalysis)
-      when (fullHeapAnalysis) {
-        is HeapAnalysisSuccess -> {
-          val showIntent = LeakActivity.createSuccessIntent(application, id)
-          val leakSignatures = fullHeapAnalysis.allLeaks.map { it.signature }.toSet()
-          val leakSignatureStatuses = LeakTable.retrieveLeakReadStatuses(db, leakSignatures)
-          val unreadLeakSignatures = leakSignatureStatuses.filter { (_, read) ->
-            !read
-          }.keys
-            // keys returns LinkedHashMap$LinkedKeySet which isn't Serializable
-            .toSet()
-          HeapAnalysisSucceeded(
-            heapDumped.uniqueId,
-            fullHeapAnalysis,
-            unreadLeakSignatures,
-            showIntent
-          )
-        }
-        is HeapAnalysisFailure -> {
-          val showIntent = LeakActivity.createFailureIntent(application, id)
-          HeapAnalysisFailed(heapDumped.uniqueId, fullHeapAnalysis, showIntent)
-        }
+    return ScopedLeaksDb.writableDatabase(application) { db ->
+      val analysisId = HeapAnalysisTable.insert(db, fullHeapAnalysis)
+      analysisDoneEvent(db, heapDumped.uniqueId, analysisId, fullHeapAnalysis)
+    }
+  }
+
+  /**
+   * Reads back the analysis stored under [analysisId] and rebuilds the [HeapAnalysisDone] event
+   * for it. This is how the main process retrieves the result of an analysis that ran in the
+   * :leakcanary process, see [HeapAnalysisDoneDispatchWorker].
+   *
+   * Returns null if that analysis is no longer in the database, e.g. because it was deleted from
+   * the LeakCanary activity before the event could be dispatched.
+   */
+  fun retrieveAnalysisDoneEvent(
+    uniqueId: String,
+    analysisId: Long
+  ): HeapAnalysisDone<*>? {
+    return ScopedLeaksDb.writableDatabase(application) { db ->
+      val heapAnalysis = HeapAnalysisTable.retrieve<HeapAnalysis>(db, analysisId)
+      if (heapAnalysis == null) {
+        SharkLog.d { "Heap analysis $analysisId not found in the LeakCanary database" }
+        null
+      } else {
+        analysisDoneEvent(db, uniqueId, analysisId, heapAnalysis)
       }
     }
-    return analysisDoneEvent
+  }
+
+  private fun analysisDoneEvent(
+    db: SQLiteDatabase,
+    uniqueId: String,
+    analysisId: Long,
+    heapAnalysis: HeapAnalysis
+  ): HeapAnalysisDone<*> {
+    return when (heapAnalysis) {
+      is HeapAnalysisSuccess -> {
+        val showIntent = LeakActivity.createSuccessIntent(application, analysisId)
+        val leakSignatures = heapAnalysis.allLeaks.map { it.signature }.toSet()
+        val leakSignatureStatuses = LeakTable.retrieveLeakReadStatuses(db, leakSignatures)
+        val unreadLeakSignatures = leakSignatureStatuses.filter { (_, read) ->
+          !read
+        }.keys
+          // keys returns LinkedHashMap$LinkedKeySet which isn't Serializable
+          .toSet()
+        HeapAnalysisSucceeded(
+          uniqueId,
+          analysisId,
+          heapAnalysis,
+          unreadLeakSignatures,
+          showIntent
+        )
+      }
+      is HeapAnalysisFailure -> {
+        val showIntent = LeakActivity.createFailureIntent(application, analysisId)
+        HeapAnalysisFailed(uniqueId, analysisId, heapAnalysis, showIntent)
+      }
+    }
   }
 
   private fun analyzeHeap(

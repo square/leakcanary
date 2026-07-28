@@ -3,6 +3,12 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+## Unreleased
+
+* 🐛 [#1789](https://github.com/square/leakcanary/issues/1789) When running the analysis in a separate process (`leakcanary-android-process`), the `HeapAnalysisDone` event was dispatched in the `:leakcanary` process, so it never reached the `LeakCanary.Config.eventListeners` configured in the main process. The `:leakcanary` process now stores the analysis in LeakCanary's database and a chained WorkManager worker dispatches the event from the main process, which also means the event still gets dispatched if the main process dies while the analysis is running.
+    * Behavior change: `HeapAnalysisDone` is now dispatched in the main process instead of the `:leakcanary` process. If you were relying on an `EventListener` configured in the `:leakcanary` process receiving it, configure that listener in the main process instead. `HeapAnalysisProgress` is still dispatched from the `:leakcanary` process. See [Running the LeakCanary analysis in a separate process](recipes.md#running-the-leakcanary-analysis-in-a-separate-process).
+* 🐛 The `dumpDurationMillis` and `"Heap dump reason"` metadata were added to the heap analysis *after* it was stored in LeakCanary's database, so the analysis shown in the LeakCanary activity was missing both. They're now stored as well.
+
 ## Version 3.0 Alpha 9 (2026-06-25)
 
 * 🐛 [#2733](https://github.com/square/leakcanary/pull/2733) Fix reading `ActivityRecord`'s fields for `ACTIVITY_THREAD__NEW_ACTIVITIES` in `AndroidReferenceReaders`.

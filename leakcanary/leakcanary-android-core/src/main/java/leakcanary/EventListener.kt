@@ -64,6 +64,10 @@ fun interface EventListener {
      */
     sealed class HeapAnalysisDone<T : HeapAnalysis>(
       uniqueId: String,
+      /**
+       * Id the analysis is stored under in the LeakCanary database, which [showIntent] opens.
+       */
+      val analysisId: Long,
       val heapAnalysis: T,
       showIntent: Intent
     ) : Event(uniqueId) {
@@ -75,16 +79,18 @@ fun interface EventListener {
 
       class HeapAnalysisSucceeded(
         uniqueId: String,
+        analysisId: Long,
         heapAnalysis: HeapAnalysisSuccess,
         val unreadLeakSignatures: Set<String>,
         showIntent: Intent
-      ) : HeapAnalysisDone<HeapAnalysisSuccess>(uniqueId, heapAnalysis, showIntent)
+      ) : HeapAnalysisDone<HeapAnalysisSuccess>(uniqueId, analysisId, heapAnalysis, showIntent)
 
       class HeapAnalysisFailed(
         uniqueId: String,
+        analysisId: Long,
         heapAnalysis: HeapAnalysisFailure,
         showIntent: Intent
-      ) : HeapAnalysisDone<HeapAnalysisFailure>(uniqueId, heapAnalysis, showIntent)
+      ) : HeapAnalysisDone<HeapAnalysisFailure>(uniqueId, analysisId, heapAnalysis, showIntent)
     }
   }
 
