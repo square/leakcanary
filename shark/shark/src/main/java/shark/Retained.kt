@@ -1,6 +1,6 @@
 package shark
 
-import me.saket.bytesize.ByteSize
+import me.saket.bytesize.DecimalByteSize
 import me.saket.bytesize.decimalBytes
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
@@ -14,7 +14,7 @@ inline fun Retained(
    * The minimum number of bytes which would be freed if all references to this object were
    * released. Should not exceed [Int.MAX_VALUE] bytes.
    */
-  heapSize: ByteSize,
+  heapSize: DecimalByteSize,
 
   /**
    * The minimum number of objects which would be unreachable if all references to this object were
@@ -30,7 +30,7 @@ value class Retained @PublishedApi internal constructor(
   @PublishedApi @JvmField
   internal val packedValue: Long
 ) {
-  inline val heapSize: ByteSize
+  inline val heapSize: DecimalByteSize
     get() = packedValue.unpackAsFirstInt.decimalBytes
 
   inline val objectCount: Int

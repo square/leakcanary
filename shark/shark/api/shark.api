@@ -72,45 +72,6 @@ public final class shark/ApplicationLeak : shark/Leak {
 public final class shark/ApplicationLeak$Companion {
 }
 
-public final class shark/ByteSize : java/lang/Comparable {
-	public static final synthetic fun box-impl (J)Lshark/ByteSize;
-	public synthetic fun compareTo (Ljava/lang/Object;)I
-	public fun compareTo-rK2stxE (J)I
-	public static fun compareTo-rK2stxE (JJ)I
-	public static fun constructor-impl (J)J
-	public static final fun div-BWD4q2E (JJ)J
-	public fun equals (Ljava/lang/Object;)Z
-	public static fun equals-impl (JLjava/lang/Object;)Z
-	public static final fun equals-impl0 (JJ)Z
-	public final fun getInWholeBytes ()J
-	public static final fun getInWholeGigabytes-impl (J)J
-	public static final fun getInWholeKilobytes-impl (J)J
-	public static final fun getInWholeMegabytes-impl (J)J
-	public fun hashCode ()I
-	public static fun hashCode-impl (J)I
-	public static final fun minus-BWD4q2E (JJ)J
-	public static final fun plus-BWD4q2E (JJ)J
-	public static final fun times-BWD4q2E (JJ)J
-	public fun toString ()Ljava/lang/String;
-	public static fun toString-impl (J)Ljava/lang/String;
-	public final synthetic fun unbox-impl ()J
-}
-
-public final class shark/ByteSizeKt {
-	public static final field BYTES_PER_GB J
-	public static final field BYTES_PER_KB J
-	public static final field BYTES_PER_MB J
-	public static final fun getBytes (I)J
-	public static final fun getBytes (J)J
-	public static final fun getGigabytes (I)J
-	public static final fun getGigabytes (J)J
-	public static final fun getKilobytes (I)J
-	public static final fun getKilobytes (J)J
-	public static final fun getMegabytes (I)J
-	public static final fun getMegabytes (J)J
-	public static final fun getZERO_BYTES ()J
-}
-
 public final class shark/ChainingInstanceReferenceReader : shark/ReferenceReader {
 	public fun <init> (Ljava/util/List;Lshark/FlatteningPartitionedInstanceReferenceReader;Lshark/FieldInstanceReferenceReader;)V
 	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
@@ -966,7 +927,7 @@ public final class shark/Retained {
 	public fun equals (Ljava/lang/Object;)Z
 	public static fun equals-impl (JLjava/lang/Object;)Z
 	public static final fun equals-impl0 (JJ)Z
-	public static final fun getHeapSize-UyN4wxk (J)J
+	public static final fun getHeapSize-mbjz_tw (J)J
 	public static final fun getObjectCount-impl (J)I
 	public fun hashCode ()I
 	public static fun hashCode-impl (J)I
@@ -978,7 +939,7 @@ public final class shark/Retained {
 }
 
 public final class shark/RetainedKt {
-	public static final fun Retained-5mcd9r4 (JI)J
+	public static final fun Retained-X-1A1GI (JI)J
 	public static final fun getUNKNOWN_RETAINED ()J
 	public static final fun getZERO_RETAINED ()J
 }
