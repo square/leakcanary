@@ -89,7 +89,7 @@ nav:
   - 'Shark':
     - 'Overview': shark.md
     - 'Shark API': api/shark/index.md
-  - 'LeakCanary API': api/leakcanary/index.md
+  - 'LeakCanary API': api/index.md
   - 'Change Log': changelog.md
 
 # Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc

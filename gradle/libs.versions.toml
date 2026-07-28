@@ -22,6 +22,7 @@ androidXTest = "1.5.0"
 androidXJunit = "1.1.5"
 workManager = "2.7.0"
 detekt = "1.23.8"
+dokka = "2.2.0"
 hilt = "2.60.1"
 sqldelight = "2.3.2"
 androidMinSdk = "24"
@@ -30,7 +31,7 @@ androidCompileSdk = "35"
 [libraries]
 gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "9.2.1" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
-gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version = "1.8.10" }
+gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
 gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.32.0" }
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version.ref = "sqldelight" }

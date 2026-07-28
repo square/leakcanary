@@ -8,7 +8,11 @@ import com.vanniktech.maven.publish.SonatypeHost
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import java.net.URI
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.dokka.gradle.DokkaExtension
+import org.jetbrains.dokka.gradle.engine.parameters.KotlinPlatform
+import org.jetbrains.dokka.gradle.formats.DokkaFormatPlugin
+import org.jetbrains.dokka.gradle.formats.DokkaFormatPlugin.DokkaFormatPluginContext
+import org.jetbrains.dokka.gradle.internal.InternalDokkaGradlePluginApi
 import org.jetbrains.kotlin.abi.tools.AbiFilters
 import org.jetbrains.kotlin.abi.tools.AbiTools
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -35,13 +39,45 @@ buildscript {
   }
 }
 
-// This plugin needs to be applied to the root projects for the dokkaGfmCollector task we use to
-// generate the documentation site.
-apply(plugin = "org.jetbrains.dokka")
+/**
+ * The Dokka Gradle plugin only ships the `html` and `javadoc` output formats. The documentation
+ * site is built from Github flavored Markdown, which Dokka still publishes as a pair of engine
+ * plugins, so register it here as an extra format. This adds a `gfm` publication, i.e. the
+ * `dokkaGeneratePublicationGfm` task.
+ *
+ * Subclassing [DokkaFormatPlugin] is how Dokka's own `javadoc` format is implemented, but it is
+ * flagged as internal, so this may need updating when upgrading Dokka.
+ */
+@OptIn(InternalDokkaGradlePluginApi::class)
+abstract class DokkaGfmPlugin : DokkaFormatPlugin(formatName = "gfm") {
+  override fun DokkaFormatPluginContext.configure() {
+    // Engine plugins have to match the engine version, so read it off the extension rather than
+    // declaring these in the version catalog. This is how the built in html format does it too.
+    fun enginePlugin(artifactId: String): Provider<Dependency> =
+      dokkaExtension.dokkaEngineVersion.map {
+        project.dependencies.create("org.jetbrains.dokka:$artifactId:$it")
+      }
+
+    project.dependencies.dokkaPlugin(enginePlugin("gfm-plugin"))
+    // Merges the per module outputs into a single publication.
+    formatDependencies.dokkaPublicationPluginClasspathApiOnly.dependencies
+      .addLater(enginePlugin("gfm-template-processing-plugin"))
+  }
+}
+
+// Applied to the root project so that it can aggregate the documentation of all subprojects.
+apply<DokkaGfmPlugin>()
+
+extensions.configure<DokkaExtension> {
+  moduleName.set("LeakCanary")
+}
+
+// Dokka prefixes every declaration with the name of the source set it belongs to. Each module here
+// documents exactly one source set, so name them all the same and strip that prefix in siteDokka.
+val dokkaSourceSetDisplayName = "api"
 
 repositories {
-  // Needed for the Dokka plugin.
-  gradlePluginPortal()
+  mavenCentral()
 }
 
 // Config shared for all subprojects
@@ -138,38 +174,48 @@ configure(subprojects.filter {
   }
 }
 
-// Config shared for subprojects except apps
-configure(subprojects.filter {
-  it.name !in listOf("leakcanary-app", "leakcanary-android-sample")
-}) {
-  // Note: to skip Dokka on some projects we could add it individually to projects we actually
-  // want.
-  apply(plugin = "org.jetbrains.dokka")
+// Config shared for subprojects except apps. The parent projects of the module groups, e.g.
+// :shark, hold no code of their own.
+val documentedProjects = subprojects.filter {
+  it.subprojects.isEmpty() && it.name !in listOf("leakcanary-app", "leakcanary-android-sample")
+}
+
+configure(documentedProjects) {
   group = property("GROUP").toString()
   version = property("VERSION_NAME").toString()
 
-  tasks.withType<DokkaTask> {
-    dokkaSourceSets.configureEach {
-      reportUndocumented.set(false)
-      displayName.set(null as String?)
-      platform.set(org.jetbrains.dokka.Platform.jvm)
+  // Note: to skip Dokka on some projects we could add it individually to projects we actually
+  // want.
+  // The Android Gradle Plugin only creates the kotlin extension that Dokka reads its source sets
+  // from once the project build script has run, so hold off until the project is evaluated.
+  afterEvaluate {
+    apply<DokkaGfmPlugin>()
+    extensions.configure<DokkaExtension> {
+      // Defaults to the Gradle project path, which would nest the output of e.g. shark-graph in an
+      // extra shark directory. Module names are already unique.
+      modulePath.set(project.name)
+      dokkaSourceSets.configureEach {
+        reportUndocumented.set(false)
+        displayName.set(dokkaSourceSetDisplayName)
+        analysisPlatform.set(KotlinPlatform.JVM)
 
-      perPackageOption {
-        // will match all .internal packages and sub-packages
-        matchingRegex.set("(.*\\.internal.*)")
-        suppress.set(true)
-      }
-      perPackageOption {
-        // BuildConfig files
-        matchingRegex.set("com.squareup.leakcanary\\..*")
-        suppress.set(true)
-      }
-      skipDeprecated.set(true)
-      externalDocumentationLink {
-        url.set(URI("https://square.github.io/okio/2.x/okio/").toURL())
-      }
-      externalDocumentationLink {
-        url.set(URI("https://square.github.io/moshi/1.x/moshi/").toURL())
+        perPackageOption {
+          // will match all .internal packages and sub-packages
+          matchingRegex.set("(.*\\.internal.*)")
+          suppress.set(true)
+        }
+        perPackageOption {
+          // BuildConfig files
+          matchingRegex.set("com.squareup.leakcanary\\..*")
+          suppress.set(true)
+        }
+        skipDeprecated.set(true)
+        externalDocumentationLinks.register("okio") {
+          url.set(URI("https://square.github.io/okio/2.x/okio/"))
+        }
+        externalDocumentationLinks.register("moshi") {
+          url.set(URI("https://square.github.io/moshi/1.x/moshi/"))
+        }
       }
     }
   }
@@ -349,22 +395,27 @@ tasks.register<Copy>("installGitHooks") {
   }
 }
 
+dependencies {
+  // Aggregates every documented module into the root project's Dokka publication.
+  documentedProjects.forEach { add("dokka", project(it.path)) }
+}
+
 tasks.register<Copy>("siteDokka") {
   description = "Generate dokka Github-flavored Markdown for the documentation site."
   group = "documentation"
-  dependsOn(":dokkaGfmCollector")
 
   // Copy the files instead of configuring a different output directory on the dokka task itself
   // since the default output directories disambiguate between different types of outputs, and our
   // custom directory doesn't.
-  from(layout.buildDirectory.dir("dokka/gfmCollector/leakcanary-repo"))
+  from(tasks.named("dokkaGeneratePublicationGfm"))
   // For whatever reason Dokka doesn't want to ignore the packages we told it to ignore.
   // Fine, we'll just ignore it here.
   exclude("**/com.example.leakcanary/**")
   into(rootProject.file("docs/api"))
 
   filter { line ->
-    // Dokka adds [main]\ and [main]<br> everywhere, this just removes it.
-    line.replace("\\[main\\]\\\\", "").replace("\\[main\\]<br>", "")
+    line
+      .replace("[$dokkaSourceSetDisplayName]\\", "")
+      .replace("[$dokkaSourceSetDisplayName]<br>", "")
   }
 }
