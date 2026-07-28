@@ -57,7 +57,6 @@ subprojects {
     //      url 'https://oss.sonatype.org/content/repositories/snapshots/'
     //    }
     //    mavenLocal()
-    jcenter()
   }
 
   apply(plugin = "io.gitlab.arturbosch.detekt")
@@ -154,7 +153,7 @@ configure(subprojects.filter {
 
   pluginManager.withPlugin("com.vanniktech.maven.publish") {
     extensions.configure<MavenPublishBaseExtension> {
-      publishToMavenCentral(SonatypeHost.S01)
+      publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
       signAllPublications()
     }
   }

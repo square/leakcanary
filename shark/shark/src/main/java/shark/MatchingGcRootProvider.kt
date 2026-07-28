@@ -3,6 +3,13 @@ package shark
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
+import shark.GcRoot.Unknown
+import shark.GcRoot.InternedString
+import shark.GcRoot.Finalizing
+import shark.GcRoot.Debugger
+import shark.GcRoot.ReferenceCleanup
+import shark.GcRoot.VmInternal
+import shark.GcRoot.Unreachable
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
@@ -39,7 +46,14 @@ class MatchingGcRootProvider(
       when (gcRoot) {
         // Note: in sortedGcRoots we already filter out any java frame that has an associated
         // thread. These are the remaining ones (shouldn't be any, this is just in case).
-        is JavaFrame -> {
+        is JavaFrame,
+        is Unknown,
+        is InternedString,
+        is Finalizing,
+        is Debugger,
+        is ReferenceCleanup,
+        is VmInternal,
+        is Unreachable -> {
           GcRootReference(
             gcRoot,
             isLowPriority = true,

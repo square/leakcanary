@@ -91,13 +91,19 @@ Sometimes it's necessary to disable LeakCanary temporarily, for example for a pr
 
 ## LeakCanary test environment detection
 
-By default, LeakCanary will look for the `org.junit.Test` class in your classpath and if found, will disable itself to avoid running in tests. However, some apps may ship JUnit in their debug classpaths (for example, when using OkHttp's MockWebServer) so we offer a way to customise the class that is used to determine that the app is running in a test environment.
+By default, LeakCanary looks for the fully qualified runtime class name `org.junit.Test`. If that class is found, LeakCanary disables automatic heap dumping to avoid running during tests. Some apps include JUnit on their debug runtime classpath outside tests (for example, when using OkHttp's MockWebServer), so you can override the class name used for this check.
+
+In your app module, create a values resource file under `src/debug/res/values/` (or the corresponding source set for the build variant that includes LeakCanary). For example, create `src/debug/res/values/leak_canary.xml`:
 
 ```xml
 <resources>
   <string name="leak_canary_test_class_name">assertk.Assert</string>
 </resources>
 ```
+
+The XML filename does not matter; only the `leak_canary_test_class_name` resource name does. `assertk.Assert` is an example fully qualified runtime class name, not a special LeakCanary value. Replace it with a class that is present at runtime in the test environments you want detected and absent otherwise.
+
+This resource supports one class name, not multiple rules. LeakCanary reads exactly one configured resource value and passes it directly to `Class.forName()`. Do not provide a list or comma-separated class names. If several test setups should disable automatic heap dumping, configure one class that is common to all of them. If no single class fits, use this resource for one class and handle the remaining conditions in app code by setting `LeakCanary.config.dumpHeap` to `false` when they apply; setting it to `true` does not override class detection.
 
 ## Counting retained instances in release builds
 
@@ -505,5 +511,3 @@ LeakCanary adds a main activity that has a [Intent#CATEGORY_LAUNCHER](https://de
 
 * Add `Intent#CATEGORY_INFO` to your main activity intent filter, so that it gets picked up first. This is what the Android documentation recommends.
 * Disable the leakcanary launcher activity by setting the `leak_canary_add_launcher_icon` resource boolean to false.
-
-

@@ -4,7 +4,10 @@ import java.util.EnumSet
 import kotlin.math.max
 import shark.GcRoot
 import shark.GcRoot.StickyClass
+import shark.GcRoot.ThreadObject
 import shark.HprofHeader
+import shark.HprofRecord.StackFrameRecord
+import shark.HprofRecord.StackTraceRecord
 import shark.HprofRecordReader
 import shark.HprofRecordTag
 import shark.HprofRecordTag.CLASS_DUMP
@@ -28,6 +31,8 @@ import shark.HprofRecordTag.ROOT_THREAD_OBJECT
 import shark.HprofRecordTag.ROOT_UNKNOWN
 import shark.HprofRecordTag.ROOT_UNREACHABLE
 import shark.HprofRecordTag.ROOT_VM_INTERNAL
+import shark.HprofRecordTag.STACK_FRAME
+import shark.HprofRecordTag.STACK_TRACE
 import shark.HprofRecordTag.STRING_IN_UTF8
 import shark.HprofVersion.ANDROID
 import shark.OnHprofRecordTagListener
@@ -46,6 +51,19 @@ import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.LongObjectScatterMap
 import shark.internal.hppc.LongScatterSet
 import shark.internal.hppc.to
+
+/**
+ * A stack frame of a thread's stack trace, as reconstructed by
+ * [HprofInMemoryIndex.readThreadStackTrace]. Strings and the declaring class name are already
+ * resolved; [localObjectIds] are left as ids for the graph layer to resolve to heap objects.
+ */
+internal class ThreadStackFrame(
+  val className: String?,
+  val methodName: String,
+  val sourceFileName: String?,
+  val lineNumber: Int,
+  val localObjectIds: List<Long>
+)
 
 /**
  * This class is not thread safe, should be used from a single thread.
@@ -68,7 +86,19 @@ internal class HprofInMemoryIndex private constructor(
   val classFieldsReader: ClassFieldsReader,
   private val classFieldsIndexSize: Int,
   private val stickyClassGcRootIds: LongScatterSet,
+  private val stackFrames: LongObjectScatterMap<StackFrameRecord>,
+  private val stackTraces: LongObjectScatterMap<StackTraceRecord>,
+  private val classSerialNameStringIds: LongLongScatterMap,
+  private val threadObjects: List<ThreadObject>,
 ) {
+
+  /**
+   * True if the heap dump contained stack frame records, i.e. a usable thread dump (JVM heap
+   * dumps). False for Android heap dumps: they do contain a (frame-less) stack trace record per
+   * thread, but no stack frames, so there's no thread dump to reconstruct.
+   */
+  val hasStackTraces: Boolean
+    get() = !stackFrames.isEmpty
 
   val classCount: Int
     get() = classIndex.size
@@ -209,6 +239,104 @@ internal class HprofInMemoryIndex private constructor(
     return gcRoots
   }
 
+  /**
+   * The [ThreadObject] gc roots, collected separately from [gcRoots] so that thread enumeration
+   * doesn't require scanning all roots. Empty when the heap dump has no thread objects.
+   */
+  fun threadObjects(): List<ThreadObject> {
+    return threadObjects
+  }
+
+  /**
+   * Reconstructs the stack trace of [threadObject] from the stack trace and stack frame records in
+   * the heap dump, resolving method names, source files and declaring class names. Each frame also
+   * carries the object ids of its local variables (from [GcRoot.JavaFrame] / [GcRoot.JniLocal]
+   * roots); resolving those ids to heap objects is left to the caller, which holds the graph.
+   * Returns an empty list when the dump has no stack trace for this thread.
+   */
+  fun readThreadStackTrace(threadObject: ThreadObject): List<ThreadStackFrame> {
+    val stackTrace = stackTraces[threadObject.stackTraceSerialNumber.toLong()] ?: return emptyList()
+    val threadSerialNumber = threadObject.threadSerialNumber
+    return stackTrace.stackFrameIds.asList().mapIndexedNotNull { frameNumber, frameId ->
+      val frameRecord = stackFrames[frameId] ?: return@mapIndexedNotNull null
+      val localObjectIds =
+        localObjectIdsByThreadAndFrame[packThreadAndFrame(threadSerialNumber, frameNumber)]
+          ?: emptyList<Long>()
+      ThreadStackFrame(
+        className = classNameBySerial(frameRecord.classSerialNumber),
+        methodName = hprofStringOrNull(frameRecord.methodNameStringId) ?: "",
+        sourceFileName = hprofStringOrNull(frameRecord.sourceFileNameStringId),
+        lineNumber = frameRecord.lineNumber,
+        localObjectIds = localObjectIds
+      )
+    }
+  }
+
+  /**
+   * Maps a packed (thread serial number, frame number) key (see [packThreadAndFrame]) to the object
+   * ids that are local variables of that frame, reconstructed from [GcRoot.JavaFrame] and
+   * [GcRoot.JniLocal] roots. Built lazily on the first thread stack trace read, since it requires a
+   * full scan of the gc roots.
+   */
+  private val localObjectIdsByThreadAndFrame: LongObjectScatterMap<MutableList<Long>> by lazy {
+    val result = LongObjectScatterMap<MutableList<Long>>()
+    gcRoots.forEach { gcRoot ->
+      val threadSerialNumber: Int
+      val frameNumber: Int
+      when (gcRoot) {
+        is GcRoot.JavaFrame -> {
+          threadSerialNumber = gcRoot.threadSerialNumber
+          frameNumber = gcRoot.frameNumber
+        }
+        is GcRoot.JniLocal -> {
+          threadSerialNumber = gcRoot.threadSerialNumber
+          frameNumber = gcRoot.frameNumber
+        }
+        else -> return@forEach
+      }
+      val key = packThreadAndFrame(threadSerialNumber, frameNumber)
+      val locals = result[key] ?: mutableListOf<Long>().also { result[key] = it }
+      locals.add(gcRoot.id)
+    }
+    result
+  }
+
+  /** Packs a thread serial number and a frame number into a single map key. */
+  private fun packThreadAndFrame(
+    threadSerialNumber: Int,
+    frameNumber: Int
+  ): Long {
+    return (threadSerialNumber.toLong() shl 32) or (frameNumber.toLong() and 0xFFFFFFFFL)
+  }
+
+  /**
+   * Resolves an hprof string by id (e.g. a stack frame method or source file name), or null if
+   * the id is unknown (including the 0 id used when no string is available).
+   */
+  private fun hprofStringOrNull(stringId: Long): String? {
+    return hprofStringCache[stringId]
+  }
+
+  /**
+   * Resolves the name of the class that declared a stack frame, from the frame's class serial
+   * number (as recorded by LOAD_CLASS records). Returns null when the serial number doesn't
+   * resolve to a known class. Mirrors [className] but keyed by class serial number rather than
+   * class object id.
+   */
+  private fun classNameBySerial(classSerialNumber: Int): String? {
+    val slot = classSerialNameStringIds.getSlot(classSerialNumber.toLong())
+    if (slot == -1) {
+      return null
+    }
+    val classNameStringId = classSerialNameStringIds.getSlotValue(slot)
+    val classNameString = hprofStringById(classNameStringId)
+    return (proguardMapping?.deobfuscateClassName(classNameString) ?: classNameString).run {
+      if (useForwardSlashClassPackageSeparator) {
+        replace('/', '.')
+      } else this
+    }
+  }
+
   fun objectAtIndex(index: Int): LongObjectPair<IndexedObject> {
     require(index > 0)
     if (index < classIndex.size) {
@@ -237,7 +365,7 @@ internal class HprofInMemoryIndex private constructor(
       )
     }
     shiftedIndex -= objectArrayIndex.size
-    require(index < primitiveArrayIndex.size)
+    require(shiftedIndex < primitiveArrayIndex.size)
     val objectId = primitiveArrayIndex.keyAt(shiftedIndex)
     val array = primitiveArrayIndex.getAtIndex(shiftedIndex)
     return objectId to IndexedPrimitiveArray(
@@ -276,7 +404,7 @@ internal class HprofInMemoryIndex private constructor(
     index = primitiveArrayIndex.indexOf(objectId)
     if (index >= 0) {
       val array = primitiveArrayIndex.getAtIndex(index)
-      return classIndex.size + instanceIndex.size + index + primitiveArrayIndex.size to IndexedPrimitiveArray(
+      return classIndex.size + instanceIndex.size + objectArrayIndex.size + index to IndexedPrimitiveArray(
         position = array.readTruncatedLong(positionSize),
         primitiveType = PrimitiveType.values()[array.readByte()
           .toInt()],
@@ -337,6 +465,10 @@ internal class HprofInMemoryIndex private constructor(
     val bytesForPrimitiveArraySize: Int,
     val classFieldsTotalBytes: Int,
     val stickyClassGcRootIds: LongScatterSet,
+    private val hasStackTraces: Boolean,
+    private val neededClassSerials: LongScatterSet,
+    stackFrameCount: Int,
+    stackTraceCount: Int,
   ) : OnHprofRecordTagListener {
 
     private val identifierSize = if (longIdentifiers) 8 else 4
@@ -364,25 +496,25 @@ internal class HprofInMemoryIndex private constructor(
 
     private var classFieldsIndex = 0
 
-    private val classIndex = UnsortedByteEntries(
+    private val classIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize + classFieldsIndexSize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = classCount
+      entryCount = classCount
     )
-    private val instanceIndex = UnsortedByteEntries(
+    private val instanceIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = instanceCount
+      entryCount = instanceCount
     )
-    private val objectArrayIndex = UnsortedByteEntries(
+    private val objectArrayIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = objectArrayCount
+      entryCount = objectArrayCount
     )
-    private val primitiveArrayIndex = UnsortedByteEntries(
+    private val primitiveArrayIndex = SortedBytesMaps.newBuilder(
       bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
       longIdentifiers = longIdentifiers,
-      initialCapacity = primitiveArrayCount
+      entryCount = primitiveArrayCount
     )
 
     // Pre seeding gc roots with the sticky class gc roots we've already parsed.
@@ -391,6 +523,18 @@ internal class HprofInMemoryIndex private constructor(
         add(StickyClass(classId))
       }
     }
+
+    // Thread / stack trace data. These maps stay empty for heap dumps without stack records
+    // (e.g. Android heap dumps), so they cost nothing there.
+    private val stackFrames = LongObjectScatterMap<StackFrameRecord>().apply {
+      ensureCapacity(stackFrameCount)
+    }
+    private val stackTraces = LongObjectScatterMap<StackTraceRecord>().apply {
+      ensureCapacity(stackTraceCount)
+    }
+    // Only sized for the classes actually referenced by stack frames, not every class in the dump.
+    private val classSerialNameStringIds = LongLongScatterMap(expectedElements = neededClassSerials.size())
+    private val threadObjects = mutableListOf<ThreadObject>()
 
     private fun HprofRecordReader.copyToClassFields(byteCount: Int) {
       for (i in 1..byteCount) {
@@ -412,13 +556,17 @@ internal class HprofInMemoryIndex private constructor(
           hprofStringCache[reader.readId()] = reader.readUtf8(length - identifierSize)
         }
         LOAD_CLASS -> {
-          // classSerialNumber
-          reader.skip(INT.byteSize)
+          val classSerialNumber = reader.readInt()
           val id = reader.readId()
           // stackTraceSerialNumber
           reader.skip(INT.byteSize)
           val classNameStringId = reader.readId()
           classNames[id] = classNameStringId
+          // Only record the class name by serial number for the handful of classes referenced by
+          // stack frames. Skipped entirely for dumps without stack traces (e.g. Android).
+          if (hasStackTraces && classSerialNumber.toLong() in neededClassSerials) {
+            classSerialNameStringIds[classSerialNumber.toLong()] = classNameStringId
+          }
         }
         ROOT_UNKNOWN -> {
           reader.readUnknownGcRootRecord().apply {
@@ -477,8 +625,17 @@ internal class HprofInMemoryIndex private constructor(
           reader.readThreadObjectGcRootRecord().apply {
             if (id != ValueHolder.NULL_REFERENCE) {
               gcRoots += this
+              threadObjects += this
             }
           }
+        }
+        STACK_FRAME -> {
+          val record = reader.readStackFrameRecord()
+          stackFrames[record.id] = record
+        }
+        STACK_TRACE -> {
+          val record = reader.readStackTraceRecord()
+          stackTraces[record.stackTraceSerialNumber.toLong()] = record
         }
         ROOT_INTERNED_STRING -> {
           reader.readInternedStringGcRootRecord().apply {
@@ -666,6 +823,10 @@ internal class HprofInMemoryIndex private constructor(
         classFieldsReader = ClassFieldsReader(identifierSize, classFieldBytes),
         classFieldsIndexSize = classFieldsIndexSize,
         stickyClassGcRootIds = stickyClassGcRootIds,
+        stackFrames = stackFrames,
+        stackTraces = stackTraces,
+        classSerialNameStringIds = classSerialNameStringIds,
+        threadObjects = threadObjects,
       )
     }
   }
@@ -700,6 +861,11 @@ internal class HprofInMemoryIndex private constructor(
       var primitiveArrayCount = 0
       var classFieldsTotalBytes = 0
       val stickyClassGcRootIds = LongScatterSet()
+      var stackFrameCount = 0
+      var stackTraceCount = 0
+      // The class serial numbers actually referenced by stack frames. Collected here so that the
+      // second pass only records class names for this (tiny) subset rather than every class.
+      val neededClassSerials = LongScatterSet()
 
       val bytesRead = reader.readRecords(
         EnumSet.of(
@@ -707,9 +873,11 @@ internal class HprofInMemoryIndex private constructor(
           INSTANCE_DUMP,
           OBJECT_ARRAY_DUMP,
           PRIMITIVE_ARRAY_DUMP,
-          ROOT_STICKY_CLASS
+          ROOT_STICKY_CLASS,
+          STACK_FRAME,
+          STACK_TRACE
         )
-      ) { tag, _, reader ->
+      ) { tag, length, reader ->
         val bytesReadStart = reader.bytesRead
         when (tag) {
           CLASS_DUMP -> {
@@ -746,6 +914,15 @@ internal class HprofInMemoryIndex private constructor(
               stickyClassGcRootIds += id
             }
           }
+          STACK_FRAME -> {
+            stackFrameCount++
+            // We need the class serial number to later resolve the frame's declaring class name.
+            neededClassSerials += reader.readStackFrameRecord().classSerialNumber.toLong()
+          }
+          STACK_TRACE -> {
+            stackTraceCount++
+            reader.skip(length)
+          }
           else -> {
             // Not interesting.
           }
@@ -769,7 +946,11 @@ internal class HprofInMemoryIndex private constructor(
         bytesForObjectArraySize = bytesForObjectArraySize,
         bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
         classFieldsTotalBytes = classFieldsTotalBytes,
-        stickyClassGcRootIds
+        stickyClassGcRootIds = stickyClassGcRootIds,
+        hasStackTraces = stackFrameCount > 0,
+        neededClassSerials = neededClassSerials,
+        stackFrameCount = stackFrameCount,
+        stackTraceCount = stackTraceCount,
       )
 
       val recordTypes = EnumSet.of(
@@ -778,7 +959,10 @@ internal class HprofInMemoryIndex private constructor(
         CLASS_DUMP,
         INSTANCE_DUMP,
         OBJECT_ARRAY_DUMP,
-        PRIMITIVE_ARRAY_DUMP
+        PRIMITIVE_ARRAY_DUMP,
+        // Always requested; absent (so never delivered) in heap dumps without thread data.
+        STACK_FRAME,
+        STACK_TRACE
       ) + HprofRecordTag.rootTags.intersect(indexedGcRootTags)
 
       reader.readRecords(recordTypes, indexBuilderListener)

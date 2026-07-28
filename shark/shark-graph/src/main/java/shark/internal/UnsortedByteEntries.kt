@@ -13,7 +13,7 @@ internal class UnsortedByteEntries(
   private val longIdentifiers: Boolean,
   private val initialCapacity: Int = 4,
   private val growthFactor: Double = 2.0
-) {
+) : SortedBytesMapBuilder {
 
   private val bytesPerEntry = bytesPerValue + if (longIdentifiers) 8 else 4
 
@@ -24,7 +24,7 @@ internal class UnsortedByteEntries(
   private var assigned: Int = 0
   private var currentCapacity = 0
 
-  fun append(
+  override fun append(
     key: Long
   ): MutableByteSubArray {
     if (entries == null) {
@@ -43,9 +43,9 @@ internal class UnsortedByteEntries(
     return subArray
   }
 
-  fun moveToSortedMap(): SortedBytesMap {
+  override fun moveToSortedMap(): SortedBytesMap {
     if (assigned == 0) {
-      return SortedBytesMap(longIdentifiers, bytesPerValue, ByteArray(0))
+      return ArraySortedBytesMap(longIdentifiers, bytesPerValue, ByteArray(0))
     }
     val entries = entries!!
     // Sort entries by keys, which are ids of 4 or 8 bytes.
@@ -68,7 +68,7 @@ internal class UnsortedByteEntries(
     } else entries
     this.entries = null
     assigned = 0
-    return SortedBytesMap(
+    return ArraySortedBytesMap(
       longIdentifiers, bytesPerValue, sortedEntries
     )
   }
@@ -111,8 +111,8 @@ internal class UnsortedByteEntries(
     entries = newEntries
   }
 
-  internal inner class MutableByteSubArray {
-    fun writeByte(value: Byte) {
+  internal inner class MutableByteSubArray : ByteSubArrayWriter {
+    override fun writeByte(value: Byte) {
       val index = subArrayIndex
       subArrayIndex++
       require(index in 0..bytesPerEntry) {
@@ -122,7 +122,7 @@ internal class UnsortedByteEntries(
       entries!![valuesIndex] = value
     }
 
-    fun writeId(value: Long) {
+    override fun writeId(value: Long) {
       if (longIdentifiers) {
         writeLong(value)
       } else {
@@ -130,7 +130,7 @@ internal class UnsortedByteEntries(
       }
     }
 
-    fun writeInt(value: Int) {
+    override fun writeInt(value: Int) {
       val index = subArrayIndex
       subArrayIndex += 4
       require(index >= 0 && index <= bytesPerEntry - 4) {
@@ -144,7 +144,7 @@ internal class UnsortedByteEntries(
       values[pos] = (value and 0xff).toByte()
     }
 
-    fun writeTruncatedLong(
+    override fun writeTruncatedLong(
       value: Long,
       byteCount: Int
     ) {
@@ -164,7 +164,7 @@ internal class UnsortedByteEntries(
       values[pos] = (value and 0xffL).toByte()
     }
 
-    fun writeLong(value: Long) {
+    override fun writeLong(value: Long) {
       val index = subArrayIndex
       subArrayIndex += 8
       require(index >= 0 && index <= bytesPerEntry - 8) {

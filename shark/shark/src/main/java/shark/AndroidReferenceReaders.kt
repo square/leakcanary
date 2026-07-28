@@ -63,7 +63,7 @@ enum class AndroidReferenceReaders : OptionalFactory {
         graph.findClassByName("android.app.ActivityThread\$ActivityClientRecord") ?: return null
 
       val activityClientRecordFieldNames = activityClientRecordClass.readRecordFields()
-        .map { activityThreadClass.instanceFieldName(it) }
+        .map { activityClientRecordClass.instanceFieldName(it) }
         .toList()
 
       if ("nextIdle" !in activityClientRecordFieldNames ||

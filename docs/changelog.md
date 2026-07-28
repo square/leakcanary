@@ -5,14 +5,31 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 ## Unreleased
 
-* 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition leak where LeakCanary's toast was leaking and triggering LeakCanary
 * 🐛 [#1789](https://github.com/square/leakcanary/issues/1789) When running the analysis in a separate process (`leakcanary-android-process`), the `HeapAnalysisDone` event was dispatched in the `:leakcanary` process, so it never reached the `LeakCanary.Config.eventListeners` configured in the main process. The `:leakcanary` process now stores the analysis in LeakCanary's database and a chained WorkManager worker dispatches the event from the main process, which also means the event still gets dispatched if the main process dies while the analysis is running.
-    * Behavior change: `HeapAnalysisDone` is now dispatched in the main process instead of the `:leakcanary` process. If you were relying on an `EventListener` configured in the `:leakcanary` process receiving it, configure that listener in the main process instead. `HeapAnalysisProgress` is still dispatched from the `:leakcanary` process. See [Running the LeakCanary analysis in a separate process](recipes.md#running-the-leakcanary-analysis-in-a-separate-process).* 🐛 The `dumpDurationMillis` and `"Heap dump reason"` metadata were added to the heap analysis *after* it was stored in LeakCanary's database, so the analysis shown in the LeakCanary activity was missing both. They're now stored as well.
+    * Behavior change: `HeapAnalysisDone` is now dispatched in the main process instead of the `:leakcanary` process. If you were relying on an `EventListener` configured in the `:leakcanary` process receiving it, configure that listener in the main process instead. `HeapAnalysisProgress` is still dispatched from the `:leakcanary` process. See [Running the LeakCanary analysis in a separate process](recipes.md#running-the-leakcanary-analysis-in-a-separate-process).
+* 🐛 The `dumpDurationMillis` and `"Heap dump reason"` metadata were added to the heap analysis *after* it was stored in LeakCanary's database, so the analysis shown in the LeakCanary activity was missing both. They're now stored as well.
+
+## Version 3.0 Alpha 9 (2026-06-25)
+
+* 🐛 [#2733](https://github.com/square/leakcanary/pull/2733) Fix reading `ActivityRecord`'s fields for `ACTIVITY_THREAD__NEW_ACTIVITIES` in `AndroidReferenceReaders`.
+* 🐛 [#2732](https://github.com/square/leakcanary/pull/2732) Fix `ScreenOffTrigger` ANR by registering its `BroadcastReceiver` off the main thread.
+* 💥 [#2806](https://github.com/square/leakcanary/pull/2806) Raise the minimum SDK to API 26 (Android 8.0 Oreo) and remove the now obsolete `AndroidLeakFixes`.
+* 🔨 [#2736](https://github.com/square/leakcanary/pull/2736) Fix `HprofPrimitiveArrayStripper` bugs and add a `StreamingSinkProvider` for stripping heap dumps.
+* 🔨 [#2737](https://github.com/square/leakcanary/pull/2737) Extend the API level range for the `InputMethodManager.mNextServedView` reference matcher in `AndroidReferenceMatchers`.
+* 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition leak where LeakCanary's toast was leaking and triggering LeakCanary
+* 🐛 [#2797](https://github.com/square/leakcanary/pull/2797) Fix the `COMPOSITION_IMPL` inspector for the new Compose state field structure.
+* 🔨 [#2788](https://github.com/square/leakcanary/pull/2788) Update Shark for newer Okio and Kotlin compliance, and drop Okio 1.x from the version catalog.
+* 🐛 [#2779](https://github.com/square/leakcanary/pull/2779) Enforce `LeakActivity` to fit system windows so its content isn't cut off on Android 15+.
+* 🔨 [#2772](https://github.com/square/leakcanary/pull/2772) Add Motorola to the OEMs causing a static context leak in `AndroidReferenceMatchers`.
+
+See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-8...v3.0-alpha-9).
 
 ## Version 3.0 Alpha 8 (2024-06-04)
 
 * Added support for proper hprof handling on heap growth detection failures. Also inlined some public collaborators to achieve that. We now have a single class that's a bit larger but also a lot more obvious.
 * `findGrowingObjects` does not take a `CloseableHeapGraph` anymore (just a `HeapGraph`) and does not close that graph.
+
+See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-7...v3.0-alpha-8).
 
 ## Version 3.0 Alpha 7 (2024-05-30)
 

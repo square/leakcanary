@@ -538,7 +538,7 @@ class InteractiveCommand : CliktCommand(
       }
       is HeapPrimitiveArray -> {
         val record = heapObject.readRecord()
-        val primitiveName = heapObject.primitiveType.name.toLowerCase(Locale.US)
+        val primitiveName = heapObject.primitiveType.name.lowercase(Locale.US)
         "$ARRAY $primitiveName[${record.size}]@${heapObject.objectId}"
       }
     }

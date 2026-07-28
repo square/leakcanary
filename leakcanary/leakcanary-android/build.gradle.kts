@@ -17,6 +17,7 @@ dependencies {
   androidTestImplementation(libs.androidX.test.runner)
   androidTestImplementation(libs.assertjCore)
   androidTestImplementation(projects.shark.sharkHprofTest)
+  androidTestUtil(libs.androidX.test.orchestrator)
 }
 
 android {
@@ -32,9 +33,13 @@ android {
     // Avoid DeprecatedTargetSdkVersionDialog / INSTALL_FAILED_DEPRECATED_SDK_VERSION on API 28+
     targetSdk = libs.versions.androidCompileSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    testInstrumentationRunnerArguments["clearPackageData"] = "true"
   }
   buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary"
+  testOptions {
+    execution = "ANDROIDX_TEST_ORCHESTRATOR"
+  }
   lint {
     checkOnly += "Interoperability"
     disable += "GoogleAppIndexingWarning"

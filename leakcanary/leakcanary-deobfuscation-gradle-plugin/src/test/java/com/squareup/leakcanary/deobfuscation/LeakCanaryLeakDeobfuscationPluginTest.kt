@@ -8,6 +8,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.util.Properties
 import java.util.zip.ZipFile
 
 class LeakCanaryLeakDeobfuscationPluginTest {
@@ -26,8 +27,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
       localPropertiesFile.copyTo(File(tempFolder.root, "local.properties"), overwrite = true)
     } else {
       System.getenv("ANDROID_HOME")?.let { androidHome ->
-        tempFolder.newFile("local.properties").apply {
-          writeText("sdk.dir=$androidHome")
+        tempFolder.newFile("local.properties").outputStream().use {
+          Properties()
+            .apply { this["sdk.dir"] = androidHome }
+            .store(it, null)
         }
       }
     }
@@ -54,7 +57,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
-            jcenter()
           }
         }
 
@@ -124,7 +126,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
-            jcenter()
           }
         }
 
@@ -179,7 +180,6 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
-            jcenter()
           }
         }
 
