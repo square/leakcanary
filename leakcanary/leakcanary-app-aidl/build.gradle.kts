@@ -1,7 +1,5 @@
 plugins {
   id("com.android.library")
-  id("org.jetbrains.kotlin.android")
-  id("com.vanniktech.maven.publish")
 }
 
 dependencies {
@@ -17,11 +15,10 @@ android {
   buildFeatures {
     aidl = true
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary.app.aidl"
   lint {
     checkOnly += "Interoperability"
     disable += "GoogleAppIndexingWarning"
-    ignore += "InvalidPackage"
+    disable += "InvalidPackage"
   }
 }

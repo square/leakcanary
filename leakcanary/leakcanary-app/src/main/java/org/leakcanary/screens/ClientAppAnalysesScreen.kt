@@ -70,17 +70,17 @@ class ClientAppAnalysesViewModel @Inject constructor(
   private fun stateStream(appPackageName: String) =
     repository.listAppAnalyses(appPackageName).map { app ->
       Loaded(app.map { row ->
-        if (row.exception_summary == null) {
-          Success(
+        when (val summary = row.exception_summary) {
+          null -> Success(
             id = row.id,
             createdAtTimeMillis = row.created_at_time_millis,
             leakCount = row.leak_count.toInt()
           )
-        } else {
-          Failure(
+
+          else -> Failure(
             id = row.id,
             createdAtTimeMillis = row.created_at_time_millis,
-            exceptionSummary = row.exception_summary
+            exceptionSummary = summary
           )
         }
       })

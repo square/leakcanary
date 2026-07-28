@@ -1,5 +1,0 @@
-public final class org/leakcanary/internal/LeakUiAppClient {
-	public fun <init> (Landroid/content/Context;)V
-	public final fun sendHeapAnalysis (Lshark/HeapAnalysis;)V
-}
-

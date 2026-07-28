@@ -2,7 +2,6 @@ import java.io.InputStreamReader
 
 plugins {
   id("com.android.library")
-  id("org.jetbrains.kotlin.android")
   id("com.vanniktech.maven.publish")
 }
 
@@ -22,6 +21,7 @@ fun gitSha(): String {
 android {
   resourcePrefix = "leak_canary_"
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
+  buildFeatures.buildConfig = true
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
     buildConfigField("String", "LIBRARY_VERSION", "\"${rootProject.property("VERSION_NAME")}\"")

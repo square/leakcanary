@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import app.cash.sqldelight.db.SqlDriver
+import com.squareup.leakcanary.app.db.Database
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -13,7 +14,6 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Provider
 import javax.inject.Qualifier
 import javax.inject.Singleton
-import org.leakcanary.Database
 
 @Module
 @InstallIn(SingletonComponent::class)

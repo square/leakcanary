@@ -168,7 +168,7 @@ internal class ClassFieldsReader(
     }
 
     fun readChar(): Char {
-      return readShort().toChar()
+      return readShort().toInt().toChar()
     }
 
     fun readFloat(): Float {

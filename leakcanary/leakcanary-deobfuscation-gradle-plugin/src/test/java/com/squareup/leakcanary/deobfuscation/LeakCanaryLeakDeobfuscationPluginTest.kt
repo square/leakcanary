@@ -16,6 +16,10 @@ class LeakCanaryLeakDeobfuscationPluginTest {
   @get:Rule
   val tempFolder = TemporaryFolder()
 
+  /** Set by the build script so the generated project tracks the SDK versions we build against. */
+  private val compileSdk = System.getProperty("androidCompileSdk")
+  private val minSdk = System.getProperty("androidMinSdk")
+
   private lateinit var buildFile: File
 
   @Before
@@ -57,21 +61,22 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
+            mavenCentral()
           }
         }
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 29
+          compileSdk $compileSdk
 
           defaultConfig {
-            minSdk 29
+            minSdk $minSdk
           }
 
           buildTypes {
             debug {
               minifyEnabled true
-              proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             }
           }
         }
@@ -92,7 +97,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
     // task has been run
     assertThat(
-      result.task(":leakCanaryCopyObfuscationMappingForDebug")?.outcome == SUCCESS
+      result.task(":copyDebugLeakCanaryObfuscationMapping")?.outcome == SUCCESS
     ).isTrue()
 
     // apk has been built
@@ -108,7 +113,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     // apk contains obfuscation mapping file in assets dir
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
       zipFile.entries().toList().firstOrNull { entry ->
-        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
+        entry.name == "assets/leakCanaryObfuscationMapping.txt"
       }
     }
     assertThat(obfuscationMappingEntry != null).isTrue()
@@ -119,6 +124,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     buildFile.writeText(
       """
         plugins {
+          // Applied before the Android plugin on purpose: plugin order must not matter.
           id 'com.squareup.leakcanary.deobfuscation'
           id 'com.android.application'
         }
@@ -126,21 +132,22 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
+            mavenCentral()
           }
         }
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 29
+          compileSdk $compileSdk
 
           defaultConfig {
-            minSdk 29
+            minSdk $minSdk
           }
 
           buildTypes {
             debug {
               minifyEnabled true
-              proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+              proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             }
           }
         }
@@ -162,7 +169,7 @@ class LeakCanaryLeakDeobfuscationPluginTest {
     // apk doesn't contain obfuscation mapping file in assets dir
     val obfuscationMappingEntry = ZipFile(apkFile).use { zipFile ->
       zipFile.entries().toList().firstOrNull { entry ->
-        entry.name.contains("assets/leakCanaryObfuscationMapping.txt")
+        entry.name == "assets/leakCanaryObfuscationMapping.txt"
       }
     }
     assertThat(obfuscationMappingEntry == null).isTrue()
@@ -180,15 +187,16 @@ class LeakCanaryLeakDeobfuscationPluginTest {
         allprojects {
           repositories {
             google()
+            mavenCentral()
           }
         }
 
         android {
           namespace 'com.leakcanary.test'
-          compileSdk 29
+          compileSdk $compileSdk
 
           defaultConfig {
-            minSdk 29
+            minSdk $minSdk
           }
 
           buildTypes {
@@ -212,7 +220,8 @@ class LeakCanaryLeakDeobfuscationPluginTest {
 
     assertThat(
       result.output.contains(
-        "LeakCanary deobfuscation plugin couldn't find any variant with minification enabled."
+        "The plugin was configured to be applied to a variant which doesn't define " +
+          "an obfuscation mapping file. Make sure that isMinified is true for variant: debug"
       )
     ).isTrue()
   }

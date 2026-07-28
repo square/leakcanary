@@ -23,9 +23,9 @@ public abstract interface class leakcanary/HeapDumpFileProvider {
 }
 
 public abstract interface class leakcanary/HeapDumpStorageStrategy {
-	public abstract fun onHeapDiffResult (Ljava/lang/Object;)V
-	public abstract fun onHeapDumpClosed (Ljava/io/File;)V
-	public abstract fun onHeapDumped (Ljava/io/File;)V
+	public fun onHeapDiffResult (Ljava/lang/Object;)V
+	public fun onHeapDumpClosed (Ljava/io/File;)V
+	public fun onHeapDumped (Ljava/io/File;)V
 }
 
 public final class leakcanary/HeapDumpStorageStrategy$DefaultImpls {

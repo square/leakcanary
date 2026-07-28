@@ -77,7 +77,7 @@ The element at position 43 in that array of `Object` is a reference to the `Util
 ├─ com.example.Utils class
 ```
 
-A line starting with `╰→ ` represents the leaking object, ie the object that is passed to [AppWatcher.objectWatcher.watch()](/leakcanary/api/leakcanary-object-watcher-android/leakcanary/-app-watcher/object-watcher/).
+A line starting with `╰→ ` represents the leaking object, ie the object that is passed to [AppWatcher.objectWatcher.watch()](/leakcanary/api/object-watcher-android-core/object-watcher-android-core/leakcanary/-app-watcher/object-watcher/).
 
 The `Utils` class has a static `helper` field which is a reference to the leaking object, which is the Helper singleton instance:
 

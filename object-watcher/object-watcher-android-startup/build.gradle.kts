@@ -1,6 +1,5 @@
 plugins {
   id("com.android.library")
-  id("org.jetbrains.kotlin.android")
   id("com.vanniktech.maven.publish")
 }
 
@@ -16,7 +15,6 @@ android {
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
   }
-  buildFeatures.buildConfig = false
   namespace = "com.squareup.leakcanary.objectwatcher.startup"
   lint {
     checkOnly += "Interoperability"

@@ -11,7 +11,7 @@ If you find a new one, please [create an issue](https://github.com/square/leakca
 3. Check if it happens on the latest version of Android, and otherwise use blame to find when it was fixed.
 4. If it's still happening, build a simple repro case.
 5. File an issue on [b.android.com](http://b.android.com) with the leak trace and the repro case. Please remember to follow up the issue when there are new responses. [b/176886060](https://issuetracker.google.com/issues/176886060) is a good example of effective and respectful communication.
-6. Create a PR in LeakCanary to update [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark/-android-reference-matchers/). Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.
+6. Create a PR in LeakCanary to update [AndroidReferenceMatchers](/leakcanary/api/shark-android/shark-android/shark/-android-reference-matchers/). Optional: if you find a hack to clear that leak on previous versions of Android, feel free to document it.
 
 ## How do I know if LeakCanary is running?
 
