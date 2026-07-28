@@ -57,22 +57,22 @@ internal class AndroidXFragmentDestroyWatcher(
       fm: FragmentManager,
       fragment: Fragment
     ) {
-      if (!FRAGMENT_INSTANCES_CAN_BE_REUSED) {
-        expectDeletionFor(fragment)
-        return
-      }
-      // From androidx.fragment 1.1.0 on, Fragment#initState() resets a destroyed fragment back to a
-      // pristine state, which makes it legal to add that very same instance to a FragmentManager
-      // again. Reused fragments would otherwise be reported as retained, so we need to check whether
-      // this fragment is really on its way out. FragmentManager dispatches onFragmentDestroyed()
-      // while it is still executing a transaction, and a fragment can be removed and added back
-      // within a single transaction, so we wait until that transaction is done before deciding.
-      // A fragment that is added back later still gets reported as retained, however the heap
-      // analysis then finds it alive and says so in the leak trace.
-      mainHandler.post {
-        if (!fragment.isAdded) {
-          expectDeletionFor(fragment)
+      if (FRAGMENT_INSTANCES_CAN_BE_REUSED) {
+        // From androidx.fragment 1.1.0 on, Fragment#initState() resets a destroyed fragment back to
+        // a pristine state, which makes it legal to add that very same instance to a
+        // FragmentManager again. Reused fragments would otherwise be reported as retained, so we
+        // need to check whether this fragment is really on its way out. FragmentManager dispatches
+        // onFragmentDestroyed() while it is still executing a transaction, and a fragment can be
+        // removed and added back within a single transaction, so we wait until that transaction is
+        // done before deciding. A fragment that is added back later still gets reported as
+        // retained, however the heap analysis then finds it alive and says so in the leak trace.
+        mainHandler.post {
+          if (!fragment.isAdded) {
+            expectDeletionFor(fragment)
+          }
         }
+      } else {
+        expectDeletionFor(fragment)
       }
     }
 

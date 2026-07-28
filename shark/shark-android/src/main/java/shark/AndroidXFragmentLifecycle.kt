@@ -113,8 +113,12 @@ internal fun HeapInstance.androidXFragmentLifecycleStatus(): AndroidXFragmentLif
   // Fragment.mCalled is set to true by every lifecycle callback dispatch, starting with
   // Fragment#onAttach(), and initState() does not reset it. A fragment that is back to INITIALIZED
   // with mCalled set to true therefore went through the whole attach / detach cycle.
+  // Every release of androidx.fragment declares mCalled, so we should always find it.
   val called = this[ANDROIDX_FRAGMENT_CLASS_NAME, "mCalled"]?.value?.asBoolean
-    ?: return Unknown("Fragment.mLifecycleRegistry.state is INITIALIZED")
+    ?: return Unknown(
+      "Fragment.mLifecycleRegistry.state is INITIALIZED and the Fragment.mCalled field could not" +
+        " be found"
+    )
 
   return if (called) {
     Destroyed(
