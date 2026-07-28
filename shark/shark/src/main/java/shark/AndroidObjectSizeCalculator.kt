@@ -1,6 +1,5 @@
 package shark
 
-import shark.DominatorTree.ObjectSizeCalculator
 import shark.internal.ShallowSizeCalculator
 
 class AndroidObjectSizeCalculator(graph: HeapGraph) : ObjectSizeCalculator {

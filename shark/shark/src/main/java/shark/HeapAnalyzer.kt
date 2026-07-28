@@ -116,6 +116,8 @@ class HeapAnalyzer constructor(
   /**
    * Searches the heap dump for leaking instances and then computes the shortest strong reference
    * path from those instances to the GC roots.
+   * When [computeRetainedHeapSize] is false, retained heap sizes will not be computed
+   * and the analysis will be faster.
    */
   fun analyze(
     heapDumpFile: File,
@@ -131,17 +133,22 @@ class HeapAnalyzer constructor(
     return try {
       val leakTracer = RealLeakTracerFactory(
         shortestPathFinderFactory = PrioritizingShortestPathFinder.Factory(
-          listener =  { event ->
+          listener = { event ->
             when (event) {
-              StartedFindingDominators -> listener.onAnalysisProgress(FINDING_DOMINATORS)
               StartedFindingPathsToRetainedObjects -> listener.onAnalysisProgress(
                 FINDING_PATHS_TO_RETAINED_OBJECTS
               )
+
+              StartedFindingDominators -> listener.onAnalysisProgress(FINDING_DOMINATORS)
             }
           },
           referenceReaderFactory = AndroidReferenceReaderFactory(referenceMatchers),
           gcRootProvider = MatchingGcRootProvider(referenceMatchers),
-          computeRetainedHeapSize = computeRetainedHeapSize,
+          objectSizeCalculatorFactory = if (computeRetainedHeapSize) {
+            ObjectSizeCalculator.Factory { heapGraph -> AndroidObjectSizeCalculator(heapGraph) }
+          } else {
+            null
+          },
         ),
         objectInspectors
       ) { event ->
@@ -198,7 +205,6 @@ class HeapAnalyzer constructor(
       )
     }
   }
-
 
   private fun since(analysisStartNanoTime: Long): Long {
     return NANOSECONDS.toMillis(System.nanoTime() - analysisStartNanoTime)

@@ -14,11 +14,15 @@ import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
 
+/**
+ * Builds an approximate dominator tree incrementally, as a graph is traversed breadth first.
+ *
+ * The approximation comes from [updateDominated] using a Lowest Common Ancestor walk over the
+ * dominators known so far: when an edge to an already visited object is processed while the
+ * parent's own dominator is still too specific, the child's dominator is left too specific as
+ * well and never revisited. Retained sizes computed from such a tree over attribute.
+ */
 class DominatorTree(expectedElements: Int = 4) {
-
-  fun interface ObjectSizeCalculator {
-    fun computeSize(objectId: Long): Int
-  }
 
   /**
    * Map of objects to their dominator.

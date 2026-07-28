@@ -248,7 +248,7 @@ class RetainedSizeTest {
     assertThat(instance.totalRetainedHeapByteSize).isEqualTo(22)
   }
 
-  @Test fun crossDominatedIsNotDominated() {
+  @Test fun `object reachable from two leaking objects is attributed to the first one`() {
     hprofFile.dump {
       val fortyTwo = string("42")
       "GcRoot1" clazz {
@@ -266,10 +266,17 @@ class RetainedSizeTest {
     val retainedInstances = retainedInstances()
     require(retainedInstances.size == 2)
 
-    retainedInstances.forEach { instance ->
-      // 4 byte reference
-      assertThat(instance.totalRetainedHeapByteSize).isEqualTo(4)
+    // The string is only reachable through the two leaking objects, so it is retained by them as
+    // a group but by neither of them alone. It is attributed to whichever one the traversal
+    // reaches first, so that the sizes sum up to the size of the subgraph they retain together
+    // without double counting it. GcRoot1 is traversed before GcRoot2, so Leaking1 gets the
+    // string:
+    //   Leaking1: 4 byte reference + 12 byte string = 16 bytes
+    //   Leaking2: 4 byte reference                  =  4 bytes
+    val retainedByClassName = retainedInstances.associate { leak ->
+      leak.leakTraces.single().leakingObject.className to leak.totalRetainedHeapByteSize!!
     }
+    assertThat(retainedByClassName).isEqualTo(mapOf("Leaking1" to 16, "Leaking2" to 4))
   }
 
   @Test fun nativeSizeAccountedFor() {
