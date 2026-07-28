@@ -389,7 +389,17 @@ abstract class AndroidAbiUpdateTask : DefaultTask() {
 //Git hook installation
 tasks.register<Copy>("installGitHooks") {
   from(File(rootProject.rootDir, "config/hooks"))
-  into({ File(rootProject.rootDir, ".git/hooks") })
+  // Not rootDir/.git/hooks: in a git worktree .git is a file, not a directory, and the hooks live
+  // in the main checkout. git rev-parse --git-common-dir resolves to the right place in both cases.
+  into({
+    val gitCommonDir = providers.exec {
+      commandLine("git", "rev-parse", "--git-common-dir")
+      workingDir = rootProject.rootDir
+    }.standardOutput.asText.get().trim()
+    // The path is relative to rootDir in a normal checkout and absolute in a worktree. resolve()
+    // handles both: it returns the argument as is when it's already rooted.
+    rootProject.rootDir.resolve(gitCommonDir).resolve("hooks")
+  })
   filePermissions {
     unix("rwxrwxrwx") // Make files executable
   }
