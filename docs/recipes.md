@@ -9,7 +9,7 @@ This page contains code recipes to customize LeakCanary to your needs. Read thro
 
 The default configuration of LeakCanary will automatically watch Activity, Fragment, Fragment View and ViewModel instances.
 
-In your application, you may have other objects with a lifecycle, such as services, Dagger components, etc. Use [AppWatcher.objectWatcher](/leakcanary/api/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
+In your application, you may have other objects with a lifecycle, such as services, Dagger components, etc. Use [AppWatcher.objectWatcher](/leakcanary/api/object-watcher-android-core/object-watcher-android-core/leakcanary/-app-watcher/object-watcher/) to watch instances that should be garbage collected:
 
 ```kotlin
 class MyService : Service {
@@ -43,7 +43,7 @@ class DebugExampleApplication : ExampleApplication() {
 !!! info
     Create a debug application class in your `src/debug/java` folder. Don't forget to also register it in `src/debug/AndroidManifest.xml`.
 
-To customize the detection of retained objects at runtime, specify the watchers you wish to install via [AppWatcher.manualInstall()](/leakcanary/api/leakcanary/-app-watcher/manual-install/):
+To customize the detection of retained objects at runtime, specify the watchers you wish to install via [AppWatcher.manualInstall()](/leakcanary/api/object-watcher-android-core/object-watcher-android-core/leakcanary/-app-watcher/manual-install/):
 
 ```kotlin
 val watchersToInstall = AppWatcher.appDefaultWatchers(this)
@@ -54,14 +54,14 @@ AppWatcher.manualInstall(
 )
 ```
 
-To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary/api/leakcanary/-leak-canary/config/):
+To customize the heap dumping & analysis, update [LeakCanary.config](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-leak-canary/config/):
 
 ```kotlin
 LeakCanary.config = LeakCanary.config.copy(retainedVisibleThreshold = 3)
 ```
 
 !!! info "Java"
-    In Java, use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary/-leak-canary/-config/-builder/) instead:
+    In Java, use [LeakCanary.Config.Builder](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-leak-canary/-config/-builder/) instead:
 
     ```java
     LeakCanary.Config config = LeakCanary.getConfig().newBuilder()
@@ -174,7 +174,7 @@ res/
 
 ## Matching known library leaks
 
-Set [LeakCanary.Config.referenceMatchers](/leakcanary/api/leakcanary/-leak-canary/-config/reference-matchers/) to a list that builds on top of [AndroidReferenceMatchers.appDefaults](/leakcanary/api/shark/-android-reference-matchers/-companion/app-defaults/):
+Set [LeakCanary.Config.referenceMatchers](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-leak-canary/-config/reference-matchers/) to a list that builds on top of [AndroidReferenceMatchers.appDefaults](/leakcanary/api/shark-android/shark-android/shark/-android-reference-matchers/-companion/app-defaults/):
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -253,14 +253,14 @@ dependencies {
 }
 ```
 
-You can call [LeakCanaryProcess.isInAnalyzerProcess](/leakcanary/api/leakcanary/-leak-canary-process/is-in-analyzer-process/) to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.
+You can call [LeakCanaryProcess.isInAnalyzerProcess](/leakcanary/api/leakcanary-android-process/leakcanary-android-process/leakcanary/-leak-canary-process/is-in-analyzer-process/) to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.
 
 ### Event listeners and the analyzer process
 
-Your `Application` class is created in both processes, so [LeakCanary.Config.eventListeners](/leakcanary/api/leakcanary/-leak-canary/-config/event-listeners/) is normally configured in both as well, and it matters which process each event is dispatched from:
+Your `Application` class is created in both processes, so [LeakCanary.Config.eventListeners](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-leak-canary/-config/event-listeners/) is normally configured in both as well, and it matters which process each event is dispatched from:
 
-* [HeapAnalysisDone](/leakcanary/api/leakcanary/-event-listener/-event/-heap-analysis-done/) is dispatched from the **main** process. LeakCanary stores the analysis in its database from the `:leakcanary` process, then runs a WorkManager worker in the main process which reads the analysis back and dispatches the event. This also means that if the main process dies while the analysis is running, the event is dispatched the next time the main process starts, rather than being lost.
-* [HeapAnalysisProgress](/leakcanary/api/leakcanary/-event-listener/-event/-heap-analysis-progress/) is dispatched from the **`:leakcanary`** process, since that's where the analysis runs.
+* [HeapAnalysisDone](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-event-listener/-event/-heap-analysis-done/) is dispatched from the **main** process. LeakCanary stores the analysis in its database from the `:leakcanary` process, then runs a WorkManager worker in the main process which reads the analysis back and dispatches the event. This also means that if the main process dies while the analysis is running, the event is dispatched the next time the main process starts, rather than being lost.
+* [HeapAnalysisProgress](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-event-listener/-event/-heap-analysis-progress/) is dispatched from the **`:leakcanary`** process, since that's where the analysis runs.
 * All other events (`DumpingHeap`, `HeapDump`, `HeapDumpFailed`) are dispatched from the **main** process, since that's where the heap dump is triggered.
 
 So a custom listener that only cares about the analysis result can be configured in the main process:
@@ -326,7 +326,7 @@ dependencies {
 
 ## Extracting metadata from the heap dump
 
-[LeakCanary.Config.metadataExtractor](/leakcanary/api/leakcanary/-leak-canary/-config/metadata-extractor/) extracts metadata from a heap dump. The metadata is then available in `HeapAnalysisSuccess.metadata`. `LeakCanary.Config.metadataExtractor` defaults to `AndroidMetadataExtractor` but you can replace it to extract additional metadata from the hprof.
+[LeakCanary.Config.metadataExtractor](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-leak-canary/-config/metadata-extractor/) extracts metadata from a heap dump. The metadata is then available in `HeapAnalysisSuccess.metadata`. `LeakCanary.Config.metadataExtractor` defaults to `AndroidMetadataExtractor` but you can replace it to extract additional metadata from the hprof.
 
 For example, if you want to include the app version name in your heap analysis reports, you need to first store it in memory (e.g. in a static field) and then you can retrieve it in `MetadataExtractor`.
 
