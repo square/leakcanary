@@ -16,11 +16,20 @@
   -->
 <resources>
   <style name="leak_canary_LeakCanary.Base" parent="android:Theme.Material">
+    <!--
+      ~ LeakCanary provides its own toolbar (see leak_canary_leak_activity.xml) rather than relying
+      ~ on the window decor action bar. When the decor action bar owns the options menu, opening the
+      ~ overflow menu makes the framework call Window.Callback#onMenuOpened(FEATURE_ACTION_BAR, null)
+      ~ from PhoneWindow$ActionMenuPresenterCallback#onOpenSubMenu(). Apps that wrap the window
+      ~ callback in Kotlin declare that Menu parameter as non null, so that null crashes them.
+      ~ See https://issuetracker.google.com/issues/188568911
+      -->
+    <item name="android:windowActionBar">false</item>
+    <item name="android:windowNoTitle">true</item>
     <item name="android:windowBackground">@color/leak_canary_background_color</item>
-    <item name="android:actionBarStyle">@style/leak_canary_Widget.ActionBar</item>
   </style>
 
-  <style name="leak_canary_Widget.ActionBar" parent="android:Widget.Material.ActionBar">
+  <style name="leak_canary_Widget.Toolbar" parent="android:Widget.Material.Toolbar">
     <item name="android:background">@color/leak_canary_background_color</item>
     <item name="android:elevation">0dp</item>
   </style>

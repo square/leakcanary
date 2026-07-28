@@ -1,7 +1,10 @@
 package leakcanary
 
+import android.view.Menu
+import android.view.Window
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
@@ -45,6 +48,34 @@ internal class LeakActivityTest {
   fun noLeakOnHome() {
     activityTestRule.launchActivity(null)
     onView(withText("0 Distinct Leaks")).check(matches(isDisplayed()))
+  }
+
+  /**
+   * Regression test for the crash reported in
+   * https://github.com/square/leakcanary/pull/2794: when the options menu is owned by the window
+   * decor action bar, opening the overflow menu makes the framework call
+   * `Window.Callback#onMenuOpened(FEATURE_ACTION_BAR, null)` from
+   * `PhoneWindow$ActionMenuPresenterCallback#onOpenSubMenu()`. Apps and libraries that wrap the
+   * window callback in Kotlin declare that [Menu] parameter as non null, matching how the framework
+   * annotates it, so the null value crashes them.
+   *
+   * See https://issuetracker.google.com/issues/188568911
+   */
+  @Test
+  fun openingOverflowMenuDoesNotCrashWrappedWindowCallback() {
+    val activity = activityTestRule.launchActivity(null)
+    // The Heap Dumps screen is the one with an overflow menu.
+    onView(withId(R.id.leak_canary_navigation_button_heap_dumps)).perform(click())
+
+    // Wrapping after the activity is created, which is when apps and libraries typically do it.
+    InstrumentationRegistry.getInstrumentation().runOnMainSync {
+      val window = activity.window
+      window.callback = NonNullMenuWindowCallback(window.callback)
+    }
+
+    openActionBarOverflowOrOptionsMenu(InstrumentationRegistry.getInstrumentation().targetContext)
+
+    onView(withText(R.string.leak_canary_delete_all)).check(matches(isDisplayed()))
   }
 
   @Test
@@ -139,6 +170,20 @@ internal class LeakActivityTest {
       }
     }
   }
+}
+
+/**
+ * A [Window.Callback] wrapper written the way an app or a library such as Curtains would write it:
+ * from Kotlin, with the [Menu] parameter declared as non null. Kotlin then adds a null check on that
+ * parameter, which throws if the framework calls it with a null menu.
+ */
+private class NonNullMenuWindowCallback(
+  private val delegate: Window.Callback
+) : Window.Callback by delegate {
+  override fun onMenuOpened(
+    featureId: Int,
+    menu: Menu
+  ): Boolean = delegate.onMenuOpened(featureId, menu)
 }
 
 fun tryAndRestoreConfig(block: () -> Unit) {

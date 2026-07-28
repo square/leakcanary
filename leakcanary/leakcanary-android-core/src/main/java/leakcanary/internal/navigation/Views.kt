@@ -27,8 +27,8 @@ internal val View.activity
 internal fun <T : Activity> View.activity() = context as T
 
 internal fun View.onCreateOptionsMenu(onCreateOptionsMenu: (Menu) -> Unit) {
+  // Assigning triggers a refresh of the toolbar menu.
   activity<NavigatingActivity>().onCreateOptionsMenu = onCreateOptionsMenu
-  activity.invalidateOptionsMenu()
 }
 
 internal fun View.goTo(screen: Screen) {

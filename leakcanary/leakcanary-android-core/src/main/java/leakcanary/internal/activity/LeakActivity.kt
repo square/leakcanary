@@ -57,7 +57,11 @@ internal class LeakActivity : NavigatingActivity() {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.leak_canary_leak_activity)
 
-    installNavigation(savedInstanceState, findViewById(R.id.leak_canary_main_container))
+    installNavigation(
+      savedInstanceState,
+      findViewById(R.id.leak_canary_main_container),
+      findViewById(R.id.leak_canary_toolbar)
+    )
 
     leaksButton.setOnClickListener { resetTo(LeaksScreen()) }
     heapDumpsButton.setOnClickListener { resetTo(HeapDumpsScreen()) }

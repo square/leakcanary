@@ -2,17 +2,22 @@ package leakcanary.internal.navigation
 
 import android.app.Activity
 import android.content.Intent
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Parcelable
 import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils.loadAnimation
+import android.widget.Toolbar
 import com.squareup.leakcanary.core.R
 
 /**
  * A simple backstack navigating activity
+ *
+ * The options menu is hosted by a [Toolbar] that this activity owns, rather than by the window
+ * decor action bar, which is disabled by the LeakCanary theme. See the comment in
+ * leak_canary_themes.xml for why.
  */
 internal abstract class NavigatingActivity : Activity() {
 
@@ -21,14 +26,32 @@ internal abstract class NavigatingActivity : Activity() {
 
   private lateinit var container: ViewGroup
   private lateinit var currentView: View
+  private var toolbar: Toolbar? = null
+
+  private val homeAsUpIndicator: Drawable? by lazy {
+    val typedArray = theme.obtainStyledAttributes(intArrayOf(android.R.attr.homeAsUpIndicator))
+    try {
+      typedArray.getDrawable(0)
+    } finally {
+      typedArray.recycle()
+    }
+  }
 
   var onCreateOptionsMenu = NO_MENU
+    set(value) {
+      field = value
+      updateToolbarMenu()
+    }
 
   fun installNavigation(
     savedInstanceState: Bundle?,
-    container: ViewGroup
+    container: ViewGroup,
+    toolbar: Toolbar
   ) {
     this.container = container
+    this.toolbar = toolbar
+    toolbar.title = title
+    toolbar.setNavigationOnClickListener { onBackPressed() }
 
     if (savedInstanceState == null) {
       backstack = ArrayList()
@@ -52,10 +75,6 @@ internal abstract class NavigatingActivity : Activity() {
     currentView = currentScreen.createView(container)
     container.addView(currentView)
 
-    actionBar?.run {
-      setHomeButtonEnabled(true)
-      setDisplayHomeAsUpEnabled(true)
-    }
     screenUpdated()
   }
 
@@ -153,31 +172,37 @@ internal abstract class NavigatingActivity : Activity() {
   }
 
   private fun screenUpdated() {
-    invalidateOptionsMenu()
-    actionBar?.run {
+    updateToolbarMenu()
+    toolbar?.run {
       val goBack = backstack.size > 0
-      val indicator = if (goBack) 0 else android.R.drawable.ic_menu_close_clear_cancel
-      setHomeAsUpIndicator(indicator)
+      if (goBack) {
+        navigationIcon = homeAsUpIndicator
+        setNavigationContentDescription(R.string.leak_canary_navigate_up)
+      } else {
+        setNavigationIcon(android.R.drawable.ic_menu_close_clear_cancel)
+        setNavigationContentDescription(R.string.leak_canary_close)
+      }
     }
     onNewScreen(currentScreen)
+  }
+
+  private fun updateToolbarMenu() {
+    toolbar?.run {
+      menu.clear()
+      onCreateOptionsMenu.invoke(menu)
+    }
   }
 
   protected open fun onNewScreen(screen: Screen) {
   }
 
-  override fun onCreateOptionsMenu(menu: Menu): Boolean {
-    onCreateOptionsMenu.invoke(menu)
-    return true
+  override fun onTitleChanged(
+    title: CharSequence?,
+    color: Int
+  ) {
+    super.onTitleChanged(title, color)
+    toolbar?.title = title
   }
-
-  override fun onOptionsItemSelected(item: MenuItem): Boolean =
-    when (item.itemId) {
-      android.R.id.home -> {
-        onBackPressed()
-        true
-      }
-      else -> super.onOptionsItemSelected(item)
-    }
 
   override fun onDestroy() {
     super.onDestroy()
