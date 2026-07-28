@@ -8,6 +8,7 @@ import androidx.work.multiprocess.RemoteListenableWorker
 import com.google.common.util.concurrent.ListenableFuture
 import leakcanary.BackgroundThreadHeapAnalyzer.heapAnalyzerThreadHandler
 import leakcanary.EventListener.Event.HeapDump
+import leakcanary.internal.HeapAnalysisDoneDispatchWorker.Companion.asDispatchWorkerOutputData
 import leakcanary.internal.HeapAnalyzerWorker.Companion.asEvent
 import leakcanary.internal.HeapAnalyzerWorker.Companion.heapAnalysisForegroundInfo
 import shark.SharkLog
@@ -32,8 +33,10 @@ internal class RemoteHeapAnalyzerWorker(
       if (result.isCancelled) {
         SharkLog.d { "Remote heap analysis for ${heapDump.file} was canceled" }
       } else {
-        InternalLeakCanary.sendEvent(doneEvent)
-        result.set(Result.success())
+        // We're in the :leakcanary process here, so sending the done event would only reach the
+        // listeners configured in this process. Instead we hand the analysis id over to
+        // HeapAnalysisDoneDispatchWorker, which runs in the main process and dispatches from there.
+        result.set(Result.success(doneEvent.asDispatchWorkerOutputData()))
       }
     }
     return result

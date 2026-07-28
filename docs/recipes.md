@@ -255,6 +255,35 @@ dependencies {
 
 You can call [LeakCanaryProcess.isInAnalyzerProcess](/leakcanary/api/leakcanary/-leak-canary-process/is-in-analyzer-process/) to check if your Application class is being created in the LeakCanary process. This is useful when configuring libraries like Firebase that may crash when running in an unexpected process.
 
+### Event listeners and the analyzer process
+
+Your `Application` class is created in both processes, so [LeakCanary.Config.eventListeners](/leakcanary/api/leakcanary/-leak-canary/-config/event-listeners/) is normally configured in both as well, and it matters which process each event is dispatched from:
+
+* [HeapAnalysisDone](/leakcanary/api/leakcanary/-event-listener/-event/-heap-analysis-done/) is dispatched from the **main** process. LeakCanary stores the analysis in its database from the `:leakcanary` process, then runs a WorkManager worker in the main process which reads the analysis back and dispatches the event. This also means that if the main process dies while the analysis is running, the event is dispatched the next time the main process starts, rather than being lost.
+* [HeapAnalysisProgress](/leakcanary/api/leakcanary/-event-listener/-event/-heap-analysis-progress/) is dispatched from the **`:leakcanary`** process, since that's where the analysis runs.
+* All other events (`DumpingHeap`, `HeapDump`, `HeapDumpFailed`) are dispatched from the **main** process, since that's where the heap dump is triggered.
+
+So a custom listener that only cares about the analysis result can be configured in the main process:
+
+```kotlin
+class DebugExampleApplication : ExampleApplication() {
+
+  override fun onCreate() {
+    super.onCreate()
+    if (LeakCanaryProcess.isInAnalyzerProcess(this)) {
+      return
+    }
+    LeakCanary.config = LeakCanary.config.run {
+      copy(eventListeners = eventListeners + EventListener { event ->
+        if (event is HeapAnalysisDone<*>) {
+          uploadToMyBackend(event.heapAnalysis)
+        }
+      })
+    }
+  }
+}
+```
+
 ## Setting up LeakCanary for different product flavors
 
 You can setup LeakCanary to run in a specific product flavors of your app. For example, create:
