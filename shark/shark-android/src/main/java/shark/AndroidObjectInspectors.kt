@@ -463,30 +463,20 @@ enum class AndroidObjectInspectors : ObjectInspector {
   ANDROIDX_FRAGMENT {
     override val leakingObjectFilter = { heapObject: HeapObject ->
       heapObject is HeapInstance &&
-        heapObject instanceOf "androidx.fragment.app.Fragment" &&
-        heapObject["androidx.fragment.app.Fragment", "mLifecycleRegistry"]!!
-          .valueAsInstance
-          ?.lifecycleRegistryState == "DESTROYED"
+        heapObject instanceOf ANDROIDX_FRAGMENT_CLASS_NAME &&
+        heapObject.androidXFragmentLifecycleStatus() is AndroidXFragmentLifecycleStatus.Destroyed
     }
 
     override fun inspect(
       reporter: ObjectReporter
     ) {
-      reporter.whenInstanceOf("androidx.fragment.app.Fragment") { instance ->
-        val lifecycleRegistryField = instance["androidx.fragment.app.Fragment", "mLifecycleRegistry"]!!
-        val lifecycleRegistry = lifecycleRegistryField.valueAsInstance
-        if (lifecycleRegistry != null) {
-          val state = lifecycleRegistry.lifecycleRegistryState
-          val reason = "Fragment.mLifecycleRegistry.state is $state"
-          if (state == "DESTROYED") {
-            leakingReasons += reason
-          } else {
-            notLeakingReasons += reason
-          }
-        } else {
-          labels += "Fragment.mLifecycleRegistry = null"
+      reporter.whenInstanceOf(ANDROIDX_FRAGMENT_CLASS_NAME) { instance ->
+        when (val status = instance.androidXFragmentLifecycleStatus()) {
+          is AndroidXFragmentLifecycleStatus.Destroyed -> leakingReasons += status.reason
+          is AndroidXFragmentLifecycleStatus.Alive -> notLeakingReasons += status.reason
+          is AndroidXFragmentLifecycleStatus.Unknown -> labels += status.label
         }
-        val mTag = instance["androidx.fragment.app.Fragment", "mTag"]?.value?.readAsJavaString()
+        val mTag = instance[ANDROIDX_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
           labels += "Fragment.mTag = $mTag"
         }
@@ -995,7 +985,7 @@ private fun ObjectReporter.applyFromField(
   notLeakingReasons += delegateReporter.notLeakingReasons.map { "$prefix $it" }
 }
 
-private val HeapInstance.lifecycleRegistryState: String
+internal val HeapInstance.lifecycleRegistryState: String
   get() {
     // LifecycleRegistry was converted to Kotlin
     // https://cs.android.com/androidx/platform/frameworks/support/+/36833f9ab0c50bf449fc795e297a0e124df3356e
