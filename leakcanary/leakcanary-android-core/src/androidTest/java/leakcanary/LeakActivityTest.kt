@@ -4,10 +4,10 @@ import android.view.Menu
 import android.view.Window
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withClassName
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
@@ -20,6 +20,7 @@ import leakcanary.internal.activity.db.LeakTable.AllLeaksProjection
 import leakcanary.internal.activity.db.ScopedLeaksDb
 import org.hamcrest.Description
 import org.hamcrest.Matcher
+import org.hamcrest.Matchers.endsWith
 import org.hamcrest.TypeSafeMatcher
 import org.junit.Rule
 import org.junit.Test
@@ -73,7 +74,10 @@ internal class LeakActivityTest {
       window.callback = NonNullMenuWindowCallback(window.callback)
     }
 
-    openActionBarOverflowOrOptionsMenu(InstrumentationRegistry.getInstrumentation().targetContext)
+    // Not Espresso.openActionBarOverflowOrOptionsMenu(): that presses the menu key on devices that
+    // report a permanent one, which emulators still do, and the LeakCanary menu is hosted in a
+    // Toolbar rather than in the activity options menu.
+    onView(withClassName(endsWith("OverflowMenuButton"))).perform(click())
 
     onView(withText(R.string.leak_canary_delete_all)).check(matches(isDisplayed()))
   }
