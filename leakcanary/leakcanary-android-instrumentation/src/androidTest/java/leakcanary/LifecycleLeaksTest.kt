@@ -119,9 +119,39 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
           .isEqualTo(expectedLeakClass.name)
         assertThat(leakTrace.leakingObject.leakingStatusReason)
           .describedAs("$heapAnalysis")
-          .contains("Fragment.mLifecycleRegistry.state is DESTROYED")
+          .contains(
+            "Fragment.mLifecycleRegistry.state was reset to INITIALIZED by Fragment#initState()" +
+              " after Fragment#onDestroy()"
+          )
       }
     }
+  }
+
+  /**
+   * From androidx.fragment 1.1.0 on, `Fragment#initState()` resets a destroyed fragment back to a
+   * pristine state, which makes it legal to add that very same instance to a `FragmentManager`
+   * again. A fragment that is added back is still in use, so LeakCanary should not watch it.
+   */
+  @Test
+  fun reusedFragmentNotWatched() {
+    triggersOnActivityCreated {
+      activityRule.launchActivity(null)
+    }
+
+    getOnMainSync {
+      val fragment = Fragment()
+      activity.addFragmentNow(fragment)
+      activity.removeFragmentNow(fragment)
+      // Removing the fragment cleared its ViewModelStore, which makes LeakCanary watch the view
+      // models that store held. This test is about the fragment itself, so forget about those.
+      AppWatcher.objectWatcher.clearAllObjectsTracked()
+      activity.addFragmentNow(fragment)
+    }
+    // AndroidXFragmentDestroyWatcher decides whether a destroyed fragment is really going away
+    // once the transaction that destroyed it is done, so let the main thread get there.
+    runOnMainSync { }
+
+    assertThat(AppWatcher.objectWatcher.hasWatchedObjects).isFalse()
   }
 
   @Test
