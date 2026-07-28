@@ -56,6 +56,11 @@ detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", 
 # and they'll automatically resolve to higher version without having to necessarily resort to a
 # resolution strategy.
 androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
+# androidx.fragment 1.1.0 changed Fragment#initState() to reset a destroyed fragment back to an
+# INITIALIZED lifecycle state, which LeakCanary has to account for. Instrumentation tests run
+# against a recent version so that they cover the behavior that apps actually run, while the
+# compileOnly dependency above stays at the lowest version LeakCanary supports.
+androidX-fragment-test = { module = "androidx.fragment:fragment", version = "1.8.6" }
 androidX-multidex = { module = "androidx.multidex:multidex", version = "2.0.1" }
 # Exposed transitively, avoid increasing
 androidX-startup = { module = "androidx.startup:startup-runtime", version = "1.0.0" }

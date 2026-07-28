@@ -5,6 +5,13 @@
     android:orientation="vertical"
     android:fitsSystemWindows="true"
     >
+  <Toolbar
+      android:id="@+id/leak_canary_toolbar"
+      style="@style/leak_canary_Widget.Toolbar"
+      android:layout_width="match_parent"
+      android:layout_height="?android:attr/actionBarSize"
+      />
+
   <FrameLayout
       android:id="@+id/leak_canary_main_container"
       android:layout_width="match_parent"
