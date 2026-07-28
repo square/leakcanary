@@ -64,6 +64,18 @@ class HprofIndexParsingTest {
     }
   }
 
+  @Test fun `findObjectByIndex supports index 0`() {
+    val bytes = dump {
+      instance(clazz("com.example.MyClass1"))
+    }
+
+    bytes.openHeapGraph().use { graph ->
+      val firstObject = graph.findObjectByIndex(0)
+
+      assertThat(firstObject.objectId).isEqualTo(graph.objects.first().objectId)
+    }
+  }
+
   @Test fun `indexedObjectOrNull index round trips through objectAtIndex for primitive arrays`() {
     // The global index returned by indexedObjectOrNull is the concatenation of class, instance,
     // object array and primitive array indexes. The offset for primitive arrays must add the

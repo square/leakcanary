@@ -5,6 +5,7 @@ Please thank our [contributors](https://github.com/square/leakcanary/graphs/cont
 
 ## Unreleased
 
+* 💥 `HeapGraph.findObjectByIndex(0)` threw an `IllegalArgumentException` instead of returning the first object of the heap dump.
 * 🐛 [#2857](https://github.com/square/leakcanary/pull/2857) Retained fragments were reported as not leaking with androidx.fragment 1.1.0 and higher.
 * 💥 Opening the overflow menu in the LeakCanary activity crashed apps that wrap `Window.Callback`, because the framework decor action bar calls `Window.Callback.onMenuOpened()` with a `null` menu ([b/188568911](https://issuetracker.google.com/issues/188568911)) even though that parameter is annotated as non null, which Kotlin wrappers rightfully null check. The LeakCanary activity now hosts its own `Toolbar` instead of using the decor action bar, so `onMenuOpened()` is never called.
 * 🐛 [#1789](https://github.com/square/leakcanary/issues/1789) When running the analysis in a separate process (`leakcanary-android-process`), the `HeapAnalysisDone` event was dispatched in the `:leakcanary` process, so it never reached the `LeakCanary.Config.eventListeners` configured in the main process. The `:leakcanary` process now stores the analysis in LeakCanary's database and a chained WorkManager worker dispatches the event from the main process, which also means the event still gets dispatched if the main process dies while the analysis is running.
