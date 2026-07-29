@@ -321,7 +321,7 @@ class HprofPrimitiveArrayStripper {
                 val arrayLength = source.transferInt()
                 // arrayClassId
                 source.transfer(identifierByteSize)
-                source.transfer(arrayLength * identifierByteSize)
+                source.transfer(arrayLength.toLong() * identifierByteSize)
               }
 
               PRIMITIVE_ARRAY_DUMP.tag -> {

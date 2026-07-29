@@ -394,14 +394,16 @@ class HprofRecordReader internal constructor(
   fun skipObjectArrayDumpRecord() {
     skip(identifierByteSize + INT_SIZE)
     val arrayLength = readInt()
-    skip(identifierByteSize + arrayLength * identifierByteSize)
+    // The elements of an array can take more than 2 GB, so the byte count has to be computed as a
+    // Long. As an Int it wraps negative and skips backwards.
+    skip(identifierByteSize + arrayLength.toLong() * identifierByteSize)
   }
 
   fun skipPrimitiveArrayDumpRecord() {
     skip(identifierByteSize + INT_SIZE)
     val arrayLength = readInt()
     val type = readUnsignedByte()
-    skip(arrayLength * typeSizes[type])
+    skip(arrayLength.toLong() * typeSizes[type])
   }
 
   fun skipHeapDumpInfoRecord() {
