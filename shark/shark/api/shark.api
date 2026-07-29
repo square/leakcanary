@@ -153,6 +153,7 @@ public abstract interface class shark/FilteringLeakingObjectFinder$LeakingObject
 
 public final class shark/FirstHeapTraversal : shark/HeapTraversalOutput {
 	public fun <init> (Lshark/ShortestPathObjectNode;Lshark/InitialState;)V
+	public fun getHeapDumpCount ()Ljava/lang/Integer;
 	public fun getScenarioLoopsPerGraph ()I
 	public fun getShortestPathTree ()Lshark/ShortestPathObjectNode;
 	public fun getTraversalCount ()I
@@ -262,6 +263,7 @@ public final class shark/HeapDiff : shark/HeapTraversalOutput {
 	public static final field Companion Lshark/HeapDiff$Companion;
 	public fun <init> (ILshark/ShortestPathObjectNode;Ljava/util/List;Lshark/HeapTraversalInput;)V
 	public final fun getGrowingObjects ()Ljava/util/List;
+	public fun getHeapDumpCount ()Ljava/lang/Integer;
 	public fun getScenarioLoopsPerGraph ()I
 	public fun getShortestPathTree ()Lshark/ShortestPathObjectNode;
 	public fun getTraversalCount ()I
@@ -284,6 +286,7 @@ public final class shark/HeapDominatorTree$Companion {
 }
 
 public abstract interface class shark/HeapTraversalInput {
+	public abstract fun getHeapDumpCount ()Ljava/lang/Integer;
 	public abstract fun getScenarioLoopsPerGraph ()I
 	public abstract fun getTraversalCount ()I
 }
@@ -309,8 +312,9 @@ public final class shark/InitialState : shark/HeapTraversalInput {
 	public static final field Companion Lshark/InitialState$Companion;
 	public static final field DEFAULT_SCENARIO_LOOPS_PER_GRAPH I
 	public fun <init> ()V
-	public fun <init> (I)V
-	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun <init> (ILjava/lang/Integer;)V
+	public synthetic fun <init> (ILjava/lang/Integer;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getHeapDumpCount ()Ljava/lang/Integer;
 	public fun getScenarioLoopsPerGraph ()I
 	public fun getTraversalCount ()I
 }

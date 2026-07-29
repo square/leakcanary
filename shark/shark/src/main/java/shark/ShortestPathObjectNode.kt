@@ -45,8 +45,9 @@ class ShortestPathObjectNode(
    * would free, but the [retained] of all the growing nodes add up to the size of the subgraph
    * they hold together. See `LeakShareCalculator`.
    *
-   * [UNKNOWN_RETAINED] for nodes that aren't reported as growing, and for every node of a
-   * [FirstHeapTraversal], which has no growing nodes to compute this from.
+   * [UNKNOWN_RETAINED] for nodes that aren't reported as growing, for every node of a
+   * [FirstHeapTraversal], which has no growing nodes to compute this from, and for the traversals
+   * that skipped computing retained sizes (see [HeapTraversalInput.heapDumpCount]).
    */
   var retained: Retained = UNKNOWN_RETAINED
     internal set

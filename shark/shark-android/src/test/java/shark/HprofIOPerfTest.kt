@@ -205,6 +205,50 @@ class HprofIOPerfTest {
     )
   }
 
+  @Test fun `freeze object growth detection random access metrics`() {
+    val skippingRetainedSizes = growthTraversalRandomAccessMetrics(computeRetainedSizes = false)
+    val computingRetainedSizes = growthTraversalRandomAccessMetrics(computeRetainedSizes = true)
+
+    assertThat(skippingRetainedSizes.toString()).isEqualTo(
+      "reads=20006 medianBytes=24.0 totalBytes=560144 distinctPages=435 pageReads=20144"
+    )
+    assertThat(computingRetainedSizes.toString()).isEqualTo(
+      "reads=40016 medianBytes=24.0 totalBytes=1120384 distinctPages=435 pageReads=40292"
+    )
+  }
+
+  /**
+   * The reads of the traversal of the last of 2 heap dumps of a growing heap, which is the
+   * traversal that diffs the two and reports the growing objects.
+   */
+  private fun growthTraversalRandomAccessMetrics(computeRetainedSizes: Boolean): Reads {
+    val dumps = growingHeapDumps(
+      dumpCount = 2,
+      stableEntryCount = 20_000,
+      growthPerDump = 2
+    )
+    val detector = ObjectGrowthDetector.forJvmHeap()
+    var previousTraversal: HeapTraversalInput = InitialState(
+      scenarioLoopsPerGraph = 1,
+      // Retained sizes are computed for the last 2 heap dumps, so a count of 2 computes them for
+      // the traversal we measure and a count of 4 skips them.
+      heapDumpCount = if (computeRetainedSizes) 2 else 4
+    )
+    lateinit var lastSource: MetricsDualSourceProvider
+    dumps.forEach { dump ->
+      val source = MetricsDualSourceProvider(dump)
+      lastSource = source
+      previousTraversal = source.openHeapGraph().use { graph ->
+        detector.findGrowingObjects(graph, previousTraversal)
+      }
+    }
+    val growingObject = (previousTraversal as HeapDiff).growingObjects.single()
+    check(growingObject.retained.isUnknown != computeRetainedSizes) {
+      "Expected retained size to be ${if (computeRetainedSizes) "" else "un"}known: $growingObject"
+    }
+    return Reads(lastSource.sourcesMetrics.last())
+  }
+
   class Reads(reads: List<Read>) {
     val readsCount = reads.size
     val medianBytesRead = reads.byteCounts.median()

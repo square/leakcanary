@@ -200,6 +200,29 @@ class ObjectGrowthDetectorTest {
   }
 
   @Test
+  fun `retained size not computed before the second to last heap dump`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = (1..4).map { dumpIndex ->
+      dump {
+        classWithStringsInStaticField(*(1..dumpIndex).map { "Hello $it" }.toTypedArray())
+      }
+    }
+
+    val traversals = detector.traverseAll(dumps)
+
+    val retainedPerTraversal = traversals.map { traversal ->
+      (traversal as? HeapDiff)?.growingObjects?.single()?.retained
+    }
+    assertThat(retainedPerTraversal[0]).isNull()
+    assertThat(retainedPerTraversal[1]!!.isUnknown).isTrue()
+    assertThat(retainedPerTraversal[2]!!.isUnknown).isFalse()
+    assertThat(retainedPerTraversal[3]!!.isUnknown).isFalse()
+    // Computed for the 3rd traversal, so the 4th can diff against it.
+    assertThat(traversals.last().let { it as HeapDiff }.growingObjects.single().retainedIncrease)
+      .isNotEqualTo(ZERO_RETAINED)
+  }
+
+  @Test
   fun `object growth computes retained size increase with 3 iterations`() {
     val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
@@ -580,17 +603,29 @@ class ObjectGrowthDetectorTest {
     fun findRepeatedlyGrowingObjects(
       heapGraphs: List<HeapGraph>,
       scenarioLoopsPerGraph: Int = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
-    ): HeapDiff {
-      var previousTraversal: HeapTraversalInput = InitialState(scenarioLoopsPerGraph)
+    ) = traverseAll(heapGraphs, scenarioLoopsPerGraph).last() as HeapDiff
+
+    /** The output of the traversal of each heap dump, in order. */
+    fun traverseAll(
+      heapGraphs: List<HeapGraph>,
+      scenarioLoopsPerGraph: Int = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
+    ): List<HeapTraversalOutput> {
+      val outputs = mutableListOf<HeapTraversalOutput>()
+      var previousTraversal: HeapTraversalInput = InitialState(
+        scenarioLoopsPerGraph = scenarioLoopsPerGraph,
+        heapDumpCount = heapGraphs.size
+      )
       for (heapGraph in heapGraphs) {
-        previousTraversal = objectGrowthDetector.findGrowingObjects(heapGraph, previousTraversal)
-        if (previousTraversal is HeapDiff && !previousTraversal.isGrowing) {
-          check(previousTraversal.traversalCount == heapGraphs.size) {
-            "Expected to go through all ${heapGraphs.size} heap dumps, stopped at ${previousTraversal.traversalCount}"
+        val output = objectGrowthDetector.findGrowingObjects(heapGraph, previousTraversal)
+        outputs += output
+        previousTraversal = output
+        if (output is HeapDiff && !output.isGrowing) {
+          check(output.traversalCount == heapGraphs.size) {
+            "Expected to go through all ${heapGraphs.size} heap dumps, stopped at ${output.traversalCount}"
           }
         }
       }
-      return previousTraversal as HeapDiff
+      return outputs
     }
   }
 
