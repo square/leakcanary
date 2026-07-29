@@ -15,18 +15,23 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
 /**
  * Captures the live JVM stack trace of a worker thread parked at a known point, then dumps the
  * heap and reconstructs that same thread's stack trace from the dump, and asserts the two agree
- * from the worker method down — both as [StackTraceElement]s and as rendered strings.
+ * over the frames this test declares — both as [StackTraceElement]s and as rendered strings.
  *
  * This lives in its own class (rather than in [JvmThreadDumpTest]) because it needs the worker to
  * stay parked at a known point while both the live capture and the heap dump happen.
  *
- * The comparison starts at the worker method rather than the very top of the stack: the frames
- * above it are JVM park internals that aren't guaranteed to be recorded identically by the live
- * thread dump API and the HPROF format. Live [StackTraceElement]s are also normalized to drop the
- * module name / version that the JVM attaches to `java.base` frames (e.g. `Thread.run`), since
- * those can't be reconstructed from a heap dump. The worker is driven by a named [ParkingWorker]
- * rather than a lambda so that every frame from the worker method down is a real declared method
- * (a lambda shows up as a JVM hidden class whose name carries an environment-specific hash).
+ * The comparison covers the frames this test declares itself, from the worker method down to the
+ * worker's own `run`. Above and below that the two views are not guaranteed to agree: the frames on
+ * top are JVM park internals that the live thread dump API and the HPROF format don't have to record
+ * identically, and the frames underneath are [Thread]'s. On JDK 21 and newer [Thread.run] reaches
+ * the task through `Thread.runWith`, which is annotated `@Hidden` and therefore left out of
+ * [Thread.getStackTrace] while the heap dump records it like any other frame.
+ *
+ * Live [StackTraceElement]s are also normalized to drop the module name / version that the JVM
+ * attaches to `java.base` frames, since those can't be reconstructed from a heap dump. The worker is
+ * driven by a named [ParkingWorker] rather than a lambda so that every frame compared is a real
+ * declared method (a lambda shows up as a JVM hidden class whose name carries an
+ * environment-specific hash).
  */
 class JvmThreadDumpStackTraceEqualityTest {
 
@@ -95,9 +100,10 @@ class JvmThreadDumpStackTraceEqualityTest {
 
   private fun dumpedThread() = graph.threads.single { it.name == threadName }
 
-  /** Everything from the worker method down, so we skip the volatile park internals on top. */
-  private fun List<StackTraceElement>.fromWorkerMethod(): List<StackTraceElement> {
+  /** The frames this test declares: the volatile park internals above and [Thread]'s below are cut. */
+  private fun List<StackTraceElement>.workerFrames(): List<StackTraceElement> {
     return dropWhile { it.methodName != workerMethodName }
+      .takeWhile { it.className != Thread::class.java.name }
   }
 
   /** Rebuilds an element without module name / version, which a heap dump can't reconstruct. */
@@ -105,17 +111,22 @@ class JvmThreadDumpStackTraceEqualityTest {
     return StackTraceElement(className, methodName, fileName, lineNumber)
   }
 
-  @Test fun `reconstructed stack trace equals live stack trace from worker frame down`() {
-    val expected = liveStackTrace.fromWorkerMethod().map { it.withoutModule() }
-    val actual = dumpedThread().toStackTrace().fromWorkerMethod()
+  @Test fun `reconstructed stack trace equals live stack trace over the declared frames`() {
+    val expected = liveStackTrace.workerFrames().map { it.withoutModule() }
+    val actual = dumpedThread().toStackTrace().workerFrames()
 
+    // Pins both ends of the range so that a cut going wrong fails here rather than leaving two
+    // empty lists to compare equal.
+    assertThat(expected.first().methodName).isEqualTo(workerMethodName)
+    assertThat(expected.last().className).isEqualTo(ParkingWorker::class.java.name)
     assertThat(actual).isEqualTo(expected)
   }
 
-  @Test fun `reconstructed stack trace renders like live stack trace from worker frame down`() {
-    val expected = liveStackTrace.fromWorkerMethod().joinToString("\n") { it.withoutModule().toString() }
-    val actual = dumpedThread().toStackTrace().fromWorkerMethod().joinToString("\n")
+  @Test fun `reconstructed stack trace renders like live stack trace over the declared frames`() {
+    val expected = liveStackTrace.workerFrames().joinToString("\n") { it.withoutModule().toString() }
+    val actual = dumpedThread().toStackTrace().workerFrames().joinToString("\n")
 
+    assertThat(expected).contains(workerMethodName, "ParkingWorker.run")
     assertThat(actual).isEqualTo(expected)
   }
 }
