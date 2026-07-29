@@ -54,10 +54,10 @@ import shark.internal.invalidObjectIdErrorMessage
  *   (it's not in R₀), so its shallow size is attributed to the leaking object currently being
  *   explored. An object reachable from more than one leaking object is attributed to the
  *   first one that reaches it, so sizes never double count and always sum to the size of the
- *   subgraph retained by the leaking objects as a group. It also means the size reported for
- *   an individual leaking object is a *lower* bound of what fixing that leak alone would free,
- *   and that which of two leaking objects gets credited for a shared object depends on the
- *   order phase 1 found them.
+ *   subgraph retained by the leaking objects as a group. It also means such an object is credited
+ *   in full to the leaking object phase 1 found first, so fixing that one leak on its own frees
+ *   less than the size reported for it, and which of two leaking objects gets credited for it
+ *   depends on the order phase 1 found them.
  *
  * - **Leaking objects reachable only through other leaking objects**: since phase 1 stops at
  *   leaking objects, a leaking object nested under another one is never found there. Phase 2

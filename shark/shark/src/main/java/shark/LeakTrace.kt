@@ -29,7 +29,10 @@ data class LeakTrace(
 ) : Serializable {
 
   /**
-   * The minimum number of bytes which would be freed if the leak was fixed.
+   * The number of bytes credited to [leakingObject], i.e. its
+   * [LeakTraceObject.retainedHeapByteSize]. Fixing this one leak can free less than that, for the
+   * reasons documented there.
+   *
    * Null if the retained heap size was not computed.
    */
   val retainedHeapByteSize: Int?
@@ -37,20 +40,22 @@ data class LeakTrace(
       val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
       return allObjects.filter { it.leakingStatus == LEAKING }
         .mapNotNull { it.retainedHeapByteSize }
-        // The minimum released is the max held by a leaking object.
+        // Only [leakingObject], the last object of the trace, is given a retained size, so there's
+        // at most one value to pick from here.
         .maxOrNull()
     }
 
   /**
-   * The minimum number of objects which would be unreachable if the leak was fixed. Null if the
-   * retained heap size was not computed.
+   * The number of objects credited to [leakingObject], counting it. Credited the same way as
+   * [retainedHeapByteSize]. Null if the retained heap size was not computed.
    */
   val retainedObjectCount: Int?
     get() {
       val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
       return allObjects.filter { it.leakingStatus == LEAKING }
         .mapNotNull { it.retainedObjectCount }
-        // The minimum released is the max held by a leaking object.
+        // Only [leakingObject], the last object of the trace, is given a retained size, so there's
+        // at most one value to pick from here.
         .max()
     }
 
