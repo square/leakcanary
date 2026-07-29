@@ -16,7 +16,7 @@
 # We would like to use Kotlin recent language features but keep Kotlin 1.3 library APIs
 # The benefit is that depending clients do not have to upgrade to Kotlin 1.4
 compose = "1.4.3"
-kotlin = "2.4.0"
+kotlin = "2.4.10"
 coroutines = "1.7.3"
 androidXTest = "1.5.0"
 androidXJunit = "1.1.5"
@@ -29,14 +29,17 @@ androidMinSdk = "24"
 androidCompileSdk = "35"
 
 [libraries]
+# Held at 9.2.1: the lint that AGP 9.3 bundles calls java.util.List.removeLast() from Java 8
+# bytecode, and that method only exists from Java 21, so every lint task dies with a
+# NoSuchMethodError on the JDK 17 this repo builds with.
 gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "9.2.1" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
-gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.32.0" }
+gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.37.0" }
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version.ref = "sqldelight" }
 gradlePlugin-hilt = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
-gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version = "2.3.9" }
+gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version = "2.3.10" }
 gradlePlugin-composeCompiler = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
 # Used by the root build script to validate the ABI of Android library modules, see KT-83410.
 kotlin-abi-tools = { module = "org.jetbrains.kotlin:abi-tools", version.ref = "kotlin" }

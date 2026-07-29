@@ -4,7 +4,6 @@ import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.ScopedArtifacts
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
-import com.vanniktech.maven.publish.SonatypeHost
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import java.net.URI
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
@@ -202,7 +201,7 @@ val publicApiProjects = subprojects.filter {
 configure(publicApiProjects) {
   pluginManager.withPlugin("com.vanniktech.maven.publish") {
     extensions.configure<MavenPublishBaseExtension> {
-      publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL, automaticRelease = true)
+      publishToMavenCentral(automaticRelease = true)
       signAllPublications()
     }
   }
