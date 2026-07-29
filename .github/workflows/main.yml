@@ -42,12 +42,21 @@ jobs:
         # with RootViewWithoutFocusException until something dismisses it.
         target: [ default ]
         channel: [ stable ]
+        # One emulator per major Android release, from androidMinSdk up to the newest system image
+        # that exists. The point releases in between (25, 27, 32) are left out: for everything
+        # LeakCanary reaches into they behave like the release they follow, so they cost a job and
+        # cover nothing the neighbouring level doesn't.
         api-level:
           - 24
           - 26
+          - 28
+          - 29
+          - 30
           - 31
           - 33
           - 34
+          - 35
+          - 36
     steps:
       - name: Enable KVM group perms
         run: |
