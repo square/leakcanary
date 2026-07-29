@@ -94,7 +94,9 @@ fun ExplorerApp(
         state = HeapDumpState.Opening(file, step)
       }
       val sizes = session.read { it.sizes }
-      HeapDumpState.Open(session, sizes).also { SharkLog.d { it.statusLine() } }
+      HeapDumpState.Open(session, sizes).also {
+        SharkLog.d { "${it.statusLine()} · ${sizes.weakerStrengthsText()}" }
+      }
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not open $file" }
       HeapDumpState.Failed(file, throwable.toString())
@@ -315,6 +317,22 @@ private fun HeapDumpState.statusLine(): String = when (this) {
     "${formatByteSize(sizes.unreachableByteCount)} uncollected garbage"
 }
 
+/**
+ * What the checkboxes say, for the log: which strengths a dump has anything at all at is the least
+ * predictable thing about it, so a terminal run should say it rather than only the window.
+ */
+private fun HeapSizes.weakerStrengthsText(): String {
+  val weaker = ReachabilityStrength.values()
+    .filter { it != ReachabilityStrength.STRONG && byteCountByStrength.getValue(it) > 0L }
+  return if (weaker.isEmpty()) {
+    "nothing reachable only through a java.lang.ref.Reference"
+  } else {
+    weaker.joinToString(", ") { strength ->
+      "${formatByteSize(byteCountByStrength.getValue(strength))} ${strength.displayName.lowercase()}"
+    }
+  }
+}
+
 private fun HeapDumpState.centerMessage(): String = when (this) {
   HeapDumpState.None -> NO_HEAP_DUMP
   is HeapDumpState.Opening -> step
@@ -340,10 +358,11 @@ internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains
 
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
- * which is the normal case and looks like a bug otherwise: a heap dump is written after a garbage
- * collection, and what was only weakly reachable was collected by it.
+ * which would otherwise read as a bug. Common but not a rule — see the notes on reachability.
  */
 internal const val NOTHING_WEAKER =
-  "Nothing in this heap dump is reachable only through a java.lang.ref.Reference: it was written " +
-    "after a garbage collection, which reclaimed what was. The uncollected garbage above is what " +
-    "that collection missed."
+  "Nothing in this heap dump is reachable only through a java.lang.ref.Reference. That's common, " +
+    "because the garbage collection before a dump clears the references whose referent nothing else " +
+    "was holding — but it isn't a given: a referent a thread got out of a reference and has since let " +
+    "go of is weakly reachable again until the next collection. The uncollected garbage above is " +
+    "objects nothing referenced at all."

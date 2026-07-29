@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.util.lerp
 import shark.explorer.CellSubject
 import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength
@@ -114,12 +115,15 @@ private fun strongColor(
   depth: Int,
   hueIndex: Int
 ): Color = when (scheme) {
-  // Lighter the deeper it sits, so nesting reads without a border to look for.
-  CellColorScheme.DAISY -> depth.coerceAtMost(DAISY_MAX_STEP).let { step ->
+  // Lighter the deeper it sits, so nesting reads without a border to look for. Interpolated between
+  // named bounds rather than stepped per level, because a step per level walks out of the range HSV
+  // accepts: adding 0.018 to a 0.90 value crashed at depth 7, on the first heap dump nested that deep.
+  CellColorScheme.DAISY -> {
+    val deepest = depth.coerceAtMost(DAISY_DEEPEST_SHADE).toFloat() / DAISY_DEEPEST_SHADE
     Color.hsv(
       hue = DAISY_HUES[hueIndex % DAISY_HUES.size],
-      saturation = DAISY_SATURATION - step * DAISY_SATURATION_STEP,
-      value = DAISY_VALUE + step * DAISY_VALUE_STEP
+      saturation = lerp(DAISY_MAX_SATURATION, DAISY_MIN_SATURATION, deepest),
+      value = lerp(DAISY_MIN_VALUE, DAISY_MAX_VALUE, deepest)
     )
   }
   CellColorScheme.REACHABILITY -> shaded(STRONG.hue, SHADED_SATURATION, depth)
@@ -176,11 +180,13 @@ private val ReachabilityStrength.hue: Float
 private val DAISY_HUES = floatArrayOf(
   4f, 200f, 42f, 262f, 168f, 330f, 24f, 232f, 140f, 292f, 60f, 190f
 )
-private const val DAISY_SATURATION = 0.62f
-private const val DAISY_SATURATION_STEP = 0.055f
-private const val DAISY_VALUE = 0.90f
-private const val DAISY_VALUE_STEP = 0.018f
-private const val DAISY_MAX_STEP = 8
+private const val DAISY_MAX_SATURATION = 0.62f
+private const val DAISY_MIN_SATURATION = 0.18f
+private const val DAISY_MIN_VALUE = 0.90f
+private const val DAISY_MAX_VALUE = 0.99f
+
+/** The depth the ramp bottoms out at. Deeper than this and nesting has to read from the borders. */
+private const val DAISY_DEEPEST_SHADE = 8
 private val DAISY_BORDER = Color(0x66FFFFFF)
 
 private const val SLATE_HUE = 212f

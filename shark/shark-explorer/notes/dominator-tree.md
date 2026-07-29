@@ -47,14 +47,23 @@ ancestor and the treemap reshuffles, revealing nothing. So `StrengthFilteringRef
 being followed. Checking a strength nothing in the dump is reachable at then leaves the treemap exactly
 as it was — which, as below, is nearly every strength in nearly every dump.
 
-**Expect `SOFT`, `WEAK` and `PHANTOM` to be 0 bytes in a real heap dump.** A dump is written after a
-garbage collection, and that collection reclaimed everything that was only reachable through a
-`Reference`. What's left is uncollected garbage, which is a different number and a different colour.
-`FINALIZER` does show up: objects queued for finalization are still there because their `finalize()`
-hadn't run. Measured on `compose_leak.hprof`: 12 MB strong, exactly 0 B soft/weak/finalizer/phantom,
-3 MB uncollected garbage. On a 287 MB production dump: 262 MB strong, 7 MB uncollected garbage, and
-5 finalizer reachable objects totalling 1.1 KB. The UI therefore disables a strength with nothing at
-it and says why, rather than offering a checkbox that can't change anything.
+**`SOFT`, `WEAK` and `PHANTOM` often come out at 0 bytes — but don't treat that as a rule.** The
+collection that precedes a dump clears a `Reference` whose referent nothing else was holding, so on
+many dumps there's nothing left at those strengths. Measured on `compose_leak.hprof`: 12 MB strong,
+exactly 0 B soft/weak/finalizer/phantom, 3 MB uncollected garbage. On a 287 MB production dump: 262 MB
+strong, 7 MB uncollected garbage, and 5 finalizer reachable objects totalling 1.1 KB.
+
+**A dump can and does contain objects that are only weakly reachable**, and not as uncollected
+garbage: a referent a thread pulled out of a reference, used, and has since let go of is weakly
+reachable *again*, and stays that way until the next collection — the collection before the dump saw a
+strong path to it and had no reason to clear anything. A weak cache being repeatedly revived that way
+is worth seeing, which is the reason the checkboxes exist rather than the explorer just always
+following what the collector would. Soft references are cleared only under memory pressure, so a
+`SOFT` count of 0 says more about a dump taken at OOM than about heaps in general. `FINALIZER` shows
+up when objects are queued for finalization and their `finalize()` hadn't run.
+
+The UI disables a strength with nothing at it and says why, rather than offering a checkbox that can't
+change anything, and the log line at load says which strengths have bytes.
 
 Two more reference reader behaviours that surprise you when reading a treemap:
 
