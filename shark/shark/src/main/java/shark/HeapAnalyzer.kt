@@ -87,6 +87,7 @@ class HeapAnalyzer constructor(
         }
       }
     } catch (throwable: Throwable) {
+      rethrowIfCanceled(throwable)
       HeapAnalysisFailure(
         heapDumpFile = heapDumpFile,
         createdAtTimeMillis = System.currentTimeMillis(),
@@ -195,12 +196,24 @@ class HeapAnalyzer constructor(
         unreachableObjects = unreachableObjects
       )
     } catch (exception: Throwable) {
+      rethrowIfCanceled(exception)
       HeapAnalysisFailure(
         heapDumpFile = heapDumpFile,
         createdAtTimeMillis = System.currentTimeMillis(),
         analysisDurationMillis = since(analysisStartNanoTime),
         exception = HeapAnalysisException(exception)
       )
+    }
+  }
+
+  /**
+   * An analysis that a [CancelSignal] stopped didn't fail, so it isn't reported as a
+   * [HeapAnalysisFailure]: the caller that canceled sees [CanceledException] thrown instead, and
+   * doesn't have to sort a cancellation it asked for out of the failures it didn't.
+   */
+  private fun rethrowIfCanceled(throwable: Throwable) {
+    if (throwable is CanceledException) {
+      throw throwable
     }
   }
 

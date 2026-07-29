@@ -29,6 +29,7 @@ public abstract interface class shark/HeapGraph {
 	public abstract fun findObjectById (J)Lshark/HeapObject;
 	public abstract fun findObjectByIdOrNull (J)Lshark/HeapObject;
 	public abstract fun findObjectByIndex (I)Lshark/HeapObject;
+	public abstract fun getCancelSignal ()Lshark/CancelSignal;
 	public abstract fun getClassCount ()I
 	public abstract fun getClasses ()Lkotlin/sequences/Sequence;
 	public abstract fun getContext ()Lshark/GraphContext;
@@ -224,6 +225,7 @@ public final class shark/HprofHeapGraph : shark/CloseableHeapGraph {
 	public fun findObjectById (J)Lshark/HeapObject;
 	public fun findObjectByIdOrNull (J)Lshark/HeapObject;
 	public fun findObjectByIndex (I)Lshark/HeapObject;
+	public fun getCancelSignal ()Lshark/CancelSignal;
 	public fun getClassCount ()I
 	public fun getClasses ()Lkotlin/sequences/Sequence;
 	public fun getContext ()Lshark/GraphContext;
@@ -244,10 +246,10 @@ public final class shark/HprofHeapGraph : shark/CloseableHeapGraph {
 
 public final class shark/HprofHeapGraph$Companion {
 	public final fun getINTERNAL_LRU_CACHE_SIZE ()I
-	public final fun openHeapGraph (Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/CloseableHeapGraph;
-	public final fun openHeapGraph (Lshark/DualSourceProvider;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/CloseableHeapGraph;
-	public static synthetic fun openHeapGraph$default (Lshark/HprofHeapGraph$Companion;Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/CloseableHeapGraph;
-	public static synthetic fun openHeapGraph$default (Lshark/HprofHeapGraph$Companion;Lshark/DualSourceProvider;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/CloseableHeapGraph;
+	public final fun openHeapGraph (Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;Lshark/CancelSignal;)Lshark/CloseableHeapGraph;
+	public final fun openHeapGraph (Lshark/DualSourceProvider;Lshark/ProguardMapping;Ljava/util/Set;Lshark/CancelSignal;)Lshark/CloseableHeapGraph;
+	public static synthetic fun openHeapGraph$default (Lshark/HprofHeapGraph$Companion;Ljava/io/File;Lshark/ProguardMapping;Ljava/util/Set;Lshark/CancelSignal;ILjava/lang/Object;)Lshark/CloseableHeapGraph;
+	public static synthetic fun openHeapGraph$default (Lshark/HprofHeapGraph$Companion;Lshark/DualSourceProvider;Lshark/ProguardMapping;Ljava/util/Set;Lshark/CancelSignal;ILjava/lang/Object;)Lshark/CloseableHeapGraph;
 	public final fun setINTERNAL_LRU_CACHE_SIZE (I)V
 }
 
@@ -258,7 +260,7 @@ public final class shark/HprofIndex {
 
 public final class shark/HprofIndex$Companion {
 	public final fun defaultIndexedGcRootTags ()Ljava/util/EnumSet;
-	public final fun indexRecordsOf (Lshark/DualSourceProvider;Lshark/HprofHeader;Lshark/ProguardMapping;Ljava/util/Set;)Lshark/HprofIndex;
-	public static synthetic fun indexRecordsOf$default (Lshark/HprofIndex$Companion;Lshark/DualSourceProvider;Lshark/HprofHeader;Lshark/ProguardMapping;Ljava/util/Set;ILjava/lang/Object;)Lshark/HprofIndex;
+	public final fun indexRecordsOf (Lshark/DualSourceProvider;Lshark/HprofHeader;Lshark/ProguardMapping;Ljava/util/Set;Lshark/CancelSignal;)Lshark/HprofIndex;
+	public static synthetic fun indexRecordsOf$default (Lshark/HprofIndex$Companion;Lshark/DualSourceProvider;Lshark/HprofHeader;Lshark/ProguardMapping;Ljava/util/Set;Lshark/CancelSignal;ILjava/lang/Object;)Lshark/HprofIndex;
 }
 

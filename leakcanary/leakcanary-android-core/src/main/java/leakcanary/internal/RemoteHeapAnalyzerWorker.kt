@@ -11,6 +11,8 @@ import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.HeapAnalysisDoneDispatchWorker.Companion.asDispatchWorkerOutputData
 import leakcanary.internal.HeapAnalyzerWorker.Companion.asEvent
 import leakcanary.internal.HeapAnalyzerWorker.Companion.heapAnalysisForegroundInfo
+import shark.CancelSignal
+import shark.CanceledException
 import shark.SharkLog
 
 internal class RemoteHeapAnalyzerWorker(
@@ -23,20 +25,22 @@ internal class RemoteHeapAnalyzerWorker(
     val heapDump = inputData.asEvent<HeapDump>()
     val result = SettableFuture.create<Result>()
     heapAnalyzerThreadHandler.post {
-      val doneEvent = AndroidDebugHeapAnalyzer.runAnalysisBlocking(heapDump, isCanceled = {
-        result.isCancelled
-      }) { progressEvent ->
-        if (!result.isCancelled) {
-          InternalLeakCanary.sendEvent(progressEvent)
-        }
+      val cancelSignal = CancelSignal {
+        if (result.isCancelled) "WorkManager canceled the remote heap analysis" else null
       }
-      if (result.isCancelled) {
-        SharkLog.d { "Remote heap analysis for ${heapDump.file} was canceled" }
-      } else {
+      try {
+        val doneEvent =
+          AndroidDebugHeapAnalyzer.runAnalysisBlocking(heapDump, cancelSignal) { progressEvent ->
+            if (!result.isCancelled) {
+              InternalLeakCanary.sendEvent(progressEvent)
+            }
+          }
         // We're in the :leakcanary process here, so sending the done event would only reach the
         // listeners configured in this process. Instead we hand the analysis id over to
         // HeapAnalysisDoneDispatchWorker, which runs in the main process and dispatches from there.
         result.set(Result.success(doneEvent.asDispatchWorkerOutputData()))
+      } catch (canceled: CanceledException) {
+        SharkLog.d { "Remote heap analysis for ${heapDump.file} was canceled: ${canceled.cancelReason}" }
       }
     }
     return result

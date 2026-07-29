@@ -15,9 +15,13 @@ import leakcanary.HeapAnalysisJob.Result.Done
 import leakcanary.JobContext
 import okio.buffer
 import okio.sink
+import shark.CancelSignal
+import shark.CancelableSourceProvider
+import shark.CanceledException
 import shark.CloseableHeapGraph
 import shark.ConstantMemoryMetricsDualSourceProvider
 import shark.DualSourceProvider
+import shark.FileSourceProvider
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
@@ -29,7 +33,6 @@ import shark.HprofPrimitiveArrayStripper
 import shark.OnAnalysisProgressListener
 import shark.RandomAccessSource
 import shark.SharkLog
-import shark.ThrowingCancelableFileSourceProvider
 
 internal class RealHeapAnalysisJob(
   private val heapDumpDirectoryProvider: () -> File,
@@ -51,6 +54,17 @@ internal class RealHeapAnalysisJob(
   private var interceptorIndex = 0
 
   private var analysisStep: OnAnalysisProgressListener.Step? = null
+
+  /**
+   * Handed to everything in Shark that reads the heap dump, which then stops on its own shortly
+   * after [cancel] is called. The step is read here rather than passed in because it's whatever step
+   * the analysis had reached by the time a read noticed, which is the useful thing to report.
+   */
+  private val cancelSignal = CancelSignal {
+    _canceled.get()?.let { canceled ->
+      "${canceled.cancelReason} (stopped at ${analysisStep?.name ?: "Reading heap dump"})"
+    }
+  }
 
   override val executed
     get() = _executed.get()
@@ -90,17 +104,13 @@ internal class RealHeapAnalysisJob(
       return currentInterceptor.intercept(this)
     } else {
       interceptorIndex++
-      val result = dumpAndAnalyzeHeap()
-      val analysis = result.analysis
-      analysis.heapDumpFile.delete()
-      if (analysis is HeapAnalysisFailure) {
-        val cause = analysis.exception.cause
-        if (cause is StopAnalysis) {
-          return _canceled.get()!!.run {
-            copy(cancelReason = "$cancelReason (stopped at ${cause.step})")
-          }
-        }
+      val result = try {
+        dumpAndAnalyzeHeap()
+      } catch (canceled: CanceledException) {
+        // The reason the signal built already says which step it stopped at.
+        return Canceled(canceled.cancelReason)
       }
+      result.analysis.heapDumpFile.delete()
       return result
     }
   }
@@ -165,6 +175,11 @@ internal class RealHeapAnalysisJob(
           )
         }
       }
+    } catch (canceled: CanceledException) {
+      // proceed() deletes the heap dump of an analysis that ran to the end. A canceled one has no
+      // analysis to carry the file, so it's deleted here instead.
+      heapDumpFile.delete()
+      throw canceled
     } catch (throwable: Throwable) {
       if (dumpDurationMillis == -1L) {
         dumpDurationMillis = SystemClock.uptimeMillis() - heapDumpStart
@@ -234,9 +249,7 @@ internal class RealHeapAnalysisJob(
     strippedHeapDumpFile: File
   ) {
     val sensitiveSourceProvider =
-      ThrowingCancelableFileSourceProvider(sourceHeapDumpFile) {
-        checkStopAnalysis("stripping heap dump")
-      }
+      CancelableSourceProvider(FileSourceProvider(sourceHeapDumpFile), cancelSignal)
 
     val stripper = HprofPrimitiveArrayStripper()
 
@@ -255,10 +268,8 @@ internal class RealHeapAnalysisJob(
 
   private fun analyzeHeapWithStats(heapDumpFile: File): Pair<HeapAnalysis, String> {
     val fileLength = heapDumpFile.length()
-    val analysisSourceProvider = ConstantMemoryMetricsDualSourceProvider(
-      ThrowingCancelableFileSourceProvider(heapDumpFile) {
-        checkStopAnalysis(analysisStep?.name ?: "Reading heap dump")
-      })
+    val analysisSourceProvider =
+      ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
 
     val deletingFileSourceProvider = object : DualSourceProvider {
       override fun openStreamingSource() = analysisSourceProvider.openStreamingSource()
@@ -274,7 +285,10 @@ internal class RealHeapAnalysisJob(
       }
     }
 
-    return deletingFileSourceProvider.openHeapGraph(config.proguardMappingProvider()).use { graph ->
+    return deletingFileSourceProvider.openHeapGraph(
+      proguardMapping = config.proguardMappingProvider(),
+      cancelSignal = cancelSignal
+    ).use { graph ->
       val heapAnalysis = analyzeHeap(heapDumpFile, graph)
       val lruCacheStats = (graph as HprofHeapGraph).lruCacheStats()
       val randomAccessStats =
@@ -292,9 +306,10 @@ internal class RealHeapAnalysisJob(
     analyzedHeapDumpFile: File,
     graph: CloseableHeapGraph
   ): HeapAnalysis {
+    // Only reports progress: stopping the analysis is the cancel signal's job, and a listener that
+    // did both could only stop it ten times over the course of an analysis.
     val stepListener = OnAnalysisProgressListener { step ->
       analysisStep = step
-      checkStopAnalysis(step.name)
       SharkLog.d { "Analysis in progress, working on: ${step.name}" }
     }
 
@@ -308,19 +323,6 @@ internal class RealHeapAnalysisJob(
       objectInspectors = config.objectInspectors,
       metadataExtractor = config.metadataExtractor
     )
-  }
-
-  private fun checkStopAnalysis(step: String) {
-    if (_canceled.get() != null) {
-      throw StopAnalysis(step)
-    }
-  }
-
-  class StopAnalysis(val step: String) : Exception() {
-    override fun fillInStackTrace(): Throwable {
-      // Skip filling in stacktrace.
-      return this
-    }
   }
 
   companion object {
