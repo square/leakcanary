@@ -22,7 +22,7 @@ dependencies {
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.test.runner)
-  androidTestImplementation(libs.assertjCore)
+  androidTestImplementation(libs.assertjCore.android)
   androidTestImplementation(projects.shark.sharkHprofTest)
   androidTestUtil(libs.androidX.test.orchestrator)
 }

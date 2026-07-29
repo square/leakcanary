@@ -21,7 +21,7 @@ dependencies {
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.fragment.test)
-  androidTestImplementation(libs.assertjCore)
+  androidTestImplementation(libs.assertjCore.android)
 }
 
 android {

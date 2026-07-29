@@ -18,8 +18,8 @@
 compose = "1.4.3"
 kotlin = "2.4.10"
 coroutines = "1.7.3"
-androidXTest = "1.5.0"
-androidXJunit = "1.1.5"
+androidXTest = "1.7.0"
+androidXJunit = "1.3.0"
 workManager = "2.7.0"
 detekt = "1.23.8"
 dokka = "2.2.0"
@@ -63,17 +63,17 @@ androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
 # INITIALIZED lifecycle state, which LeakCanary has to account for. Instrumentation tests run
 # against a recent version so that they cover the behavior that apps actually run, while the
 # compileOnly dependency above stays at the lowest version LeakCanary supports.
-androidX-fragment-test = { module = "androidx.fragment:fragment", version = "1.8.6" }
+androidX-fragment-test = { module = "androidx.fragment:fragment", version = "1.8.9" }
 androidX-multidex = { module = "androidx.multidex:multidex", version = "2.0.1" }
 # Exposed transitively, avoid increasing
 androidX-startup = { module = "androidx.startup:startup-runtime", version = "1.0.0" }
-androidX-test-core = { module = "androidx.test:core", version = "1.5.0" }
-androidX-test-monitor = { module = "androidx.test:monitor", version = "1.6.1" }
+androidX-test-core = { module = "androidx.test:core", version = "1.7.0" }
+androidX-test-monitor = { module = "androidx.test:monitor", version = "1.8.0" }
 androidX-test-rules = { module = "androidx.test:rules", version.ref = "androidXTest" }
 # Exposed transitively, avoid increasing
 androidX-test-runner = { module = "androidx.test:runner", version = "1.5.2" }
-androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = "1.5.0" }
-androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.5.1" }
+androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = "1.6.1" }
+androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.7.0" }
 androidX-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidXJunit" }
 androidX-test-junitKtx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidXJunit" }
 androidX-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version = "2.2.0" }
@@ -81,15 +81,20 @@ androidX-work-runtime = { module = "androidx.work:work-runtime", version.ref = "
 androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", version.ref = "workManager" }
 androidX-collections = { module = "androidx.collection:collection-ktx", version = "1.4.0" }
 
-assertjCore = { module = "org.assertj:assertj-core", version = "3.9.1" }
+assertjCore = { module = "org.assertj:assertj-core", version = "3.27.7" }
+# AssertJ 3.16.0 builds java.time formatters in StandardRepresentation's static initializer, and
+# java.time only exists from API 26, so on API 24 the very first assertion dies with a
+# NoClassDefFoundError. Instrumentation tests run on every API level LeakCanary supports, so they
+# stay on the last version that loads there. Unit tests run on the JVM and use the version above.
+assertjCore-android = { module = "org.assertj:assertj-core", version = "3.15.0" }
 clikt = { module = "com.github.ajalt:clikt", version = "2.3.0" }
 neo4j = { module = "org.neo4j:neo4j", version = "4.4.6" }
 curtains = { module = "com.squareup.curtains:curtains", version = "1.2.4" }
 jline = { module = "jline:jline", version = "2.14.6" }
 junit = { module = "junit:junit", version = "4.13.2" }
 kotlinStatistics = { module = "org.nield:kotlin-statistics", version = "1.2.1" }
-mockito = { module = "org.mockito:mockito-core", version = "3.5.10" }
-mockitoKotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version = "2.2.0" }
+mockito = { module = "org.mockito:mockito-core", version = "5.23.0" }
+mockitoKotlin = { module = "org.mockito.kotlin:mockito-kotlin", version = "6.3.0" }
 okio2 = { module = "com.squareup.okio:okio", version = "2.2.2" }
 sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }

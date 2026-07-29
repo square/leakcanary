@@ -14,7 +14,7 @@ dependencies {
   androidTestImplementation(libs.androidX.multidex)
   androidTestImplementation(libs.androidX.test.core)
   androidTestImplementation(libs.androidX.test.runner)
-  androidTestImplementation(libs.assertjCore)
+  androidTestImplementation(libs.assertjCore.android)
 }
 
 android {
