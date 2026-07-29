@@ -379,6 +379,38 @@ internal class HprofInMemoryIndex private constructor(
     )
   }
 
+  /**
+   * The index of [objectId] in the global object index, i.e. the `objectIndex` of the matching
+   * `HeapObject`, or -1 if [objectId] isn't in the heap dump.
+   *
+   * Same as the first component of [indexedObjectOrNull], but without reading the object's record
+   * fields, so that callers that only need the index don't pay for building an [IndexedObject].
+   *
+   * The four maps are searched in the order they're usually sized in an Android heap dump, most
+   * entries first, since each miss costs a binary search: instances, then primitive arrays (mostly
+   * the char and byte arrays behind strings), then object arrays, then classes.
+   */
+  @Suppress("ReturnCount")
+  fun objectIndexOrMinusOne(objectId: Long): Int {
+    val instanceSlot = instanceIndex.indexOf(objectId)
+    if (instanceSlot >= 0) {
+      return classIndex.size + instanceSlot
+    }
+    val primitiveArraySlot = primitiveArrayIndex.indexOf(objectId)
+    if (primitiveArraySlot >= 0) {
+      return classIndex.size + instanceIndex.size + objectArrayIndex.size + primitiveArraySlot
+    }
+    val objectArraySlot = objectArrayIndex.indexOf(objectId)
+    if (objectArraySlot >= 0) {
+      return classIndex.size + instanceIndex.size + objectArraySlot
+    }
+    val classSlot = classIndex.indexOf(objectId)
+    if (classSlot >= 0) {
+      return classSlot
+    }
+    return -1
+  }
+
   @Suppress("ReturnCount")
   fun indexedObjectOrNull(objectId: Long): IntObjectPair<IndexedObject>? {
     var index = classIndex.indexOf(objectId)

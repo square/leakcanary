@@ -111,7 +111,7 @@ class HprofRetainedHeapPerfTest {
 
     assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(4.98 MB +-5 % margin)
     assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.20 MB +-5 % margin)
-    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.79 MB +-5 % margin)
+    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.28 MB +-5 % margin)
     assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(5.47 MB +-5 % margin)
     assertThat(retained after INSPECTING_OBJECTS).isEqualTo(5.47 MB +-5 % margin)
     assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(5.47 MB +-5 % margin)
