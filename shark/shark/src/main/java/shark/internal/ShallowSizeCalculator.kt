@@ -1,5 +1,7 @@
 package shark.internal
 
+import shark.ContentReferences
+import shark.ContentReferences.SKIPPED
 import shark.HeapGraph
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
@@ -15,15 +17,21 @@ import shark.ValueHolder
  * implementation, depending on the various memory layout optimizations and bit alignment.
  *
  * More on this topic: https://dev.to/pyricau/the-real-size-of-android-objects-1i2e
+ *
+ * [contentReferences] must match the value the traversal this feeds was built with, see
+ * [ContentReferences].
  */
-internal class ShallowSizeCalculator(private val graph: HeapGraph) {
+internal class ShallowSizeCalculator(
+  private val graph: HeapGraph,
+  private val contentReferences: ContentReferences = SKIPPED
+) {
 
   fun computeShallowSize(objectId: Long): Long {
     return when (val heapObject = graph.findObjectById(objectId)) {
       is HeapInstance -> {
-        if (heapObject.instanceClassName == "java.lang.String") {
-          // In PathFinder we ignore the value field of String instances when building the dominator
-          // tree, so we add that size back here.
+        if (contentReferences == SKIPPED && heapObject.instanceClassName == "java.lang.String") {
+          // The traversal ignored the value field of String instances, so we add that size back
+          // here. Strings that share their value array each get credited for the whole array.
           val valueObjectId =
             heapObject["java.lang.String", "value"]?.value?.asNonNullObjectId
           heapObject.byteSize + if (valueObjectId != null) {
@@ -39,9 +47,10 @@ internal class ShallowSizeCalculator(private val graph: HeapGraph) {
       }
       // Number of elements * object id size
       is HeapObjectArray -> {
-        if (heapObject.isSkippablePrimitiveWrapperArray) {
-          // In PathFinder we ignore references from primitive wrapper arrays when building the
-          // dominator tree, so we add that size back here.
+        if (contentReferences == SKIPPED && heapObject.isSkippablePrimitiveWrapperArray) {
+          // The traversal ignored references from primitive wrapper arrays, so we add that size
+          // back here. Boxed primitives are cached and shared, so an array gets credited for every
+          // slot pointing at a shared instance.
           val elementIds = heapObject.readRecord().elementIds
           val shallowSize = elementIds.size.toLong() * graph.identifierByteSize
           val firstNonNullElement = elementIds.firstOrNull { it != ValueHolder.NULL_REFERENCE }

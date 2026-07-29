@@ -1,17 +1,23 @@
 package shark
 
+import shark.ContentReferences.SKIPPED
 import shark.HeapObject.HeapObjectArray
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.ARRAY_ENTRY
 
-class ObjectArrayReferenceReader : ReferenceReader<HeapObjectArray> {
+/**
+ * Expands the non null elements of object arrays.
+ *
+ * [contentReferences] decides whether the elements of primitive wrapper arrays are followed, see
+ * [ContentReferences].
+ */
+class ObjectArrayReferenceReader(
+  private val contentReferences: ContentReferences = SKIPPED
+) : ReferenceReader<HeapObjectArray> {
   override fun read(source: HeapObjectArray): Sequence<Reference> {
-    if (source.isSkippablePrimitiveWrapperArray) {
-      // primitive wrapper arrays aren't interesting.
-      // That also means the wrapped size isn't added to the dominator tree, so we need to
-      // add that back when computing shallow size in ShallowSizeCalculator.
-      // Another side effect is that if the wrapped primitive is referenced elsewhere, we might
-      // double count its size.
+    if (contentReferences == SKIPPED && source.isSkippablePrimitiveWrapperArray) {
+      // primitive wrapper arrays aren't interesting. ShallowSizeCalculator adds the size of the
+      // wrapped primitives back onto the array, see ContentReferences.SKIPPED.
       return emptySequence()
     }
 

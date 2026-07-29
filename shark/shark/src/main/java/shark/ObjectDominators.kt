@@ -3,6 +3,7 @@
 package shark
 
 import java.io.Serializable
+import shark.ContentReferences.FOLLOWED
 import shark.GcRoot.ThreadObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
@@ -143,6 +144,11 @@ class ObjectDominators {
    * reference reader as well as to the GC roots. Leaving them out of the reader would follow
    * `WeakReference.referent` and the finalizer list links, which attributes memory as retained when
    * it isn't.
+   *
+   * The traversal follows content references, i.e. string value arrays and boxed primitives are
+   * nodes of the tree like any other object. That costs a heap dump read per string, which a
+   * dominator tree is paying for anyway, and in exchange content shared by several objects is
+   * attributed to a single dominator instead of counted once per object holding it.
    */
   fun buildDominatorTree(
     graph: HeapGraph,
@@ -151,9 +157,10 @@ class ObjectDominators {
     return HeapDominatorTree.buildFor(
       graph = graph,
       referenceReader = ActualMatchingReferenceReaderFactory(
-        referenceMatchers = ignoredRefs
+        referenceMatchers = ignoredRefs,
+        contentReferences = FOLLOWED
       ).createFor(graph),
       gcRootProvider = MatchingGcRootProvider(ignoredRefs)
-    ).buildNodes(AndroidObjectSizeCalculator(graph))
+    ).buildNodes(AndroidObjectSizeCalculator(graph, FOLLOWED))
   }
 }

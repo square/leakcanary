@@ -2,6 +2,7 @@ package shark
 
 import java.util.LinkedHashMap
 import kotlin.LazyThreadSafetyMode.NONE
+import shark.ContentReferences.SKIPPED
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
@@ -20,10 +21,14 @@ import shark.internal.FieldIdReader
 
 /**
  * Expands instance fields that hold non null references.
+ *
+ * [contentReferences] decides whether `java.lang.String.value` is followed, see
+ * [ContentReferences].
  */
 class FieldInstanceReferenceReader(
   graph: HeapGraph,
-  referenceMatchers: List<ReferenceMatcher>
+  referenceMatchers: List<ReferenceMatcher>,
+  private val contentReferences: ContentReferences = SKIPPED
 ) : ReferenceReader<HeapInstance> {
 
   private val fieldNameByClassName: Map<String, Map<String, ReferenceMatcher>>
@@ -52,18 +57,20 @@ class FieldInstanceReferenceReader(
     this.fieldNameByClassName = fieldNameByClassName
   }
 
-  override fun read(source: HeapInstance): Sequence<Reference> {
-    if (source.isPrimitiveWrapper ||
+  /**
+   * Instances we know hold no reference worth following, so that we can skip reading their record.
+   */
+  private val HeapInstance.hasNoReferenceWorthFollowing: Boolean
+    get() = isPrimitiveWrapper ||
       // We ignore the fact that String references a value array to avoid having
       // to read the string record and find the object id for that array, since we know
-      // it won't be interesting anyway.
-      // That also means the value array isn't added to the dominator tree, so we need to
-      // add that back when computing shallow size in ShallowSizeCalculator.
-      // Another side effect is that if the array is referenced elsewhere, we might
-      // double count its side.
-      source.instanceClassName == "java.lang.String" ||
-      source.instanceClass.instanceByteSize <= sizeOfObjectInstances
-    ) {
+      // it won't be interesting anyway. ShallowSizeCalculator adds the array size back onto the
+      // string, see ContentReferences.SKIPPED.
+      (contentReferences == SKIPPED && instanceClassName == "java.lang.String") ||
+      instanceClass.instanceByteSize <= sizeOfObjectInstances
+
+  override fun read(source: HeapInstance): Sequence<Reference> {
+    if (source.hasNoReferenceWorthFollowing) {
       return emptySequence()
     }
 

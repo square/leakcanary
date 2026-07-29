@@ -1,5 +1,6 @@
 public final class shark/ActualMatchingReferenceReaderFactory : shark/ReferenceReader$Factory {
-	public fun <init> (Ljava/util/List;)V
+	public fun <init> (Ljava/util/List;Lshark/ContentReferences;)V
+	public synthetic fun <init> (Ljava/util/List;Lshark/ContentReferences;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
 }
 
@@ -14,7 +15,8 @@ public final class shark/AndroidNativeSizeMapper$Companion {
 }
 
 public final class shark/AndroidObjectSizeCalculator : shark/ObjectSizeCalculator {
-	public fun <init> (Lshark/HeapGraph;)V
+	public fun <init> (Lshark/HeapGraph;Lshark/ContentReferences;)V
+	public synthetic fun <init> (Lshark/HeapGraph;Lshark/ContentReferences;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun computeSize (J)J
 }
 
@@ -136,8 +138,17 @@ public final class shark/ClassReferenceReader : shark/ReferenceReader {
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
 
+public final class shark/ContentReferences : java/lang/Enum {
+	public static final field FOLLOWED Lshark/ContentReferences;
+	public static final field SKIPPED Lshark/ContentReferences;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lshark/ContentReferences;
+	public static fun values ()[Lshark/ContentReferences;
+}
+
 public final class shark/FieldInstanceReferenceReader : shark/ReferenceReader {
-	public fun <init> (Lshark/HeapGraph;Ljava/util/List;)V
+	public fun <init> (Lshark/HeapGraph;Ljava/util/List;Lshark/ContentReferences;)V
+	public synthetic fun <init> (Lshark/HeapGraph;Ljava/util/List;Lshark/ContentReferences;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun read (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
@@ -600,6 +611,8 @@ public final class shark/MetadataExtractor$Companion {
 
 public final class shark/ObjectArrayReferenceReader : shark/ReferenceReader {
 	public fun <init> ()V
+	public fun <init> (Lshark/ContentReferences;)V
+	public synthetic fun <init> (Lshark/ContentReferences;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public fun read (Lshark/HeapObject$HeapObjectArray;)Lkotlin/sequences/Sequence;
 	public synthetic fun read (Lshark/HeapObject;)Lkotlin/sequences/Sequence;
 }
