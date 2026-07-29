@@ -359,8 +359,10 @@ class ObjectGrowthDetector(
 
     reportedGrowingNodes.forEachIndexed { index, node ->
       val shortestPathNode = node.shortestPathNode
-      val retained = leakShares[index]
+      val leakShare = leakShares[index]
+      val retained = leakShare.retained
       shortestPathNode.retained = retained
+      shortestPathNode.exclusiveRetained = leakShare.exclusiveRetained
       val previousRetained = node.previousPathNode?.retained ?: UNKNOWN_RETAINED
       // The first traversal doesn't report growing objects, so there's nothing to diff on until
       // the third traversal.

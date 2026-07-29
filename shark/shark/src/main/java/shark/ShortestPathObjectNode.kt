@@ -53,6 +53,18 @@ class ShortestPathObjectNode(
     internal set
 
   /**
+   * The part of [retained] made of objects that no other growing node reaches, i.e. a lower bound
+   * of what fixing this one node would free. [retained] splits the objects a node shares with the
+   * other growing nodes between them, so it's larger than this and it moves when the set of
+   * reported nodes changes; this only counts what this node holds on its own. Growing nodes that
+   * hold the same data show up as a large [retained] with a small [exclusiveRetained].
+   *
+   * [UNKNOWN_RETAINED] whenever [retained] is.
+   */
+  var exclusiveRetained: Retained = UNKNOWN_RETAINED
+    internal set
+
+  /**
    * How much [retained] increased since the previous traversal, [ZERO_RETAINED] if the previous
    * traversal didn't report this node as growing, [UNKNOWN_RETAINED] if [retained] is unknown.
    *
@@ -91,6 +103,7 @@ class ShortestPathObjectNode(
     val newNode = ShortestPathObjectNode(name, newParent)
     newNode.selfObjectCount = selfObjectCount
     newNode.retained = retained
+    newNode.exclusiveRetained = exclusiveRetained
     if (!retained.isUnknown) {
       newNode.retainedIncrease = ZERO_RETAINED
     }
@@ -130,10 +143,14 @@ class ShortestPathObjectNode(
       if (index == pathAfterRoot.lastIndex) {
         if (!retained.isUnknown) {
           result.appendLine()
-          result.append("    Retained size: ${retained.heapSize} (+ ${retainedIncrease.heapSize})")
+          result.append(
+            "    Retained size: ${retained.heapSize} (+ ${retainedIncrease.heapSize}), " +
+              "${exclusiveRetained.heapSize} not shared"
+          )
           result.appendLine()
           result.append(
-            "    Retained objects: ${retained.objectCount} (+ ${retainedIncrease.objectCount})"
+            "    Retained objects: ${retained.objectCount} (+ ${retainedIncrease.objectCount}), " +
+              "${exclusiveRetained.objectCount} not shared"
           )
         }
         result.appendLine()

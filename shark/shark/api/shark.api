@@ -985,6 +985,7 @@ public final class shark/ShortestPathObjectNode {
 	public fun <init> (Ljava/lang/String;Lshark/ShortestPathObjectNode;)V
 	public final fun copyResettingAsInitialTree ()Lshark/ShortestPathObjectNode;
 	public final fun getChildren ()Ljava/util/List;
+	public final fun getExclusiveRetained-bh0qJVg ()J
 	public final fun getGrowingChildren ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getParent ()Lshark/ShortestPathObjectNode;

@@ -147,6 +147,8 @@ class ObjectGrowthDetectorTest {
     val arraySize = 2 * 4
     val wrappersSize = 2 * 4
     assertThat(growingObject.retained.heapSize).isEqualTo((arraySize + wrappersSize).bytes)
+    // Nothing is shared with another growing object, so all of it is this node's alone.
+    assertThat(growingObject.exclusiveRetained).isEqualTo(growingObject.retained)
   }
 
   @Test
@@ -172,6 +174,10 @@ class ObjectGrowthDetectorTest {
       val halfOfSharedSize = 2 * 4 / 2
       assertThat(growingObject.retained.heapSize)
         .isEqualTo((arraySize + wrappersSize + halfOfSharedSize).bytes)
+      // The shared instances are the other growing object's too, so they're not counted here.
+      assertThat(growingObject.exclusiveRetained.objectCount).isEqualTo(3)
+      assertThat(growingObject.exclusiveRetained.heapSize)
+        .isEqualTo((arraySize + wrappersSize).bytes)
     }
   }
 
@@ -202,6 +208,9 @@ class ObjectGrowthDetectorTest {
       val shareOfSharedSize = 2 * 4 / arrayCount
       assertThat(growingObject.retained.heapSize)
         .isEqualTo((arraySize + wrappersSize + shareOfSharedSize).bytes)
+      assertThat(growingObject.exclusiveRetained.objectCount).isEqualTo(3)
+      assertThat(growingObject.exclusiveRetained.heapSize)
+        .isEqualTo((arraySize + wrappersSize).bytes)
     }
   }
 

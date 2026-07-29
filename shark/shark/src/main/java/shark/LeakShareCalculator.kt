@@ -38,7 +38,8 @@ import shark.internal.unpackAsSecondInt
  *
  * The trade off is that the reported size is no longer a lower bound of what fixing that one
  * growing node would free: freeing shared objects requires fixing every growing node that holds
- * them.
+ * them. [LeakShare.exclusiveRetained] is that lower bound, reported alongside: the objects that no
+ * other growing node reaches, which fixing this one growing node would free on its own.
  *
  * Splitting requires knowing how many growing nodes reach an object before crediting any of them.
  * Phase 2 therefore records which groups reach an object as a bit per group, then splits every
@@ -68,11 +69,25 @@ internal class LeakShareCalculator(
   }
 
   /**
-   * Returns the LeakShare of each group of object ids in [growingObjectIdGroups], in the same
+   * The share of the heap that one group of growing objects accounts for.
+   */
+  class LeakShare(
+    /** The LeakShare of the group: objects it shares are split with the groups it shares with. */
+    val retained: Retained,
+
+    /**
+     * The part of [retained] made of objects that no other group reaches, which is therefore a
+     * lower bound of what fixing this one group would free.
+     */
+    val exclusiveRetained: Retained,
+  )
+
+  /**
+   * Returns the [LeakShare] of each group of object ids in [growingObjectIdGroups], in the same
    * order. Each group is the set of objects reported as growing by a single node of the shortest
    * path tree.
    */
-  fun computeLeakShares(growingObjectIdGroups: List<LongArray>): List<Retained> {
+  fun computeLeakShares(growingObjectIdGroups: List<LongArray>): List<LeakShare> {
     if (growingObjectIdGroups.isEmpty()) {
       return emptyList()
     }
@@ -98,7 +113,7 @@ internal class LeakShareCalculator(
    */
   private fun computeLeakSharesFromGroupMasks(
     growingObjectIdGroups: List<LongArray>
-  ): List<Retained> {
+  ): List<LeakShare> {
     // Object id to the mask of the groups that reached it, which is also how each traversal knows
     // what it already visited: its own bit being set.
     val groupMasksByObjectId = MutableLongLongMap()
@@ -118,22 +133,34 @@ internal class LeakShareCalculator(
 
     val heapSizes = DoubleArray(growingObjectIdGroups.size)
     val objectCounts = DoubleArray(growingObjectIdGroups.size)
+    val exclusiveHeapSizes = LongArray(growingObjectIdGroups.size)
+    val exclusiveObjectCounts = IntArray(growingObjectIdGroups.size)
     groupMasksByObjectId.forEach { objectId, groupMask ->
       val reachedFromGroupCount = groupMask.countOneBits()
-      val heapSizeShare =
-        objectSizeCalculator.computeSize(objectId).toDouble() / reachedFromGroupCount
+      val objectHeapSize = objectSizeCalculator.computeSize(objectId)
+      val heapSizeShare = objectHeapSize.toDouble() / reachedFromGroupCount
       val objectCountShare = 1.0 / reachedFromGroupCount
       var remainingGroupMask = groupMask
       while (remainingGroupMask != NO_GROUP) {
         val groupIndex = remainingGroupMask.countTrailingZeroBits()
         heapSizes[groupIndex] += heapSizeShare
         objectCounts[groupIndex] += objectCountShare
+        if (reachedFromGroupCount == 1) {
+          exclusiveHeapSizes[groupIndex] += objectHeapSize
+          exclusiveObjectCounts[groupIndex]++
+        }
         // Clears the lowest bit set, i.e. the group we just credited.
         remainingGroupMask = remainingGroupMask and (remainingGroupMask - 1)
       }
     }
     return growingObjectIdGroups.indices.map { groupIndex ->
-      retained(heapSizes[groupIndex], objectCounts[groupIndex])
+      LeakShare(
+        retained = retained(heapSizes[groupIndex], objectCounts[groupIndex]),
+        exclusiveRetained = retained(
+          exclusiveHeapSizes[groupIndex].toDouble(),
+          exclusiveObjectCounts[groupIndex].toDouble()
+        )
+      )
     }
   }
 
@@ -144,7 +171,7 @@ internal class LeakShareCalculator(
    */
   private fun computeLeakSharesFromGroupCounts(
     growingObjectIdGroups: List<LongArray>
-  ): List<Retained> {
+  ): List<LeakShare> {
     // Object id to the count of groups that reach it, packed with the token of the last group
     // traversal that visited it, which is how each traversal knows what it already visited.
     val reachedObjects = MutableLongLongMap()
@@ -167,6 +194,8 @@ internal class LeakShareCalculator(
       val token = 1 + growingObjectIdGroups.size + groupIndex
       var heapSize = 0.0
       var objectCount = 0.0
+      var exclusiveHeapSize = 0L
+      var exclusiveObjectCount = 0
       visitObjectsRetainedByGroup(objectIds) { objectId ->
         val reached = reachedObjects.getOrDefault(objectId, NOT_REACHED)
         val reachedFromGroupCount = reached.unpackAsFirstInt
@@ -176,12 +205,24 @@ internal class LeakShareCalculator(
           false
         } else {
           reachedObjects[objectId] = reachedFromGroupCount packedWith token
-          heapSize += objectSizeCalculator.computeSize(objectId).toDouble() / reachedFromGroupCount
+          val objectHeapSize = objectSizeCalculator.computeSize(objectId)
+          heapSize += objectHeapSize.toDouble() / reachedFromGroupCount
           objectCount += 1.0 / reachedFromGroupCount
+          // This traversal is the only one that reaches that object, so it's this group's alone.
+          if (reachedFromGroupCount == 1) {
+            exclusiveHeapSize += objectHeapSize
+            exclusiveObjectCount++
+          }
           true
         }
       }
-      retained(heapSize, objectCount)
+      LeakShare(
+        retained = retained(heapSize, objectCount),
+        exclusiveRetained = retained(
+          exclusiveHeapSize.toDouble(),
+          exclusiveObjectCount.toDouble()
+        )
+      )
     }
   }
 
