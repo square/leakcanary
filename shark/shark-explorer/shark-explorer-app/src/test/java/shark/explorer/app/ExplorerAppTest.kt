@@ -7,7 +7,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -36,9 +35,9 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.ReachabilityStrength
-import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.STRONG
+import shark.explorer.ReachabilityStrength.UNREACHABLE
 import shark.explorer.ReachabilityStrength.WEAK
 import shark.explorer.formatByteSize
 
@@ -94,15 +93,17 @@ class ExplorerAppTest {
 
   @Test fun `the whole heap dump is accounted for at the top`() {
     runComposeUiTest {
-      openHeapDump()
+      openHeapDump(weaklyReachablePayloadHeapDump())
 
-      onNodeWithText("total", substring = true).assertIsDisplayed()
-      onNodeWithText("uncollected garbage", substring = true).assertIsDisplayed()
-      // The weakly retained array counts as weakly reachable, whether or not it's in the treemap.
+      // The status line is the whole dump, bytes and objects both, and the legend splits it by strength —
+      // with a row for the garbage, so that the rows add up to it rather than to some of it.
+      onNodeWithText("$WEAKLY_REACHABLE_DUMP_NAME ·", substring = true)
+        .assertTextContains("objects", substring = true)
       strengthToggle(WEAK).assertTextContains(
         formatByteSize(WEAK_PAYLOAD_BYTE_SIZE),
         substring = true
       )
+      strengthToggle(UNREACHABLE).assertIsDisplayed()
     }
   }
 
@@ -169,7 +170,7 @@ class ExplorerAppTest {
       waitUntilAtLeastOneExists(hasText("Path 1 of 3", substring = true), OPEN_TIMEOUT_MILLIS)
       // Two paths go through the tile and one through the cache, so they share nothing above the array,
       // which is what leaves the root dominating it.
-      onNodeWithText(NO_COMMON_HOLDER_EXPLANATION).assertIsDisplayed()
+      onNodeWithText(NO_COMMON_HOLDER_EXPLANATION).performScrollTo().assertIsDisplayed()
       // The chains sit below the fold of a panel this narrow, hence scrolling to each of them.
       onNodeWithText(".entry Wrapper", substring = true).performScrollTo().assertIsDisplayed()
       onNodeWithText(".result Wrapper", substring = true).performScrollTo().assertIsDisplayed()
@@ -223,9 +224,10 @@ class ExplorerAppTest {
 
       onRoot().performMouseInput { doubleClick(percentOffset(TREEMAP_X, TREEMAP_Y)) }
 
-      // The point clicked is inside the payload array, which is inside the instance holding it, so
-      // there's a crumb for each rather than a jump from the root straight to the array.
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 3 }
+      // The point clicked is inside the payload array, which is inside the instance holding it, which
+      // is inside the reachable half of the dump: a crumb for each rather than a jump from the root
+      // straight to the array.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 4 }
       // A crumb says what the object retains as well as what it is, which is what tells it apart from
       // the details panel naming the same object.
       onNodeWithText("$HOLDER_LABEL ·", substring = true).assertIsDisplayed()
@@ -266,7 +268,7 @@ class ExplorerAppTest {
 
       onRoot().performMouseInput { click(percentOffset(CLASS_GROUP_X, CLASS_GROUP_Y)) }
 
-      waitUntilAtLeastOneExists(hasText("$SIBLING_COUNT instances"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("of one class", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(SIBLING_CLASS_NAME).assertIsDisplayed()
       // Says it in words as well as with the label, the slate fill and the dashed outline.
       onNodeWithText(CLASS_GROUP_EXPLANATION).assertIsDisplayed()
@@ -280,7 +282,7 @@ class ExplorerAppTest {
 
       onRoot().performMouseInput { doubleClick(percentOffset(CLASS_GROUP_X, CLASS_GROUP_Y)) }
 
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 2 }
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 3 }
       onNodeWithText(
         "$SIBLING_COUNT ${HeapDominatorTreemap.CLASS_GROUP_LABEL_SEPARATOR} Sibling",
         substring = true
@@ -288,47 +290,65 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `following weak references grows the treemap`() {
-    runComposeUiTest {
-      openHeapDump()
-      val stronglyReachable = rootCrumb()
-      strengthToggle(WEAK).assertIsOff()
-
-      strengthToggle(WEAK).performClick()
-
-      strengthToggle(WEAK).assertIsOn()
-      // The root of the tree now holds what the weak reference points at as well.
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { rootCrumb() != stronglyReachable }
-    }
-  }
-
   @Test fun `what only a weak reference points at is drawn as weakly reachable`() {
     runComposeUiTest {
-      openHeapDump()
-      val stronglyReachable = rootCrumb()
-      strengthToggle(WEAK).performClick()
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { rootCrumb() != stronglyReachable }
-
-      // The weakly retained array is by far the biggest thing in the heap dump, so it covers most of
+      // The weakly retained array is by far the biggest thing in this heap dump, so it covers most of
       // the treemap and the weak reference holding it is a thin border around it.
+      openHeapDump(weaklyReachablePayloadHeapDump())
+
       onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
 
       waitUntilAtLeastOneExists(hasText(WEAK.reachabilityText), OPEN_TIMEOUT_MILLIS)
     }
   }
 
-  @Test fun `what a cache holds is followed to begin with, and unfollowing it shrinks the treemap`() {
+  @Test fun `uncollected garbage is a sibling of the GC roots`() {
     runComposeUiTest {
-      // Nothing but Coil's memory cache holds the image in this heap dump, so it's in the treemap only
-      // because the cache strength is followed.
-      openHeapDump(coilCachedImageHeapDump(alsoShownByATile = false))
-      val withTheCache = rootCrumb()
-      strengthToggle(CACHE).assertIsOn().assertIsEnabled()
+      // The garbage is most of this heap dump, so its half of the tree is the big rectangle and the
+      // reachable half the small one.
+      openHeapDump(uncollectedGarbageHeapDump())
 
-      strengthToggle(CACHE).performClick()
+      onRoot().performMouseInput { click(percentOffset(HALF_X, HALF_Y)) }
 
-      strengthToggle(CACHE).assertIsOff()
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { rootCrumb() != withTheCache }
+      waitUntilAtLeastOneExists(
+        hasText(HeapDominatorTreemap.UNREACHABLE_LABEL),
+        OPEN_TIMEOUT_MILLIS
+      )
+      onNodeWithText(UNREACHABLE_EXPLANATION).assertIsDisplayed()
+      strengthToggle(UNREACHABLE).assertTextContains(
+        formatByteSize(GARBAGE_PAYLOAD_BYTE_SIZE),
+        substring = true
+      )
+    }
+  }
+
+  @Test fun `nothing keeps uncollected garbage in memory`() {
+    runComposeUiTest {
+      openHeapDump(uncollectedGarbageHeapDump())
+
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+
+      // Something points at it — that's how it ended up nested where it is — but no chain of references
+      // reaches a GC root, so there is no path to spell out and nothing to blame for it still being here.
+      waitUntilAtLeastOneExists(hasText(UNREACHABLE.reachabilityText), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(UNREACHABLE_NO_PATHS).performScrollTo().assertIsDisplayed()
+    }
+  }
+
+  @Test fun `every strength can be greyed out, and none of it changes what is drawn`() {
+    runComposeUiTest {
+      openHeapDump()
+      val wholeHeapDump = rootCrumb()
+
+      // A checkbox is the colour scale and nothing else, so there is no strength it makes no sense to
+      // press: greying the strong heap is how you find the little there is of everything else.
+      ReachabilityStrength.values().forEach { strength ->
+        strengthToggle(strength).assertIsOn().assertIsEnabled()
+        strengthToggle(strength).performClick()
+        strengthToggle(strength).assertIsOff()
+      }
+
+      assertThat(rootCrumb()).isEqualTo(wholeHeapDump)
     }
   }
 
@@ -346,22 +366,14 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `strong references cannot be unfollowed`() {
+  @Test fun `a strength nothing is reachable at says so`() {
     runComposeUiTest {
       openHeapDump()
 
-      strengthToggle(STRONG).assertIsOn().assertIsNotEnabled()
-    }
-  }
-
-  @Test fun `a strength nothing is reachable at cannot be followed`() {
-    runComposeUiTest {
-      openHeapDump()
-
-      // Nothing in this heap dump is phantom reachable, so following phantom references would leave
-      // the treemap exactly as it is.
-      strengthToggle(PHANTOM).assertIsNotEnabled()
-      strengthToggle(WEAK).assertIsEnabled()
+      // Nothing in this heap dump is reachable only through a java.lang.ref.Reference, which reads as a
+      // bug until something explains it.
+      strengthToggle(PHANTOM).assertTextContains(formatByteSize(0L), substring = true)
+      onNodeWithText(NOTHING_WEAKER).assertIsDisplayed()
     }
   }
 
@@ -431,8 +443,7 @@ class ExplorerAppTest {
 
   /**
    * A heap dump where a single instance is the only path to a large object array, so that one
-   * rectangle and the one nested in it cover almost the whole treemap and can be clicked blind, plus
-   * a larger array that only a weak reference points at.
+   * rectangle and the one nested in it cover almost the whole treemap and can be clicked blind.
    */
   private fun testHeapDump(): File {
     val file = testFolder.newFile("heap.hprof")
@@ -443,6 +454,22 @@ class ExplorerAppTest {
         payloadObjectId = payload.value
         field["payload"] = payload
       }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+    }
+    return file
+  }
+
+  /**
+   * The same, plus a much larger array that only a `WeakReference` points at, so that the weakly
+   * reachable part of the tree is what a blind press in the middle of the treemap lands on.
+   */
+  private fun weaklyReachablePayloadHeapDump(): File {
+    val file = testFolder.newFile(WEAKLY_REACHABLE_DUMP_NAME)
+    file.dump {
+      val holder = "com.example.Holder" instance {
+        field["payload"] =
+          ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
+      }
       val weakReference = "java.lang.ref.WeakReference" instance {
         field["referent"] = ReferenceHolder(
           objectArray(arrayClass("java.lang.Object"), LongArray(WEAK_PAYLOAD_LENGTH))
@@ -450,6 +477,23 @@ class ExplorerAppTest {
       }
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
       gcRoot(JniGlobal(id = weakReference.value, jniGlobalRefId = 1))
+    }
+    return file
+  }
+
+  /**
+   * A heap dump most of which is garbage: a large array nothing points at and no GC root reaches, which
+   * a collection would have taken had one run before the dump was written.
+   */
+  private fun uncollectedGarbageHeapDump(): File {
+    val file = testFolder.newFile("uncollected-garbage.hprof")
+    file.dump {
+      objectArray(arrayClass("java.lang.Object"), LongArray(GARBAGE_PAYLOAD_LENGTH))
+      val holder = "com.example.Holder" instance {
+        field["payload"] =
+          ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
+      }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
     }
     return file
   }
@@ -550,13 +594,18 @@ class ExplorerAppTest {
     private const val TREEMAP_Y = 0.6f
 
     /**
-     * The top left of the treemap, in the band the largest rectangle keeps for its own label, so a press
-     * there lands on that rectangle rather than on one of its children.
+     * Down the left edge of the treemap, where a squarified layout puts the largest rectangle of each
+     * level: the label band the largest half of the heap dump keeps for itself, then the band of the
+     * largest rectangle inside it, then well inside that one.
+     *
+     * A band is only [HEADER_HEIGHT] tall, so these are the middle of each: the fractions are of the
+     * window, and the treemap starts below a top bar whose height depends on how many rows its legend
+     * wrapped into. Retune them by sweeping y if the top bar changes shape.
      */
+    private const val HALF_X = 0.05f
+    private const val HALF_Y = 0.34f
     private const val CLASS_GROUP_X = 0.05f
-    private const val CLASS_GROUP_Y = 0.3f
-
-    /** The same, below that band: the largest child of the largest rectangle. */
+    private const val CLASS_GROUP_Y = 0.363f
     private const val LEFTOVER_X = 0.05f
     private const val LEFTOVER_Y = 0.45f
 
@@ -565,8 +614,11 @@ class ExplorerAppTest {
 
     private const val HOLDER_LABEL = "Holder"
     private const val PAYLOAD_LENGTH = 4096
+    private const val WEAKLY_REACHABLE_DUMP_NAME = "weakly-reachable.hprof"
     private const val WEAK_PAYLOAD_LENGTH = 32768
     private const val WEAK_PAYLOAD_BYTE_SIZE = WEAK_PAYLOAD_LENGTH * 4L
+    private const val GARBAGE_PAYLOAD_LENGTH = 32768
+    private const val GARBAGE_PAYLOAD_BYTE_SIZE = GARBAGE_PAYLOAD_LENGTH * 4L
 
     /** Twice what a node draws one by one, so half the siblings end up in one rectangle. */
     private const val SIBLING_COUNT = 400

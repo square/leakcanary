@@ -7,6 +7,7 @@ import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
+import shark.HeapObject.HeapObjectArray
 import shark.JdkReferenceMatchers
 import shark.Reference
 import shark.Reference.LazyDetails
@@ -15,6 +16,7 @@ import shark.ReferenceMatcher
 import shark.ReferenceMatcher.Companion.ALWAYS
 import shark.ReferencePattern.Companion.instanceField
 import shark.ReferenceReader
+import shark.ValueHolder
 import shark.ignored
 import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.FINALIZER
@@ -77,8 +79,34 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
    */
   private val weakeningFieldsByClassId = MutableLongObjectMap<WeakeningFields>()
 
+  /**
+   * The class ids of the classes whose instances have something folded into them, looked up once:
+   * [HeapGraph.findClassByName] scans every string of the heap dump, so calling it per object would
+   * cost minutes.
+   */
+  private val stringClassId: Long by lazy {
+    graph.findClassByName(STRING_CLASS_NAME)?.objectId ?: NO_CLASS_ID
+  }
+
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> = retainingReader.read(source)
+
+  /**
+   * The objects whose bytes [shark.ObjectSizeCalculator] counts inside [source], because the reference
+   * readers don't surface them: a string's characters, and the boxed primitives of a wrapper array.
+   *
+   * They're objects of the heap dump, and something does point at them, but they're no nodes of a graph
+   * walked with [retainingReferencesOf] — which is why their size is added back to the object holding
+   * them. So a walk has to mark them as accounted for, or they read as unreferenced garbage while their
+   * bytes are counted somewhere else. Empty for anything else, which is nearly every object.
+   */
+  fun foldedObjectIdsOf(source: HeapObject): List<Long> = when {
+    source is HeapInstance && source.instanceClassId == stringClassId ->
+      listOfNotNull(source[STRING_CLASS_NAME, "value"]?.value?.asNonNullObjectId)
+    source is HeapObjectArray && source.arrayClassName in WRAPPER_ARRAY_CLASS_NAMES ->
+      source.readRecord().elementIds.filter { it != ValueHolder.NULL_REFERENCE }
+    else -> emptyList()
+  }
 
   /**
    * The references from [source] that don't keep their target alive: a `java.lang.ref.Reference`'s
@@ -124,6 +152,26 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   )
 
   companion object {
+    private const val STRING_CLASS_NAME = "java.lang.String"
+
+    /** No heap object has id 0, which is what a null reference is. */
+    private const val NO_CLASS_ID = ValueHolder.NULL_REFERENCE
+
+    /**
+     * The arrays whose elements [shark.ObjectArrayReferenceReader] skips, and whose size
+     * [shark.ObjectSizeCalculator] therefore folds into the array. Shark keeps the same list to itself.
+     */
+    private val WRAPPER_ARRAY_CLASS_NAMES = setOf(
+      "java.lang.Boolean[]",
+      "java.lang.Byte[]",
+      "java.lang.Character[]",
+      "java.lang.Short[]",
+      "java.lang.Integer[]",
+      "java.lang.Long[]",
+      "java.lang.Float[]",
+      "java.lang.Double[]"
+    )
+
     /** The fields a `java.lang.ref.Reference` holds its referent in. */
     private val REFERENT_FIELD_NAMES = setOf("referent", "zombie")
 
@@ -195,32 +243,26 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 /**
  * Reads the references that retain their target, plus the ones that hold an object without retaining it
  * — a `java.lang.ref.Reference`'s referent, a cache's entries — when such a reference is the strongest
- * thing reaching the object and its strength is in [followedStrengths].
+ * thing reaching the object.
  *
- * With an empty [followedStrengths] the graph is the strongly reachable heap. Adding [WEAK] to it adds
- * the objects a weak reference is the only path to, dominated by the weak reference itself, which is
- * what puts a weakly reachable rectangle inside a strongly reachable one. Adding [CACHE] does the same
- * for the objects nothing but a cache holds.
+ * That's what puts a weakly reachable object in the tree, dominated by the weak reference itself, and a
+ * cached one under its cache entry: every object of the heap dump is a node, and every one of them is
+ * held by whatever the garbage collector would have to let go of first.
  *
  * **The target's strength decides, not the reference's.** Following a weak reference to an object that
  * something else holds strongly wouldn't reveal anything — the object is already in the tree — but it
  * would add an edge, which moves the object's retained size up to whatever dominates both paths and
- * attributes it to neither. So checking a strength that nothing in the heap dump is reachable at
- * leaves the treemap exactly as it was, which is the honest answer.
+ * attributes it to neither. Which is exactly what a weak reference isn't: it holds nothing.
  */
-internal class StrengthFilteringReferenceReader(
+internal class WeakeningAwareReferenceReader(
   private val strengthReader: ReferenceStrengthReader,
-  private val reachability: HeapReachability,
-  private val followedStrengths: Set<ReachabilityStrength>
+  private val reachability: HeapReachability
 ) : ReferenceReader<HeapObject> {
 
   override fun read(source: HeapObject): Sequence<Reference> {
     val retaining = strengthReader.retainingReferencesOf(source)
-    if (followedStrengths.isEmpty()) {
-      return retaining
-    }
     val followed = strengthReader.weakeningReferencesOf(source)
-      .filter { reachability.strengthOf(it.valueObjectId) in followedStrengths }
+      .filter { reachability.strengthOf(it.valueObjectId) != STRONG }
     return if (followed.isEmpty()) {
       retaining
     } else {

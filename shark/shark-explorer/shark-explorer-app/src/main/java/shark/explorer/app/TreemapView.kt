@@ -39,7 +39,7 @@ import shark.explorer.TreemapPresentation
 @Composable
 internal fun TreemapView(
   presentation: TreemapPresentation,
-  scheme: CellColorScheme,
+  coloring: CellColoring,
   selected: SelectedCell?,
   onSelect: (LayoutCell<Long>) -> Unit,
   /** The chain of nodes from the current root down to the one double clicked. */
@@ -50,8 +50,8 @@ internal fun TreemapView(
   val density = LocalDensity.current
   // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
   // the presentation changes and never on a redraw.
-  val cells = remember(presentation, scheme, textMeasurer, density) {
-    val colors = CellColors.of(scheme, presentation.cells)
+  val cells = remember(presentation, coloring, textMeasurer, density) {
+    val colors = CellColors.of(coloring, presentation.cells)
     presentation.cells.map { it.measure(colors, textMeasurer, density) }
   }
   Box(modifier) {

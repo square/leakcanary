@@ -25,5 +25,17 @@ fun formatByteSize(byteCount: Long): String {
   return String.format(Locale.US, "%.0f %s", scaled, UNITS.last())
 }
 
+/**
+ * Formats [objectCount] for display, e.g. `1 object` or `807,231 objects`.
+ *
+ * Grouped in threes and never abbreviated: a count of objects sits next to a byte count, and rounding
+ * both would leave the eye nothing exact to hold on to. Always [Locale.US], for the same reason
+ * [formatByteSize] is.
+ */
+fun formatObjectCount(objectCount: Int): String {
+  val count = String.format(Locale.US, "%,d", objectCount)
+  return if (objectCount == 1) "$count object" else "$count objects"
+}
+
 private const val UNIT = 1024
 private val UNITS = listOf("KB", "MB", "GB", "TB")

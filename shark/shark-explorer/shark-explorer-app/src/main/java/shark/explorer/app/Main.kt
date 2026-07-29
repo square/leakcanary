@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +41,7 @@ import shark.SharkLog
 import shark.explorer.HeapSizes
 import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
+import shark.explorer.formatObjectCount
 
 fun main(args: Array<String>) {
   // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong
@@ -78,14 +81,8 @@ fun ExplorerApp(
 ) {
   var requestedFile: File? by remember { mutableStateOf(initialHeapDumpFile) }
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
-  // Cache followed to begin with, unlike the java.lang.ref strengths: what a cache holds is really in
-  // memory, so leaving it out would under-report the heap. Following it is also what makes an object a
-  // cache and something else both hold read as the something else's — see [ReachabilityStrength.CACHE].
-  var followedStrengths: Set<ReachabilityStrength> by remember {
-    mutableStateOf(setOf(ReachabilityStrength.CACHE))
-  }
   var shape: ViewShape by remember { mutableStateOf(ViewShape.TREEMAP) }
-  var scheme: CellColorScheme by remember { mutableStateOf(CellColorScheme.DAISY) }
+  var coloring: CellColoring by remember { mutableStateOf(CellColoring.DEFAULT) }
 
   LaunchedEffect(requestedFile) {
     val file = requestedFile
@@ -100,7 +97,7 @@ fun ExplorerApp(
       }
       val sizes = session.read { it.sizes }
       HeapDumpState.Open(session, sizes).also {
-        SharkLog.d { "${it.statusLine()} · ${sizes.weakerStrengthsText()}" }
+        SharkLog.d { "${it.statusLine()} · ${sizes.strengthsText()}" }
       }
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not open $file" }
@@ -117,16 +114,14 @@ fun ExplorerApp(
   Column(Modifier.fillMaxSize()) {
     TopBar(
       state = currentState,
-      followedStrengths = followedStrengths,
       shape = shape,
-      scheme = scheme,
+      coloring = coloring,
       onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } },
-      onFollowedStrengthsChange = { followedStrengths = it },
-      onShapeChange = { shape = it },
-      onSchemeChange = { scheme = it }
+      onColoringChange = { coloring = it },
+      onShapeChange = { shape = it }
     )
     if (currentState is HeapDumpState.Open) {
-      HeapDumpExplorer(currentState.session, followedStrengths, shape, scheme, Modifier.weight(1f))
+      HeapDumpExplorer(currentState.session, shape, coloring, Modifier.weight(1f))
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
@@ -168,13 +163,11 @@ private sealed interface HeapDumpState {
 @Composable
 private fun TopBar(
   state: HeapDumpState,
-  followedStrengths: Set<ReachabilityStrength>,
   shape: ViewShape,
-  scheme: CellColorScheme,
+  coloring: CellColoring,
   onOpenClick: () -> Unit,
-  onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit,
-  onShapeChange: (ViewShape) -> Unit,
-  onSchemeChange: (CellColorScheme) -> Unit
+  onColoringChange: (CellColoring) -> Unit,
+  onShapeChange: (ViewShape) -> Unit
 ) {
   Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
     Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -188,11 +181,10 @@ private fun TopBar(
         Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
       }
       if (state is HeapDumpState.Open) {
-        StrengthCheckboxes(
+        StrengthLegend(
           sizes = state.sizes,
-          followedStrengths = followedStrengths,
-          scheme = scheme,
-          onFollowedStrengthsChange = onFollowedStrengthsChange
+          coloring = coloring,
+          onColoredStrengthsChange = { onColoringChange(coloring.copy(coloredStrengths = it)) }
         )
         Row(
           horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -208,9 +200,9 @@ private fun TopBar(
           OptionPicker(
             label = "Colours",
             options = CellColorScheme.values().toList(),
-            selected = scheme,
+            selected = coloring.scheme,
             displayName = { it.displayName },
-            onSelect = onSchemeChange
+            onSelect = { onColoringChange(coloring.copy(scheme = it)) }
           )
         }
         if (REFERENCE_STRENGTHS.none { state.sizes.byteCountByStrength.getValue(it) > 0L }) {
@@ -254,86 +246,86 @@ private fun <T> OptionPicker(
 }
 
 /**
- * A checkbox per reachability strength beyond strong, all off to begin with: following one rebuilds the
- * dominator tree, and the strongly reachable heap is what you want to look at first.
+ * How much of the heap dump is held how firmly, one row per strength, and a checkbox per row that turns
+ * that strength's colour on and off.
  *
- * Each one says how many bytes are reachable at that strength and no better, and is disabled when that
- * is none — following it would then add nothing to the tree, and a checkbox that changes nothing is
- * worse than one you can't press.
+ * Everything is always drawn — the tree is the whole heap dump, garbage included — so a checkbox here
+ * changes nothing but the colour scale: unchecked is grey. Which is what makes it worth having, and every
+ * row worth pressing: greying the strong heap leaves the little there is of everything else lit up, and
+ * greying the garbage leaves the reachable heap to read on its own.
+ *
+ * The rows add up to the whole dump, in bytes and in objects, which is the point of listing the ones that
+ * are none of it too.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun StrengthCheckboxes(
+private fun StrengthLegend(
   sizes: HeapSizes,
-  followedStrengths: Set<ReachabilityStrength>,
-  scheme: CellColorScheme,
-  onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit
+  coloring: CellColoring,
+  onColoredStrengthsChange: (Set<ReachabilityStrength>) -> Unit
 ) {
-  Row(
+  FlowRow(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
-    verticalAlignment = Alignment.CenterVertically
+    verticalArrangement = Arrangement.spacedBy(2.dp)
   ) {
     Text(
-      "Follow",
+      "Colour",
       style = MaterialTheme.typography.labelLarge,
       modifier = Modifier.padding(end = 4.dp)
     )
     ReachabilityStrength.values().forEach { strength ->
-      // Strong references are always followed: without them there is no graph to walk.
-      val isStrong = strength == ReachabilityStrength.STRONG
-      val byteCount = sizes.byteCountByStrength.getValue(strength)
-      val enabled = !isStrong && byteCount > 0L
-      val checked = isStrong || strength in followedStrengths
+      val checked = strength in coloring.coloredStrengths
       Row(
         // The whole thing is one toggle, label included, so clicking the name works too.
         Modifier.toggleable(
           value = checked,
-          enabled = enabled,
           role = Role.Checkbox,
           onValueChange = { isChecked ->
-            onFollowedStrengthsChange(
-              if (isChecked) followedStrengths + strength else followedStrengths - strength
+            onColoredStrengthsChange(
+              if (isChecked) {
+                coloring.coloredStrengths + strength
+              } else {
+                coloring.coloredStrengths - strength
+              }
             )
           }
         ).padding(end = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Checkbox(checked = checked, enabled = enabled, onCheckedChange = null)
-        Box(Modifier.size(SWATCH_SIZE).background(legendColor(scheme, strength)))
-        Text(
-          "${strength.displayName} ${formatByteSize(byteCount)}",
-          style = MaterialTheme.typography.bodySmall
-        )
+        Checkbox(checked = checked, onCheckedChange = null)
+        Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, strength)))
+        Text(strength.legendText(sizes), style = MaterialTheme.typography.bodySmall)
       }
     }
   }
+}
+
+/** What one legend row says: how firmly, how many bytes, how many objects. */
+private fun ReachabilityStrength.legendText(sizes: HeapSizes): String {
+  val byteCount = formatByteSize(sizes.byteCountByStrength.getValue(this))
+  val objectCount = formatObjectCount(sizes.objectCountByStrength.getValue(this))
+  return "$displayName $byteCount · $objectCount"
 }
 
 private fun HeapDumpState.statusLine(): String = when (this) {
   HeapDumpState.None -> ""
   is HeapDumpState.Opening -> step
   is HeapDumpState.Failed -> "Could not open ${file.name}"
+  // The split between reachable and uncollected is the legend's job now, and it says it per strength.
   is HeapDumpState.Open -> "${session.heapDumpFile.name} · " +
-    "${formatByteSize(sizes.totalByteCount)} total · " +
-    "${formatByteSize(sizes.reachableByteCount)} reachable · " +
-    "${formatByteSize(sizes.unreachableByteCount)} uncollected garbage"
+    "${formatByteSize(sizes.totalByteCount)} in ${formatObjectCount(sizes.totalObjectCount)}"
 }
 
 /**
- * What the checkboxes say, for the log: which strengths a dump has anything at all at is the least
- * predictable thing about it, so a terminal run should say it rather than only the window.
+ * What the legend says, for the log: how a dump splits up by strength is the least predictable thing
+ * about it, so a terminal run should say it rather than only the window.
  */
-private fun HeapSizes.weakerStrengthsText(): String {
-  val weaker = ReachabilityStrength.values()
-    .filter { it != ReachabilityStrength.STRONG && byteCountByStrength.getValue(it) > 0L }
-  return if (weaker.isEmpty()) {
-    "nothing reachable only through a java.lang.ref.Reference"
-  } else {
-    weaker.joinToString(", ") { strength ->
-      "${formatByteSize(byteCountByStrength.getValue(strength))} ${strength.displayName.lowercase()}"
-    }
+private fun HeapSizes.strengthsText(): String = ReachabilityStrength.values()
+  .filter { byteCountByStrength.getValue(it) > 0L }
+  .joinToString(", ") { strength ->
+    "${formatByteSize(byteCountByStrength.getValue(strength))} ${strength.displayName.lowercase()}"
   }
-}
 
 private fun HeapDumpState.centerMessage(): String = when (this) {
   HeapDumpState.None -> NO_HEAP_DUMP
@@ -359,11 +351,15 @@ internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
 
 /**
- * The strengths a `java.lang.ref.Reference` gives, which is what [NOTHING_WEAKER] is about: a cache is
- * neither one of those nor something a heap dump would be odd for having nothing of.
+ * The strengths a `java.lang.ref.Reference` gives, which is what [NOTHING_WEAKER] is about. A cache, a
+ * strong reference and uncollected garbage are none of them, and a heap dump wouldn't be odd for having
+ * nothing at those.
  */
-private val REFERENCE_STRENGTHS = ReachabilityStrength.values()
-  .filter { it != ReachabilityStrength.STRONG && it != ReachabilityStrength.CACHE }
+private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf(
+  ReachabilityStrength.STRONG,
+  ReachabilityStrength.CACHE,
+  ReachabilityStrength.UNREACHABLE
+)
 
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
@@ -373,5 +369,5 @@ internal const val NOTHING_WEAKER =
   "Nothing in this heap dump is reachable only through a java.lang.ref.Reference. That's common, " +
     "because the garbage collection before a dump clears the references whose referent nothing else " +
     "was holding — but it isn't a given: a referent a thread got out of a reference and has since let " +
-    "go of is weakly reachable again until the next collection. The uncollected garbage above is " +
-    "objects nothing referenced at all."
+    "go of is weakly reachable again until the next collection. Unreachable is a different thing " +
+    "again: objects nothing points at, which that collection didn't get to."

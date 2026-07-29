@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.util.lerp
 import shark.explorer.CellContent
 import shark.explorer.CellSubject
+import shark.explorer.ObjectGroupKind
 import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength
 import shark.explorer.ReachabilityStrength.CACHE
@@ -11,14 +12,15 @@ import shark.explorer.ReachabilityStrength.FINALIZER
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
 import shark.explorer.ReachabilityStrength.STRONG
+import shark.explorer.ReachabilityStrength.UNREACHABLE
 import shark.explorer.ReachabilityStrength.WEAK
 
 /**
  * How the rectangles are coloured. Pick one in the top bar.
  *
  * Whichever is picked, an object that isn't strongly reachable keeps its own vivid hue, because
- * spotting one nested inside a strongly reachable block is the whole point of following a weaker
- * strength. What a scheme decides is how the rest of the heap — nearly all of it — is coloured.
+ * spotting one nested inside a strongly reachable block is the whole point of colouring by strength at
+ * all. What a scheme decides is how the rest of the heap — nearly all of it — is coloured.
  */
 internal enum class CellColorScheme(val displayName: String) {
 
@@ -40,63 +42,104 @@ internal enum class CellColorScheme(val displayName: String) {
 }
 
 /**
- * The colours of one laid out view, in one scheme. Works off [PresentedCell] alone, so a treemap and
- * a radial view are coloured by the same code.
+ * How a view is coloured: which scheme, and which strengths are shown in colour.
  *
- * Built per presentation because [DAISY] needs a hue per top level block that everything below it
- * inherits, which takes a pass over the cells: they come parent before child, so a cell's parent has
- * always been given its hue by the time the cell is reached.
+ * Unchecking a strength greys out everything held that firmly instead of hiding it — the tree is the
+ * whole heap dump either way. Greying the strong heap is what makes the little there is of everything
+ * else jump out; greying everything else is what stops it from doing so.
+ */
+internal data class CellColoring(
+  val scheme: CellColorScheme,
+  val coloredStrengths: Set<ReachabilityStrength>
+) {
+  companion object {
+    val DEFAULT = CellColoring(
+      scheme = CellColorScheme.DAISY,
+      coloredStrengths = ReachabilityStrength.values().toSet()
+    )
+  }
+}
+
+/**
+ * The colours of one laid out view. Works off [PresentedCell] alone, so a treemap and a radial view are
+ * coloured by the same code.
+ *
+ * Built per presentation because [CellColorScheme.DAISY] needs a hue per top level block that everything
+ * below it inherits, which takes a pass over the cells: they come parent before child, so a cell's parent
+ * has always been given its hue by the time the cell is reached.
  */
 internal class CellColors private constructor(
-  private val scheme: CellColorScheme,
+  private val coloring: CellColoring,
   private val hueIndexByObjectId: Map<Long, Int>
 ) {
 
   val label: Color get() = LABEL
 
-  /** Dark enough on a class group for the dashes of [outlineOf] to read as dashes. */
+  /** Dark enough on a pile of objects for the dashes of [outlineOf] to read as dashes. */
   fun borderOf(presented: PresentedCell<*>): Color = when (presented.content) {
-    is CellContent.ClassGroup -> CLASS_GROUP_BORDER
-    else -> if (scheme == DAISY_SCHEME) DAISY_BORDER else BORDER
+    is CellContent.Object -> if (coloring.scheme == DAISY_SCHEME) DAISY_BORDER else BORDER
+    else -> PILE_BORDER
   }
 
   fun colorOf(presented: PresentedCell<*>): Color {
     val depth = presented.cell.depth
+    val strength = presented.strength
+    if (strength !in coloring.coloredStrengths) {
+      return mutedColor(depth)
+    }
     return when (val content = presented.content) {
-      is CellContent.Leftover -> groupColor(depth)
-      is CellContent.ClassGroup -> classGroupColor(depth)
-      is CellContent.Object -> if (content.strength != STRONG) {
-        strengthColor(content.strength)
+      // A pile of objects is neither an object's hue nor the grey of a strength switched off, because it
+      // is neither of those things.
+      is CellContent.Leftover -> pileColor(strength, depth)
+      is CellContent.ObjectGroup -> if (content.kind == ObjectGroupKind.CLASS) {
+        pileColor(strength, depth)
       } else {
-        val node = (presented.cell.subject as? CellSubject.Node)?.let { hueIndexByObjectId[it.node] }
-        strongColor(scheme, depth, node ?: 0)
+        objectColor(strength, depth, hueIndexOf(presented))
       }
+      is CellContent.Object -> objectColor(strength, depth, hueIndexOf(presented))
     }
   }
 
-  /** The colour of the cell standing for the siblings that didn't fit: grey, so it reads as "not an object". */
-  fun groupColor(depth: Int): Color =
-    Color.hsv(hue = 0f, saturation = 0f, value = MAX_VALUE - (depth % SHADE_STEPS) * VALUE_STEP)
+  private fun hueIndexOf(presented: PresentedCell<*>): Int =
+    (presented.cell.subject as? CellSubject.Node)?.let { hueIndexByObjectId[it.node] } ?: 0
+
+  private fun objectColor(
+    strength: ReachabilityStrength,
+    depth: Int,
+    hueIndex: Int
+  ): Color = when (strength) {
+    STRONG -> strongColor(coloring.scheme, depth, hueIndex)
+    // Shaded by depth like the strong heap, unlike the other strengths: there can be megabytes of
+    // uncollected garbage, and one flat colour over all of it would hide its shape.
+    UNREACHABLE -> shaded(UNREACHABLE.hue, UNREACHABLE_SATURATION, depth)
+    else -> strengthColor(strength)
+  }
 
   /**
-   * The colour of a cell standing for every instance of one class: a cool slate, with a dashed outline
-   * over it. Neither an object's hue nor the neutral grey of the siblings that didn't fit, because it's
-   * neither of those things, and the same in every scheme for the same reason the strengths are.
+   * The colour of a cell standing for many objects: a cool slate for the strongly reachable ones, and the
+   * washed out shade of their strength for the rest, so that a pile of garbage still reads as garbage.
    */
-  fun classGroupColor(depth: Int): Color = Color.hsv(
-    hue = CLASS_GROUP_HUE,
-    saturation = CLASS_GROUP_SATURATION,
-    value = MAX_VALUE - (depth % SHADE_STEPS) * VALUE_STEP
-  )
+  fun pileColor(
+    strength: ReachabilityStrength,
+    depth: Int
+  ): Color = if (strength == STRONG) {
+    shaded(PILE_HUE, PILE_SATURATION, depth, PILE_SATURATION_STEP)
+  } else {
+    shaded(strength.hue, PILE_SATURATION, depth, PILE_SATURATION_STEP)
+  }
+
+  /** What a strength switched off in the top bar looks like: grey, and nothing else is. */
+  fun mutedColor(depth: Int): Color =
+    Color.hsv(hue = 0f, saturation = 0f, value = MAX_VALUE - (depth % SHADE_STEPS) * VALUE_STEP)
 
   companion object {
     private val DAISY_SCHEME = CellColorScheme.DAISY
 
     fun of(
-      scheme: CellColorScheme,
+      coloring: CellColoring,
       cells: List<PresentedCell<*>>
     ): CellColors {
-      val hueIndexByObjectId = if (scheme != DAISY_SCHEME) {
+      val hueIndexByObjectId = if (coloring.scheme != DAISY_SCHEME) {
         emptyMap()
       } else {
         val hueIndexByObjectId = mutableMapOf<Long, Int>()
@@ -104,28 +147,30 @@ internal class CellColors private constructor(
           val subject = presented.cell.subject
           if (subject is CellSubject.Node) {
             hueIndexByObjectId[subject.node] = when {
-              presented.cell.depth <= 1 -> subject.siblingIndex
-              // Inherits, so that everything one top level block contains shares its hue.
+              // Down to the children of the two halves of the heap dump: colouring by the halves
+              // themselves would give the whole view one or two hues.
+              presented.cell.depth <= TOP_LEVEL_DEPTH -> subject.siblingIndex
+              // Inherits, so that everything one block contains shares its hue.
               else -> hueIndexByObjectId[subject.parent] ?: subject.siblingIndex
             }
           }
         }
         hueIndexByObjectId
       }
-      return CellColors(scheme, hueIndexByObjectId)
+      return CellColors(coloring, hueIndexByObjectId)
     }
   }
 }
 
-/** The swatch shown next to a strength's checkbox, and in the details panel: what a top level block of
- * that strength would be coloured. */
+/** The swatch shown next to a strength's checkbox, and in the details panel. */
 internal fun legendColor(
-  scheme: CellColorScheme,
+  coloring: CellColoring,
   strength: ReachabilityStrength
-): Color = if (strength == STRONG) {
-  strongColor(scheme, depth = 1, hueIndex = 0)
-} else {
-  strengthColor(strength)
+): Color = when {
+  strength !in coloring.coloredStrengths -> Color.hsv(hue = 0f, saturation = 0f, value = MUTED_SWATCH)
+  strength == STRONG -> strongColor(coloring.scheme, depth = 1, hueIndex = 0)
+  strength == UNREACHABLE -> shaded(UNREACHABLE.hue, UNREACHABLE_SATURATION, depth = 1)
+  else -> strengthColor(strength)
 }
 
 /** Vivid and the same in every scheme: there is never much of it, and it has to be impossible to miss. */
@@ -156,12 +201,13 @@ private fun strongColor(
 private fun shaded(
   hue: Float,
   minSaturation: Float,
-  depth: Int
+  depth: Int,
+  saturationStep: Float = SATURATION_STEP
 ): Color {
   val step = depth % SHADE_STEPS
   return Color.hsv(
     hue = hue,
-    saturation = minSaturation + step * SATURATION_STEP,
+    saturation = minSaturation + step * saturationStep,
     value = MAX_VALUE - step * VALUE_STEP
   )
 }
@@ -175,6 +221,7 @@ internal val ReachabilityStrength.displayName: String
     WEAK -> "Weak"
     FINALIZER -> "Finalizer"
     PHANTOM -> "Phantom"
+    UNREACHABLE -> "Unreachable"
   }
 
 /** How the details panel says an object is reachable. */
@@ -186,6 +233,7 @@ internal val ReachabilityStrength.reachabilityText: String
     WEAK -> "Weakly reachable"
     FINALIZER -> "Reachable only from the finalizer queue"
     PHANTOM -> "Phantom reachable"
+    UNREACHABLE -> "Unreachable: uncollected garbage"
   }
 
 /** How the details panel names the kind of reference one object holds another with. */
@@ -197,6 +245,7 @@ internal val ReachabilityStrength.referenceText: String
     WEAK -> "weak reference"
     FINALIZER -> "finalizer queue"
     PHANTOM -> "phantom reference"
+    UNREACHABLE -> "reference from uncollected garbage"
   }
 
 private val ReachabilityStrength.hue: Float
@@ -207,6 +256,7 @@ private val ReachabilityStrength.hue: Float
     WEAK -> 285f
     FINALIZER -> 0f
     PHANTOM -> 160f
+    UNREACHABLE -> 255f
   }
 
 /**
@@ -225,23 +275,36 @@ private const val DAISY_MAX_VALUE = 0.99f
 private const val DAISY_DEEPEST_SHADE = 8
 private val DAISY_BORDER = Color(0x66FFFFFF)
 
+/**
+ * The depth of the two halves of the heap dump: the root is 0, "All GC roots" and "Unreachable" are 1, and
+ * their children — the blocks worth telling apart by hue — are 2.
+ */
+private const val TOP_LEVEL_DEPTH = 2
+
 private const val SLATE_HUE = 212f
 private const val SLATE_SATURATION = 0.07f
 
-/** Enough colour to stand apart from a leftover group's grey, not enough to read as an object's hue. */
-private const val CLASS_GROUP_HUE = 196f
-private const val CLASS_GROUP_SATURATION = 0.14f
-private val CLASS_GROUP_BORDER = Color(0xCC37474F)
+/** The cool slate a pile of strongly reachable objects gets, which no object is coloured. */
+private const val PILE_HUE = 196f
+private const val PILE_SATURATION = 0.30f
+private const val PILE_SATURATION_STEP = 0.05f
+private val PILE_BORDER = Color(0xCC37474F)
 
 /** Vivid, so that the little there is of it is impossible to miss among pastels. */
 private const val STRENGTH_SATURATION = 0.85f
 private const val STRENGTH_VALUE = 0.95f
+
+/** There can be a lot of garbage, so it's shaded rather than flat, and not quite as loud. */
+private const val UNREACHABLE_SATURATION = 0.45f
 
 private const val SHADED_SATURATION = 0.20f
 private const val SHADE_STEPS = 5
 private const val SATURATION_STEP = 0.11f
 private const val MAX_VALUE = 0.99f
 private const val VALUE_STEP = 0.06f
+
+/** Dark enough to read as switched off next to an unchecked box. */
+private const val MUTED_SWATCH = 0.72f
 
 private val BORDER = Color(0x33000000)
 private val LABEL = Color(0xFF1B1B1B)

@@ -48,8 +48,12 @@ class PresentedCell<out C : LayoutCell<Long>>(
   val label: String,
   val content: CellContent
 ) {
-  /** How strongly the object is reachable, null for a cell that doesn't stand for one object. */
-  val strength: ReachabilityStrength? get() = (content as? CellContent.Object)?.strength
+  /** How firmly whatever the cell stands for is held. */
+  val strength: ReachabilityStrength get() = when (val content = content) {
+    is CellContent.Object -> content.strength
+    is CellContent.ObjectGroup -> content.strength
+    is CellContent.Leftover -> content.strength
+  }
 }
 
 /**
@@ -62,14 +66,22 @@ sealed interface CellContent {
   data class Object(val strength: ReachabilityStrength) : CellContent
 
   /**
-   * Every object of one class that the root dominates, as one cell — see
-   * [HeapDominatorTreemap.children].
+   * A pile of objects as one cell: half of the heap dump, or every instance of one class the root
+   * dominates. See [HeapDominatorTreemap.groupOrNull].
    */
-  data class ClassGroup(
-    val className: String,
-    val instanceCount: Int
+  data class ObjectGroup(
+    val kind: ObjectGroupKind,
+    /** How firmly the objects in it are held, which they all are the same way. */
+    val strength: ReachabilityStrength,
+    val objectCount: Int
   ) : CellContent
 
   /** The children of a node that its subdivision had no room for. See [CellSubject.Group]. */
-  data object Leftover : CellContent
+  data class Leftover(
+    /**
+     * How firmly the node holding them is held, standing in for their own: they're a pile of objects with
+     * nothing else in common, and one of them could be held more weakly than the rest.
+     */
+    val strength: ReachabilityStrength
+  ) : CellContent
 }

@@ -12,10 +12,11 @@ import shark.explorer.HeapExplorer
 /**
  * A [HeapExplorer] with every read of it confined to one background thread.
  *
- * Two reasons it has to be exactly one, and never the thread drawing the window. A heap dump read
- * takes anywhere from microseconds to tens of seconds, and a window that stops repainting for ten
- * seconds looks broken. And [shark.HprofHeapGraph] has a single read cursor and a single object cache,
- * so two threads reading it at once corrupt each other's reads.
+ * Never the thread drawing the window, because a heap dump read takes anywhere from microseconds to
+ * tens of seconds and a window that stops repainting for ten seconds looks broken. One thread rather
+ * than several because a read is IO bound and the answers are wanted in the order they were asked for
+ * — a [shark.HeapGraph] is read only and safe to read from several threads at once, so this could grow
+ * a pool the day something needs one.
  *
  * Everything the UI needs therefore goes through [read], which hands the explorer over on that thread
  * and returns plain data. The thread is released by [close].

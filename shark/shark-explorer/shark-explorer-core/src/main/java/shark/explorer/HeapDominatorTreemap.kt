@@ -59,12 +59,14 @@ import shark.ValueHolder.ShortHolder
  * A heap dump's dominator tree, seen as a [TreemapTree] weighted by retained size.
  *
  * Nodes are object ids, and the root is [NULL_REFERENCE]: the virtual root [shark.HeapDominatorTree]
- * puts above every GC root, so that the whole reachable heap is one rectangle.
+ * puts above every GC root, so that the whole heap dump is one rectangle. Every object of the dump is in
+ * here, whether a GC root reaches it or not — the uncollected garbage hangs under [UNREACHABLE_NODE_ID],
+ * a sibling of [GC_ROOTS_NODE_ID], because it has no owner in the reachable heap and its bytes are still
+ * bytes.
  *
- * Which objects are in it depends on [followedStrengths] — see [HeapExplorer.treeFor]. With none of
- * them, an object only a weak reference points at is absent, because a weak reference retains nothing,
- * so the root doesn't add up to the size of the heap dump. [HeapSizes] is where the rest of the bytes
- * are accounted for.
+ * The negative node ids stand for a pile of objects rather than for one: the two above, and one per
+ * class the children of either are gathered under. They're allocated per tree, so they mean nothing to
+ * another tree of the same heap dump.
  *
  * Reads the heap dump, so not from the UI thread. See [HeapExplorer].
  */
@@ -72,27 +74,24 @@ class HeapDominatorTreemap internal constructor(
   private val graph: HeapGraph,
   private val reachability: HeapReachability,
   private val strengthReader: ReferenceStrengthReader,
-  private val nodes: Map<Long, DominatorNode>,
-  /** The reference strengths this tree was built by following. */
-  val followedStrengths: Set<ReachabilityStrength>
+  private val nodes: Map<Long, DominatorNode>
 ) : TreemapTree<Long> {
 
   override val root: Long get() = NULL_REFERENCE
 
   /**
-   * The root's children by class, and the ones left as they were, computed on first use.
-   *
-   * Lazy because it's a pass over every child of the root, and a tree that's built but never looked at
-   * — which happens whenever a strength is followed and then unfollowed — shouldn't pay for it.
+   * The two halves of the heap dump, each with its own children gathered by class, computed on first
+   * use: it's a pass over every child of the root, and the root of a production dump has six figures
+   * worth of them.
    */
-  private val rootChildren: RootChildren by lazy { groupRootChildrenByClass() }
+  private val topLevel: TopLevel by lazy { splitRootChildren() }
 
   /**
    * The references this tree was built by following, which is what a path up to a GC root has to follow
    * too: a path through a reference the tree ignored would explain a retention the tree doesn't show.
    */
   private val pathReferenceReader by lazy {
-    StrengthFilteringReferenceReader(strengthReader, reachability, followedStrengths)
+    WeakeningAwareReferenceReader(strengthReader, reachability)
   }
 
   /**
@@ -105,95 +104,147 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /** Bytes retained by [node]: its own shallow size plus that of everything it dominates. */
-  override fun weight(node: Long): Long = classGroup(node)?.retainedSize
+  override fun weight(node: Long): Long = group(node)?.retainedSize
     ?: nodes.getValue(node).retainedSize
 
   override fun children(node: Long): List<Long> = when {
-    node == root -> rootChildren.ids
-    else -> classGroup(node)?.objectIds ?: nodes.getValue(node).dominatedObjectIds
+    node == root -> topLevel.ids
+    else -> group(node)?.childIds ?: nodes.getValue(node).dominatedObjectIds
   }
 
-  /** Whether [objectId] is in this tree, i.e. reachable by following [followedStrengths]. */
-  operator fun contains(objectId: Long): Boolean = if (isClassGroupId(objectId)) {
-    objectId in rootChildren.classGroups
+  /** Whether [objectId] is a node of this tree, which every object of the heap dump is. */
+  operator fun contains(objectId: Long): Boolean = if (isGroupId(objectId)) {
+    objectId in topLevel.groups
   } else {
     objectId in nodes
   }
 
   /**
-   * What a class group cell stands for, or null if [node] is an object rather than a group of them.
+   * What a cell standing for many objects stands for, or null if [node] is one object.
    *
-   * The root of a production heap dump has six figures worth of children — every object that more than
-   * one thing holds ends up there — and no view can show them one by one. So the root's children are
-   * gathered by class, and a class stands in for its instances until you zoom into it.
+   * Two kinds of cell are a pile of objects. The first is the top of the tree: everything the GC roots
+   * reach on one side, the uncollected garbage on the other, so that the two are read apart rather than
+   * mixed into one list of rectangles.
    *
-   * Only the root's, and only when it has more children than [MIN_CHILDREN_TO_GROUP_BY_CLASS]. Elsewhere
-   * in the tree a node's children are what holds what, and replacing them with classes would throw that
-   * away; under the root there is nothing to throw away, because being there means nothing owns you.
+   * The second is a class. The root of a production heap dump has six figures worth of children — every
+   * object that more than one thing holds ends up there — and no view can show them one by one. So the
+   * children of each half are gathered by class, and a class stands in for its instances until you zoom
+   * into it. Only there, and only past [MIN_CHILDREN_TO_GROUP_BY_CLASS] children: elsewhere in the tree a
+   * node's children are what holds what, and replacing them with classes would throw that away; at the
+   * top there is nothing to throw away, because being there means nothing owns you.
    */
-  fun classGroupOrNull(node: Long): ClassGroupSummary? = classGroup(node)?.let { group ->
-    ClassGroupSummary(
+  fun groupOrNull(node: Long): ObjectGroupSummary? = group(node)?.let { group ->
+    ObjectGroupSummary(
       nodeId = node,
+      kind = group.kind,
+      strength = group.strength,
       className = group.className,
-      instanceCount = group.objectIds.size,
+      objectCount = group.objectCount,
       retainedSize = group.retainedSize
     )
   }
 
-  private fun classGroup(node: Long): ClassGroup? =
-    if (isClassGroupId(node)) rootChildren.classGroups[node] else null
+  private fun group(node: Long): NodeGroup? =
+    if (isGroupId(node)) topLevel.groups[node] else null
 
   /**
-   * Gathers the root's children by the class of each.
-   *
-   * A class is identified by its own object id, negated: object ids are heap addresses and a class is an
-   * object of the dump too, so this can't collide with one and it stays the same across two trees of the
-   * same heap dump, which is what lets a zoomed in class group survive following another strength.
+   * Splits the root's children into the reachable heap and the uncollected garbage, and gathers each
+   * side's children by class.
    */
-  private fun groupRootChildrenByClass(): RootChildren {
-    val children = nodes.getValue(root).dominatedObjectIds
-    if (children.size <= MIN_CHILDREN_TO_GROUP_BY_CLASS) {
-      return RootChildren(ids = children, classGroups = emptyMap())
-    }
-    val idsByClassId = LinkedHashMap<Long, MutableList<Long>>()
-    val ungrouped = mutableListOf<Long>()
-    children.forEach { objectId ->
-      val classId = graph.findObjectById(objectId).groupingClassId()
-      if (classId == null) {
-        ungrouped += objectId
+  private fun splitRootChildren(): TopLevel {
+    val reachable = TopLevelHalf(
+      nodeId = GC_ROOTS_NODE_ID,
+      kind = ObjectGroupKind.GC_ROOTS,
+      strength = ReachabilityStrength.STRONG,
+      objectCount = reachability.sizes.reachableObjectCount
+    )
+    val unreachable = TopLevelHalf(
+      nodeId = UNREACHABLE_NODE_ID,
+      kind = ObjectGroupKind.UNREACHABLE,
+      strength = ReachabilityStrength.UNREACHABLE,
+      objectCount = reachability.sizes.unreachableObjectCount
+    )
+    // One pass, one read of each child: a production dump has six figures worth of them, and looking one
+    // up twice — once for its strength and once for its class — was seconds of the wait to first paint.
+    nodes.getValue(root).dominatedObjectIds.forEach { objectId ->
+      val heapObject = graph.findObjectById(objectId)
+      val half = if (reachability.strengthOf(heapObject) == ReachabilityStrength.UNREACHABLE) {
+        unreachable
       } else {
-        require(classId > 0L) {
-          "Class $classId of object $objectId has a negative id, which a class group id would clash " +
-            "with. Object ids are expected to be positive heap addresses."
-        }
-        idsByClassId.getOrPut(classId) { mutableListOf() } += objectId
+        reachable
+      }
+      half.add(heapObject, nodes.getValue(objectId).retainedSize)
+    }
+    val groups = LinkedHashMap<Long, NodeGroup>()
+    val ids = mutableListOf<Long>()
+    val groupIds = GroupIds()
+    // The garbage second, and only when there is some: a dump with none shouldn't grow a rectangle that
+    // says so.
+    listOf(reachable, unreachable).forEach { half ->
+      if (half.childIds.isNotEmpty()) {
+        ids += half.nodeId
+        groups[half.nodeId] = topLevelGroup(half, groups, groupIds)
       }
     }
-    val classGroups = LinkedHashMap<Long, ClassGroup>(idsByClassId.size)
-    idsByClassId.forEach { (classId, objectIds) ->
-      // A class with one instance under the root is that instance. Wrapping it in a group of one would
-      // add a rectangle that says nothing and a level to click through.
+    return TopLevel(ids = ids, groups = groups)
+  }
+
+  /**
+   * One half of the heap dump as a group, with the class groups its children were gathered into added
+   * to [groups].
+   */
+  private fun topLevelGroup(
+    half: TopLevelHalf,
+    groups: MutableMap<Long, NodeGroup>,
+    groupIds: GroupIds
+  ): NodeGroup {
+    val grouped = if (half.childIds.size <= MIN_CHILDREN_TO_GROUP_BY_CLASS) {
+      half.childIds
+    } else {
+      groupByClass(half, groups, groupIds)
+    }
+    return NodeGroup(
+      kind = half.kind,
+      strength = half.strength,
+      // Heaviest first, like the dominated ids a node hands out, so that these children stay ordered the
+      // way the rest of the tree's are. Not through [weight], which would ask for the groups being built.
+      childIds = grouped.sortedByDescending { groups[it]?.retainedSize ?: nodes.getValue(it).retainedSize },
+      retainedSize = half.retainedSize,
+      objectCount = half.objectCount
+    )
+  }
+
+  /**
+   * What one half's children become once gathered by class: a group id per class with more than one
+   * instance in it, and the other ids as they were. Adds a group per class to [groups].
+   */
+  private fun groupByClass(
+    half: TopLevelHalf,
+    groups: MutableMap<Long, NodeGroup>,
+    groupIds: GroupIds
+  ): List<Long> {
+    val ids = half.ungroupedIds.toMutableList()
+    half.idsByClassId.forEach { (classId, objectIds) ->
+      // A class with one instance here is that instance. Wrapping it in a group of one would add a
+      // rectangle that says nothing and a level to click through.
       if (objectIds.size == 1) {
-        ungrouped += objectIds
+        ids += objectIds
       } else {
         val heapClass = graph.findObjectById(classId).asClass!!
-        classGroups[-classId] = ClassGroup(
+        val groupId = groupIds.next()
+        groups[groupId] = NodeGroup(
+          kind = ObjectGroupKind.CLASS,
           className = heapClass.name,
           simpleClassName = heapClass.simpleName,
-          objectIds = objectIds,
-          retainedSize = objectIds.sumOf { nodes.getValue(it).retainedSize }
+          strength = half.strength,
+          childIds = objectIds,
+          retainedSize = objectIds.sumOf { nodes.getValue(it).retainedSize },
+          objectCount = objectIds.size
         )
+        ids += groupId
       }
     }
-    // Heaviest first, like the dominated ids a node hands out, so that the root's children stay ordered
-    // the way the rest of the tree's are.
-    val ids = (
-      classGroups.map { (groupId, group) -> groupId to group.retainedSize } +
-        ungrouped.map { it to nodes.getValue(it).retainedSize }
-      )
-      .sortedByDescending { (_, retainedSize) -> retainedSize }
-      .map { (id, _) -> id }
-    return RootChildren(ids = ids, classGroups = classGroups)
+    return ids
   }
 
   /**
@@ -202,34 +253,49 @@ class HeapDominatorTreemap internal constructor(
    */
   private fun HeapObject.groupingClassId(): Long? = when (this) {
     is HeapInstance -> instanceClassId
-    is HeapObjectArray -> arrayClass.objectId
-    is HeapPrimitiveArray -> arrayClass.objectId
-    is HeapClass -> graph.findClassByName(JAVA_LANG_CLASS)?.objectId
-  }
-
-  /** How strongly the garbage collector holds on to [objectId]. */
-  fun strengthOf(objectId: Long): ReachabilityStrength = if (objectId == root) {
-    ReachabilityStrength.STRONG
-  } else {
-    reachability.strengthOf(objectId)
+    is HeapObjectArray -> arrayClassId
+    // Not [HeapPrimitiveArray.arrayClass], which goes through findClassByName every time it's asked.
+    is HeapPrimitiveArray -> classIdOf(arrayClassName)
+    is HeapClass -> classIdOf(JAVA_LANG_CLASS)
   }
 
   /**
-   * A short name for [objectId], to draw on its rectangle.
+   * The id of a class by name, looked up once per name: [HeapGraph.findClassByName] performs two linear
+   * scans over every string of the heap dump, and asking it per object of a production dump — once for
+   * every class object, once for every `byte[]` — took the best part of a minute.
+   */
+  private fun classIdOf(className: String): Long? =
+    classIdByName.getOrPut(className) { graph.findClassByName(className)?.objectId }
+
+  private val classIdByName = mutableMapOf<String, Long?>()
+
+  /** How strongly the garbage collector holds on to [node], or to what a group of objects holds. */
+  fun strengthOf(node: Long): ReachabilityStrength = when {
+    node == root -> ReachabilityStrength.STRONG
+    else -> group(node)?.strength ?: reachability.strengthOf(node)
+  }
+
+  /**
+   * A short name for [node], to draw on its rectangle.
    *
    * Cheap enough to call for every visible rectangle, unlike [summarize].
    */
-  fun label(objectId: Long): String {
-    if (objectId == root) {
+  fun label(node: Long): String {
+    if (node == root) {
       return ROOT_LABEL
     }
-    val group = classGroup(objectId)
+    val group = group(node)
     if (group != null) {
-      // "42 × Bitmap" rather than "Bitmap": a count and a multiplication sign say this cell is a pile of
-      // objects and not one of them, on a rectangle with room for nothing else.
-      return "${group.objectIds.size} $CLASS_GROUP_LABEL_SEPARATOR ${group.simpleClassName}"
+      return when (group.kind) {
+        ObjectGroupKind.GC_ROOTS -> GC_ROOTS_LABEL
+        ObjectGroupKind.UNREACHABLE -> UNREACHABLE_LABEL
+        // "42 × Bitmap" rather than "Bitmap": a count and a multiplication sign say this cell is a pile
+        // of objects and not one of them, on a rectangle with room for nothing else.
+        ObjectGroupKind.CLASS ->
+          "${group.objectCount} $CLASS_GROUP_LABEL_SEPARATOR ${group.simpleClassName}"
+      }
     }
-    return when (val heapObject = graph.findObjectById(objectId)) {
+    return when (val heapObject = graph.findObjectById(node)) {
       is HeapClass -> "class ${heapObject.simpleName}"
       is HeapInstance -> heapObject.instanceClassSimpleName
       is HeapObjectArray -> heapObject.arrayClassSimpleName
@@ -244,9 +310,9 @@ class HeapDominatorTreemap internal constructor(
    * rather than for every rectangle.
    */
   fun summarize(objectId: Long): HeapObjectSummary {
-    require(classGroup(objectId) == null) {
-      "$objectId stands for every instance of one class rather than for an object. Ask " +
-        "classGroupOrNull() first, and describe it with what that returns."
+    require(group(objectId) == null) {
+      "$objectId stands for a pile of objects rather than for one. Ask groupOrNull() first, and " +
+        "describe it with what that returns."
     }
     val node = nodes.getValue(objectId)
     val heapObject = if (objectId == root) null else graph.findObjectById(objectId)
@@ -313,8 +379,8 @@ class HeapDominatorTreemap internal constructor(
     }
     // Whether the tree follows a reference that doesn't retain depends on the object it points at, not
     // on the reference: it's followed only when it's the strongest thing reaching it. So this is one
-    // answer for all of them. See [StrengthFilteringReferenceReader].
-    val followsWeakening = strengthOf(objectId) in followedStrengths
+    // answer for all of them. See [WeakeningAwareReferenceReader].
+    val followsWeakening = strengthOf(objectId) != ReachabilityStrength.STRONG
     graph.gcRoots
       .filter { it.id == objectId }
       .forEach { gcRoot ->
@@ -377,12 +443,18 @@ class HeapDominatorTreemap internal constructor(
    * on a large dump — so it belongs off the UI thread and behind its own placeholder, like [referrersOf].
    */
   fun holdingPathsTo(objectId: Long): HoldingPaths {
-    if (objectId == root || objectId !in nodes) {
+    val isUnreachable = objectId != root &&
+      objectId in nodes &&
+      strengthOf(objectId) == ReachabilityStrength.UNREACHABLE
+    // No path from a GC root reaches uncollected garbage, by definition, so there is nothing to walk:
+    // whatever points at it is garbage as well, and the tree shows that as the rectangle around it.
+    if (objectId == root || objectId !in nodes || isUnreachable) {
       return HoldingPaths(
         paths = emptyList(),
         commonHolderObjectId = null,
         commonHolderLabel = null,
         isDominatedByRoot = false,
+        isUnreachable = isUnreachable,
         hiddenPathCount = 0
       )
     }
@@ -417,20 +489,18 @@ class HeapDominatorTreemap internal constructor(
    * The objects to ask a path from a GC root for, each with the steps from it back down to the object
    * asked about.
    *
-   * The object asked about always forks, so that every reference into it gets a chain of its own: a
-   * bitmap a tile holds as the drawable it shows and as the result of the request that loaded it is held
-   * two ways, and both are worth reading even though the tile is the answer to what keeps it around.
-   *
-   * Above it, what forks comes out of what the dominator tree already knows: every path to an object with
-   * a dominator goes through that dominator, so one path says everything there is to say about it. Only
-   * an object the root dominates is held in ways that differ higher up.
+   * What forks comes out of what the dominator tree already knows: every path to an object with a
+   * dominator goes through that dominator, so one chain says everything there is to say about how it's
+   * held, however many references point at it. Only an object the root dominates is held in ways that
+   * differ, and only those fork — which is what keeps this section and the treemap telling the same
+   * story, and what makes an owned object cost the walk from the GC roots and nothing else.
    */
   private fun tailsToWalkUpFrom(objectId: Long): Tails {
     val tailByTipId = LinkedHashMap<Long, List<TailStep>>()
     var notFollowedCount = 0
     var frontier = mapOf(objectId to emptyList<TailStep>())
-    repeat(MAX_HOLDER_LEVELS) { level ->
-      val forking = if (level == 0) frontier else frontier.filterKeys { it in rootDominatedIds }
+    repeat(MAX_HOLDER_LEVELS) {
+      val forking = frontier.filterKeys { it in rootDominatedIds }
       tailByTipId += frontier - forking.keys
       if (forking.isEmpty()) {
         return Tails(tailByTipId, notFollowedCount)
@@ -588,6 +658,7 @@ class HeapDominatorTreemap internal constructor(
       commonHolderObjectId = commonHolder?.objectId,
       commonHolderLabel = commonHolder?.label,
       isDominatedByRoot = objectId in rootDominatedIds,
+      isUnreachable = false,
       hiddenPathCount = hiddenPathCount
     )
   }
@@ -764,14 +835,14 @@ class HeapDominatorTreemap internal constructor(
     is CellSubject.Node -> PresentedCell(
       cell = this,
       label = label(subject.node),
-      content = classGroup(subject.node)?.let { group ->
-        CellContent.ClassGroup(group.className, group.objectIds.size)
+      content = group(subject.node)?.let { group ->
+        CellContent.ObjectGroup(group.kind, group.strength, group.objectCount)
       } ?: CellContent.Object(strengthOf(subject.node))
     )
     is CellSubject.Group -> PresentedCell(
       cell = this,
       label = "${subject.nodeCount} smaller objects",
-      content = CellContent.Leftover
+      content = CellContent.Leftover(strengthOf(subject.parent))
     )
   }
 
@@ -781,19 +852,76 @@ class HeapDominatorTreemap internal constructor(
     val totalCount: Int
   )
 
-  /** The root's children of one class, drawn as one cell. See [classGroupOrNull]. */
-  private class ClassGroup(
-    val className: String,
-    val simpleClassName: String,
-    val objectIds: List<Long>,
-    val retainedSize: Long
+  /** A cell standing for many objects rather than one. See [groupOrNull]. */
+  private class NodeGroup(
+    val kind: ObjectGroupKind,
+    val strength: ReachabilityStrength,
+    /** What [children] answers for it. */
+    val childIds: List<Long>,
+    val retainedSize: Long,
+    /** How many objects the cell stands for, which is more than [childIds] once they nest. */
+    val objectCount: Int,
+    val className: String? = null,
+    val simpleClassName: String? = null
   )
 
-  /** What [children] answers for the root, and the groups among it, by class group id. */
-  private class RootChildren(
+  /** What [children] answers for the root, and every group of this tree by its id. */
+  private class TopLevel(
     val ids: List<Long>,
-    val classGroups: Map<Long, ClassGroup>
+    val groups: Map<Long, NodeGroup>
   )
+
+  /**
+   * One of the two halves the root's children split into, filled in as [splitRootChildren] reads them.
+   *
+   * Both what the children are and what they'd be gathered into, because which of the two a half ends up
+   * handing out depends on how many there turn out to be, and reading them all again to find out would
+   * cost as much as the first pass did.
+   */
+  private inner class TopLevelHalf(
+    val nodeId: Long,
+    val kind: ObjectGroupKind,
+    val strength: ReachabilityStrength,
+    val objectCount: Int
+  ) {
+    val childIds = mutableListOf<Long>()
+
+    /** The same children by the class they'd gather under. See [groupByClass]. */
+    val idsByClassId = LinkedHashMap<Long, MutableList<Long>>()
+
+    /** And the ones no class gathers, which is a class object in a dump without `java.lang.Class`. */
+    val ungroupedIds = mutableListOf<Long>()
+
+    var retainedSize = 0L
+      private set
+
+    fun add(
+      heapObject: HeapObject,
+      retainedSize: Long
+    ) {
+      childIds += heapObject.objectId
+      this.retainedSize += retainedSize
+      val classId = heapObject.groupingClassId()
+      if (classId == null) {
+        ungroupedIds += heapObject.objectId
+      } else {
+        idsByClassId.getOrPut(classId) { mutableListOf() } += heapObject.objectId
+      }
+    }
+  }
+
+  /**
+   * Hands out the ids of the class groups of one tree, counting down from [FIRST_CLASS_GROUP_ID].
+   *
+   * A group is no object of the heap dump, so it needs an id of its own, and the negative range is free:
+   * object ids are heap addresses. Sequential rather than derived from the class, because the same class
+   * can have a group on both sides of the tree.
+   */
+  private class GroupIds {
+    private var nextId = FIRST_CLASS_GROUP_ID
+
+    fun next(): Long = nextId--
+  }
 
   companion object {
     /**
@@ -802,8 +930,24 @@ class HeapDominatorTreemap internal constructor(
      */
     const val ROOT_OBJECT_ID = NULL_REFERENCE
 
-    /** What the virtual root above every GC root is called in the UI. */
-    const val ROOT_LABEL = "All GC roots"
+    /** What the virtual root above the whole heap dump is called in the UI. */
+    const val ROOT_LABEL = "Whole heap dump"
+
+    /** Everything the GC roots reach, one of the root's two children. */
+    const val GC_ROOTS_NODE_ID = -1L
+
+    const val GC_ROOTS_LABEL = "All GC roots"
+
+    /**
+     * The uncollected garbage, the root's other child. Absent from a heap dump whose garbage was all
+     * collected before it was written.
+     */
+    const val UNREACHABLE_NODE_ID = -2L
+
+    const val UNREACHABLE_LABEL = "Unreachable"
+
+    /** The rest of the negative ids are the class groups. See [GroupIds]. */
+    private const val FIRST_CLASS_GROUP_ID = -3L
 
     /**
      * Between the count and the class name on a class group's cell, so that the label can't be read as
@@ -812,18 +956,18 @@ class HeapDominatorTreemap internal constructor(
     const val CLASS_GROUP_LABEL_SEPARATOR = "×"
 
     /**
-     * How many children the root has to have before they're gathered by class. Below this they all fit
-     * on screen, and a level of classes to click through would be in the way.
+     * How many children a top level group has to have before they're gathered by class. Below this they
+     * all fit on screen, and a level of classes to click through would be in the way.
      */
     const val MIN_CHILDREN_TO_GROUP_BY_CLASS = 200
 
     private const val JAVA_LANG_CLASS = "java.lang.Class"
 
     /**
-     * Class group ids are class object ids negated, and every object id in a heap dump is positive, so
-     * the sign is what tells a group from an object. The root is [NULL_REFERENCE], neither.
+     * Every object id in a heap dump is positive, so the sign is what tells a group of objects from one
+     * object. The root is [NULL_REFERENCE], neither.
      */
-    private fun isClassGroupId(node: Long) = node < 0L
+    private fun isGroupId(node: Long) = node < 0L
 
     private const val BITMAP_CLASS_NAME = "android.graphics.Bitmap"
     private const val NULL_VALUE = "null"
@@ -910,18 +1054,35 @@ data class HeapObjectSummary(
 )
 
 /**
- * What the UI knows about a cell that stands for every instance of one class under the root rather than
- * for an object. See [HeapDominatorTreemap.classGroupOrNull].
+ * What the UI knows about a cell that stands for a pile of objects rather than for one. See
+ * [HeapDominatorTreemap.groupOrNull].
  */
-data class ClassGroupSummary(
+data class ObjectGroupSummary(
   /** What the tree knows this group by, e.g. to zoom into it. Not an object id. */
   val nodeId: Long,
-  /** Fully qualified class name, or array type. */
-  val className: String,
-  val instanceCount: Int,
-  /** Bytes retained by the instances together. */
+  val kind: ObjectGroupKind,
+  /** How firmly the objects in it are held, which they all are the same way. */
+  val strength: ReachabilityStrength,
+  /** Fully qualified class name, or array type, for [ObjectGroupKind.CLASS] only. */
+  val className: String?,
+  /** How many objects the cell stands for. */
+  val objectCount: Int,
+  /** Bytes retained by those objects together. */
   val retainedSize: Long
 )
+
+/** Which pile of objects a cell stands for. See [ObjectGroupSummary]. */
+enum class ObjectGroupKind {
+
+  /** Everything the GC roots reach, however weakly. */
+  GC_ROOTS,
+
+  /** Everything they don't: garbage that hadn't been collected when the heap dump was written. */
+  UNREACHABLE,
+
+  /** Every instance of one class that nothing in the heap dump owns on its own. */
+  CLASS
+}
 
 /** One field of an object, or one element of an array. See [HeapObjectSummary.fields]. */
 data class ObjectFieldValue(

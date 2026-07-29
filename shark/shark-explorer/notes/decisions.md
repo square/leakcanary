@@ -40,9 +40,9 @@ So the dependency is not what gets those.
 
 ## The heap dump gets a thread of its own
 
-`HprofHeapGraph` has one read cursor and one LRU cache, so it can only be used from one thread, and
-the work is far too slow for the UI thread anyway: opening a 24 MB dump indexes it and then walks
-reachability, and following a weaker strength rebuilds the dominator tree from scratch.
+Not for safety: a `HeapGraph` is read only and safe to read from several threads at once. For latency.
+Opening an 82 MB dump takes about six seconds — index, reachability, dominators — and afterwards
+labelling a rectangle is still IO and walking up to the GC roots is still seconds of it.
 
 `HeapDumpSession` owns a single thread executor and a `HeapExplorer`, and `read { }` is the only way
 in. Confinement is then structural rather than a convention: the UI cannot touch the graph even by
@@ -52,15 +52,19 @@ its way.
 
 Cost of that choice: the layout runs on the heap dump's thread too, because labelling a rectangle
 reads the object it stands for. Resizing the window therefore queues behind whatever else that thread
-is doing. Acceptable while a rebuild is the slow operation; if layout ever becomes the bottleneck, the
-labels would have to be read separately from the geometry.
+is doing. One thread is also a choice rather than a constraint — the graph would take a pool — so if
+layout ever becomes the bottleneck, that's where to look.
 
-## One dominator tree at a time
+## One dominator tree, covering the whole heap dump
 
-`HeapExplorer.treeFor(followedStrengths)` caches exactly one tree, and drops it before building the
-next. A `Map<Long, DominatorNode>` for a large dump is 100+ MB (see `dominator-tree.md`), so caching
-per strength combination — 16 of them — trades an interaction the user does rarely against memory the
-app can't spare. Toggling a checkbox back and forth therefore recomputes.
+There is exactly one tree per open heap dump, built once, and it holds every object of the dump —
+whatever a GC root reaches, however weakly, plus the garbage that hadn't been collected when it was
+written. A `Map<Long, DominatorNode>` for a large dump is 100+ MB (see `dominator-tree.md`), so a tree
+per subset of the reference strengths was never affordable; and a subset would answer a question nobody
+asked, since the sizes say what's held how firmly without leaving anything out of the picture.
+
+What the reachability checkboxes do instead is colour: unchecked greys everything held that firmly.
+That's a repaint, not a rebuild, so it's instant and there is no strength it makes no sense to press.
 
 ## Testing split
 

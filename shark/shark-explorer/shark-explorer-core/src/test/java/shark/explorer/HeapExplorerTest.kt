@@ -11,6 +11,7 @@ import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
+import shark.explorer.HeapDominatorTreemap.Companion.GC_ROOTS_NODE_ID
 import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.WEAK
@@ -20,21 +21,23 @@ class HeapExplorerTest {
   @get:Rule
   var testFolder = TemporaryFolder()
 
-  @Test fun `the root is the whole reachable heap`() {
+  @Test fun `the root is the whole heap dump`() {
     openTestHeapDump().use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val rootChildren = tree.children(tree.root)
 
-      assertThat(rootChildren).isNotEmpty()
+      // A dump whose garbage was all collected has the one half, which is this one.
+      assertThat(rootChildren).containsExactly(GC_ROOTS_NODE_ID)
       // The virtual root has no shallow size of its own, so it weighs exactly what it dominates.
       assertThat(tree.weight(tree.root)).isEqualTo(rootChildren.sumOf { tree.weight(it) })
+      assertThat(tree.weight(tree.root)).isEqualTo(explorer.sizes.totalByteCount)
     }
   }
 
   @Test fun `children are ordered largest retained first`() {
     openTestHeapDump().use { explorer ->
-      val tree = explorer.treeFor(emptySet())
-      val weights = tree.children(tree.root).map { tree.weight(it) }
+      val tree = explorer.tree
+      val weights = tree.children(GC_ROOTS_NODE_ID).map { tree.weight(it) }
 
       assertThat(weights).isEqualTo(weights.sortedDescending())
     }
@@ -42,7 +45,7 @@ class HeapExplorerTest {
 
   @Test fun `the root is labelled rather than read from the heap`() {
     openTestHeapDump().use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
 
       assertThat(tree.label(tree.root)).isEqualTo(HeapDominatorTreemap.ROOT_LABEL)
       assertThat(tree.summarize(tree.root).inspectorLabels).isEmpty()
@@ -51,7 +54,7 @@ class HeapExplorerTest {
 
   @Test fun `an instance is labelled with its simple class name`() {
     openTestHeapDump().use { explorer ->
-      val holder = explorer.treeFor(emptySet()).findByLabel("Holder")
+      val holder = explorer.tree.findByLabel("Holder")
 
       assertThat(holder.className).isEqualTo("com.example.Holder")
     }
@@ -59,7 +62,7 @@ class HeapExplorerTest {
 
   @Test fun `an object retains what it dominates`() {
     openTestHeapDump().use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val holder = tree.findByLabel("Holder")
       val dominated = tree.children(holder.objectId).map { tree.summarize(it) }
 
@@ -74,7 +77,7 @@ class HeapExplorerTest {
 
   @Test fun `a string leads with its content`() {
     openTestHeapDump().use { explorer ->
-      val string = explorer.treeFor(emptySet()).findByLabel("String")
+      val string = explorer.tree.findByLabel("String")
 
       assertThat(string.headline).isEqualTo("\"Kept alive by the holder\"")
     }
@@ -82,7 +85,7 @@ class HeapExplorerTest {
 
   @Test fun `a bitmap leads with its dimensions`() {
     HeapExplorer.open(bitmapHeapDump()).use { explorer ->
-      val bitmap = explorer.treeFor(emptySet()).findByLabel("Bitmap")
+      val bitmap = explorer.tree.findByLabel("Bitmap")
 
       assertThat(bitmap.headline).isEqualTo("420 × 467 pixels")
     }
@@ -90,7 +93,7 @@ class HeapExplorerTest {
 
   @Test fun `an object lists its fields, references reading as what they point at`() {
     openTestHeapDump().use { explorer ->
-      val holder = explorer.treeFor(emptySet()).findByLabel("Holder")
+      val holder = explorer.tree.findByLabel("Holder")
 
       assertThat(holder.fields.map { "${it.name} = ${it.value}" })
         .containsExactly("payload = Object[]", "name = \"Kept alive by the holder\"")
@@ -102,7 +105,7 @@ class HeapExplorerTest {
 
   @Test fun `an array lists its elements, and says how many it left out`() {
     HeapExplorer.open(weaklyReachablePayloadHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(setOf(WEAK))
+      val tree = explorer.tree
       val array = tree.findByLabel("Object[]")
 
       assertThat(array.headline).isEqualTo("$PAYLOAD_ELEMENT_COUNT elements")
@@ -114,13 +117,13 @@ class HeapExplorerTest {
 
   @Test fun `an object two others hold is dominated by the root, which its referrers explain`() {
     HeapExplorer.open(sharedPayloadHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val payload = tree.findByLabel("Object[]")
 
       // Neither holder alone would free the payload, so the dominator tree can only attribute it to
       // the whole heap. That is what makes a big rectangle sit flat under the root, and the only way
       // to find out why is to ask what points at it.
-      assertThat(tree.children(tree.root)).contains(payload.objectId)
+      assertThat(tree.children(GC_ROOTS_NODE_ID)).contains(payload.objectId)
       val referrers = tree.referrersOf(payload.objectId)
       assertThat(referrers.isDominatedByRoot).isTrue()
       assertThat(referrers.referrers.map { "${it.label}.${it.fieldName}" })
@@ -130,7 +133,7 @@ class HeapExplorerTest {
 
   @Test fun `an object held two ways has a path from a gc root for each of them`() {
     HeapExplorer.open(cachedPayloadHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val payload = tree.findByLabel("Object[]")
 
       val holdingPaths = tree.holdingPathsTo(payload.objectId)
@@ -155,7 +158,7 @@ class HeapExplorerTest {
 
   @Test fun `the paths say where they join, and that they don't all join`() {
     HeapExplorer.open(cachedPayloadHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val holdingPaths = tree.holdingPathsTo(tree.findByLabel("Object[]").objectId)
 
       // The tile is on two of the three paths, so nothing is common to all of them — which is exactly
@@ -174,7 +177,7 @@ class HeapExplorerTest {
 
   @Test fun `an object with an owner has the one path that goes through it`() {
     HeapExplorer.open(cachedPayloadHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val view = tree.findByLabel("View")
 
       val holdingPaths = tree.holdingPathsTo(view.objectId)
@@ -190,13 +193,13 @@ class HeapExplorerTest {
 
   @Test fun `a cache that evicts is not what keeps an image in memory`() {
     HeapExplorer.open(coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
-      val tree = explorer.treeFor(setOf(CACHE))
+      val tree = explorer.tree
       val pixels = tree.findByLabel("Object[]")
 
       // Coil's cache and the tile showing the image both hold it, which is what would otherwise leave the
       // root dominating it: the cache isn't why it's in memory, so its reference doesn't count and the
       // bytes land on the tile.
-      assertThat(tree.children(tree.root)).doesNotContain(pixels.objectId)
+      assertThat(tree.children(GC_ROOTS_NODE_ID)).doesNotContain(pixels.objectId)
       assertThat(pixels.strength).isEqualTo(STRONG)
       val holdingPaths = tree.holdingPathsTo(pixels.objectId)
       assertThat(holdingPaths.isDominatedByRoot).isFalse()
@@ -206,18 +209,16 @@ class HeapExplorerTest {
 
   @Test fun `the object every path goes through is the one that dominates it`() {
     HeapExplorer.open(coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
-      val tree = explorer.treeFor(setOf(CACHE))
+      val tree = explorer.tree
 
       val holdingPaths = tree.holdingPathsTo(tree.findByLabel("Object[]").objectId)
 
       // The tile holds the image two ways, as the view's drawable and as the result of the request that
-      // loaded it. Both paths go through the view or the image respectively, and deeper down than the
-      // tile, so a shared step isn't what makes an object the answer: only the tile is on both.
+      // loaded it, so the tile is what dominates it — and one chain through the tile says everything
+      // there is to say. Spelling both ways out would tell a story the treemap doesn't: a rectangle with
+      // one owner is drawn inside that owner, whatever the ways round inside it.
       assertThat(holdingPaths.paths.map { path -> path.steps.map { it.label } })
-        .containsExactlyInAnyOrder(
-          listOf("Tile", "View", "Object[]"),
-          listOf("Tile", "SuccessResult", "BitmapImage", "Object[]")
-        )
+        .containsExactly(listOf("Tile", "View", "Object[]"))
       assertThat(holdingPaths.commonHolderLabel).isEqualTo("Tile")
     }
   }
@@ -227,10 +228,8 @@ class HeapExplorerTest {
       // The bytes are the cache's, and they are bytes: an image no view is showing any more is exactly
       // what someone looking at a treemap of a heap dump wants to find.
       assertThat(explorer.sizes.byteCountByStrength.getValue(CACHE)).isGreaterThan(PAYLOAD_BYTE_SIZE)
-      assertThat(explorer.treeFor(emptySet()).allSummaries().map { it.label })
-        .doesNotContain("BitmapImage")
 
-      val tree = explorer.treeFor(setOf(CACHE))
+      val tree = explorer.tree
       val cacheEntry = tree.findByLabel(CACHE_ENTRY_LABEL)
 
       assertThat(tree.children(cacheEntry.objectId).map { tree.label(it) })
@@ -244,7 +243,7 @@ class HeapExplorerTest {
 
   @Test fun `the referrers say which of them does not keep the object in memory`() {
     HeapExplorer.open(coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
-      val tree = explorer.treeFor(setOf(CACHE))
+      val tree = explorer.tree
 
       val referrers = tree.referrersOf(tree.findByLabel("BitmapImage").objectId)
 
@@ -262,7 +261,7 @@ class HeapExplorerTest {
 
   @Test fun `the root has no path leading to it`() {
     openTestHeapDump().use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
 
       val holdingPaths = tree.holdingPathsTo(tree.root)
 
@@ -273,7 +272,7 @@ class HeapExplorerTest {
 
   @Test fun `a path that leads back to the object is not a way of holding it`() {
     HeapExplorer.open(cyclicHolderHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val view = tree.findByLabel("View")
 
       val holdingPaths = tree.holdingPathsTo(view.objectId)
@@ -289,7 +288,7 @@ class HeapExplorerTest {
 
   @Test fun `a gc root is one of the referrers`() {
     openTestHeapDump().use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
       val holder = tree.findByLabel("Holder")
 
       val referrers = tree.referrersOf(holder.objectId)
@@ -302,10 +301,9 @@ class HeapExplorerTest {
   @Test fun `progress is reported for each step`() {
     val steps = mutableListOf<String>()
 
-    openTestHeapDump(onProgress = { steps += it }).use { explorer ->
-      explorer.treeFor(emptySet(), onProgress = { steps += it })
-    }
+    openTestHeapDump(onProgress = { steps += it }).use { }
 
+    // Indexing, reachability, dominators: the three passes over the heap dump the UI has to wait for.
     assertThat(steps).hasSize(3)
     assertThat(steps).allSatisfy { assertThat(it).isNotEmpty() }
   }
@@ -317,27 +315,16 @@ class HeapExplorerTest {
       .isInstanceOf(Exception::class.java)
   }
 
-  @Test fun `an object only reachable through a weak reference is not retained`() {
+  @Test fun `a weakly reachable object nests inside the weak reference reaching it`() {
     HeapExplorer.open(weaklyReachablePayloadHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
-      val labels = tree.allSummaries().map { it.label }
-
-      assertThat(labels).contains("WeakReference")
-      // 1024 ids at 4 bytes each: if a weak reference counted as retaining its referent, this array
-      // would be the biggest thing in the treemap. It isn't in it at all.
-      assertThat(labels).doesNotContain("Object[]")
-      assertThat(tree.weight(tree.root)).isLessThan(PAYLOAD_BYTE_SIZE)
-    }
-  }
-
-  @Test fun `following weak references nests the referent inside the weak reference`() {
-    HeapExplorer.open(weaklyReachablePayloadHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(setOf(WEAK))
+      val tree = explorer.tree
       val weakReference = tree.findByLabel("WeakReference")
       val dominated = tree.children(weakReference.objectId).map { tree.summarize(it) }
 
       // What makes a weakly reachable rectangle show up inside a strongly reachable one: the weak
-      // reference itself is strongly reachable, and it dominates a referent that isn't.
+      // reference itself is strongly reachable, and it dominates a referent that isn't. 1024 ids at 4
+      // bytes each, so the referent is the biggest thing in the treemap — and it's in there, because it's
+      // in the heap dump, however easily the next collection would take it.
       assertThat(weakReference.strength).isEqualTo(STRONG)
       assertThat(dominated.map { it.label }).containsExactly("Object[]")
       assertThat(dominated.single().strength).isEqualTo(WEAK)
@@ -345,102 +332,95 @@ class HeapExplorerTest {
     }
   }
 
-  @Test fun `following weak references leaves a referent that is strongly reachable too where it was`() {
+  @Test fun `a referent something strong also holds stays where the strong reference put it`() {
     HeapExplorer.open(stronglyAndWeaklyReachablePayloadHeapDump()).use { explorer ->
-      val strongly = explorer.treeFor(emptySet())
-      val stronglyDominated = strongly.dominatedLabels()
-      val stronglyRetained = strongly.weight(strongly.root)
-
-      val weakly = explorer.treeFor(setOf(WEAK))
+      val tree = explorer.tree
 
       // The payload is strongly reachable through the holder, so the weak reference has nothing to
-      // reveal. Following it anyway would make both a path to the payload, moving its bytes up to
-      // their common ancestor and reshuffling the treemap for no reason.
-      assertThat(weakly.dominatedLabels()).isEqualTo(stronglyDominated)
-      assertThat(weakly.weight(weakly.root)).isEqualTo(stronglyRetained)
-      assertThat(weakly.findByLabel("Object[]").strength).isEqualTo(STRONG)
+      // reveal. Following it as well would make both a path to the payload, moving its bytes up to their
+      // common ancestor — the root — and leaving the holder retaining nothing.
+      assertThat(tree.children(tree.findByLabel("Holder").objectId).map { tree.label(it) })
+        .containsExactly("Object[]")
+      assertThat(tree.children(tree.findByLabel("WeakReference").objectId)).isEmpty()
+      assertThat(tree.findByLabel("Object[]").strength).isEqualTo(STRONG)
     }
   }
 
-  @Test fun `a root with few children keeps them as they are`() {
+  @Test fun `a half with few children keeps them as they are`() {
     openTestHeapDump().use { explorer ->
-      val tree = explorer.treeFor(emptySet())
+      val tree = explorer.tree
 
-      assertThat(tree.children(tree.root)).allSatisfy { child ->
-        assertThat(tree.classGroupOrNull(child)).isNull()
+      assertThat(tree.children(GC_ROOTS_NODE_ID)).allSatisfy { child ->
+        assertThat(tree.groupOrNull(child)).isNull()
       }
     }
   }
 
-  @Test fun `a root with too many children to draw gathers them by class`() {
+  @Test fun `a half with too many children to draw gathers them by class`() {
     HeapExplorer.open(crowdedRootHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
-      val children = tree.children(tree.root)
-      val groups = children.mapNotNull { tree.classGroupOrNull(it) }
+      val tree = explorer.tree
+      val children = tree.children(GC_ROOTS_NODE_ID)
+      val groups = children.mapNotNull { tree.groupOrNull(it) }
 
-      // One cell for the tiles, and the class with a single instance under the root left as that
-      // instance: a group of one would say nothing and add a level to click through.
+      // One cell for the tiles, and the class with a single instance up here left as that instance: a
+      // group of one would say nothing and add a level to click through.
       assertThat(groups.map { it.className }).containsExactly(TILE_CLASS_NAME)
-      assertThat(groups.single().instanceCount).isEqualTo(TILE_COUNT)
+      assertThat(groups.single().objectCount).isEqualTo(TILE_COUNT)
       assertThat(children.map { tree.label(it) }).contains("Solo")
       assertThat(children.map { tree.label(it) }).doesNotContain("Tile")
-      // The loaded classes are root children too, and this dump has no `java.lang.Class` for them to
-      // gather under, so they're left alone rather than forced into a group.
+      // The loaded classes are up here too, and this dump has no `java.lang.Class` for them to gather
+      // under, so they're left alone rather than forced into a group.
       assertThat(children.map { tree.label(it) }).contains("class Tile")
     }
   }
 
   @Test fun `the loaded classes gather under java lang Class`() {
     HeapExplorer.open(crowdedRootHeapDump(withJavaLangClass = true)).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
-      val groups = tree.children(tree.root).mapNotNull { tree.classGroupOrNull(it) }
+      val tree = explorer.tree
+      val children = tree.children(GC_ROOTS_NODE_ID)
+      val groups = children.mapNotNull { tree.groupOrNull(it) }
 
-      // What this is for: a real dump has thousands of loaded classes directly under the root — 9,502 in
+      // What this is for: a real dump has thousands of loaded classes at the top of the tree — 9,502 in
       // the production dump this was measured on — and as one cell they stop drowning everything else.
       val classGroup = groups.single { it.className == "java.lang.Class" }
-      assertThat(classGroup.instanceCount).isGreaterThan(TILE_COUNT)
-      assertThat(tree.children(tree.root).map { tree.label(it) }).doesNotContain("class Tile")
+      assertThat(classGroup.objectCount).isGreaterThan(TILE_COUNT)
+      assertThat(children.map { tree.label(it) }).doesNotContain("class Tile")
     }
   }
 
   @Test fun `a class group weighs and holds what its instances do`() {
     HeapExplorer.open(crowdedRootHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
-      val group = tree.children(tree.root).single { tree.classGroupOrNull(it) != null }
-      val instances = tree.children(group)
+      val tree = explorer.tree
+      val group = tree.classGroup()
+      val instances = tree.children(group.nodeId)
 
       assertThat(instances).hasSize(TILE_COUNT)
       assertThat(instances.map { tree.label(it) }.distinct()).containsExactly("Tile")
-      assertThat(tree.weight(group)).isEqualTo(instances.sumOf { tree.weight(it) })
-      // Zooming into a group is laying it out as a root, and its instances have to survive a rebuild
-      // for the breadcrumb to still mean something after following another strength.
-      assertThat(group in tree).isTrue()
-      assertThat(group in explorer.treeFor(setOf(WEAK))).isTrue()
+      assertThat(tree.weight(group.nodeId)).isEqualTo(instances.sumOf { tree.weight(it) })
+      assertThat(group.retainedSize).isEqualTo(tree.weight(group.nodeId))
+      // Zooming into a group is laying it out as a root, so the tree has to know the id the breadcrumb
+      // kept hold of.
+      assertThat(group.nodeId in tree).isTrue()
     }
   }
 
   @Test fun `a class group reads as a pile of objects rather than as one`() {
     HeapExplorer.open(crowdedRootHeapDump()).use { explorer ->
-      val tree = explorer.treeFor(emptySet())
-      val group = tree.children(tree.root).single { tree.classGroupOrNull(it) != null }
+      val tree = explorer.tree
+      val group = tree.classGroup().nodeId
       val presented = tree.present(TreemapLayout(), VIEWPORT)
         .cells
         .single { (it.cell.subject as? CellSubject.Node)?.node == group }
 
       assertThat(tree.label(group))
         .isEqualTo("$TILE_COUNT ${HeapDominatorTreemap.CLASS_GROUP_LABEL_SEPARATOR} Tile")
-      assertThat(presented.content).isEqualTo(CellContent.ClassGroup(TILE_CLASS_NAME, TILE_COUNT))
-      // Nothing to be strongly or weakly reachable: a class group isn't an object of the heap dump.
-      assertThat(presented.strength).isNull()
+      assertThat(presented.content)
+        .isEqualTo(CellContent.ObjectGroup(ObjectGroupKind.CLASS, STRONG, TILE_COUNT))
+      // Held as firmly as the instances in it, which are all held the same way — being up here is what
+      // gathered them.
+      assertThat(presented.strength).isEqualTo(STRONG)
       assertThatThrownBy { tree.summarize(group) }
         .isInstanceOf(IllegalArgumentException::class.java)
-    }
-  }
-
-  @Test fun `the tree is reused when the strengths do not change`() {
-    openTestHeapDump().use { explorer ->
-      assertThat(explorer.treeFor(setOf(WEAK))).isSameAs(explorer.treeFor(setOf(WEAK)))
-      assertThat(explorer.treeFor(emptySet())).isNotSameAs(explorer.treeFor(setOf(WEAK)))
     }
   }
 
@@ -641,19 +621,20 @@ class HeapExplorerTest {
   private fun HeapDominatorTreemap.findByLabel(label: String): HeapObjectSummary =
     allSummaries().single { it.label == label }
 
-  /** What every node of the tree dominates, by label: the shape of the treemap, in one value. */
-  private fun HeapDominatorTreemap.dominatedLabels(): Map<String, List<String>> =
-    allSummaries().associate { summary ->
-      summary.label to children(summary.objectId).map { label(it) }.sorted()
-    }
+  /** The one class group of a [crowdedRootHeapDump], which is the tiles. */
+  private fun HeapDominatorTreemap.classGroup(): ObjectGroupSummary =
+    children(GC_ROOTS_NODE_ID).mapNotNull { groupOrNull(it) }.single()
 
+  /** Every object of the tree, walked past the groups, which stand for objects rather than being one. */
   private fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
     val summaries = mutableListOf<HeapObjectSummary>()
     val toVisit = ArrayDeque(listOf(root))
     while (toVisit.isNotEmpty()) {
-      val objectId = toVisit.removeFirst()
-      summaries += summarize(objectId)
-      toVisit += children(objectId)
+      val node = toVisit.removeFirst()
+      if (groupOrNull(node) == null) {
+        summaries += summarize(node)
+      }
+      toVisit += children(node)
     }
     return summaries
   }

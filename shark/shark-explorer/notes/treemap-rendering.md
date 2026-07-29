@@ -46,9 +46,11 @@ recursion are directly unit-testable.
 ### The children that don't fit become one rectangle, they aren't dropped
 
 All-or-nothing subdivision — a node is either fully laid out or shown as a bare rectangle — was the
-first model, and it made **the whole treemap a single rectangle on a real heap dump**. The root of
-`compose_leak.hprof`'s dominator tree has **27,476 direct children**, well past the 5,000 cell budget,
-so the root itself failed to subdivide and nothing below it was ever reached. Nothing is drawable and
+first model, and it made **the whole treemap a single rectangle on a real heap dump**. The GC roots of
+`compose_leak.hprof` dominate **27,476 objects directly**, well past the 5,000 cell budget, so that cell
+failed to subdivide and nothing below it was ever reached. (Grouping those by class, which came later,
+brings them down to a few hundred cells — but only at the top of the tree, and the layout can't rely on
+it.) Nothing is drawable and
 nothing is zoomable, which reads as "everything is dominated by the root" rather than as a bug.
 
 So a subdivision draws the children it can — largest first, up to `maxChildrenPerNode`, the area floor
@@ -111,14 +113,26 @@ coloured is a scheme, picked in the top bar:
   lightening with depth, the way DaisyDisk colours a disk. A block then reads as one thing with its
   contents. It needs to know which top level block a cell belongs to, which is what `parent` and
   `siblingIndex` on `CellSubject.Node` are for, resolved in one pass per presentation — cells come
-  parent before child, so a parent always has its hue by the time a child is reached.
+  parent before child, so a parent always has its hue by the time a child is reached. "Top level" here
+  means `TOP_LEVEL_DEPTH`, the children of the two halves of the heap dump, and not the halves: the tree
+  has the GC roots and the garbage above everything, so handing hues out at the root would paint the
+  whole view in one or two of them.
 - **Reachability**: one hue per strength, shaded by depth. Says the most about the collector and the
   least about structure.
 - **Slate**: blue greys only, for when the colours get in the way of the shapes.
 
-Depth is unbounded, so shades cycle, which is fine as long as neighbours differ. Groups are grey in
-every scheme, so they read as "not an object". All of it is in `CellColors.kt`, the one place the
-colours are named.
+Depth is unbounded, so shades cycle, which is fine as long as neighbours differ. A cell standing for many
+objects rather than one — a class group, or the siblings that didn't fit — is a washed out version of its
+strength, cool slate when that strength is `STRONG`, so it reads as "not an object" without needing a
+colour of its own. All of it is in `CellColors.kt`, the one place the colours are named.
+
+**Grey means one thing only: a strength switched off.** The checkboxes in the top bar are a `CellColoring`,
+and unchecking one greys out everything held that firmly rather than hiding it — the tree is the whole heap
+dump either way, so there is no strength it makes no sense to press, and toggling one is a repaint. Greying
+the strong heap is what makes the little there is of everything else jump out. That's why nothing else in
+any scheme is allowed to be grey, which is what the `CellColorsTest` cases about grey are pinning.
+`UNREACHABLE` is shaded by depth like the strong heap, unlike the other non-strong strengths, because there
+can be megabytes of uncollected garbage and one flat colour over all of it would hide its shape.
 
 ## Hit testing
 
@@ -137,9 +151,9 @@ Keeping all of that pure functions in `shark-explorer-core` is what makes it tes
 
 Two things about selection that aren't obvious from the drawing code:
 
-- **A selection is an id, not a cell.** Resizing the window, switching shape or following another
-  strength all lay the view out again and every cell is a new object, so the UI remembers a
-  `SelectedCell`: an object id, or a parent id plus a flag for the leftover cell. Which is the other
+- **A selection is an id, not a cell.** Resizing the window or switching shape lays the view out again and
+  every cell is a new object, so the UI remembers a `SelectedCell`: an object id, or a parent id plus a
+  flag for the leftover cell. Which is the other
   reason `CellSubject.Group` carries its `parent` — with nothing to tell one group from another, every
   leftover rectangle in the treemap lit up at once.
 - **The outline of the selected cell is drawn after every cell**, not with its own. Children are drawn

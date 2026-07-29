@@ -9,6 +9,8 @@ import shark.GcRoot.JniGlobal
 import shark.HprofWriterHelper
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
+import shark.explorer.HeapDominatorTreemap.Companion.GC_ROOTS_LABEL
+import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_LABEL
 import shark.explorer.ReachabilityStrength.FINALIZER
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
@@ -134,28 +136,102 @@ class HeapReachabilityTest {
     }
   }
 
-  @Test fun `the strongly reachable tree leaves out everything weaker`() {
+  @Test fun `the tree retains every byte of the heap dump, at every strength`() {
     val file = testFolder.newFile("weaker.hprof")
     file.dump {
       val classes = referenceClasses()
-      val payload = ReferenceHolder(
+      val softly = ReferenceHolder(
         objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
       )
+      objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
       val holder = "com.example.Holder" instance {
-        field["softly"] = reference(classes.softId, payload)
+        field["softly"] = reference(classes.softId, softly)
       }
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
     }
 
     HeapExplorer.open(file).use { explorer ->
-      val strongOnly = explorer.treeFor(emptySet())
-      val withSoft = explorer.treeFor(setOf(SOFT))
-
-      assertThat(withSoft.weight(withSoft.root) - strongOnly.weight(strongOnly.root))
+      // Nothing is left out of the tree: not what only a soft reference reaches, and not the garbage.
+      assertThat(explorer.tree.weight(explorer.tree.root)).isEqualTo(explorer.sizes.totalByteCount)
+      assertThat(explorer.sizes.byteCountByStrength.getValue(SOFT))
         .isEqualTo(PAYLOAD_ELEMENT_COUNT.toLong() * ID_BYTE_SIZE)
-      // Following soft references only: a weak one still retains nothing.
-      assertThat(explorer.treeFor(setOf(WEAK)).weight(strongOnly.root))
-        .isEqualTo(strongOnly.weight(strongOnly.root))
+      assertThat(explorer.sizes.unreachableByteCount)
+        .isEqualTo(PAYLOAD_ELEMENT_COUNT.toLong() * ID_BYTE_SIZE)
+    }
+  }
+
+  @Test fun `garbage is a sibling of the GC roots at the top of the tree`() {
+    val file = testFolder.newFile("garbage.hprof")
+    file.dump {
+      referenceClasses()
+      val garbage = objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      // Held by garbage, so the tree has to nest it under that rather than list it at the top.
+      objectArray(arrayClass("java.lang.Object"), longArrayOf(garbage))
+      val holder = "com.example.Holder" instance {
+        field["name"] = string("Strongly reachable")
+      }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+    }
+
+    HeapExplorer.open(file).use { explorer ->
+      val tree = explorer.tree
+      val topLevel = tree.children(tree.root)
+
+      assertThat(topLevel.map { tree.label(it) })
+        .containsExactly(GC_ROOTS_LABEL, UNREACHABLE_LABEL)
+      val unreachable = tree.groupOrNull(topLevel.last())!!
+      assertThat(unreachable.strength).isEqualTo(ReachabilityStrength.UNREACHABLE)
+      assertThat(unreachable.objectCount).isEqualTo(2)
+      // The referring array, which the one it points at nests under.
+      assertThat(tree.children(unreachable.nodeId)).hasSize(1)
+    }
+  }
+
+  @Test fun `a garbage cycle is walked from one of its objects`() {
+    val file = testFolder.newFile("cycle.hprof")
+    file.dump {
+      referenceClasses()
+      // Two objects pointing at each other and at nothing else: neither is an entry point, so a walk of
+      // the garbage only reaches them by picking one of them arbitrarily.
+      val nodeClassId = clazz("com.example.Node", fields = listOf("next" to ReferenceHolder::class))
+      val firstId = reserveObjectId()
+      val second = instance(nodeClassId, listOf(firstId))
+      instance(nodeClassId, listOf(second), objectId = firstId)
+      val holder = "com.example.Holder" instance {
+        field["name"] = string("Strongly reachable")
+      }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+    }
+
+    HeapExplorer.open(file).use { explorer ->
+      val tree = explorer.tree
+      val garbage = tree.groupOrNull(tree.children(tree.root).last())!!
+
+      assertThat(garbage.objectCount).isEqualTo(2)
+      assertThat(garbage.retainedSize).isEqualTo(explorer.sizes.unreachableByteCount)
+    }
+  }
+
+  @Test fun `the characters of a garbage string are counted inside it`() {
+    val file = testFolder.newFile("garbage-string.hprof")
+    file.dump {
+      referenceClasses()
+      // A string's char array is no node of the graph — its bytes are folded into the string — so it must
+      // not show up as a second piece of garbage.
+      string("Garbage")
+      val holder = "com.example.Holder" instance {
+        field["name"] = string("Strongly reachable")
+      }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+    }
+
+    HeapExplorer.open(file).use { explorer ->
+      val tree = explorer.tree
+      val garbage = tree.groupOrNull(tree.children(tree.root).last())!!
+
+      assertThat(tree.children(garbage.nodeId).map { tree.label(it) }).containsExactly("String")
+      assertThat(explorer.sizes.reachableByteCount + explorer.sizes.unreachableByteCount)
+        .isEqualTo(explorer.sizes.totalByteCount)
     }
   }
 
@@ -172,9 +248,7 @@ class HeapReachabilityTest {
   ): ReachabilityStrength {
     val file = payloadHeapDump(holdPayload)
     return HeapExplorer.open(file).use { explorer ->
-      // Following every strength, so that the payload is a node of the tree whatever it comes out as.
-      val tree = explorer.treeFor(ReachabilityStrength.values().toSet())
-      tree.strengthOf(tree.payloadObjectId())
+      explorer.tree.run { strengthOf(payloadObjectId()) }
     }
   }
 

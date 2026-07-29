@@ -40,7 +40,7 @@ import shark.explorer.RadialPresentation
 @Composable
 internal fun RadialView(
   presentation: RadialPresentation,
-  scheme: CellColorScheme,
+  coloring: CellColoring,
   selected: SelectedCell?,
   onSelect: (LayoutCell<Long>) -> Unit,
   /** The chain of nodes from the current root down to the one double clicked. */
@@ -50,8 +50,8 @@ internal fun RadialView(
   val textMeasurer = rememberTextMeasurer()
   val density = LocalDensity.current
   val center = presentation.layout.center.let { Offset(it.x.toFloat(), it.y.toFloat()) }
-  val sectors = remember(presentation, scheme, textMeasurer, density) {
-    val colors = CellColors.of(scheme, presentation.cells)
+  val sectors = remember(presentation, coloring, textMeasurer, density) {
+    val colors = CellColors.of(coloring, presentation.cells)
     presentation.cells.map { it.measure(center, colors, textMeasurer, density) }
   }
   Box(modifier) {

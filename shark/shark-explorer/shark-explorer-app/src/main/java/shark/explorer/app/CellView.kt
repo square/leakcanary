@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import shark.explorer.CellContent
 import shark.explorer.CellSubject
+import shark.explorer.ObjectGroupKind
 import shark.explorer.TreemapPoint
 
 /** Which shape the dominator tree is drawn as. Pick one in the top bar. */
@@ -37,8 +38,8 @@ internal enum class ViewShape(val displayName: String) {
  * Which cell is selected, in terms that outlive a relayout.
  *
  * An object's own id for a cell that is a node; the parent's id for the cell standing for the children
- * it didn't draw, since two groups never share a parent. Resizing the window, switching shape or
- * following another strength all lay the view out again, and the selection has to survive that.
+ * it didn't draw, since two groups never share a parent. Resizing the window, switching shape and
+ * zooming all lay the view out again, and the selection has to survive that.
  */
 internal data class SelectedCell(
   val objectId: Long,
@@ -73,20 +74,23 @@ internal fun BoxScope.NotExpandedBadge(nodeCount: Int) {
 internal fun Offset.toTreemapPoint() = TreemapPoint(x.toDouble(), y.toDouble())
 
 /**
- * How a cell is outlined: dashed for the ones standing for every instance of a class, solid for an
- * object.
+ * How a cell is outlined: dashed for every instance of one class, dotted for the siblings that didn't
+ * fit, solid for an object and for the two halves of the heap dump.
  *
- * A pile of objects shouldn't have the same edge as one object, in either shape. Along with the slate
- * fill and the `N × Class` label, it's the third thing saying this cell isn't something you can inspect
- * the fields of.
+ * A pile of objects shouldn't have the same edge as one object, in either shape. Along with the washed
+ * out fill and the label, it's the third thing saying this cell isn't something you can inspect the
+ * fields of.
  */
-internal fun outlineOf(content: CellContent): Stroke = if (content is CellContent.ClassGroup) {
-  Stroke(
-    width = CLASS_GROUP_BORDER_WIDTH,
+internal fun outlineOf(content: CellContent): Stroke = when {
+  content is CellContent.ObjectGroup && content.kind == ObjectGroupKind.CLASS -> Stroke(
+    width = PILE_BORDER_WIDTH,
     pathEffect = PathEffect.dashPathEffect(CLASS_GROUP_DASH_INTERVALS)
   )
-} else {
-  Stroke(width = BORDER_WIDTH)
+  content is CellContent.Leftover -> Stroke(
+    width = PILE_BORDER_WIDTH,
+    pathEffect = PathEffect.dashPathEffect(LEFTOVER_DOT_INTERVALS)
+  )
+  else -> Stroke(width = BORDER_WIDTH)
 }
 
 /**
@@ -105,6 +109,7 @@ internal val MIN_LABEL_WIDTH = 24.dp
 internal val MIN_LABEL_HEIGHT = 13.dp
 internal const val BORDER_WIDTH = 1f
 internal const val SELECTION_WIDTH = 3f
-internal const val CLASS_GROUP_BORDER_WIDTH = 2f
+internal const val PILE_BORDER_WIDTH = 2f
 internal val CLASS_GROUP_DASH_INTERVALS = floatArrayOf(5f, 4f)
+internal val LEFTOVER_DOT_INTERVALS = floatArrayOf(2f, 3f)
 internal val LABEL_STYLE = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)

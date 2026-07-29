@@ -4,77 +4,40 @@ import java.io.Closeable
 import java.io.File
 import shark.AndroidObjectSizeCalculator
 import shark.CloseableHeapGraph
+import shark.GcRoot
+import shark.GcRootProvider
+import shark.GcRootReference
 import shark.HeapDominatorTree
+import shark.HeapGraph
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.MatchingGcRootProvider
 
 /**
- * A heap dump, open and indexed, with its reachability worked out.
+ * A heap dump, open and indexed, with its reachability worked out and its dominator [tree] built.
  *
  * Keeps the heap dump open so that labels and details are read only for the objects the UI ends up
- * showing, which means every call on this and on the trees it hands out can do IO. It is not thread
- * safe: [shark.HprofHeapGraph] has one read cursor and one cache, so confine an instance to a single
- * thread, and not the one drawing the UI. Must be [close]d.
+ * showing, which means every call on this and on the tree it hands out can do IO. Must be [close]d.
  */
 class HeapExplorer private constructor(
   val heapDumpFile: File,
   private val graph: CloseableHeapGraph,
-  private val strengthReader: ReferenceStrengthReader,
-  private val reachability: HeapReachability
+  private val reachability: HeapReachability,
+  /** Every object of the heap dump, reachable or not, weighted by what it retains. */
+  val tree: HeapDominatorTreemap
 ) : Closeable {
 
-  /** How the bytes of the heap dump split up by reachability. */
+  /** How the objects of the heap dump split up by reachability. */
   val sizes: HeapSizes get() = reachability.sizes
 
-  private var cachedTree: HeapDominatorTreemap? = null
-
-  /**
-   * The dominator tree of the objects reachable by following the references that retain their target
-   * plus the referents of the references in [followedStrengths].
-   *
-   * Takes seconds and hundreds of MB on a large heap dump, so the last result is kept: toggling a
-   * strength off and back on is free, changing to a combination not seen before is not. [onProgress]
-   * is called with a description of each step as it starts.
-   */
-  fun treeFor(
-    followedStrengths: Set<ReachabilityStrength>,
-    onProgress: (String) -> Unit = {}
-  ): HeapDominatorTreemap {
-    // Strong references are always followed, so asking for them says nothing and mustn't count as a
-    // different tree.
-    val followed = followedStrengths - ReachabilityStrength.STRONG
-    cachedTree?.let { cached ->
-      if (cached.followedStrengths == followed) {
-        return cached
-      }
-    }
-    onProgress(progressMessage(followed))
-    // Dropped before building, so that two trees are never held at once on a heap dump big enough
-    // for that to matter.
-    cachedTree = null
-    val nodes = HeapDominatorTree.buildFor(
-      graph = graph,
-      referenceReader = StrengthFilteringReferenceReader(
-        strengthReader = strengthReader,
-        reachability = reachability,
-        followedStrengths = followed
-      ),
-      gcRootProvider = MatchingGcRootProvider(emptyList())
-    ).buildNodes(AndroidObjectSizeCalculator(graph))
-    return HeapDominatorTreemap(graph, reachability, strengthReader, nodes, followed)
-      .also { cachedTree = it }
-  }
-
   override fun close() {
-    cachedTree = null
     graph.close()
   }
 
   companion object {
     /**
-     * Opens [heapDumpFile], indexes it and works out what's reachable, which takes tens of seconds
-     * and a few hundred MB of heap on a large dump. [onProgress] is called with a description of each
-     * step as it starts.
+     * Opens [heapDumpFile], indexes it, works out what's reachable and builds the dominator tree, which
+     * takes seconds and a few hundred MB of heap on a large dump. [onProgress] is called with a
+     * description of each step as it starts.
      */
     fun open(
       heapDumpFile: File,
@@ -91,21 +54,45 @@ class HeapExplorer private constructor(
           gcRootProvider = MatchingGcRootProvider(emptyList()),
           objectSizeCalculator = AndroidObjectSizeCalculator(graph)
         )
-        return HeapExplorer(heapDumpFile, graph, strengthReader, reachability)
+        onProgress("Working out what retains what")
+        val nodes = HeapDominatorTree.buildFor(
+          graph = graph,
+          referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability),
+          gcRootProvider = UncollectedGarbageGcRootProvider(reachability.unreachableRootObjectIds)
+        ).buildNodes(AndroidObjectSizeCalculator(graph))
+        val tree = HeapDominatorTreemap(graph, reachability, strengthReader, nodes)
+        return HeapExplorer(heapDumpFile, graph, reachability, tree)
       } catch (throwable: Throwable) {
         graph.close()
         throw throwable
       }
     }
-
-    private fun progressMessage(followedStrengths: Set<ReachabilityStrength>): String {
-      val included = if (followedStrengths.isEmpty()) {
-        "strong references"
-      } else {
-        "strong and " + followedStrengths.sorted()
-          .joinToString(", ") { it.name.lowercase() } + " references"
-      }
-      return "Computing the dominator tree of $included"
-    }
   }
+}
+
+/**
+ * The heap dump's own GC roots, plus a way into every piece of uncollected garbage.
+ *
+ * A dominator tree built from the GC roots alone covers the reachable heap only, and the garbage is
+ * usually the part of a dump nobody has looked at. So the objects no other piece of garbage points at
+ * are handed over as roots too — [GcRoot.Unreachable] is the hprof record for exactly that, an object
+ * that is no root and that nothing reachable holds.
+ *
+ * Whatever a piece of garbage retains still nests under it, because being pointed at by another
+ * unreachable object is what keeps an object off this list. See
+ * [HeapReachability.unreachableRootObjectIds].
+ */
+internal class UncollectedGarbageGcRootProvider(
+  private val unreachableRootObjectIds: List<Long>
+) : GcRootProvider {
+
+  override fun provideGcRoots(graph: HeapGraph): Sequence<GcRootReference> =
+    MatchingGcRootProvider(emptyList()).provideGcRoots(graph) +
+      unreachableRootObjectIds.asSequence().map { objectId ->
+        GcRootReference(
+          gcRoot = GcRoot.Unreachable(objectId),
+          isLowPriority = true,
+          matchedLibraryLeak = null
+        )
+      }
 }

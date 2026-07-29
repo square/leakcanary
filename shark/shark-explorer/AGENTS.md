@@ -29,17 +29,19 @@ under-attributed. Don't build on it.
 `notes/dominator-tree.md` for its memory profile and for the reference reader behaviour that makes a
 treemap read strangely until you know about it.
 
-## One thread reads the heap dump
+## The heap dump is read off the UI thread
 
-`HprofHeapGraph` has a single read cursor and a single LRU cache, so it is **not safe to use from two
-threads**. Everything that touches a `HeapExplorer` — building a tree, laying it out, labelling a
-rectangle, summarising a selection — therefore goes through `HeapDumpSession.read`, which confines it
-to one thread of its own. Calling into `HeapExplorer` from a composable would work right up until it
-corrupted a read.
+A `HeapGraph` is read only and safe to read from several threads at once, so the reason everything that
+touches a `HeapExplorer` goes through `HeapDumpSession.read` is **latency, not safety**: labelling a
+rectangle is IO, and summarising a selection or walking up to the GC roots is seconds of it on a large
+dump. Doing any of that in a composable freezes the window.
 
 What follows for the UI: a composable never holds a tree, only what was already computed from one. A
 laid out, labelled view is a `TreemapPresentation` or a `RadialPresentation`, and a selection is a
 `HeapObjectSummary`; both arrive a little after whatever asked for them changed.
+
+The one thing that isn't thread safe is a `Sequence` a `HeapGraph` hands out — iterating one reads
+through it — so a thread reading `graph.objects` needs its own rather than a shared one.
 
 ## Gradle facts that aren't visible from these build scripts
 

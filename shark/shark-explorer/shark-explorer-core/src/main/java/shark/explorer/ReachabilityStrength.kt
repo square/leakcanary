@@ -11,9 +11,8 @@ package shark.explorer
  * object a weak and a phantom reference both point at is weakly reachable, and one a strong and a
  * weak reference both point at is strongly reachable.
  *
- * An object no path reaches at all is unreachable — garbage that hadn't been collected when the heap
- * dump was written. It has no strength, isn't in any dominator tree, and is only visible in
- * [HeapSizes.unreachableByteCount].
+ * Every object of a heap dump has one of these, [UNREACHABLE] included, so the strengths partition the
+ * dump: the bytes and the object counts of [HeapSizes] add up to the whole thing.
  */
 enum class ReachabilityStrength {
 
@@ -56,5 +55,15 @@ enum class ReachabilityStrength {
    * Already finalized and unreachable to the program, held only so that a `PhantomReference` or a
    * `Cleaner` gets enqueued once it's gone.
    */
-  PHANTOM
+  PHANTOM,
+
+  /**
+   * No path from any GC root reaches it: garbage that hadn't been collected when the heap dump was
+   * written, and that the next collection would take.
+   *
+   * Last, so that it sorts as the weakest of the lot, and so that [HeapReachability]'s walk per strength
+   * never queues anything into it — nothing reaches an unreachable object by definition. What's
+   * unreachable is what the walk didn't reach.
+   */
+  UNREACHABLE
 }

@@ -37,11 +37,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import shark.explorer.CellSubject
-import shark.explorer.ClassGroupSummary
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
 import shark.explorer.HoldingPaths
 import shark.explorer.LayoutCell
+import shark.explorer.ObjectGroupKind
+import shark.explorer.ObjectGroupSummary
 import shark.explorer.ObjectReferrers
 import shark.explorer.PathStep
 import shark.explorer.RadialLayout
@@ -53,6 +54,7 @@ import shark.explorer.TreemapNavigation
 import shark.explorer.TreemapPresentation
 import shark.explorer.TreemapRect
 import shark.explorer.formatByteSize
+import shark.explorer.formatObjectCount
 
 /**
  * The dominator tree of one open heap dump, drawn as [shape] says, with the breadcrumbs and details
@@ -65,9 +67,8 @@ import shark.explorer.formatByteSize
 @Composable
 internal fun HeapDumpExplorer(
   session: HeapDumpSession,
-  followedStrengths: Set<ReachabilityStrength>,
   shape: ViewShape,
-  scheme: CellColorScheme,
+  coloring: CellColoring,
   modifier: Modifier = Modifier
 ) {
   var navigation by remember(session) {
@@ -89,11 +90,10 @@ internal fun HeapDumpExplorer(
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
 
-  // Following a weaker strength rebuilds the whole tree, which is the slow case; resizing, zooming and
-  // switching shape only lay it out again. All of it ends up here, on the heap dump's thread.
+  // Resizing, zooming and switching shape all lay the tree out again, which reads the heap dump for
+  // every visible label. All of it ends up here, on the heap dump's thread.
   LaunchedEffect(
     session,
-    followedStrengths,
     navigation,
     viewportSize,
     shape,
@@ -111,9 +111,8 @@ internal fun HeapDumpExplorer(
       bottom = viewportSize.height.toDouble()
     )
     view = session.read { explorer ->
-      val tree = explorer.treeFor(followedStrengths) { step -> loadingStep = step }
-      // An object zoomed into may not be a node of the tree the new strengths give, or may no longer
-      // be dominated by the one above it on the path.
+      val tree = explorer.tree
+      // An object zoomed into may no longer be dominated by the one above it on the path.
       val reachablePath = navigation.retainingWhere { it in tree }
       ViewState(
         navigation = reachablePath,
@@ -137,7 +136,7 @@ internal fun HeapDumpExplorer(
 
   // Reading what a cell stands for is a heap dump read too, so the details panel fills in a beat after
   // the click. Keyed on the request, so that nothing else clears it.
-  LaunchedEffect(session, followedStrengths, request) {
+  LaunchedEffect(session, request) {
     val currentRequest = request
     referrers = null
     holdingPaths = null
@@ -145,12 +144,12 @@ internal fun HeapDumpExplorer(
       null
     } else {
       session.read { explorer ->
-        val tree = explorer.treeFor(followedStrengths)
+        val tree = explorer.tree
         when (currentRequest) {
           is SelectionRequest.Object -> {
-            val classGroup = tree.classGroupOrNull(currentRequest.objectId)
+            val group = tree.groupOrNull(currentRequest.objectId)
             when {
-              classGroup != null -> Selection.ClassGroup(classGroup)
+              group != null -> Selection.ObjectGroup(group)
               currentRequest.objectId in tree -> Selection.Object(tree.summarize(currentRequest.objectId))
               else -> null
             }
@@ -168,17 +167,17 @@ internal fun HeapDumpExplorer(
   // Finding what references an object means reading every object in the heap dump, so it lands after the
   // rest of the panel rather than holding it up. Keyed on the selection: a new one invalidates this.
   val selectedObjectId = (selection as? Selection.Object)?.summary?.objectId
-  LaunchedEffect(session, followedStrengths, selectedObjectId) {
+  LaunchedEffect(session, selectedObjectId) {
     referrers = selectedObjectId?.let { objectId ->
-      session.read { explorer -> explorer.treeFor(followedStrengths).referrersOf(objectId) }
+      session.read { explorer -> explorer.tree.referrersOf(objectId) }
     }
   }
 
   // Walking up to the GC roots costs several passes over the heap dump, so it lands last of all. The
   // referrer list above it answers the same question one step deep, which is often enough.
-  LaunchedEffect(session, followedStrengths, selectedObjectId) {
+  LaunchedEffect(session, selectedObjectId) {
     holdingPaths = selectedObjectId?.let { objectId ->
-      session.read { explorer -> explorer.treeFor(followedStrengths).holdingPathsTo(objectId) }
+      session.read { explorer -> explorer.tree.holdingPathsTo(objectId) }
     }
   }
 
@@ -195,7 +194,7 @@ internal fun HeapDumpExplorer(
         when (val presentation = view.presentation) {
           is ViewPresentation.Treemap -> TreemapView(
             presentation = presentation.presentation,
-            scheme = scheme,
+            coloring = coloring,
             selected = selected,
             onSelect = onSelect,
             onZoomInto = onZoomInto,
@@ -203,7 +202,7 @@ internal fun HeapDumpExplorer(
           )
           is ViewPresentation.Radial -> RadialView(
             presentation = presentation.presentation,
-            scheme = scheme,
+            coloring = coloring,
             selected = selected,
             onSelect = onSelect,
             onZoomInto = onZoomInto,
@@ -225,7 +224,7 @@ internal fun HeapDumpExplorer(
         selection = selection,
         referrers = referrers,
         holdingPaths = holdingPaths,
-        scheme = scheme,
+        coloring = coloring,
         onZoomInto = { navigation = navigation.zoomInto(it) },
         onInspect = { objectId ->
           selected = SelectedCell(objectId, isGroup = false)
@@ -324,8 +323,8 @@ private sealed interface Selection {
 
   data class Object(val summary: HeapObjectSummary) : Selection
 
-  /** Every instance of one class under the root was clicked, so there's no one object to describe. */
-  data class ClassGroup(val summary: ClassGroupSummary) : Selection
+  /** A cell standing for many objects was clicked, so there's no one object to describe. */
+  data class ObjectGroup(val summary: ObjectGroupSummary) : Selection
 
   /** A [CellSubject.Group] was clicked, so there's no one object to describe. */
   data class Group(
@@ -369,7 +368,7 @@ private fun DetailsPanel(
   selection: Selection?,
   referrers: ObjectReferrers?,
   holdingPaths: HoldingPaths?,
-  scheme: CellColorScheme,
+  coloring: CellColoring,
   onZoomInto: (Long) -> Unit,
   onInspect: (Long) -> Unit,
   modifier: Modifier = Modifier
@@ -392,12 +391,12 @@ private fun DetailsPanel(
           )
           Detail("Retained", formatByteSize(selection.byteCount))
         }
-        is Selection.ClassGroup -> ClassGroupDetails(selection.summary, onZoomInto)
+        is Selection.ObjectGroup -> ObjectGroupDetails(selection.summary, coloring, onZoomInto)
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
           referrers = referrers,
           holdingPaths = holdingPaths,
-          scheme = scheme,
+          coloring = coloring,
           onZoomInto = onZoomInto,
           onInspect = onInspect
         )
@@ -407,24 +406,42 @@ private fun DetailsPanel(
 }
 
 /**
- * A cell standing for every instance of one class under the root. Says so in as many words: the count,
- * the class, and that these are separate objects that only happen to share it.
+ * A cell standing for many objects: half of the heap dump, or every instance of one class under the
+ * root. Says so in as many words, because a rectangle that isn't an object looks exactly like one that
+ * is until something says otherwise.
  */
 @Composable
-private fun ClassGroupDetails(
-  summary: ClassGroupSummary,
+private fun ObjectGroupDetails(
+  summary: ObjectGroupSummary,
+  coloring: CellColoring,
   onZoomInto: (Long) -> Unit
 ) {
-  Text(
-    "${summary.instanceCount} instances",
-    style = MaterialTheme.typography.titleMedium
-  )
-  Text(summary.className, style = MaterialTheme.typography.bodySmall)
-  Text(CLASS_GROUP_EXPLANATION, style = MaterialTheme.typography.bodySmall)
+  Text(summary.title(), style = MaterialTheme.typography.titleMedium)
+  summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+  Row(
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
+    Text(summary.explanation(), style = MaterialTheme.typography.bodySmall)
+  }
   Detail("Retained together", formatByteSize(summary.retainedSize))
+  Detail("Objects", formatObjectCount(summary.objectCount))
   Button(onClick = { onZoomInto(summary.nodeId) }) {
     Text("Zoom in")
   }
+}
+
+private fun ObjectGroupSummary.title(): String = when (kind) {
+  ObjectGroupKind.GC_ROOTS -> HeapDominatorTreemap.GC_ROOTS_LABEL
+  ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
+  ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
+}
+
+private fun ObjectGroupSummary.explanation(): String = when (kind) {
+  ObjectGroupKind.GC_ROOTS -> GC_ROOTS_EXPLANATION
+  ObjectGroupKind.UNREACHABLE -> UNREACHABLE_EXPLANATION
+  ObjectGroupKind.CLASS -> CLASS_GROUP_EXPLANATION
 }
 
 @Composable
@@ -432,7 +449,7 @@ private fun ObjectDetails(
   summary: HeapObjectSummary,
   referrers: ObjectReferrers?,
   holdingPaths: HoldingPaths?,
-  scheme: CellColorScheme,
+  coloring: CellColoring,
   onZoomInto: (Long) -> Unit,
   onInspect: (Long) -> Unit
 ) {
@@ -452,7 +469,7 @@ private fun ObjectDetails(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(scheme, summary.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
     Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
   Detail("Retained", formatByteSize(summary.retainedSize))
@@ -539,7 +556,10 @@ private fun WhatHoldsIt(
     return
   }
   if (holdingPaths.paths.isEmpty()) {
-    Text(NO_PATHS, style = MaterialTheme.typography.bodySmall)
+    Text(
+      if (holdingPaths.isUnreachable) UNREACHABLE_NO_PATHS else NO_PATHS,
+      style = MaterialTheme.typography.bodySmall
+    )
     return
   }
   val explanation = holdingPaths.commonHolderLabel?.let { COMMON_HOLDER_EXPLANATION.format(it) }
@@ -685,6 +705,14 @@ internal const val SEARCHING_PATHS = "Following what holds it up to the GC roots
 private const val NO_PATHS = "Nothing in the heap dump points at this."
 
 /**
+ * Garbage has no path worth printing: something may well point at it, but that something is garbage
+ * too, so no chain of references ends at a GC root.
+ */
+internal const val UNREACHABLE_NO_PATHS =
+  "No GC root reaches this, so nothing keeps it in memory: it's garbage that hadn't been collected " +
+    "yet when the heap dump was written."
+
+/**
  * What one object being on every path means: it's the answer to "what is keeping this in memory", which
  * is the question the dominator tree leaves open when it puts an object under the root.
  */
@@ -699,6 +727,14 @@ internal const val NO_COMMON_HOLDER_EXPLANATION =
 private const val ELLIPSIS = "…"
 
 internal const val BREADCRUMB_SEPARATOR = "›"
+
+internal const val GC_ROOTS_EXPLANATION =
+  "Not one object: everything the garbage collector reaches, so everything that is still in memory " +
+    "on purpose."
+
+internal const val UNREACHABLE_EXPLANATION =
+  "Not one object: everything no GC root reaches, so garbage that hadn't been collected when the heap " +
+    "dump was written. The next collection would take all of it."
 
 internal const val CLASS_GROUP_EXPLANATION =
   "Not one object: these are all the instances of this class that nothing owns on its own, gathered " +

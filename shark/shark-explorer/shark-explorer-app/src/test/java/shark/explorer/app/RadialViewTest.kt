@@ -138,7 +138,11 @@ class RadialViewTest {
       cells = result.cells.map { cell ->
         when (val subject = cell.subject) {
           is CellSubject.Node -> PresentedCell(cell, "node ${subject.node}", CellContent.Object(STRONG))
-          is CellSubject.Group -> PresentedCell(cell, "${subject.nodeCount} smaller objects", CellContent.Leftover)
+          is CellSubject.Group -> PresentedCell(
+            cell,
+            "${subject.nodeCount} smaller objects",
+            CellContent.Leftover(STRONG)
+          )
         }
       }
     )
@@ -190,7 +194,7 @@ private fun RadialUnderTest(
     ) {
       RadialView(
         presentation = presentation,
-        scheme = CellColorScheme.DAISY,
+        coloring = CellColoring.DEFAULT,
         selected = selected,
         onSelect = {
           selected = SelectedCell.of(it.subject)

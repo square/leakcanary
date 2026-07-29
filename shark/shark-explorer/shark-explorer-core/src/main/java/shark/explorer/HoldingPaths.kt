@@ -26,6 +26,12 @@ data class HoldingPaths(
    * nothing above it: no one of them would free it, so its bytes are attributed to the whole heap.
    */
   val isDominatedByRoot: Boolean,
+  /**
+   * Whether no GC root reaches the object at all, which is why there are no [paths]: something may well
+   * point at it, but nothing keeps it in memory. Whatever holds it is garbage too, and the tree shows the
+   * piece of garbage it belongs to.
+   */
+  val isUnreachable: Boolean,
   /** How many more ways the object is held than [paths] spells out. */
   val hiddenPathCount: Int
 )
