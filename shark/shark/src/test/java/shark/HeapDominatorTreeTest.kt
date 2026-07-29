@@ -82,6 +82,33 @@ class HeapDominatorTreeTest {
     }
   }
 
+  @Test fun `retained sizes past Int MAX_VALUE are not truncated`() {
+    // root -> a -> b
+    val heapDump = graphHeapDump(
+      successorsByNode = listOf(
+        listOf(1),
+        listOf(2),
+        emptyList()
+      ),
+      rootNodes = listOf(0)
+    )
+
+    heapDump.openHeapGraph().use { graph ->
+      val tree = graph.buildExactDominatorTree()
+      // Every object weighs 1 GB, so the virtual root retains a gigabyte per reachable object,
+      // which is past Int.MAX_VALUE for any graph of 2 objects or more.
+      val oneGigabyte = 1024 * 1024 * 1024
+      val nodes = tree.buildNodes { oneGigabyte }
+
+      val wholeHeapSize = tree.reachableObjectCount.toLong() * oneGigabyte
+      assertThat(wholeHeapSize).isGreaterThan(Int.MAX_VALUE.toLong())
+      assertThat(nodes.getValue(NULL_REFERENCE).retainedSize).isEqualTo(wholeHeapSize)
+      // A leaf retains only itself, so its size is the one that doesn't accumulate.
+      assertThat(nodes.getValue(graph.nodeIdsInWriteOrder().last()).retainedSize)
+        .isEqualTo(oneGigabyte.toLong())
+    }
+  }
+
   private fun HeapGraph.buildExactDominatorTree() = HeapDominatorTree.buildFor(
     graph = this,
     referenceReader = ActualMatchingReferenceReaderFactory(emptyList()).createFor(this),

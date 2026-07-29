@@ -612,17 +612,17 @@ public final class shark/ObjectDominators {
 }
 
 public final class shark/ObjectDominators$DominatorNode : java/io/Serializable {
-	public fun <init> (IIILjava/util/List;)V
+	public fun <init> (IJILjava/util/List;)V
 	public final fun component1 ()I
-	public final fun component2 ()I
+	public final fun component2 ()J
 	public final fun component3 ()I
 	public final fun component4 ()Ljava/util/List;
-	public final fun copy (IIILjava/util/List;)Lshark/ObjectDominators$DominatorNode;
-	public static synthetic fun copy$default (Lshark/ObjectDominators$DominatorNode;IIILjava/util/List;ILjava/lang/Object;)Lshark/ObjectDominators$DominatorNode;
+	public final fun copy (IJILjava/util/List;)Lshark/ObjectDominators$DominatorNode;
+	public static synthetic fun copy$default (Lshark/ObjectDominators$DominatorNode;IJILjava/util/List;ILjava/lang/Object;)Lshark/ObjectDominators$DominatorNode;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDominatedObjectIds ()Ljava/util/List;
 	public final fun getRetainedCount ()I
-	public final fun getRetainedSize ()I
+	public final fun getRetainedSize ()J
 	public final fun getShallowSize ()I
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
