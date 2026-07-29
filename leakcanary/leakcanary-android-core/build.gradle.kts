@@ -19,8 +19,6 @@ dependencies {
   testImplementation(libs.assertjCore)
   testImplementation(libs.junit)
   testImplementation(libs.kotlin.reflect)
-  testImplementation(libs.mockito)
-  testImplementation(libs.mockitoKotlin)
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
   androidTestImplementation(libs.androidX.test.runner)

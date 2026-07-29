@@ -81,7 +81,6 @@ androidX-work-runtime = { module = "androidx.work:work-runtime", version.ref = "
 androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", version.ref = "workManager" }
 androidX-collections = { module = "androidx.collection:collection-ktx", version = "1.4.0" }
 
-androidSupport = { module = "com.android.support:support-v4", version = "28.0.0" }
 assertjCore = { module = "org.assertj:assertj-core", version = "3.9.1" }
 clikt = { module = "com.github.ajalt:clikt", version = "2.3.0" }
 neo4j = { module = "org.neo4j:neo4j", version = "4.4.6" }
@@ -91,7 +90,6 @@ junit = { module = "junit:junit", version = "4.13.2" }
 kotlinStatistics = { module = "org.nield:kotlin-statistics", version = "1.2.1" }
 mockito = { module = "org.mockito:mockito-core", version = "3.5.10" }
 mockitoKotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version = "2.2.0" }
-robolectric = { module = "org.robolectric:robolectric", version = "4.0-alpha-3" }
 okio2 = { module = "com.squareup.okio:okio", version = "2.2.2" }
 sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }

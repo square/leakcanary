@@ -17,9 +17,6 @@ dependencies {
   // Uncomment to use WorkManager
   // implementation(libs.androidX.work.runtime)
 
-  testImplementation(libs.junit)
-  testImplementation(libs.robolectric)
-
   androidTestImplementation(projects.leakcanary.leakcanaryAndroidInstrumentation)
   androidTestImplementation(libs.androidX.test.espresso)
   androidTestImplementation(libs.androidX.test.rules)
@@ -71,9 +68,6 @@ android {
   testOptions {
     if (project.hasProperty("orchestrator")) {
       execution = "ANDROIDX_TEST_ORCHESTRATOR"
-    }
-    unitTests {
-      isIncludeAndroidResources = true
     }
   }
   namespace = "com.example.leakcanary"
