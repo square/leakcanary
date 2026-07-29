@@ -88,13 +88,7 @@ jobs:
           force-avd-creation: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load
           disable-animations: false
-          # Write hide_error_dialogs into the snapshot, so that a process crashing on a device
-          # restored from it cannot put up a dialog that holds window focus and fails every
-          # Espresso interaction. Defence in depth behind the AOSP image: this only takes effect
-          # once ActivityManager re-reads the setting, which it does on configuration change.
-          script: |
-            adb shell settings put global hide_error_dialogs 1 || true
-            echo "Generated AVD snapshot for caching."
+          script: echo "Generated AVD snapshot for caching."
       # Save the snapshot here rather than at the end of the job. The test step below force-kills
       # the emulator, which leaves the AVD directory in a state that is not safe to restore, and
       # cache entries are immutable: caching it once breaks every later run on the same key.
@@ -118,7 +112,12 @@ jobs:
             touch emulator.log
             chmod 777 emulator.log
             adb logcat >> emulator.log &
-            # Belt and braces, so neither of these can become a new source of failures.
+            # Stop a crashing process from putting up a dialog that holds window focus, which
+            # fails every Espresso interaction with RootViewWithoutFocusException. Defence in
+            # depth behind the AOSP image, and only on API 30+: ActivityTaskManagerService
+            # observes this setting and applies it right away, while older releases decide
+            # whether to show error dialogs from the configuration alone and ignore it.
+            # `|| true` so this cannot itself become a new source of failures.
             adb shell settings put global hide_error_dialogs 1 || true
             # Espresso fails every interaction with RootViewWithoutFocusException when some other
             # window holds focus, and names only the window it wanted rather than the one that has
