@@ -13,7 +13,7 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
  */
 class HprofIOPerfTest {
 
-  @Test fun `HeapObjectArray#readByteSize() does not read`() {
+  @Test fun `HeapObjectArray#byteSize does not read`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     val arrayId = hprofFile.openHeapGraph().use { graph ->
       graph.objectArrays.maxBy { it.readRecord().elementIds.size * graph.identifierByteSize }!!.objectId
@@ -58,7 +58,7 @@ class HprofIOPerfTest {
     assertThat(bytesRead).isEqualTo(0)
   }
 
-  @Test fun `HeapPrimitiveArray#readByteSize() correctly reads size of array`() {
+  @Test fun `HeapPrimitiveArray#byteSize correctly reads size of array`() {
     val hprofFile = "leak_asynctask_o.hprof".classpathFile()
     hprofFile.openHeapGraph().use { graph ->
       graph.primitiveArrays.forEach { array ->
