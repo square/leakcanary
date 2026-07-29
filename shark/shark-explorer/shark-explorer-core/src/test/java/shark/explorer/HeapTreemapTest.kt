@@ -80,6 +80,27 @@ class HeapTreemapTest {
     }
   }
 
+  @Test fun `an object only reachable through a weak reference is not retained`() {
+    val file = testFolder.newFile("weakly-reachable.hprof")
+    file.dump {
+      val payload = ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(1024)))
+      val weakReference = "java.lang.ref.WeakReference" instance {
+        field["referent"] = payload
+      }
+      gcRoot(JniGlobal(id = weakReference.value, jniGlobalRefId = 0))
+    }
+
+    HeapTreemap.open(file).use { treemap ->
+      val labels = treemap.allSummaries().map { it.label }
+
+      assertThat(labels).contains("WeakReference")
+      // 1024 ids at 4 bytes each: if a weak reference counted as retaining its referent, this array
+      // would be the biggest thing in the treemap. It isn't in it at all.
+      assertThat(labels).doesNotContain("Object[]")
+      assertThat(treemap.weight(treemap.root)).isLessThan(1024L * 4)
+    }
+  }
+
   @Test fun `opening a file that is not a heap dump fails`() {
     val notAHeapDump = testFolder.newFile("not-a-heap-dump.txt").apply { writeText("nope") }
 

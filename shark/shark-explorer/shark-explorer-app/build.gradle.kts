@@ -32,6 +32,13 @@ dependencies {
   testImplementation(projects.shark.sharkHprofTest)
 }
 
+// A heap dump path passed with --args is written relative to the repo, not to this module, which is
+// where a JavaExec resolves it from by default. The Compose plugin registers `run` late, hence
+// matching by name rather than tasks.named().
+tasks.withType<JavaExec>().matching { it.name == "run" }.configureEach {
+  workingDir = rootProject.projectDir
+}
+
 compose.desktop {
   application {
     mainClass = "shark.explorer.app.MainKt"

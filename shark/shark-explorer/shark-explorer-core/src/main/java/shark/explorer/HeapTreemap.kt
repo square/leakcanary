@@ -2,8 +2,10 @@ package shark.explorer
 
 import java.io.Closeable
 import java.io.File
+import java.util.EnumSet
 import shark.AndroidObjectInspectors
 import shark.AndroidObjectSizeCalculator
+import shark.AndroidReferenceMatchers
 import shark.AndroidReferenceReaderFactory
 import shark.CloseableHeapGraph
 import shark.HeapDominatorTree
@@ -12,16 +14,22 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.JdkReferenceMatchers
 import shark.MatchingGcRootProvider
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
+import shark.ReferenceMatcher
 import shark.ValueHolder.Companion.NULL_REFERENCE
 
 /**
  * A heap dump's dominator tree, seen as a [TreemapTree] weighted by retained size.
  *
  * Nodes are object ids, and the root is [NULL_REFERENCE]: the virtual root [HeapDominatorTree] puts
- * above every GC root, so that the whole reachable heap is one rectangle.
+ * above every GC root, so that the whole strongly reachable heap is one rectangle.
+ *
+ * Strongly reachable, not reachable: objects only a weak, soft or phantom reference points at are
+ * absent, because they are not retained — see [REFERENCE_STRENGTH_MATCHERS]. Their bytes therefore
+ * don't show up anywhere, so the root does not add up to the size of the heap dump.
  *
  * Keeps the heap dump open, so that labels and details are read only for the objects the UI ends up
  * showing. Must be [close]d.
@@ -112,10 +120,9 @@ class HeapTreemap private constructor(
         onProgress("Computing the dominator tree")
         HeapDominatorTree.buildFor(
           graph = graph,
-          // The Android reference readers, so that the graph matches what LeakCanary itself walks.
-          // No reference matchers though: an explorer that ignored references would hide retained
-          // memory, which is the one thing it exists to show.
-          referenceReader = AndroidReferenceReaderFactory(emptyList()).createFor(graph),
+          // The Android reference readers, so the graph matches what LeakCanary itself walks.
+          referenceReader = AndroidReferenceReaderFactory(REFERENCE_STRENGTH_MATCHERS)
+            .createFor(graph),
           gcRootProvider = MatchingGcRootProvider(emptyList())
         ).buildNodes(AndroidObjectSizeCalculator(graph))
       } catch (throwable: Throwable) {
@@ -124,6 +131,18 @@ class HeapTreemap private constructor(
       }
       return HeapTreemap(heapDumpFile, graph, dominatorTree)
     }
+
+    /**
+     * The reference matchers that say which references don't keep their target alive: weak, soft and
+     * phantom referents, and the linked lists that finalization is built on.
+     *
+     * Without them a `WeakReference` looks like it retains its referent, and the
+     * `FinalizerReference` list looks like one giant chain of objects retaining each other, so
+     * retained sizes stop meaning anything. Only these: the matchers in [AndroidReferenceMatchers]
+     * exist to keep a leak trace readable, and here they would hide memory that really is retained.
+     */
+    private val REFERENCE_STRENGTH_MATCHERS: List<ReferenceMatcher> =
+      ReferenceMatcher.fromListBuilders(EnumSet.of(JdkReferenceMatchers.REFERENCES))
   }
 }
 

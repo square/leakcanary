@@ -30,10 +30,28 @@ import java.awt.Frame
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import shark.SharkLog
 import shark.explorer.HeapTreemap
 import shark.explorer.formatByteSize
 
-fun main(args: Array<String>) = application {
+fun main(args: Array<String>) {
+  // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong
+  // on stdout as well as in the window.
+  SharkLog.logger = object : SharkLog.Logger {
+    override fun d(message: String) = println(message)
+
+    override fun d(
+      throwable: Throwable,
+      message: String
+    ) {
+      println(message)
+      throwable.printStackTrace()
+    }
+  }
+  explorerApplication(args)
+}
+
+private fun explorerApplication(args: Array<String>) = application {
   Window(
     onCloseRequest = ::exitApplication,
     title = "Shark Explorer",
@@ -66,8 +84,9 @@ fun ExplorerApp(
       val treemap = withContext(Dispatchers.Default) {
         HeapTreemap.open(file) { step -> state = HeapDumpState.Opening(file, step) }
       }
-      HeapDumpState.Open(treemap)
+      HeapDumpState.Open(treemap).also { opened -> SharkLog.d { opened.statusLine() } }
     } catch (throwable: Throwable) {
+      SharkLog.d(throwable) { "Could not open $file" }
       HeapDumpState.Failed(file, throwable.toString())
     }
   }
@@ -145,7 +164,8 @@ private fun HeapDumpState.statusLine(): String = when (this) {
   is HeapDumpState.Failed -> "Could not open ${file.name}"
   is HeapDumpState.Open -> with(treemap) {
     val objectCount = summarize(root).retainedCount
-    "${heapDumpFile.name} · ${formatByteSize(weight(root))} retained by $objectCount objects"
+    "${heapDumpFile.name} · ${formatByteSize(weight(root))} strongly reachable in $objectCount " +
+      "objects"
   }
 }
 
