@@ -28,7 +28,7 @@ import shark.explorer.ReachabilityStrength.WEAK
 internal class WeakeningReference(
   val strength: ReachabilityStrength,
   val valueObjectId: Long,
-  private val fieldName: String,
+  val fieldName: String,
   private val locationClassObjectId: Long
 ) {
 

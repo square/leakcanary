@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,6 +39,7 @@ import shark.explorer.CellSubject
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
 import shark.explorer.LayoutCell
+import shark.explorer.ObjectReferrers
 import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
 import shark.explorer.ReachabilityStrength
@@ -74,6 +76,8 @@ internal fun HeapDumpExplorer(
   var selected: SelectedCell? by remember(session) { mutableStateOf(null) }
   var request: SelectionRequest? by remember(session) { mutableStateOf(null) }
   var selection: Selection? by remember(session) { mutableStateOf(null) }
+  /** Null while the pass over the heap dump that finds them is still running. */
+  var referrers: ObjectReferrers? by remember(session) { mutableStateOf(null) }
 
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
@@ -128,6 +132,7 @@ internal fun HeapDumpExplorer(
   // the click. Keyed on the request, so that nothing else clears it.
   LaunchedEffect(session, followedStrengths, request) {
     val currentRequest = request
+    referrers = null
     selection = if (currentRequest == null) {
       null
     } else {
@@ -147,6 +152,15 @@ internal fun HeapDumpExplorer(
           )
         }
       }
+    }
+  }
+
+  // Finding what references an object means reading every object in the heap dump, so it lands after the
+  // rest of the panel rather than holding it up. Keyed on the selection: a new one invalidates this.
+  val selectedObjectId = (selection as? Selection.Object)?.summary?.objectId
+  LaunchedEffect(session, followedStrengths, selectedObjectId) {
+    referrers = selectedObjectId?.let { objectId ->
+      session.read { explorer -> explorer.treeFor(followedStrengths).referrersOf(objectId) }
     }
   }
 
@@ -191,8 +205,13 @@ internal fun HeapDumpExplorer(
       }
       DetailsPanel(
         selection = selection,
+        referrers = referrers,
         scheme = scheme,
         onZoomInto = { navigation = navigation.zoomInto(it) },
+        onInspect = { objectId ->
+          selected = SelectedCell(objectId, isGroup = false)
+          request = SelectionRequest.Object(objectId)
+        },
         modifier = Modifier.width(DETAILS_WIDTH).fillMaxHeight()
       )
     }
@@ -326,8 +345,10 @@ private fun Breadcrumbs(
 @Composable
 private fun DetailsPanel(
   selection: Selection?,
+  referrers: ObjectReferrers?,
   scheme: CellColorScheme,
   onZoomInto: (Long) -> Unit,
+  onInspect: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -348,7 +369,13 @@ private fun DetailsPanel(
           )
           Detail("Retained", formatByteSize(selection.byteCount))
         }
-        is Selection.Object -> ObjectDetails(selection.summary, scheme, onZoomInto)
+        is Selection.Object -> ObjectDetails(
+          summary = selection.summary,
+          referrers = referrers,
+          scheme = scheme,
+          onZoomInto = onZoomInto,
+          onInspect = onInspect
+        )
       }
     }
   }
@@ -357,11 +384,16 @@ private fun DetailsPanel(
 @Composable
 private fun ObjectDetails(
   summary: HeapObjectSummary,
+  referrers: ObjectReferrers?,
   scheme: CellColorScheme,
-  onZoomInto: (Long) -> Unit
+  onZoomInto: (Long) -> Unit,
+  onInspect: (Long) -> Unit
 ) {
   Text(summary.label, style = MaterialTheme.typography.titleMedium, overflow = TextOverflow.Ellipsis)
   Text(summary.className, style = MaterialTheme.typography.bodySmall)
+  summary.headline?.let { headline ->
+    Text(headline, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+  }
   Row(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
@@ -373,12 +405,89 @@ private fun ObjectDetails(
   Detail("Retained objects", summary.retainedCount.toString())
   Detail("Shallow", formatByteSize(summary.shallowSize.toLong()))
   Detail("Dominates", "${summary.dominatedObjectCount} objects")
-  summary.stringValue?.let { Detail("Value", "\"$it\"") }
   summary.inspectorLabels.forEach { label ->
     Text(label, style = MaterialTheme.typography.bodySmall)
   }
   Button(onClick = { onZoomInto(summary.objectId) }, enabled = summary.dominatedObjectCount > 0) {
     Text("Zoom in")
+  }
+  Referrers(referrers, onInspect)
+  Fields(summary, onInspect)
+}
+
+/**
+ * What holds the selected object, and why it can be dominated by the root without being a GC root: two
+ * referrers whose paths meet only at the root leave the root as the only thing that dominates it.
+ */
+@Composable
+private fun Referrers(
+  referrers: ObjectReferrers?,
+  onInspect: (Long) -> Unit
+) {
+  if (referrers != null && referrers.referrerCount == 0) {
+    // Nothing points at the virtual root. Everything else in the tree got there from a referrer.
+    return
+  }
+  Text("Held by", style = MaterialTheme.typography.labelSmall)
+  if (referrers == null) {
+    Text(SEARCHING_REFERRERS, style = MaterialTheme.typography.bodySmall)
+    return
+  }
+  if (referrers.isDominatedByRoot && referrers.referrerCount > 1) {
+    Text(
+      SHARED_EXPLANATION.format(referrers.referrerCount),
+      style = MaterialTheme.typography.bodySmall
+    )
+  }
+  referrers.referrers.forEach { referrer ->
+    val label = referrer.fieldName?.let { "${referrer.label}.$it" } ?: referrer.label
+    Inspectable(label, referrer.inspectableObjectId, onInspect)
+  }
+  if (referrers.hiddenReferrerCount > 0) {
+    Text(
+      "and ${referrers.hiddenReferrerCount} more",
+      style = MaterialTheme.typography.bodySmall
+    )
+  }
+}
+
+/** Every field of the object, so that the panel says what the heap dump holds and not just its shape. */
+@Composable
+private fun Fields(
+  summary: HeapObjectSummary,
+  onInspect: (Long) -> Unit
+) {
+  if (summary.fields.isEmpty()) {
+    return
+  }
+  Text("Fields", style = MaterialTheme.typography.labelSmall)
+  summary.fields.forEach { field ->
+    Inspectable("${field.name} = ${field.value}", field.inspectableObjectId, onInspect)
+  }
+  if (summary.hiddenFieldCount > 0) {
+    Text(
+      "and ${summary.hiddenFieldCount} more",
+      style = MaterialTheme.typography.bodySmall
+    )
+  }
+}
+
+/** A line of the panel that leads somewhere: clicking it shows that object instead. */
+@Composable
+private fun Inspectable(
+  text: String,
+  objectId: Long?,
+  onInspect: (Long) -> Unit
+) {
+  if (objectId == null) {
+    Text(text, style = MaterialTheme.typography.bodySmall)
+  } else {
+    Text(
+      text,
+      Modifier.clickable { onInspect(objectId) },
+      style = MaterialTheme.typography.bodySmall,
+      color = LINK_COLOR
+    )
   }
 }
 
@@ -396,10 +505,25 @@ private fun Detail(
 /** Shown by the details panel until something is selected. */
 internal const val NO_SELECTION = "Click a rectangle or a sector to see what it retains."
 
+/** Shown while the pass over the heap dump that finds the referrers is still running. */
+internal const val SEARCHING_REFERRERS = "Reading the heap dump…"
+
+/**
+ * Why a big rectangle can sit flat under the root without being a GC root: more than one object holds
+ * it, on paths that meet only at the root, so no single owner would free it and the dominator tree has
+ * nowhere else to put its bytes.
+ */
+internal const val SHARED_EXPLANATION =
+  "%d objects hold this one, on paths that meet only at the root — so releasing any one of them " +
+    "wouldn't free it, and its bytes are attributed to the whole heap rather than to an owner."
+
 internal const val BREADCRUMB_SEPARATOR = "›"
 
 private const val GROUP_EXPLANATION =
   "Too small or too many to draw one by one. Zoom into what holds them to see them."
 
 private val DETAILS_WIDTH = 320.dp
+
+/** Panel lines that lead to another object, coloured like a link because that's what they are. */
+private val LINK_COLOR = SELECTION_COLOR
 internal val SWATCH_SIZE = 10.dp

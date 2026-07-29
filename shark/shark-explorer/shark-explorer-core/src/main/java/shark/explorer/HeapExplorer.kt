@@ -61,7 +61,7 @@ class HeapExplorer private constructor(
       ),
       gcRootProvider = MatchingGcRootProvider(emptyList())
     ).buildNodes(AndroidObjectSizeCalculator(graph))
-    return HeapDominatorTreemap(graph, reachability, nodes, followed)
+    return HeapDominatorTreemap(graph, reachability, strengthReader, nodes, followed)
       .also { cachedTree = it }
   }
 

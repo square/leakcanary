@@ -7,6 +7,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
+import shark.ValueHolder.BooleanHolder
+import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.ReachabilityStrength.STRONG
@@ -69,11 +71,71 @@ class HeapExplorerTest {
     }
   }
 
-  @Test fun `a string summary carries its content`() {
+  @Test fun `a string leads with its content`() {
     openTestHeapDump().use { explorer ->
       val string = explorer.treeFor(emptySet()).findByLabel("String")
 
-      assertThat(string.stringValue).isEqualTo("Kept alive by the holder")
+      assertThat(string.headline).isEqualTo("\"Kept alive by the holder\"")
+    }
+  }
+
+  @Test fun `a bitmap leads with its dimensions`() {
+    HeapExplorer.open(bitmapHeapDump()).use { explorer ->
+      val bitmap = explorer.treeFor(emptySet()).findByLabel("Bitmap")
+
+      assertThat(bitmap.headline).isEqualTo("420 × 467 pixels")
+    }
+  }
+
+  @Test fun `an object lists its fields, references reading as what they point at`() {
+    openTestHeapDump().use { explorer ->
+      val holder = explorer.treeFor(emptySet()).findByLabel("Holder")
+
+      assertThat(holder.fields.map { "${it.name} = ${it.value}" })
+        .containsExactly("payload = Object[]", "name = \"Kept alive by the holder\"")
+      assertThat(holder.fields.map { it.declaringClassName }).containsOnly("Holder")
+      // Both point at objects in the tree, so the panel can walk to them.
+      assertThat(holder.fields.map { it.inspectableObjectId }).doesNotContainNull()
+    }
+  }
+
+  @Test fun `an array lists its elements, and says how many it left out`() {
+    HeapExplorer.open(weaklyReachablePayloadHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(setOf(WEAK))
+      val array = tree.findByLabel("Object[]")
+
+      assertThat(array.headline).isEqualTo("$PAYLOAD_ELEMENT_COUNT elements")
+      assertThat(array.fields).hasSize(MAX_FIELDS_SHOWN)
+      assertThat(array.hiddenFieldCount).isEqualTo(PAYLOAD_ELEMENT_COUNT - MAX_FIELDS_SHOWN)
+      assertThat(array.fields.first().name).isEqualTo("[0]")
+    }
+  }
+
+  @Test fun `an object two others hold is dominated by the root, which its referrers explain`() {
+    HeapExplorer.open(sharedPayloadHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val payload = tree.findByLabel("Object[]")
+
+      // Neither holder alone would free the payload, so the dominator tree can only attribute it to
+      // the whole heap. That is what makes a big rectangle sit flat under the root, and the only way
+      // to find out why is to ask what points at it.
+      assertThat(tree.children(tree.root)).contains(payload.objectId)
+      val referrers = tree.referrersOf(payload.objectId)
+      assertThat(referrers.isDominatedByRoot).isTrue()
+      assertThat(referrers.referrers.map { "${it.label}.${it.fieldName}" })
+        .containsExactlyInAnyOrder("Holder.payload", "OtherHolder.payload")
+    }
+  }
+
+  @Test fun `a gc root is one of the referrers`() {
+    openTestHeapDump().use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val holder = tree.findByLabel("Holder")
+
+      val referrers = tree.referrersOf(holder.objectId)
+
+      assertThat(referrers.referrers.map { it.label }).containsExactly("GC root: JNI global reference")
+      assertThat(referrers.referrers.single().fieldName).isNull()
     }
   }
 
@@ -178,6 +240,35 @@ class HeapExplorerTest {
     return file
   }
 
+  /** A heap dump with a bitmap in it, whose pixels live in native memory rather than in its fields. */
+  private fun bitmapHeapDump(): File {
+    val file = testFolder.newFile("bitmap.hprof")
+    file.dump {
+      val bitmap = "android.graphics.Bitmap" instance {
+        field["mWidth"] = IntHolder(420)
+        field["mHeight"] = IntHolder(467)
+        field["mRecycled"] = BooleanHolder(false)
+      }
+      gcRoot(JniGlobal(id = bitmap.value, jniGlobalRefId = 0))
+    }
+    return file
+  }
+
+  /** A heap dump where two unrelated instances both hold the same object array. */
+  private fun sharedPayloadHeapDump(): File {
+    val file = testFolder.newFile("shared-payload.hprof")
+    file.dump {
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      val holder = "com.example.Holder" instance { field["payload"] = payload }
+      val otherHolder = "com.example.OtherHolder" instance { field["payload"] = payload }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = otherHolder.value, jniGlobalRefId = 1))
+    }
+    return file
+  }
+
   /** A heap dump where an object array is held by an instance and pointed at by a `WeakReference`. */
   private fun stronglyAndWeaklyReachablePayloadHeapDump(): File {
     val file = testFolder.newFile("strongly-and-weakly-reachable.hprof")
@@ -218,6 +309,9 @@ class HeapExplorerTest {
 
   companion object {
     private const val PAYLOAD_ELEMENT_COUNT = 1024
+
+    /** Matches `MAX_FIELDS` in [HeapDominatorTreemap], which isn't public. */
+    private const val MAX_FIELDS_SHOWN = 500
 
     /** Object ids are 4 bytes in a dump built by the test DSL. */
     private const val PAYLOAD_BYTE_SIZE = PAYLOAD_ELEMENT_COUNT * 4L

@@ -113,6 +113,50 @@ class ExplorerAppTest {
     }
   }
 
+  @Test fun `the details panel lists the fields of what was pressed`() {
+    runComposeUiTest {
+      openHeapDump()
+
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+
+      // The rectangle clicked is the payload array nested in the instance holding it, so its fields
+      // are its elements, all null in this heap dump.
+      waitUntilAtLeastOneExists(hasText("[0] = null"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("$PAYLOAD_LENGTH elements").assertIsDisplayed()
+    }
+  }
+
+  @Test fun `the details panel says what holds what was pressed`() {
+    runComposeUiTest {
+      openHeapDump()
+
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+
+      // Reading every object in the heap dump is what finding referrers takes, so the panel says so
+      // and then replaces it with the answer.
+      waitUntilAtLeastOneExists(
+        hasText("${HOLDER_LABEL}.payload", substring = true),
+        OPEN_TIMEOUT_MILLIS
+      )
+    }
+  }
+
+  @Test fun `clicking a field in the details panel inspects what it points at`() {
+    runComposeUiTest {
+      openHeapDump()
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      waitUntilAtLeastOneExists(
+        hasText("${HOLDER_LABEL}.payload", substring = true),
+        OPEN_TIMEOUT_MILLIS
+      )
+
+      // Walking up from the array to what holds it, without touching the treemap.
+      onNodeWithText("${HOLDER_LABEL}.payload", substring = true).performClick()
+
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
   @Test fun `double clicking a rectangle adds a breadcrumb for every dominator down to it`() {
     runComposeUiTest {
       openHeapDump()
@@ -123,7 +167,9 @@ class ExplorerAppTest {
       // The point clicked is inside the payload array, which is inside the instance holding it, so
       // there's a crumb for each rather than a jump from the root straight to the array.
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 3 }
-      onNodeWithText(HOLDER_LABEL, substring = true).assertIsDisplayed()
+      // A crumb says what the object retains as well as what it is, which is what tells it apart from
+      // the details panel naming the same object.
+      onNodeWithText("$HOLDER_LABEL ·", substring = true).assertIsDisplayed()
     }
   }
 

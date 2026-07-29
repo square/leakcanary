@@ -71,6 +71,35 @@ Two more reference reader behaviours that surprise you when reading a treemap:
   skips the `value` field, and `ShallowSizeCalculator` adds the array's bytes to the string instead.
 - Primitive wrapper arrays are folded into their array the same way.
 
+## Why big objects sit flat under the root
+
+The first thing a production dump shows is a crowd of rectangles directly under the root — on an 82 MB
+Android OOM dump, **129,423 direct children of the root retaining 74 MB**, among them 82 bitmaps worth
+17.7 MB. The tempting explanation is JNI: something native holds them, so the root does. It's wrong,
+and worth not re-deriving.
+
+**They're shared, not natively held.** Two or more objects reach them by paths that meet only at the
+root, so no single owner would free them and the dominator tree attributes their bytes to the whole
+heap. Measured on that dump: of the root's direct children, **119,444 (64.8 MB) are not GC roots at
+all** — nothing points at them from outside the heap. Every one of the 82 bitmaps came out with an
+empty root list. The biggest, 1.1 MB, is held by a `BitmapImage.bitmap` and by a
+`BitmapDrawable$BitmapState.mBitmap` under a `RecyclerView`; kill either and the other still holds it.
+
+**Deprioritizing native roots would move under 1%.** The dump has 10,615 GC roots — 9,502 sticky
+classes, 579 JNI globals, 200 native stack, 171 JNI locals, 163 thread objects. Objects reachable
+*only* from a native root account for 645 KB of the root's 74 MB. So none of "ignore native refs",
+"treat native refs to bitmaps specially" or "look at native refs only for objects not already seen"
+buys anything here, and each would make the tree lie about a real retention path.
+
+What actually helps is showing the sharing, so `HeapDominatorTreemap.referrersOf` reports every
+referrer of an object plus whether the root dominates it, and the details panel says so in words. It
+costs a full pass over the dump — a heap dump only records references in the direction they point, so
+there is no reverse index — about **1 second per 82 MB**, hence a call of its own that the panel fills
+in a moment after the rest rather than part of `summarize`.
+
+Still open: the root's 129 K direct children are unreadable as 129 K rectangles. Grouping them by class
+under the root would make the crowd navigable without changing what the tree says.
+
 ## Reachability strength
 
 `HeapReachability` classifies every reachable object as `STRONG`, `SOFT`, `WEAK`, `FINALIZER` or
