@@ -154,10 +154,10 @@ class ObjectGrowthDetectorTest {
     val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
-        twoArraysOfWrappersSharingInstances(sharedInstanceCount = 1)
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 1)
       },
       dump {
-        twoArraysOfWrappersSharingInstances(sharedInstanceCount = 2)
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 2)
       }
     )
 
@@ -172,6 +172,36 @@ class ObjectGrowthDetectorTest {
       val halfOfSharedSize = 2 * 4 / 2
       assertThat(growingObject.retained.heapSize)
         .isEqualTo((arraySize + wrappersSize + halfOfSharedSize).bytes)
+    }
+  }
+
+  @Test
+  fun `retained size of shared objects is split between more growing objects than a mask holds`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    // One more than the 64 groups that fit in the mask LeakShareCalculator splits objects with,
+    // so this goes through its fallback.
+    val arrayCount = 65
+    val dumps = listOf(
+      dump {
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 1, arrayCount = arrayCount)
+      },
+      dump {
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 2, arrayCount = arrayCount)
+      }
+    )
+
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    assertThat(heapTraversal.growingObjects).hasSize(arrayCount)
+    heapTraversal.growingObjects.forEach { growingObject ->
+      // The array, the 2 wrappers it holds and a 65th of the 2 shared instances, which rounds down
+      // to 0 objects.
+      assertThat(growingObject.retained.objectCount).isEqualTo(3)
+      val arraySize = 2 * 4
+      val wrappersSize = 2 * 4
+      val shareOfSharedSize = 2 * 4 / arrayCount
+      assertThat(growingObject.retained.heapSize)
+        .isEqualTo((arraySize + wrappersSize + shareOfSharedSize).bytes)
     }
   }
 

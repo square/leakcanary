@@ -40,9 +40,11 @@ import shark.internal.unpackAsSecondInt
  * growing node would free: freeing shared objects requires fixing every growing node that holds
  * them.
  *
- * Splitting requires knowing how many growing nodes reach an object before crediting any of them,
- * so phase 2 traverses each group twice: once to count, once to sum. Both traversals only cover
- * the subgraph that hangs off the growing objects, which is a small part of the heap.
+ * Splitting requires knowing how many growing nodes reach an object before crediting any of them.
+ * Phase 2 therefore records which groups reach an object as a bit per group, then splits every
+ * object reached in a single pass. Past [GROUPS_PER_MASK] groups there's no room for that, and it
+ * falls back to traversing each group twice, once to count and once to sum. Either way phase 2 only
+ * covers the subgraph that hangs off the growing objects, which is a small part of the heap.
  */
 internal class LeakShareCalculator(
   private val graph: HeapGraph,
@@ -82,6 +84,67 @@ internal class LeakShareCalculator(
     }
     findObjectsReachableWithoutGrowth(growingObjectIds)
 
+    return if (growingObjectIdGroups.size <= GROUPS_PER_MASK) {
+      computeLeakSharesFromGroupMasks(growingObjectIdGroups)
+    } else {
+      computeLeakSharesFromGroupCounts(growingObjectIdGroups)
+    }
+  }
+
+  /**
+   * Traverses each group once, recording which groups reach an object as a bit per group, then
+   * splits every object reached between the groups of its mask in a single pass. Only works for up
+   * to [GROUPS_PER_MASK] groups, see [computeLeakSharesFromGroupCounts] for more.
+   */
+  private fun computeLeakSharesFromGroupMasks(
+    growingObjectIdGroups: List<LongArray>
+  ): List<Retained> {
+    // Object id to the mask of the groups that reached it, which is also how each traversal knows
+    // what it already visited: its own bit being set.
+    val groupMasksByObjectId = MutableLongLongMap()
+
+    growingObjectIdGroups.forEachIndexed { groupIndex, objectIds ->
+      val groupMask = 1L shl groupIndex
+      visitObjectsRetainedByGroup(objectIds) { objectId ->
+        val previousMask = groupMasksByObjectId.getOrDefault(objectId, NO_GROUP)
+        if (previousMask and groupMask != 0L) {
+          false
+        } else {
+          groupMasksByObjectId[objectId] = previousMask or groupMask
+          true
+        }
+      }
+    }
+
+    val heapSizes = DoubleArray(growingObjectIdGroups.size)
+    val objectCounts = DoubleArray(growingObjectIdGroups.size)
+    groupMasksByObjectId.forEach { objectId, groupMask ->
+      val reachedFromGroupCount = groupMask.countOneBits()
+      val heapSizeShare =
+        objectSizeCalculator.computeSize(objectId).toDouble() / reachedFromGroupCount
+      val objectCountShare = 1.0 / reachedFromGroupCount
+      var remainingGroupMask = groupMask
+      while (remainingGroupMask != NO_GROUP) {
+        val groupIndex = remainingGroupMask.countTrailingZeroBits()
+        heapSizes[groupIndex] += heapSizeShare
+        objectCounts[groupIndex] += objectCountShare
+        // Clears the lowest bit set, i.e. the group we just credited.
+        remainingGroupMask = remainingGroupMask and (remainingGroupMask - 1)
+      }
+    }
+    return growingObjectIdGroups.indices.map { groupIndex ->
+      retained(heapSizes[groupIndex], objectCounts[groupIndex])
+    }
+  }
+
+  /**
+   * Traverses each group twice, once to count how many groups reach each object and once to split
+   * each object between them. [computeLeakSharesFromGroupMasks] does the same with a single
+   * traversal per group, but there are more groups here than it has bits for.
+   */
+  private fun computeLeakSharesFromGroupCounts(
+    growingObjectIdGroups: List<LongArray>
+  ): List<Retained> {
     // Object id to the count of groups that reach it, packed with the token of the last group
     // traversal that visited it, which is how each traversal knows what it already visited.
     val reachedObjects = MutableLongLongMap()
@@ -118,12 +181,17 @@ internal class LeakShareCalculator(
           true
         }
       }
-      Retained(
-        heapSize = heapSize.roundToLong().coerceAtMost(Int.MAX_VALUE.toLong()).toInt().bytes,
-        objectCount = objectCount.roundToInt()
-      )
+      retained(heapSize, objectCount)
     }
   }
+
+  private fun retained(
+    heapSize: Double,
+    objectCount: Double
+  ) = Retained(
+    heapSize = heapSize.roundToLong().coerceAtMost(Int.MAX_VALUE.toLong()).toInt().bytes,
+    objectCount = objectCount.roundToInt()
+  )
 
   /**
    * BFS from GC roots that stops at [growingObjectIds], filling [objectsReachableWithoutGrowth]
@@ -191,5 +259,11 @@ internal class LeakShareCalculator(
   companion object {
     /** Reached by 0 groups, visited by the traversal of token 0, i.e. by no traversal. */
     private val NOT_REACHED = 0 packedWith 0
+
+    /** An empty mask of groups, i.e. an object no group reached. */
+    private const val NO_GROUP = 0L
+
+    /** How many groups fit in the [Long] mask that says which groups reached an object. */
+    private const val GROUPS_PER_MASK = 64
   }
 }

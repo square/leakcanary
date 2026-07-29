@@ -65,11 +65,14 @@ internal fun HprofWriterHelper.arrayOfWrappersOfStablyHeldInstances(wrapperCount
 }
 
 /**
- * Two static fields, each holding an array of [sharedInstanceCount] wrappers, where the wrapper
- * at a given index in one array and the wrapper at that index in the other array both reference
- * the same shared instance.
+ * [arrayCount] static fields, each holding an array of [sharedInstanceCount] wrappers, where the
+ * wrapper at a given index in one array and the wrapper at that index in any other array all
+ * reference the same shared instance.
  */
-internal fun HprofWriterHelper.twoArraysOfWrappersSharingInstances(sharedInstanceCount: Int) {
+internal fun HprofWriterHelper.arraysOfWrappersSharingInstances(
+  sharedInstanceCount: Int,
+  arrayCount: Int = 2
+) {
   val sharedClassId = clazz("Shared", fields = listOf("value" to ValueHolder.IntHolder::class))
   val wrapperClassId = clazz(
     "Wrapper",
@@ -83,7 +86,7 @@ internal fun HprofWriterHelper.twoArraysOfWrappersSharingInstances(sharedInstanc
   }
   clazz(
     "ClassWithStatics",
-    staticFields = listOf("first" to wrapperArray(), "second" to wrapperArray())
+    staticFields = (1..arrayCount).map { arrayIndex -> "array$arrayIndex" to wrapperArray() }
   )
 }
 
