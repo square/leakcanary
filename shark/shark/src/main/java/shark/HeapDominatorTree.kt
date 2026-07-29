@@ -53,13 +53,15 @@ class HeapDominatorTree private constructor(
   fun buildNodes(objectSizeCalculator: ObjectSizeCalculator): Map<Long, DominatorNode> {
     val lastDfsNumber = objectIdByDfsNumber.size - 1
     val shallowSizes = IntArray(lastDfsNumber + 1)
-    val retainedSizes = IntArray(lastDfsNumber + 1)
+    // Retained sizes accumulate up the tree, so unlike the shallow sizes they add up to the size of
+    // the whole reachable heap at the root and overflow an Int past 2 GB.
+    val retainedSizes = LongArray(lastDfsNumber + 1)
     val retainedCounts = IntArray(lastDfsNumber + 1)
 
     for (dfsNumber in VIRTUAL_ROOT + 1..lastDfsNumber) {
       val shallowSize = objectSizeCalculator.computeSize(objectIdByDfsNumber[dfsNumber])
       shallowSizes[dfsNumber] = shallowSize
-      retainedSizes[dfsNumber] = shallowSize
+      retainedSizes[dfsNumber] = shallowSize.toLong()
       retainedCounts[dfsNumber] = 1
     }
 

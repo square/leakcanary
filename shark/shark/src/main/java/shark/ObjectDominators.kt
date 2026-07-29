@@ -23,7 +23,12 @@ class ObjectDominators {
 
   data class DominatorNode(
     val shallowSize: Int,
-    val retainedSize: Int,
+    /**
+     * The sum of the shallow sizes of this object and every object it dominates. A [Long] because
+     * the root of the tree retains the whole reachable heap, which goes past [Int.MAX_VALUE] on
+     * heap dumps larger than 2 GB.
+     */
+    val retainedSize: Long,
     val retainedCount: Int,
     val dominatedObjectIds: List<Long>
   ) : Serializable
@@ -88,7 +93,7 @@ class ObjectDominators {
       is HeapPrimitiveArray -> heapObject.arrayClassName
     }
     val anchor = if (depth == 0) "" else if (isLast) "╰─" else "├─"
-    val size = if (node.retainedSize != node.shallowSize) {
+    val size = if (node.retainedSize != node.shallowSize.toLong()) {
       "${node.retainedSize} bytes (${node.shallowSize} self)"
     } else {
       "${node.shallowSize} bytes"
