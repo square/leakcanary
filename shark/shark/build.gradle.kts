@@ -14,3 +14,12 @@ dependencies {
   testImplementation(projects.shark.sharkTest)
   testImplementation(projects.shark.sharkHprofTest)
 }
+
+// Throwaway harness for issue #2777 analysis. Not part of CI.
+tasks.register<JavaExec>("analyzeBigHeapDump") {
+  group = "benchmark"
+  classpath = sourceSets["test"].runtimeClasspath
+  mainClass.set("shark.benchmark.AnalyzeBigHeapDumpKt")
+  maxHeapSize = (project.findProperty("benchHeap") as String?) ?: "24g"
+  args((project.findProperty("dumpFile") as String?) ?: "${layout.buildDirectory.get()}/big.hprof")
+}
