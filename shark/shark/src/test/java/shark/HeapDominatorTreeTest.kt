@@ -97,15 +97,15 @@ class HeapDominatorTreeTest {
       val tree = graph.buildExactDominatorTree()
       // Every object weighs 1 GB, so the virtual root retains a gigabyte per reachable object,
       // which is past Int.MAX_VALUE for any graph of 2 objects or more.
-      val oneGigabyte = 1024 * 1024 * 1024
+      val oneGigabyte = 1024L * 1024 * 1024
       val nodes = tree.buildNodes { oneGigabyte }
 
-      val wholeHeapSize = tree.reachableObjectCount.toLong() * oneGigabyte
+      val wholeHeapSize = tree.reachableObjectCount * oneGigabyte
       assertThat(wholeHeapSize).isGreaterThan(Int.MAX_VALUE.toLong())
       assertThat(nodes.getValue(NULL_REFERENCE).retainedSize).isEqualTo(wholeHeapSize)
       // A leaf retains only itself, so its size is the one that doesn't accumulate.
       assertThat(nodes.getValue(graph.nodeIdsInWriteOrder().last()).retainedSize)
-        .isEqualTo(oneGigabyte.toLong())
+        .isEqualTo(oneGigabyte)
     }
   }
 

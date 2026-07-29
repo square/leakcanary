@@ -57,8 +57,10 @@ sealed class HeapObject {
 
   /**
    * The total byte size for the record of this object in the heap dump.
+   *
+   * A [Long] because the elements of an array can take more than [Int.MAX_VALUE] bytes.
    */
-  abstract val recordSize: Int
+  abstract val recordSize: Long
 
   /**
    * This [HeapObject] as a [HeapClass] if it is one, or null otherwise
@@ -138,8 +140,8 @@ sealed class HeapObject {
     val instanceByteSize: Int
       get() = indexedObject.instanceSize
 
-    override val recordSize: Int
-      get() = indexedObject.recordSize.toInt()
+    override val recordSize: Long
+      get() = indexedObject.recordSize
 
     val hasReferenceInstanceFields: Boolean
       get() = hprofGraph.classDumpHasReferenceFields(indexedObject)
@@ -337,8 +339,8 @@ sealed class HeapObject {
     /**
      * @see HeapClass.instanceByteSize
      */
-    val byteSize
-      get() = instanceClass.instanceByteSize
+    val byteSize: Long
+      get() = instanceClass.instanceByteSize.toLong()
 
     /**
      * The name of the class of this instance, identical to [Class.getName].
@@ -373,8 +375,8 @@ sealed class HeapObject {
       return hprofGraph.readInstanceDumpRecord(objectId, indexedObject)
     }
 
-    override val recordSize: Int
-      get() = indexedObject.recordSize.toInt()
+    override val recordSize: Long
+      get() = indexedObject.recordSize
 
     /**
      * Returns true if this is an instance of the class named [className] or an instance of a
@@ -560,7 +562,7 @@ sealed class HeapObject {
     /**
      * The total byte shallow size of elements in this array.
      */
-    val byteSize: Int
+    val byteSize: Long
       get() = recordSize - hprofGraph.objectArrayRecordNonElementSize
 
     /**
@@ -572,8 +574,8 @@ sealed class HeapObject {
       return hprofGraph.readObjectArrayDumpRecord(objectId, indexedObject)
     }
 
-    override val recordSize: Int
-      get() = indexedObject.recordSize.toInt()
+    override val recordSize: Long
+      get() = indexedObject.recordSize
 
     /**
      * The elements in this array, as a sequence of [HeapValue].
@@ -609,7 +611,7 @@ sealed class HeapObject {
     /**
      * The total byte shallow size of elements in this array.
      */
-    val byteSize: Int
+    val byteSize: Long
       get() = recordSize - hprofGraph.primitiveArrayRecordNonElementSize
 
 
@@ -640,8 +642,8 @@ sealed class HeapObject {
       return hprofGraph.readPrimitiveArrayDumpRecord(objectId, indexedObject)
     }
 
-    override val recordSize: Int
-      get() = indexedObject.recordSize.toInt()
+    override val recordSize: Long
+      get() = indexedObject.recordSize
 
     override fun toString(): String {
       return "primitive array @$objectId of $arrayClassName"

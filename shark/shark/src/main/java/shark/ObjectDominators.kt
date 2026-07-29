@@ -22,7 +22,7 @@ import shark.HeapObject.HeapPrimitiveArray
 class ObjectDominators {
 
   data class DominatorNode(
-    val shallowSize: Int,
+    val shallowSize: Long,
     /**
      * The sum of the shallow sizes of this object and every object it dominates. A [Long] because
      * the root of the tree retains the whole reachable heap, which goes past [Int.MAX_VALUE] on
@@ -93,7 +93,7 @@ class ObjectDominators {
       is HeapPrimitiveArray -> heapObject.arrayClassName
     }
     val anchor = if (depth == 0) "" else if (isLast) "╰─" else "├─"
-    val size = if (node.retainedSize != node.shallowSize.toLong()) {
+    val size = if (node.retainedSize != node.shallowSize) {
       "${node.retainedSize} bytes (${node.shallowSize} self)"
     } else {
       "${node.shallowSize} bytes"
