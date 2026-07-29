@@ -73,7 +73,7 @@ class ObjectGrowthDetector(
     // Not using estimatedVisitedObjects because there could be a lot less nodes than objects.
     // This is a list because order matters.
     val dequeuedNodes = mutableListOf<DequeuedNode>()
-    val dominatorTree = DominatorTree(estimatedVisitedObjects)
+    val dominatorTree = ApproximateDominatorTree(estimatedVisitedObjects)
 
     val tree = ShortestPathObjectNode("root", null).apply {
       selfObjectCount = 1

@@ -3,11 +3,10 @@ package shark.internal
 import androidx.collection.mutableLongSetOf
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.DominatorTree
-import shark.ValueHolder
+import shark.ApproximateDominatorTree
 
 @Suppress("UsePropertyAccessSyntax")
-class DominatorTreeTest {
+class ApproximateDominatorTreeTest {
 
   var latestObjectId: Long = 0
   private fun newObjectId() = ++latestObjectId
@@ -16,7 +15,7 @@ class DominatorTreeTest {
   private val `10 bytes per object`: (Long) -> Int = { 10 }
 
   @Test fun `new object is not already dominated`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
 
     val alreadyDominated = tree.updateDominated(newObjectId(), root)
@@ -25,7 +24,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `dominated object is already dominated`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root1 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val root2 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child = newObjectId().apply { tree.updateDominated(this, root1) }
@@ -36,7 +35,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `only retained objects are returned in sizes map`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child = newObjectId().apply { tree.updateDominated(this, root) }
 
@@ -49,7 +48,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `single root has self size as retained size`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
 
     val sizes = tree.computeRetainedSizes(mutableLongSetOf(root), `10 bytes per object`)
@@ -58,7 +57,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `size of dominator includes dominated`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     tree.updateDominated(newObjectId(), root)
 
@@ -68,7 +67,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `size of chain of dominators is additive`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child = newObjectId().apply { tree.updateDominated(this, root) }
     tree.updateDominated(newObjectId(), child)
@@ -80,7 +79,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `diamond dominators don't dominate`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child1 = newObjectId().apply { tree.updateDominated(this, root) }
     val child2 = newObjectId().apply { tree.updateDominated(this, root) }
@@ -96,7 +95,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `two dominators dominated by common ancestor`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child1 = newObjectId().apply { tree.updateDominated(this, root) }
     val child2 = newObjectId().apply { tree.updateDominated(this, root) }
@@ -112,7 +111,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `two dominators dominated by lowest common ancestor`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child = newObjectId().apply { tree.updateDominated(this, root) }
     val grandChild1 = newObjectId().apply { tree.updateDominated(this, child) }
@@ -131,7 +130,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `two separate trees do not share size`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root1 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val root2 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     var descendant1 = root1
@@ -149,7 +148,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `no common descendant does not include size`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root1 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val root2 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     var descendant = root1
@@ -166,7 +165,7 @@ class DominatorTreeTest {
   }
 
   @Test fun `only compute retained size for retained objects`() {
-    val tree = DominatorTree()
+    val tree = ApproximateDominatorTree()
     val root1 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val root2 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
     val child = newObjectId().apply { tree.updateDominated(this, root1) }
@@ -181,25 +180,5 @@ class DominatorTreeTest {
     }
 
     assertThat(objectsWithComputedSize).containsOnly(child, grandChild)
-  }
-
-  @Test fun `null ref dominates all`() {
-    val tree = DominatorTree()
-    val root1 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
-    val root2 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
-    val root3 = newObjectId().apply { tree.updateDominatedAsRoot(this) }
-    val child = newObjectId()
-    tree.updateDominated(child, root1)
-    tree.updateDominated(child, root2)
-    val grandChild = newObjectId().apply { tree.updateDominated(this, child) }
-
-    val fullDominatorTree = tree.buildFullDominatorTree(`10 bytes per object`)
-
-    assertThat(fullDominatorTree.getValue(root1).retainedSize).isEqualTo(10)
-    assertThat(fullDominatorTree.getValue(root2).retainedSize).isEqualTo(10)
-    assertThat(fullDominatorTree.getValue(root3).retainedSize).isEqualTo(10)
-    assertThat(fullDominatorTree.getValue(child).retainedSize).isEqualTo(20)
-    assertThat(fullDominatorTree.getValue(grandChild).retainedSize).isEqualTo(10)
-    assertThat(fullDominatorTree.getValue(ValueHolder.NULL_REFERENCE).retainedSize).isEqualTo(50)
   }
 }
