@@ -269,11 +269,12 @@ enum class AndroidReferenceReaders : OptionalFactory {
 
           val locationClassObjectId = source.instanceClassId
           return entries.flatMap { entry ->
-            // mkey is never null
             val key = entry[SAFE_ITERABLE_MAP_ENTRY_CLASS_NAME, "mKey"]!!.value
 
+            // mKey and mValue are never null in the SafeIterableMap implementation. If that ever
+            // changes we want to hear about it here rather than surface a null reference.
             val keyRef = Reference(
-              valueObjectId = key.asObjectId!!,
+              valueObjectId = key.nonNullObjectId(entry, "mKey"),
               isLowPriority = false,
               lazyDetailsResolver = {
                 LazyDetails(
@@ -286,11 +287,10 @@ enum class AndroidReferenceReaders : OptionalFactory {
               }
             )
 
-            // mValue is never null
             val value = entry[SAFE_ITERABLE_MAP_ENTRY_CLASS_NAME, "mValue"]!!.value
 
             val valueRef = Reference(
-              valueObjectId = value.asObjectId!!,
+              valueObjectId = value.nonNullObjectId(entry, "mValue"),
               isLowPriority = false,
               lazyDetailsResolver = {
                 val keyAsString = key.asObject?.asInstance?.readAsJavaString()?.let { "\"$it\"" }
@@ -358,5 +358,20 @@ enum class AndroidReferenceReaders : OptionalFactory {
       "androidx.arch.core.internal.FastSafeIterableMap"
     private const val SAFE_ITERABLE_MAP_ENTRY_CLASS_NAME =
       "androidx.arch.core.internal.SafeIterableMap\$Entry"
+
+    /**
+     * The object id of a field of [instance] that the reader implementation expects to always hold
+     * a non null reference, failing loudly if that expectation is ever wrong.
+     */
+    private fun HeapValue.nonNullObjectId(
+      instance: HeapInstance,
+      fieldName: String
+    ): Long {
+      return checkNotNull(asNonNullObjectId) {
+        "${instance.instanceClassName}.$fieldName should never be a null reference, but is for" +
+          " the instance with object id ${instance.objectId}. Please report this at" +
+          " https://github.com/square/leakcanary/issues/new"
+      }
+    }
   }
 }

@@ -341,9 +341,6 @@ class PrioritizingShortestPathFinder private constructor(
       }
       objectReferenceReader.read(heapObject).forEach { reference ->
         val referenceObjectId = reference.valueObjectId
-        if (referenceObjectId == ValueHolder.NULL_REFERENCE) {
-          return@forEach
-        }
         if (missingLeakingObjectIds.remove(referenceObjectId)) {
           // A leaking object that's only reachable through leaking objects. Reported as a label
           // on the leak trace of the leaking object we reached it from.
