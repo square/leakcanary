@@ -202,4 +202,22 @@ class DominatorTreeTest {
     assertThat(fullDominatorTree.getValue(grandChild).retainedSize).isEqualTo(10)
     assertThat(fullDominatorTree.getValue(ValueHolder.NULL_REFERENCE).retainedSize).isEqualTo(50)
   }
+
+  @Test fun `py is wondering if this is broken`() {
+    val tree = DominatorTree()
+    val root = newObjectId().apply { tree.updateDominatedAsRoot(this) }
+
+    val ABParent = newObjectId().apply { tree.updateDominated(this, root) }
+    val A = newObjectId().apply { tree.updateDominated(this, ABParent) }
+    val B = newObjectId().apply { tree.updateDominated(this, ABParent) }
+    val C = newObjectId().apply { tree.updateDominated(this, root) }
+    val AB = newObjectId()
+    tree.updateDominated(AB, A)
+    tree.updateDominated(AB, B)
+    val C1 = newObjectId()
+    tree.updateDominated(C1, C)
+    tree.updateDominated(B, C1)
+
+    assertThat(tree[AB]).isEqualTo(root)
+  }
 }
