@@ -22,6 +22,12 @@ class RandomAccessHprofReader private constructor(
    * record reader is bound to the buffer it reads from, so a read can't share one with another
    * read in flight: this holds as many readers as the highest number of reads that ever ran
    * concurrently, which is one for a single threaded caller.
+   *
+   * That high water mark isn't capped, unlike the scratch array pool in FileSourceProvider, because
+   * an idle reader holds on to almost nothing: its buffer is cleared before it comes back here,
+   * which hands the segments it read into back to okio's pool. So a spike of parallel reads leaves
+   * a few hundred bytes per thread behind, and capping this would instead mean allocating a reader
+   * per read on the hottest path in Shark.
    */
   private val idleRecordReaders = ConcurrentLinkedQueue<BufferedRecordReader>()
 
