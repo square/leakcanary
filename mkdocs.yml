@@ -91,8 +91,3 @@ nav:
     - 'Shark API': api/shark/index.md
   - 'LeakCanary API': api/index.md
   - 'Change Log': changelog.md
-
-# Google Analytics. Add export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-XXXXXXXXX-X" to your ~/.bashrc
-google_analytics:
-  - !!python/object/apply:os.getenv ["LEAKCANARY_GOOGLE_ANALYTICS_KEY"]
-  - auto

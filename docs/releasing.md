@@ -24,10 +24,6 @@ python3 -m venv venv
 source venv/bin/activate
 pip3 install --requirement docs/requirements.txt
 ```
-* The Google Analytics key, required by `mkdocs` when deploying the docs. Add to your `~/.bashrc`:
-```bash
-export LEAKCANARY_GOOGLE_ANALYTICS_KEY="UA-142834539-1"
-```
 
 ### Milestone management aliases (optional helpers)
 
