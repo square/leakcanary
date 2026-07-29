@@ -3,37 +3,51 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
+Each entry starts with a marker for the kind of change it is:
+
+| | Means |
+| --- | --- |
+| ⚠️ | **Breaking change**: upgrading can break your build. An API changed or was removed, a minimum supported version went up, an artifact is no longer published. |
+| 🔀 | **Behavior change**: your code still compiles, but LeakCanary now does something different. |
+| 💥 | **Crash fix**: something used to crash, and no longer does. |
+| 🐛 | **Bug fix**: LeakCanary did the wrong thing, without crashing. |
+| ✨ | **New**: an API, an artifact or a capability that didn't exist before. |
+| 🔨 | **Improvement**: something that already worked, now works better. |
+| 🐤 | **Newly recognized leak** in a library or in a manufacturer ROM. |
+
+Releases before 2.8.1 predate these markers.
+
 ## Unreleased
 
 * 💥 `HeapGraph.findObjectByIndex(0)` threw an `IllegalArgumentException` instead of returning the first object of the heap dump.
 * 🐛 [#2857](https://github.com/square/leakcanary/pull/2857) Retained fragments were reported as not leaking with androidx.fragment 1.1.0 and higher.
 * 💥 Opening the overflow menu in the LeakCanary activity crashed apps that wrap `Window.Callback`, because the framework decor action bar calls `Window.Callback.onMenuOpened()` with a `null` menu ([b/188568911](https://issuetracker.google.com/issues/188568911)) even though that parameter is annotated as non null, which Kotlin wrappers rightfully null check. The LeakCanary activity now hosts its own `Toolbar` instead of using the decor action bar, so `onMenuOpened()` is never called.
 * 🐛 [#1789](https://github.com/square/leakcanary/issues/1789) When running the analysis in a separate process (`leakcanary-android-process`), the `HeapAnalysisDone` event was dispatched in the `:leakcanary` process, so it never reached the `LeakCanary.Config.eventListeners` configured in the main process. The `:leakcanary` process now stores the analysis in LeakCanary's database and a chained WorkManager worker dispatches the event from the main process, which also means the event still gets dispatched if the main process dies while the analysis is running.
-    * Behavior change: `HeapAnalysisDone` is now dispatched in the main process instead of the `:leakcanary` process. If you were relying on an `EventListener` configured in the `:leakcanary` process receiving it, configure that listener in the main process instead. `HeapAnalysisProgress` is still dispatched from the `:leakcanary` process. See [Running the LeakCanary analysis in a separate process](recipes.md#running-the-leakcanary-analysis-in-a-separate-process).
+    * 🔀 `HeapAnalysisDone` is now dispatched in the main process instead of the `:leakcanary` process. If you were relying on an `EventListener` configured in the `:leakcanary` process receiving it, configure that listener in the main process instead. `HeapAnalysisProgress` is still dispatched from the `:leakcanary` process. See [Running the LeakCanary analysis in a separate process](recipes.md#running-the-leakcanary-analysis-in-a-separate-process).
 * 🐛 The `dumpDurationMillis` and `"Heap dump reason"` metadata were added to the heap analysis *after* it was stored in LeakCanary's database, so the analysis shown in the LeakCanary activity was missing both. They're now stored as well.
-* [#2841](https://github.com/square/leakcanary/pull/2841) `shark-cli`, `leakcanary-app-aidl` and `leakcanary-app-service` are no longer published to Maven Central. They were never meant to be depended on: the Shark CLI is distributed as a zip attached to the Github release and available on Homebrew, and the two app modules are the internal plumbing that lets an app talk to the LeakCanary UI app.
-* [#2841](https://github.com/square/leakcanary/pull/2841) LeakCanary is now built with Kotlin 2.4, which raises the minimum Kotlin version for consumers to 2.3. The Kotlin compiler only reads metadata written by compilers up to one minor version ahead of itself, so building against LeakCanary with Kotlin 2.2 or older now fails with *"class ... was compiled with an incompatible version of Kotlin"*.
+* ⚠️ [#2841](https://github.com/square/leakcanary/pull/2841) `shark-cli`, `leakcanary-app-aidl` and `leakcanary-app-service` are no longer published to Maven Central. They were never meant to be depended on: the Shark CLI is distributed as a zip attached to the Github release and available on Homebrew, and the two app modules are the internal plumbing that lets an app talk to the LeakCanary UI app.
+* ⚠️ [#2841](https://github.com/square/leakcanary/pull/2841) LeakCanary is now built with Kotlin 2.4, which raises the minimum Kotlin version for consumers to 2.3. The Kotlin compiler only reads metadata written by compilers up to one minor version ahead of itself, so building against LeakCanary with Kotlin 2.2 or older now fails with *"class ... was compiled with an incompatible version of Kotlin"*.
 * 🔨 Leaking objects were silently dropped from the analysis result. When the path to a leaking object went through another leaking object, only the deepest one was reported: the others showed up neither as a leak nor as an unreachable object. On two of our test heap dumps, 18 of 20 and 18 of 31 leaking objects were being dropped this way. Every leaking object is now accounted for, either with its own leak trace or, when it's only reachable through another leaking object, as an `Also retains leaking object <object id> (ClassName)` label on the leak trace of the leaking object that retains it.
-    * Behavior change: the reported path to a leaking object is now the shortest path that doesn't go through another leaking object, so leak traces can be longer than they used to be, and the number of leak traces per leak goes up.
-* Retained heap sizes are now computed as part of the traversal that finds the paths from GC roots to the leaking objects, instead of building an approximate dominator tree for the whole heap and then walking it. Peak memory used by the analysis of our benchmark heap dump goes down 16%, from 6.52 MB to 5.47 MB.
-    * Behavior change: the dominator tree was an approximation that over attributed, sometimes by a lot (on one of our test heap dumps, 11 leaking objects were each reported as retaining the same 164 KB, 4 times more than the 42 KB the 31 leaking objects retain together), so the retained sizes LeakCanary reports change and are usually smaller. An object reachable from several leaking objects is now counted once, towards one of them, so the retained size reported for a single leaking object is a lower bound of what fixing that leak alone would free, and the retained sizes of all the leaking objects add up to the size of the subgraph they retain together.
-    * Breaking change: `DominatorTree.ObjectSizeCalculator` is now the top level `shark.ObjectSizeCalculator`, `PrioritizingShortestPathFinder.Factory` takes an `objectSizeCalculatorFactory: ObjectSizeCalculator.Factory?` instead of a `computeRetainedHeapSize: Boolean`, and `PathFindingResults` exposes `retainedSizes` and `subLeakedObjectsByLeakedObject` instead of a `dominatorTree`.
-* `ObjectDominators.buildDominatorTree()` and `ObjectDominators.renderDominatorTree()` now compute the exact dominator tree with Lengauer-Tarjan instead of the approximation they used to share with the leak analysis, so the retained sizes they report are correct. On one of our test heap dumps, `class android.view.DisplayListCanvas` was reported as retaining 380748 bytes in 2600 objects when it actually retains 221 bytes in 4 objects.
-    * Breaking change: the `DominatorTree` class is gone. The exact tree is the new `shark.HeapDominatorTree`, which needs the whole graph up front. The approximation is now the internal `ApproximateDominatorTree`, still used by heap growth detection because it only needs the edges as they're traversed.
-* 🔨 [#2841](https://github.com/square/leakcanary/pull/2841) The deobfuscation Gradle plugin moved to the Android Gradle Plugin Variant API and now requires AGP 8.0 or newer. `leakCanary.filterObfuscatedVariants` receives a `com.android.build.api.variant.Variant` instead of the removed `BaseVariant`, the task that copies the mapping file is renamed from `leakCanaryCopyObfuscationMappingFor${VariantName}` to `copy${VariantName}LeakCanaryObfuscationMapping`, and `CopyObfuscationMappingFileTask` no longer exposes `mergeAssetsDirectory` or `leakCanaryAssetsOutputFile`. Applying the plugin to a variant that doesn't have minification enabled now fails when the task runs rather than when the project is configured.
+    * 🔀 The reported path to a leaking object is now the shortest path that doesn't go through another leaking object, so leak traces can be longer than they used to be, and the number of leak traces per leak goes up.
+* 🔨 Retained heap sizes are now computed as part of the traversal that finds the paths from GC roots to the leaking objects, instead of building an approximate dominator tree for the whole heap and then walking it. Peak memory used by the analysis of our benchmark heap dump goes down 16%, from 6.52 MB to 5.47 MB.
+    * 🔀 The dominator tree was an approximation that over attributed, sometimes by a lot (on one of our test heap dumps, 11 leaking objects were each reported as retaining the same 164 KB, 4 times more than the 42 KB the 31 leaking objects retain together), so the retained sizes LeakCanary reports change and are usually smaller. An object reachable from several leaking objects is now counted once, towards one of them, so the retained size reported for a single leaking object is a lower bound of what fixing that leak alone would free, and the retained sizes of all the leaking objects add up to the size of the subgraph they retain together.
+    * ⚠️ `DominatorTree.ObjectSizeCalculator` is now the top level `shark.ObjectSizeCalculator`, `PrioritizingShortestPathFinder.Factory` takes an `objectSizeCalculatorFactory: ObjectSizeCalculator.Factory?` instead of a `computeRetainedHeapSize: Boolean`, and `PathFindingResults` exposes `retainedSizes` and `subLeakedObjectsByLeakedObject` instead of a `dominatorTree`.
+* 🐛 `ObjectDominators.buildDominatorTree()` and `ObjectDominators.renderDominatorTree()` now compute the exact dominator tree with Lengauer-Tarjan instead of the approximation they used to share with the leak analysis, so the retained sizes they report are correct. On one of our test heap dumps, `class android.view.DisplayListCanvas` was reported as retaining 380748 bytes in 2600 objects when it actually retains 221 bytes in 4 objects.
+    * ⚠️ The `DominatorTree` class is gone. The exact tree is the new `shark.HeapDominatorTree`, which needs the whole graph up front. The approximation is now the internal `ApproximateDominatorTree`, still used by heap growth detection because it only needs the edges as they're traversed.
+* ⚠️ [#2841](https://github.com/square/leakcanary/pull/2841) The deobfuscation Gradle plugin moved to the Android Gradle Plugin Variant API and now requires AGP 8.0 or newer. `leakCanary.filterObfuscatedVariants` receives a `com.android.build.api.variant.Variant` instead of the removed `BaseVariant`, the task that copies the mapping file is renamed from `leakCanaryCopyObfuscationMappingFor${VariantName}` to `copy${VariantName}LeakCanaryObfuscationMapping`, and `CopyObfuscationMappingFileTask` no longer exposes `mergeAssetsDirectory` or `leakCanaryAssetsOutputFile`. Applying the plugin to a variant that doesn't have minification enabled now fails when the task runs rather than when the project is configured.
 
 ## Version 3.0 Alpha 9 (2026-06-25)
 
 * 🐛 [#2733](https://github.com/square/leakcanary/pull/2733) Fix reading `ActivityRecord`'s fields for `ACTIVITY_THREAD__NEW_ACTIVITIES` in `AndroidReferenceReaders`.
 * 🐛 [#2732](https://github.com/square/leakcanary/pull/2732) Fix `ScreenOffTrigger` ANR by registering its `BroadcastReceiver` off the main thread.
-* 💥 [#2806](https://github.com/square/leakcanary/pull/2806) Raise the minimum SDK to API 26 (Android 8.0 Oreo) and remove the now obsolete `AndroidLeakFixes`.
-* 🔨 [#2736](https://github.com/square/leakcanary/pull/2736) Fix `HprofPrimitiveArrayStripper` bugs and add a `StreamingSinkProvider` for stripping heap dumps.
+* ⚠️ [#2806](https://github.com/square/leakcanary/pull/2806) Raise the minimum SDK to API 26 (Android 8.0 Oreo) and remove the now obsolete `AndroidLeakFixes`.
+* 🐛 [#2736](https://github.com/square/leakcanary/pull/2736) Fix `HprofPrimitiveArrayStripper` bugs and add a `StreamingSinkProvider` for stripping heap dumps.
 * 🔨 [#2737](https://github.com/square/leakcanary/pull/2737) Extend the API level range for the `InputMethodManager.mNextServedView` reference matcher in `AndroidReferenceMatchers`.
-* 🔨 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition leak where LeakCanary's toast was leaking and triggering LeakCanary
+* 🐛 [#2802](https://github.com/square/leakcanary/pull/2802) Fix `ToastEventListener` race condition leak where LeakCanary's toast was leaking and triggering LeakCanary
 * 🐛 [#2797](https://github.com/square/leakcanary/pull/2797) Fix the `COMPOSITION_IMPL` inspector for the new Compose state field structure.
 * 🔨 [#2788](https://github.com/square/leakcanary/pull/2788) Update Shark for newer Okio and Kotlin compliance, and drop Okio 1.x from the version catalog.
 * 🐛 [#2779](https://github.com/square/leakcanary/pull/2779) Enforce `LeakActivity` to fit system windows so its content isn't cut off on Android 15+.
-* 🔨 [#2772](https://github.com/square/leakcanary/pull/2772) Add Motorola to the OEMs causing a static context leak in `AndroidReferenceMatchers`.
+* 🐤 [#2772](https://github.com/square/leakcanary/pull/2772) Add Motorola to the OEMs causing a static context leak in `AndroidReferenceMatchers`.
 
 See the [full diff](https://github.com/square/leakcanary/compare/v3.0-alpha-8...v3.0-alpha-9).
 
@@ -53,7 +67,7 @@ behavior such as keep heap dumps on test failure, or zipping heap dumps for CI u
 * `ObjectGrowthDetector.forAndroidHeap().repeatingAndroidInProcessScenario()` is now `HeapDiff.repeatingAndroidInProcessScenario()` which is now really just a wrapper for `HeapDiff.repeatingDumpingTestScenario()` with Android UI test specific configuration.
 * `maxHeapDumps` and `scenarioLoopsPerDump` have moved from being factory parameters to being per scenario parameters.
 * 💥 [#2683](https://github.com/square/leakcanary/pull/2683) Fix crash when java.lang.Object has multiple class load records in JVM heap dumps
-* 🔨 [#2682](https://github.com/square/leakcanary/pull/2682) Add support for unload class tags and records
+* ✨ [#2682](https://github.com/square/leakcanary/pull/2682) Add support for unload class tags and records
 
 ### Heap Growth: Espresso test example
 
@@ -270,7 +284,7 @@ $ ~/Downloads/shark-cli-3.0-alpha-2/bin/shark-cli -p com.example.app.debug heap-
 ## Version 2.14 (2024-04-17)
 
 * 🐛 [#2650](https://github.com/square/leakcanary/issues/2650) Removed accidental usage of `SettableFuture`, a `WorkManager` internal class, which will be removed in a **future release** of WorkManager. After updating WorkManager to that future release, **all versions of LeakCanary from 2.8 to 2.13 will crash on leak analysis**. To avoid a nasty surprise in the near future, **update to LeakCanary 2.14**.
-* 🔨 [#2660](https://github.com/square/leakcanary/pull/2660) Add proguard mapping support for LeakCanary release.
+* ✨ [#2660](https://github.com/square/leakcanary/pull/2660) Add proguard mapping support for LeakCanary release.
 * 🐛 [#2531](https://github.com/square/leakcanary/issues/2531) Heap dump & leak lists not preserving list position when navigating.
 * 🐤 [#2615](https://github.com/square/leakcanary/pull/2615) Automatic fix of AOSP PermissionControllerManager leak ([issuetracker.google.com/issues/318415056](https://issuetracker.google.com/issues/318415056)).
 * 🐤 [#2559](https://github.com/square/leakcanary/issues/2559) Ignore `UiModeManager` AOSP leak.
@@ -451,8 +465,8 @@ shark-cli --process com.example.app.debug neo4j
 
 ### Other bug fixes and improvements 🐛🔨
 
-* 🐤 [#2440](https://github.com/square/leakcanary/pull/2440) Add Android 13 `POST_NOTICICATIONS` permission as well as a new `LeakCanary.Config.showNotifications` config to disable notifications entirely.
-* 🐤 [#2416](https://github.com/square/leakcanary/pull/2416) Add Android 13 monochrome icon.
+* ✨ [#2440](https://github.com/square/leakcanary/pull/2440) Add Android 13 `POST_NOTICICATIONS` permission as well as a new `LeakCanary.Config.showNotifications` config to disable notifications entirely.
+* 🔨 [#2416](https://github.com/square/leakcanary/pull/2416) Add Android 13 monochrome icon.
 * 💥 [#2371](https://github.com/square/leakcanary/issues/2371) Fix db crash when navigating heap dump screen.
 * 🐛 [#2393](https://github.com/square/leakcanary/issues/2393) Allow LeakCanary to be defined as an AndroidX Startup dependency.
 * 💥 [#2430](https://github.com/square/leakcanary/issues/2430) Fix ShortcutManager crash on Android TV.
@@ -508,7 +522,7 @@ Also, sticky class GC roots are now deduplicated, which great reduces the memory
 * 💥 [#2367](https://github.com/square/leakcanary/pull/2367) Fixed `AndroidLeakFixes.FLUSH_HANDLER_THREADS` (`HandlerThread` can have a null `Looper`).
 * 💥 [#2286](https://github.com/square/leakcanary/issues/2286) Update Curtains to include Proguard rules and prevent `WindowCallbackWrapper` crashes.
 * 💥 [#2294](https://github.com/square/leakcanary/issues/2294) Fixed `WindowDelegateCallback.onMenuOpened()` crash.
-* 🐤 [#2328](https://github.com/square/leakcanary/pull/2328) Fixed ToastEventListener leak. Sorry 😬!
+* 🐛 [#2328](https://github.com/square/leakcanary/pull/2328) Fixed ToastEventListener leak. Sorry 😬!
 * 💥 [#2310](https://github.com/square/leakcanary/issues/2310) Fixed crash when using WorkManager < 2.1.0.
 * 💥 [#2342](https://github.com/square/leakcanary/issues/2342) Fixed crash when `HashSet.map` is null (which isn't supposed to happen, oh well, Android 🤷‍♂️).
 * 🐛 [#2117](https://github.com/square/leakcanary/issues/2117) Fixed StrictMode disk read violations.
