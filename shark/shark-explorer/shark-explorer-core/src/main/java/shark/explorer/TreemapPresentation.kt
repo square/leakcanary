@@ -46,6 +46,30 @@ class PresentedCell<out C : LayoutCell<Long>>(
   val cell: C,
   /** What to draw on the cell. */
   val label: String,
-  /** How strongly the object is reachable, null for a [CellSubject.Group]. */
-  val strength: ReachabilityStrength?
-)
+  val content: CellContent
+) {
+  /** How strongly the object is reachable, null for a cell that doesn't stand for one object. */
+  val strength: ReachabilityStrength? get() = (content as? CellContent.Object)?.strength
+}
+
+/**
+ * What a presented cell stands for, which is what decides how it's drawn: two of the three aren't an
+ * object of the heap dump, and a view that drew them like one would be lying about the heap.
+ */
+sealed interface CellContent {
+
+  /** One object of the heap dump. */
+  data class Object(val strength: ReachabilityStrength) : CellContent
+
+  /**
+   * Every object of one class that the root dominates, as one cell — see
+   * [HeapDominatorTreemap.children].
+   */
+  data class ClassGroup(
+    val className: String,
+    val instanceCount: Int
+  ) : CellContent
+
+  /** The children of a node that its subdivision had no room for. See [CellSubject.Group]. */
+  data object Leftover : CellContent
+}

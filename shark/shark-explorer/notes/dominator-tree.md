@@ -97,8 +97,47 @@ costs a full pass over the dump — a heap dump only records references in the d
 there is no reverse index — about **1 second per 82 MB**, hence a call of its own that the panel fills
 in a moment after the rest rather than part of `summarize`.
 
-Still open: the root's 129 K direct children are unreadable as 129 K rectangles. Grouping them by class
-under the root would make the crowd navigable without changing what the tree says.
+**The crowd is drawn one cell per class**, by `groupRootChildrenByClass`, so 129 K rectangles become a
+few hundred. Only under the root — everywhere else the children are objects a specific owner holds, and
+gathering those would hide the structure rather than reveal it — and only above
+`MIN_CHILDREN_TO_GROUP_BY_CLASS`, below which the objects fit and are more informative than their
+classes. A class with a single child under the root is left ungrouped, since a group of one says less
+than the object.
+
+A group's node id is the *negated* class id, which makes "is this a group" a sign test and needs no
+second id space. The cost is that every entry point taking a node id has to ask `classGroup()` first, so
+`summarize()` throws with an actionable message instead of failing on a missing key. Class objects group
+under `java.lang.Class`, which every real dump has — 9,502 sticky class roots on the 82 MB dump — but a
+`dump { }` fixture doesn't, so in tests they stay ungrouped; two of the core tests exist to pin both
+cases.
+
+## What logically owns a bitmap: Coil, measured
+
+The dominator answer to "what holds this bitmap" is "nothing on its own", which isn't what someone
+looking at a 1.1 MB rectangle wants to know. Traced on the same dump, since re-deriving it means reading
+a lot of Coil.
+
+`coil3.memory.RealMemoryCache` is two caches. `RealStrongMemoryCache` is an LRU of decoded images —
+`maxSize` is 20% of the heap, 53,687,091 B here, holding 17,652,992 B over 22 images.
+`RealWeakMemoryCache` is a `LinkedHashMap` of `WeakReference`s that `entryRemoved` demotes evicted
+entries into; empty here, nothing having been evicted yet. Trimming is
+`AndroidSystemCallbacks.onTrimMemory`, which holds the `ImageLoader` weakly: at
+`TRIM_MEMORY_BACKGROUND` and above it clears the cache, at `TRIM_MEMORY_RUNNING_LOW` and above it
+halves it. So the cache explains the bytes but never pins them.
+
+What pins them is the app. `CheckoutGridTile` keeps the `Disposable` returned by `ImageLoader.enqueue`
+in a field, and `OneShotDisposable.dispose()` returns early once the job has completed, so that field
+holds a completed `Deferred` → `SuccessResult` → `BitmapImage` → the decoded bitmap until the tile loads
+another URL. The tile holds the same bitmap the ordinary way as well, via `ImageView.mDrawable` →
+`BitmapDrawable$BitmapState.mBitmap`. Coil's own view lifecycle handling doesn't apply, because the
+request passes a lambda target rather than a `ViewTarget`. Every one of the 25 tiles in this dump is
+attached, so nothing is being wasted — but the retention belongs to the tile, not to the cache.
+
+The shape generalises: an object's holders often divide into a *cache*, which is bounded and clears
+itself under pressure, and an *owner*, which is a piece of UI or a job. The dominator tree can't tell
+them apart, so it hands the bytes to the root. Making that distinction visible — a curated list of cache
+edges, treated like a reachability strength between `STRONG` and `SOFT`, so a cached-but-owned object
+nests under its owner — is the open design question, not a decided one.
 
 ## Reachability strength
 

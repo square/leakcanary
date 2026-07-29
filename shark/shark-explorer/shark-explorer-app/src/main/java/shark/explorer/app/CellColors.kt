@@ -2,6 +2,7 @@ package shark.explorer.app
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.util.lerp
+import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength
@@ -50,22 +51,42 @@ internal class CellColors private constructor(
   private val hueIndexByObjectId: Map<Long, Int>
 ) {
 
-  val border: Color get() = if (scheme == DAISY_SCHEME) DAISY_BORDER else BORDER
   val label: Color get() = LABEL
+
+  /** Dark enough on a class group for the dashes of [outlineOf] to read as dashes. */
+  fun borderOf(presented: PresentedCell<*>): Color = when (presented.content) {
+    is CellContent.ClassGroup -> CLASS_GROUP_BORDER
+    else -> if (scheme == DAISY_SCHEME) DAISY_BORDER else BORDER
+  }
 
   fun colorOf(presented: PresentedCell<*>): Color {
     val depth = presented.cell.depth
-    val strength = presented.strength ?: return groupColor(depth)
-    if (strength != STRONG) {
-      return strengthColor(strength)
+    return when (val content = presented.content) {
+      is CellContent.Leftover -> groupColor(depth)
+      is CellContent.ClassGroup -> classGroupColor(depth)
+      is CellContent.Object -> if (content.strength != STRONG) {
+        strengthColor(content.strength)
+      } else {
+        val node = (presented.cell.subject as? CellSubject.Node)?.let { hueIndexByObjectId[it.node] }
+        strongColor(scheme, depth, node ?: 0)
+      }
     }
-    val hueIndex = (presented.cell.subject as? CellSubject.Node)?.let { hueIndexByObjectId[it.node] }
-    return strongColor(scheme, depth, hueIndex ?: 0)
   }
 
   /** The colour of the cell standing for the siblings that didn't fit: grey, so it reads as "not an object". */
   fun groupColor(depth: Int): Color =
     Color.hsv(hue = 0f, saturation = 0f, value = MAX_VALUE - (depth % SHADE_STEPS) * VALUE_STEP)
+
+  /**
+   * The colour of a cell standing for every instance of one class: a cool slate, with a dashed outline
+   * over it. Neither an object's hue nor the neutral grey of the siblings that didn't fit, because it's
+   * neither of those things, and the same in every scheme for the same reason the strengths are.
+   */
+  fun classGroupColor(depth: Int): Color = Color.hsv(
+    hue = CLASS_GROUP_HUE,
+    saturation = CLASS_GROUP_SATURATION,
+    value = MAX_VALUE - (depth % SHADE_STEPS) * VALUE_STEP
+  )
 
   companion object {
     private val DAISY_SCHEME = CellColorScheme.DAISY
@@ -191,6 +212,11 @@ private val DAISY_BORDER = Color(0x66FFFFFF)
 
 private const val SLATE_HUE = 212f
 private const val SLATE_SATURATION = 0.07f
+
+/** Enough colour to stand apart from a leftover group's grey, not enough to read as an object's hue. */
+private const val CLASS_GROUP_HUE = 196f
+private const val CLASS_GROUP_SATURATION = 0.14f
+private val CLASS_GROUP_BORDER = Color(0xCC37474F)
 
 /** Vivid, so that the little there is of it is impossible to miss among pastels. */
 private const val STRENGTH_SATURATION = 0.85f

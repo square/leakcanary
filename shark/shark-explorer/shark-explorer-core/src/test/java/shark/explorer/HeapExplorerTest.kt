@@ -202,6 +202,81 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `a root with few children keeps them as they are`() {
+    openTestHeapDump().use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+
+      assertThat(tree.children(tree.root)).allSatisfy { child ->
+        assertThat(tree.classGroupOrNull(child)).isNull()
+      }
+    }
+  }
+
+  @Test fun `a root with too many children to draw gathers them by class`() {
+    HeapExplorer.open(crowdedRootHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val children = tree.children(tree.root)
+      val groups = children.mapNotNull { tree.classGroupOrNull(it) }
+
+      // One cell for the tiles, and the class with a single instance under the root left as that
+      // instance: a group of one would say nothing and add a level to click through.
+      assertThat(groups.map { it.className }).containsExactly(TILE_CLASS_NAME)
+      assertThat(groups.single().instanceCount).isEqualTo(TILE_COUNT)
+      assertThat(children.map { tree.label(it) }).contains("Solo")
+      assertThat(children.map { tree.label(it) }).doesNotContain("Tile")
+      // The loaded classes are root children too, and this dump has no `java.lang.Class` for them to
+      // gather under, so they're left alone rather than forced into a group.
+      assertThat(children.map { tree.label(it) }).contains("class Tile")
+    }
+  }
+
+  @Test fun `the loaded classes gather under java lang Class`() {
+    HeapExplorer.open(crowdedRootHeapDump(withJavaLangClass = true)).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val groups = tree.children(tree.root).mapNotNull { tree.classGroupOrNull(it) }
+
+      // What this is for: a real dump has thousands of loaded classes directly under the root — 9,502 in
+      // the production dump this was measured on — and as one cell they stop drowning everything else.
+      val classGroup = groups.single { it.className == "java.lang.Class" }
+      assertThat(classGroup.instanceCount).isGreaterThan(TILE_COUNT)
+      assertThat(tree.children(tree.root).map { tree.label(it) }).doesNotContain("class Tile")
+    }
+  }
+
+  @Test fun `a class group weighs and holds what its instances do`() {
+    HeapExplorer.open(crowdedRootHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val group = tree.children(tree.root).single { tree.classGroupOrNull(it) != null }
+      val instances = tree.children(group)
+
+      assertThat(instances).hasSize(TILE_COUNT)
+      assertThat(instances.map { tree.label(it) }.distinct()).containsExactly("Tile")
+      assertThat(tree.weight(group)).isEqualTo(instances.sumOf { tree.weight(it) })
+      // Zooming into a group is laying it out as a root, and its instances have to survive a rebuild
+      // for the breadcrumb to still mean something after following another strength.
+      assertThat(group in tree).isTrue()
+      assertThat(group in explorer.treeFor(setOf(WEAK))).isTrue()
+    }
+  }
+
+  @Test fun `a class group reads as a pile of objects rather than as one`() {
+    HeapExplorer.open(crowdedRootHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val group = tree.children(tree.root).single { tree.classGroupOrNull(it) != null }
+      val presented = tree.present(TreemapLayout(), VIEWPORT)
+        .cells
+        .single { (it.cell.subject as? CellSubject.Node)?.node == group }
+
+      assertThat(tree.label(group))
+        .isEqualTo("$TILE_COUNT ${HeapDominatorTreemap.CLASS_GROUP_LABEL_SEPARATOR} Tile")
+      assertThat(presented.content).isEqualTo(CellContent.ClassGroup(TILE_CLASS_NAME, TILE_COUNT))
+      // Nothing to be strongly or weakly reachable: a class group isn't an object of the heap dump.
+      assertThat(presented.strength).isNull()
+      assertThatThrownBy { tree.summarize(group) }
+        .isInstanceOf(IllegalArgumentException::class.java)
+    }
+  }
+
   @Test fun `the tree is reused when the strengths do not change`() {
     openTestHeapDump().use { explorer ->
       assertThat(explorer.treeFor(setOf(WEAK))).isSameAs(explorer.treeFor(setOf(WEAK)))
@@ -287,6 +362,34 @@ class HeapExplorerTest {
     return file
   }
 
+  /**
+   * A heap dump with more children under the root than a view can draw one by one: [TILE_COUNT]
+   * instances of one class, each a GC root of its own, plus one instance of another class.
+   */
+  private fun crowdedRootHeapDump(withJavaLangClass: Boolean = false): File {
+    val file = testFolder.newFile("crowded-root${if (withJavaLangClass) "-with-class" else ""}.hprof")
+    file.dump {
+      if (withJavaLangClass) {
+        clazz(className = "java.lang.Class")
+      }
+      val tileClassId = clazz(
+        className = TILE_CLASS_NAME,
+        fields = listOf("payload" to ReferenceHolder::class)
+      )
+      repeat(TILE_COUNT) { index ->
+        // A different payload size per tile, so that the instances of one class don't all weigh the same.
+        val payload = ReferenceHolder(
+          objectArray(arrayClass("java.lang.Object"), LongArray(index + 1))
+        )
+        val tile = instance(tileClassId, listOf(payload))
+        gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = index.toLong()))
+      }
+      val solo = "com.example.Solo" instance { field["name"] = string("Only one of me") }
+      gcRoot(JniGlobal(id = solo.value, jniGlobalRefId = TILE_COUNT.toLong()))
+    }
+    return file
+  }
+
   private fun HeapDominatorTreemap.findByLabel(label: String): HeapObjectSummary =
     allSummaries().single { it.label == label }
 
@@ -309,6 +412,13 @@ class HeapExplorerTest {
 
   companion object {
     private const val PAYLOAD_ELEMENT_COUNT = 1024
+
+    private const val TILE_CLASS_NAME = "com.example.Tile"
+
+    /** Past `MIN_CHILDREN_TO_GROUP_BY_CLASS` in [HeapDominatorTreemap], which is 200. */
+    private const val TILE_COUNT = 205
+
+    private val VIEWPORT = TreemapRect(left = 0.0, top = 0.0, right = 800.0, bottom = 600.0)
 
     /** Matches `MAX_FIELDS` in [HeapDominatorTreemap], which isn't public. */
     private const val MAX_FIELDS_SHOWN = 500

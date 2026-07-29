@@ -23,6 +23,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.LayoutCell
 import shark.explorer.PresentedCell
@@ -136,8 +137,8 @@ class RadialViewTest {
       layout = result,
       cells = result.cells.map { cell ->
         when (val subject = cell.subject) {
-          is CellSubject.Node -> PresentedCell(cell, "node ${subject.node}", STRONG)
-          is CellSubject.Group -> PresentedCell(cell, "${subject.nodeCount} smaller objects", null)
+          is CellSubject.Node -> PresentedCell(cell, "node ${subject.node}", CellContent.Object(STRONG))
+          is CellSubject.Group -> PresentedCell(cell, "${subject.nodeCount} smaller objects", CellContent.Leftover)
         }
       }
     )

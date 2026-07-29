@@ -94,6 +94,7 @@ private class MeasuredCell(
   val size: Size,
   val color: Color,
   val borderColor: Color,
+  val outline: Stroke,
   val labelColor: Color,
   val labelOffset: Offset,
   /** Null when the rectangle is too small for a readable label. */
@@ -115,7 +116,8 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
     topLeft = Offset(rect.left.toFloat(), rect.top.toFloat()),
     size = Size(rect.width.toFloat(), rect.height.toFloat()),
     color = colors.colorOf(this),
-    borderColor = colors.border,
+    borderColor = colors.borderOf(this),
+    outline = outlineOf(content),
     labelColor = colors.label,
     labelOffset = Offset(labelPadding, labelPadding),
     label = if (fitsALabel) {
@@ -138,7 +140,7 @@ private fun DrawScope.drawCell(cell: MeasuredCell) {
     color = cell.borderColor,
     topLeft = cell.topLeft,
     size = cell.size,
-    style = Stroke(width = BORDER_WIDTH)
+    style = cell.outline
   )
   cell.label?.let { label ->
     drawText(

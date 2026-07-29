@@ -9,10 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.TreemapPoint
 
@@ -70,6 +73,23 @@ internal fun BoxScope.NotExpandedBadge(nodeCount: Int) {
 internal fun Offset.toTreemapPoint() = TreemapPoint(x.toDouble(), y.toDouble())
 
 /**
+ * How a cell is outlined: dashed for the ones standing for every instance of a class, solid for an
+ * object.
+ *
+ * A pile of objects shouldn't have the same edge as one object, in either shape. Along with the slate
+ * fill and the `N × Class` label, it's the third thing saying this cell isn't something you can inspect
+ * the fields of.
+ */
+internal fun outlineOf(content: CellContent): Stroke = if (content is CellContent.ClassGroup) {
+  Stroke(
+    width = CLASS_GROUP_BORDER_WIDTH,
+    pathEffect = PathEffect.dashPathEffect(CLASS_GROUP_DASH_INTERVALS)
+  )
+} else {
+  Stroke(width = BORDER_WIDTH)
+}
+
+/**
  * The layout thresholds in dp. The layouts work in pixels, so they have to be scaled or a cell that's
  * big enough to subdivide on one display is too small on another.
  */
@@ -85,4 +105,6 @@ internal val MIN_LABEL_WIDTH = 24.dp
 internal val MIN_LABEL_HEIGHT = 13.dp
 internal const val BORDER_WIDTH = 1f
 internal const val SELECTION_WIDTH = 3f
+internal const val CLASS_GROUP_BORDER_WIDTH = 2f
+internal val CLASS_GROUP_DASH_INTERVALS = floatArrayOf(5f, 4f)
 internal val LABEL_STYLE = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)

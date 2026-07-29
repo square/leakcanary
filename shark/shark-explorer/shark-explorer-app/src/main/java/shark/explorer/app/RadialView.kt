@@ -86,6 +86,7 @@ private class MeasuredSector(
   val path: Path,
   val color: Color,
   val borderColor: Color,
+  val outline: Stroke,
   val labelColor: Color,
   /** Null when the sector is too small for a readable label. */
   val label: TextLayoutResult?,
@@ -142,7 +143,8 @@ private fun PresentedCell<RadialCell<Long>>.measure(
     selects = SelectedCell.of(cell.subject),
     path = arcPath(center, arc),
     color = colors.colorOf(this),
-    borderColor = colors.border,
+    borderColor = colors.borderOf(this),
+    outline = outlineOf(content),
     labelColor = colors.label,
     label = measured,
     labelTopLeft = Offset(
@@ -199,7 +201,7 @@ private fun circle(
 
 private fun DrawScope.drawSector(sector: MeasuredSector) {
   drawPath(sector.path, color = sector.color)
-  drawPath(sector.path, color = sector.borderColor, style = Stroke(width = BORDER_WIDTH))
+  drawPath(sector.path, color = sector.borderColor, style = sector.outline)
   sector.label?.let { label ->
     rotate(degrees = sector.labelRotation, pivot = sector.pivot) {
       drawText(textLayoutResult = label, color = sector.labelColor, topLeft = sector.labelTopLeft)

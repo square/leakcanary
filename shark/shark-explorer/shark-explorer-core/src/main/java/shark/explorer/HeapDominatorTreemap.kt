@@ -72,13 +72,116 @@ class HeapDominatorTreemap internal constructor(
 
   override val root: Long get() = NULL_REFERENCE
 
-  /** Bytes retained by [node]: its own shallow size plus that of everything it dominates. */
-  override fun weight(node: Long): Long = nodes.getValue(node).retainedSize.toLong()
+  /**
+   * The root's children by class, and the ones left as they were, computed on first use.
+   *
+   * Lazy because it's a pass over every child of the root, and a tree that's built but never looked at
+   * — which happens whenever a strength is followed and then unfollowed — shouldn't pay for it.
+   */
+  private val rootChildren: RootChildren by lazy { groupRootChildrenByClass() }
 
-  override fun children(node: Long): List<Long> = nodes.getValue(node).dominatedObjectIds
+  /** Bytes retained by [node]: its own shallow size plus that of everything it dominates. */
+  override fun weight(node: Long): Long = classGroup(node)?.retainedSize
+    ?: nodes.getValue(node).retainedSize.toLong()
+
+  override fun children(node: Long): List<Long> = when {
+    node == root -> rootChildren.ids
+    else -> classGroup(node)?.objectIds ?: nodes.getValue(node).dominatedObjectIds
+  }
 
   /** Whether [objectId] is in this tree, i.e. reachable by following [followedStrengths]. */
-  operator fun contains(objectId: Long): Boolean = objectId in nodes
+  operator fun contains(objectId: Long): Boolean = if (isClassGroupId(objectId)) {
+    objectId in rootChildren.classGroups
+  } else {
+    objectId in nodes
+  }
+
+  /**
+   * What a class group cell stands for, or null if [node] is an object rather than a group of them.
+   *
+   * The root of a production heap dump has six figures worth of children — every object that more than
+   * one thing holds ends up there — and no view can show them one by one. So the root's children are
+   * gathered by class, and a class stands in for its instances until you zoom into it.
+   *
+   * Only the root's, and only when it has more children than [MIN_CHILDREN_TO_GROUP_BY_CLASS]. Elsewhere
+   * in the tree a node's children are what holds what, and replacing them with classes would throw that
+   * away; under the root there is nothing to throw away, because being there means nothing owns you.
+   */
+  fun classGroupOrNull(node: Long): ClassGroupSummary? = classGroup(node)?.let { group ->
+    ClassGroupSummary(
+      nodeId = node,
+      className = group.className,
+      instanceCount = group.objectIds.size,
+      retainedSize = group.retainedSize
+    )
+  }
+
+  private fun classGroup(node: Long): ClassGroup? =
+    if (isClassGroupId(node)) rootChildren.classGroups[node] else null
+
+  /**
+   * Gathers the root's children by the class of each.
+   *
+   * A class is identified by its own object id, negated: object ids are heap addresses and a class is an
+   * object of the dump too, so this can't collide with one and it stays the same across two trees of the
+   * same heap dump, which is what lets a zoomed in class group survive following another strength.
+   */
+  private fun groupRootChildrenByClass(): RootChildren {
+    val children = nodes.getValue(root).dominatedObjectIds
+    if (children.size <= MIN_CHILDREN_TO_GROUP_BY_CLASS) {
+      return RootChildren(ids = children, classGroups = emptyMap())
+    }
+    val idsByClassId = LinkedHashMap<Long, MutableList<Long>>()
+    val ungrouped = mutableListOf<Long>()
+    children.forEach { objectId ->
+      val classId = graph.findObjectById(objectId).groupingClassId()
+      if (classId == null) {
+        ungrouped += objectId
+      } else {
+        require(classId > 0L) {
+          "Class $classId of object $objectId has a negative id, which a class group id would clash " +
+            "with. Object ids are expected to be positive heap addresses."
+        }
+        idsByClassId.getOrPut(classId) { mutableListOf() } += objectId
+      }
+    }
+    val classGroups = LinkedHashMap<Long, ClassGroup>(idsByClassId.size)
+    idsByClassId.forEach { (classId, objectIds) ->
+      // A class with one instance under the root is that instance. Wrapping it in a group of one would
+      // add a rectangle that says nothing and a level to click through.
+      if (objectIds.size == 1) {
+        ungrouped += objectIds
+      } else {
+        val heapClass = graph.findObjectById(classId).asClass!!
+        classGroups[-classId] = ClassGroup(
+          className = heapClass.name,
+          simpleClassName = heapClass.simpleName,
+          objectIds = objectIds,
+          retainedSize = objectIds.sumOf { nodes.getValue(it).retainedSize.toLong() }
+        )
+      }
+    }
+    // Heaviest first, like the dominated ids a node hands out, so that the root's children stay ordered
+    // the way the rest of the tree's are.
+    val ids = (
+      classGroups.map { (groupId, group) -> groupId to group.retainedSize } +
+        ungrouped.map { it to nodes.getValue(it).retainedSize.toLong() }
+      )
+      .sortedByDescending { (_, retainedSize) -> retainedSize }
+      .map { (id, _) -> id }
+    return RootChildren(ids = ids, classGroups = classGroups)
+  }
+
+  /**
+   * The class an object is grouped under, or null for one that isn't grouped: a class object, unless the
+   * dump has `java.lang.Class` for them all to gather under, which every Android heap dump does.
+   */
+  private fun HeapObject.groupingClassId(): Long? = when (this) {
+    is HeapInstance -> instanceClassId
+    is HeapObjectArray -> arrayClass.objectId
+    is HeapPrimitiveArray -> arrayClass.objectId
+    is HeapClass -> graph.findClassByName(JAVA_LANG_CLASS)?.objectId
+  }
 
   /** How strongly the garbage collector holds on to [objectId]. */
   fun strengthOf(objectId: Long): ReachabilityStrength = if (objectId == root) {
@@ -92,10 +195,17 @@ class HeapDominatorTreemap internal constructor(
    *
    * Cheap enough to call for every visible rectangle, unlike [summarize].
    */
-  fun label(objectId: Long): String = if (objectId == root) {
-    ROOT_LABEL
-  } else {
-    when (val heapObject = graph.findObjectById(objectId)) {
+  fun label(objectId: Long): String {
+    if (objectId == root) {
+      return ROOT_LABEL
+    }
+    val group = classGroup(objectId)
+    if (group != null) {
+      // "42 × Bitmap" rather than "Bitmap": a count and a multiplication sign say this cell is a pile of
+      // objects and not one of them, on a rectangle with room for nothing else.
+      return "${group.objectIds.size} $CLASS_GROUP_LABEL_SEPARATOR ${group.simpleClassName}"
+    }
+    return when (val heapObject = graph.findObjectById(objectId)) {
       is HeapClass -> "class ${heapObject.simpleName}"
       is HeapInstance -> heapObject.instanceClassSimpleName
       is HeapObjectArray -> heapObject.arrayClassSimpleName
@@ -110,6 +220,10 @@ class HeapDominatorTreemap internal constructor(
    * rather than for every rectangle.
    */
   fun summarize(objectId: Long): HeapObjectSummary {
+    require(classGroup(objectId) == null) {
+      "$objectId stands for every instance of one class rather than for an object. Ask " +
+        "classGroupOrNull() first, and describe it with what that returns."
+    }
     val node = nodes.getValue(objectId)
     val heapObject = if (objectId == root) null else graph.findObjectById(objectId)
     val fields = heapObject?.fieldsOf() ?: FieldList(emptyList(), totalCount = 0)
@@ -338,12 +452,14 @@ class HeapDominatorTreemap internal constructor(
     is CellSubject.Node -> PresentedCell(
       cell = this,
       label = label(subject.node),
-      strength = strengthOf(subject.node)
+      content = classGroup(subject.node)?.let { group ->
+        CellContent.ClassGroup(group.className, group.objectIds.size)
+      } ?: CellContent.Object(strengthOf(subject.node))
     )
     is CellSubject.Group -> PresentedCell(
       cell = this,
       label = "${subject.nodeCount} smaller objects",
-      strength = null
+      content = CellContent.Leftover
     )
   }
 
@@ -351,6 +467,20 @@ class HeapDominatorTreemap internal constructor(
   private class FieldList(
     val shown: List<ObjectFieldValue>,
     val totalCount: Int
+  )
+
+  /** The root's children of one class, drawn as one cell. See [classGroupOrNull]. */
+  private class ClassGroup(
+    val className: String,
+    val simpleClassName: String,
+    val objectIds: List<Long>,
+    val retainedSize: Long
+  )
+
+  /** What [children] answers for the root, and the groups among it, by class group id. */
+  private class RootChildren(
+    val ids: List<Long>,
+    val classGroups: Map<Long, ClassGroup>
   )
 
   companion object {
@@ -362,6 +492,26 @@ class HeapDominatorTreemap internal constructor(
 
     /** What the virtual root above every GC root is called in the UI. */
     const val ROOT_LABEL = "All GC roots"
+
+    /**
+     * Between the count and the class name on a class group's cell, so that the label can't be read as
+     * the name of one object.
+     */
+    const val CLASS_GROUP_LABEL_SEPARATOR = "×"
+
+    /**
+     * How many children the root has to have before they're gathered by class. Below this they all fit
+     * on screen, and a level of classes to click through would be in the way.
+     */
+    const val MIN_CHILDREN_TO_GROUP_BY_CLASS = 200
+
+    private const val JAVA_LANG_CLASS = "java.lang.Class"
+
+    /**
+     * Class group ids are class object ids negated, and every object id in a heap dump is positive, so
+     * the sign is what tells a group from an object. The root is [NULL_REFERENCE], neither.
+     */
+    private fun isClassGroupId(node: Long) = node < 0L
 
     private const val BITMAP_CLASS_NAME = "android.graphics.Bitmap"
     private const val NULL_VALUE = "null"
@@ -425,6 +575,20 @@ data class HeapObjectSummary(
   val fields: List<ObjectFieldValue>,
   /** How many more fields there are than [fields] holds, which only an array reaches. */
   val hiddenFieldCount: Int
+)
+
+/**
+ * What the UI knows about a cell that stands for every instance of one class under the root rather than
+ * for an object. See [HeapDominatorTreemap.classGroupOrNull].
+ */
+data class ClassGroupSummary(
+  /** What the tree knows this group by, e.g. to zoom into it. Not an object id. */
+  val nodeId: Long,
+  /** Fully qualified class name, or array type. */
+  val className: String,
+  val instanceCount: Int,
+  /** Bytes retained by the instances together. */
+  val retainedSize: Long
 )
 
 /** One field of an object, or one element of an array. See [HeapObjectSummary.fields]. */

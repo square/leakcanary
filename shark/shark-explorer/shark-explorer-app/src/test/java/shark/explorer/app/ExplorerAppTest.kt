@@ -192,11 +192,40 @@ class ExplorerAppTest {
       // left corner.
       openHeapDump(manySiblingsHeapDump())
 
-      onRoot().performMouseInput { click(percentOffset(GROUP_X, GROUP_Y)) }
+      onRoot().performMouseInput { click(percentOffset(LEFTOVER_X, LEFTOVER_Y)) }
 
       waitUntilAtLeastOneExists(hasText("smaller objects", substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("Held by ${HeapDominatorTreemap.ROOT_LABEL}", substring = true)
-        .assertIsDisplayed()
+      onNodeWithText("Held by Object[]", substring = true).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `pressing a class group says how many objects of that class it stands for`() {
+    runComposeUiTest {
+      // Every instance is a GC root of its own, so all 400 land directly under the root: far more than
+      // a view can draw one by one, which is what gathers them by class.
+      openHeapDump(crowdedRootHeapDump())
+
+      onRoot().performMouseInput { click(percentOffset(CLASS_GROUP_X, CLASS_GROUP_Y)) }
+
+      waitUntilAtLeastOneExists(hasText("$SIBLING_COUNT instances"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(SIBLING_CLASS_NAME).assertIsDisplayed()
+      // Says it in words as well as with the label, the slate fill and the dashed outline.
+      onNodeWithText(CLASS_GROUP_EXPLANATION).assertIsDisplayed()
+      onNodeWithText("Retained together").assertIsDisplayed()
+    }
+  }
+
+  @Test fun `zooming into a class group leaves a breadcrumb naming the class`() {
+    runComposeUiTest {
+      openHeapDump(crowdedRootHeapDump())
+
+      onRoot().performMouseInput { doubleClick(percentOffset(CLASS_GROUP_X, CLASS_GROUP_Y)) }
+
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 2 }
+      onNodeWithText(
+        "$SIBLING_COUNT ${HeapDominatorTreemap.CLASS_GROUP_LABEL_SEPARATOR} Sibling",
+        substring = true
+      ).assertIsDisplayed()
     }
   }
 
@@ -347,6 +376,27 @@ class ExplorerAppTest {
         fields = listOf("payload" to ReferenceHolder::class)
       )
       val objectArrayClassId = arrayClass("java.lang.Object")
+      val siblingIds = LongArray(SIBLING_COUNT) { _ ->
+        val payload = objectArray(objectArrayClassId, LongArray(SIBLING_PAYLOAD_LENGTH))
+        instance(siblingClassId, fields = listOf(ReferenceHolder(payload))).value
+      }
+      // Held by an array rather than each being a GC root: the root's children are gathered by class,
+      // so the crowd a leftover cell stands for has to sit under a node that isn't the root.
+      val siblings = objectArray(objectArrayClassId, siblingIds)
+      gcRoot(JniGlobal(id = siblings, jniGlobalRefId = 0))
+    }
+    return file
+  }
+
+  /** A heap dump with more objects of one class directly under the root than a view can draw. */
+  private fun crowdedRootHeapDump(): File {
+    val file = testFolder.newFile("crowded-root.hprof")
+    file.dump {
+      val siblingClassId = clazz(
+        className = "com.example.Sibling",
+        fields = listOf("payload" to ReferenceHolder::class)
+      )
+      val objectArrayClassId = arrayClass("java.lang.Object")
       repeat(SIBLING_COUNT) { index ->
         val payload = objectArray(objectArrayClassId, LongArray(SIBLING_PAYLOAD_LENGTH))
         val sibling = instance(siblingClassId, fields = listOf(ReferenceHolder(payload)))
@@ -361,9 +411,16 @@ class ExplorerAppTest {
     private const val TREEMAP_X = 0.4f
     private const val TREEMAP_Y = 0.6f
 
-    /** The top left of the treemap, where the largest rectangle of a squarified layout goes. */
-    private const val GROUP_X = 0.05f
-    private const val GROUP_Y = 0.3f
+    /**
+     * The top left of the treemap, in the band the largest rectangle keeps for its own label, so a press
+     * there lands on that rectangle rather than on one of its children.
+     */
+    private const val CLASS_GROUP_X = 0.05f
+    private const val CLASS_GROUP_Y = 0.3f
+
+    /** The same, below that band: the largest child of the largest rectangle. */
+    private const val LEFTOVER_X = 0.05f
+    private const val LEFTOVER_Y = 0.45f
 
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
@@ -375,6 +432,7 @@ class ExplorerAppTest {
 
     /** Twice what a node draws one by one, so half the siblings end up in one rectangle. */
     private const val SIBLING_COUNT = 400
+    private const val SIBLING_CLASS_NAME = "com.example.Sibling"
     private const val SIBLING_PAYLOAD_LENGTH = 16
   }
 }

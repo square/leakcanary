@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import shark.explorer.CellSubject
+import shark.explorer.ClassGroupSummary
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
 import shark.explorer.LayoutCell
@@ -139,12 +140,14 @@ internal fun HeapDumpExplorer(
       session.read { explorer ->
         val tree = explorer.treeFor(followedStrengths)
         when (currentRequest) {
-          is SelectionRequest.Object ->
-            if (currentRequest.objectId in tree) {
-              Selection.Object(tree.summarize(currentRequest.objectId))
-            } else {
-              null
+          is SelectionRequest.Object -> {
+            val classGroup = tree.classGroupOrNull(currentRequest.objectId)
+            when {
+              classGroup != null -> Selection.ClassGroup(classGroup)
+              currentRequest.objectId in tree -> Selection.Object(tree.summarize(currentRequest.objectId))
+              else -> null
             }
+          }
           is SelectionRequest.Group -> Selection.Group(
             nodeCount = currentRequest.nodeCount,
             byteCount = currentRequest.byteCount,
@@ -305,6 +308,9 @@ private sealed interface Selection {
 
   data class Object(val summary: HeapObjectSummary) : Selection
 
+  /** Every instance of one class under the root was clicked, so there's no one object to describe. */
+  data class ClassGroup(val summary: ClassGroupSummary) : Selection
+
   /** A [CellSubject.Group] was clicked, so there's no one object to describe. */
   data class Group(
     val nodeCount: Int,
@@ -369,6 +375,7 @@ private fun DetailsPanel(
           )
           Detail("Retained", formatByteSize(selection.byteCount))
         }
+        is Selection.ClassGroup -> ClassGroupDetails(selection.summary, onZoomInto)
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
           referrers = referrers,
@@ -378,6 +385,27 @@ private fun DetailsPanel(
         )
       }
     }
+  }
+}
+
+/**
+ * A cell standing for every instance of one class under the root. Says so in as many words: the count,
+ * the class, and that these are separate objects that only happen to share it.
+ */
+@Composable
+private fun ClassGroupDetails(
+  summary: ClassGroupSummary,
+  onZoomInto: (Long) -> Unit
+) {
+  Text(
+    "${summary.instanceCount} instances",
+    style = MaterialTheme.typography.titleMedium
+  )
+  Text(summary.className, style = MaterialTheme.typography.bodySmall)
+  Text(CLASS_GROUP_EXPLANATION, style = MaterialTheme.typography.bodySmall)
+  Detail("Retained together", formatByteSize(summary.retainedSize))
+  Button(onClick = { onZoomInto(summary.nodeId) }) {
+    Text("Zoom in")
   }
 }
 
@@ -518,6 +546,10 @@ internal const val SHARED_EXPLANATION =
     "wouldn't free it, and its bytes are attributed to the whole heap rather than to an owner."
 
 internal const val BREADCRUMB_SEPARATOR = "›"
+
+internal const val CLASS_GROUP_EXPLANATION =
+  "Not one object: these are all the instances of this class that nothing owns on its own, gathered " +
+    "so the root's children can be read. Zoom in to see them one by one."
 
 private const val GROUP_EXPLANATION =
   "Too small or too many to draw one by one. Zoom into what holds them to see them."

@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength
@@ -92,7 +93,11 @@ class CellColorsTest {
   private fun presented(
     cell: TreemapCell<Long>,
     strength: ReachabilityStrength?
-  ) = PresentedCell(cell, label = "node", strength = strength)
+  ) = PresentedCell(
+    cell,
+    label = "node",
+    content = strength?.let { CellContent.Object(it) } ?: CellContent.Leftover
+  )
 
   private fun cell(
     node: Long = 1L,
