@@ -104,7 +104,7 @@ class ObjectGrowthDetectorTest {
   }
 
   @Test
-  fun `object growth computes retained size increase with 2 iterations`() {
+  fun `object growth computes retained size with 2 iterations`() {
     val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
@@ -118,9 +118,62 @@ class ObjectGrowthDetectorTest {
     val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
 
     val growingObject = heapTraversal.growingObjects.single()
-    assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
-    val expectedRetainedSizeIncrease = (12 + "World!".length * 2).bytes
-    assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
+    // The string array and the 2 strings it holds.
+    assertThat(growingObject.retained.objectCount).isEqualTo(3)
+    val expectedRetainedSize = (2 * 4 + (8 + "Hello".length * 2) + (8 + "World!".length * 2)).bytes
+    assertThat(growingObject.retained.heapSize).isEqualTo(expectedRetainedSize)
+    // The first traversal has no growing objects to compute a retained size from, so there's
+    // nothing to diff the retained size of the second traversal against.
+    assertThat(growingObject.retainedIncrease).isEqualTo(ZERO_RETAINED)
+  }
+
+  @Test
+  fun `retained size skips objects reachable without going through a growing object`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        arrayOfWrappersOfStablyHeldInstances(wrapperCount = 1)
+      },
+      dump {
+        arrayOfWrappersOfStablyHeldInstances(wrapperCount = 2)
+      }
+    )
+
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    val growingObject = heapTraversal.growingObjects.single()
+    // The array and the 2 wrappers it holds. The 2 wrapped instances stay reachable through the
+    // static field that holds them directly, so releasing the array wouldn't free them.
+    assertThat(growingObject.retained.objectCount).isEqualTo(3)
+    val arraySize = 2 * 4
+    val wrappersSize = 2 * 4
+    assertThat(growingObject.retained.heapSize).isEqualTo((arraySize + wrappersSize).bytes)
+  }
+
+  @Test
+  fun `retained size of shared objects is split between growing objects`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        twoArraysOfWrappersSharingInstances(sharedInstanceCount = 1)
+      },
+      dump {
+        twoArraysOfWrappersSharingInstances(sharedInstanceCount = 2)
+      }
+    )
+
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    assertThat(heapTraversal.growingObjects).hasSize(2)
+    heapTraversal.growingObjects.forEach { growingObject ->
+      // The array, the 2 wrappers it holds and half of the 2 shared instances.
+      assertThat(growingObject.retained.objectCount).isEqualTo(4)
+      val arraySize = 2 * 4
+      val wrappersSize = 2 * 4
+      val halfOfSharedSize = 2 * 4 / 2
+      assertThat(growingObject.retained.heapSize)
+        .isEqualTo((arraySize + wrappersSize + halfOfSharedSize).bytes)
+    }
   }
 
   @Test
@@ -557,6 +610,53 @@ class ObjectGrowthDetectorTest {
     }
     visit(shortestPathTree)
     return matching.single()
+  }
+
+  /**
+   * A static field holding an array of [wrapperCount] wrappers, each wrapping one of the 2
+   * instances that another static field holds onto directly, so that those 2 instances stay
+   * reachable without going through the growing array.
+   */
+  private fun HprofWriterHelper.arrayOfWrappersOfStablyHeldInstances(wrapperCount: Int) {
+    val heldClassId = clazz("Held", fields = listOf("value" to ValueHolder.IntHolder::class))
+    val wrapperClassId = clazz(
+      "Wrapper",
+      fields = listOf("held" to ValueHolder.ReferenceHolder::class)
+    )
+    val heldInstances = (1..2).map { value ->
+      instance(heldClassId, listOf(ValueHolder.IntHolder(value)))
+    }
+    val wrappers = heldInstances.take(wrapperCount).map { instance(wrapperClassId, listOf(it)) }
+    clazz(
+      "ClassWithStatics",
+      staticFields = listOf(
+        "stable" to objectArray(*heldInstances.toTypedArray()),
+        "growing" to objectArray(*wrappers.toTypedArray())
+      )
+    )
+  }
+
+  /**
+   * Two static fields, each holding an array of [sharedInstanceCount] wrappers, where the wrapper
+   * at a given index in one array and the wrapper at that index in the other array both reference
+   * the same shared instance.
+   */
+  private fun HprofWriterHelper.twoArraysOfWrappersSharingInstances(sharedInstanceCount: Int) {
+    val sharedClassId = clazz("Shared", fields = listOf("value" to ValueHolder.IntHolder::class))
+    val wrapperClassId = clazz(
+      "Wrapper",
+      fields = listOf("shared" to ValueHolder.ReferenceHolder::class)
+    )
+    val sharedInstances = (1..sharedInstanceCount).map { value ->
+      instance(sharedClassId, listOf(ValueHolder.IntHolder(value)))
+    }
+    val wrapperArray = {
+      objectArray(*sharedInstances.map { instance(wrapperClassId, listOf(it)) }.toTypedArray())
+    }
+    clazz(
+      "ClassWithStatics",
+      staticFields = listOf("first" to wrapperArray(), "second" to wrapperArray())
+    )
   }
 
   private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {

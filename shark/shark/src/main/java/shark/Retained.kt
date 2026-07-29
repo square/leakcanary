@@ -9,14 +9,14 @@ import shark.internal.unpackAsSecondInt
  */
 inline fun Retained(
   /**
-   * The minimum number of bytes which would be freed if all references to this object were
-   * released. Should not exceed [Int.MAX_VALUE] bytes.
+   * The sum of the shallow sizes of the objects attributed to this object. Which object an object
+   * held by several objects is attributed to depends on the analysis that computed this. Should
+   * not exceed [Int.MAX_VALUE] bytes.
    */
   heapSize: ByteSize,
 
   /**
-   * The minimum number of objects which would be unreachable if all references to this object were
-   * released.
+   * The number of objects attributed to this object.
    */
   objectCount: Int,
 ) = Retained(heapSize.inWholeBytes.toInt() packedWith objectCount)
