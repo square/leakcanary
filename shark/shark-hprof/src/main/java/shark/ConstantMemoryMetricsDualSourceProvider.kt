@@ -1,53 +1,56 @@
 package shark
 
-import okio.Buffer
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.absoluteValue
+import kotlin.math.max
+import kotlin.math.min
+import okio.Buffer
 
 /**
  * Captures IO read metrics without using much memory.
  *
- * Unlike the source providers it wraps, this one is not thread safe: the metrics are updated on
- * every read without synchronization, so reading through it from several threads at the same time
- * reports garbage.
+ * Thread safe: each metric is updated atomically, so reads coming from several threads at the same
+ * time still add up. A metric read while reads are in flight is exact for that metric but the
+ * metrics aren't a consistent snapshot of each other. [randomAccessByteTravel] measures the distance
+ * between reads in the order they reach this provider, which with concurrent reads depends on how
+ * they interleave.
  */
 class ConstantMemoryMetricsDualSourceProvider(
   private val realSourceProvider: DualSourceProvider
 ) : DualSourceProvider {
 
-  var randomAccessByteReads = 0L
-    internal set
+  private val byteReads = AtomicLong(0)
+  private val readCount = AtomicLong(0)
+  private val byteTravel = AtomicLong(0)
+  private val lastRandomAccessPosition = AtomicLong(NO_POSITION)
+  private val minPosition = AtomicLong(Long.MAX_VALUE)
+  private val maxPosition = AtomicLong(Long.MIN_VALUE)
 
-  var randomAccessReadCount = 0L
-    internal set
+  val randomAccessByteReads: Long
+    get() = byteReads.get()
 
-  var randomAccessByteTravel = 0L
-    internal set
+  val randomAccessReadCount: Long
+    get() = readCount.get()
 
-  private var lastRandomAccessPosition = -1L
-  private var minPosition = -1L
-  private var maxPosition = -1L
+  val randomAccessByteTravel: Long
+    get() = byteTravel.get()
+
+  val byteTravelRange: Long
+    get() = if (readCount.get() == 0L) 0L else maxPosition.get() - minPosition.get()
 
   private fun updateRandomAccessStatsOnRead(
     position: Long,
     bytesRead: Long
   ) {
-    randomAccessByteReads += bytesRead
-    randomAccessReadCount++
-    if (lastRandomAccessPosition != -1L) {
-      randomAccessByteTravel += (position - lastRandomAccessPosition).absoluteValue
-      minPosition = minPosition.coerceAtMost(position)
-      maxPosition = maxPosition.coerceAtLeast(position)
-    } else {
-      minPosition = position
-      maxPosition = position
+    byteReads.addAndGet(bytesRead)
+    readCount.incrementAndGet()
+    val previousPosition = lastRandomAccessPosition.getAndSet(position)
+    if (previousPosition != NO_POSITION) {
+      byteTravel.addAndGet((position - previousPosition).absoluteValue)
     }
-
-
-    lastRandomAccessPosition = position
+    minPosition.accumulateAndGet(position) { lowest, newPosition -> min(lowest, newPosition) }
+    maxPosition.accumulateAndGet(position) { highest, newPosition -> max(highest, newPosition) }
   }
-
-  val byteTravelRange
-    get() = (maxPosition - minPosition)
 
   override fun openStreamingSource() = realSourceProvider.openStreamingSource()
 
@@ -66,5 +69,9 @@ class ConstantMemoryMetricsDualSourceProvider(
 
       override fun close() = randomAccessSource.close()
     }
+  }
+
+  private companion object {
+    const val NO_POSITION = -1L
   }
 }
