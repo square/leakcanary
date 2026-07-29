@@ -1,7 +1,6 @@
 package org.leakcanary.screens
 
 import android.os.Parcelable
-import java.io.File
 import kotlinx.parcelize.Parcelize
 
 sealed class Destination(val title: String) : Parcelable {
@@ -17,9 +16,6 @@ sealed class Destination(val title: String) : Parcelable {
 
   @Parcelize
   class ClientAppAnalysisDestination(val analysisId: Long) : Destination("Analysis")
-
-  @Parcelize
-  class TreeMapDestination(val heapDump: File) : Destination("TreeMap")
 
   @Parcelize
   object LeaksDestination : Destination("Leaks")

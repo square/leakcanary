@@ -8,8 +8,6 @@ import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
-import shark.internal.hppc.LongDeque
-import shark.internal.hppc.LongScatterSet
 
 /**
  * Exposes high level APIs to compute and render a dominator tree. This class
@@ -28,11 +26,6 @@ class ObjectDominators {
     val retainedSize: Int,
     val retainedCount: Int,
     val dominatedObjectIds: List<Long>
-  ) : Serializable
-
-  data class OfflineDominatorNode(
-    val node: DominatorNode,
-    val name: String
   ) : Serializable
 
   fun renderDominatorTree(
@@ -140,103 +133,16 @@ class ObjectDominators {
     }
   }
 
-  fun buildOfflineDominatorTree(
-    graph: HeapGraph,
-    ignoredRefs: List<IgnoredReferenceMatcher>
-  ): Map<Long, OfflineDominatorNode> {
-    return buildDominatorTree(graph, ignoredRefs).mapValues { (objectId, node) ->
-      val name = if (objectId == ValueHolder.NULL_REFERENCE) {
-        "root"
-      } else when (val heapObject = graph.findObjectById(objectId)) {
-        is HeapClass -> "class ${heapObject.name}"
-        is HeapInstance -> heapObject.instanceClassName
-        is HeapObjectArray -> heapObject.arrayClassName
-        is HeapPrimitiveArray -> heapObject.arrayClassName
-      }
-      OfflineDominatorNode(
-        node, name
-      )
-    }
-  }
-
   fun buildDominatorTree(
     graph: HeapGraph,
     ignoredRefs: List<IgnoredReferenceMatcher>
   ): Map<Long, DominatorNode> {
-    val dominatorTree = graph.traverseAndBuildDominatorTree(
+    return HeapDominatorTree.buildFor(
+      graph = graph,
       referenceReader = ActualMatchingReferenceReaderFactory(
         referenceMatchers = emptyList()
       ).createFor(graph),
       gcRootProvider = MatchingGcRootProvider(ignoredRefs)
-    )
-    return dominatorTree.buildFullDominatorTree(AndroidObjectSizeCalculator(graph))
-  }
-
-  /**
-   * Traverses the whole graph breadth first, from GC roots, feeding every edge to a
-   * [DominatorTree]. Low priority references are deferred to a second queue, so that the
-   * traversal order matches the one [PrioritizingShortestPathFinder] uses.
-   */
-  private fun HeapGraph.traverseAndBuildDominatorTree(
-    referenceReader: ReferenceReader<HeapObject>,
-    gcRootProvider: GcRootProvider
-  ): DominatorTree {
-    val estimatedVisitedObjects = (instanceCount / 2).coerceAtLeast(4)
-    val dominatorTree = DominatorTree(estimatedVisitedObjects)
-    val visitedSet = LongScatterSet(estimatedVisitedObjects)
-    val toVisitQueue = LongDeque()
-    val toVisitLastQueue = LongDeque()
-    var visitingLast = false
-
-    fun enqueue(
-      objectId: Long,
-      parentObjectId: Long,
-      isLowPriority: Boolean,
-      isLeafObject: Boolean
-    ) {
-      if (objectId == ValueHolder.NULL_REFERENCE) {
-        return
-      }
-      // Note: this has the side effect of updating the dominator for objectId.
-      val alreadyEnqueued = dominatorTree.updateDominated(objectId, parentObjectId)
-      if (alreadyEnqueued || isLeafObject) {
-        return
-      }
-      if (visitingLast || isLowPriority) {
-        toVisitLastQueue += objectId
-      } else {
-        toVisitQueue += objectId
-      }
-    }
-
-    gcRootProvider.provideGcRoots(this).forEach { gcRootReference ->
-      enqueue(
-        objectId = gcRootReference.gcRoot.id,
-        parentObjectId = ValueHolder.NULL_REFERENCE,
-        isLowPriority = gcRootReference.isLowPriority,
-        isLeafObject = false
-      )
-    }
-
-    while (toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()) {
-      val objectId = if (!visitingLast && toVisitQueue.isNotEmpty()) {
-        toVisitQueue.poll()
-      } else {
-        visitingLast = true
-        toVisitLastQueue.poll()
-      }
-      if (!visitedSet.add(objectId)) {
-        continue
-      }
-      referenceReader.read(findObjectById(objectId)).forEach { reference ->
-        enqueue(
-          objectId = reference.valueObjectId,
-          parentObjectId = objectId,
-          isLowPriority = reference.isLowPriority,
-          isLeafObject = reference.isLeafObject
-        )
-      }
-    }
-    return dominatorTree
+    ).buildNodes(AndroidObjectSizeCalculator(graph))
   }
 }

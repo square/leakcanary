@@ -5,8 +5,6 @@ package shark
 import androidx.collection.LongLongMap
 import androidx.collection.LongSet
 import androidx.collection.MutableLongLongMap
-import androidx.collection.MutableLongSet
-import shark.ObjectDominators.DominatorNode
 import shark.internal.hppc.LongLongScatterMap
 import shark.internal.hppc.LongLongScatterMap.ForEachCallback
 import shark.internal.hppc.LongScatterSet
@@ -21,8 +19,11 @@ import shark.internal.unpackAsSecondInt
  * dominators known so far: when an edge to an already visited object is processed while the
  * parent's own dominator is still too specific, the child's dominator is left too specific as
  * well and never revisited. Retained sizes computed from such a tree over attribute.
+ *
+ * [HeapDominatorTree] is exact, but it needs the whole graph up front. This one only needs the
+ * edges as they're traversed, which is why [ObjectGrowthDetector] still uses it.
  */
-class DominatorTree(expectedElements: Int = 4) {
+internal class ApproximateDominatorTree(expectedElements: Int = 4) {
 
   /**
    * Map of objects to their dominator.
@@ -89,7 +90,8 @@ class DominatorTree(expectedElements: Int = 4) {
           val nextDominatorSlot = dominated.getSlot(dominator)
           if (nextDominatorSlot == -1) {
             throw IllegalStateException(
-              "Did not find dominator for $dominator when going through the dominator chain for $currentDominator: $currentDominators"
+              "Did not find dominator for $dominator when going through the dominator chain " +
+                "for $currentDominator: $currentDominators"
             )
           } else {
             dominator = dominated.getSlotValue(nextDominatorSlot)
@@ -113,68 +115,6 @@ class DominatorTree(expectedElements: Int = 4) {
       }
     }
     return hasDominator
-  }
-
-  private class MutableDominatorNode {
-    var shallowSize = 0
-    var retainedSize = 0
-    var retainedCount = 0
-    val dominated = mutableListOf<Long>()
-  }
-
-  fun buildFullDominatorTree(objectSizeCalculator: ObjectSizeCalculator): Map<Long, DominatorNode> {
-    val dominators = mutableMapOf<Long, MutableDominatorNode>()
-    // Reverse the dominated map to have dominators ids as keys and list of dominated as values
-    dominated.forEach(ForEachCallback { key, value ->
-      // create entry for dominated
-      dominators.getOrPut(key) {
-        MutableDominatorNode()
-      }
-      // If dominator is null ref then we still have an entry for that, to collect all dominator
-      // roots.
-      dominators.getOrPut(value) {
-        MutableDominatorNode()
-      }.dominated += key
-    })
-
-    val allReachableObjectIds = MutableLongSet(dominators.size)
-    dominators.forEach { (key, _) ->
-      if (key != ValueHolder.NULL_REFERENCE) {
-        allReachableObjectIds += key
-      }
-    }
-
-    val retainedSizes = computeRetainedSizes(allReachableObjectIds) { objectId ->
-      val shallowSize = objectSizeCalculator.computeSize(objectId)
-      dominators.getValue(objectId).shallowSize = shallowSize
-      shallowSize
-    }
-
-    dominators.forEach { (objectId, node) ->
-      if (objectId != ValueHolder.NULL_REFERENCE) {
-        val retainedPacked = retainedSizes[objectId]
-        val retainedSize = retainedPacked.unpackAsFirstInt
-        val retainedCount = retainedPacked.unpackAsSecondInt
-        node.retainedSize = retainedSize
-        node.retainedCount = retainedCount
-      }
-    }
-
-    val rootDominator = dominators.getValue(ValueHolder.NULL_REFERENCE)
-    rootDominator.retainedSize = rootDominator.dominated.map { dominators[it]!!.retainedSize }.sum()
-    rootDominator.retainedCount =
-      rootDominator.dominated.map { dominators[it]!!.retainedCount }.sum()
-
-    // Sort children with largest retained first
-    dominators.values.forEach { node ->
-      node.dominated.sortBy { -dominators.getValue(it).retainedSize }
-    }
-
-    return dominators.mapValues { (_, node) ->
-      DominatorNode(
-        node.shallowSize, node.retainedSize, node.retainedCount, node.dominated
-      )
-    }
   }
 
   /**
@@ -250,4 +190,3 @@ class DominatorTree(expectedElements: Int = 4) {
     return nodeRetainedSizes
   }
 }
-
