@@ -325,6 +325,32 @@ class LeakTraceRenderingTest {
         """
   }
 
+  @Test fun rendersRetainedSize() {
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["leak"] = "Leaking" watchedInstance {}
+      }
+    }
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(computeRetainedHeapSize = true)
+
+    analysis renders """
+    ┬───
+    │ GC Root: System class
+    │
+    ├─ GcRoot class
+    │    Leaking: UNKNOWN
+    │    ↓ static GcRoot.leak
+    │                    ~~~~
+    ╰→ Leaking instance
+    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Retaining 0 B in 1 objects
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
+    """
+  }
+
   private infix fun HeapAnalysisSuccess.renders(expectedString: String) {
     assertThat(applicationLeaks[0].leakTraces.first().toString()).isEqualTo(
       expectedString.trimIndent()
