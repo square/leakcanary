@@ -1,0 +1,60 @@
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly, matching the cadence of the default setup this replaces.
+    - cron: '39 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: java-kotlin
+            build-mode: manual
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        if: matrix.build-mode == 'manual'
+        with:
+          java-version: 17
+          distribution: 'zulu'
+      - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
+        if: matrix.build-mode == 'manual'
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      # CodeQL's autobuild derives the JDK it runs Gradle on from the project's sourceCompatibility,
+      # which is Java 8 here, while Gradle 9 requires JDK 17+ to even start. Building the project
+      # ourselves keeps that JDK under our control.
+      #
+      # --no-build-cache forces compilation to actually happen: CodeQL builds its database by
+      # observing javac and kotlinc, so a build cache hit would leave it with nothing to extract.
+      - name: Build project
+        if: matrix.build-mode == 'manual'
+        run: ./gradlew assemble --no-build-cache --stacktrace
+      # The analysis below is memory hungry, so don't leave the Gradle daemon holding onto a heap.
+      - name: Stop Gradle daemon
+        if: matrix.build-mode == 'manual'
+        run: ./gradlew --stop
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
