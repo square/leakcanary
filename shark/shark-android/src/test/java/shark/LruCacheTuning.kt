@@ -40,10 +40,9 @@ fun main() {
         val (randomAccessReads, lruRetainedSize) = trackAnalyzeMetrics(
           hprofFile, bytes, tmpHeapDumpFolder, computeRetainedHeapSize, lruCacheSize
         )
-        val bytesRead = randomAccessReads.sum()
-        val readCount = randomAccessReads.size
-        row.add(bytesRead)
-        row.add(readCount)
+        row.add(randomAccessReads.byteCounts.sum())
+        row.add(randomAccessReads.size)
+        row.add(randomAccessReads.distinctPagesRead)
         row.add(lruRetainedSize)
       }
     }
@@ -56,7 +55,7 @@ fun main() {
       append("lru_size")
       for (filename in files) {
         for (computeRetainedHeapSize in computeRetainedHeapSizeList) {
-          listOf("bytes_read", "read_count", "lru_retained").forEach { column ->
+          listOf("bytes_read", "read_count", "distinct_pages", "lru_retained").forEach { column ->
             append(",${filename}_size_${computeRetainedHeapSize}_$column")
           }
         }
@@ -75,7 +74,7 @@ private fun trackAnalyzeMetrics(
   tmpHeapDumpFolder: File,
   computeRetainedHeapSize: Boolean,
   lruCacheSize: Int
-): Pair<List<Int>, Int> {
+): Pair<List<Read>, Int> {
   println(
     "Analysing ${hprofFile.name} computeRetainedHeapSize=$computeRetainedHeapSize lruCacheSize=$lruCacheSize"
   )
@@ -120,7 +119,8 @@ private fun trackAnalyzeMetrics(
     lruCacheAnalysis.allLeaks.single().leakTraces.single().retainedHeapByteSize!!
 
   println(
-    "${randomAccessReads.sum()} bytes in ${randomAccessReads.size} reads, retaining $lruRetainedSize bytes in cache"
+    "${randomAccessReads.byteCounts.sum()} bytes in ${randomAccessReads.size} reads over " +
+      "${randomAccessReads.distinctPagesRead} pages, retaining $lruRetainedSize bytes in cache"
   )
 
   return randomAccessReads to lruRetainedSize

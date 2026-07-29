@@ -22,9 +22,9 @@ class HprofIOPerfTest {
     val source = MetricsDualSourceProvider(hprofFile)
 
     val bytesRead = source.openHeapGraph().use { graph ->
-      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      val readMetrics = source.sourcesMetrics.last().apply { clear() }
       graph.findObjectById(arrayId).asObjectArray!!.byteSize
-      bytesReadMetrics.sum()
+      readMetrics.byteCounts.sum()
     }
 
     assertThat(bytesRead).isEqualTo(0)
@@ -50,9 +50,9 @@ class HprofIOPerfTest {
     val source = MetricsDualSourceProvider(hprofFile)
 
     val bytesRead = source.openHeapGraph().use { graph ->
-      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      val readMetrics = source.sourcesMetrics.last().apply { clear() }
       graph.findObjectById(arrayId).asPrimitiveArray!!.byteSize
-      bytesReadMetrics.sum()
+      readMetrics.byteCounts.sum()
     }
 
     assertThat(bytesRead).isEqualTo(0)
@@ -75,9 +75,9 @@ class HprofIOPerfTest {
     val source = MetricsDualSourceProvider(hprofFile)
 
     val bytesRead = source.openHeapGraph().use { graph ->
-      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      val readMetrics = source.sourcesMetrics.last().apply { clear() }
       graph.instances.first().byteSize
-      bytesReadMetrics.sum()
+      readMetrics.byteCounts.sum()
     }
 
     assertThat(bytesRead).isEqualTo(0)
@@ -90,9 +90,9 @@ class HprofIOPerfTest {
 
     val bytesRead = source.openHeapGraph().use { graph ->
       graph.objects.first().readRecord()
-      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      val readMetrics = source.sourcesMetrics.last().apply { clear() }
       graph.objects.first().readRecord()
-      bytesReadMetrics.sum()
+      readMetrics.byteCounts.sum()
     }
 
     assertThat(bytesRead).isEqualTo(0)
@@ -105,9 +105,9 @@ class HprofIOPerfTest {
 
     val bytesRead = source.openHeapGraph().use { graph ->
       graph.objects.take(HPROF_HEAP_GRAPH_LRU_OBJECT_CACHE_SIZE).forEach { it.readRecord() }
-      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      val readMetrics = source.sourcesMetrics.last().apply { clear() }
       graph.objects.take(HPROF_HEAP_GRAPH_LRU_OBJECT_CACHE_SIZE).forEach { it.readRecord() }
-      bytesReadMetrics.sum()
+      readMetrics.byteCounts.sum()
     }
 
     assertThat(bytesRead).isEqualTo(0)
@@ -120,9 +120,9 @@ class HprofIOPerfTest {
 
     val bytesRead = source.openHeapGraph().use { graph ->
       graph.objects.take(HPROF_HEAP_GRAPH_LRU_OBJECT_CACHE_SIZE + 1).forEach { it.readRecord() }
-      val bytesReadMetrics = source.sourcesMetrics.last().apply { clear() }
+      val readMetrics = source.sourcesMetrics.last().apply { clear() }
       graph.objects.first().readRecord()
-      bytesReadMetrics.sum()
+      readMetrics.byteCounts.sum()
     }
 
     assertThat(bytesRead).isGreaterThan(0)
@@ -142,7 +142,7 @@ class HprofIOPerfTest {
 
     val metrics = trackAnalyzeIoReadMetrics(hprofFile)
 
-    val headerParsingReads = metrics[0]
+    val headerParsingReads = metrics[0].byteCounts
     assertThat(headerParsingReads).isEqualTo(listOf(OKIO_SEGMENT_SIZE))
   }
 
@@ -151,7 +151,7 @@ class HprofIOPerfTest {
 
     val metrics = trackAnalyzeIoReadMetrics(hprofFile)
 
-    val fastScanReads = metrics[1]
+    val fastScanReads = metrics[1].byteCounts
     val expectedReads = fullScanExpectedReads(hprofFile.length())
     assertThat(fastScanReads).hasSameSizeAs(expectedReads).isEqualTo(expectedReads)
   }
@@ -161,7 +161,7 @@ class HprofIOPerfTest {
 
     val metrics = trackAnalyzeIoReadMetrics(hprofFile)
 
-    val indexingReads = metrics[2]
+    val indexingReads = metrics[2].byteCounts
     val expectedReads = fullScanExpectedReads(hprofFile.length())
     assertThat(indexingReads).hasSameSizeAs(expectedReads).isEqualTo(expectedReads)
   }
@@ -171,17 +171,12 @@ class HprofIOPerfTest {
 
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
-    assertThat(
-      listOf(
-        metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
-        metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
-      )
+    assertThat(metrics.withoutRetainedSize.toString()).isEqualTo(
+      "reads=19711 medianBytes=40.0 totalBytes=1021265 distinctPages=447 pageReads=19947"
     )
-      .isEqualTo(
-        listOf(
-          19711, 40.0, 1021265, 20979, 40.0, 1078529
-        )
-      )
+    assertThat(metrics.withRetainedSize.toString()).isEqualTo(
+      "reads=20979 medianBytes=40.0 totalBytes=1078529 distinctPages=455 pageReads=21229"
+    )
   }
 
   @Test fun `freeze leak_asynctask_m hprof random access metrics`() {
@@ -189,17 +184,12 @@ class HprofIOPerfTest {
 
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
-    assertThat(
-      listOf(
-        metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
-        metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
-      )
+    assertThat(metrics.withoutRetainedSize.toString()).isEqualTo(
+      "reads=17407 medianBytes=40.0 totalBytes=1953885 distinctPages=696 pageReads=17885"
     )
-      .isEqualTo(
-        listOf(
-          17407, 40.0, 1953885, 17412, 40.0, 1954065
-        )
-      )
+    assertThat(metrics.withRetainedSize.toString()).isEqualTo(
+      "reads=17412 medianBytes=40.0 totalBytes=1954065 distinctPages=696 pageReads=17890"
+    )
   }
 
   @Test fun `freeze leak_asynctask_pre_m hprof random access metrics`() {
@@ -207,42 +197,50 @@ class HprofIOPerfTest {
 
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
-    assertThat(
-      listOf(
-        metrics.first.readsCount, metrics.first.medianBytesRead, metrics.first.totalBytesRead,
-        metrics.second.readsCount, metrics.second.medianBytesRead, metrics.second.totalBytesRead
-      )
+    assertThat(metrics.withoutRetainedSize.toString()).isEqualTo(
+      "reads=11786 medianBytes=32.0 totalBytes=554362 distinctPages=511 pageReads=11922"
     )
-      .isEqualTo(
-        listOf(
-          11786, 32.0, 554362, 11788, 32.0, 554426
-        )
-      )
+    assertThat(metrics.withRetainedSize.toString()).isEqualTo(
+      "reads=11788 medianBytes=32.0 totalBytes=554426 distinctPages=511 pageReads=11924"
+    )
   }
 
-  class Reads(reads: List<Int>) {
+  class Reads(reads: List<Read>) {
     val readsCount = reads.size
-    val medianBytesRead = reads.median()
-    val totalBytesRead = reads.sum()
+    val medianBytesRead = reads.byteCounts.median()
+    val totalBytesRead = reads.byteCounts.sum()
+    val distinctPagesRead = reads.distinctPagesRead
+    val pageReadCount = reads.pageReadCount
+
+    /**
+     * Frozen by the tests above, so that a change to how the analysis reads shows up as a failure
+     * that says which of these numbers moved.
+     */
+    override fun toString() = "reads=$readsCount medianBytes=$medianBytesRead " +
+      "totalBytes=$totalBytesRead distinctPages=$distinctPagesRead pageReads=$pageReadCount"
   }
 
-  private fun trackAnalyzeRandomAccessMetrics(hprofFile: File): Pair<Reads, Reads> {
-    return trackAnalyzeIoReadMetrics(hprofFile).run {
-      Reads(this[3])
-    } to trackAnalyzeIoReadMetrics(
-      hprofFile,
-      computeRetainedHeapSize = true,
-      printResult = true
-    ).run {
-      Reads(this[3])
-    }
-  }
+  class AnalyzeReads(
+    val withoutRetainedSize: Reads,
+    val withRetainedSize: Reads
+  )
+
+  private fun trackAnalyzeRandomAccessMetrics(hprofFile: File) = AnalyzeReads(
+    withoutRetainedSize = Reads(trackAnalyzeIoReadMetrics(hprofFile)[3]),
+    withRetainedSize = Reads(
+      trackAnalyzeIoReadMetrics(
+        hprofFile,
+        computeRetainedHeapSize = true,
+        printResult = true
+      )[3]
+    )
+  )
 
   private fun trackAnalyzeIoReadMetrics(
     hprofFile: File,
     computeRetainedHeapSize: Boolean = false,
     printResult: Boolean = false
-  ): List<List<Int>> {
+  ): List<List<Read>> {
     val source = MetricsDualSourceProvider(hprofFile)
     val analysis = source.openHeapGraph().use { graph ->
 

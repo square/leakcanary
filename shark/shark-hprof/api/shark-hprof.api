@@ -6,9 +6,7 @@ public final class shark/ByteArraySourceProvider : shark/DualSourceProvider {
 
 public final class shark/ConstantMemoryMetricsDualSourceProvider : shark/DualSourceProvider {
 	public fun <init> (Lshark/DualSourceProvider;)V
-	public final fun getByteTravelRange ()J
 	public final fun getRandomAccessByteReads ()J
-	public final fun getRandomAccessByteTravel ()J
 	public final fun getRandomAccessReadCount ()J
 	public fun openRandomAccessSource ()Lshark/RandomAccessSource;
 	public fun openStreamingSource ()Lokio/BufferedSource;
