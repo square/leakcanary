@@ -13,7 +13,9 @@
 # limitations under the License.
 
 [versions]
-compose = "1.4.3"
+compose = "1.11.4"
+# androidx.lifecycle 2.11.0 requires compiling against the Android 37 SDK
+lifecycle = "2.10.0"
 kotlin = "2.4.10"
 # Exposed transitively by shark, avoid increasing
 coroutines = "1.7.3"
@@ -101,3 +103,19 @@ mockitoKotlin = { module = "org.mockito.kotlin:mockito-kotlin", version = "6.3.0
 okio2 = { module = "com.squareup.okio:okio", version = "2.2.2" }
 sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+
+# Only used by leakcanary-app, the standalone UI app, which isn't published, so these can track the
+# latest release.
+androidX-activity-compose = { module = "androidx.activity:activity-compose", version = "1.13.0" }
+# androidx.core 1.19.0 requires compiling against the Android 37 SDK
+androidX-core = { module = "androidx.core:core-ktx", version = "1.18.0" }
+androidX-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidX-lifecycle-viewModelCompose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidX-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version = "2.7.0" }
+compose-material3 = { module = "androidx.compose.material3:material3", version = "1.4.0" }
+# The Material icons stopped shipping with Compose Material 3 and are frozen at 1.7.8.
+compose-materialIcons = { module = "androidx.compose.material:material-icons-core", version = "1.7.8" }
+compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
+compose-ui-toolingPreview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose" }
+extendedSpans = { module = "me.saket.extendedspans:extendedspans", version = "1.4.0" }
