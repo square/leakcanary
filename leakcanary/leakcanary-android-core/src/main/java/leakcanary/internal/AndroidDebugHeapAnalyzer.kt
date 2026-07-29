@@ -78,7 +78,7 @@ internal object AndroidDebugHeapAnalyzer {
       )
       is HeapAnalysisFailure -> heapAnalysis
         .copy(dumpDurationMillis = heapDumpDurationMillis)
-        .withOutOfMemoryGuidance()
+        .withOutOfMemoryGuidance(ProcessHeapLimit.read(application))
     }
     progressListener.onAnalysisProgress(REPORTING_HEAP_ANALYSIS)
 
