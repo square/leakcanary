@@ -16,6 +16,7 @@ import leakcanary.internal.activity.db.executeOnDb
 import leakcanary.internal.activity.shareHeapDump
 import leakcanary.internal.activity.shareToGitHubIssue
 import leakcanary.internal.activity.ui.UiUtils
+import leakcanary.internal.isOutOfMemory
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.goBack
@@ -49,20 +50,11 @@ internal class HeapAnalysisFailureScreen(
   ) {
     activity.title = resources.getString(R.string.leak_canary_analysis_failed)
 
-    val failureText =
-      if (heapDumpFileExist) {
-        "You can <a href=\"try_again\">run the analysis again</a>.<br><br>"
-      } else {
-        ""
-      } + """
-      Please <a href="file_issue">click here</a> to file a bug report.
-      The stacktrace details will be copied into the clipboard and you just need to paste into the
-      GitHub issue description.""" + (if (heapDumpFileExist) {
-        """
-        <br><br>To help reproduce the issue, please share the
-        <a href="share_hprof">Heap Dump file</a> and upload it to the GitHub issue.
-      """
-      } else "")
+    val failureText = if (heapAnalysis.isOutOfMemory) {
+      outOfMemoryText(heapDumpFileExist)
+    } else {
+      bugReportText(heapDumpFileExist)
+    }
 
     val failure = Html.fromHtml(failureText) as SpannableStringBuilder
 
@@ -114,5 +106,42 @@ internal class HeapAnalysisFailureScreen(
           }
       }
     }
+  }
+
+  /**
+   * Running out of memory isn't a bug to report, it's a heap dump that needs more memory than this
+   * process has, so this points at the ways out of it instead of at the issue tracker. The failure
+   * message shown right below this text spells all of them out, see `withOutOfMemoryGuidance`.
+   */
+  private fun outOfMemoryText(heapDumpFileExist: Boolean): String {
+    return if (heapDumpFileExist) {
+      """
+        The analysis ran out of memory. Kill the app then
+        <a href="try_again">run the analysis again</a>, or share the
+        <a href="share_hprof">Heap Dump file</a> to analyze it on your computer instead.
+        The details below list every option.
+      """
+    } else {
+      """
+        The analysis ran out of memory, and the heap dump file is gone so it can't be analyzed
+        again. The details below list how to give the next analysis more memory.
+      """
+    }
+  }
+
+  private fun bugReportText(heapDumpFileExist: Boolean): String {
+    return if (heapDumpFileExist) {
+      "You can <a href=\"try_again\">run the analysis again</a>.<br><br>"
+    } else {
+      ""
+    } + """
+      Please <a href="file_issue">click here</a> to file a bug report.
+      The stacktrace details will be copied into the clipboard and you just need to paste into the
+      GitHub issue description.""" + (if (heapDumpFileExist) {
+      """
+        <br><br>To help reproduce the issue, please share the
+        <a href="share_hprof">Heap Dump file</a> and upload it to the GitHub issue.
+      """
+    } else "")
   }
 }
