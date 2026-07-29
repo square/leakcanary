@@ -211,6 +211,14 @@ configure(publicApiProjects) {
   // from once the project build script has run, so hold off until the project is evaluated.
   afterEvaluate {
     apply<DokkaGfmPlugin>()
+    // The javadoc jar the publish plugin attaches to each Kotlin JVM publication. The plugin looks
+    // for this plugin by id and then builds the jar from `dokkaGeneratePublicationJavadoc`; without
+    // it, it falls back to the javadoc tool, which has no Kotlin source to read. Applied here
+    // rather than at the top of this block so that it lands before the publish plugin makes that
+    // choice, which it does in its own `afterEvaluate` registered while the module is evaluated.
+    // Android library modules never reach that code path: AGP builds their javadoc jar by running
+    // its own bundled copy of Dokka over the release variant.
+    apply(plugin = "org.jetbrains.dokka-javadoc")
     extensions.configure<DokkaExtension> {
       // Defaults to the Gradle project path, which would nest the output of e.g. shark-graph in an
       // extra shark directory. Module names are already unique.
