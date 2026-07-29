@@ -813,6 +813,21 @@ public abstract interface class shark/Reference$LazyDetails$Resolver {
 	public abstract fun resolve ()Lshark/Reference$LazyDetails;
 }
 
+public final class shark/ReferenceLocation {
+	public fun <init> (Lshark/ReferenceLocationType;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Lshark/ReferenceLocationType;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Lshark/ReferenceLocationType;Ljava/lang/String;Ljava/lang/String;)Lshark/ReferenceLocation;
+	public static synthetic fun copy$default (Lshark/ReferenceLocation;Lshark/ReferenceLocationType;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lshark/ReferenceLocation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLocationType ()Lshark/ReferenceLocationType;
+	public final fun getOwningClassName ()Ljava/lang/String;
+	public final fun getReferenceName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
 public final class shark/ReferenceLocationType : java/lang/Enum {
 	public static final field ARRAY_ENTRY Lshark/ReferenceLocationType;
 	public static final field INSTANCE_FIELD Lshark/ReferenceLocationType;
@@ -984,6 +999,7 @@ public final class shark/ShortestPathObjectNode {
 	public final fun getGrowingChildren ()Ljava/util/List;
 	public final fun getName ()Ljava/lang/String;
 	public final fun getParent ()Lshark/ShortestPathObjectNode;
+	public final fun getReference ()Lshark/ReferenceLocation;
 	public final fun getRetained-bh0qJVg ()J
 	public final fun getRetainedIncrease-bh0qJVg ()J
 	public final fun getSelfObjectCount ()I

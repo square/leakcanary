@@ -12,6 +12,7 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.internal.lastSegment
 
 /**
  * Looks for objects that have grown in outgoing references in a new heap dump compared to a
@@ -49,7 +50,10 @@ class ObjectGrowthDetector(
 
   private class Edge(
     val nonVisitedDistinctObjectIds: MutableLongList,
-    var isLeafObject: Boolean
+    var isLeafObject: Boolean,
+    // Every reference grouped under one EdgeKey was declared in the same place, so the location of
+    // the first one describes them all.
+    val referenceLocation: ReferenceLocation,
   )
 
   private class TraversalState(
@@ -132,8 +136,8 @@ class ObjectGrowthDetector(
           }
           val details = reference.lazyDetailsResolver.resolve()
           val refType = details.locationType.name
-          val owningClassSimpleName =
-            graph.findObjectById(details.locationClassObjectId).asClass!!.simpleName
+          val owningClassName =
+            graph.findObjectById(details.locationClassObjectId).asClass!!.name
           val refName = if (details.locationType == ARRAY_ENTRY) "[x]" else details.name
           val referencedObjectName =
             when (val referencedObject = graph.findObjectById(reference.valueObjectId)) {
@@ -144,7 +148,7 @@ class ObjectGrowthDetector(
             }
 
           val nodeAndEdgeName =
-            "$refType ${owningClassSimpleName}.${refName} -> $referencedObjectName"
+            "$refType ${owningClassName.lastSegment('.')}.${refName} -> $referencedObjectName"
 
           val edgeKey = EdgeKey(nodeAndEdgeName, reference.isLowPriority)
 
@@ -153,6 +157,11 @@ class ObjectGrowthDetector(
             edgesByNodeName[edgeKey] = Edge(
               nonVisitedDistinctObjectIds = mutableLongListOf(reference.valueObjectId),
               isLeafObject = reference.isLeafObject,
+              referenceLocation = ReferenceLocation(
+                locationType = details.locationType,
+                owningClassName = owningClassName,
+                referenceName = details.name,
+              ),
             )
           } else {
             // node is leaf object if all objects in node are leaf objects.
@@ -201,6 +210,7 @@ class ObjectGrowthDetector(
           previousPathNode = previousPathNodeChildOrNull,
           objectIds = nonVisitedDistinctObjectIdsArray,
           nodeAndEdgeName = edgeKey.nodeAndEdgeName,
+          referenceLocation = edge.referenceLocation,
           isLowPriority = edgeKey.isLowPriority,
           isLeafObject = edge.isLeafObject
         )
@@ -378,6 +388,8 @@ class ObjectGrowthDetector(
         previousPathNode = previousPathNode,
         objectIds = edgeObjectIdsArray,
         nodeAndEdgeName = edgeKey.nodeAndEdgeName,
+        // Gc roots aren't reached through a reference.
+        referenceLocation = null,
         isLowPriority = edgeKey.isLowPriority,
         isLeafObject = false
       )
@@ -391,6 +403,7 @@ class ObjectGrowthDetector(
     previousPathNode: ShortestPathObjectNode?,
     objectIds: LongArray,
     nodeAndEdgeName: String,
+    referenceLocation: ReferenceLocation?,
     isLowPriority: Boolean,
     isLeafObject: Boolean
   ) {
@@ -398,6 +411,7 @@ class ObjectGrowthDetector(
       objectIds = objectIds,
       parentPathNode = parentPathNode,
       nodeAndEdgeName = nodeAndEdgeName,
+      referenceLocation = referenceLocation,
       previousPathNode = previousPathNode,
       isLeafObject = isLeafObject
     )
@@ -414,6 +428,7 @@ class ObjectGrowthDetector(
     val objectIds: LongArray,
     val parentPathNode: ShortestPathObjectNode,
     val nodeAndEdgeName: String,
+    val referenceLocation: ReferenceLocation?,
     val previousPathNode: ShortestPathObjectNode?,
     val isLeafObject: Boolean,
   )
@@ -423,7 +438,9 @@ class ObjectGrowthDetector(
   ) {
     // All objects that you can reach through paths that all resolves to the same structure.
     val objectIds = node.objectIds
-    val shortestPathNode = ShortestPathObjectNode(node.nodeAndEdgeName, node.parentPathNode)
+    val shortestPathNode = ShortestPathObjectNode(node.nodeAndEdgeName, node.parentPathNode).apply {
+      reference = node.referenceLocation
+    }
     val previousPathNode = node.previousPathNode
   }
 
