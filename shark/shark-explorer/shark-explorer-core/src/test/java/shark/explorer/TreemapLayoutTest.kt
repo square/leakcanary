@@ -36,15 +36,25 @@ class TreemapLayoutTest {
 
   private val viewport = TreemapRect(0.0, 0.0, 1000.0, 800.0)
 
+  private val TreemapLayoutResult<Node>.nodeCells: List<TreemapCell.Node<Node>>
+    get() = cells.filterIsInstance<TreemapCell.Node<Node>>()
+
+  private val TreemapLayoutResult<Node>.names: List<String>
+    get() = nodeCells.map { it.node.name }
+
+  private val TreemapLayoutResult<Node>.groups: List<TreemapCell.Group>
+    get() = cells.filterIsInstance<TreemapCell.Group>()
+
   @Test fun `root is laid out into the whole viewport`() {
     val tree = NodeTree(Node("root", children = listOf(Node("a", 10), Node("b", 5))))
 
     val result = TreemapLayout<Node>().layout(tree, viewport)
 
-    val rootCell = result.cells.first()
+    val rootCell = result.nodeCells.first()
     assertThat(rootCell.node.name).isEqualTo("root")
     assertThat(rootCell.depth).isEqualTo(0)
     assertThat(rootCell.rect).isEqualTo(viewport)
+    assertThat(rootCell.weight).isEqualTo(15)
   }
 
   @Test fun `a parent is always laid out before its descendants`() {
@@ -52,8 +62,9 @@ class TreemapLayoutTest {
 
     val result = TreemapLayout<Node>().layout(tree, viewport)
 
-    val positions = result.cells.withIndex().associate { (index, cell) -> cell.node.name to index }
-    result.cells.forEach { cell ->
+    val positions = result.nodeCells.withIndex()
+      .associate { (index, cell) -> cell.node.name to index }
+    result.nodeCells.forEach { cell ->
       cell.node.children.forEach { child ->
         val childPosition = positions[child.name]
         if (childPosition != null) {
@@ -82,8 +93,8 @@ class TreemapLayoutTest {
     // A budget high enough that it never binds, isolating the area driven behaviour.
     val result = TreemapLayout<Node>(maxCells = Int.MAX_VALUE).layout(tree, viewport)
 
-    val bigDepth = result.cells.filter { it.node.name.startsWith("big") }.maxOf { it.depth }
-    val smallDepth = result.cells.filter { it.node.name.startsWith("small") }.maxOf { it.depth }
+    val bigDepth = result.nodeCells.filter { it.node.name.startsWith("big") }.maxOf { it.depth }
+    val smallDepth = result.nodeCells.filter { it.node.name.startsWith("small") }.maxOf { it.depth }
     assertThat(bigDepth).isGreaterThan(smallDepth)
   }
 
@@ -148,9 +159,8 @@ class TreemapLayoutTest {
 
     val result = TreemapLayout<Node>(maxCells = 8).layout(tree, viewport)
 
-    val names = result.cells.map { it.node.name }
-    assertThat(names).contains("big.0")
-    assertThat(names).doesNotContain("small.0")
+    assertThat(result.names).contains("big.0")
+    assertThat(result.names).doesNotContain("small.0")
   }
 
   @Test fun `layout is deterministic`() {
@@ -159,8 +169,7 @@ class TreemapLayoutTest {
     val first = TreemapLayout<Node>().layout(tree, viewport)
     val second = TreemapLayout<Node>().layout(tree, viewport)
 
-    assertThat(first.cells.map { it.node.name to it.rect })
-      .isEqualTo(second.cells.map { it.node.name to it.rect })
+    assertThat(first.cells).isEqualTo(second.cells)
   }
 
   @Test fun `zero weight children are left out`() {
@@ -170,7 +179,9 @@ class TreemapLayoutTest {
 
     val result = TreemapLayout<Node>().layout(tree, viewport)
 
-    assertThat(result.cells.map { it.node.name }).doesNotContain("empty")
+    assertThat(result.names).doesNotContain("empty")
+    // Not grouped either: a zero weight child has no area to stand for.
+    assertThat(result.groups).isEmpty()
   }
 
   @Test fun `an empty viewport lays out only the root`() {
@@ -210,7 +221,8 @@ class TreemapLayoutTest {
 
     // The top strip of the root is reserved for its label, so no child covers it.
     val inHeader = TreemapPoint(viewport.width / 2, headerHeight / 2)
-    assertThat(result.cellAt(inHeader)!!.node.name).isEqualTo("root")
+    val hit = result.cellAt(inHeader) as TreemapCell.Node
+    assertThat(hit.node.name).isEqualTo("root")
   }
 
   @Test fun `laying out a subtree gives it the whole viewport`() {
@@ -221,11 +233,11 @@ class TreemapLayoutTest {
 
     val result = TreemapLayout<Node>().layout(tree, viewport, root = big)
 
-    val rootCell = result.cells.first()
+    val rootCell = result.nodeCells.first()
     assertThat(rootCell.node.name).isEqualTo("big")
     assertThat(rootCell.rect).isEqualTo(viewport)
     assertThat(rootCell.depth).isEqualTo(0)
-    assertThat(result.cells.map { it.node.name }.filter { it.startsWith("small") }).isEmpty()
+    assertThat(result.names.filter { it.startsWith("small") }).isEmpty()
   }
 
   @Test fun `laying out a subtree reveals depth the whole tree could not fit`() {
@@ -236,8 +248,8 @@ class TreemapLayoutTest {
     val zoomed = layout.layout(tree, viewport, root = tree.root.children.first())
 
     // Same viewport, so the zoomed subtree gets 4x the area per node and subdivides further.
-    val deepestWholeName = whole.cells.maxBy { it.depth }.node.name
-    val deepestZoomedName = zoomed.cells.maxBy { it.depth }.node.name
+    val deepestWholeName = whole.nodeCells.maxBy { it.depth }.node.name
+    val deepestZoomedName = zoomed.nodeCells.maxBy { it.depth }.node.name
     assertThat(deepestZoomedName.count { it == '.' }).isGreaterThan(
       deepestWholeName.count { it == '.' }
     )
@@ -250,5 +262,66 @@ class TreemapLayoutTest {
 
     assertThat(result.cellAt(TreemapPoint(-1.0, -1.0))).isNull()
     assertThat(result.cellAt(TreemapPoint(viewport.right + 1, viewport.bottom + 1))).isNull()
+  }
+
+  @Test fun `a node with far more children than the budget is still subdivided`() {
+    // What the root of a real heap dump's dominator tree looks like: tens of thousands of children,
+    // a handful of which hold most of the weight. Subdividing all or nothing left it as one
+    // undivided rectangle with nothing to click.
+    val children = List(30_000) { index -> Node("child$index", ownWeight = if (index < 4) 1_000_000 else 1) }
+    val tree = NodeTree(Node("root", children = children))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    assertThat(result.names).contains("child0", "child1", "child2", "child3")
+    assertThat(result.cells.size).isLessThanOrEqualTo(5000)
+  }
+
+  @Test fun `children past the per node limit are grouped into one rectangle`() {
+    val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
+    val tree = NodeTree(Node("root", children = children))
+
+    val result = TreemapLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
+
+    assertThat(result.names).hasSize(11) // The root and its 10 largest children.
+    val group = result.groups.single()
+    assertThat(group.nodeCount).isEqualTo(40)
+    assertThat(group.depth).isEqualTo(1)
+    // The 40 children it stands for weigh 100 - 10 down to 100 - 49.
+    assertThat(group.weight).isEqualTo((51L..90L).sum())
+  }
+
+  @Test fun `children too small to draw are grouped rather than dropped`() {
+    // A fifth of the weight spread over 20 000 children, so each one is a hundred thousandth of the
+    // viewport — under a 3x3 square — while together they're a fifth of it.
+    val children = listOf(Node("big", ownWeight = 80_000)) +
+      List(20_000) { index -> Node("tiny$index", ownWeight = 1) }
+    val tree = NodeTree(Node("root", children = children))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    assertThat(result.names).containsExactly("root", "big")
+    val group = result.groups.single()
+    assertThat(group.nodeCount).isEqualTo(20_000)
+    assertThat(group.weight).isEqualTo(20_000L)
+    assertThat(group.rect.area / viewport.inset(top = 18.0).area).isCloseTo(
+      0.2,
+      org.assertj.core.data.Percentage.withPercentage(1.0)
+    )
+  }
+
+  @Test fun `a group and its siblings cover the whole area of a subdivided node`() {
+    val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
+    val tree = NodeTree(Node("root", children = children))
+    val headerHeight = 18.0
+
+    val result = TreemapLayout<Node>(maxChildrenPerNode = 10, headerHeight = headerHeight)
+      .layout(tree, viewport)
+
+    val covered = result.cells.drop(1).sumOf { it.rect.area }
+    assertThat(covered).isCloseTo(
+      viewport.inset(top = headerHeight).area,
+      org.assertj.core.data.Offset.offset(1.0)
+    )
   }
 }

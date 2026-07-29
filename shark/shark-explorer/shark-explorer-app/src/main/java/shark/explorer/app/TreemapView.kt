@@ -9,10 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -21,7 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
@@ -32,76 +28,70 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import shark.explorer.TreemapLayout
-import shark.explorer.TreemapLayoutResult
+import shark.explorer.PresentedCell
+import shark.explorer.TreemapCell
 import shark.explorer.TreemapPoint
-import shark.explorer.TreemapRect
-import shark.explorer.TreemapTree
+import shark.explorer.TreemapPresentation
 
 /**
- * Draws [tree] rooted at [root] as a treemap, filling the available space.
+ * Draws an already laid out [TreemapPresentation], filling the available space.
  *
  * A press selects the rectangle under the pointer and a double click zooms into it. Everything is
  * drawn into a single [Canvas], so there are no per-rectangle composables: see this module's
  * `AGENTS.md` for what that means for tests.
+ *
+ * Takes a presentation rather than a tree, because laying a treemap out reads the heap dump for every
+ * visible label, and that has to have happened on the heap dump's own thread before we get here.
  */
 @Composable
 fun TreemapView(
-  tree: TreemapTree<Long>,
-  root: Long,
-  labelOf: (Long) -> String,
+  presentation: TreemapPresentation,
   selected: Long?,
-  onSelect: (Long) -> Unit,
+  onSelectObject: (Long) -> Unit,
+  onSelectGroup: (TreemapCell.Group) -> Unit,
   onZoomInto: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
-  var viewportSize by remember { mutableStateOf(IntSize.Zero) }
   val textMeasurer = rememberTextMeasurer()
-  // TreemapLayout works in pixels, so its thresholds have to be scaled or a rectangle that's big
-  // enough to subdivide on one display is too small on another.
   val density = LocalDensity.current
-  val layout = remember(density) {
-    with(density) {
-      TreemapLayout<Long>(
-        minSubdivideWidth = MIN_SUBDIVIDE_WIDTH.toPx().toDouble(),
-        minSubdivideHeight = MIN_SUBDIVIDE_HEIGHT.toPx().toDouble(),
-        minDrawSize = MIN_DRAW_SIZE.toPx().toDouble(),
-        headerHeight = HEADER_HEIGHT.toPx().toDouble()
-      )
-    }
-  }
-  // Laying out a dominator tree reads the heap dump for every visible label, so this must happen
-  // when the tree, the root or the size change, and never on a redraw.
-  val rendering = remember(layout, tree, root, viewportSize, textMeasurer) {
-    renderTreemap(layout, tree, root, labelOf, viewportSize, textMeasurer, density)
+  // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
+  // the presentation changes and never on a redraw.
+  val cells = remember(presentation, textMeasurer, density) {
+    presentation.cells.map { it.measure(textMeasurer, density) }
   }
 
-  Box(modifier.onSizeChanged { viewportSize = it }) {
+  Box(modifier) {
     Canvas(
       Modifier.fillMaxSize()
-        .pointerInput(rendering) {
+        .pointerInput(presentation) {
           detectTapGestures(
             // On press rather than on tap: with a double click handler installed, a tap is only
             // reported once the double click window has passed, which makes selection feel stuck.
-            onPress = { offset -> rendering.nodeAt(offset)?.let(onSelect) },
-            onDoubleTap = { offset -> rendering.nodeAt(offset)?.let(onZoomInto) }
+            onPress = { offset ->
+              when (val cell = presentation.cellAt(offset)) {
+                is TreemapCell.Node -> onSelectObject(cell.node)
+                is TreemapCell.Group -> onSelectGroup(cell)
+                null -> Unit
+              }
+            },
+            onDoubleTap = { offset ->
+              (presentation.cellAt(offset) as? TreemapCell.Node)?.let { onZoomInto(it.node) }
+            }
           )
         }
     ) {
-      rendering.cells.forEach { cell ->
-        drawCell(cell, isSelected = cell.node == selected)
-      }
+      cells.forEach { cell -> drawCell(cell, isSelected = cell.objectId == selected) }
     }
-    if (rendering.truncatedNodeCount > 0) {
+    if (presentation.truncatedNodeCount > 0) {
       Surface(
         Modifier.align(Alignment.BottomEnd).padding(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant
       ) {
+        val count = presentation.truncatedNodeCount
         Text(
-          "${rendering.truncatedNodeCount} nodes not expanded",
+          if (count == 1) "1 node not expanded" else "$count nodes not expanded",
           Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
           style = MaterialTheme.typography.labelSmall
         )
@@ -110,79 +100,60 @@ fun TreemapView(
   }
 }
 
-/** A laid out treemap, with its labels already measured so that drawing does no work. */
-private class TreemapRendering(
-  val cells: List<RenderedCell>,
-  val truncatedNodeCount: Int,
-  private val layout: TreemapLayoutResult<Long>?
-) {
-  fun nodeAt(offset: Offset): Long? =
-    layout?.cellAt(TreemapPoint(offset.x.toDouble(), offset.y.toDouble()))?.node
-}
+private fun TreemapPresentation.cellAt(offset: Offset): TreemapCell<Long>? =
+  layout.cellAt(TreemapPoint(offset.x.toDouble(), offset.y.toDouble()))
 
-private class RenderedCell(
-  val node: Long,
+/** A rectangle with its label measured, so that drawing does no work. */
+private class MeasuredCell(
+  /** Null for the rectangle standing for the siblings that didn't fit. */
+  val objectId: Long?,
   val topLeft: Offset,
   val size: Size,
-  val depth: Int,
+  val color: Color,
   val labelOffset: Offset,
   /** Null when the rectangle is too small for a readable label. */
   val label: TextLayoutResult?
 )
 
-@Suppress("LongParameterList")
-private fun renderTreemap(
-  layout: TreemapLayout<Long>,
-  tree: TreemapTree<Long>,
-  root: Long,
-  labelOf: (Long) -> String,
-  viewportSize: IntSize,
+private fun PresentedCell.measure(
   textMeasurer: TextMeasurer,
   density: Density
-): TreemapRendering {
-  if (viewportSize.width == 0 || viewportSize.height == 0) {
-    return TreemapRendering(emptyList(), truncatedNodeCount = 0, layout = null)
-  }
-  val viewport = TreemapRect(
-    left = 0.0,
-    top = 0.0,
-    right = viewportSize.width.toDouble(),
-    bottom = viewportSize.height.toDouble()
-  )
-  val result = layout.layout(tree, viewport, root)
+): MeasuredCell {
+  val rect = cell.rect
+  val cellStrength = strength
   val labelPadding = with(density) { LABEL_PADDING.toPx() }
-  val minLabelWidth = with(density) { MIN_LABEL_WIDTH.toPx() }
-  val minLabelHeight = with(density) { MIN_LABEL_HEIGHT.toPx() }
-  val cells = result.cells.map { cell ->
-    val rect = cell.rect
-    val labelWidth = rect.width - 2 * labelPadding
-    RenderedCell(
-      node = cell.node,
-      topLeft = Offset(rect.left.toFloat(), rect.top.toFloat()),
-      size = Size(rect.width.toFloat(), rect.height.toFloat()),
-      depth = cell.depth,
-      labelOffset = Offset(labelPadding, labelPadding),
-      label = if (labelWidth >= minLabelWidth && rect.height >= minLabelHeight) {
-        textMeasurer.measure(
-          text = labelOf(cell.node),
-          style = LABEL_STYLE,
-          overflow = TextOverflow.Ellipsis,
-          maxLines = 1,
-          constraints = Constraints(maxWidth = labelWidth.toInt())
-        )
-      } else {
-        null
-      }
-    )
-  }
-  return TreemapRendering(cells, result.truncatedNodeCount, result)
+  val labelWidth = rect.width - 2 * labelPadding
+  val fitsALabel = labelWidth >= with(density) { MIN_LABEL_WIDTH.toPx() } &&
+    rect.height >= with(density) { MIN_LABEL_HEIGHT.toPx() }
+  return MeasuredCell(
+    objectId = (cell as? TreemapCell.Node)?.node,
+    topLeft = Offset(rect.left.toFloat(), rect.top.toFloat()),
+    size = Size(rect.width.toFloat(), rect.height.toFloat()),
+    color = if (cellStrength == null) {
+      groupCellColor(cell.depth)
+    } else {
+      cellColor(cellStrength, cell.depth)
+    },
+    labelOffset = Offset(labelPadding, labelPadding),
+    label = if (fitsALabel) {
+      textMeasurer.measure(
+        text = label,
+        style = LABEL_STYLE,
+        overflow = TextOverflow.Ellipsis,
+        maxLines = 1,
+        constraints = Constraints(maxWidth = labelWidth.toInt())
+      )
+    } else {
+      null
+    }
+  )
 }
 
 private fun DrawScope.drawCell(
-  cell: RenderedCell,
+  cell: MeasuredCell,
   isSelected: Boolean
 ) {
-  drawRect(color = cellColor(cell.depth), topLeft = cell.topLeft, size = cell.size)
+  drawRect(color = cell.color, topLeft = cell.topLeft, size = cell.size)
   drawRect(
     color = BORDER_COLOR,
     topLeft = cell.topLeft,
@@ -207,21 +178,15 @@ private fun DrawScope.drawCell(
 }
 
 /**
- * Rotates the hue and darkens as nesting deepens, so that a rectangle's depth is readable at a
- * glance. Cycles rather than indexing a palette, because the layout puts no bound on depth.
+ * The layout thresholds in dp. [TreemapLayout][shark.explorer.TreemapLayout] works in pixels, so they
+ * have to be scaled or a rectangle that's big enough to subdivide on one display is too small on
+ * another.
  */
-private fun cellColor(depth: Int): Color = Color.hsv(
-  hue = (BASE_HUE + depth * HUE_STEP) % 360f,
-  saturation = 0.28f,
-  value = (0.98f - depth * 0.05f).coerceAtLeast(0.55f)
-)
+internal val MIN_SUBDIVIDE_WIDTH = 40.dp
+internal val MIN_SUBDIVIDE_HEIGHT = 24.dp
+internal val MIN_DRAW_SIZE = 3.dp
+internal val HEADER_HEIGHT = 18.dp
 
-private const val BASE_HUE = 205f
-private const val HUE_STEP = 47f
-private val MIN_SUBDIVIDE_WIDTH = 40.dp
-private val MIN_SUBDIVIDE_HEIGHT = 24.dp
-private val MIN_DRAW_SIZE = 3.dp
-private val HEADER_HEIGHT = 18.dp
 private val LABEL_PADDING = 3.dp
 private val MIN_LABEL_WIDTH = 24.dp
 private val MIN_LABEL_HEIGHT = 13.dp

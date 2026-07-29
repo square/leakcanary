@@ -1,13 +1,17 @@
 package shark.explorer.app
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -21,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -28,10 +33,9 @@ import androidx.compose.ui.window.rememberWindowState
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import shark.SharkLog
-import shark.explorer.HeapTreemap
+import shark.explorer.HeapSizes
+import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
 
 fun main(args: Array<String>) {
@@ -72,6 +76,7 @@ fun ExplorerApp(
 ) {
   var requestedFile: File? by remember { mutableStateOf(initialHeapDumpFile) }
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
+  var followedStrengths: Set<ReachabilityStrength> by remember { mutableStateOf(emptySet()) }
 
   LaunchedEffect(requestedFile) {
     val file = requestedFile
@@ -81,10 +86,11 @@ fun ExplorerApp(
     }
     state = HeapDumpState.Opening(file, "Opening ${file.name}")
     state = try {
-      val treemap = withContext(Dispatchers.Default) {
-        HeapTreemap.open(file) { step -> state = HeapDumpState.Opening(file, step) }
+      val session = HeapDumpSession.open(file) { step ->
+        state = HeapDumpState.Opening(file, step)
       }
-      HeapDumpState.Open(treemap).also { opened -> SharkLog.d { opened.statusLine() } }
+      val sizes = session.read { it.sizes }
+      HeapDumpState.Open(session, sizes).also { SharkLog.d { it.statusLine() } }
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not open $file" }
       HeapDumpState.Failed(file, throwable.toString())
@@ -94,16 +100,18 @@ fun ExplorerApp(
   val currentState = state
   // Opening another heap dump replaces this state, which is when the previous one has to be closed.
   DisposableEffect(currentState) {
-    onDispose { (currentState as? HeapDumpState.Open)?.treemap?.close() }
+    onDispose { (currentState as? HeapDumpState.Open)?.session?.close() }
   }
 
   Column(Modifier.fillMaxSize()) {
     TopBar(
       state = currentState,
-      onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } }
+      followedStrengths = followedStrengths,
+      onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } },
+      onFollowedStrengthsChange = { followedStrengths = it }
     )
     if (currentState is HeapDumpState.Open) {
-      HeapDumpExplorer(currentState.treemap, Modifier.weight(1f))
+      HeapDumpExplorer(currentState.session, followedStrengths, Modifier.weight(1f))
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
@@ -125,7 +133,7 @@ private sealed interface HeapDumpState {
 
   object None : HeapDumpState
 
-  /** [step] describes what [HeapTreemap.open] is currently doing, which takes a while. */
+  /** [step] describes what opening the heap dump is currently doing, which takes a while. */
   data class Opening(
     val file: File,
     val step: String
@@ -136,24 +144,88 @@ private sealed interface HeapDumpState {
     val message: String
   ) : HeapDumpState
 
-  data class Open(val treemap: HeapTreemap) : HeapDumpState
+  data class Open(
+    val session: HeapDumpSession,
+    val sizes: HeapSizes
+  ) : HeapDumpState
 }
 
 @Composable
 private fun TopBar(
   state: HeapDumpState,
-  onOpenClick: () -> Unit
+  followedStrengths: Set<ReachabilityStrength>,
+  onOpenClick: () -> Unit,
+  onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit
 ) {
   Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
-    Row(
-      Modifier.fillMaxWidth().padding(8.dp),
-      horizontalArrangement = Arrangement.spacedBy(12.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Button(onClick = onOpenClick) {
-        Text(OPEN_HEAP_DUMP)
+    Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Button(onClick = onOpenClick) {
+          Text(OPEN_HEAP_DUMP)
+        }
+        Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
       }
-      Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
+      if (state is HeapDumpState.Open) {
+        StrengthCheckboxes(
+          sizes = state.sizes,
+          followedStrengths = followedStrengths,
+          onFollowedStrengthsChange = onFollowedStrengthsChange
+        )
+      }
+    }
+  }
+}
+
+/**
+ * A checkbox per reachability strength beyond strong, all off to begin with: following one rebuilds the
+ * dominator tree, and the strongly reachable heap is what you want to look at first.
+ *
+ * Each one carries the colour its rectangles get, which is the only place the colours are named.
+ */
+@Composable
+private fun StrengthCheckboxes(
+  sizes: HeapSizes,
+  followedStrengths: Set<ReachabilityStrength>,
+  onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit
+) {
+  Row(
+    horizontalArrangement = Arrangement.spacedBy(4.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Text(
+      "Follow",
+      style = MaterialTheme.typography.labelLarge,
+      modifier = Modifier.padding(end = 4.dp)
+    )
+    ReachabilityStrength.values().forEach { strength ->
+      // Strong references are always followed: without them there is no graph to walk.
+      val isStrong = strength == ReachabilityStrength.STRONG
+      val checked = isStrong || strength in followedStrengths
+      Row(
+        // The whole thing is one toggle, label included, so clicking the name works too.
+        Modifier.toggleable(
+          value = checked,
+          enabled = !isStrong,
+          role = Role.Checkbox,
+          onValueChange = { isChecked ->
+            onFollowedStrengthsChange(
+              if (isChecked) followedStrengths + strength else followedStrengths - strength
+            )
+          }
+        ).padding(end = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Checkbox(checked = checked, enabled = !isStrong, onCheckedChange = null)
+        Box(Modifier.size(SWATCH_SIZE).background(legendColor(strength)))
+        Text(
+          "${strength.displayName} ${formatByteSize(sizes.byteCountByStrength.getValue(strength))}",
+          style = MaterialTheme.typography.bodySmall
+        )
+      }
     }
   }
 }
@@ -162,11 +234,10 @@ private fun HeapDumpState.statusLine(): String = when (this) {
   HeapDumpState.None -> ""
   is HeapDumpState.Opening -> step
   is HeapDumpState.Failed -> "Could not open ${file.name}"
-  is HeapDumpState.Open -> with(treemap) {
-    val objectCount = summarize(root).retainedCount
-    "${heapDumpFile.name} · ${formatByteSize(weight(root))} strongly reachable in $objectCount " +
-      "objects"
-  }
+  is HeapDumpState.Open -> "${session.heapDumpFile.name} · " +
+    "${formatByteSize(sizes.totalByteCount)} total · " +
+    "${formatByteSize(sizes.reachableByteCount)} reachable · " +
+    "${formatByteSize(sizes.unreachableByteCount)} unreachable"
 }
 
 private fun HeapDumpState.centerMessage(): String = when (this) {

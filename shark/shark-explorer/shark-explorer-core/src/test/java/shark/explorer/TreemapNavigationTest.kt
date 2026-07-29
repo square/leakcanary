@@ -44,6 +44,26 @@ class TreemapNavigationTest {
     assertThat(navigation.zoomOut()).isEqualTo(navigation)
   }
 
+  @Test fun `a path is cut where a node is gone`() {
+    val navigation = TreemapNavigation("root").zoomInto("a").zoomInto("b").zoomInto("c")
+
+    val retained = navigation.retainingWhere { it != "b" }
+
+    assertThat(retained.path).containsExactly("root", "a")
+  }
+
+  @Test fun `a path whose nodes are all still there is unchanged`() {
+    val navigation = TreemapNavigation("root").zoomInto("a").zoomInto("b")
+
+    assertThat(navigation.retainingWhere { true }).isSameAs(navigation)
+  }
+
+  @Test fun `the root is kept even when it is gone`() {
+    val navigation = TreemapNavigation("root").zoomInto("a")
+
+    assertThat(navigation.retainingWhere { false }.path).containsExactly("root")
+  }
+
   @Test fun `an empty path is rejected`() {
     assertThatThrownBy { TreemapNavigation(emptyList<String>()) }
       .isInstanceOf(IllegalArgumentException::class.java)

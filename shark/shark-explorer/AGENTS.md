@@ -25,9 +25,21 @@ and can't be shared with Android, so it should be limited to composables and wir
 — a cross edge can be processed while the parent's dominator is still stale, so retained sizes get
 under-attributed. Don't build on it.
 
-`shark.HeapDominatorTree` is the exact one, which is what `HeapTreemap` uses. See
+`shark.HeapDominatorTree` is the exact one, which is what `HeapExplorer` uses. See
 `notes/dominator-tree.md` for its memory profile and for the reference reader behaviour that makes a
 treemap read strangely until you know about it.
+
+## One thread reads the heap dump
+
+`HprofHeapGraph` has a single read cursor and a single LRU cache, so it is **not safe to use from two
+threads**. Everything that touches a `HeapExplorer` — building a tree, laying it out, labelling a
+rectangle, summarising a selection — therefore goes through `HeapDumpSession.read`, which confines it
+to one thread of its own. Calling into `HeapExplorer` from a composable would work right up until it
+corrupted a read.
+
+What follows for the UI: a composable never holds a tree, only what was already computed from one. A
+laid out, labelled treemap is a `TreemapPresentation`, and a selection is a `HeapObjectSummary`; both
+arrive a little after whatever asked for them changed.
 
 ## Gradle facts that aren't visible from these build scripts
 

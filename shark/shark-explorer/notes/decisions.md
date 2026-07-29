@@ -38,6 +38,30 @@ Note that `AndroidReferenceReaderFactory` and `AndroidObjectSizeCalculator`, whi
 makes the graph and the sizes right for an Android heap dump, are both in `shark` despite the names.
 So the dependency is not what gets those.
 
+## The heap dump gets a thread of its own
+
+`HprofHeapGraph` has one read cursor and one LRU cache, so it can only be used from one thread, and
+the work is far too slow for the UI thread anyway: opening a 24 MB dump indexes it and then walks
+reachability, and following a weaker strength rebuilds the dominator tree from scratch.
+
+`HeapDumpSession` owns a single thread executor and a `HeapExplorer`, and `read { }` is the only way
+in. Confinement is then structural rather than a convention: the UI cannot touch the graph even by
+accident, because it never has a reference to it. A composable holds `TreemapPresentation`s and
+`HeapObjectSummary`s — values computed on that thread — and shows a spinner while the next one is on
+its way.
+
+Cost of that choice: the layout runs on the heap dump's thread too, because labelling a rectangle
+reads the object it stands for. Resizing the window therefore queues behind whatever else that thread
+is doing. Acceptable while a rebuild is the slow operation; if layout ever becomes the bottleneck, the
+labels would have to be read separately from the geometry.
+
+## One dominator tree at a time
+
+`HeapExplorer.treeFor(followedStrengths)` caches exactly one tree, and drops it before building the
+next. A `Map<Long, DominatorNode>` for a large dump is 100+ MB (see `dominator-tree.md`), so caching
+per strength combination — 16 of them — trades an interaction the user does rarely against memory the
+app can't spare. Toggling a checkbox back and forth therefore recomputes.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real

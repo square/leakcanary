@@ -36,4 +36,15 @@ data class TreemapNavigation<N>(val path: List<N>) {
 
   fun zoomOut(): TreemapNavigation<N> =
     if (canZoomOut) TreemapNavigation(path.dropLast(1)) else this
+
+  /**
+   * The longest prefix of this path that [isStillThere] accepts, keeping the root whatever it says.
+   *
+   * Following a weaker reference strength rebuilds the tree, and an object that was zoomed into may
+   * not be a node of the new one, or may no longer be dominated by the node above it on the path.
+   */
+  fun retainingWhere(isStillThere: (N) -> Boolean): TreemapNavigation<N> {
+    val retained = path.drop(1).takeWhile(isStillThere)
+    return if (retained.size == path.size - 1) this else TreemapNavigation(listOf(path[0]) + retained)
+  }
 }

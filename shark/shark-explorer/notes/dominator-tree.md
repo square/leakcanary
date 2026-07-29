@@ -14,8 +14,9 @@ is still `a`.
 
 ## How the explorer uses it
 
-`HeapTreemap` calls `HeapDominatorTree.buildFor` with `AndroidReferenceReaderFactory`, then
-`buildNodes` with `AndroidObjectSizeCalculator`.
+`HeapExplorer.treeFor` calls `HeapDominatorTree.buildFor` with a
+`StrengthFilteringReferenceReader` wrapping `ActualMatchingReferenceReaderFactory`, then `buildNodes`
+with `AndroidObjectSizeCalculator`.
 
 **Which reference matchers go in matters, and it isn't "none".** The matchers do two unrelated jobs,
 and only one of them belongs here:
@@ -28,10 +29,15 @@ and only one of them belongs here:
   meaning anything. **Required.**
 - `AndroidReferenceMatchers` mostly suppresses noise so a leak trace stays readable. Those are real
   strong references, so ignoring them here would hide memory that really is retained. **Left out.**
+  This is why `ActualMatchingReferenceReaderFactory` and not `AndroidReferenceReaderFactory`: the
+  latter also installs `FlatteningPartitionedInstanceReferenceReader`, which surfaces a map's or
+  list's internals as direct children of the collection and marks them leaf objects. Good for a leak
+  trace, wrong here — a treemap needs every object to be a node exactly once, and the array a
+  `HashMap` actually holds has to be a node of its own or its bytes land nowhere.
 
-Consequence worth stating plainly: an object only a weak reference points at is **absent from the
-treemap entirely**, so the root doesn't add up to the size of the heap dump. Showing that space as its
-own region is a wanted feature, not done yet — see below for why it's not a one liner.
+The strengths the reader follows are a parameter, which is what the checkboxes in the UI change. With
+none of them, an object only a weak reference points at is **absent from the treemap entirely**, so
+the root doesn't add up to the size of the heap dump; `HeapSizes` accounts for the rest.
 
 Two more reference reader behaviours that surprise you when reading a treemap:
 
@@ -39,25 +45,37 @@ Two more reference reader behaviours that surprise you when reading a treemap:
   skips the `value` field, and `ShallowSizeCalculator` adds the array's bytes to the string instead.
 - Primitive wrapper arrays are folded into their array the same way.
 
-## `ObjectDominators` has the weak reference bug
+## Reachability strength
 
-`ObjectDominators.buildDominatorTree(graph, ignoredRefs)` passes `ignoredRefs` to
-`MatchingGcRootProvider` only — its reference reader is hardcoded to
-`ActualMatchingReferenceReaderFactory(emptyList())`. So it follows weak references no matter what is
-passed in, and `shark-cli`'s dominator output over-attributes retained size because of it. Not fixed
-here because the explorer doesn't go through that API.
+`HeapReachability` classifies every reachable object as `STRONG`, `SOFT`, `WEAK`, `FINALIZER` or
+`PHANTOM`, per `java.lang.ref`. Two things make this more than a flag per reference:
 
-## Showing what isn't strongly reachable
+**An object's strength is the strongest of its weakest links.** A path is only as strong as its
+weakest reference, and the object gets the best path available — a max-min (widest path) problem, not
+a shortest path one. Implemented as one BFS queue per strength, drained strongest first, so an object
+found strongly is never revisited weakly. `FINALIZER` sits between `WEAK` and `PHANTOM`: on Android
+`java.lang.ref.FinalizerReference extends PhantomReference` and holds its referent through `zombie`
+while it's being finalized, and OpenJDK's package-private `java.lang.ref.Finalizer` extends
+`FinalReference`.
 
-The obvious implementation — sum the sizes of every object in the dump that isn't a key of the
-dominator tree — is **wrong**, and measurably so: it comes out 48 bytes too high on a two object test
-dump. The folded objects above (a string's char array) are in no dominator tree either, and their
-bytes are already counted inside the object they were folded into, so they get counted twice.
+**Unreachable bytes come out of arithmetic, not a second walk.** `unreachable = totalRaw + totalNative
+− Σ computeSize(reached)`, where `totalRaw` sums `byteSize`/`recordSize` over every object in the dump
+(from the index, so no IO) and `totalNative` is `AndroidNativeSizeMapper`. This works *because* of the
+folding above: the folded objects are in no walk, and their bytes are already inside the referrer's
+`computeSize`, so `Σ_reached computeSize == Σ_(reached ∪ folded) rawShallowSize` and they cancel.
+Diffing id sets instead double counts them — measurably, 48 bytes on a two object test dump.
 
-The version that works: walk reachability twice, once with the strength matchers and once without,
-and diff the two id sets. Folded objects are absent from both walks, so the diff is exactly the
-weakly, softly and phantom reachable objects. Costs a second DFS over the whole graph. Truly
-unreachable garbage still needs the folding problem solved to be measured.
+Known limitation: a folded array that something *else* also points at is counted both inside its
+referrer and as a node of its own, which makes `unreachableByteCount` come out low by that much.
+
+## `ObjectDominators` had the same weak reference bug
+
+`ObjectDominators.buildDominatorTree(graph, ignoredRefs)` used to pass `ignoredRefs` to
+`MatchingGcRootProvider` only — its reference reader was hardcoded to
+`ActualMatchingReferenceReaderFactory(emptyList())`, so it followed weak references and the finalizer
+list links no matter what was passed in. Fixed in PR #2877. Nothing in the repo actually consumed the
+sizes (`HprofRetainedHeapPerfTest` only renders the tree as an assertion description), so no frozen
+number moved.
 
 ## Cost
 
