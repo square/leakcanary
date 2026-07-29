@@ -148,7 +148,6 @@ public final class shark/HeapObject$HeapPrimitiveArray : shark/HeapObject {
 	public fun getObjectIndex ()I
 	public final fun getPrimitiveType ()Lshark/PrimitiveType;
 	public fun getRecordSize ()J
-	public final fun readByteSize ()J
 	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord;
 	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
 	public fun toString ()Ljava/lang/String;
