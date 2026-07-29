@@ -722,6 +722,10 @@ public final class shark/OpenJdkReferenceReaderFactory : shark/ReferenceReader$F
 	public fun createFor (Lshark/HeapGraph;)Lshark/ReferenceReader;
 }
 
+public final class shark/OutOfMemoryKt {
+	public static final fun outOfMemoryOrNull (Ljava/lang/Throwable;)Ljava/lang/OutOfMemoryError;
+}
+
 public final class shark/PathFindingResults {
 	public fun <init> (Ljava/util/List;Landroidx/collection/LongObjectMap;Landroidx/collection/LongObjectMap;)V
 	public final fun getPathsToLeakingObjects ()Ljava/util/List;

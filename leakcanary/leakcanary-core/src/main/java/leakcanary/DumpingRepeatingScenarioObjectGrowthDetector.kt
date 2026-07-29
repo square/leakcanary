@@ -1,6 +1,7 @@
 package leakcanary
 
 import java.io.File
+import leakcanary.HeapDumpStorageStrategy.DeleteOnHeapDumpClose
 import shark.HeapDiff
 import shark.HeapTraversalInput
 import shark.HeapTraversalOutput
@@ -32,7 +33,15 @@ class DumpingRepeatingScenarioObjectGrowthDetector(
       findRepeatedlyGrowingObjectsInner(scenarioLoopsPerDump, maxHeapDumps, roundTripScenario)
     } catch (exception: Throwable) {
       heapDumpStorageStrategy.onHeapDiffResult(Result.failure(exception))
-      throw exception
+      val outOfMemoryGuidance = heapGrowthOutOfMemoryGuidanceOrNull(
+        failure = exception,
+        heapDumpsDeleted = heapDumpStorageStrategy is DeleteOnHeapDumpClose
+      )
+      throw if (outOfMemoryGuidance == null) {
+        exception
+      } else {
+        RuntimeException(outOfMemoryGuidance, exception)
+      }
     }
     heapDumpStorageStrategy.onHeapDiffResult(Result.success(heapDiff))
     return heapDiff
