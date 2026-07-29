@@ -6,6 +6,7 @@ import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength
+import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.FINALIZER
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
@@ -169,6 +170,7 @@ private fun shaded(
 internal val ReachabilityStrength.displayName: String
   get() = when (this) {
     STRONG -> "Strong"
+    CACHE -> "Cache"
     SOFT -> "Soft"
     WEAK -> "Weak"
     FINALIZER -> "Finalizer"
@@ -179,15 +181,28 @@ internal val ReachabilityStrength.displayName: String
 internal val ReachabilityStrength.reachabilityText: String
   get() = when (this) {
     STRONG -> "Strongly reachable"
+    CACHE -> "Held only by a cache that evicts"
     SOFT -> "Softly reachable"
     WEAK -> "Weakly reachable"
     FINALIZER -> "Reachable only from the finalizer queue"
     PHANTOM -> "Phantom reachable"
   }
 
+/** How the details panel names the kind of reference one object holds another with. */
+internal val ReachabilityStrength.referenceText: String
+  get() = when (this) {
+    STRONG -> "strong reference"
+    CACHE -> "cache entry"
+    SOFT -> "soft reference"
+    WEAK -> "weak reference"
+    FINALIZER -> "finalizer queue"
+    PHANTOM -> "phantom reference"
+  }
+
 private val ReachabilityStrength.hue: Float
   get() = when (this) {
     STRONG -> 210f
+    CACHE -> 130f
     SOFT -> 35f
     WEAK -> 285f
     FINALIZER -> 0f

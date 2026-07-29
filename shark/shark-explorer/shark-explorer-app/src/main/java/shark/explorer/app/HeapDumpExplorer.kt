@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,6 +47,7 @@ import shark.explorer.PathStep
 import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
 import shark.explorer.ReachabilityStrength
+import shark.explorer.Referrer
 import shark.explorer.TreemapLayout
 import shark.explorer.TreemapNavigation
 import shark.explorer.TreemapPresentation
@@ -436,6 +438,13 @@ private fun ObjectDetails(
 ) {
   Text(summary.label, style = MaterialTheme.typography.titleMedium, overflow = TextOverflow.Ellipsis)
   Text(summary.className, style = MaterialTheme.typography.bodySmall)
+  if (summary.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID) {
+    // Selectable so it can be copied out: an object id is how you point something else — a script, a
+    // colleague, a bug report — at this one instance rather than at its class.
+    SelectionContainer {
+      Text(objectIdText(summary.objectId), style = MaterialTheme.typography.bodySmall)
+    }
+  }
   summary.headline?.let { headline ->
     Text(headline, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
   }
@@ -479,21 +488,34 @@ private fun Referrers(
     Text(SEARCHING_REFERRERS, style = MaterialTheme.typography.bodySmall)
     return
   }
-  if (referrers.isDominatedByRoot && referrers.referrerCount > 1) {
+  if (referrers.isDominatedByRoot && referrers.holdingReferrerCount > 1) {
     Text(
-      SHARED_EXPLANATION.format(referrers.referrerCount),
+      SHARED_EXPLANATION.format(referrers.holdingReferrerCount),
       style = MaterialTheme.typography.bodySmall
     )
   }
   referrers.referrers.forEach { referrer ->
     val label = referrer.fieldName?.let { "${referrer.label}.$it" } ?: referrer.label
-    Inspectable(label, referrer.inspectableObjectId, onInspect)
+    Inspectable(label + referrer.weakeningNote(), referrer.inspectableObjectId, onInspect)
   }
   if (referrers.hiddenReferrerCount > 0) {
     Text(
       "and ${referrers.hiddenReferrerCount} more",
       style = MaterialTheme.typography.bodySmall
     )
+  }
+}
+
+/**
+ * Why a referrer might be nowhere in the chains below: it holds the object without being what keeps it
+ * in memory. Empty for an ordinary reference, which is nearly all of them.
+ */
+private fun Referrer.weakeningNote(): String {
+  val strength = weakeningStrength ?: return ""
+  return " · " + when {
+    isFollowed -> "${strength.referenceText}, and the strongest thing holding it"
+    strength == ReachabilityStrength.CACHE -> CACHED_REFERRER_NOTE
+    else -> "${strength.referenceText}, which doesn't keep it in memory"
   }
 }
 
@@ -520,11 +542,9 @@ private fun WhatHoldsIt(
     Text(NO_PATHS, style = MaterialTheme.typography.bodySmall)
     return
   }
-  Text(
-    holdingPaths.commonHolderLabel?.let { COMMON_HOLDER_EXPLANATION.format(it) }
-      ?: NO_COMMON_HOLDER_EXPLANATION,
-    style = MaterialTheme.typography.bodySmall
-  )
+  val explanation = holdingPaths.commonHolderLabel?.let { COMMON_HOLDER_EXPLANATION.format(it) }
+    ?: NO_COMMON_HOLDER_EXPLANATION.takeIf { holdingPaths.isDominatedByRoot }
+  explanation?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
   holdingPaths.paths.forEachIndexed { index, path ->
     Text(
       "Path ${index + 1} of ${holdingPaths.paths.size} · ${path.gcRootLabel}",
@@ -627,8 +647,21 @@ private fun Detail(
   }
 }
 
+/**
+ * How the panel prints an object id: decimal, which is what Shark's own APIs take, and hex, which is
+ * what a heap dump records and every other heap analyzer prints.
+ */
+internal fun objectIdText(objectId: Long): String = "id $objectId · 0x${objectId.toString(16)}"
+
 /** Shown by the details panel until something is selected. */
 internal const val NO_SELECTION = "Click a rectangle or a sector to see what it retains."
+
+/**
+ * What a cache holding an object means when something else holds it too: the bytes are the something
+ * else's, which is the whole point of treating a cache as weaker than a strong reference.
+ */
+internal const val CACHED_REFERRER_NOTE =
+  "a cache that evicts, so this isn't what keeps it in memory"
 
 /** Shown while the pass over the heap dump that finds the referrers is still running. */
 internal const val SEARCHING_REFERRERS = "Reading the heap dump…"

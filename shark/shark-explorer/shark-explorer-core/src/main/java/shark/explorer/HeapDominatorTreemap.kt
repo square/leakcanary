@@ -297,17 +297,28 @@ class HeapDominatorTreemap internal constructor(
    */
   fun referrersOf(objectId: Long): ObjectReferrers {
     var totalCount = 0
+    var holdingCount = 0
     val referrers = mutableListOf<Referrer>()
-    fun add(referrer: () -> Referrer) {
+    fun add(
+      isHolding: Boolean,
+      referrer: () -> Referrer
+    ) {
       totalCount++
+      if (isHolding) {
+        holdingCount++
+      }
       if (referrers.size < MAX_REFERRERS) {
         referrers += referrer()
       }
     }
+    // Whether the tree follows a reference that doesn't retain depends on the object it points at, not
+    // on the reference: it's followed only when it's the strongest thing reaching it. So this is one
+    // answer for all of them. See [StrengthFilteringReferenceReader].
+    val followsWeakening = strengthOf(objectId) in followedStrengths
     graph.gcRoots
       .filter { it.id == objectId }
       .forEach { gcRoot ->
-        add {
+        add(isHolding = true) {
           Referrer(
             label = gcRootLabel(gcRoot),
             fieldName = null,
@@ -319,26 +330,35 @@ class HeapDominatorTreemap internal constructor(
       strengthReader.retainingReferencesOf(heapObject)
         .filter { it.valueObjectId == objectId }
         .forEach { reference ->
-          add { referrer(heapObject, reference.lazyDetailsResolver.resolve().name) }
+          add(isHolding = true) { referrer(heapObject, reference.lazyDetailsResolver.resolve().name) }
         }
       strengthReader.weakeningReferencesOf(heapObject)
         .filter { it.valueObjectId == objectId }
-        .forEach { weakening -> add { referrer(heapObject, weakening.fieldName) } }
+        .forEach { weakening ->
+          add(isHolding = followsWeakening) {
+            referrer(heapObject, weakening.fieldName, weakening.strength, followsWeakening)
+          }
+        }
     }
     return ObjectReferrers(
       isDominatedByRoot = objectId != root && objectId in rootDominatedIds,
       referrers = referrers,
+      holdingReferrerCount = holdingCount,
       hiddenReferrerCount = totalCount - referrers.size
     )
   }
 
   private fun referrer(
     heapObject: HeapObject,
-    fieldName: String
+    fieldName: String,
+    weakeningStrength: ReachabilityStrength? = null,
+    isFollowed: Boolean = true
   ) = Referrer(
     label = label(heapObject.objectId),
     fieldName = fieldName,
-    inspectableObjectId = heapObject.objectId.takeIf { it in nodes }
+    inspectableObjectId = heapObject.objectId.takeIf { it in nodes },
+    weakeningStrength = weakeningStrength,
+    isFollowed = isFollowed
   )
 
   /**
@@ -353,13 +373,18 @@ class HeapDominatorTreemap internal constructor(
    * how many holders it didn't follow: something like a boxed `true` is held from tens of thousands of
    * places, and no panel is going to show them.
    *
-   * Costs up to [MAX_HOLDER_LEVELS] passes over the heap dump plus a walk from the GC roots — a couple of
-   * seconds on a large dump — so it belongs off the UI thread and behind its own placeholder, like
-   * [referrersOf]. An object with an owner costs the walk alone: one path says all there is to say.
+   * Costs a pass over the heap dump per level it forks at, plus a walk from the GC roots — a few seconds
+   * on a large dump — so it belongs off the UI thread and behind its own placeholder, like [referrersOf].
    */
   fun holdingPathsTo(objectId: Long): HoldingPaths {
     if (objectId == root || objectId !in nodes) {
-      return HoldingPaths(emptyList(), null, null, hiddenPathCount = 0)
+      return HoldingPaths(
+        paths = emptyList(),
+        commonHolderObjectId = null,
+        commonHolderLabel = null,
+        isDominatedByRoot = false,
+        hiddenPathCount = 0
+      )
     }
     val tails = tailsToWalkUpFrom(objectId)
     val paths = shortestPathsTo(tails.tailByTipId.keys)
@@ -392,17 +417,20 @@ class HeapDominatorTreemap internal constructor(
    * The objects to ask a path from a GC root for, each with the steps from it back down to the object
    * asked about.
    *
-   * Which objects those are comes out of what the dominator tree already knows: every path to an object
-   * with a dominator goes through that dominator, so one path says everything there is to say about it.
-   * Only an object the root dominates is held more than one way, so that's where the walk up forks, and
-   * it stops as soon as the objects it reaches have an owner.
+   * The object asked about always forks, so that every reference into it gets a chain of its own: a
+   * bitmap a tile holds as the drawable it shows and as the result of the request that loaded it is held
+   * two ways, and both are worth reading even though the tile is the answer to what keeps it around.
+   *
+   * Above it, what forks comes out of what the dominator tree already knows: every path to an object with
+   * a dominator goes through that dominator, so one path says everything there is to say about it. Only
+   * an object the root dominates is held in ways that differ higher up.
    */
   private fun tailsToWalkUpFrom(objectId: Long): Tails {
     val tailByTipId = LinkedHashMap<Long, List<TailStep>>()
     var notFollowedCount = 0
     var frontier = mapOf(objectId to emptyList<TailStep>())
-    repeat(MAX_HOLDER_LEVELS) {
-      val forking = frontier.filterKeys { it in rootDominatedIds }
+    repeat(MAX_HOLDER_LEVELS) { level ->
+      val forking = if (level == 0) frontier else frontier.filterKeys { it in rootDominatedIds }
       tailByTipId += frontier - forking.keys
       if (forking.isEmpty()) {
         return Tails(tailByTipId, notFollowedCount)
@@ -528,7 +556,7 @@ class HeapDominatorTreemap internal constructor(
     isInspectable = objectId in nodes
   )
 
-  /** Counts how many paths go through each step, and picks the deepest one they all go through. */
+  /** Counts how many paths go through each step, and names the one every path goes through. */
   private fun withPathCounts(
     objectId: Long,
     paths: List<HoldingPath>,
@@ -547,18 +575,34 @@ class HeapDominatorTreemap internal constructor(
         }
       )
     }
-    // The object itself is on every path by definition, and saying so about it says nothing. With one
-    // path that leaves the object's owner, which is the honest answer to what keeps it in memory.
+    // The object every path goes through is the object's dominator, and the tree already knows which one
+    // that is. Naming the deepest step the shown paths happen to share instead would be a guess: each
+    // path is only the shortest way to one of the holders, so sharing a step says nothing about the ways
+    // round it that weren't walked. Searched from the object up along the shortest path, which the
+    // dominator is on if it's shown at all, being on all of them.
     val commonHolder = counted.firstOrNull()
       ?.steps
-      ?.lastOrNull { it.objectId != objectId && it.pathCount == counted.size }
+      ?.lastOrNull { it.objectId != objectId && dominates(it.objectId, objectId) }
     return HoldingPaths(
       paths = counted,
       commonHolderObjectId = commonHolder?.objectId,
       commonHolderLabel = commonHolder?.label,
+      isDominatedByRoot = objectId in rootDominatedIds,
       hiddenPathCount = hiddenPathCount
     )
   }
+
+  /**
+   * Whether [holderId] is what the tree attributes [objectId]'s bytes to, which is to say whether every
+   * path to it goes through [holderId].
+   *
+   * A scan of one node's children rather than a reverse index of the whole tree: this is asked of the
+   * handful of objects on one path, and the tree has a node per reachable object.
+   */
+  private fun dominates(
+    holderId: Long,
+    objectId: Long
+  ): Boolean = nodes[holderId]?.dominatedObjectIds?.contains(objectId) == true
 
   /** An array element reads as `[3]`, so that a path can't be read as a field called `3`. */
   private fun referenceName(
@@ -900,10 +944,17 @@ data class ObjectReferrers(
    */
   val isDominatedByRoot: Boolean,
   val referrers: List<Referrer>,
+  /**
+   * How many of the referrers keep the object in memory, which is fewer than [referrerCount] whenever
+   * one of them holds it without retaining it — a `Cleaner` pointing at a bitmap, an entry of a cache.
+   * Those are worth listing, but they aren't why the object is still here, and no path goes through
+   * them.
+   */
+  val holdingReferrerCount: Int,
   /** How many referrers there are beyond the ones in [referrers]. */
   val hiddenReferrerCount: Int
 ) {
-  /** How many objects hold this one, including the ones [referrers] left out. */
+  /** How many references point at this object, including the ones [referrers] left out. */
   val referrerCount: Int get() = referrers.size + hiddenReferrerCount
 }
 
@@ -914,5 +965,16 @@ data class Referrer(
   /** The field holding the reference, null for a GC root. */
   val fieldName: String?,
   /** The referring object, when it's in the tree and can therefore be inspected. */
-  val inspectableObjectId: Long?
+  val inspectableObjectId: Long?,
+  /**
+   * How weakly this reference holds the object when it doesn't simply retain it: a
+   * `java.lang.ref.Reference`'s referent, or an entry of a cache the explorer knows evicts. Null for a
+   * reference that retains, which is nearly all of them.
+   */
+  val weakeningStrength: ReachabilityStrength? = null,
+  /**
+   * Whether the tree follows this reference. False only for a weakening one pointing at an object that
+   * something stronger also holds, which is why nothing explains the object through it.
+   */
+  val isFollowed: Boolean = true
 )

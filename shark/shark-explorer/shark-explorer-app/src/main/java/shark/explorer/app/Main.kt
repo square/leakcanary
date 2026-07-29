@@ -78,7 +78,12 @@ fun ExplorerApp(
 ) {
   var requestedFile: File? by remember { mutableStateOf(initialHeapDumpFile) }
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
-  var followedStrengths: Set<ReachabilityStrength> by remember { mutableStateOf(emptySet()) }
+  // Cache followed to begin with, unlike the java.lang.ref strengths: what a cache holds is really in
+  // memory, so leaving it out would under-report the heap. Following it is also what makes an object a
+  // cache and something else both hold read as the something else's — see [ReachabilityStrength.CACHE].
+  var followedStrengths: Set<ReachabilityStrength> by remember {
+    mutableStateOf(setOf(ReachabilityStrength.CACHE))
+  }
   var shape: ViewShape by remember { mutableStateOf(ViewShape.TREEMAP) }
   var scheme: CellColorScheme by remember { mutableStateOf(CellColorScheme.DAISY) }
 
@@ -208,10 +213,7 @@ private fun TopBar(
             onSelect = onSchemeChange
           )
         }
-        if (state.sizes.byteCountByStrength.none { (strength, byteCount) ->
-            strength != ReachabilityStrength.STRONG && byteCount > 0L
-          }
-        ) {
+        if (REFERENCE_STRENGTHS.none { state.sizes.byteCountByStrength.getValue(it) > 0L }) {
           Text(NOTHING_WEAKER, style = MaterialTheme.typography.bodySmall)
         }
       }
@@ -355,6 +357,13 @@ private fun showHeapDumpFileDialog(): File? {
 
 internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
+
+/**
+ * The strengths a `java.lang.ref.Reference` gives, which is what [NOTHING_WEAKER] is about: a cache is
+ * neither one of those nor something a heap dump would be odd for having nothing of.
+ */
+private val REFERENCE_STRENGTHS = ReachabilityStrength.values()
+  .filter { it != ReachabilityStrength.STRONG && it != ReachabilityStrength.CACHE }
 
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,

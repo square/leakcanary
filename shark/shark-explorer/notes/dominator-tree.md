@@ -135,7 +135,37 @@ attached, so nothing is being wasted — but the retention belongs to the tile, 
 
 The shape generalises: an object's holders often divide into a *cache*, which is bounded and clears
 itself under pressure, and an *owner*, which is a piece of UI or a job. The dominator tree can't tell
-them apart, so it hands the bytes to the root.
+them apart, so it hands the bytes to the root — which is what `ReachabilityStrength.CACHE` is for.
+
+## A cache is not an owner: the `CACHE` strength
+
+The fix for the above is to stop treating a cache's reference as retaining. `CACHE` ranks between
+`STRONG` and `SOFT`, and `ReferenceStrengthReader.CACHE_FIELDS_BY_CLASS_NAME` is the curated list of
+fields it applies to — one entry today, `coil3.memory.RealStrongMemoryCache$InternalValue.image`.
+
+The mechanics fall out of the weak reference machinery that was already there, because the rule the
+explorer wants is exactly the rule for a weak reference: **the target's strength decides**. A weakening
+edge is followed only when nothing stronger reaches the object, so an image a tile also holds is the
+tile's and the cache edge is dropped, while an image nothing else holds stays in the tree, dominated by
+the cache entry and drawn at `CACHE`. Which is what "only keep the cache reference if nothing else is
+there" means, without a line of special casing in the dominator tree.
+
+Followed by default in the app, unlike the `java.lang.ref` strengths: what a cache holds is really in
+memory, so leaving it out would under-report the heap.
+
+Measured on the 82 MB dump: the three 1 MB bitmaps stop being root children and nest under
+`CheckoutGridTile` → `RecyclerView`, which becomes the biggest child of the root at 17 MB. `CACHE` comes
+out at 0 B there, since every cached image is also on screen — the strength changed where the bytes are
+attributed, not how many are reachable.
+
+Two things to know before adding an entry to that list:
+
+- **The class and field names are matched literally**, so a wrong guess doesn't fail, it silently does
+  nothing. Add one only against a heap dump that has it. An obfuscated dump needs its mapping applied
+  first, for the same reason.
+- **Cut as low as the value a cache entry wraps**, not at the cache itself. Cutting at
+  `InternalValue.image` leaves the map, the entries and the size bookkeeping strongly held by the cache,
+  where they belong, and moves only the images.
 
 ## Spelling out what holds an object
 
@@ -143,13 +173,19 @@ them apart, so it hands the bytes to the root.
 references per way the object is held, which is what the tree leaves open. Three things about how it
 gets there, none of them obvious from the code alone:
 
-**Where to fork comes out of the dominator tree.** Every path to an object with a dominator goes through
-that dominator — that's what dominance is — so one path says everything there is to say about it. Only an
-object the *root* dominates is held more than one way, so that's the only place the walk up forks, and it
-stops as soon as it reaches objects that have an owner. On the bitmap above that's two forks: the bitmap
-forks to the `BitmapImage` and the drawable's state, and the `BitmapImage` forks to Coil's cache entry
-and the tile's request result. Each fork costs a pass over the heap dump, and this is what keeps the
-number of passes down to what the sharing actually needs.
+**Where to fork above the object comes out of the dominator tree.** The object itself always forks, one
+chain per reference into it. Above it, every path to an object with a dominator goes through that
+dominator — that's what dominance is — so one path says everything there is to say about it, and only an
+object the *root* dominates is held in ways that differ higher up. That's the only place the walk forks
+again. Each level that forks costs a pass over the heap dump, so this is what keeps the number of passes
+down to what the sharing actually needs.
+
+**What every path goes through is the dominator, not the deepest shared step.** Counting how many shown
+paths a step is on says where the paths join, but not that the object is held through it: each path is
+only the *shortest* way to one holder, so a step they share may still have ways round it that were never
+walked. `withPathCounts` therefore asks the tree — the deepest step on the shortest path that dominates
+the object. On the bitmap under a tile, both chains run through the view and the image respectively,
+deeper than the tile, and the tile is still the only correct answer.
 
 **A path that loops back through the object isn't a way of holding it.** An `AppCompatImageView` has
 seven referrers, five of which are helpers it created that point back at it. Following those produced
@@ -161,19 +197,21 @@ through the object cut it to the two real ones.
 and it reports the tile only. Hence a second walk for whatever went missing, without the targets that
 swallowed it.
 
-Cost on the 82 MB dump: **~3.4 s** for a shared object (two referrer passes plus the walk from the GC
-roots), ~1 s for an owned one. Worth knowing before this moves anywhere near being computed eagerly: a
-reverse index built once per tree would make it instant, at the price of an edge-sized structure — the
-same predecessor lists `HeapDominatorTree` builds and throws away.
+Cost on the 82 MB dump: **~2.3 s** for the bitmap above (one referrer pass plus the walk from the GC
+roots), **~3.4 s** when a holder is shared as well and a second pass is needed. Worth knowing before this
+moves anywhere near being computed eagerly: a reverse index built once per tree would make the passes
+instant, at the price of an edge-sized structure — the same predecessor lists `HeapDominatorTree` builds
+and throws away. The walk from the GC roots is the other ~1.7 s and wouldn't be helped by it.
 
-The open design question is whether the explorer should go further and *treat* cache edges differently —
-a curated matcher list, handled like a reachability strength between `STRONG` and `SOFT`, so that a
-cached-but-owned object nests under its owner instead of flattening to the root. Not decided.
+A referrer that holds the object without keeping it in memory is on none of the chains, which reads as a
+bug unless the panel says so: a bitmap's referrers are its `Cleaner`, phantom and therefore on no path,
+plus the two that hold it. Hence `Referrer.weakeningStrength` and `ObjectReferrers.holdingReferrerCount`.
 
 ## Reachability strength
 
-`HeapReachability` classifies every reachable object as `STRONG`, `SOFT`, `WEAK`, `FINALIZER` or
-`PHANTOM`, per `java.lang.ref`. Two things make this more than a flag per reference:
+`HeapReachability` classifies every reachable object as `STRONG`, `CACHE`, `SOFT`, `WEAK`, `FINALIZER` or
+`PHANTOM` — `java.lang.ref`'s strengths plus the one above. Two things make this more than a flag per
+reference:
 
 **An object's strength is the strongest of its weakest links.** A path is only as strong as its
 weakest reference, and the object gets the best path available — a max-min (widest path) problem, not

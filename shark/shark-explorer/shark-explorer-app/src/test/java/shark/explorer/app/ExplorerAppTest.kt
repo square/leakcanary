@@ -36,6 +36,7 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.ReachabilityStrength
+import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.WEAK
@@ -46,6 +47,9 @@ class ExplorerAppTest {
 
   @get:Rule
   var testFolder = TemporaryFolder()
+
+  /** The object id of the array in [testHeapDump], recorded as the dump is written. */
+  private var payloadObjectId = 0L
 
   @Test fun `nothing is open until a heap dump is chosen`() {
     runComposeUiTest {
@@ -111,6 +115,18 @@ class ExplorerAppTest {
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(NO_SELECTION).assertDoesNotExist()
       onNodeWithText(STRONG.reachabilityText).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `the details panel says which instance was pressed`() {
+    runComposeUiTest {
+      openHeapDump()
+
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+
+      // An object id is how you point something outside the app — a script, a bug report — at this one
+      // instance rather than at its class, so the panel prints the one it's describing.
+      waitUntilAtLeastOneExists(hasText(objectIdText(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -301,6 +317,35 @@ class ExplorerAppTest {
     }
   }
 
+  @Test fun `what a cache holds is followed to begin with, and unfollowing it shrinks the treemap`() {
+    runComposeUiTest {
+      // Nothing but Coil's memory cache holds the image in this heap dump, so it's in the treemap only
+      // because the cache strength is followed.
+      openHeapDump(coilCachedImageHeapDump(alsoShownByATile = false))
+      val withTheCache = rootCrumb()
+      strengthToggle(CACHE).assertIsOn().assertIsEnabled()
+
+      strengthToggle(CACHE).performClick()
+
+      strengthToggle(CACHE).assertIsOff()
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { rootCrumb() != withTheCache }
+    }
+  }
+
+  @Test fun `a cache holding an image says it isn't what keeps it in memory`() {
+    runComposeUiTest {
+      // Here the tile showing the image holds it too, so the cache is not the answer to what keeps it
+      // around — and the panel has to say so, since the cache is on none of the paths.
+      openHeapDump(coilCachedImageHeapDump(alsoShownByATile = true))
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      waitUntilAtLeastOneExists(hasText("BitmapImage.bitmap", substring = true), OPEN_TIMEOUT_MILLIS)
+
+      onNodeWithText("BitmapImage.bitmap", substring = true).performClick()
+
+      waitUntilAtLeastOneExists(hasText(CACHED_REFERRER_NOTE, substring = true), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
   @Test fun `strong references cannot be unfollowed`() {
     runComposeUiTest {
       openHeapDump()
@@ -393,8 +438,10 @@ class ExplorerAppTest {
     val file = testFolder.newFile("heap.hprof")
     file.dump {
       val holder = "com.example.Holder" instance {
-        field["payload"] =
+        val payload =
           ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
+        payloadObjectId = payload.value
+        field["payload"] = payload
       }
       val weakReference = "java.lang.ref.WeakReference" instance {
         field["referent"] = ReferenceHolder(
@@ -403,6 +450,32 @@ class ExplorerAppTest {
       }
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
       gcRoot(JniGlobal(id = weakReference.value, jniGlobalRefId = 1))
+    }
+    return file
+  }
+
+  /**
+   * A heap dump shaped like the one [ReachabilityStrength.CACHE] came from, built of the real class and
+   * field names Coil's memory cache is made of, because that is what the explorer matches on. With
+   * [alsoShownByATile] a tile showing the image holds it too, so the cache isn't what keeps it around.
+   */
+  private fun coilCachedImageHeapDump(alsoShownByATile: Boolean): File {
+    val file = testFolder.newFile("coil-cached-image-$alsoShownByATile.hprof")
+    file.dump {
+      val pixels =
+        ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
+      val image = "coil3.BitmapImage" instance { field["bitmap"] = pixels }
+      val cacheEntry =
+        "coil3.memory.RealStrongMemoryCache\$InternalValue" instance { field["image"] = image }
+      val cache = "coil3.memory.RealStrongMemoryCache" instance { field["cache"] = cacheEntry }
+      gcRoot(JniGlobal(id = cache.value, jniGlobalRefId = 0))
+      if (alsoShownByATile) {
+        val tile = "com.example.Tile" instance {
+          field["view"] = "com.example.View" instance { field["drawable"] = pixels }
+          field["result"] = "coil3.request.SuccessResult" instance { field["image"] = image }
+        }
+        gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 1))
+      }
     }
     return file
   }

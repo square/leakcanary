@@ -11,6 +11,7 @@ import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
+import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.WEAK
 
@@ -184,6 +185,78 @@ class HeapExplorerTest {
         .containsExactly(listOf("Tile", "View"))
       assertThat(holdingPaths.commonHolderLabel).isEqualTo("Tile")
       assertThat(holdingPaths.hiddenPathCount).isEqualTo(0)
+    }
+  }
+
+  @Test fun `a cache that evicts is not what keeps an image in memory`() {
+    HeapExplorer.open(coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
+      val tree = explorer.treeFor(setOf(CACHE))
+      val pixels = tree.findByLabel("Object[]")
+
+      // Coil's cache and the tile showing the image both hold it, which is what would otherwise leave the
+      // root dominating it: the cache isn't why it's in memory, so its reference doesn't count and the
+      // bytes land on the tile.
+      assertThat(tree.children(tree.root)).doesNotContain(pixels.objectId)
+      assertThat(pixels.strength).isEqualTo(STRONG)
+      val holdingPaths = tree.holdingPathsTo(pixels.objectId)
+      assertThat(holdingPaths.isDominatedByRoot).isFalse()
+      assertThat(holdingPaths.commonHolderLabel).isEqualTo("Tile")
+    }
+  }
+
+  @Test fun `the object every path goes through is the one that dominates it`() {
+    HeapExplorer.open(coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
+      val tree = explorer.treeFor(setOf(CACHE))
+
+      val holdingPaths = tree.holdingPathsTo(tree.findByLabel("Object[]").objectId)
+
+      // The tile holds the image two ways, as the view's drawable and as the result of the request that
+      // loaded it. Both paths go through the view or the image respectively, and deeper down than the
+      // tile, so a shared step isn't what makes an object the answer: only the tile is on both.
+      assertThat(holdingPaths.paths.map { path -> path.steps.map { it.label } })
+        .containsExactlyInAnyOrder(
+          listOf("Tile", "View", "Object[]"),
+          listOf("Tile", "SuccessResult", "BitmapImage", "Object[]")
+        )
+      assertThat(holdingPaths.commonHolderLabel).isEqualTo("Tile")
+    }
+  }
+
+  @Test fun `an image nothing but a cache holds is reachable at the cache strength`() {
+    HeapExplorer.open(coilCachedImageHeapDump(alsoShownByATile = false)).use { explorer ->
+      // The bytes are the cache's, and they are bytes: an image no view is showing any more is exactly
+      // what someone looking at a treemap of a heap dump wants to find.
+      assertThat(explorer.sizes.byteCountByStrength.getValue(CACHE)).isGreaterThan(PAYLOAD_BYTE_SIZE)
+      assertThat(explorer.treeFor(emptySet()).allSummaries().map { it.label })
+        .doesNotContain("BitmapImage")
+
+      val tree = explorer.treeFor(setOf(CACHE))
+      val cacheEntry = tree.findByLabel(CACHE_ENTRY_LABEL)
+
+      assertThat(tree.children(cacheEntry.objectId).map { tree.label(it) })
+        .containsExactly("BitmapImage")
+      assertThat(tree.findByLabel("BitmapImage").strength).isEqualTo(CACHE)
+      // The cache's own bookkeeping is held strongly by it, which is what cutting at the value a cache
+      // entry wraps rather than at the cache itself is for.
+      assertThat(cacheEntry.strength).isEqualTo(STRONG)
+    }
+  }
+
+  @Test fun `the referrers say which of them does not keep the object in memory`() {
+    HeapExplorer.open(coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
+      val tree = explorer.treeFor(setOf(CACHE))
+
+      val referrers = tree.referrersOf(tree.findByLabel("BitmapImage").objectId)
+
+      assertThat(referrers.referrers.map { "${it.label}.${it.fieldName}" })
+        .containsExactlyInAnyOrder("$CACHE_ENTRY_LABEL.image", "SuccessResult.image")
+      // Two references point at the image and one of them keeps it in memory, which is why one of them
+      // is on a path and the other on none.
+      assertThat(referrers.referrerCount).isEqualTo(2)
+      assertThat(referrers.holdingReferrerCount).isEqualTo(1)
+      val fromCache = referrers.referrers.single { it.label == CACHE_ENTRY_LABEL }
+      assertThat(fromCache.weakeningStrength).isEqualTo(CACHE)
+      assertThat(fromCache.isFollowed).isFalse()
     }
   }
 
@@ -478,6 +551,37 @@ class HeapExplorerTest {
   }
 
   /**
+   * A heap dump shaped like the one [ReachabilityStrength.CACHE] came from: Coil's memory cache holds a
+   * decoded image, and when [alsoShownByATile] the tile showing it holds the same image two ways — as
+   * what its view draws, and as the result of the request that loaded it.
+   *
+   * The class and field names the cache is built of are the real ones, because that is what the explorer
+   * matches on.
+   */
+  private fun coilCachedImageHeapDump(alsoShownByATile: Boolean): File {
+    val file = testFolder.newFile("coil-cached-image-$alsoShownByATile.hprof")
+    file.dump {
+      val pixels = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      val image = "coil3.BitmapImage" instance { field["bitmap"] = pixels }
+      val cacheEntry = CACHE_ENTRY_CLASS_NAME instance { field["image"] = image }
+      val cache = "coil3.memory.RealStrongMemoryCache" instance { field["cache"] = cacheEntry }
+      gcRoot(JniGlobal(id = cache.value, jniGlobalRefId = 0))
+      if (alsoShownByATile) {
+        val view = "com.example.View" instance { field["drawable"] = pixels }
+        val result = "coil3.request.SuccessResult" instance { field["image"] = image }
+        val tile = "com.example.Tile" instance {
+          field["view"] = view
+          field["result"] = result
+        }
+        gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 1))
+      }
+    }
+    return file
+  }
+
+  /**
    * A heap dump where an object is held by its owner and by a helper of its own, the way an
    * `AppCompatImageView` is held by the layout above it and by the helpers it created, which point back
    * at it.
@@ -556,6 +660,10 @@ class HeapExplorerTest {
 
   companion object {
     private const val PAYLOAD_ELEMENT_COUNT = 1024
+
+    /** The one cache the explorer knows about, and what its entries read as on a rectangle. */
+    private const val CACHE_ENTRY_CLASS_NAME = "coil3.memory.RealStrongMemoryCache\$InternalValue"
+    private const val CACHE_ENTRY_LABEL = "RealStrongMemoryCache\$InternalValue"
 
     private const val TILE_CLASS_NAME = "com.example.Tile"
 
