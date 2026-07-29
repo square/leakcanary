@@ -115,6 +115,10 @@ class ObjectGrowthDetector(
           return@exploreObjectEdges
         }
 
+        // Moving the objects we visit to the front of the array turns it into the set of objects
+        // this node stands for, dropping the ones another node visited first. Safe to do while
+        // iterating: we only ever write to an index we already read.
+        node.objectIds[countOfVisitedObjectForCurrentNode] = objectId
         countOfVisitedObjectForCurrentNode++
 
         if (node.isLeafObject) {
@@ -163,6 +167,13 @@ class ObjectGrowthDetector(
             }
           }
         }
+      }
+
+      val objectIds = node.objectIds
+      dequeuedNode.visitedObjectIds = if (countOfVisitedObjectForCurrentNode == objectIds.size) {
+        objectIds
+      } else {
+        objectIds.copyOf(countOfVisitedObjectForCurrentNode)
       }
 
       if (countOfVisitedObjectForCurrentNode > 0) {
@@ -297,7 +308,7 @@ class ObjectGrowthDetector(
         objectReferenceReader = objectReferenceReader,
         objectSizeCalculator = AndroidObjectSizeCalculator(graph),
         estimatedVisitedObjects = estimatedVisitedObjects,
-      ).computeLeakShares(reportedGrowingNodes.map { it.objectIds })
+      ).computeLeakShares(reportedGrowingNodes.map { it.visitedObjectIds })
 
       reportedGrowingNodes.forEachIndexed { index, node ->
         val shortestPathNode = node.shortestPathNode
@@ -410,7 +421,12 @@ class ObjectGrowthDetector(
   }
 
   private class Node(
-    // All objects that you can reach through paths that all resolves to the same structure.
+    /**
+     * All objects that you can reach through paths that all resolves to the same structure, and
+     * that hadn't been visited yet when this node was enqueued. Some of them might have been
+     * visited by another node since then, so this is a superset of the objects this node stands
+     * for. Compacted in place when dequeued, see [DequeuedNode.visitedObjectIds].
+     */
     val objectIds: LongArray,
     val parentPathNode: ShortestPathObjectNode,
     val nodeAndEdgeName: String,
@@ -421,10 +437,13 @@ class ObjectGrowthDetector(
   private class DequeuedNode(
     node: Node
   ) {
-    // All objects that you can reach through paths that all resolves to the same structure.
-    val objectIds = node.objectIds
     val shortestPathNode = ShortestPathObjectNode(node.nodeAndEdgeName, node.parentPathNode)
     val previousPathNode = node.previousPathNode
+
+    /**
+     * The objects this node stands for, i.e. the objects it was the first node to visit.
+     */
+    lateinit var visitedObjectIds: LongArray
   }
 
   /**
