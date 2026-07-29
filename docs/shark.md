@@ -25,6 +25,7 @@ A few more things:
 * Shark has the unique ability to help narrow down the cause of memory leaks through platform specific [heuristics](fundamentals-fixing-a-memory-leak.md#2-narrow-down-the-suspect-references).
 * Shark is heavily tested (80% test coverage).
 * Shark can run in both Java and Android VMs, with no other dependency than Okio and Kotlin.
+* Shark opens heap dumps read only, so once a `HeapGraph` is open several threads can read from it at the same time.
 * Shark can analyze both Java and Android VM hprof files.
 * Shark can deobfuscate hprof records if it has access to obfuscation mapping file.
 

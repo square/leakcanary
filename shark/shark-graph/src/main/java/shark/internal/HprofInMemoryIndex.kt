@@ -66,7 +66,8 @@ internal class ThreadStackFrame(
 )
 
 /**
- * This class is not thread safe, should be used from a single thread.
+ * Building an index with [indexHprof] should happen on a single thread, but the index that comes
+ * out of it is read only and can then be read from several threads at the same time.
  */
 internal class HprofInMemoryIndex private constructor(
   private val positionSize: Int,

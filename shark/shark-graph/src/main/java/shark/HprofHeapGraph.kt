@@ -34,6 +34,11 @@ import shark.internal.LruCache
 
 /**
  * A [HeapGraph] that reads from an Hprof file indexed by [HprofIndex].
+ *
+ * Can be read from several threads at the same time: the index is read only, and the object record
+ * cache and the reader that fills it are both thread safe. Two threads that miss the cache for the
+ * same object both read the record from the hprof file, which wastes a read but is otherwise
+ * harmless.
  */
 class HprofHeapGraph internal constructor(
   private val header: HprofHeader,

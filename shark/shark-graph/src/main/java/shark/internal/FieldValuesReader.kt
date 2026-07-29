@@ -22,6 +22,11 @@ import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.ValueHolder.ShortHolder
 
+/**
+ * Reads the field values of [record] in the order the fields are declared in, advancing a position
+ * as it goes. So a reader is good for one pass over one record, which is why callers get a new one
+ * per read and never share one. That's also what makes reading fields from several threads safe.
+ */
 internal class FieldValuesReader(
   private val record: InstanceDumpRecord,
   private val identifierByteSize: Int

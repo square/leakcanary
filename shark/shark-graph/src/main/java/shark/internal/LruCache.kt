@@ -6,6 +6,9 @@ import kotlin.collections.MutableMap.MutableEntry
 /**
  * API is a simplified version of android.util.LruCache
  * Implementation is inspired from http://chriswu.me/blog/a-lru-cache-in-10-lines-of-java/
+ *
+ * Thread safe. Every operation is guarded, including [get]: the backing [LinkedHashMap] is access
+ * ordered, so a read moves the entry it found and structurally modifies the map.
  */
 internal class LruCache<K, V>(
   val maxSize: Int
@@ -13,15 +16,22 @@ internal class LruCache<K, V>(
   private val cache: LinkedHashMap<K, V>
 
   val size
-    get() = cache.size
+    get() = synchronized(this) { cache.size }
 
   var putCount: Int = 0
+    get() = synchronized(this) { field }
     private set
+
   var evictionCount: Int = 0
+    get() = synchronized(this) { field }
     private set
+
   var hitCount: Int = 0
+    get() = synchronized(this) { field }
     private set
+
   var missCount: Int = 0
+    get() = synchronized(this) { field }
     private set
 
   init {
@@ -38,7 +48,7 @@ internal class LruCache<K, V>(
     }
   }
 
-  operator fun get(key: K?): V? {
+  operator fun get(key: K?): V? = synchronized(this) {
     // get() moves the key to the front
     val value: V? = cache[key]
     return if (value != null) {
@@ -53,20 +63,20 @@ internal class LruCache<K, V>(
   fun put(
     key: K,
     value: V
-  ): V? {
+  ): V? = synchronized(this) {
     putCount++
     return cache.put(key, value)
   }
 
-  fun remove(key: K): V? {
+  fun remove(key: K): V? = synchronized(this) {
     return cache.remove(key)
   }
 
-  fun evictAll() {
+  fun evictAll() = synchronized(this) {
     cache.clear()
   }
 
-  override fun toString(): String {
+  override fun toString(): String = synchronized(this) {
     val accesses = hitCount + missCount
     val hitPercent = if (accesses != 0) 100 * hitCount / accesses else 0
     return String.format(
