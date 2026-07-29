@@ -138,6 +138,12 @@ class ObjectDominators {
     }
   }
 
+  /**
+   * [ignoredRefs] are the references that don't keep their target alive, so they're applied to the
+   * reference reader as well as to the GC roots. Leaving them out of the reader would follow
+   * `WeakReference.referent` and the finalizer list links, which attributes memory as retained when
+   * it isn't.
+   */
   fun buildDominatorTree(
     graph: HeapGraph,
     ignoredRefs: List<IgnoredReferenceMatcher>
@@ -145,7 +151,7 @@ class ObjectDominators {
     return HeapDominatorTree.buildFor(
       graph = graph,
       referenceReader = ActualMatchingReferenceReaderFactory(
-        referenceMatchers = emptyList()
+        referenceMatchers = ignoredRefs
       ).createFor(graph),
       gcRootProvider = MatchingGcRootProvider(ignoredRefs)
     ).buildNodes(AndroidObjectSizeCalculator(graph))
