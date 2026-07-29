@@ -4,6 +4,12 @@ A memory leak detection library for Android, plus Shark, the heap analyzer under
 to Maven Central and consumed by a very large number of apps, so **the public API and the bytecode
 level are contracts**, not implementation details.
 
+Not equally, though. The `leakcanary*` modules are what apps depend on directly, and their public API
+is the contract that matters most: breaking backward compatibility there is a last resort. `shark*` is
+used far less, so a breaking change is on the table there when it buys a meaningful improvement. In
+both cases the ABI dump is what makes the break deliberate instead of a surprise, so propose it rather
+than assuming it's fine.
+
 This file records what an agent would get wrong from reading the source alone. Anything derivable by
 reading the code belongs in the code, not here — please keep it that way when editing.
 
