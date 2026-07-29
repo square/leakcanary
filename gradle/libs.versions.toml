@@ -26,7 +26,7 @@ dokka = "2.2.0"
 hilt = "2.60.1"
 sqldelight = "2.3.2"
 androidMinSdk = "24"
-androidCompileSdk = "35"
+androidCompileSdk = "36"
 
 [libraries]
 # Held at 9.2.1: the lint that AGP 9.3 bundles calls java.util.List.removeLast() from Java 8
