@@ -281,8 +281,6 @@ internal class RealHeapAnalysisJob(
         "RandomAccess[" +
           "bytes=${analysisSourceProvider.randomAccessByteReads}," +
           "reads=${analysisSourceProvider.randomAccessReadCount}," +
-          "travel=${analysisSourceProvider.randomAccessByteTravel}," +
-          "range=${analysisSourceProvider.byteTravelRange}," +
           "size=$fileLength" +
           "]"
       val stats = "$lruCacheStats $randomAccessStats"

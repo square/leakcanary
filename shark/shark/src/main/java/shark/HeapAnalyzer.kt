@@ -79,8 +79,6 @@ class HeapAnalyzer constructor(
               "RandomAccess[" +
                 "bytes=${sourceProvider.randomAccessByteReads}," +
                 "reads=${sourceProvider.randomAccessReadCount}," +
-                "travel=${sourceProvider.randomAccessByteTravel}," +
-                "range=${sourceProvider.byteTravelRange}," +
                 "size=${heapDumpFile.length()}" +
                 "]"
             val stats = "$lruCacheStats $randomAccessStats"
