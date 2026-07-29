@@ -245,23 +245,25 @@ internal class InternalSharedLinkedListReferenceReader(
     }
       .withIndex()
       .mapNotNull { (index, node) ->
-        val itemObjectId = node[nodeClassName, nodeElementFieldName]!!.value.asObjectId
-        itemObjectId?.run {
-          Reference(
-            valueObjectId = this,
-            isLowPriority = false,
-            lazyDetailsResolver = {
-              LazyDetails(
-                // All entries are represented by the same key name, e.g. "key()"
-                name = "$index",
-                locationClassObjectId = instanceClassId,
-                locationType = ARRAY_ENTRY,
-                isVirtual = true,
-                matchedLibraryLeak = null
-              )
-            }
-          )
+        val item = node[nodeClassName, nodeElementFieldName]!!.value
+        // A list element can be null, and readers only surface non null references.
+        if (!item.isNonNullReference) {
+          return@mapNotNull null
         }
+        Reference(
+          valueObjectId = item.asObjectId!!,
+          isLowPriority = false,
+          lazyDetailsResolver = {
+            LazyDetails(
+              // All entries are represented by the same key name, e.g. "key()"
+              name = "$index",
+              locationClassObjectId = instanceClassId,
+              locationType = ARRAY_ENTRY,
+              isVirtual = true,
+              matchedLibraryLeak = null
+            )
+          }
+        )
       }
   }
 }

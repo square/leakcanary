@@ -7,7 +7,8 @@ import shark.Reference.LazyDetails.Resolver
  */
 data class Reference(
   /**
-   * The value of the reference, i.e. the object the reference is pointing to.
+   * The value of the reference, i.e. the object the reference is pointing to. Never
+   * [ValueHolder.NULL_REFERENCE]: implementations only surface non null references.
    */
   val valueObjectId: Long,
 
