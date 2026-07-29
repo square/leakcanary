@@ -102,7 +102,9 @@ the id mapping remain. Only the predecessor structure scales with edge count; ev
 sized by node count.
 
 That's affordable on a phone but comfortable on desktop, which is part of why the explorer is a
-desktop app. For reference, the app sits at ~240 MB RSS with a 24 MB heap dump open.
+desktop app. For reference, the app sits at ~240 MB RSS with a 24 MB heap dump open, and at ~1.2 GB
+with the 287 MB production dump open — 504 K `DominatorNode`s, which is what the section below is
+about.
 
 ## Remaining inefficiency
 
