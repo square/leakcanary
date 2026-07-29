@@ -79,22 +79,15 @@ before pushing rather than discovering it at push time.
 
 ## Changelog
 
-Entries go in `docs/changelog.md` under `## Unreleased`. Nothing in the repo documents the emoji
-legend, so:
+Entries go in `docs/changelog.md` under `## Unreleased`, each starting with one of the markers from
+the legend at the top of that file. Pick the marker from what the change *is*, not from how big it
+feels, and grep for a comparable existing entry rather than guessing.
 
-| | Means |
-| --- | --- |
-| 💥 | **A crash fix, and nothing else.** Something used to crash and no longer does. |
-| 🐛 | Bug fix |
-| 🔨 | Improvement or non-bug change |
-| 🐤 | A newly recognized leak in a library or manufacturer ROM |
-
-**Breaking changes and behavior changes get no emoji.** Write them as a plain bullet, or as a
-`### Breaking change: <summary>` heading with prose when they need explaining.
-
-The most common mistake is reaching for 💥 because a change feels impactful. That inverts the
-marker's meaning — it tells readers a crash was fixed when nothing crashed. Pick the emoji from what
-the change *is*, not how big it feels, and grep for a comparable existing entry rather than guessing.
+**💥 means a crash fix here, not a breaking change** — the opposite of the
+[gitmoji](https://gitmoji.dev/) convention, and the mistake that convention trips people into.
+Reaching for 💥 because a change feels impactful tells readers a crash was fixed when nothing
+crashed. Breaking changes are ⚠️; when one needs more than a bullet, write it as a
+`### Breaking change: <summary>` heading with prose.
 
 **The changelog is for changes that matter to the people consuming LeakCanary**, not a record of
 every diff. Refactors, internal cleanups and test-only changes usually don't need an entry.
