@@ -106,7 +106,7 @@ class HeapDominatorTreemap internal constructor(
 
   /** Bytes retained by [node]: its own shallow size plus that of everything it dominates. */
   override fun weight(node: Long): Long = classGroup(node)?.retainedSize
-    ?: nodes.getValue(node).retainedSize.toLong()
+    ?: nodes.getValue(node).retainedSize
 
   override fun children(node: Long): List<Long> = when {
     node == root -> rootChildren.ids
@@ -181,7 +181,7 @@ class HeapDominatorTreemap internal constructor(
           className = heapClass.name,
           simpleClassName = heapClass.simpleName,
           objectIds = objectIds,
-          retainedSize = objectIds.sumOf { nodes.getValue(it).retainedSize.toLong() }
+          retainedSize = objectIds.sumOf { nodes.getValue(it).retainedSize }
         )
       }
     }
@@ -189,7 +189,7 @@ class HeapDominatorTreemap internal constructor(
     // the way the rest of the tree's are.
     val ids = (
       classGroups.map { (groupId, group) -> groupId to group.retainedSize } +
-        ungrouped.map { it to nodes.getValue(it).retainedSize.toLong() }
+        ungrouped.map { it to nodes.getValue(it).retainedSize }
       )
       .sortedByDescending { (_, retainedSize) -> retainedSize }
       .map { (id, _) -> id }
@@ -264,7 +264,7 @@ class HeapDominatorTreemap internal constructor(
       headline = heapObject?.headline(),
       strength = strengthOf(objectId),
       shallowSize = node.shallowSize,
-      retainedSize = node.retainedSize.toLong(),
+      retainedSize = node.retainedSize,
       retainedCount = node.retainedCount,
       dominatedObjectCount = node.dominatedObjectIds.size,
       inspectorLabels = if (heapObject == null) {
@@ -895,7 +895,7 @@ data class HeapObjectSummary(
    */
   val headline: String?,
   val strength: ReachabilityStrength,
-  val shallowSize: Int,
+  val shallowSize: Long,
   val retainedSize: Long,
   /** Number of objects retained, including this one. */
   val retainedCount: Int,

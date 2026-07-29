@@ -457,7 +457,7 @@ private fun ObjectDetails(
   }
   Detail("Retained", formatByteSize(summary.retainedSize))
   Detail("Retained objects", summary.retainedCount.toString())
-  Detail("Shallow", formatByteSize(summary.shallowSize.toLong()))
+  Detail("Shallow", formatByteSize(summary.shallowSize))
   Detail("Dominates", "${summary.dominatedObjectCount} objects")
   summary.inspectorLabels.forEach { label ->
     Text(label, style = MaterialTheme.typography.bodySmall)
