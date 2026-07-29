@@ -10,6 +10,7 @@ import androidx.collection.emptyLongObjectMap
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
+import shark.internal.HeapObjectIdSet
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
@@ -113,8 +114,8 @@ class PrioritizingShortestPathFinder private constructor(
   }
 
   private class State(
+    graph: HeapGraph,
     val leakingObjectIds: LongScatterSet,
-    estimatedVisitedObjects: Int
   ) {
 
     /** Set of objects to visit */
@@ -138,7 +139,7 @@ class PrioritizingShortestPathFinder private constructor(
      * Set of visited objects. At the end of phase 1 this is R₀, then phase 2 keeps extending it
      * with the objects reachable only through leaking objects.
      */
-    val visitedSet = LongScatterSet(estimatedVisitedObjects)
+    val visitedSet = HeapObjectIdSet(graph)
 
     /**
      * A marker for when we're done exploring the graph of higher priority references and start
@@ -151,15 +152,16 @@ class PrioritizingShortestPathFinder private constructor(
   override fun findShortestPathsFromGcRoots(
     leakingObjectIds: Set<Long>
   ): PathFindingResults {
-    listener.onEvent(StartedFindingPathsToRetainedObjects)
-    // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
-    // visit more than that but this limits the number of early array growths.
-    val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
-
     val state = State(
+      graph = graph,
       leakingObjectIds = leakingObjectIds.toLongScatterSet(),
-      estimatedVisitedObjects = estimatedVisitedObjects
     )
+
+    // Sent after the traversal state is allocated, so that a listener which samples memory on every
+    // event sees that allocation. The visited set is the largest thing the analysis allocates and
+    // it's unreachable again by the time the next event is sent, so sending this event first would
+    // hide it from HprofRetainedHeapPerfTest entirely.
+    listener.onEvent(StartedFindingPathsToRetainedObjects)
 
     return state.findPathsFromGcRoots()
   }
@@ -240,7 +242,7 @@ class PrioritizingShortestPathFinder private constructor(
   private inner class Phase2(
     private val leakingObjectIds: LongScatterSet,
     private val foundLeakingObjectIds: LongList,
-    private val visitedSet: LongScatterSet
+    private val visitedSet: HeapObjectIdSet
   ) {
 
     /** Leaking object id to retained size, null when retained sizes aren't computed. */

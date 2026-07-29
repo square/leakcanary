@@ -171,6 +171,15 @@ class HprofHeapGraph internal constructor(
     return wrapIndexedObject(objectIndex, indexedObject, objectId)
   }
 
+  /**
+   * The [HeapObject.objectIndex] of the object with id [objectId], or -1 if the heap dump has no
+   * object with that id. Same as `findObjectByIdOrNull(objectId)?.objectIndex ?: -1` but without
+   * materializing the [HeapObject], for callers that only need the index.
+   */
+  internal fun objectIndexOrMinusOne(objectId: Long): Int {
+    return index.objectIndexOrMinusOne(objectId)
+  }
+
   override fun findObjectByIdOrNull(objectId: Long): HeapObject? {
     if (objectId == javaLangObjectClass?.objectId) return javaLangObjectClass
 
