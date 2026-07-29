@@ -1,60 +1,45 @@
 # Dominator tree
 
-## The bug in the existing implementation
+## Which implementation to use
 
-`shark.DominatorTree` (and `shark.ObjectDominators` on top of it) builds dominators incrementally
-during BFS using a lowest-common-ancestor update. That's an approximation: when a cross edge is
-processed, the parent's dominator may still be stale and is never revisited, leaving the child's
-dominator too specific. Retained sizes come out under-attributed.
+`shark.HeapDominatorTree` — exact Lengauer–Tarjan with the simple link-eval, on `main` since
+PR #2870. `shark.ObjectDominators.buildDominatorTree` is a thin wrapper that also computes sizes.
+`shark.ApproximateDominatorTree` is the on device BFS approximation and must not be used here.
 
-Minimal failing case — edges `root→a`, `root→d`, `a→b`, `a→c`, `d→e`, `e→b`, `b→c`:
+Why exactness was worth it: the approximation updates dominators incrementally during BFS, so when a
+cross edge is processed the parent's dominator may still be stale and is never revisited. Retained
+sizes come out under-attributed. Minimal failing case — edges `root→a`, `root→d`, `a→b`, `a→c`,
+`d→e`, `e→b`, `b→c`: `dom(c)` is `root`, but BFS says `a`, because `b→c` is processed while `dom(b)`
+is still `a`.
 
-- Correct: `dom(c) = root`
-- BFS: `dom(c) = a`, because `b→c` is processed while `dom(b)` is still `a`, before `e→b` raises
-  `dom(b)` to `root`
+## How the explorer uses it
 
-At 10 bytes per object, BFS reports `a.retainedSize = 20` (a + c) where the answer is `10` (a only).
+`HeapTreemap` calls `HeapDominatorTree.buildFor` with `AndroidReferenceReaderFactory` and **no**
+reference matchers, then `buildNodes` with `AndroidObjectSizeCalculator`. No matchers on purpose:
+ignoring a reference would hide retained memory, which is the one thing this tool exists to show.
 
-## The implementation to use
+Two consequences of Shark's reference readers that surprise you when reading a treemap:
 
-`shark.LinkEvalDominatorTree` — exact Lengauer–Tarjan with link-eval (union-find with path
-compression), adapted from Android Studio's `perflib` `LinkEvalDominators.kt`
-(http://adambuchsbaum.com/papers/dom-toplas.pdf).
-
-**As of 2026-07-28 it is not on `main`.** It lives on branch `worktree-treemap-heapdump` (PR #2800),
-tangled up with a larger retained-size and `PathFinder` rewrite. The plan is to lift it out onto its
-own PR; until that lands, that branch is the source.
-
-Four phases: iterative DFS numbering → CSR predecessor list → Lengauer–Tarjan steps 2/3/4 → retained
-sizes bottom-up.
-
-Details worth not rediscovering:
-
-- A **virtual root at DFN 0** is the parent of every GC root, which makes the multiple-roots case
-  fall out for free instead of needing a forest.
-- `compress` is **iterative, not recursive**, deliberately: heap graphs have deep object chains and
-  the recursive form overflows the stack.
-- Large arrays are `VarIntArray`/`VarLongArray` — `ByteArray`-backed with 1–4 bytes per entry chosen
-  from the node count. Around 16 M objects that's 3 bytes per DFN, 25% smaller than `IntArray`. The
-  all-`0xFF` pattern is the INVALID sentinel and is always greater than any valid DFN.
-- Nodes are keyed by `HeapObject.objectIndex` (dense, 0-based, `Int`), which replaces an
-  `IdentityHashMap` and avoids a ~20 MB `LongLongScatterMap`.
-- Lengauer–Tarjan guarantees `doms[v] < v`, so `1..n` is already a topological order for
-  accumulating retained sizes bottom-up. No sort needed.
+- **A `java.lang.String`'s char array is not a node of its own.** `FieldInstanceReferenceReader`
+  skips the `value` field, and `ShallowSizeCalculator` adds the array's bytes to the string instead.
+- Primitive wrapper arrays are folded into their array the same way.
 
 ## Cost
 
-Measured on a 193 MB heap dump (~983 K reachable objects, 2.5 M edges): **~48 MB peak** during CSR
-construction, ~43 MB during Lengauer–Tarjan, ~13 MB once only `doms[]` and the id mapping remain.
-Only the CSR structure scales with edge count; every other array is sized by node count.
+Measured on a 193 MB heap dump (~983 K reachable objects, 2.5 M edges): **~48 MB peak** while
+building the predecessor lists, ~43 MB during Lengauer–Tarjan, ~13 MB once only the dominators and
+the id mapping remain. Only the predecessor structure scales with edge count; every other array is
+sized by node count.
 
 That's affordable on a phone but comfortable on desktop, which is part of why the explorer is a
-desktop app.
+desktop app. For reference, the app sits at ~240 MB RSS with a 24 MB heap dump open.
 
-## Known gaps to fix when integrating
+## Remaining inefficiency
 
-- **`DominatorNode.retainedSize` is `Int`, and phase 4 accumulates into `IntArray`.** Fine for
-  Android heaps, overflows above 2 GB. Widen to `Long` for desktop dumps.
-- **The result type is `Map<Long, DominatorNode>` with a `List<Long>` of children per node.** For a
-  1 M-object heap that's 100+ MB of boxed longs. The UI needs a compact form instead: keep
-  `parent[]` / `retainedSize[]` as primitive arrays in DFN space and resolve object ids on demand.
+`buildNodes` materialises a `Map<Long, DominatorNode>` holding a boxed `List<Long>` of children per
+node, which is 100+ MB for a 1 M-object heap. `HeapDominatorTree.immediateDominatorOf` is the
+primitive path, but there's no primitive equivalent for retained sizes and children yet. Worth doing
+when a heap dump gets big enough to hurt — `TreemapTree` already hides the difference from the UI.
+
+`DominatorNode.retainedSize` was widened from `Int` to `Long` in PR #2871, because the root of the
+tree retains the whole reachable heap and wrapped negative past 2 GB.

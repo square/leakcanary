@@ -19,14 +19,15 @@ directories in this repo.
 Put logic in `shark-explorer-core` by default. Anything in `shark-explorer-app` is hard to unit test
 and can't be shared with Android, so it should be limited to composables and wiring.
 
-## Use `LinkEvalDominatorTree`, not `DominatorTree`
+## Use `HeapDominatorTree`, not `ApproximateDominatorTree`
 
-`shark.DominatorTree` and `shark.ObjectDominators` on `main` compute dominators as a **BFS
-approximation that is known to be wrong** — a cross edge can be processed while the parent's
-dominator is still stale, so retained sizes get under-attributed. Do not build on them.
+`shark.ApproximateDominatorTree` is the on device BFS approximation, and it is **known to be wrong**
+— a cross edge can be processed while the parent's dominator is still stale, so retained sizes get
+under-attributed. Don't build on it.
 
-The correct implementation is `shark.LinkEvalDominatorTree` (exact Lengauer–Tarjan with link-eval).
-See `notes/dominator-tree.md` for where it currently lives and its memory profile.
+`shark.HeapDominatorTree` is the exact one, which is what `HeapTreemap` uses. See
+`notes/dominator-tree.md` for its memory profile and for the reference reader behaviour that makes a
+treemap read strangely until you know about it.
 
 ## Gradle facts that aren't visible from these build scripts
 
@@ -45,9 +46,16 @@ See `notes/dominator-tree.md` for where it currently lives and its memory profil
 ```bash
 ./gradlew :shark:shark-explorer:shark-explorer-core:test
 ./gradlew :shark:shark-explorer:shark-explorer-app:test   # UI tests, headless, no emulator
-./gradlew :shark:shark-explorer:shark-explorer-app:run    # launch the app
 ./gradlew :shark:shark-explorer:shark-explorer-app:check   # test + detekt
+
+# Launch it. The path is optional; without one, use the "Open heap dump…" button.
+./gradlew :shark:shark-explorer:shark-explorer-app:run \
+  --args="shark/shark-android/src/test/resources/compose_leak.hprof"
 ```
+
+The repo has real Android heap dumps to try it on: `shark/shark-android/src/test/resources/*.hprof`
+and `leakcanary/leakcanary-android-instrumentation/src/androidTest/assets/large-dump.hprof` (39 MB,
+the biggest one).
 
 `check` runs detekt (config at `config/detekt-config.yml`); CI and the pre-push hook both enforce
 it, so run it before pushing.

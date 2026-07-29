@@ -19,7 +19,7 @@ interface TreemapTree<N> {
   fun children(node: N): List<N>
 }
 
-/** A node placed by [TreemapLayout]. [depth] is 0 for the root. */
+/** A node placed by [TreemapLayout]. [depth] is 0 for the node the layout was rooted at. */
 data class TreemapCell<N>(
   val node: N,
   val rect: TreemapRect,
@@ -61,8 +61,8 @@ class TreemapLayoutResult<N>(
  * largest rectangle first until [maxCells] is reached, so the detail budget is spent where there is
  * space to show it.
  *
- * The effect is that depth varies across the treemap, and that zooming into a node (laying it out
- * again as the root of a fresh viewport) is what reveals deeper structure.
+ * The effect is that depth varies across the treemap, and that zooming into a node — passing it as
+ * [layout]'s `root` so it gets the whole viewport — is what reveals deeper structure.
  */
 class TreemapLayout<N>(
   private val minSubdivideWidth: Double = 40.0,
@@ -75,9 +75,11 @@ class TreemapLayout<N>(
 
   fun layout(
     tree: TreemapTree<N>,
-    viewport: TreemapRect
+    viewport: TreemapRect,
+    /** The node to fill [viewport] with, which is what zooming changes. */
+    root: N = tree.root
   ): TreemapLayoutResult<N> {
-    val cells = mutableListOf(TreemapCell(tree.root, viewport, depth = 0))
+    val cells = mutableListOf(TreemapCell(root, viewport, depth = 0))
     if (viewport.width <= 0.0 || viewport.height <= 0.0) {
       return TreemapLayoutResult(cells, truncatedNodeCount = 0)
     }

@@ -1,7 +1,8 @@
 # Treemap rendering
 
 Implemented in `shark-explorer-core`: `Squarify.kt` (row layout), `TreemapLayout.kt` (adaptive depth
-and hit testing), `TreemapRect.kt`. Not yet wired to a dominator tree or to the UI.
+and hit testing), `TreemapRect.kt`, `HeapTreemap.kt` (the dominator tree as a `TreemapTree`). Drawn
+by `TreemapView` in `shark-explorer-app`.
 
 ## Depth is area-driven, not a fixed level
 
@@ -13,9 +14,12 @@ The model instead: lay out one level, then recurse into a child's rectangle only
 to be worth subdividing, and stop when a rectangle would be too small to see.
 
 - Subdivide only above roughly **40×24 dp** — enough for a header strip plus one visible child.
-- Don't draw below roughly **3×3 px**; it's invisible and it costs draw calls.
+- Don't draw below roughly **3×3 dp**; it's invisible and it costs draw calls.
 - Cap the total rectangle count (order of **5000**) and spend that budget largest-rectangle-first, so
   detail lands where there's space for it.
+
+`TreemapLayout` works in pixels, so `TreemapView` scales those thresholds by the current density.
+Passing them straight through would make every rectangle half its intended size on a 2x display.
 
 Depth then varies across the treemap, which is the point. It's also deterministic, so the budget and
 recursion are directly unit-testable.
@@ -28,26 +32,27 @@ Note that a node whose share of the area makes it thinner than the minimum drawa
 entirely rather than becoming a sliver. Past roughly a 50:1 weight ratio between siblings, the
 smaller one isn't drawn at all — expected, but surprising when writing tests against it.
 
-Clicking a node re-roots the treemap at it and re-runs the same layout against the full viewport, so
-zooming is how deeper detail is reached. Breadcrumbs walk back up.
+Double clicking a node re-roots the treemap at it and re-runs the same layout against the full
+viewport, so zooming is how deeper detail is reached. Breadcrumbs walk back up. A single press only
+selects, and it's handled on press rather than on tap: `detectTapGestures` delays `onTap` by the
+double click window when `onDoubleTap` is set, which makes selection feel stuck.
 
-This is what the existing Android implementation's TODO was asking for: *"Ideally depth & min size
-would be handled dynamically by the layout algo based on available space."* It currently hardcodes
-`maxDepth = 1, minSize = 10000`.
+## Two bugs from the deleted Android treemap, for the record
 
-## Bugs in the existing Android treemap
+`leakcanary-app` had a d3-hierarchy squarify port, removed in `aa2bc4240`. Two things were wrong with
+it and must not come back:
 
-`leakcanary-app`'s `TreemapLayout` is a d3-hierarchy squarify port and is the obvious starting point,
-but two things are wrong with it and must not be carried over:
+1. **Int overflow in `squarifyRatio`.** `beta = sumValue * sumValue * alpha` with `sumValue: Int`
+   overflows above ~46 341. Retained sizes in bytes are far past that, so every aspect ratio decision
+   on real heap data was garbage — almost certainly the cause of its
+   `// TODO Figure out what's up with negative numbers` comment. Ratio math is in `Double` here, and
+   sizes in `Long`.
+2. **The node tree was built eagerly and recursively** before layout ran. Fine for a four node
+   preview, fatal on a real dominator tree. `TreemapTree` is read lazily instead, which the
+   area-driven model needs anyway.
 
-1. **Int overflow in `squarifyRatio`.** `beta = sumValue * sumValue * alpha` with `sumValue: Int` is
-   an `Int` multiply, so it overflows above ~46 341. Retained sizes in bytes are far past that, which
-   means every aspect-ratio decision on real heap data is currently garbage. Almost certainly the
-   cause of the neighbouring `// TODO Figure out what's up with negative numbers` comment, and of the
-   `// TODO Float` on `NodeValue.value`. Use `Double` for the ratio math and `Long` for sizes.
-2. **The node tree is built eagerly and recursively** before layout runs. Fine for a four-node
-   preview, will exhaust memory or the stack on a real dominator tree. Layout has to descend lazily,
-   which the area-driven model above needs anyway.
+It also hardcoded `maxDepth = 1, minSize = 10000` under a TODO asking for exactly the adaptive model
+above.
 
 ## Hit testing
 

@@ -15,9 +15,9 @@ private val PHI = (1 + sqrt(5.0)) / 2
  * [weights] must be sorted descending, which is what the algorithm assumes when it decides where to
  * break a row. Zero weights produce empty rectangles.
  *
- * All ratio arithmetic is in [Double]. Doing it in [Int], as `leakcanary-app`'s port does, overflows
- * once weights exceed ~46 341 — `sumValue * sumValue` — which silently corrupts every row break
- * decision for weights the size of real retained heap sizes.
+ * All ratio arithmetic is in [Double] on purpose. In [Int] it overflows once weights exceed ~46 341,
+ * because of the `sumValue * sumValue` term, which silently corrupts every row break decision at the
+ * scale of real retained heap sizes.
  */
 internal fun squarify(
   weights: LongArray,

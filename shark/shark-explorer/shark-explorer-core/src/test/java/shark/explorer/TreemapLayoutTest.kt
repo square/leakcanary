@@ -213,6 +213,36 @@ class TreemapLayoutTest {
     assertThat(result.cellAt(inHeader)!!.node.name).isEqualTo("root")
   }
 
+  @Test fun `laying out a subtree gives it the whole viewport`() {
+    val big = uniformTree("big", depth = 3, breadth = 2, leafWeight = 1_000_000)
+    val tree = NodeTree(
+      Node("root", children = listOf(big, uniformTree("small", 3, 2, leafWeight = 1_000)))
+    )
+
+    val result = TreemapLayout<Node>().layout(tree, viewport, root = big)
+
+    val rootCell = result.cells.first()
+    assertThat(rootCell.node.name).isEqualTo("big")
+    assertThat(rootCell.rect).isEqualTo(viewport)
+    assertThat(rootCell.depth).isEqualTo(0)
+    assertThat(result.cells.map { it.node.name }.filter { it.startsWith("small") }).isEmpty()
+  }
+
+  @Test fun `laying out a subtree reveals depth the whole tree could not fit`() {
+    val tree = NodeTree(uniformTree("root", depth = 8, breadth = 4, leafWeight = 1))
+    val layout = TreemapLayout<Node>()
+
+    val whole = layout.layout(tree, viewport)
+    val zoomed = layout.layout(tree, viewport, root = tree.root.children.first())
+
+    // Same viewport, so the zoomed subtree gets 4x the area per node and subdivides further.
+    val deepestWholeName = whole.cells.maxBy { it.depth }.node.name
+    val deepestZoomedName = zoomed.cells.maxBy { it.depth }.node.name
+    assertThat(deepestZoomedName.count { it == '.' }).isGreaterThan(
+      deepestWholeName.count { it == '.' }
+    )
+  }
+
   @Test fun `hit testing outside the treemap returns null`() {
     val tree = NodeTree(Node("root", children = listOf(Node("a", 10))))
 

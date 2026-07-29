@@ -28,6 +28,8 @@ dependencies {
   testImplementation(libs.assertjCore)
   // Drives composables headlessly on the JVM, so UI tests need no emulator or display.
   testImplementation(compose.desktop.uiTestJUnit4)
+  // Builds the heap dumps the UI tests open, rather than checking binary fixtures in.
+  testImplementation(projects.shark.sharkHprofTest)
 }
 
 compose.desktop {

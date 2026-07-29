@@ -31,9 +31,12 @@ its own rectangle type instead of using Compose's `Offset`/`Size`.
 
 ## Depends on `shark-android`, not `shark`
 
-Same as `shark-cli`. Android heap dumps need `AndroidReferenceReaderFactory` and the Android
-reference matchers to produce a sensible graph; depending on `shark` alone would silently give worse
-results on the dumps this tool exists to look at.
+Same as `shark-cli`, and for the details panel: `AndroidObjectInspectors` is what turns an object into
+"Activity, destroyed" rather than just a class name, and it only exists in `shark-android`.
+
+Note that `AndroidReferenceReaderFactory` and `AndroidObjectSizeCalculator`, which is what actually
+makes the graph and the sizes right for an Android heap dump, are both in `shark` despite the names.
+So the dependency is not what gets those.
 
 ## Testing split
 
