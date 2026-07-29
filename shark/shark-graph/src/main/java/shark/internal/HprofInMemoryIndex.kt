@@ -2,6 +2,7 @@ package shark.internal
 
 import java.util.EnumSet
 import kotlin.math.max
+import shark.CancelSignal
 import shark.GcRoot
 import shark.GcRoot.StickyClass
 import shark.GcRoot.ThreadObject
@@ -51,6 +52,7 @@ import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.LongObjectScatterMap
 import shark.internal.hppc.LongScatterSet
 import shark.internal.hppc.to
+import shark.throwIfCanceled
 
 /**
  * A stack frame of a thread's stack trace, as reconstructed by
@@ -795,15 +797,24 @@ internal class HprofInMemoryIndex private constructor(
 
     fun buildIndex(
       proguardMapping: ProguardMapping?,
-      hprofHeader: HprofHeader
+      hprofHeader: HprofHeader,
+      cancelSignal: CancelSignal
     ): HprofInMemoryIndex {
       require(classFieldsIndex == classFieldBytes.size) {
         "Read $classFieldsIndex into fields bytes instead of expected ${classFieldBytes.size}"
       }
 
+      // Sorting the four indexes is the one part of indexing that doesn't read the heap dump, so
+      // it's asked here instead of at a read. A single sort still runs to the end once started,
+      // which on the instance index is the longest a cancel can go unnoticed for while a heap dump
+      // is being opened.
+      cancelSignal.throwIfCanceled()
       val sortedInstanceIndex = instanceIndex.moveToSortedMap()
+      cancelSignal.throwIfCanceled()
       val sortedObjectArrayIndex = objectArrayIndex.moveToSortedMap()
+      cancelSignal.throwIfCanceled()
       val sortedPrimitiveArrayIndex = primitiveArrayIndex.moveToSortedMap()
+      cancelSignal.throwIfCanceled()
       val sortedClassIndex = classIndex.moveToSortedMap()
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
@@ -848,7 +859,8 @@ internal class HprofInMemoryIndex private constructor(
       reader: StreamingHprofReader,
       hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping?,
-      indexedGcRootTags: Set<HprofRecordTag>
+      indexedGcRootTags: Set<HprofRecordTag>,
+      cancelSignal: CancelSignal = CancelSignal.NEVER
     ): HprofInMemoryIndex {
 
       // First pass to count and correctly size arrays once and for all.
@@ -967,7 +979,7 @@ internal class HprofInMemoryIndex private constructor(
       ) + HprofRecordTag.rootTags.intersect(indexedGcRootTags)
 
       reader.readRecords(recordTypes, indexBuilderListener)
-      return indexBuilderListener.buildIndex(proguardMapping, hprofHeader)
+      return indexBuilderListener.buildIndex(proguardMapping, hprofHeader, cancelSignal)
     }
   }
 }

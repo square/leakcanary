@@ -6,7 +6,6 @@ plugins {
 dependencies {
   api(projects.shark.sharkGraph)
 
-  implementation(libs.coroutines.core)
   implementation(libs.kotlin.stdlib)
   implementation(libs.okio2)
 

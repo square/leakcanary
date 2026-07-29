@@ -4,6 +4,30 @@ public final class shark/ByteArraySourceProvider : shark/DualSourceProvider {
 	public fun openStreamingSource ()Lokio/BufferedSource;
 }
 
+public abstract interface class shark/CancelSignal {
+	public static final field Companion Lshark/CancelSignal$Companion;
+	public abstract fun cancelReasonOrNull ()Ljava/lang/String;
+}
+
+public final class shark/CancelSignal$Companion {
+	public final fun getNEVER ()Lshark/CancelSignal;
+}
+
+public final class shark/CancelSignalKt {
+	public static final fun throwIfCanceled (Lshark/CancelSignal;)V
+}
+
+public final class shark/CancelableSourceProvider : shark/DualSourceProvider {
+	public fun <init> (Lshark/DualSourceProvider;Lshark/CancelSignal;)V
+	public fun openRandomAccessSource ()Lshark/RandomAccessSource;
+	public fun openStreamingSource ()Lokio/BufferedSource;
+}
+
+public final class shark/CanceledException : java/lang/RuntimeException {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun getCancelReason ()Ljava/lang/String;
+}
+
 public final class shark/ConstantMemoryMetricsDualSourceProvider : shark/DualSourceProvider {
 	public fun <init> (Lshark/DualSourceProvider;)V
 	public final fun getRandomAccessByteReads ()J
@@ -606,12 +630,6 @@ public abstract interface class shark/StreamingSinkProvider {
 
 public abstract interface class shark/StreamingSourceProvider {
 	public abstract fun openStreamingSource ()Lokio/BufferedSource;
-}
-
-public final class shark/ThrowingCancelableFileSourceProvider : shark/DualSourceProvider {
-	public fun <init> (Ljava/io/File;Ljava/lang/Runnable;)V
-	public fun openRandomAccessSource ()Lshark/RandomAccessSource;
-	public fun openStreamingSource ()Lokio/BufferedSource;
 }
 
 public abstract class shark/ValueHolder {

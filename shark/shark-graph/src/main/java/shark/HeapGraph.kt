@@ -21,6 +21,16 @@ interface HeapGraph {
    */
   val context: GraphContext
 
+  /**
+   * Asked whether the work reading this graph should stop. Reading an object asks before it reads,
+   * and the parts of an analysis that run for a while without reading anything ask as they go, so
+   * work built on a graph opened with a signal stops shortly after that signal says to, by throwing
+   * [CanceledException].
+   *
+   * [CancelSignal.NEVER] for a graph opened without one, which is the default.
+   */
+  val cancelSignal: CancelSignal
+
   val objectCount: Int
 
   val classCount: Int

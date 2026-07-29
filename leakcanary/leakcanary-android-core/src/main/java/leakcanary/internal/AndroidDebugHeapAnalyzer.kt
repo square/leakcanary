@@ -14,7 +14,10 @@ import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.ScopedLeaksDb
+import shark.CancelSignal
+import shark.CanceledException
 import shark.ConstantMemoryMetricsDualSourceProvider
+import shark.FileSourceProvider
 import shark.HeapAnalysis
 import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
@@ -27,11 +30,11 @@ import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 import shark.OnAnalysisProgressListener.Step.REPORTING_HEAP_ANALYSIS
 import shark.ProguardMappingReader
 import shark.SharkLog
-import shark.ThrowingCancelableFileSourceProvider
 
 /**
- * This should likely turn into a public API but probably better to do once it's
- * coroutine based to supports cleaner cancellation + publishing progress.
+ * This should likely turn into a public API, once there's a good answer for publishing progress:
+ * cancellation is now [CancelSignal]'s job, but progress is still a listener called with one of ten
+ * coarse steps, which isn't enough to show progress with.
  */
 internal object AndroidDebugHeapAnalyzer {
 
@@ -43,10 +46,14 @@ internal object AndroidDebugHeapAnalyzer {
    * Runs the heap analysis on the current thread, stores the result in the LeakCanary database and
    * returns the [EventListener.Event.HeapAnalysisDone] event for it. Callers are responsible for
    * dispatching that event.
+   *
+   * Throws [CanceledException] if [cancelSignal] stops the analysis, in which case nothing is stored
+   * and there's no event to dispatch: an analysis that was asked to stop has no result to show.
    */
+  @Throws(CanceledException::class)
   fun runAnalysisBlocking(
     heapDumped: HeapDump,
-    isCanceled: () -> Boolean = { false },
+    cancelSignal: CancelSignal = CancelSignal.NEVER,
     progressEventListener: (HeapAnalysisProgress) -> Unit
   ): HeapAnalysisDone<*> {
     val progressListener = OnAnalysisProgressListener { step ->
@@ -59,7 +66,7 @@ internal object AndroidDebugHeapAnalyzer {
     val heapDumpReason = heapDumped.reason
 
     val heapAnalysis = if (heapDumpFile.exists()) {
-      analyzeHeap(heapDumpFile, progressListener, isCanceled)
+      analyzeHeap(heapDumpFile, progressListener, cancelSignal)
     } else {
       missingFileFailure(heapDumpFile)
     }
@@ -156,7 +163,7 @@ internal object AndroidDebugHeapAnalyzer {
   private fun analyzeHeap(
     heapDumpFile: File,
     progressListener: OnAnalysisProgressListener,
-    isCanceled: () -> Boolean
+    cancelSignal: CancelSignal
   ): HeapAnalysis {
     val config = LeakCanary.config
     val heapAnalyzer = HeapAnalyzer(progressListener)
@@ -168,16 +175,17 @@ internal object AndroidDebugHeapAnalyzer {
 
     progressListener.onAnalysisProgress(PARSING_HEAP_DUMP)
 
-    val sourceProvider =
-      ConstantMemoryMetricsDualSourceProvider(ThrowingCancelableFileSourceProvider(heapDumpFile) {
-        if (isCanceled()) {
-          throw RuntimeException("Analysis canceled")
-        }
-      })
+    val sourceProvider = ConstantMemoryMetricsDualSourceProvider(FileSourceProvider(heapDumpFile))
 
     val closeableGraph = try {
-      sourceProvider.openHeapGraph(proguardMapping = proguardMappingReader?.readProguardMapping())
+      sourceProvider.openHeapGraph(
+        proguardMapping = proguardMappingReader?.readProguardMapping(),
+        cancelSignal = cancelSignal
+      )
     } catch (throwable: Throwable) {
+      if (throwable is CanceledException) {
+        throw throwable
+      }
       return HeapAnalysisFailure(
         heapDumpFile = heapDumpFile,
         createdAtTimeMillis = System.currentTimeMillis(),

@@ -9,35 +9,51 @@ import java.util.EnumSet
 class HprofIndex private constructor(
   private val sourceProvider: RandomAccessSourceProvider,
   private val header: HprofHeader,
-  private val index: HprofInMemoryIndex
+  private val index: HprofInMemoryIndex,
+  private val cancelSignal: CancelSignal
 ) {
 
   /**
    * Opens a [CloseableHeapGraph] which you can use to navigate the indexed hprof and then close.
+   *
+   * The graph reads through the [CancelSignal] passed to [indexRecordsOf], so a graph opened from an
+   * index that could be canceled can be canceled as well, by that same signal.
    */
   fun openHeapGraph(): CloseableHeapGraph {
     val reader = RandomAccessHprofReader.openReaderFor(sourceProvider, header)
-    return HprofHeapGraph(header, reader, index)
+    return HprofHeapGraph(header, reader, index, cancelSignal)
   }
 
   companion object {
     /**
      * Creates an in memory index of an hprof source provided by [hprofSourceProvider].
+     *
+     * Indexing reads the whole source, twice, so it's the longest running part of opening a heap
+     * dump: pass a [cancelSignal] to be able to stop it. That signal covers every read of the index
+     * and of the graphs [openHeapGraph] returns, since [hprofSourceProvider] is wrapped in a
+     * [CancelableSourceProvider] here and that wrapper is what both go on to read through.
      */
     fun indexRecordsOf(
       hprofSourceProvider: DualSourceProvider,
       hprofHeader: HprofHeader,
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTags: Set<HprofRecordTag> = defaultIndexedGcRootTags()
+      indexedGcRootTags: Set<HprofRecordTag> = defaultIndexedGcRootTags(),
+      cancelSignal: CancelSignal = CancelSignal.NEVER
     ): HprofIndex {
-      val reader = StreamingHprofReader.readerFor(hprofSourceProvider, hprofHeader)
+      val sourceProvider = if (cancelSignal === CancelSignal.NEVER) {
+        hprofSourceProvider
+      } else {
+        CancelableSourceProvider(hprofSourceProvider, cancelSignal)
+      }
+      val reader = StreamingHprofReader.readerFor(sourceProvider, hprofHeader)
       val index = HprofInMemoryIndex.indexHprof(
         reader = reader,
         hprofHeader = hprofHeader,
         proguardMapping = proguardMapping,
-        indexedGcRootTags = indexedGcRootTags
+        indexedGcRootTags = indexedGcRootTags,
+        cancelSignal = cancelSignal
       )
-      return HprofIndex(hprofSourceProvider, hprofHeader, index)
+      return HprofIndex(sourceProvider, hprofHeader, index, cancelSignal)
     }
 
     fun defaultIndexedGcRootTags(): EnumSet<HprofRecordTag> = EnumSet.of(

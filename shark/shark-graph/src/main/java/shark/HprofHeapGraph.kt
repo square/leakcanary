@@ -43,7 +43,8 @@ import shark.internal.LruCache
 class HprofHeapGraph internal constructor(
   private val header: HprofHeader,
   private val reader: RandomAccessHprofReader,
-  private val index: HprofInMemoryIndex
+  private val index: HprofInMemoryIndex,
+  override val cancelSignal: CancelSignal
 ) : CloseableHeapGraph {
 
   override val identifierByteSize: Int get() = header.identifierByteSize
@@ -315,6 +316,7 @@ class HprofHeapGraph internal constructor(
     objectId: Long,
     indexedObject: IndexedObjectArray
   ): Int {
+    cancelSignal.throwIfCanceled()
     val cachedRecord = objectCache[objectId] as ObjectArrayDumpRecord?
     if (cachedRecord != null) {
       return cachedRecord.elementIds.size * identifierByteSize
@@ -340,6 +342,7 @@ class HprofHeapGraph internal constructor(
     objectId: Long,
     indexedObject: IndexedPrimitiveArray
   ): Int {
+    cancelSignal.throwIfCanceled()
     val cachedRecord = objectCache[objectId] as PrimitiveArrayDumpRecord?
     if (cachedRecord != null) {
       return when (cachedRecord) {
@@ -383,6 +386,10 @@ class HprofHeapGraph internal constructor(
     indexedObject: IndexedObject,
     readBlock: HprofRecordReader.() -> T
   ): T {
+    // Asked here rather than left to the source provider, which only sees the reads that miss the
+    // cache below. Around a third of record reads hit it, so a traversal walking cached objects
+    // would otherwise run on for a while after being asked to stop.
+    cancelSignal.throwIfCanceled()
     val objectRecordOrNull = objectCache[objectId]
     @Suppress("UNCHECKED_CAST")
     if (objectRecordOrNull != null) {
@@ -432,14 +439,20 @@ class HprofHeapGraph internal constructor(
      */
     fun File.openHeapGraph(
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<HprofRecordTag> = HprofIndex.defaultIndexedGcRootTags()
+      indexedGcRootTypes: Set<HprofRecordTag> = HprofIndex.defaultIndexedGcRootTags(),
+      cancelSignal: CancelSignal = CancelSignal.NEVER
     ): CloseableHeapGraph {
-      return FileSourceProvider(this).openHeapGraph(proguardMapping, indexedGcRootTypes)
+      return FileSourceProvider(this).openHeapGraph(
+        proguardMapping,
+        indexedGcRootTypes,
+        cancelSignal
+      )
     }
 
     fun DualSourceProvider.openHeapGraph(
       proguardMapping: ProguardMapping? = null,
-      indexedGcRootTypes: Set<HprofRecordTag> = HprofIndex.defaultIndexedGcRootTags()
+      indexedGcRootTypes: Set<HprofRecordTag> = HprofIndex.defaultIndexedGcRootTags(),
+      cancelSignal: CancelSignal = CancelSignal.NEVER
     ): CloseableHeapGraph {
       // TODO We can probably remove the concept of DualSourceProvider. Opening a heap graph requires
       //  a random access reader which is built from a random access source + headers.
@@ -454,7 +467,13 @@ class HprofHeapGraph internal constructor(
       //  Note: should see if Okio has a better abstraction for random access now.
       //  Also Use FileSystem + Path instead of File as the core way to open a file based heap dump.
       val header = openStreamingSource().use { HprofHeader.parseHeaderOf(it) }
-      val index = HprofIndex.indexRecordsOf(this, header, proguardMapping, indexedGcRootTypes)
+      val index = HprofIndex.indexRecordsOf(
+        hprofSourceProvider = this,
+        hprofHeader = header,
+        proguardMapping = proguardMapping,
+        indexedGcRootTags = indexedGcRootTypes,
+        cancelSignal = cancelSignal
+      )
       return index.openHeapGraph()
     }
   }

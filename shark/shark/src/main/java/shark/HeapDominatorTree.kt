@@ -26,6 +26,11 @@ class HeapDominatorTree private constructor(
   private val objectIdByDfsNumber: LongList,
   private val dfsNumberByObjectId: LongIntMap,
   private val dominatorDfsNumberByDfsNumber: IntArray,
+  /**
+   * From the [HeapGraph] this was built for. Held because [buildNodes] spends most of its time
+   * walking arrays rather than reading the heap dump, so it has to ask this itself.
+   */
+  private val cancelSignal: CancelSignal,
 ) {
 
   /** Number of objects reachable from the GC roots. */
@@ -70,6 +75,7 @@ class HeapDominatorTree private constructor(
     // own dominator.
     val childrenByDominator = arrayOfNulls<MutableLongList>(lastDfsNumber + 1)
     for (dfsNumber in lastDfsNumber downTo VIRTUAL_ROOT + 1) {
+      cancelSignal.throwIfCanceled()
       val dominator = dominatorDfsNumberByDfsNumber[dfsNumber]
       retainedSizes[dominator] += retainedSizes[dfsNumber]
       retainedCounts[dominator] += retainedCounts[dfsNumber]
@@ -80,6 +86,7 @@ class HeapDominatorTree private constructor(
 
     val nodes = HashMap<Long, DominatorNode>(lastDfsNumber)
     for (dfsNumber in VIRTUAL_ROOT..lastDfsNumber) {
+      cancelSignal.throwIfCanceled()
       val children = childrenByDominator[dfsNumber]
       val dominatedObjectIds = if (children == null) {
         emptyList()
@@ -117,12 +124,15 @@ class HeapDominatorTree private constructor(
       referenceReader: ReferenceReader<HeapObject>,
       gcRootProvider: GcRootProvider,
     ): HeapDominatorTree {
+      val cancelSignal = graph.cancelSignal
       val flowGraph = FlowGraph(graph, referenceReader, gcRootProvider)
       flowGraph.depthFirstSearch()
       return HeapDominatorTree(
         objectIdByDfsNumber = flowGraph.objectIdByDfsNumber,
         dfsNumberByObjectId = flowGraph.dfsNumberByObjectId,
-        dominatorDfsNumberByDfsNumber = LengauerTarjan(flowGraph).computeImmediateDominators(),
+        dominatorDfsNumberByDfsNumber = LengauerTarjan(flowGraph, cancelSignal)
+          .computeImmediateDominators(),
+        cancelSignal = cancelSignal,
       )
     }
   }
@@ -184,9 +194,14 @@ class HeapDominatorTree private constructor(
     }
 
     fun depthFirstSearch() {
+      val cancelSignal = graph.cancelSignal
       val stack = ArrayDeque<Frame>()
       stack.addLast(virtualRootFrame())
       while (stack.isNotEmpty()) {
+        // Reading a frame's references reads the heap dump, but descending into a successor already
+        // visited doesn't, and an array of a million already visited objects is a million turns
+        // around this loop without a single read.
+        cancelSignal.throwIfCanceled()
         val frame = stack.last()
         if (frame.cursor == frame.successorObjectIds.size) {
           stack.removeLast()
@@ -268,7 +283,10 @@ class HeapDominatorTree private constructor(
    * are identified by their DFS number throughout, which is why `semi` holds DFS numbers and can be
    * compared directly.
    */
-  private class LengauerTarjan(private val graph: FlowGraph) {
+  private class LengauerTarjan(
+    private val graph: FlowGraph,
+    private val cancelSignal: CancelSignal
+  ) {
 
     private val lastDfsNumber = graph.lastDfsNumber
 
@@ -290,7 +308,10 @@ class HeapDominatorTree private constructor(
     private val compressStack = IntArray(lastDfsNumber + 1)
 
     fun computeImmediateDominators(): IntArray {
+      // Nothing below reads the heap dump: it's all array work over a graph that's already been
+      // walked, and on a large heap dump it runs for seconds. So both loops ask as they go.
       for (w in lastDfsNumber downTo VIRTUAL_ROOT + 1) {
+        cancelSignal.throwIfCanceled()
         var edge = graph.predecessorHead[w]
         while (edge != 0) {
           val candidate = semi[eval(graph.predecessorDfsNumber[edge])]
@@ -316,6 +337,7 @@ class HeapDominatorTree private constructor(
       // Vertices whose immediate dominator was set to their semidominator's dominator need a
       // second pass, in DFS order so that the dominator they point at is already final.
       for (w in VIRTUAL_ROOT + 1..lastDfsNumber) {
+        cancelSignal.throwIfCanceled()
         if (immediateDominator[w] != semi[w]) {
           immediateDominator[w] = immediateDominator[immediateDominator[w]]
         }
