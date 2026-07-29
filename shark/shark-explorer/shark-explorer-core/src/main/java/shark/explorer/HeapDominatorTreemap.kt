@@ -25,6 +25,8 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HeapValue
+import shark.MatchingGcRootProvider
+import shark.PrioritizingShortestPathFinder
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -36,7 +38,12 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Lo
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
+import shark.ReferenceLocationType
+import shark.ReferenceReader
 import shark.AndroidObjectInspectors
+import shark.internal.ReferencePathNode
+import shark.internal.ReferencePathNode.ChildNode
+import shark.internal.ReferencePathNode.RootNode
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
 import shark.ValueHolder.CharHolder
@@ -79,6 +86,23 @@ class HeapDominatorTreemap internal constructor(
    * — which happens whenever a strength is followed and then unfollowed — shouldn't pay for it.
    */
   private val rootChildren: RootChildren by lazy { groupRootChildrenByClass() }
+
+  /**
+   * The references this tree was built by following, which is what a path up to a GC root has to follow
+   * too: a path through a reference the tree ignored would explain a retention the tree doesn't show.
+   */
+  private val pathReferenceReader by lazy {
+    StrengthFilteringReferenceReader(strengthReader, reachability, followedStrengths)
+  }
+
+  /**
+   * The objects the root dominates, which is to say the ones nothing owns: whatever holds them does so
+   * on paths that meet only at the root. A set because [holdingPathsTo] asks this of every object it
+   * walks past, and the root of a production dump has six figures worth of children.
+   */
+  private val rootDominatedIds: Set<Long> by lazy {
+    nodes.getValue(root).dominatedObjectIds.toSet()
+  }
 
   /** Bytes retained by [node]: its own shallow size plus that of everything it dominates. */
   override fun weight(node: Long): Long = classGroup(node)?.retainedSize
@@ -302,7 +326,7 @@ class HeapDominatorTreemap internal constructor(
         .forEach { weakening -> add { referrer(heapObject, weakening.fieldName) } }
     }
     return ObjectReferrers(
-      isDominatedByRoot = objectId != root && objectId in nodes.getValue(root).dominatedObjectIds,
+      isDominatedByRoot = objectId != root && objectId in rootDominatedIds,
       referrers = referrers,
       hiddenReferrerCount = totalCount - referrers.size
     )
@@ -315,6 +339,250 @@ class HeapDominatorTreemap internal constructor(
     label = label(heapObject.objectId),
     fieldName = fieldName,
     inspectableObjectId = heapObject.objectId.takeIf { it in nodes }
+  )
+
+  /**
+   * Every way [objectId] is held, spelled out from a GC root down to it, field by field.
+   *
+   * [referrersOf] says which objects hold this one; this says what holds *those*, all the way up, which
+   * is what answers "what is keeping this in memory". A bitmap under the root turns out to be held by
+   * the view showing it on two of its paths and by an image cache on the third: the view is the answer
+   * anyone is after, and the cache is why the dominator tree couldn't give it.
+   *
+   * At most [MAX_HOLDING_PATHS] of them, and it stops forking after [MAX_HOLDER_LEVELS] levels, saying
+   * how many holders it didn't follow: something like a boxed `true` is held from tens of thousands of
+   * places, and no panel is going to show them.
+   *
+   * Costs up to [MAX_HOLDER_LEVELS] passes over the heap dump plus a walk from the GC roots — a couple of
+   * seconds on a large dump — so it belongs off the UI thread and behind its own placeholder, like
+   * [referrersOf]. An object with an owner costs the walk alone: one path says all there is to say.
+   */
+  fun holdingPathsTo(objectId: Long): HoldingPaths {
+    if (objectId == root || objectId !in nodes) {
+      return HoldingPaths(emptyList(), null, null, hiddenPathCount = 0)
+    }
+    val tails = tailsToWalkUpFrom(objectId)
+    val paths = shortestPathsTo(tails.tailByTipId.keys)
+      .map { (tipId, upperSteps) ->
+        val tail = tails.tailByTipId.getValue(tipId)
+        upperSteps.gcRootLabel to upperSteps.steps + tail.map { stepTo(it.objectId, it.referrerId) }
+      }
+      // A path that already went through the object isn't a way of holding it: a view's own helpers
+      // point back at the view, and following one of those leads back to where it started.
+      .filterNot { (_, steps) -> steps.dropLast(1).any { it.objectId == objectId } }
+      .map { (gcRootLabel, steps) ->
+        HoldingPath(
+          gcRootLabel = gcRootLabel,
+          // Kept from the object up, because what holds it directly is what a reader is looking for and
+          // the framework plumbing between a GC root and the app's own objects rarely is.
+          steps = steps.takeLast(MAX_PATH_STEPS),
+          hiddenStepCount = (steps.size - MAX_PATH_STEPS).coerceAtLeast(0)
+        )
+      }
+      .sortedBy { it.steps.size }
+    return withPathCounts(
+      objectId = objectId,
+      paths = paths,
+      // A tip with no path of its own was on the way to another tip, so its path is already shown.
+      hiddenPathCount = tails.notFollowedCount
+    )
+  }
+
+  /**
+   * The objects to ask a path from a GC root for, each with the steps from it back down to the object
+   * asked about.
+   *
+   * Which objects those are comes out of what the dominator tree already knows: every path to an object
+   * with a dominator goes through that dominator, so one path says everything there is to say about it.
+   * Only an object the root dominates is held more than one way, so that's where the walk up forks, and
+   * it stops as soon as the objects it reaches have an owner.
+   */
+  private fun tailsToWalkUpFrom(objectId: Long): Tails {
+    val tailByTipId = LinkedHashMap<Long, List<TailStep>>()
+    var notFollowedCount = 0
+    var frontier = mapOf(objectId to emptyList<TailStep>())
+    repeat(MAX_HOLDER_LEVELS) {
+      val forking = frontier.filterKeys { it in rootDominatedIds }
+      tailByTipId += frontier - forking.keys
+      if (forking.isEmpty()) {
+        return Tails(tailByTipId, notFollowedCount)
+      }
+      val referrerIds = referrerIdsOf(forking.keys)
+      val forked = LinkedHashMap<Long, List<TailStep>>()
+      forking.forEach { (heldId, tail) ->
+        val referrers = referrerIds[heldId].orEmpty()
+        if (referrers.isEmpty()) {
+          // Nothing in the heap dump points at it, so a GC root does, and the path finder starts there.
+          tailByTipId[heldId] = tail
+          return@forEach
+        }
+        // At least one per fork, however many forks there already are: a path that stops short of the
+        // object would be a path to something else.
+        val room = (MAX_HOLDING_PATHS - tailByTipId.size - forked.size).coerceAtLeast(1)
+        referrers.take(room).forEach { referrerId ->
+          forked.putIfAbsent(referrerId, listOf(TailStep(heldId, referrerId)) + tail)
+        }
+        notFollowedCount += (referrers.size - room).coerceAtLeast(0)
+      }
+      frontier = forked
+    }
+    tailByTipId += frontier
+    return Tails(tailByTipId, notFollowedCount)
+  }
+
+  /** Which objects hold each of [targets], in one pass over the heap dump. */
+  private fun referrerIdsOf(targets: Set<Long>): Map<Long, List<Long>> {
+    val referrerIds = mutableMapOf<Long, MutableList<Long>>()
+    graph.objects.forEach { heapObject ->
+      pathReferenceReader.read(heapObject).forEach { reference ->
+        if (reference.valueObjectId in targets) {
+          val referrers = referrerIds.getOrPut(reference.valueObjectId) { mutableListOf() }
+          // Two fields of the same object pointing at it is one holder, not two.
+          if (referrers.lastOrNull() != heapObject.objectId) {
+            referrers += heapObject.objectId
+          }
+        }
+      }
+    }
+    return referrerIds
+  }
+
+  /**
+   * The shortest path from a GC root to each of [targets], as the steps down to it.
+   *
+   * [PrioritizingShortestPathFinder] treats its targets as leaves, so a target that holds another one
+   * hides it: asking for a tile and the view it holds reports the tile only. Hence a second walk for
+   * whatever went missing, without the targets that swallowed it — two rounds, because a third target
+   * nested under those two would be one holder explaining another explaining another, which the panel
+   * couldn't show as separate ways of holding anything anyway.
+   */
+  private fun shortestPathsTo(targets: Set<Long>): Map<Long, UpperSteps> {
+    val found = mutableMapOf<Long, UpperSteps>()
+    var remaining = targets
+    repeat(MAX_PATH_FINDING_ROUNDS) {
+      if (remaining.isEmpty()) {
+        return found
+      }
+      val pathFinder = PrioritizingShortestPathFinder.Factory(
+        listener = {},
+        referenceReaderFactory = object : ReferenceReader.Factory<HeapObject> {
+          override fun createFor(heapGraph: HeapGraph) = pathReferenceReader
+        },
+        gcRootProvider = MatchingGcRootProvider(emptyList())
+      ).createFor(graph)
+      pathFinder.findShortestPathsFromGcRoots(remaining)
+        .pathsToLeakingObjects
+        .forEach { leaf -> found[leaf.objectId] = upperSteps(leaf) }
+      remaining = remaining - found.keys
+    }
+    return found
+  }
+
+  /** One reported path, from its GC root down to the object it was asked for. */
+  private fun upperSteps(leaf: ReferencePathNode): UpperSteps {
+    val pathNodes = ArrayDeque<ReferencePathNode>()
+    var node = leaf
+    while (node is ChildNode) {
+      pathNodes.addFirst(node)
+      node = node.parent
+    }
+    val rootNode = node as RootNode
+    pathNodes.addFirst(rootNode)
+    return UpperSteps(
+      gcRootLabel = gcRootLabel(rootNode.gcRoot),
+      steps = pathNodes.map { pathNode ->
+        step(
+          objectId = pathNode.objectId,
+          referenceName = (pathNode as? ChildNode)?.lazyDetailsResolver?.resolve()?.let { details ->
+            referenceName(details.name, details.locationType)
+          }
+        )
+      }
+    )
+  }
+
+  /** How [referrerId] points at [objectId], which takes reading the referrer's references again. */
+  private fun stepTo(
+    objectId: Long,
+    referrerId: Long
+  ): PathStep {
+    val details = pathReferenceReader.read(graph.findObjectById(referrerId))
+      .firstOrNull { it.valueObjectId == objectId }
+      ?.lazyDetailsResolver
+      ?.resolve()
+    return step(
+      objectId = objectId,
+      referenceName = details?.let { referenceName(it.name, it.locationType) }
+    )
+  }
+
+  private fun step(
+    objectId: Long,
+    referenceName: String?
+  ) = PathStep(
+    objectId = objectId,
+    label = label(objectId),
+    referenceName = referenceName,
+    // Filled in once every path is known: a step is only worth pointing out if others go through it.
+    pathCount = 1,
+    isInspectable = objectId in nodes
+  )
+
+  /** Counts how many paths go through each step, and picks the deepest one they all go through. */
+  private fun withPathCounts(
+    objectId: Long,
+    paths: List<HoldingPath>,
+    hiddenPathCount: Int
+  ): HoldingPaths {
+    val pathCountByObjectId = mutableMapOf<Long, Int>()
+    paths.forEach { path ->
+      path.steps.map { it.objectId }.distinct().forEach { stepId ->
+        pathCountByObjectId[stepId] = (pathCountByObjectId[stepId] ?: 0) + 1
+      }
+    }
+    val counted = paths.map { path ->
+      path.copy(
+        steps = path.steps.map { step ->
+          step.copy(pathCount = pathCountByObjectId.getValue(step.objectId))
+        }
+      )
+    }
+    // The object itself is on every path by definition, and saying so about it says nothing. With one
+    // path that leaves the object's owner, which is the honest answer to what keeps it in memory.
+    val commonHolder = counted.firstOrNull()
+      ?.steps
+      ?.lastOrNull { it.objectId != objectId && it.pathCount == counted.size }
+    return HoldingPaths(
+      paths = counted,
+      commonHolderObjectId = commonHolder?.objectId,
+      commonHolderLabel = commonHolder?.label,
+      hiddenPathCount = hiddenPathCount
+    )
+  }
+
+  /** An array element reads as `[3]`, so that a path can't be read as a field called `3`. */
+  private fun referenceName(
+    name: String,
+    locationType: ReferenceLocationType
+  ): String = if (locationType == ReferenceLocationType.ARRAY_ENTRY) "[$name]" else name
+
+  /** One step of a path below the object a path was asked for. See [tailsToWalkUpFrom]. */
+  private class TailStep(
+    val objectId: Long,
+    val referrerId: Long
+  )
+
+  /** Where [tailsToWalkUpFrom] stopped walking up, and what it didn't follow. */
+  private class Tails(
+    val tailByTipId: Map<Long, List<TailStep>>,
+    /** How many holders were left unfollowed because there were more of them than paths to show. */
+    val notFollowedCount: Int
+  )
+
+  /** A path from a GC root down to the object it was asked for. See [shortestPathsTo]. */
+  private class UpperSteps(
+    val gcRootLabel: String,
+    val steps: List<PathStep>
   )
 
   /**
@@ -522,6 +790,26 @@ class HeapDominatorTreemap internal constructor(
 
     /** Same, for the objects holding a widely shared one. */
     private const val MAX_REFERRERS = 100
+
+    /**
+     * How many ways of holding an object [holdingPathsTo] spells out. Six chains is already more than
+     * fits in a panel, and an object held from more places than that is held by a data structure rather
+     than by anything anyone would call an owner.
+     */
+    private const val MAX_HOLDING_PATHS = 6
+
+    /**
+     * How many times the walk up from an object forks before it stops. Each fork is a pass over the heap
+     * dump, and two is what it takes to get past the wrapper an object is usually held through — a
+     * cache entry, a result object — to the holders that differ from each other.
+     */
+    private const val MAX_HOLDER_LEVELS = 2
+
+    /** How many steps of one path are shown, counted from the object up. */
+    private const val MAX_PATH_STEPS = 15
+
+    /** See [shortestPathsTo]: one walk from the GC roots, plus one for whatever a target hid. */
+    private const val MAX_PATH_FINDING_ROUNDS = 2
 
     /**
      * ART gives every object a `shadow$_klass_` and a `shadow$_monitor_`: the class pointer and the

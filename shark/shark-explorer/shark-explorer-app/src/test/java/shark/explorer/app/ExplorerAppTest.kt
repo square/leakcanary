@@ -23,6 +23,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
@@ -138,6 +139,48 @@ class ExplorerAppTest {
         hasText("${HOLDER_LABEL}.payload", substring = true),
         OPEN_TIMEOUT_MILLIS
       )
+    }
+  }
+
+  @Test fun `the details panel spells out every way what was pressed is held`() {
+    runComposeUiTest {
+      // The array is held by a wrapper the cache and the tile both hold, and by the view the tile holds:
+      // three ways, the shape this section was built for.
+      openHeapDump(cachedPayloadHeapDump())
+
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+
+      waitUntilAtLeastOneExists(hasText("Path 1 of 3", substring = true), OPEN_TIMEOUT_MILLIS)
+      // Two paths go through the tile and one through the cache, so they share nothing above the array,
+      // which is what leaves the root dominating it.
+      onNodeWithText(NO_COMMON_HOLDER_EXPLANATION).assertIsDisplayed()
+      // The chains sit below the fold of a panel this narrow, hence scrolling to each of them.
+      onNodeWithText(".entry Wrapper", substring = true).performScrollTo().assertIsDisplayed()
+      onNodeWithText(".result Wrapper", substring = true).performScrollTo().assertIsDisplayed()
+      onNodeWithText(".drawable Object[]", substring = true).performScrollTo().assertIsDisplayed()
+    }
+  }
+
+  @Test fun `one path through one object says that object is what keeps it in memory`() {
+    runComposeUiTest {
+      openHeapDump()
+
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+
+      waitUntilAtLeastOneExists(hasText("Path 1 of 1", substring = true), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(COMMON_HOLDER_EXPLANATION.format(HOLDER_LABEL)).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `clicking a step of a path inspects that object`() {
+    runComposeUiTest {
+      openHeapDump(cachedPayloadHeapDump())
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      waitUntilAtLeastOneExists(hasText(".entry Wrapper", substring = true), OPEN_TIMEOUT_MILLIS)
+
+      onNodeWithText(".entry Wrapper", substring = true).performScrollTo().performClick()
+
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -360,6 +403,28 @@ class ExplorerAppTest {
       }
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
       gcRoot(JniGlobal(id = weakReference.value, jniGlobalRefId = 1))
+    }
+    return file
+  }
+
+  /**
+   * A heap dump shaped like the one the paths section was built for: a cache and the view showing an
+   * image both hold it, and the view holds it twice, so the paths that hold it meet only at the root.
+   */
+  private fun cachedPayloadHeapDump(): File {
+    val file = testFolder.newFile("cached-payload.hprof")
+    file.dump {
+      val payload =
+        ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
+      val wrapper = "com.example.Wrapper" instance { field["payload"] = payload }
+      val view = "com.example.View" instance { field["drawable"] = payload }
+      val tile = "com.example.Tile" instance {
+        field["result"] = wrapper
+        field["view"] = view
+      }
+      val cache = "com.example.Cache" instance { field["entry"] = wrapper }
+      gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = cache.value, jniGlobalRefId = 1))
     }
     return file
   }

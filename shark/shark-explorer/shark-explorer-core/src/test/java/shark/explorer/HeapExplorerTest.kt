@@ -127,6 +127,93 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `an object held two ways has a path from a gc root for each of them`() {
+    HeapExplorer.open(cachedPayloadHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val payload = tree.findByLabel("Object[]")
+
+      val holdingPaths = tree.holdingPathsTo(payload.objectId)
+
+      // Held by the tile that shows it, twice over, and by the cache: three ways, and the walk up has
+      // to fork twice to find the third, since the cache holds the wrapper rather than the payload.
+      assertThat(holdingPaths.paths.map { path -> path.steps.map { it.label } }).containsExactlyInAnyOrder(
+        listOf("Cache", "Wrapper", "Object[]"),
+        listOf("Tile", "Wrapper", "Object[]"),
+        listOf("Tile", "View", "Object[]")
+      )
+      assertThat(holdingPaths.paths.map { path -> path.steps.map { it.referenceName } })
+        .containsExactlyInAnyOrder(
+          listOf(null, "entry", "payload"),
+          listOf(null, "result", "payload"),
+          listOf(null, "view", "drawable")
+        )
+      assertThat(holdingPaths.paths.map { it.gcRootLabel }.distinct())
+        .containsExactly("GC root: JNI global reference")
+    }
+  }
+
+  @Test fun `the paths say where they join, and that they don't all join`() {
+    HeapExplorer.open(cachedPayloadHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val holdingPaths = tree.holdingPathsTo(tree.findByLabel("Object[]").objectId)
+
+      // The tile is on two of the three paths, so nothing is common to all of them — which is exactly
+      // why the root ends up dominating the payload.
+      assertThat(holdingPaths.commonHolderObjectId).isNull()
+      assertThat(holdingPaths.commonHolderLabel).isNull()
+      val pathCountByLabel = holdingPaths.paths
+        .flatMap { path -> path.steps }
+        .associate { it.label to it.pathCount }
+      assertThat(pathCountByLabel).containsEntry("Tile", 2)
+      assertThat(pathCountByLabel).containsEntry("Wrapper", 2)
+      assertThat(pathCountByLabel).containsEntry("Cache", 1)
+      assertThat(pathCountByLabel).containsEntry("Object[]", 3)
+    }
+  }
+
+  @Test fun `an object with an owner has the one path that goes through it`() {
+    HeapExplorer.open(cachedPayloadHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val view = tree.findByLabel("View")
+
+      val holdingPaths = tree.holdingPathsTo(view.objectId)
+
+      // Everything that holds the view goes through the tile, which the dominator tree already said, so
+      // there is nothing to fork on and one path is the whole story.
+      assertThat(holdingPaths.paths.map { path -> path.steps.map { it.label } })
+        .containsExactly(listOf("Tile", "View"))
+      assertThat(holdingPaths.commonHolderLabel).isEqualTo("Tile")
+      assertThat(holdingPaths.hiddenPathCount).isEqualTo(0)
+    }
+  }
+
+  @Test fun `the root has no path leading to it`() {
+    openTestHeapDump().use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+
+      val holdingPaths = tree.holdingPathsTo(tree.root)
+
+      assertThat(holdingPaths.paths).isEmpty()
+      assertThat(holdingPaths.commonHolderObjectId).isNull()
+    }
+  }
+
+  @Test fun `a path that leads back to the object is not a way of holding it`() {
+    HeapExplorer.open(cyclicHolderHeapDump()).use { explorer ->
+      val tree = explorer.treeFor(emptySet())
+      val view = tree.findByLabel("View")
+
+      val holdingPaths = tree.holdingPathsTo(view.objectId)
+
+      // The view's own helper points back at it, so one of its two referrers is only reachable through
+      // the view itself. Following it would report the view as holding itself.
+      assertThat(tree.referrersOf(view.objectId).referrers.map { it.label })
+        .containsExactlyInAnyOrder("Tile", "Helper")
+      assertThat(holdingPaths.paths.map { path -> path.steps.map { it.label } })
+        .containsExactly(listOf("Tile", "View"))
+    }
+  }
+
   @Test fun `a gc root is one of the referrers`() {
     openTestHeapDump().use { explorer ->
       val tree = explorer.treeFor(emptySet())
@@ -358,6 +445,63 @@ class HeapExplorerTest {
       val weakReference = reference(classes.weakId, payload)
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
       gcRoot(JniGlobal(id = weakReference.value, jniGlobalRefId = 1))
+    }
+    return file
+  }
+
+  /**
+   * A heap dump shaped like the one this feature came from: an image cache and the view showing the
+   * image both hold it, and the view holds it twice — once as what it draws and once as the result of
+   * the request that loaded it.
+   *
+   * The payload is what the bitmap stands for. Its two referrers are the wrapper and the view, and the
+   * wrapper's own two referrers are the cache and the tile, so the paths only meet at the root even
+   * though a tile is what actually keeps the payload in memory.
+   */
+  private fun cachedPayloadHeapDump(): File {
+    val file = testFolder.newFile("cached-payload.hprof")
+    file.dump {
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      val wrapper = "com.example.Wrapper" instance { field["payload"] = payload }
+      val view = "com.example.View" instance { field["drawable"] = payload }
+      val tile = "com.example.Tile" instance {
+        field["result"] = wrapper
+        field["view"] = view
+      }
+      val cache = "com.example.Cache" instance { field["entry"] = wrapper }
+      gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = cache.value, jniGlobalRefId = 1))
+    }
+    return file
+  }
+
+  /**
+   * A heap dump where an object is held by its owner and by a helper of its own, the way an
+   * `AppCompatImageView` is held by the layout above it and by the helpers it created, which point back
+   * at it.
+   */
+  private fun cyclicHolderHeapDump(): File {
+    val file = testFolder.newFile("cyclic-holder.hprof")
+    file.dump {
+      val viewClassId = clazz(
+        className = "com.example.View",
+        fields = listOf("helper" to ReferenceHolder::class, "payload" to ReferenceHolder::class)
+      )
+      val helperClassId = clazz(
+        className = "com.example.Helper",
+        fields = listOf("view" to ReferenceHolder::class)
+      )
+      // The helper points back at the view, so the view's id has to exist before the view is written.
+      val viewId = reserveObjectId()
+      val helper = instance(helperClassId, listOf(viewId))
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      val view = instance(viewClassId, listOf(helper, payload), objectId = viewId)
+      val tile = "com.example.Tile" instance { field["view"] = view }
+      gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 0))
     }
     return file
   }

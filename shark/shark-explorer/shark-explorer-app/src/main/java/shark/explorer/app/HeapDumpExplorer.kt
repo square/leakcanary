@@ -39,8 +39,10 @@ import shark.explorer.CellSubject
 import shark.explorer.ClassGroupSummary
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
+import shark.explorer.HoldingPaths
 import shark.explorer.LayoutCell
 import shark.explorer.ObjectReferrers
+import shark.explorer.PathStep
 import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
 import shark.explorer.ReachabilityStrength
@@ -79,6 +81,8 @@ internal fun HeapDumpExplorer(
   var selection: Selection? by remember(session) { mutableStateOf(null) }
   /** Null while the pass over the heap dump that finds them is still running. */
   var referrers: ObjectReferrers? by remember(session) { mutableStateOf(null) }
+  /** Null while the walk up to the GC roots is still running. */
+  var holdingPaths: HoldingPaths? by remember(session) { mutableStateOf(null) }
 
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
@@ -134,6 +138,7 @@ internal fun HeapDumpExplorer(
   LaunchedEffect(session, followedStrengths, request) {
     val currentRequest = request
     referrers = null
+    holdingPaths = null
     selection = if (currentRequest == null) {
       null
     } else {
@@ -164,6 +169,14 @@ internal fun HeapDumpExplorer(
   LaunchedEffect(session, followedStrengths, selectedObjectId) {
     referrers = selectedObjectId?.let { objectId ->
       session.read { explorer -> explorer.treeFor(followedStrengths).referrersOf(objectId) }
+    }
+  }
+
+  // Walking up to the GC roots costs several passes over the heap dump, so it lands last of all. The
+  // referrer list above it answers the same question one step deep, which is often enough.
+  LaunchedEffect(session, followedStrengths, selectedObjectId) {
+    holdingPaths = selectedObjectId?.let { objectId ->
+      session.read { explorer -> explorer.treeFor(followedStrengths).holdingPathsTo(objectId) }
     }
   }
 
@@ -209,6 +222,7 @@ internal fun HeapDumpExplorer(
       DetailsPanel(
         selection = selection,
         referrers = referrers,
+        holdingPaths = holdingPaths,
         scheme = scheme,
         onZoomInto = { navigation = navigation.zoomInto(it) },
         onInspect = { objectId ->
@@ -352,6 +366,7 @@ private fun Breadcrumbs(
 private fun DetailsPanel(
   selection: Selection?,
   referrers: ObjectReferrers?,
+  holdingPaths: HoldingPaths?,
   scheme: CellColorScheme,
   onZoomInto: (Long) -> Unit,
   onInspect: (Long) -> Unit,
@@ -379,6 +394,7 @@ private fun DetailsPanel(
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
           referrers = referrers,
+          holdingPaths = holdingPaths,
           scheme = scheme,
           onZoomInto = onZoomInto,
           onInspect = onInspect
@@ -413,6 +429,7 @@ private fun ClassGroupDetails(
 private fun ObjectDetails(
   summary: HeapObjectSummary,
   referrers: ObjectReferrers?,
+  holdingPaths: HoldingPaths?,
   scheme: CellColorScheme,
   onZoomInto: (Long) -> Unit,
   onInspect: (Long) -> Unit
@@ -440,6 +457,7 @@ private fun ObjectDetails(
     Text("Zoom in")
   }
   Referrers(referrers, onInspect)
+  WhatHoldsIt(holdingPaths, onInspect)
   Fields(summary, onInspect)
 }
 
@@ -479,6 +497,82 @@ private fun Referrers(
   }
 }
 
+/**
+ * Every way the object is held, spelled out from a GC root down to it.
+ *
+ * The question a big rectangle under the root raises is what is keeping it in memory, and neither the
+ * dominator tree nor the list of referrers answers it: the tree says "nothing in particular", and the
+ * referrers are one step deep. The chains are the answer — the view showing a bitmap on two of them, an
+ * image cache on the third — so the panel says which object the chains have in common, if any, and how
+ * many chains each object is on.
+ */
+@Composable
+private fun WhatHoldsIt(
+  holdingPaths: HoldingPaths?,
+  onInspect: (Long) -> Unit
+) {
+  Text(WHAT_HOLDS_IT, style = MaterialTheme.typography.labelSmall)
+  if (holdingPaths == null) {
+    Text(SEARCHING_PATHS, style = MaterialTheme.typography.bodySmall)
+    return
+  }
+  if (holdingPaths.paths.isEmpty()) {
+    Text(NO_PATHS, style = MaterialTheme.typography.bodySmall)
+    return
+  }
+  Text(
+    holdingPaths.commonHolderLabel?.let { COMMON_HOLDER_EXPLANATION.format(it) }
+      ?: NO_COMMON_HOLDER_EXPLANATION,
+    style = MaterialTheme.typography.bodySmall
+  )
+  holdingPaths.paths.forEachIndexed { index, path ->
+    Text(
+      "Path ${index + 1} of ${holdingPaths.paths.size} · ${path.gcRootLabel}",
+      style = MaterialTheme.typography.labelSmall
+    )
+    if (path.hiddenStepCount > 0) {
+      Text(
+        "$ELLIPSIS ${path.hiddenStepCount} steps between the GC root and here",
+        style = MaterialTheme.typography.bodySmall
+      )
+    }
+    path.steps.forEachIndexed { depth, step ->
+      PathStepLine(step, depth, holdingPaths.paths.size, onInspect)
+    }
+  }
+  if (holdingPaths.hiddenPathCount > 0) {
+    Text(
+      "and ${holdingPaths.hiddenPathCount} more objects holding it, not followed",
+      style = MaterialTheme.typography.bodySmall
+    )
+  }
+}
+
+/** One step of a path: the field that reaches the object, and how many of the paths go through it. */
+@Composable
+private fun PathStepLine(
+  step: PathStep,
+  depth: Int,
+  pathCount: Int,
+  onInspect: (Long) -> Unit
+) {
+  val reference = step.referenceName?.let { name ->
+    if (name.startsWith("[")) name else ".$name"
+  }
+  // Only worth pointing out when the paths differ: with one path everything is on all of them.
+  val shared = if (step.pathCount > 1 && pathCount > 1) {
+    " · on ${step.pathCount} of $pathCount"
+  } else {
+    ""
+  }
+  Inspectable(
+    text = listOfNotNull(reference, step.label).joinToString(" ") + shared,
+    objectId = step.objectId.takeIf { step.isInspectable },
+    onInspect = onInspect,
+    indentSteps = depth
+  )
+}
+
 /** Every field of the object, so that the panel says what the heap dump holds and not just its shape. */
 @Composable
 private fun Fields(
@@ -505,14 +599,17 @@ private fun Fields(
 private fun Inspectable(
   text: String,
   objectId: Long?,
-  onInspect: (Long) -> Unit
+  onInspect: (Long) -> Unit,
+  /** How deep down a path this line sits, so that a chain of references reads as one. */
+  indentSteps: Int = 0
 ) {
+  val modifier = Modifier.padding(start = STEP_INDENT * indentSteps.coerceAtMost(MAX_INDENT_STEPS))
   if (objectId == null) {
-    Text(text, style = MaterialTheme.typography.bodySmall)
+    Text(text, modifier, style = MaterialTheme.typography.bodySmall)
   } else {
     Text(
       text,
-      Modifier.clickable { onInspect(objectId) },
+      modifier.clickable { onInspect(objectId) },
       style = MaterialTheme.typography.bodySmall,
       color = LINK_COLOR
     )
@@ -545,6 +642,29 @@ internal const val SHARED_EXPLANATION =
   "%d objects hold this one, on paths that meet only at the root — so releasing any one of them " +
     "wouldn't free it, and its bytes are attributed to the whole heap rather than to an owner."
 
+/** The heading of the section spelling out how the selected object is held. */
+internal const val WHAT_HOLDS_IT = "What holds it"
+
+/** Shown while the walk up to the GC roots is still running. */
+internal const val SEARCHING_PATHS = "Following what holds it up to the GC roots…"
+
+/** Only the virtual root has nothing holding it, and it isn't shown as an object. */
+private const val NO_PATHS = "Nothing in the heap dump points at this."
+
+/**
+ * What one object being on every path means: it's the answer to "what is keeping this in memory", which
+ * is the question the dominator tree leaves open when it puts an object under the root.
+ */
+internal const val COMMON_HOLDER_EXPLANATION =
+  "Every path here goes through %s, so this stays in memory for as long as that one does."
+
+/** And when they share nothing, which is exactly when the root ends up dominating the object. */
+internal const val NO_COMMON_HOLDER_EXPLANATION =
+  "The paths here share nothing above this object, so no one of them would free it — which is why " +
+    "the root is what dominates it."
+
+private const val ELLIPSIS = "…"
+
 internal const val BREADCRUMB_SEPARATOR = "›"
 
 internal const val CLASS_GROUP_EXPLANATION =
@@ -555,6 +675,10 @@ private const val GROUP_EXPLANATION =
   "Too small or too many to draw one by one. Zoom into what holds them to see them."
 
 private val DETAILS_WIDTH = 320.dp
+
+/** How far one step of a path is indented past the one holding it, and where the cascade stops. */
+private val STEP_INDENT = 4.dp
+private const val MAX_INDENT_STEPS = 8
 
 /** Panel lines that lead to another object, coloured like a link because that's what they are. */
 private val LINK_COLOR = SELECTION_COLOR

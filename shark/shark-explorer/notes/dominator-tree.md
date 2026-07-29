@@ -135,9 +135,40 @@ attached, so nothing is being wasted — but the retention belongs to the tile, 
 
 The shape generalises: an object's holders often divide into a *cache*, which is bounded and clears
 itself under pressure, and an *owner*, which is a piece of UI or a job. The dominator tree can't tell
-them apart, so it hands the bytes to the root. Making that distinction visible — a curated list of cache
-edges, treated like a reachability strength between `STRONG` and `SOFT`, so a cached-but-owned object
-nests under its owner — is the open design question, not a decided one.
+them apart, so it hands the bytes to the root.
+
+## Spelling out what holds an object
+
+`HeapDominatorTreemap.holdingPathsTo` answers "what is keeping this in memory" with a chain of
+references per way the object is held, which is what the tree leaves open. Three things about how it
+gets there, none of them obvious from the code alone:
+
+**Where to fork comes out of the dominator tree.** Every path to an object with a dominator goes through
+that dominator — that's what dominance is — so one path says everything there is to say about it. Only an
+object the *root* dominates is held more than one way, so that's the only place the walk up forks, and it
+stops as soon as it reaches objects that have an owner. On the bitmap above that's two forks: the bitmap
+forks to the `BitmapImage` and the drawable's state, and the `BitmapImage` forks to Coil's cache entry
+and the tile's request result. Each fork costs a pass over the heap dump, and this is what keeps the
+number of passes down to what the sharing actually needs.
+
+**A path that loops back through the object isn't a way of holding it.** An `AppCompatImageView` has
+seven referrers, five of which are helpers it created that point back at it. Following those produced
+five near-identical chains ending `.mView AppCompatImageView`. Dropping any path that already went
+through the object cut it to the two real ones.
+
+**Shark's path finder hides a target that another target holds**, because
+`PrioritizingShortestPathFinder` treats targets as leaves: ask it for a tile and the view that tile holds
+and it reports the tile only. Hence a second walk for whatever went missing, without the targets that
+swallowed it.
+
+Cost on the 82 MB dump: **~3.4 s** for a shared object (two referrer passes plus the walk from the GC
+roots), ~1 s for an owned one. Worth knowing before this moves anywhere near being computed eagerly: a
+reverse index built once per tree would make it instant, at the price of an edge-sized structure — the
+same predecessor lists `HeapDominatorTree` builds and throws away.
+
+The open design question is whether the explorer should go further and *treat* cache edges differently —
+a curated matcher list, handled like a reachability strength between `STRONG` and `SOFT`, so that a
+cached-but-owned object nests under its owner instead of flattening to the root. Not decided.
 
 ## Reachability strength
 
