@@ -13,30 +13,35 @@
 # limitations under the License.
 
 [versions]
-# We would like to use Kotlin recent language features but keep Kotlin 1.3 library APIs
-# The benefit is that depending clients do not have to upgrade to Kotlin 1.4
-compose = "1.4.3"
-kotlin = "2.4.0"
+compose = "1.11.4"
+# androidx.lifecycle 2.11.0 requires compiling against the Android 37 SDK
+lifecycle = "2.10.0"
+kotlin = "2.4.10"
+# Exposed transitively by shark, avoid increasing
 coroutines = "1.7.3"
-androidXTest = "1.5.0"
-androidXJunit = "1.1.5"
+androidXTest = "1.7.0"
+androidXJunit = "1.3.0"
+# Exposed transitively by leakcanary-android-process, avoid increasing
 workManager = "2.7.0"
 detekt = "1.23.8"
 dokka = "2.2.0"
 hilt = "2.60.1"
 sqldelight = "2.3.2"
 androidMinSdk = "24"
-androidCompileSdk = "35"
+androidCompileSdk = "36"
 
 [libraries]
+# Held at 9.2.1: the lint that AGP 9.3 bundles calls java.util.List.removeLast() from Java 8
+# bytecode, and that method only exists from Java 21, so every lint task dies with a
+# NoSuchMethodError on the JDK 17 this repo builds with.
 gradlePlugin-android = { module = "com.android.tools.build:gradle", version = "9.2.1" }
 gradlePlugin-kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 gradlePlugin-dokka = { module = "org.jetbrains.dokka:dokka-gradle-plugin", version.ref = "dokka" }
-gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.32.0" }
+gradlePlugin-mavenPublish = { module = "com.vanniktech:gradle-maven-publish-plugin", version = "0.37.0" }
 gradlePlugin-detekt = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 gradlePlugin-sqldelight = { module = "app.cash.sqldelight:gradle-plugin", version.ref = "sqldelight" }
 gradlePlugin-hilt = { module = "com.google.dagger:hilt-android-gradle-plugin", version.ref = "hilt" }
-gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version = "2.3.9" }
+gradlePlugin-ksp = { module = "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin", version = "2.3.10" }
 gradlePlugin-composeCompiler = { module = "org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin", version.ref = "kotlin" }
 # Used by the root build script to validate the ABI of Android library modules, see KT-83410.
 kotlin-abi-tools = { module = "org.jetbrains.kotlin:abi-tools", version.ref = "kotlin" }
@@ -60,35 +65,57 @@ androidX-fragment = { module = "androidx.fragment:fragment", version = "1.0.0" }
 # INITIALIZED lifecycle state, which LeakCanary has to account for. Instrumentation tests run
 # against a recent version so that they cover the behavior that apps actually run, while the
 # compileOnly dependency above stays at the lowest version LeakCanary supports.
-androidX-fragment-test = { module = "androidx.fragment:fragment", version = "1.8.6" }
+androidX-fragment-test = { module = "androidx.fragment:fragment", version = "1.8.9" }
 androidX-multidex = { module = "androidx.multidex:multidex", version = "2.0.1" }
 # Exposed transitively, avoid increasing
 androidX-startup = { module = "androidx.startup:startup-runtime", version = "1.0.0" }
-androidX-test-core = { module = "androidx.test:core", version = "1.5.0" }
-androidX-test-monitor = { module = "androidx.test:monitor", version = "1.6.1" }
+androidX-test-core = { module = "androidx.test:core", version = "1.7.0" }
+androidX-test-monitor = { module = "androidx.test:monitor", version = "1.8.0" }
 androidX-test-rules = { module = "androidx.test:rules", version.ref = "androidXTest" }
 # Exposed transitively, avoid increasing
 androidX-test-runner = { module = "androidx.test:runner", version = "1.5.2" }
-androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = "1.5.0" }
-androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.5.1" }
+androidX-test-orchestrator = { module = "androidx.test:orchestrator", version = "1.6.1" }
+androidX-test-espresso = { module = "androidx.test.espresso:espresso-core", version = "3.7.0" }
 androidX-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidXJunit" }
 androidX-test-junitKtx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidXJunit" }
+# Exposed transitively by leakcanary-android-uiautomator, avoid increasing
 androidX-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version = "2.2.0" }
 androidX-work-runtime = { module = "androidx.work:work-runtime", version.ref = "workManager" }
 androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", version.ref = "workManager" }
+# Exposed transitively by shark-graph, avoid increasing
 androidX-collections = { module = "androidx.collection:collection-ktx", version = "1.4.0" }
 
-androidSupport = { module = "com.android.support:support-v4", version = "28.0.0" }
-assertjCore = { module = "org.assertj:assertj-core", version = "3.9.1" }
-clikt = { module = "com.github.ajalt:clikt", version = "2.3.0" }
-neo4j = { module = "org.neo4j:neo4j", version = "4.4.6" }
-curtains = { module = "com.squareup.curtains:curtains", version = "1.2.4" }
+assertjCore = { module = "org.assertj:assertj-core", version = "3.27.7" }
+# AssertJ 3.16.0 builds java.time formatters in StandardRepresentation's static initializer, and
+# java.time only exists from API 26, so on API 24 the very first assertion dies with a
+# NoClassDefFoundError. Instrumentation tests run on every API level LeakCanary supports, so they
+# stay on the last version that loads there. Unit tests run on the JVM and use the version above.
+assertjCore-android = { module = "org.assertj:assertj-core", version = "3.15.0" }
+clikt = { module = "com.github.ajalt:clikt", version = "2.8.0" }
+neo4j = { module = "org.neo4j:neo4j", version = "4.4.48" }
+curtains = { module = "com.squareup.curtains:curtains", version = "1.2.5" }
 jline = { module = "jline:jline", version = "2.14.6" }
 junit = { module = "junit:junit", version = "4.13.2" }
 kotlinStatistics = { module = "org.nield:kotlin-statistics", version = "1.2.1" }
-mockito = { module = "org.mockito:mockito-core", version = "3.5.10" }
-mockitoKotlin = { module = "com.nhaarman.mockitokotlin2:mockito-kotlin", version = "2.2.0" }
-robolectric = { module = "org.robolectric:robolectric", version = "4.0-alpha-3" }
+mockito = { module = "org.mockito:mockito-core", version = "5.23.0" }
+mockitoKotlin = { module = "org.mockito.kotlin:mockito-kotlin", version = "6.3.0" }
+# Exposed transitively by every published module that reads heap dumps, avoid increasing
 okio2 = { module = "com.squareup.okio:okio", version = "2.2.2" }
 sqldelight-android = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
 sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+
+# Only used by leakcanary-app, the standalone UI app, which isn't published, so these can track the
+# latest release.
+androidX-activity-compose = { module = "androidx.activity:activity-compose", version = "1.13.0" }
+# androidx.core 1.19.0 requires compiling against the Android 37 SDK
+androidX-core = { module = "androidx.core:core-ktx", version = "1.18.0" }
+androidX-lifecycle-runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidX-lifecycle-viewModelCompose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidX-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version = "2.7.0" }
+compose-material3 = { module = "androidx.compose.material3:material3", version = "1.4.0" }
+# The Material icons stopped shipping with Compose Material 3 and are frozen at 1.7.8.
+compose-materialIcons = { module = "androidx.compose.material:material-icons-core", version = "1.7.8" }
+compose-ui = { module = "androidx.compose.ui:ui", version.ref = "compose" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "compose" }
+compose-ui-toolingPreview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "compose" }
+extendedSpans = { module = "me.saket.extendedspans:extendedspans", version = "1.4.0" }

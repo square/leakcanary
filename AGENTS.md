@@ -110,8 +110,9 @@ every diff. Refactors, internal cleanups and test-only changes usually don't nee
 - Test heap dumps are built with the `dump { }` DSL from `shark-hprof-test` (see `docs/dev-env.md`)
   rather than committed as binary fixtures. Never hand-assemble hprof bytes. For a large realistic
   dump, drive a real JVM via `HotSpotDiagnosticMXBean.dumpHeap`.
-- Tests use JUnit 4 and AssertJ. Note AssertJ is pinned at **3.9.1**, which predates a lot of the
-  assertions you may reach for — `hasSizeLessThanOrEqualTo` and friends don't exist.
+- Tests use JUnit 4 and AssertJ. Instrumentation tests depend on `libs.assertjCore.android` rather
+  than `libs.assertjCore`, because AssertJ 3.16 and up can't load on API 24 — the catalog comment
+  says why. So an assertion that a unit test can use may not compile in an instrumentation test.
 
 ## Scoped guides
 

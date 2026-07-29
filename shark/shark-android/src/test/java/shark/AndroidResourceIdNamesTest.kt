@@ -1,9 +1,5 @@
 package shark
 
-import com.nhaarman.mockitokotlin2.any
-import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
-import com.nhaarman.mockitokotlin2.whenever
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -11,6 +7,10 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import shark.AndroidResourceIdNames.Companion.FIRST_APP_RESOURCE_ID
 import shark.AndroidResourceIdNames.Companion.RESOURCE_ID_TYPE_ITERATOR
 import shark.HprofHeapGraph.Companion.openHeapGraph

@@ -5,12 +5,12 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.with
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,7 +50,7 @@ fun ScreenHost(backStack: BackStackViewModel = viewModel()) {
             IconButton(onClick = {
               backStack.goBack()
             }) {
-              Icon(Icons.Filled.ArrowBack, contentDescription = "Go back")
+              Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
             }
           }
         }
@@ -65,7 +65,7 @@ fun ScreenHost(backStack: BackStackViewModel = viewModel()) {
           initialOffsetX = { fullWidth ->
             directionFactor * fullWidth
           }
-        ) with slideOutHorizontally(targetOffsetX = { fullWidth ->
+        ) togetherWith slideOutHorizontally(targetOffsetX = { fullWidth ->
           directionFactor * -fullWidth
         })
       },
