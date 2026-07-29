@@ -7,6 +7,11 @@ import shark.HeapObject.HeapPrimitiveArray
 
 /**
  * Enables navigation through the heap graph of objects.
+ *
+ * A heap dump doesn't change, so a [HeapGraph] is read only and can be read from several threads at
+ * the same time. The [Sequence] instances it hands out are not thread safe though: iterating a
+ * sequence reads through it, so each thread should get its own (by reading [instances] again, for
+ * instance) rather than sharing one.
  */
 interface HeapGraph {
   val identifierByteSize: Int

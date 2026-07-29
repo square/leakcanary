@@ -10,6 +10,7 @@ class ByteArraySourceProvider(private val byteArray: ByteArray) : DualSourceProv
   override fun openRandomAccessSource(): RandomAccessSource {
     return object : RandomAccessSource {
 
+      @Volatile
       var closed = false
 
       override fun read(

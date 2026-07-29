@@ -5,6 +5,10 @@ import kotlin.math.absoluteValue
 
 /**
  * Captures IO read metrics without using much memory.
+ *
+ * Unlike the source providers it wraps, this one is not thread safe: the metrics are updated on
+ * every read without synchronization, so reading through it from several threads at the same time
+ * reports garbage.
  */
 class ConstantMemoryMetricsDualSourceProvider(
   private val realSourceProvider: DualSourceProvider

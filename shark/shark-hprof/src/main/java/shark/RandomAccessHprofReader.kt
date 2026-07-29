@@ -1,22 +1,32 @@
 package shark
 
-import okio.Buffer
 import java.io.Closeable
 import java.io.File
+import java.util.concurrent.ConcurrentLinkedQueue
+import okio.Buffer
 
 /**
  * Reads records in a Hprof source, one at a time with a specific position and size.
  * Call [openReaderFor] to obtain a new instance.
+ *
+ * [readRecord] can be called concurrently from several threads, as long as [source] supports
+ * concurrent reads (see [RandomAccessSource.read]).
  */
 class RandomAccessHprofReader private constructor(
   private val source: RandomAccessSource,
-  hprofHeader: HprofHeader
+  private val hprofHeader: HprofHeader
 ) : Closeable {
-  private val buffer = Buffer()
-  private val reader = HprofRecordReader(hprofHeader, buffer)
 
   /**
-   * Loads [recordSize] bytes at [recordPosition] into the buffer that backs [HprofRecordReader]
+   * The record readers that aren't currently in use, ready to be borrowed by [readRecord]. A
+   * record reader is bound to the buffer it reads from, so a read can't share one with another
+   * read in flight: this holds as many readers as the highest number of reads that ever ran
+   * concurrently, which is one for a single threaded caller.
+   */
+  private val idleRecordReaders = ConcurrentLinkedQueue<BufferedRecordReader>()
+
+  /**
+   * Loads [recordSize] bytes at [recordPosition] into a buffer that backs a [HprofRecordReader]
    * then calls [withRecordReader] with that reader as a receiver. [withRecordReader] is expected
    * to use the receiver reader to read one record of exactly [recordSize] bytes.
    * @return the results from [withRecordReader]
@@ -29,26 +39,40 @@ class RandomAccessHprofReader private constructor(
     require(recordSize > 0L) {
       "recordSize $recordSize must be > 0"
     }
-    var mutablePos = recordPosition
-    var mutableByteCount = recordSize
+    val recordReader = idleRecordReaders.poll() ?: BufferedRecordReader(hprofHeader)
+    try {
+      val buffer = recordReader.buffer
+      var mutablePos = recordPosition
+      var mutableByteCount = recordSize
 
-    while (mutableByteCount > 0L) {
-      val bytesRead = source.read(buffer, mutablePos, mutableByteCount)
-      check(bytesRead > 0) {
-        "Requested $mutableByteCount bytes after reading ${mutablePos - recordPosition}, got 0 bytes instead."
+      while (mutableByteCount > 0L) {
+        val bytesRead = source.read(buffer, mutablePos, mutableByteCount)
+        check(bytesRead > 0) {
+          "Requested $mutableByteCount bytes after reading ${mutablePos - recordPosition}, got 0 bytes instead."
+        }
+        mutablePos += bytesRead
+        mutableByteCount -= bytesRead
       }
-      mutablePos += bytesRead
-      mutableByteCount -= bytesRead
-    }
-    return withRecordReader(reader).apply {
-      check(buffer.size == 0L) {
-        "Buffer not fully consumed: ${buffer.size} bytes left"
+      return withRecordReader(recordReader.reader).apply {
+        check(buffer.size == 0L) {
+          "Buffer not fully consumed: ${buffer.size} bytes left"
+        }
       }
+    } finally {
+      // A read that failed part way through leaves bytes behind, which would then be read as the
+      // start of the next record.
+      recordReader.buffer.clear()
+      idleRecordReaders += recordReader
     }
   }
 
   override fun close() {
     source.close()
+  }
+
+  private class BufferedRecordReader(hprofHeader: HprofHeader) {
+    val buffer = Buffer()
+    val reader = HprofRecordReader(hprofHeader, buffer)
   }
 
   companion object {
