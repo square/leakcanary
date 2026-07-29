@@ -87,8 +87,8 @@ assertjCore = { module = "org.assertj:assertj-core", version = "3.27.7" }
 # NoClassDefFoundError. Instrumentation tests run on every API level LeakCanary supports, so they
 # stay on the last version that loads there. Unit tests run on the JVM and use the version above.
 assertjCore-android = { module = "org.assertj:assertj-core", version = "3.15.0" }
-clikt = { module = "com.github.ajalt:clikt", version = "2.3.0" }
-neo4j = { module = "org.neo4j:neo4j", version = "4.4.6" }
+clikt = { module = "com.github.ajalt:clikt", version = "2.8.0" }
+neo4j = { module = "org.neo4j:neo4j", version = "4.4.48" }
 curtains = { module = "com.squareup.curtains:curtains", version = "1.2.4" }
 jline = { module = "jline:jline", version = "2.14.6" }
 junit = { module = "junit:junit", version = "4.13.2" }
