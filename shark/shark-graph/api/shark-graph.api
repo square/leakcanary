@@ -57,7 +57,7 @@ public abstract class shark/HeapObject {
 	public abstract fun getObjectId ()J
 	public abstract fun getObjectIndex ()I
 	public final fun getPositiveObjectId ()J
-	public abstract fun getRecordSize ()I
+	public abstract fun getRecordSize ()J
 	public abstract fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
 }
 
@@ -77,7 +77,7 @@ public final class shark/HeapObject$HeapClass : shark/HeapObject {
 	public fun getObjectId ()J
 	public fun getObjectIndex ()I
 	public final fun getPrimitiveArrayInstances ()Lkotlin/sequences/Sequence;
-	public fun getRecordSize ()I
+	public fun getRecordSize ()J
 	public final fun getSimpleName ()Ljava/lang/String;
 	public final fun getSubclasses ()Lkotlin/sequences/Sequence;
 	public final fun getSuperclass ()Lshark/HeapObject$HeapClass;
@@ -101,7 +101,7 @@ public final class shark/HeapObject$HeapClass : shark/HeapObject {
 public final class shark/HeapObject$HeapInstance : shark/HeapObject {
 	public final fun get (Ljava/lang/String;Ljava/lang/String;)Lshark/HeapField;
 	public final fun get (Lkotlin/reflect/KClass;Ljava/lang/String;)Lshark/HeapField;
-	public final fun getByteSize ()I
+	public final fun getByteSize ()J
 	public fun getGraph ()Lshark/HeapGraph;
 	public final fun getInstanceClass ()Lshark/HeapObject$HeapClass;
 	public final fun getInstanceClassId ()J
@@ -109,7 +109,7 @@ public final class shark/HeapObject$HeapInstance : shark/HeapObject {
 	public final fun getInstanceClassSimpleName ()Ljava/lang/String;
 	public fun getObjectId ()J
 	public fun getObjectIndex ()I
-	public fun getRecordSize ()I
+	public fun getRecordSize ()J
 	public final fun instanceOf (Ljava/lang/String;)Z
 	public final fun instanceOf (Lkotlin/reflect/KClass;)Z
 	public final fun instanceOf (Lshark/HeapObject$HeapClass;)Z
@@ -128,11 +128,11 @@ public final class shark/HeapObject$HeapObjectArray : shark/HeapObject {
 	public final fun getArrayClassId ()J
 	public final fun getArrayClassName ()Ljava/lang/String;
 	public final fun getArrayClassSimpleName ()Ljava/lang/String;
-	public final fun getByteSize ()I
+	public final fun getByteSize ()J
 	public fun getGraph ()Lshark/HeapGraph;
 	public fun getObjectId ()J
 	public fun getObjectIndex ()I
-	public fun getRecordSize ()I
+	public fun getRecordSize ()J
 	public final fun readElements ()Lkotlin/sequences/Sequence;
 	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$ObjectArrayDumpRecord;
 	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
@@ -142,13 +142,13 @@ public final class shark/HeapObject$HeapObjectArray : shark/HeapObject {
 public final class shark/HeapObject$HeapPrimitiveArray : shark/HeapObject {
 	public final fun getArrayClass ()Lshark/HeapObject$HeapClass;
 	public final fun getArrayClassName ()Ljava/lang/String;
-	public final fun getByteSize ()I
+	public final fun getByteSize ()J
 	public fun getGraph ()Lshark/HeapGraph;
 	public fun getObjectId ()J
 	public fun getObjectIndex ()I
 	public final fun getPrimitiveType ()Lshark/PrimitiveType;
-	public fun getRecordSize ()I
-	public final fun readByteSize ()I
+	public fun getRecordSize ()J
+	public final fun readByteSize ()J
 	public fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord$PrimitiveArrayDumpRecord;
 	public synthetic fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
 	public fun toString ()Ljava/lang/String;

@@ -28,8 +28,8 @@ object AndroidMetadataExtractor : MetadataExtractor {
     return metadata
   }
 
-  private fun readHeapTotalBytes(graph: HeapGraph): Int {
-    return graph.objects.sumBy { heapObject ->
+  private fun readHeapTotalBytes(graph: HeapGraph): Long {
+    return graph.objects.sumOf { heapObject ->
       when(heapObject) {
         is HeapInstance -> {
           heapObject.byteSize

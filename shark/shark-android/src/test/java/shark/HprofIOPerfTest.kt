@@ -35,7 +35,7 @@ class HprofIOPerfTest {
     hprofFile.openHeapGraph().use { graph ->
       graph.objectArrays.forEach { array ->
         assertThat(array.byteSize).isEqualTo(
-          array.readRecord().elementIds.size * graph.identifierByteSize
+          array.readRecord().elementIds.size.toLong() * graph.identifierByteSize
         )
       }
     }
@@ -63,7 +63,7 @@ class HprofIOPerfTest {
     hprofFile.openHeapGraph().use { graph ->
       graph.primitiveArrays.forEach { array ->
         assertThat(array.byteSize).isEqualTo(
-          array.readRecord().size * array.primitiveType.byteSize
+          array.readRecord().size.toLong() * array.primitiveType.byteSize
         )
       }
     }

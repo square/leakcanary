@@ -111,6 +111,6 @@ class CancelHeapAnalysisTest {
 
   companion object {
     private const val CANCEL_REASON = "canceled by a test"
-    private const val FAKE_OBJECT_SIZE = 1
+    private const val FAKE_OBJECT_SIZE = 1L
   }
 }

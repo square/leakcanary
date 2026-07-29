@@ -11,7 +11,7 @@ import shark.ValueHolder.LongHolder
 import shark.dump
 import java.io.File
 
-private const val EMPTY_CLASS_SIZE = 42
+private const val EMPTY_CLASS_SIZE = 42L
 
 class ShallowSizeCalculatorTest {
 
@@ -36,7 +36,7 @@ class ShallowSizeCalculatorTest {
       )
     }
 
-    assertThat(instanceSize).isEqualTo(0)
+    assertThat(instanceSize).isEqualTo(0L)
   }
 
   @Test fun `class with static field has instance size 0`() {
@@ -53,7 +53,7 @@ class ShallowSizeCalculatorTest {
       )
     }
 
-    assertThat(instanceSize).isEqualTo(0)
+    assertThat(instanceSize).isEqualTo(0L)
   }
 
   @Test fun `class with int field has instance size 4`() {
@@ -69,7 +69,7 @@ class ShallowSizeCalculatorTest {
         graph.findClassByName("SomeClass")!!.instances.single().objectId
       )
     }
-    assertThat(instanceSize).isEqualTo(4)
+    assertThat(instanceSize).isEqualTo(4L)
   }
 
   @Test fun `empty class has size EMPTY_CLASS_SIZE`() {

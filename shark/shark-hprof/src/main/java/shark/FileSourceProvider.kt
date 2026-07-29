@@ -73,17 +73,19 @@ class FileSourceProvider(private val file: File) : DualSourceProvider {
     ): Long {
       val scratchArray = idleScratchArrays.poll() ?: ByteArray(SCRATCH_ARRAY_SIZE)
       try {
-        val byteCountInt = byteCount.toInt()
-        var totalBytesRead = 0
-        val maxRead = scratchArray.size
-        while (totalBytesRead < byteCountInt) {
-          val toRead = min(byteCountInt - totalBytesRead, maxRead)
+        // A Long: [byteCount] is the size of one record, and the elements of an array can take
+        // more than Int.MAX_VALUE bytes. Narrowed to an Int, a byteCount that large wraps negative
+        // and the loop below never runs, so the read reports 0 bytes without reading any.
+        var totalBytesRead = 0L
+        val maxRead = scratchArray.size.toLong()
+        while (totalBytesRead < byteCount) {
+          val toRead = min(byteCount - totalBytesRead, maxRead).toInt()
           val bytesRead = channel.read(
             ByteBuffer.wrap(scratchArray, 0, toRead),
             position + totalBytesRead
           )
           if (bytesRead == -1) {
-            check(totalBytesRead != 0) {
+            check(totalBytesRead != 0L) {
               "Did not expect to reach end of file after reading 0 bytes"
             }
             break
@@ -91,7 +93,7 @@ class FileSourceProvider(private val file: File) : DualSourceProvider {
           sink.write(scratchArray, 0, bytesRead)
           totalBytesRead += bytesRead
         }
-        return totalBytesRead.toLong()
+        return totalBytesRead
       } finally {
         idleScratchArrays.offer(scratchArray)
       }

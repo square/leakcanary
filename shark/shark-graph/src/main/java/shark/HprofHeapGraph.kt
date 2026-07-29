@@ -12,14 +12,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticField
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.DoubleArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.FloatArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
-import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.HprofVersion.ANDROID
 import shark.PrimitiveType.BYTE
 import shark.PrimitiveType.INT
@@ -312,23 +304,6 @@ class HprofHeapGraph internal constructor(
     }
   }
 
-  internal fun readObjectArrayByteSize(
-    objectId: Long,
-    indexedObject: IndexedObjectArray
-  ): Int {
-    cancelSignal.throwIfCanceled()
-    val cachedRecord = objectCache[objectId] as ObjectArrayDumpRecord?
-    if (cachedRecord != null) {
-      return cachedRecord.elementIds.size * identifierByteSize
-    }
-    val position = indexedObject.position + identifierByteSize + PrimitiveType.INT.byteSize
-    val size = PrimitiveType.INT.byteSize.toLong()
-    val thinRecordSize = reader.readRecord(position, size) {
-      readInt()
-    }
-    return thinRecordSize * identifierByteSize
-  }
-
   internal fun readPrimitiveArrayDumpRecord(
     objectId: Long,
     indexedObject: IndexedPrimitiveArray
@@ -336,31 +311,6 @@ class HprofHeapGraph internal constructor(
     return readObjectRecord(objectId, indexedObject) {
       readPrimitiveArrayDumpRecord()
     }
-  }
-
-  internal fun readPrimitiveArrayByteSize(
-    objectId: Long,
-    indexedObject: IndexedPrimitiveArray
-  ): Int {
-    cancelSignal.throwIfCanceled()
-    val cachedRecord = objectCache[objectId] as PrimitiveArrayDumpRecord?
-    if (cachedRecord != null) {
-      return when (cachedRecord) {
-        is BooleanArrayDump -> cachedRecord.array.size * PrimitiveType.BOOLEAN.byteSize
-        is CharArrayDump -> cachedRecord.array.size * PrimitiveType.CHAR.byteSize
-        is FloatArrayDump -> cachedRecord.array.size * PrimitiveType.FLOAT.byteSize
-        is DoubleArrayDump -> cachedRecord.array.size * PrimitiveType.DOUBLE.byteSize
-        is ByteArrayDump -> cachedRecord.array.size * PrimitiveType.BYTE.byteSize
-        is ShortArrayDump -> cachedRecord.array.size * PrimitiveType.SHORT.byteSize
-        is IntArrayDump -> cachedRecord.array.size * PrimitiveType.INT.byteSize
-        is LongArrayDump -> cachedRecord.array.size * PrimitiveType.LONG.byteSize
-      }
-    }
-    val position = indexedObject.position + identifierByteSize + PrimitiveType.INT.byteSize
-    val size = reader.readRecord(position, PrimitiveType.INT.byteSize.toLong()) {
-      readInt()
-    }
-    return size * indexedObject.primitiveType.byteSize
   }
 
   internal fun readClassDumpRecord(

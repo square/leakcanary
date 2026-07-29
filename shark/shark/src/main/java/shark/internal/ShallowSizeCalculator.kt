@@ -18,7 +18,7 @@ import shark.ValueHolder
  */
 internal class ShallowSizeCalculator(private val graph: HeapGraph) {
 
-  fun computeShallowSize(objectId: Long): Int {
+  fun computeShallowSize(objectId: Long): Long {
     return when (val heapObject = graph.findObjectById(objectId)) {
       is HeapInstance -> {
         if (heapObject.instanceClassName == "java.lang.String") {
@@ -29,7 +29,7 @@ internal class ShallowSizeCalculator(private val graph: HeapGraph) {
           heapObject.byteSize + if (valueObjectId != null) {
             computeShallowSize(valueObjectId)
           } else {
-            0
+            0L
           }
         } else {
           // Total byte size of fields for instances of this class, as registered in the class dump.
@@ -43,7 +43,7 @@ internal class ShallowSizeCalculator(private val graph: HeapGraph) {
           // In PathFinder we ignore references from primitive wrapper arrays when building the
           // dominator tree, so we add that size back here.
           val elementIds = heapObject.readRecord().elementIds
-          val shallowSize = elementIds.size * graph.identifierByteSize
+          val shallowSize = elementIds.size.toLong() * graph.identifierByteSize
           val firstNonNullElement = elementIds.firstOrNull { it != ValueHolder.NULL_REFERENCE }
           if (firstNonNullElement != null) {
             val sizeOfOneElement = computeShallowSize(firstNonNullElement)
