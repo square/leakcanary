@@ -34,6 +34,16 @@ data class TreemapNavigation<N>(val path: List<N>) {
     }
   }
 
+  /**
+   * Roots the treemap at the last of [nodes], recording the ones on the way as path entries.
+   *
+   * Zooming into a rectangle nested several levels deep should leave breadcrumbs for every node
+   * between it and the root, not jump straight to it, so the caller passes the whole chain.
+   */
+  fun zoomInto(nodes: List<N>): TreemapNavigation<N> = nodes.fold(this) { path, node ->
+    path.zoomInto(node)
+  }
+
   fun zoomOut(): TreemapNavigation<N> =
     if (canZoomOut) TreemapNavigation(path.dropLast(1)) else this
 

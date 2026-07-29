@@ -33,25 +33,36 @@ sealed interface TreemapCell<out N> {
   /** One node of the tree. */
   data class Node<out N>(
     val node: N,
+    /** The node this one is nested in, null for the node the layout was rooted at. */
+    val parent: N?,
+    /**
+     * Where this node ranks among its parent's children, heaviest first, or 0 for the root.
+     *
+     * Stable as the viewport changes: a smaller viewport draws fewer children, but it draws the same
+     * heaviest ones, so a rank never shifts. Which is what lets a colour scheme key off it.
+     */
+    val siblingIndex: Int,
     override val rect: TreemapRect,
     override val depth: Int,
     override val weight: Long
   ) : TreemapCell<N>
 
   /**
-   * The [nodeCount] siblings that were left out of a subdivision, as a single rectangle.
+   * The [nodeCount] children of [parent] that were left out of its subdivision, as one rectangle.
    *
    * Keeps the children of a subdivided node covering their whole share of its area, so that space a
    * node doesn't hand out to a child always means "this object's own bytes" rather than "children too
    * small or too many to draw". A group is a rectangle rather than a tree node, so it can't be
-   * subdivided or zoomed into.
+   * subdivided or zoomed into — [parent] is there to say what it belongs to, and to tell one group
+   * from another.
    */
-  data class Group(
+  data class Group<out N>(
+    val parent: N,
     val nodeCount: Int,
     override val rect: TreemapRect,
     override val depth: Int,
     override val weight: Long
-  ) : TreemapCell<Nothing>
+  ) : TreemapCell<N>
 }
 
 /**
@@ -77,7 +88,17 @@ class TreemapLayoutResult<N>(
    * test against and this stands in for that. Kept here rather than in the UI so it can be unit
    * tested.
    */
-  fun cellAt(point: TreemapPoint): TreemapCell<N>? = cells.lastOrNull { point in it.rect }
+  fun cellAt(point: TreemapPoint): TreemapCell<N>? = cellPathAt(point).lastOrNull()
+
+  /**
+   * Every cell containing [point], outermost first: the laid out root, then each cell nested in the
+   * one before it, down to the deepest.
+   *
+   * A child's rectangle is always inside its parent's and never overlaps a sibling's, so containment
+   * is enough to recover the chain — which is how zooming into a rectangle knows the nodes between it
+   * and the root, and can show them all as breadcrumbs.
+   */
+  fun cellPathAt(point: TreemapPoint): List<TreemapCell<N>> = cells.filter { point in it.rect }
 }
 
 /**
@@ -115,7 +136,14 @@ class TreemapLayout<N>(
     /** The node to fill [viewport] with, which is what zooming changes. */
     root: N = tree.root
   ): TreemapLayoutResult<N> {
-    val rootCell = TreemapCell.Node(root, viewport, depth = 0, weight = tree.weight(root))
+    val rootCell = TreemapCell.Node(
+      node = root,
+      parent = null,
+      siblingIndex = 0,
+      rect = viewport,
+      depth = 0,
+      weight = tree.weight(root)
+    )
     val cells = mutableListOf<TreemapCell<N>>(rootCell)
     if (viewport.width <= 0.0 || viewport.height <= 0.0) {
       return TreemapLayoutResult(cells, truncatedNodeCount = 0)
@@ -193,10 +221,23 @@ class TreemapLayout<N>(
           continue
         }
         if (index == groupIndex) {
-          cells += TreemapCell.Group(groupedCount, childRect, childDepth, groupWeight)
+          cells += TreemapCell.Group(
+            parent = cell.node,
+            nodeCount = groupedCount,
+            rect = childRect,
+            depth = childDepth,
+            weight = groupWeight
+          )
         } else {
-          val child = children[if (index < groupIndex) index else index - 1]
-          val childCell = TreemapCell.Node(child, childRect, childDepth, cellWeights[index])
+          val childIndex = if (index < groupIndex) index else index - 1
+          val childCell = TreemapCell.Node(
+            node = children[childIndex],
+            parent = cell.node,
+            siblingIndex = childIndex,
+            rect = childRect,
+            depth = childDepth,
+            weight = cellWeights[index]
+          )
           cells += childCell
           pending += Pending(childCell, insertionCount++)
         }

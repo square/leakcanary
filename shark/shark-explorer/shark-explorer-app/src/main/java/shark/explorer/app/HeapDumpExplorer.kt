@@ -52,9 +52,10 @@ import shark.explorer.formatByteSize
  * treemap already laid out and labelled somewhere else, and a selection is a summary already read.
  */
 @Composable
-fun HeapDumpExplorer(
+internal fun HeapDumpExplorer(
   session: HeapDumpSession,
   followedStrengths: Set<ReachabilityStrength>,
+  scheme: CellColorScheme,
   modifier: Modifier = Modifier
 ) {
   var navigation by remember(session) {
@@ -65,7 +66,8 @@ fun HeapDumpExplorer(
   var isLoading by remember(session) { mutableStateOf(true) }
   /** What the heap dump's thread is doing, when it says. */
   var loadingStep: String? by remember(session) { mutableStateOf(null) }
-  var selectedObjectId: Long? by remember(session) { mutableStateOf(null) }
+  var selected: SelectedCell? by remember(session) { mutableStateOf(null) }
+  var request: SelectionRequest? by remember(session) { mutableStateOf(null) }
   var selection: Selection? by remember(session) { mutableStateOf(null) }
 
   val layout = rememberTreemapLayout()
@@ -101,14 +103,28 @@ fun HeapDumpExplorer(
     isLoading = false
   }
 
-  LaunchedEffect(session, followedStrengths, selectedObjectId) {
-    val objectId = selectedObjectId
-    selection = if (objectId == null) {
+  // Reading what a rectangle stands for is a heap dump read too, so the details panel fills in a beat
+  // after the click. Keyed on the request, so that nothing else clears it.
+  LaunchedEffect(session, followedStrengths, request) {
+    val currentRequest = request
+    selection = if (currentRequest == null) {
       null
     } else {
       session.read { explorer ->
         val tree = explorer.treeFor(followedStrengths)
-        if (objectId in tree) Selection.Object(tree.summarize(objectId)) else null
+        when (currentRequest) {
+          is SelectionRequest.Object ->
+            if (currentRequest.objectId in tree) {
+              Selection.Object(tree.summarize(currentRequest.objectId))
+            } else {
+              null
+            }
+          is SelectionRequest.Group -> Selection.Group(
+            nodeCount = currentRequest.nodeCount,
+            byteCount = currentRequest.byteCount,
+            parentLabel = tree.label(currentRequest.parentObjectId)
+          )
+        }
       }
     }
   }
@@ -119,13 +135,13 @@ fun HeapDumpExplorer(
       Box(Modifier.weight(1f).fillMaxHeight().onSizeChanged { viewportSize = it }) {
         TreemapView(
           presentation = treemap.presentation,
-          selected = selectedObjectId,
-          onSelectObject = { objectId -> selectedObjectId = objectId },
-          onSelectGroup = { group ->
-            selectedObjectId = null
-            selection = Selection.Group(group.nodeCount, group.weight)
+          scheme = scheme,
+          selected = selected,
+          onSelect = { cell ->
+            selected = SelectedCell.of(cell)
+            request = SelectionRequest.of(cell)
           },
-          onZoomInto = { navigation = navigation.zoomInto(it) },
+          onZoomInto = { path -> navigation = navigation.zoomInto(path) },
           modifier = Modifier.fillMaxSize()
         )
         if (isLoading) {
@@ -141,6 +157,7 @@ fun HeapDumpExplorer(
       }
       DetailsPanel(
         selection = selection,
+        scheme = scheme,
         onZoomInto = { navigation = navigation.zoomInto(it) },
         modifier = Modifier.width(DETAILS_WIDTH).fillMaxHeight()
       )
@@ -188,6 +205,25 @@ private class Crumb(
   val label: String
 )
 
+/** A rectangle the details panel has been asked about, before the heap dump has been read for it. */
+private sealed interface SelectionRequest {
+
+  data class Object(val objectId: Long) : SelectionRequest
+
+  data class Group(
+    val parentObjectId: Long,
+    val nodeCount: Int,
+    val byteCount: Long
+  ) : SelectionRequest
+
+  companion object {
+    fun of(cell: TreemapCell<Long>): SelectionRequest = when (cell) {
+      is TreemapCell.Node -> Object(cell.node)
+      is TreemapCell.Group -> Group(cell.parent, cell.nodeCount, cell.weight)
+    }
+  }
+}
+
 /** What the details panel is showing. */
 private sealed interface Selection {
 
@@ -196,7 +232,8 @@ private sealed interface Selection {
   /** A [TreemapCell.Group] was clicked, so there's no one object to describe. */
   data class Group(
     val nodeCount: Int,
-    val byteCount: Long
+    val byteCount: Long,
+    val parentLabel: String
   ) : Selection
 }
 
@@ -232,6 +269,7 @@ private fun Breadcrumbs(
 @Composable
 private fun DetailsPanel(
   selection: Selection?,
+  scheme: CellColorScheme,
   onZoomInto: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -247,10 +285,13 @@ private fun DetailsPanel(
             "${selection.nodeCount} smaller objects",
             style = MaterialTheme.typography.titleMedium
           )
-          Text(GROUP_EXPLANATION, style = MaterialTheme.typography.bodySmall)
+          Text(
+            "Held by ${selection.parentLabel}. $GROUP_EXPLANATION",
+            style = MaterialTheme.typography.bodySmall
+          )
           Detail("Retained", formatByteSize(selection.byteCount))
         }
-        is Selection.Object -> ObjectDetails(selection.summary, onZoomInto)
+        is Selection.Object -> ObjectDetails(selection.summary, scheme, onZoomInto)
       }
     }
   }
@@ -259,6 +300,7 @@ private fun DetailsPanel(
 @Composable
 private fun ObjectDetails(
   summary: HeapObjectSummary,
+  scheme: CellColorScheme,
   onZoomInto: (Long) -> Unit
 ) {
   Text(summary.label, style = MaterialTheme.typography.titleMedium, overflow = TextOverflow.Ellipsis)
@@ -267,7 +309,7 @@ private fun ObjectDetails(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(summary.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(legendColor(scheme, summary.strength)))
     Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
   Detail("Retained", formatByteSize(summary.retainedSize))

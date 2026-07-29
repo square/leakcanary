@@ -40,21 +40,28 @@ class HeapExplorer private constructor(
     followedStrengths: Set<ReachabilityStrength>,
     onProgress: (String) -> Unit = {}
   ): HeapDominatorTreemap {
+    // Strong references are always followed, so asking for them says nothing and mustn't count as a
+    // different tree.
+    val followed = followedStrengths - ReachabilityStrength.STRONG
     cachedTree?.let { cached ->
-      if (cached.followedStrengths == followedStrengths) {
+      if (cached.followedStrengths == followed) {
         return cached
       }
     }
-    onProgress(progressMessage(followedStrengths))
+    onProgress(progressMessage(followed))
     // Dropped before building, so that two trees are never held at once on a heap dump big enough
     // for that to matter.
     cachedTree = null
     val nodes = HeapDominatorTree.buildFor(
       graph = graph,
-      referenceReader = StrengthFilteringReferenceReader(strengthReader, followedStrengths),
+      referenceReader = StrengthFilteringReferenceReader(
+        strengthReader = strengthReader,
+        reachability = reachability,
+        followedStrengths = followed
+      ),
       gcRootProvider = MatchingGcRootProvider(emptyList())
     ).buildNodes(AndroidObjectSizeCalculator(graph))
-    return HeapDominatorTreemap(graph, reachability, nodes, followedStrengths)
+    return HeapDominatorTreemap(graph, reachability, nodes, followed)
       .also { cachedTree = it }
   }
 

@@ -123,6 +123,23 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `following weak references leaves a referent that is strongly reachable too where it was`() {
+    HeapExplorer.open(stronglyAndWeaklyReachablePayloadHeapDump()).use { explorer ->
+      val strongly = explorer.treeFor(emptySet())
+      val stronglyDominated = strongly.dominatedLabels()
+      val stronglyRetained = strongly.weight(strongly.root)
+
+      val weakly = explorer.treeFor(setOf(WEAK))
+
+      // The payload is strongly reachable through the holder, so the weak reference has nothing to
+      // reveal. Following it anyway would make both a path to the payload, moving its bytes up to
+      // their common ancestor and reshuffling the treemap for no reason.
+      assertThat(weakly.dominatedLabels()).isEqualTo(stronglyDominated)
+      assertThat(weakly.weight(weakly.root)).isEqualTo(stronglyRetained)
+      assertThat(weakly.findByLabel("Object[]").strength).isEqualTo(STRONG)
+    }
+  }
+
   @Test fun `the tree is reused when the strengths do not change`() {
     openTestHeapDump().use { explorer ->
       assertThat(explorer.treeFor(setOf(WEAK))).isSameAs(explorer.treeFor(setOf(WEAK)))
@@ -161,8 +178,32 @@ class HeapExplorerTest {
     return file
   }
 
+  /** A heap dump where an object array is held by an instance and pointed at by a `WeakReference`. */
+  private fun stronglyAndWeaklyReachablePayloadHeapDump(): File {
+    val file = testFolder.newFile("strongly-and-weakly-reachable.hprof")
+    file.dump {
+      val classes = referenceClasses()
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      val holder = "com.example.Holder" instance {
+        field["payload"] = payload
+      }
+      val weakReference = reference(classes.weakId, payload)
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = weakReference.value, jniGlobalRefId = 1))
+    }
+    return file
+  }
+
   private fun HeapDominatorTreemap.findByLabel(label: String): HeapObjectSummary =
     allSummaries().single { it.label == label }
+
+  /** What every node of the tree dominates, by label: the shape of the treemap, in one value. */
+  private fun HeapDominatorTreemap.dominatedLabels(): Map<String, List<String>> =
+    allSummaries().associate { summary ->
+      summary.label to children(summary.objectId).map { label(it) }.sorted()
+    }
 
   private fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
     val summaries = mutableListOf<HeapObjectSummary>()

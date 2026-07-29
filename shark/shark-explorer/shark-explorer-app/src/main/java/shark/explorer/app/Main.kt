@@ -2,7 +2,6 @@ package shark.explorer.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,10 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -77,6 +79,7 @@ fun ExplorerApp(
   var requestedFile: File? by remember { mutableStateOf(initialHeapDumpFile) }
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
   var followedStrengths: Set<ReachabilityStrength> by remember { mutableStateOf(emptySet()) }
+  var scheme: CellColorScheme by remember { mutableStateOf(CellColorScheme.DAISY) }
 
   LaunchedEffect(requestedFile) {
     val file = requestedFile
@@ -107,11 +110,13 @@ fun ExplorerApp(
     TopBar(
       state = currentState,
       followedStrengths = followedStrengths,
+      scheme = scheme,
       onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } },
-      onFollowedStrengthsChange = { followedStrengths = it }
+      onFollowedStrengthsChange = { followedStrengths = it },
+      onSchemeChange = { scheme = it }
     )
     if (currentState is HeapDumpState.Open) {
-      HeapDumpExplorer(currentState.session, followedStrengths, Modifier.weight(1f))
+      HeapDumpExplorer(currentState.session, followedStrengths, scheme, Modifier.weight(1f))
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
@@ -154,8 +159,10 @@ private sealed interface HeapDumpState {
 private fun TopBar(
   state: HeapDumpState,
   followedStrengths: Set<ReachabilityStrength>,
+  scheme: CellColorScheme,
   onOpenClick: () -> Unit,
-  onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit
+  onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit,
+  onSchemeChange: (CellColorScheme) -> Unit
 ) {
   Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
     Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -169,11 +176,56 @@ private fun TopBar(
         Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
       }
       if (state is HeapDumpState.Open) {
-        StrengthCheckboxes(
-          sizes = state.sizes,
-          followedStrengths = followedStrengths,
-          onFollowedStrengthsChange = onFollowedStrengthsChange
-        )
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(16.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          StrengthCheckboxes(
+            sizes = state.sizes,
+            followedStrengths = followedStrengths,
+            scheme = scheme,
+            onFollowedStrengthsChange = onFollowedStrengthsChange
+          )
+          SchemePicker(scheme = scheme, onSchemeChange = onSchemeChange)
+        }
+        if (state.sizes.byteCountByStrength.none { (strength, byteCount) ->
+            strength != ReachabilityStrength.STRONG && byteCount > 0L
+          }
+        ) {
+          Text(NOTHING_WEAKER, style = MaterialTheme.typography.bodySmall)
+        }
+      }
+    }
+  }
+}
+
+/** Which colours the treemap is drawn in, as radio buttons: there are only a few and they're all one word. */
+@Composable
+private fun SchemePicker(
+  scheme: CellColorScheme,
+  onSchemeChange: (CellColorScheme) -> Unit
+) {
+  Row(
+    horizontalArrangement = Arrangement.spacedBy(4.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Text(
+      "Colours",
+      style = MaterialTheme.typography.labelLarge,
+      modifier = Modifier.padding(end = 4.dp)
+    )
+    CellColorScheme.values().forEach { option ->
+      Row(
+        Modifier.selectable(
+          selected = option == scheme,
+          role = Role.RadioButton,
+          onClick = { onSchemeChange(option) }
+        ).padding(end = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        RadioButton(selected = option == scheme, onClick = null)
+        Text(option.displayName, style = MaterialTheme.typography.bodySmall)
       }
     }
   }
@@ -183,12 +235,15 @@ private fun TopBar(
  * A checkbox per reachability strength beyond strong, all off to begin with: following one rebuilds the
  * dominator tree, and the strongly reachable heap is what you want to look at first.
  *
- * Each one carries the colour its rectangles get, which is the only place the colours are named.
+ * Each one says how many bytes are reachable at that strength and no better, and is disabled when that
+ * is none — following it would then add nothing to the tree, and a checkbox that changes nothing is
+ * worse than one you can't press.
  */
 @Composable
 private fun StrengthCheckboxes(
   sizes: HeapSizes,
   followedStrengths: Set<ReachabilityStrength>,
+  scheme: CellColorScheme,
   onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit
 ) {
   Row(
@@ -203,12 +258,14 @@ private fun StrengthCheckboxes(
     ReachabilityStrength.values().forEach { strength ->
       // Strong references are always followed: without them there is no graph to walk.
       val isStrong = strength == ReachabilityStrength.STRONG
+      val byteCount = sizes.byteCountByStrength.getValue(strength)
+      val enabled = !isStrong && byteCount > 0L
       val checked = isStrong || strength in followedStrengths
       Row(
         // The whole thing is one toggle, label included, so clicking the name works too.
         Modifier.toggleable(
           value = checked,
-          enabled = !isStrong,
+          enabled = enabled,
           role = Role.Checkbox,
           onValueChange = { isChecked ->
             onFollowedStrengthsChange(
@@ -219,10 +276,10 @@ private fun StrengthCheckboxes(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Checkbox(checked = checked, enabled = !isStrong, onCheckedChange = null)
-        Box(Modifier.size(SWATCH_SIZE).background(legendColor(strength)))
+        Checkbox(checked = checked, enabled = enabled, onCheckedChange = null)
+        Box(Modifier.size(SWATCH_SIZE).background(legendColor(scheme, strength)))
         Text(
-          "${strength.displayName} ${formatByteSize(sizes.byteCountByStrength.getValue(strength))}",
+          "${strength.displayName} ${formatByteSize(byteCount)}",
           style = MaterialTheme.typography.bodySmall
         )
       }
@@ -237,7 +294,7 @@ private fun HeapDumpState.statusLine(): String = when (this) {
   is HeapDumpState.Open -> "${session.heapDumpFile.name} · " +
     "${formatByteSize(sizes.totalByteCount)} total · " +
     "${formatByteSize(sizes.reachableByteCount)} reachable · " +
-    "${formatByteSize(sizes.unreachableByteCount)} unreachable"
+    "${formatByteSize(sizes.unreachableByteCount)} uncollected garbage"
 }
 
 private fun HeapDumpState.centerMessage(): String = when (this) {
@@ -262,3 +319,13 @@ private fun showHeapDumpFileDialog(): File? {
 
 internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
+
+/**
+ * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
+ * which is the normal case and looks like a bug otherwise: a heap dump is written after a garbage
+ * collection, and what was only weakly reachable was collected by it.
+ */
+internal const val NOTHING_WEAKER =
+  "Nothing in this heap dump is reachable only through a java.lang.ref.Reference: it was written " +
+    "after a garbage collection, which reclaimed what was. The uncollected garbage above is what " +
+    "that collection missed."

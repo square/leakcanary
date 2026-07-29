@@ -6,13 +6,17 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -31,6 +35,7 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.ReachabilityStrength
+import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.WEAK
 import shark.explorer.formatByteSize
@@ -87,7 +92,7 @@ class ExplorerAppTest {
       openHeapDump()
 
       onNodeWithText("total", substring = true).assertIsDisplayed()
-      onNodeWithText("unreachable", substring = true).assertIsDisplayed()
+      onNodeWithText("uncollected garbage", substring = true).assertIsDisplayed()
       // The weakly retained array counts as weakly reachable, whether or not it's in the treemap.
       strengthToggle(WEAK).assertTextContains(
         formatByteSize(WEAK_PAYLOAD_BYTE_SIZE),
@@ -108,14 +113,17 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `double clicking a rectangle adds a breadcrumb`() {
+  @Test fun `double clicking a rectangle adds a breadcrumb for every dominator down to it`() {
     runComposeUiTest {
       openHeapDump()
       assertThat(breadcrumbCount()).isEqualTo(1)
 
       onRoot().performMouseInput { doubleClick(percentOffset(TREEMAP_X, TREEMAP_Y)) }
 
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 2 }
+      // The point clicked is inside the payload array, which is inside the instance holding it, so
+      // there's a crumb for each rather than a jump from the root straight to the array.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 3 }
+      onNodeWithText(HOLDER_LABEL, substring = true).assertIsDisplayed()
     }
   }
 
@@ -123,11 +131,26 @@ class ExplorerAppTest {
     runComposeUiTest {
       openHeapDump()
       onRoot().performMouseInput { doubleClick(percentOffset(TREEMAP_X, TREEMAP_Y)) }
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 2 }
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() > 1 }
 
       onNodeWithText(HeapDominatorTreemap.ROOT_LABEL, substring = true).performClick()
 
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 1 }
+    }
+  }
+
+  @Test fun `pressing the rectangle standing for the siblings that did not fit says what it stands for`() {
+    runComposeUiTest {
+      // Every sibling weighs the same, so the rectangle standing for the ones left out weighs as much
+      // as all of them together: it's the largest, and a squarified treemap puts that one in the top
+      // left corner.
+      openHeapDump(manySiblingsHeapDump())
+
+      onRoot().performMouseInput { click(percentOffset(GROUP_X, GROUP_Y)) }
+
+      waitUntilAtLeastOneExists(hasText("smaller objects", substring = true), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("Held by ${HeapDominatorTreemap.ROOT_LABEL}", substring = true)
+        .assertIsDisplayed()
     }
   }
 
@@ -168,8 +191,31 @@ class ExplorerAppTest {
     }
   }
 
-  private fun ComposeUiTest.openHeapDump() {
-    val heapDumpFile = testHeapDump()
+  @Test fun `a strength nothing is reachable at cannot be followed`() {
+    runComposeUiTest {
+      openHeapDump()
+
+      // Nothing in this heap dump is phantom reachable, so following phantom references would leave
+      // the treemap exactly as it is.
+      strengthToggle(PHANTOM).assertIsNotEnabled()
+      strengthToggle(WEAK).assertIsEnabled()
+    }
+  }
+
+  @Test fun `the colour scheme can be switched`() {
+    runComposeUiTest {
+      openHeapDump()
+      schemeOption(CellColorScheme.DAISY).assertIsSelected()
+
+      schemeOption(CellColorScheme.SLATE).performClick()
+
+      schemeOption(CellColorScheme.SLATE).assertIsSelected()
+      schemeOption(CellColorScheme.DAISY).assertIsNotSelected()
+      onNodeWithText(HeapDominatorTreemap.ROOT_LABEL, substring = true).assertIsDisplayed()
+    }
+  }
+
+  private fun ComposeUiTest.openHeapDump(heapDumpFile: File = testHeapDump()) {
     setContent { MaterialTheme { ExplorerApp(initialHeapDumpFile = heapDumpFile) } }
     waitUntilAtLeastOneExists(
       hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
@@ -180,6 +226,10 @@ class ExplorerAppTest {
   /** The checkbox for [strength] in the top bar, which carries its name and how much it holds. */
   private fun ComposeUiTest.strengthToggle(strength: ReachabilityStrength): SemanticsNodeInteraction =
     onNode(hasText(strength.displayName, substring = true) and isToggleable())
+
+  /** The radio button for [scheme] in the top bar. */
+  private fun ComposeUiTest.schemeOption(scheme: CellColorScheme): SemanticsNodeInteraction =
+    onNode(hasText(scheme.displayName) and isSelectable())
 
   /** Crumbs are separated by a chevron, so there's one more crumb than there are chevrons. */
   private fun ComposeUiTest.breadcrumbCount(): Int =
@@ -215,16 +265,46 @@ class ExplorerAppTest {
     return file
   }
 
+  /**
+   * A heap dump with more equally sized rooted instances than one node draws one by one, so that the
+   * treemap has a rectangle standing for the ones it left out.
+   */
+  private fun manySiblingsHeapDump(): File {
+    val file = testFolder.newFile("many-siblings.hprof")
+    file.dump {
+      val siblingClassId = clazz(
+        className = "com.example.Sibling",
+        fields = listOf("payload" to ReferenceHolder::class)
+      )
+      val objectArrayClassId = arrayClass("java.lang.Object")
+      repeat(SIBLING_COUNT) { index ->
+        val payload = objectArray(objectArrayClassId, LongArray(SIBLING_PAYLOAD_LENGTH))
+        val sibling = instance(siblingClassId, fields = listOf(ReferenceHolder(payload)))
+        gcRoot(JniGlobal(id = sibling.value, jniGlobalRefId = index.toLong()))
+      }
+    }
+    return file
+  }
+
   companion object {
     /** Somewhere in the treemap: below the top bar and breadcrumbs, left of the details panel. */
     private const val TREEMAP_X = 0.4f
     private const val TREEMAP_Y = 0.6f
 
+    /** The top left of the treemap, where the largest rectangle of a squarified layout goes. */
+    private const val GROUP_X = 0.05f
+    private const val GROUP_Y = 0.3f
+
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
 
+    private const val HOLDER_LABEL = "Holder"
     private const val PAYLOAD_LENGTH = 4096
     private const val WEAK_PAYLOAD_LENGTH = 32768
     private const val WEAK_PAYLOAD_BYTE_SIZE = WEAK_PAYLOAD_LENGTH * 4L
+
+    /** Twice what a node draws one by one, so half the siblings end up in one rectangle. */
+    private const val SIBLING_COUNT = 400
+    private const val SIBLING_PAYLOAD_LENGTH = 16
   }
 }

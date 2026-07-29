@@ -47,49 +47,63 @@ class TreemapViewTest {
   @Test fun `pressing a rectangle selects it`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<Long>()
-      setContent { TreemapUnderTest(presentation, onSelectObject = { selected += it }) }
+      val selected = mutableListOf<TreemapCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOf(CHILD)) }
 
-      assertThat(selected).containsExactly(CHILD)
+      assertThat(selected.map { (it as TreemapCell.Node).node }).containsExactly(CHILD)
     }
   }
 
   @Test fun `pressing a header selects the parent`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<Long>()
-      setContent { TreemapUnderTest(presentation, onSelectObject = { selected += it }) }
+      val selected = mutableListOf<TreemapCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       // The root keeps a header strip at the top for its own label, uncovered by its children.
       onRoot().performMouseInput { click(Offset(VIEWPORT.width.toFloat() / 2, 2f)) }
 
-      assertThat(selected).containsExactly(ROOT)
+      assertThat(selected.map { (it as TreemapCell.Node).node }).containsExactly(ROOT)
     }
   }
 
   @Test fun `double clicking a rectangle zooms into it`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val zoomed = mutableListOf<Long>()
+      val zoomed = mutableListOf<List<Long>>()
       setContent { TreemapUnderTest(presentation, onZoomInto = { zoomed += it }) }
 
       onRoot().performMouseInput { doubleClick(presentation.centerOf(CHILD)) }
 
-      assertThat(zoomed).containsExactly(CHILD)
+      assertThat(zoomed).containsExactly(listOf(CHILD))
+    }
+  }
+
+  @Test fun `double clicking a nested rectangle reports every node down to it`() {
+    runComposeUiTest {
+      // Zooming has to leave a breadcrumb per dominator, so the whole chain below the current root is
+      // reported rather than only the rectangle that was clicked.
+      val presentation = mapTree(ROOT to listOf(PARENT), PARENT to listOf(CHILD)).present()
+      val zoomed = mutableListOf<List<Long>>()
+      setContent { TreemapUnderTest(presentation, onZoomInto = { zoomed += it }) }
+
+      onRoot().performMouseInput { doubleClick(presentation.centerOf(CHILD)) }
+
+      assertThat(zoomed).containsExactly(listOf(PARENT, CHILD))
     }
   }
 
   @Test fun `a root without children fills the view on its own`() {
     runComposeUiTest {
       val presentation = leafRoot.present()
-      val selected = mutableListOf<Long>()
-      setContent { TreemapUnderTest(presentation, onSelectObject = { selected += it }) }
+      val selected = mutableListOf<TreemapCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOf(ROOT)) }
 
-      assertThat(selected).containsExactly(ROOT)
+      assertThat(selected.map { (it as TreemapCell.Node).node }).containsExactly(ROOT)
     }
   }
 
@@ -97,12 +111,40 @@ class TreemapViewTest {
     runComposeUiTest {
       // More children than a node draws one by one, so the smallest ones end up in one rectangle.
       val presentation = mapTree(ROOT to (1L..500L).toList()).present()
-      val groups = mutableListOf<TreemapCell.Group>()
-      setContent { TreemapUnderTest(presentation, onSelectGroup = { groups += it }) }
+      val selected = mutableListOf<TreemapCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
-      onRoot().performMouseInput { click(presentation.centerOfGroup()) }
+      onRoot().performMouseInput { click(presentation.centerOfGroupUnder(ROOT)) }
 
-      assertThat(groups.single().nodeCount).isEqualTo(300)
+      val group = selected.single() as TreemapCell.Group
+      assertThat(group.nodeCount).isEqualTo(300)
+      assertThat(group.parent).isEqualTo(ROOT)
+    }
+  }
+
+  @Test fun `each leftover rectangle is a selection of its own`() {
+    runComposeUiTest {
+      // Two subdivided nodes, each with more children than it draws: pressing one of the two leftover
+      // rectangles has to select that one rather than every rectangle that looks like it.
+      val presentation = mapTree(
+        ROOT to listOf(PARENT, OTHER_PARENT),
+        PARENT to (10L..14L).toList(),
+        OTHER_PARENT to (20L..24L).toList()
+      ).present(TreemapLayout(maxChildrenPerNode = 2))
+      val selected = mutableListOf<TreemapCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
+
+      onRoot().performMouseInput { click(presentation.centerOfGroupUnder(PARENT)) }
+
+      val group = selected.single() as TreemapCell.Group
+      assertThat(group.parent).isEqualTo(PARENT)
+      assertThat(SelectedCell.of(group)).isNotEqualTo(
+        SelectedCell.of(presentation.groupUnder(OTHER_PARENT))
+      )
+      // Nor is a node ever selected by its own leftover rectangle.
+      assertThat(SelectedCell.of(group)).isNotEqualTo(
+        SelectedCell.of(presentation.nodeCellOf(PARENT))
+      )
     }
   }
 
@@ -141,11 +183,16 @@ class TreemapViewTest {
     )
   }
 
-  private fun TreemapPresentation.centerOf(node: Long): Offset =
-    center(layout.cells.last { it is TreemapCell.Node && it.node == node }.rect)
+  private fun TreemapPresentation.nodeCellOf(node: Long): TreemapCell.Node<Long> =
+    layout.cells.filterIsInstance<TreemapCell.Node<Long>>().last { it.node == node }
 
-  private fun TreemapPresentation.centerOfGroup(): Offset =
-    center(layout.cells.filterIsInstance<TreemapCell.Group>().single().rect)
+  private fun TreemapPresentation.groupUnder(parent: Long): TreemapCell.Group<Long> =
+    layout.cells.filterIsInstance<TreemapCell.Group<Long>>().single { it.parent == parent }
+
+  private fun TreemapPresentation.centerOf(node: Long): Offset = center(nodeCellOf(node).rect)
+
+  private fun TreemapPresentation.centerOfGroupUnder(parent: Long): Offset =
+    center(groupUnder(parent).rect)
 
   private fun center(rect: TreemapRect) = Offset(
     ((rect.left + rect.right) / 2).toFloat(),
@@ -155,6 +202,8 @@ class TreemapViewTest {
   companion object {
     private const val ROOT = 0L
     private const val CHILD = 1L
+    private const val PARENT = 2L
+    private const val OTHER_PARENT = 3L
 
     private val VIEWPORT = TreemapRect(left = 0.0, top = 0.0, right = 600.0, bottom = 400.0)
   }
@@ -163,12 +212,11 @@ class TreemapViewTest {
 @Composable
 private fun TreemapUnderTest(
   presentation: TreemapPresentation,
-  onSelectObject: (Long) -> Unit = {},
-  onSelectGroup: (TreemapCell.Group) -> Unit = {},
-  onZoomInto: (Long) -> Unit = {}
+  onSelect: (TreemapCell<Long>) -> Unit = {},
+  onZoomInto: (List<Long>) -> Unit = {}
 ) {
   MaterialTheme {
-    var selected: Long? by remember { mutableStateOf(null) }
+    var selected: SelectedCell? by remember { mutableStateOf(null) }
     val rect = presentation.layout.cells.first().rect
     val density = LocalDensity.current
     // Sized in pixels, matching the viewport the presentation was laid out in, so that a click at a
@@ -181,12 +229,12 @@ private fun TreemapUnderTest(
     ) {
       TreemapView(
         presentation = presentation,
+        scheme = CellColorScheme.DAISY,
         selected = selected,
-        onSelectObject = {
-          selected = it
-          onSelectObject(it)
+        onSelect = {
+          selected = SelectedCell.of(it)
+          onSelect(it)
         },
-        onSelectGroup = onSelectGroup,
         onZoomInto = onZoomInto
       )
     }

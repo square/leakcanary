@@ -26,6 +26,18 @@ class TreemapNavigationTest {
     assertThat(navigation.zoomInto("a")).isEqualTo(navigation)
   }
 
+  @Test fun `zooming into a path leaves a crumb for every node on the way`() {
+    val navigation = TreemapNavigation("root").zoomInto(listOf("a", "b", "c"))
+
+    assertThat(navigation.path).containsExactly("root", "a", "b", "c")
+  }
+
+  @Test fun `zooming into an empty path changes nothing`() {
+    val navigation = TreemapNavigation("root").zoomInto("a")
+
+    assertThat(navigation.zoomInto(emptyList())).isEqualTo(navigation)
+  }
+
   @Test fun `zooming into a node already on the path zooms back out to it`() {
     val navigation = TreemapNavigation("root").zoomInto("a").zoomInto("b").zoomInto("c")
 

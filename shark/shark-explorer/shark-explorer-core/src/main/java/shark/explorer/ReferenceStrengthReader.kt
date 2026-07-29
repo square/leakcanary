@@ -156,15 +156,23 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 }
 
 /**
- * Reads the references that retain their target, plus the referents held by references of the
- * strengths in [followedStrengths].
+ * Reads the references that retain their target, plus the ones a `java.lang.ref.Reference` holds an
+ * object with when that reference is the strongest thing reaching it and its strength is in
+ * [followedStrengths].
  *
- * With an empty [followedStrengths] the graph is the strongly reachable heap. Adding [WEAK] to it
- * adds the objects a weak reference is the only path to, dominated by the weak reference itself,
- * which is what puts a weakly reachable rectangle inside a strongly reachable one.
+ * With an empty [followedStrengths] the graph is the strongly reachable heap. Adding [WEAK] to it adds
+ * the objects a weak reference is the only path to, dominated by the weak reference itself, which is
+ * what puts a weakly reachable rectangle inside a strongly reachable one.
+ *
+ * **The target's strength decides, not the reference's.** Following a weak reference to an object that
+ * something else holds strongly wouldn't reveal anything — the object is already in the tree — but it
+ * would add an edge, which moves the object's retained size up to whatever dominates both paths and
+ * attributes it to neither. So checking a strength that nothing in the heap dump is reachable at
+ * leaves the treemap exactly as it was, which is the honest answer.
  */
 internal class StrengthFilteringReferenceReader(
   private val strengthReader: ReferenceStrengthReader,
+  private val reachability: HeapReachability,
   private val followedStrengths: Set<ReachabilityStrength>
 ) : ReferenceReader<HeapObject> {
 
@@ -174,7 +182,7 @@ internal class StrengthFilteringReferenceReader(
       return retaining
     }
     val followed = strengthReader.weakeningReferencesOf(source)
-      .filter { it.strength in followedStrengths }
+      .filter { reachability.strengthOf(it.valueObjectId) in followedStrengths }
     return if (followed.isEmpty()) {
       retaining
     } else {

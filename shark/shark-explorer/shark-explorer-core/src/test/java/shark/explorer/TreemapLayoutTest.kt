@@ -36,14 +36,19 @@ class TreemapLayoutTest {
 
   private val viewport = TreemapRect(0.0, 0.0, 1000.0, 800.0)
 
+  private fun center(rect: TreemapRect) = TreemapPoint(
+    x = rect.left + rect.width / 2,
+    y = rect.top + rect.height / 2
+  )
+
   private val TreemapLayoutResult<Node>.nodeCells: List<TreemapCell.Node<Node>>
     get() = cells.filterIsInstance<TreemapCell.Node<Node>>()
 
   private val TreemapLayoutResult<Node>.names: List<String>
     get() = nodeCells.map { it.node.name }
 
-  private val TreemapLayoutResult<Node>.groups: List<TreemapCell.Group>
-    get() = cells.filterIsInstance<TreemapCell.Group>()
+  private val TreemapLayoutResult<Node>.groups: List<TreemapCell.Group<Node>>
+    get() = cells.filterIsInstance<TreemapCell.Group<Node>>()
 
   @Test fun `root is laid out into the whole viewport`() {
     val tree = NodeTree(Node("root", children = listOf(Node("a", 10), Node("b", 5))))
@@ -198,6 +203,45 @@ class TreemapLayoutTest {
     val result = TreemapLayout<Node>().layout(tree, viewport)
 
     assertThat(result.cells).hasSize(1)
+  }
+
+  @Test fun `a cell knows the node it is nested in and where it ranks among its siblings`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("small", 5), Node("big", 10))))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    val root = result.nodeCells.first()
+    assertThat(root.parent).isNull()
+    assertThat(root.siblingIndex).isEqualTo(0)
+    // Children are laid out heaviest first, whatever order the tree lists them in.
+    val children = result.nodeCells.drop(1)
+    assertThat(children.map { it.node.name }).containsExactly("big", "small")
+    assertThat(children.map { it.parent?.name }).containsOnly("root")
+    assertThat(children.map { it.siblingIndex }).containsExactly(0, 1)
+  }
+
+  @Test fun `a group knows the node whose children it stands for`() {
+    val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
+    val tree = NodeTree(Node("root", children = children))
+
+    val result = TreemapLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
+
+    assertThat(result.groups.single().parent.name).isEqualTo("root")
+  }
+
+  @Test fun `hit testing returns every cell containing a point, outermost first`() {
+    val tree = NodeTree(uniformTree("root", depth = 3, breadth = 2, leafWeight = 1_000_000))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    val deepest = result.nodeCells.maxBy { it.depth }
+    val path = result.cellPathAt(center(deepest.rect)).filterIsInstance<TreemapCell.Node<Node>>()
+    // Nested rectangles, so the path is the chain of dominators from the root down to what was hit.
+    assertThat(path.map { it.depth }).isEqualTo((0..deepest.depth).toList())
+    assertThat(path.last()).isEqualTo(deepest)
+    assertThat(path.zipWithNext()).allSatisfy { (outer, inner) ->
+      assertThat(inner.parent).isEqualTo(outer.node)
+    }
   }
 
   @Test fun `hit testing returns the deepest cell at a point`() {

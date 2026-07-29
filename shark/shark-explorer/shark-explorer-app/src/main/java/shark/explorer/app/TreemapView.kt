@@ -46,22 +46,23 @@ import shark.explorer.TreemapPresentation
  * visible label, and that has to have happened on the heap dump's own thread before we get here.
  */
 @Composable
-fun TreemapView(
+internal fun TreemapView(
   presentation: TreemapPresentation,
-  selected: Long?,
-  onSelectObject: (Long) -> Unit,
-  onSelectGroup: (TreemapCell.Group) -> Unit,
-  onZoomInto: (Long) -> Unit,
+  scheme: CellColorScheme,
+  selected: SelectedCell?,
+  onSelect: (TreemapCell<Long>) -> Unit,
+  /** The chain of nodes from the current root down to the one double clicked. */
+  onZoomInto: (List<Long>) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
   val density = LocalDensity.current
   // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
   // the presentation changes and never on a redraw.
-  val cells = remember(presentation, textMeasurer, density) {
-    presentation.cells.map { it.measure(textMeasurer, density) }
+  val cells = remember(presentation, scheme, textMeasurer, density) {
+    val colors = CellColors.of(scheme, presentation)
+    presentation.cells.map { it.measure(colors, textMeasurer, density) }
   }
-
   Box(modifier) {
     Canvas(
       Modifier.fillMaxSize()
@@ -69,20 +70,22 @@ fun TreemapView(
           detectTapGestures(
             // On press rather than on tap: with a double click handler installed, a tap is only
             // reported once the double click window has passed, which makes selection feel stuck.
-            onPress = { offset ->
-              when (val cell = presentation.cellAt(offset)) {
-                is TreemapCell.Node -> onSelectObject(cell.node)
-                is TreemapCell.Group -> onSelectGroup(cell)
-                null -> Unit
-              }
-            },
-            onDoubleTap = { offset ->
-              (presentation.cellAt(offset) as? TreemapCell.Node)?.let { onZoomInto(it.node) }
-            }
+            onPress = { offset -> presentation.cellAt(offset)?.let(onSelect) },
+            onDoubleTap = { offset -> onZoomInto(presentation.nodePathAt(offset)) }
           )
         }
     ) {
-      cells.forEach { cell -> drawCell(cell, isSelected = cell.objectId == selected) }
+      cells.forEach { cell -> drawCell(cell) }
+      // On top of everything: a selected rectangle that has children would otherwise have most of its
+      // outline painted over by them.
+      cells.firstOrNull { it.selects == selected }?.let { cell ->
+        drawRect(
+          color = SELECTION_COLOR,
+          topLeft = cell.topLeft,
+          size = cell.size,
+          style = Stroke(width = SELECTION_WIDTH)
+        )
+      }
     }
     if (presentation.truncatedNodeCount > 0) {
       Surface(
@@ -100,40 +103,67 @@ fun TreemapView(
   }
 }
 
-private fun TreemapPresentation.cellAt(offset: Offset): TreemapCell<Long>? =
-  layout.cellAt(TreemapPoint(offset.x.toDouble(), offset.y.toDouble()))
+/**
+ * Which rectangle is selected, in terms that outlive a relayout.
+ *
+ * An object's own id for a rectangle that is a node; the parent's id for the rectangle standing for
+ * the children it didn't draw, since two groups never share a parent. Resizing the window lays the
+ * treemap out again, and the selection has to survive that.
+ */
+internal data class SelectedCell(
+  val objectId: Long,
+  val isGroup: Boolean
+) {
+  companion object {
+    fun of(cell: TreemapCell<Long>): SelectedCell = when (cell) {
+      is TreemapCell.Node -> SelectedCell(cell.node, isGroup = false)
+      is TreemapCell.Group -> SelectedCell(cell.parent, isGroup = true)
+    }
+  }
+}
 
-/** A rectangle with its label measured, so that drawing does no work. */
+private fun TreemapPresentation.cellAt(offset: Offset): TreemapCell<Long>? =
+  layout.cellAt(offset.toTreemapPoint())
+
+/** The nodes containing [offset], outermost first, minus the root the treemap is already at. */
+private fun TreemapPresentation.nodePathAt(offset: Offset): List<Long> =
+  layout.cellPathAt(offset.toTreemapPoint())
+    .filterIsInstance<TreemapCell.Node<Long>>()
+    .drop(1)
+    .map { it.node }
+
+private fun Offset.toTreemapPoint() = TreemapPoint(x.toDouble(), y.toDouble())
+
+/** A rectangle with its label measured and its colour resolved, so that drawing does no work. */
 private class MeasuredCell(
-  /** Null for the rectangle standing for the siblings that didn't fit. */
-  val objectId: Long?,
+  val selects: SelectedCell,
   val topLeft: Offset,
   val size: Size,
   val color: Color,
+  val borderColor: Color,
+  val labelColor: Color,
   val labelOffset: Offset,
   /** Null when the rectangle is too small for a readable label. */
   val label: TextLayoutResult?
 )
 
 private fun PresentedCell.measure(
+  colors: CellColors,
   textMeasurer: TextMeasurer,
   density: Density
 ): MeasuredCell {
   val rect = cell.rect
-  val cellStrength = strength
   val labelPadding = with(density) { LABEL_PADDING.toPx() }
   val labelWidth = rect.width - 2 * labelPadding
   val fitsALabel = labelWidth >= with(density) { MIN_LABEL_WIDTH.toPx() } &&
     rect.height >= with(density) { MIN_LABEL_HEIGHT.toPx() }
   return MeasuredCell(
-    objectId = (cell as? TreemapCell.Node)?.node,
+    selects = SelectedCell.of(cell),
     topLeft = Offset(rect.left.toFloat(), rect.top.toFloat()),
     size = Size(rect.width.toFloat(), rect.height.toFloat()),
-    color = if (cellStrength == null) {
-      groupCellColor(cell.depth)
-    } else {
-      cellColor(cellStrength, cell.depth)
-    },
+    color = colors.colorOf(this),
+    borderColor = colors.border,
+    labelColor = colors.label,
     labelOffset = Offset(labelPadding, labelPadding),
     label = if (fitsALabel) {
       textMeasurer.measure(
@@ -149,29 +179,18 @@ private fun PresentedCell.measure(
   )
 }
 
-private fun DrawScope.drawCell(
-  cell: MeasuredCell,
-  isSelected: Boolean
-) {
+private fun DrawScope.drawCell(cell: MeasuredCell) {
   drawRect(color = cell.color, topLeft = cell.topLeft, size = cell.size)
   drawRect(
-    color = BORDER_COLOR,
+    color = cell.borderColor,
     topLeft = cell.topLeft,
     size = cell.size,
     style = Stroke(width = BORDER_WIDTH)
   )
-  if (isSelected) {
-    drawRect(
-      color = SELECTION_COLOR,
-      topLeft = cell.topLeft,
-      size = cell.size,
-      style = Stroke(width = SELECTION_WIDTH)
-    )
-  }
   cell.label?.let { label ->
     drawText(
       textLayoutResult = label,
-      color = LABEL_COLOR,
+      color = cell.labelColor,
       topLeft = cell.topLeft + cell.labelOffset
     )
   }
@@ -192,7 +211,4 @@ private val MIN_LABEL_WIDTH = 24.dp
 private val MIN_LABEL_HEIGHT = 13.dp
 private const val BORDER_WIDTH = 1f
 private const val SELECTION_WIDTH = 3f
-private val BORDER_COLOR = Color(0x33000000)
-private val SELECTION_COLOR = Color(0xFF0B57D0)
-private val LABEL_COLOR = Color(0xFF1B1B1B)
 private val LABEL_STYLE = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)

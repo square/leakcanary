@@ -77,19 +77,45 @@ it and must not come back:
 It also hardcoded `maxDepth = 1, minSize = 10000` under a TODO asking for exactly the adaptive model
 above.
 
-## Colour says reachability, shade says depth
+## Colour: a vivid hue for what isn't strongly reachable, a scheme for the rest
 
 Hue is what the eye picks out of a treemap, and the thing worth picking out is a weakly reachable
-block sitting inside a strongly reachable one — so hue carries the reachability strength and depth only
-varies saturation and brightness. Depth is unbounded, so the shades cycle every five levels, which is
-fine as long as neighbours differ. Groups are grey, so they read as "not an object". All of it is in
-`ReachabilityColors.kt`, the one place the colours are named.
+block sitting inside a strongly reachable one — so an object that isn't strongly reachable gets a vivid
+hue of its own whatever the scheme. Nearly all of the heap is strongly reachable, and how *that* is
+coloured is a scheme, picked in the top bar:
+
+- **Daisy**, the default: one hue per top level block, inherited by everything nested in it and
+  lightening with depth, the way DaisyDisk colours a disk. A block then reads as one thing with its
+  contents. It needs to know which top level block a cell belongs to, which is what `parent` and
+  `siblingIndex` on `TreemapCell.Node` are for, resolved in one pass per presentation — cells come
+  parent before child, so a parent always has its hue by the time a child is reached.
+- **Reachability**: one hue per strength, shaded by depth. Says the most about the collector and the
+  least about structure.
+- **Slate**: blue greys only, for when the colours get in the way of the shapes.
+
+Depth is unbounded, so shades cycle, which is fine as long as neighbours differ. Groups are grey in
+every scheme, so they read as "not an object". All of it is in `CellColors.kt`, the one place the
+colours are named.
 
 ## Hit testing
 
 Rectangles are drawn into a single `Canvas`, so Compose has no per-rectangle node to hit test or to
 expose to tests. Hit testing is therefore explicit: keep the laid-out rectangles and resolve a click
-by point containment, deepest match wins.
+by point containment. `cellPathAt` returns every cell containing the point, outermost first — children
+nest inside parents and never overlap siblings, so containment recovers the whole chain — and
+`cellAt` is its last entry. A press selects that deepest cell; a double click zooms in **along the
+whole chain**, so a rectangle five levels down leaves a breadcrumb per dominator rather than a jump
+straight to it.
 
 Keeping that a pure function in `shark-explorer-core` is what makes it testable — see
 `decisions.md` for how the UI tests are structured around this.
+
+Two things about selection that aren't obvious from the drawing code:
+
+- **A selection is an id, not a cell.** Resizing the window lays the treemap out again and every cell
+  is a new object, so the UI remembers a `SelectedCell`: an object id, or a parent id plus a flag for
+  the leftover rectangle. Which is the other reason `TreemapCell.Group` carries its `parent` — with
+  nothing to tell one group from another, every leftover rectangle in the treemap lit up at once.
+- **The outline of the selected rectangle is drawn after every rectangle**, not with its own. Children
+  are drawn over their parents, so a selected rectangle that has any would otherwise show only the
+  slivers of its outline that its children don't cover.

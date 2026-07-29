@@ -39,6 +39,23 @@ The strengths the reader follows are a parameter, which is what the checkboxes i
 none of them, an object only a weak reference points at is **absent from the treemap entirely**, so
 the root doesn't add up to the size of the heap dump; `HeapSizes` accounts for the rest.
 
+**The strength that decides whether an edge is followed is the target's, not the reference's.** A
+`WeakReference` whose referent is also held strongly is the common case, and following that edge adds a
+second path to an object that was already in the tree: its bytes move up to the two paths' common
+ancestor and the treemap reshuffles, revealing nothing. So `StrengthFilteringReferenceReader` asks
+`HeapReachability` how the target is classified and follows the edge only if that classification is
+being followed. Checking a strength nothing in the dump is reachable at then leaves the treemap exactly
+as it was — which, as below, is nearly every strength in nearly every dump.
+
+**Expect `SOFT`, `WEAK` and `PHANTOM` to be 0 bytes in a real heap dump.** A dump is written after a
+garbage collection, and that collection reclaimed everything that was only reachable through a
+`Reference`. What's left is uncollected garbage, which is a different number and a different colour.
+`FINALIZER` does show up: objects queued for finalization are still there because their `finalize()`
+hadn't run. Measured on `compose_leak.hprof`: 12 MB strong, exactly 0 B soft/weak/finalizer/phantom,
+3 MB uncollected garbage. On a 287 MB production dump: 262 MB strong, 7 MB uncollected garbage, and
+5 finalizer reachable objects totalling 1.1 KB. The UI therefore disables a strength with nothing at
+it and says why, rather than offering a checkbox that can't change anything.
+
 Two more reference reader behaviours that surprise you when reading a treemap:
 
 - **A `java.lang.String`'s char array is not a node of its own.** `FieldInstanceReferenceReader`
