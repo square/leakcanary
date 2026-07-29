@@ -109,22 +109,29 @@ class HeapDominatorTreemap internal constructor(
     root: Long = this.root
   ): TreemapPresentation {
     val result = layout.layout(this, viewport, root)
-    return TreemapPresentation(
-      layout = result,
-      cells = result.cells.map { cell ->
-        when (cell) {
-          is TreemapCell.Node -> PresentedCell(
-            cell = cell,
-            label = label(cell.node),
-            strength = strengthOf(cell.node)
-          )
-          is TreemapCell.Group -> PresentedCell(
-            cell = cell,
-            label = "${cell.nodeCount} smaller objects",
-            strength = null
-          )
-        }
-      }
+    return TreemapPresentation(layout = result, cells = result.cells.map { it.presented() })
+  }
+
+  /** The same, laid out as rings around a centre rather than as rectangles. */
+  fun presentRadial(
+    layout: RadialLayout<Long>,
+    viewport: TreemapRect,
+    root: Long = this.root
+  ): RadialPresentation {
+    val result = layout.layout(this, viewport, root)
+    return RadialPresentation(layout = result, cells = result.cells.map { it.presented() })
+  }
+
+  private fun <C : LayoutCell<Long>> C.presented(): PresentedCell<C> = when (val subject = subject) {
+    is CellSubject.Node -> PresentedCell(
+      cell = this,
+      label = label(subject.node),
+      strength = strengthOf(subject.node)
+    )
+    is CellSubject.Group -> PresentedCell(
+      cell = this,
+      label = "${subject.nodeCount} smaller objects",
+      strength = null
     )
   }
 

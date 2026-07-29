@@ -1,7 +1,7 @@
 # Shark Explorer — agent guide
 
-A desktop app that renders a heap dump's dominator tree as a navigable treemap. The long term goal
-is a YourKit-style heap explorer; the treemap is the first surface.
+A desktop app that renders a heap dump's dominator tree as a navigable treemap, or as rings around a
+centre. The long term goal is a YourKit-style heap explorer; these are the first surfaces.
 
 This file is scoped to `shark/shark-explorer/`. It only records things an agent would get wrong by
 reading the source alone — everything else is in the code. Keep it that way.
@@ -10,8 +10,8 @@ reading the source alone — everything else is in the code. Keep it that way.
 
 | Module | What it is | Constraints |
 | --- | --- | --- |
-| `shark-explorer-core` | Heap dump → dominator tree → treemap model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
-| `shark-explorer-app` | Compose Desktop UI: window, treemap canvas, details panel. | **Java 17 target** — see below. |
+| `shark-explorer-core` | Heap dump → dominator tree → layout model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
+| `shark-explorer-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
 
 `shark/shark-explorer/` itself holds no code, matching how `shark/` and `leakcanary/` are grouping
 directories in this repo.
@@ -38,8 +38,8 @@ to one thread of its own. Calling into `HeapExplorer` from a composable would wo
 corrupted a read.
 
 What follows for the UI: a composable never holds a tree, only what was already computed from one. A
-laid out, labelled treemap is a `TreemapPresentation`, and a selection is a `HeapObjectSummary`; both
-arrive a little after whatever asked for them changed.
+laid out, labelled view is a `TreemapPresentation` or a `RadialPresentation`, and a selection is a
+`HeapObjectSummary`; both arrive a little after whatever asked for them changed.
 
 ## Gradle facts that aren't visible from these build scripts
 
@@ -77,8 +77,8 @@ it, so run it before pushing.
 - **UI tests are headless JVM tests**, not instrumentation tests. They live in `src/test/` and use
   `androidx.compose.ui.test.v2.runComposeUiTest`. Import from the **`.v2` package** — the non-v2
   `runComposeUiTest` is deprecated.
-- **The treemap draws into a single `Canvas`, so there are no per-rectangle semantics nodes.** UI
-  tests can't find rectangles by tag. Test layout and hit testing as pure functions in
+- **Each shape draws into a single `Canvas`, so there are no per-cell semantics nodes.** UI
+  tests can't find cells by tag. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on
   the details panel and breadcrumbs.
 - Build test heap dumps with the `hprofFile.dump { }` DSL from `shark-hprof-test` rather than
@@ -90,7 +90,8 @@ Design decisions and findings, kept current as the work proceeds:
 
 - `notes/decisions.md` — stack and structure decisions, with rationale
 - `notes/dominator-tree.md` — dominator algorithm findings, memory/perf numbers
-- `notes/treemap-rendering.md` — adaptive depth model, bugs in the existing Android treemap
+- `notes/treemap-rendering.md` — adaptive depth model, the two shapes, bugs in the existing Android
+  treemap
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

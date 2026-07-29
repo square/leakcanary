@@ -21,6 +21,8 @@ import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.explorer.CellSubject
+import shark.explorer.LayoutCell
 import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.TreemapCell
@@ -47,25 +49,25 @@ class TreemapViewTest {
   @Test fun `pressing a rectangle selects it`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<TreemapCell<Long>>()
+      val selected = mutableListOf<LayoutCell<Long>>()
       setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOf(CHILD)) }
 
-      assertThat(selected.map { (it as TreemapCell.Node).node }).containsExactly(CHILD)
+      assertThat(selected.map { it.node }).containsExactly(CHILD)
     }
   }
 
   @Test fun `pressing a header selects the parent`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<TreemapCell<Long>>()
+      val selected = mutableListOf<LayoutCell<Long>>()
       setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       // The root keeps a header strip at the top for its own label, uncovered by its children.
       onRoot().performMouseInput { click(Offset(VIEWPORT.width.toFloat() / 2, 2f)) }
 
-      assertThat(selected.map { (it as TreemapCell.Node).node }).containsExactly(ROOT)
+      assertThat(selected.map { it.node }).containsExactly(ROOT)
     }
   }
 
@@ -98,12 +100,12 @@ class TreemapViewTest {
   @Test fun `a root without children fills the view on its own`() {
     runComposeUiTest {
       val presentation = leafRoot.present()
-      val selected = mutableListOf<TreemapCell<Long>>()
+      val selected = mutableListOf<LayoutCell<Long>>()
       setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOf(ROOT)) }
 
-      assertThat(selected.map { (it as TreemapCell.Node).node }).containsExactly(ROOT)
+      assertThat(selected.map { it.node }).containsExactly(ROOT)
     }
   }
 
@@ -111,12 +113,12 @@ class TreemapViewTest {
     runComposeUiTest {
       // More children than a node draws one by one, so the smallest ones end up in one rectangle.
       val presentation = mapTree(ROOT to (1L..500L).toList()).present()
-      val selected = mutableListOf<TreemapCell<Long>>()
+      val selected = mutableListOf<LayoutCell<Long>>()
       setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOfGroupUnder(ROOT)) }
 
-      val group = selected.single() as TreemapCell.Group
+      val group = selected.single().group
       assertThat(group.nodeCount).isEqualTo(300)
       assertThat(group.parent).isEqualTo(ROOT)
     }
@@ -131,19 +133,19 @@ class TreemapViewTest {
         PARENT to (10L..14L).toList(),
         OTHER_PARENT to (20L..24L).toList()
       ).present(TreemapLayout(maxChildrenPerNode = 2))
-      val selected = mutableListOf<TreemapCell<Long>>()
+      val selected = mutableListOf<LayoutCell<Long>>()
       setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOfGroupUnder(PARENT)) }
 
-      val group = selected.single() as TreemapCell.Group
+      val group = selected.single().group
       assertThat(group.parent).isEqualTo(PARENT)
       assertThat(SelectedCell.of(group)).isNotEqualTo(
-        SelectedCell.of(presentation.groupUnder(OTHER_PARENT))
+        SelectedCell.of(presentation.groupUnder(OTHER_PARENT).subject)
       )
       // Nor is a node ever selected by its own leftover rectangle.
       assertThat(SelectedCell.of(group)).isNotEqualTo(
-        SelectedCell.of(presentation.nodeCellOf(PARENT))
+        SelectedCell.of(presentation.nodeCellOf(PARENT).subject)
       )
     }
   }
@@ -175,19 +177,24 @@ class TreemapViewTest {
     return TreemapPresentation(
       layout = result,
       cells = result.cells.map { cell ->
-        when (cell) {
-          is TreemapCell.Node -> PresentedCell(cell, "node ${cell.node}", STRONG)
-          is TreemapCell.Group -> PresentedCell(cell, "${cell.nodeCount} smaller objects", null)
+        when (val subject = cell.subject) {
+          is CellSubject.Node -> PresentedCell(cell, "node ${subject.node}", STRONG)
+          is CellSubject.Group -> PresentedCell(cell, "${subject.nodeCount} smaller objects", null)
         }
       }
     )
   }
 
-  private fun TreemapPresentation.nodeCellOf(node: Long): TreemapCell.Node<Long> =
-    layout.cells.filterIsInstance<TreemapCell.Node<Long>>().last { it.node == node }
+  private fun TreemapPresentation.nodeCellOf(node: Long): TreemapCell<Long> =
+    layout.cells.last { (it.subject as? CellSubject.Node)?.node == node }
 
-  private fun TreemapPresentation.groupUnder(parent: Long): TreemapCell.Group<Long> =
-    layout.cells.filterIsInstance<TreemapCell.Group<Long>>().single { it.parent == parent }
+  private fun TreemapPresentation.groupUnder(parent: Long): TreemapCell<Long> =
+    layout.cells.single { (it.subject as? CellSubject.Group)?.parent == parent }
+
+  /** What a cell stands for, for the cells a test already knows the kind of. */
+  private val LayoutCell<Long>.node: Long get() = (subject as CellSubject.Node).node
+  private val LayoutCell<Long>.group: CellSubject.Group<Long>
+    get() = subject as CellSubject.Group
 
   private fun TreemapPresentation.centerOf(node: Long): Offset = center(nodeCellOf(node).rect)
 
@@ -212,7 +219,7 @@ class TreemapViewTest {
 @Composable
 private fun TreemapUnderTest(
   presentation: TreemapPresentation,
-  onSelect: (TreemapCell<Long>) -> Unit = {},
+  onSelect: (LayoutCell<Long>) -> Unit = {},
   onZoomInto: (List<Long>) -> Unit = {}
 ) {
   MaterialTheme {
@@ -232,7 +239,7 @@ private fun TreemapUnderTest(
         scheme = CellColorScheme.DAISY,
         selected = selected,
         onSelect = {
-          selected = SelectedCell.of(it)
+          selected = SelectedCell.of(it.subject)
           onSelect(it)
         },
         onZoomInto = onZoomInto

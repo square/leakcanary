@@ -34,10 +34,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import shark.explorer.CellSubject
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
+import shark.explorer.LayoutCell
+import shark.explorer.RadialLayout
+import shark.explorer.RadialPresentation
 import shark.explorer.ReachabilityStrength
-import shark.explorer.TreemapCell
 import shark.explorer.TreemapLayout
 import shark.explorer.TreemapNavigation
 import shark.explorer.TreemapPresentation
@@ -45,16 +48,18 @@ import shark.explorer.TreemapRect
 import shark.explorer.formatByteSize
 
 /**
- * The treemap of one open heap dump, with the breadcrumbs and details panel around it.
+ * The dominator tree of one open heap dump, drawn as [shape] says, with the breadcrumbs and details
+ * panel around it.
  *
  * Every read of the heap dump goes through [session], which puts it on a thread of its own, so what's
- * drawn is state that arrives a little after whatever asked for it changed: [TreemapPresentation] is a
- * treemap already laid out and labelled somewhere else, and a selection is a summary already read.
+ * drawn is state that arrives a little after whatever asked for it changed: a presentation is a view
+ * already laid out and labelled somewhere else, and a selection is a summary already read.
  */
 @Composable
 internal fun HeapDumpExplorer(
   session: HeapDumpSession,
   followedStrengths: Set<ReachabilityStrength>,
+  shape: ViewShape,
   scheme: CellColorScheme,
   modifier: Modifier = Modifier
 ) {
@@ -62,7 +67,7 @@ internal fun HeapDumpExplorer(
     mutableStateOf(TreemapNavigation(HeapDominatorTreemap.ROOT_OBJECT_ID))
   }
   var viewportSize by remember { mutableStateOf(IntSize.Zero) }
-  var treemap by remember(session) { mutableStateOf(TreemapState.EMPTY) }
+  var view by remember(session) { mutableStateOf(ViewState.EMPTY) }
   var isLoading by remember(session) { mutableStateOf(true) }
   /** What the heap dump's thread is doing, when it says. */
   var loadingStep: String? by remember(session) { mutableStateOf(null) }
@@ -70,11 +75,20 @@ internal fun HeapDumpExplorer(
   var request: SelectionRequest? by remember(session) { mutableStateOf(null) }
   var selection: Selection? by remember(session) { mutableStateOf(null) }
 
-  val layout = rememberTreemapLayout()
+  val treemapLayout = rememberTreemapLayout()
+  val radialLayout = rememberRadialLayout()
 
-  // Following a weaker strength rebuilds the whole tree, which is the slow case; resizing and zooming
-  // only lay it out again. Both end up here, and both happen on the heap dump's thread.
-  LaunchedEffect(session, followedStrengths, navigation, viewportSize, layout) {
+  // Following a weaker strength rebuilds the whole tree, which is the slow case; resizing, zooming and
+  // switching shape only lay it out again. All of it ends up here, on the heap dump's thread.
+  LaunchedEffect(
+    session,
+    followedStrengths,
+    navigation,
+    viewportSize,
+    shape,
+    treemapLayout,
+    radialLayout
+  ) {
     if (viewportSize == IntSize.Zero) {
       return@LaunchedEffect
     }
@@ -85,26 +99,33 @@ internal fun HeapDumpExplorer(
       right = viewportSize.width.toDouble(),
       bottom = viewportSize.height.toDouble()
     )
-    treemap = session.read { explorer ->
+    view = session.read { explorer ->
       val tree = explorer.treeFor(followedStrengths) { step -> loadingStep = step }
       // An object zoomed into may not be a node of the tree the new strengths give, or may no longer
       // be dominated by the one above it on the path.
       val reachablePath = navigation.retainingWhere { it in tree }
-      TreemapState(
+      ViewState(
         navigation = reachablePath,
         crumbs = reachablePath.path.map { objectId ->
           Crumb(objectId, "${tree.label(objectId)} · ${formatByteSize(tree.weight(objectId))}")
         },
-        presentation = tree.present(layout, viewport, reachablePath.current)
+        presentation = when (shape) {
+          ViewShape.TREEMAP -> ViewPresentation.Treemap(
+            tree.present(treemapLayout, viewport, reachablePath.current)
+          )
+          ViewShape.RADIAL -> ViewPresentation.Radial(
+            tree.presentRadial(radialLayout, viewport, reachablePath.current)
+          )
+        }
       )
     }
-    navigation = treemap.navigation
+    navigation = view.navigation
     loadingStep = null
     isLoading = false
   }
 
-  // Reading what a rectangle stands for is a heap dump read too, so the details panel fills in a beat
-  // after the click. Keyed on the request, so that nothing else clears it.
+  // Reading what a cell stands for is a heap dump read too, so the details panel fills in a beat after
+  // the click. Keyed on the request, so that nothing else clears it.
   LaunchedEffect(session, followedStrengths, request) {
     val currentRequest = request
     selection = if (currentRequest == null) {
@@ -129,21 +150,34 @@ internal fun HeapDumpExplorer(
     }
   }
 
+  val onSelect: (LayoutCell<Long>) -> Unit = { cell ->
+    selected = SelectedCell.of(cell.subject)
+    request = SelectionRequest.of(cell)
+  }
+  val onZoomInto: (List<Long>) -> Unit = { path -> navigation = navigation.zoomInto(path) }
+
   Column(modifier) {
-    Breadcrumbs(crumbs = treemap.crumbs, onClick = { navigation = navigation.zoomInto(it) })
+    Breadcrumbs(crumbs = view.crumbs, onClick = { navigation = navigation.zoomInto(it) })
     Row(Modifier.weight(1f)) {
       Box(Modifier.weight(1f).fillMaxHeight().onSizeChanged { viewportSize = it }) {
-        TreemapView(
-          presentation = treemap.presentation,
-          scheme = scheme,
-          selected = selected,
-          onSelect = { cell ->
-            selected = SelectedCell.of(cell)
-            request = SelectionRequest.of(cell)
-          },
-          onZoomInto = { path -> navigation = navigation.zoomInto(path) },
-          modifier = Modifier.fillMaxSize()
-        )
+        when (val presentation = view.presentation) {
+          is ViewPresentation.Treemap -> TreemapView(
+            presentation = presentation.presentation,
+            scheme = scheme,
+            selected = selected,
+            onSelect = onSelect,
+            onZoomInto = onZoomInto,
+            modifier = Modifier.fillMaxSize()
+          )
+          is ViewPresentation.Radial -> RadialView(
+            presentation = presentation.presentation,
+            scheme = scheme,
+            selected = selected,
+            onSelect = onSelect,
+            onZoomInto = onZoomInto,
+            modifier = Modifier.fillMaxSize()
+          )
+        }
         if (isLoading) {
           Column(
             Modifier.align(Alignment.Center),
@@ -166,8 +200,8 @@ internal fun HeapDumpExplorer(
 }
 
 /**
- * The layout, with its pixel thresholds scaled: a rectangle that's big enough to subdivide on one
- * display is too small on another.
+ * The treemap layout, with its pixel thresholds scaled: a rectangle that's big enough to subdivide on
+ * one display is too small on another.
  */
 @Composable
 private fun rememberTreemapLayout(): TreemapLayout<Long> {
@@ -184,20 +218,43 @@ private fun rememberTreemapLayout(): TreemapLayout<Long> {
   }
 }
 
-/** Everything read off the heap dump's thread to draw one treemap. */
-private class TreemapState(
+/** The radial layout, scaled the same way. */
+@Composable
+private fun rememberRadialLayout(): RadialLayout<Long> {
+  val density = LocalDensity.current
+  return remember(density) {
+    with(density) {
+      RadialLayout(
+        minSubdivideArcLength = MIN_SUBDIVIDE_ARC_LENGTH.toPx().toDouble(),
+        minDrawArcLength = MIN_DRAW_ARC_LENGTH.toPx().toDouble()
+      )
+    }
+  }
+}
+
+/** Everything read off the heap dump's thread to draw one view of the tree. */
+private class ViewState(
   /** The path actually laid out, which can be shorter than the one asked for. */
   val navigation: TreemapNavigation<Long>,
   val crumbs: List<Crumb>,
-  val presentation: TreemapPresentation
+  val presentation: ViewPresentation
 ) {
   companion object {
-    val EMPTY = TreemapState(
+    /** Nothing laid out yet. An empty treemap and an empty radial view draw the same nothing. */
+    val EMPTY = ViewState(
       navigation = TreemapNavigation(HeapDominatorTreemap.ROOT_OBJECT_ID),
       crumbs = emptyList(),
-      presentation = TreemapPresentation.EMPTY
+      presentation = ViewPresentation.Treemap(TreemapPresentation.EMPTY)
     )
   }
+}
+
+/** One [ViewShape]'s worth of laid out cells. */
+private sealed interface ViewPresentation {
+
+  data class Treemap(val presentation: TreemapPresentation) : ViewPresentation
+
+  data class Radial(val presentation: RadialPresentation) : ViewPresentation
 }
 
 private class Crumb(
@@ -205,7 +262,7 @@ private class Crumb(
   val label: String
 )
 
-/** A rectangle the details panel has been asked about, before the heap dump has been read for it. */
+/** A cell the details panel has been asked about, before the heap dump has been read for it. */
 private sealed interface SelectionRequest {
 
   data class Object(val objectId: Long) : SelectionRequest
@@ -217,9 +274,9 @@ private sealed interface SelectionRequest {
   ) : SelectionRequest
 
   companion object {
-    fun of(cell: TreemapCell<Long>): SelectionRequest = when (cell) {
-      is TreemapCell.Node -> Object(cell.node)
-      is TreemapCell.Group -> Group(cell.parent, cell.nodeCount, cell.weight)
+    fun of(cell: LayoutCell<Long>): SelectionRequest = when (val subject = cell.subject) {
+      is CellSubject.Node -> Object(subject.node)
+      is CellSubject.Group -> Group(subject.parent, subject.nodeCount, cell.weight)
     }
   }
 }
@@ -229,7 +286,7 @@ private sealed interface Selection {
 
   data class Object(val summary: HeapObjectSummary) : Selection
 
-  /** A [TreemapCell.Group] was clicked, so there's no one object to describe. */
+  /** A [CellSubject.Group] was clicked, so there's no one object to describe. */
   data class Group(
     val nodeCount: Int,
     val byteCount: Long,
@@ -337,7 +394,7 @@ private fun Detail(
 }
 
 /** Shown by the details panel until something is selected. */
-internal const val NO_SELECTION = "Click a rectangle to see what it retains."
+internal const val NO_SELECTION = "Click a rectangle or a sector to see what it retains."
 
 internal const val BREADCRUMB_SEPARATOR = "›"
 

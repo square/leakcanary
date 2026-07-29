@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.ui.graphics.Color
+import shark.explorer.CellSubject
 import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength
 import shark.explorer.ReachabilityStrength.FINALIZER
@@ -8,8 +9,6 @@ import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.WEAK
-import shark.explorer.TreemapCell
-import shark.explorer.TreemapPresentation
 
 /**
  * How the rectangles are coloured. Pick one in the top bar.
@@ -38,7 +37,8 @@ internal enum class CellColorScheme(val displayName: String) {
 }
 
 /**
- * The colours of one laid out treemap, in one scheme.
+ * The colours of one laid out view, in one scheme. Works off [PresentedCell] alone, so a treemap and
+ * a radial view are coloured by the same code.
  *
  * Built per presentation because [DAISY] needs a hue per top level block that everything below it
  * inherits, which takes a pass over the cells: they come parent before child, so a cell's parent has
@@ -52,16 +52,17 @@ internal class CellColors private constructor(
   val border: Color get() = if (scheme == DAISY_SCHEME) DAISY_BORDER else BORDER
   val label: Color get() = LABEL
 
-  fun colorOf(cell: PresentedCell): Color {
-    val strength = cell.strength ?: return groupColor(cell.cell.depth)
+  fun colorOf(presented: PresentedCell<*>): Color {
+    val depth = presented.cell.depth
+    val strength = presented.strength ?: return groupColor(depth)
     if (strength != STRONG) {
       return strengthColor(strength)
     }
-    val hueIndex = (cell.cell as? TreemapCell.Node)?.let { hueIndexByObjectId[it.node] } ?: 0
-    return strongColor(scheme, cell.cell.depth, hueIndex)
+    val hueIndex = (presented.cell.subject as? CellSubject.Node)?.let { hueIndexByObjectId[it.node] }
+    return strongColor(scheme, depth, hueIndex ?: 0)
   }
 
-  /** The colour of the rectangle standing for the siblings that didn't fit: grey, so it reads as "not an object". */
+  /** The colour of the cell standing for the siblings that didn't fit: grey, so it reads as "not an object". */
   fun groupColor(depth: Int): Color =
     Color.hsv(hue = 0f, saturation = 0f, value = MAX_VALUE - (depth % SHADE_STEPS) * VALUE_STEP)
 
@@ -70,19 +71,19 @@ internal class CellColors private constructor(
 
     fun of(
       scheme: CellColorScheme,
-      presentation: TreemapPresentation
+      cells: List<PresentedCell<*>>
     ): CellColors {
       val hueIndexByObjectId = if (scheme != DAISY_SCHEME) {
         emptyMap()
       } else {
         val hueIndexByObjectId = mutableMapOf<Long, Int>()
-        presentation.cells.forEach { presented ->
-          val cell = presented.cell
-          if (cell is TreemapCell.Node) {
-            hueIndexByObjectId[cell.node] = when {
-              cell.depth <= 1 -> cell.siblingIndex
+        cells.forEach { presented ->
+          val subject = presented.cell.subject
+          if (subject is CellSubject.Node) {
+            hueIndexByObjectId[subject.node] = when {
+              presented.cell.depth <= 1 -> subject.siblingIndex
               // Inherits, so that everything one top level block contains shares its hue.
-              else -> hueIndexByObjectId[cell.parent] ?: cell.siblingIndex
+              else -> hueIndexByObjectId[subject.parent] ?: subject.siblingIndex
             }
           }
         }

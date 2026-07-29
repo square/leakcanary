@@ -79,6 +79,7 @@ fun ExplorerApp(
   var requestedFile: File? by remember { mutableStateOf(initialHeapDumpFile) }
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
   var followedStrengths: Set<ReachabilityStrength> by remember { mutableStateOf(emptySet()) }
+  var shape: ViewShape by remember { mutableStateOf(ViewShape.TREEMAP) }
   var scheme: CellColorScheme by remember { mutableStateOf(CellColorScheme.DAISY) }
 
   LaunchedEffect(requestedFile) {
@@ -110,13 +111,15 @@ fun ExplorerApp(
     TopBar(
       state = currentState,
       followedStrengths = followedStrengths,
+      shape = shape,
       scheme = scheme,
       onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } },
       onFollowedStrengthsChange = { followedStrengths = it },
+      onShapeChange = { shape = it },
       onSchemeChange = { scheme = it }
     )
     if (currentState is HeapDumpState.Open) {
-      HeapDumpExplorer(currentState.session, followedStrengths, scheme, Modifier.weight(1f))
+      HeapDumpExplorer(currentState.session, followedStrengths, shape, scheme, Modifier.weight(1f))
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
@@ -159,9 +162,11 @@ private sealed interface HeapDumpState {
 private fun TopBar(
   state: HeapDumpState,
   followedStrengths: Set<ReachabilityStrength>,
+  shape: ViewShape,
   scheme: CellColorScheme,
   onOpenClick: () -> Unit,
   onFollowedStrengthsChange: (Set<ReachabilityStrength>) -> Unit,
+  onShapeChange: (ViewShape) -> Unit,
   onSchemeChange: (CellColorScheme) -> Unit
 ) {
   Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -176,17 +181,30 @@ private fun TopBar(
         Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
       }
       if (state is HeapDumpState.Open) {
+        StrengthCheckboxes(
+          sizes = state.sizes,
+          followedStrengths = followedStrengths,
+          scheme = scheme,
+          onFollowedStrengthsChange = onFollowedStrengthsChange
+        )
         Row(
           horizontalArrangement = Arrangement.spacedBy(16.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          StrengthCheckboxes(
-            sizes = state.sizes,
-            followedStrengths = followedStrengths,
-            scheme = scheme,
-            onFollowedStrengthsChange = onFollowedStrengthsChange
+          OptionPicker(
+            label = "Shape",
+            options = ViewShape.values().toList(),
+            selected = shape,
+            displayName = { it.displayName },
+            onSelect = onShapeChange
           )
-          SchemePicker(scheme = scheme, onSchemeChange = onSchemeChange)
+          OptionPicker(
+            label = "Colours",
+            options = CellColorScheme.values().toList(),
+            selected = scheme,
+            displayName = { it.displayName },
+            onSelect = onSchemeChange
+          )
         }
         if (state.sizes.byteCountByStrength.none { (strength, byteCount) ->
             strength != ReachabilityStrength.STRONG && byteCount > 0L
@@ -199,33 +217,33 @@ private fun TopBar(
   }
 }
 
-/** Which colours the treemap is drawn in, as radio buttons: there are only a few and they're all one word. */
+/** One of a handful of named options, as radio buttons: there are only a few and their names are short. */
 @Composable
-private fun SchemePicker(
-  scheme: CellColorScheme,
-  onSchemeChange: (CellColorScheme) -> Unit
+private fun <T> OptionPicker(
+  label: String,
+  options: List<T>,
+  selected: T,
+  displayName: (T) -> String,
+  onSelect: (T) -> Unit
 ) {
   Row(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Text(
-      "Colours",
-      style = MaterialTheme.typography.labelLarge,
-      modifier = Modifier.padding(end = 4.dp)
-    )
-    CellColorScheme.values().forEach { option ->
+    Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = 4.dp))
+    options.forEach { option ->
       Row(
+        // The whole thing is one radio button, label included, so clicking the name works too.
         Modifier.selectable(
-          selected = option == scheme,
+          selected = option == selected,
           role = Role.RadioButton,
-          onClick = { onSchemeChange(option) }
+          onClick = { onSelect(option) }
         ).padding(end = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
-        RadioButton(selected = option == scheme, onClick = null)
-        Text(option.displayName, style = MaterialTheme.typography.bodySmall)
+        RadioButton(selected = option == selected, onClick = null)
+        Text(displayName(option), style = MaterialTheme.typography.bodySmall)
       }
     }
   }

@@ -202,6 +202,26 @@ class ExplorerAppTest {
     }
   }
 
+  @Test fun `the same tree can be drawn as rings`() {
+    runComposeUiTest {
+      openHeapDump()
+      shapeOption(ViewShape.TREEMAP).assertIsSelected()
+
+      shapeOption(ViewShape.RADIAL).performClick()
+
+      // Laying the rings out is another read of the heap dump, so the tree comes back a beat later.
+      shapeOption(ViewShape.RADIAL).assertIsSelected()
+      waitUntilAtLeastOneExists(
+        hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
+        OPEN_TIMEOUT_MILLIS
+      )
+      // Anywhere near the middle of the view is inside one of the rings.
+      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+
+      waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
   @Test fun `the colour scheme can be switched`() {
     runComposeUiTest {
       openHeapDump()
@@ -230,6 +250,10 @@ class ExplorerAppTest {
   /** The radio button for [scheme] in the top bar. */
   private fun ComposeUiTest.schemeOption(scheme: CellColorScheme): SemanticsNodeInteraction =
     onNode(hasText(scheme.displayName) and isSelectable())
+
+  /** The radio button for [shape] in the top bar. */
+  private fun ComposeUiTest.shapeOption(shape: ViewShape): SemanticsNodeInteraction =
+    onNode(hasText(shape.displayName) and isSelectable())
 
   /** Crumbs are separated by a chevron, so there's one more crumb than there are chevrons. */
   private fun ComposeUiTest.breadcrumbCount(): Int =

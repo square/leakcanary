@@ -1,0 +1,88 @@
+package shark.explorer.app
+
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import shark.explorer.CellSubject
+import shark.explorer.TreemapPoint
+
+/** Which shape the dominator tree is drawn as. Pick one in the top bar. */
+internal enum class ViewShape(val displayName: String) {
+
+  /** Nested rectangles: area is retained size, nesting is domination. */
+  TREEMAP("Treemap"),
+
+  /**
+   * Rings around a centre, the way DaisyDisk draws a disk: one ring per level, and a sector's sweep is
+   * its share of what the ring inside it retains. Nesting reads as distance from the middle, which
+   * says more about the shape of the tree than a treemap does and less about exact sizes.
+   */
+  RADIAL("Radial")
+}
+
+/**
+ * Which cell is selected, in terms that outlive a relayout.
+ *
+ * An object's own id for a cell that is a node; the parent's id for the cell standing for the children
+ * it didn't draw, since two groups never share a parent. Resizing the window, switching shape or
+ * following another strength all lay the view out again, and the selection has to survive that.
+ */
+internal data class SelectedCell(
+  val objectId: Long,
+  val isGroup: Boolean
+) {
+  companion object {
+    fun of(subject: CellSubject<Long>): SelectedCell = when (subject) {
+      is CellSubject.Node -> SelectedCell(subject.node, isGroup = false)
+      is CellSubject.Group -> SelectedCell(subject.parent, isGroup = true)
+    }
+  }
+}
+
+/** Says when a view is showing less detail than it had room for, rather than truncating silently. */
+@Composable
+internal fun BoxScope.NotExpandedBadge(nodeCount: Int) {
+  if (nodeCount == 0) {
+    return
+  }
+  Surface(
+    Modifier.align(Alignment.BottomEnd).padding(8.dp),
+    color = MaterialTheme.colorScheme.surfaceVariant
+  ) {
+    Text(
+      if (nodeCount == 1) "1 node not expanded" else "$nodeCount nodes not expanded",
+      Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+      style = MaterialTheme.typography.labelSmall
+    )
+  }
+}
+
+internal fun Offset.toTreemapPoint() = TreemapPoint(x.toDouble(), y.toDouble())
+
+/**
+ * The layout thresholds in dp. The layouts work in pixels, so they have to be scaled or a cell that's
+ * big enough to subdivide on one display is too small on another.
+ */
+internal val MIN_SUBDIVIDE_WIDTH = 40.dp
+internal val MIN_SUBDIVIDE_HEIGHT = 24.dp
+internal val MIN_DRAW_SIZE = 3.dp
+internal val HEADER_HEIGHT = 18.dp
+internal val MIN_SUBDIVIDE_ARC_LENGTH = 40.dp
+internal val MIN_DRAW_ARC_LENGTH = 3.dp
+
+internal val LABEL_PADDING = 3.dp
+internal val MIN_LABEL_WIDTH = 24.dp
+internal val MIN_LABEL_HEIGHT = 13.dp
+internal const val BORDER_WIDTH = 1f
+internal const val SELECTION_WIDTH = 3f
+internal val LABEL_STYLE = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)
