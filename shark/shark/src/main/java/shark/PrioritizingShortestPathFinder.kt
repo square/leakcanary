@@ -151,7 +151,6 @@ class PrioritizingShortestPathFinder private constructor(
   override fun findShortestPathsFromGcRoots(
     leakingObjectIds: Set<Long>
   ): PathFindingResults {
-    listener.onEvent(StartedFindingPathsToRetainedObjects)
     // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
     // visit more than that but this limits the number of early array growths.
     val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
@@ -160,6 +159,12 @@ class PrioritizingShortestPathFinder private constructor(
       leakingObjectIds = leakingObjectIds.toLongScatterSet(),
       estimatedVisitedObjects = estimatedVisitedObjects
     )
+
+    // Sent after the traversal state is allocated, so that a listener which samples memory on every
+    // event sees that allocation. The visited set is the largest thing the analysis allocates and
+    // it's unreachable again by the time the next event is sent, so sending this event first would
+    // hide it from HprofRetainedHeapPerfTest entirely.
+    listener.onEvent(StartedFindingPathsToRetainedObjects)
 
     return state.findPathsFromGcRoots()
   }
