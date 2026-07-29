@@ -4,21 +4,30 @@ import shark.HeapAnalysisException
 import shark.HeapAnalysisFailure
 
 /**
- * Returns this failure with its exception replaced by one that lists what can be done about running
- * out of memory, or this failure unchanged if that's not what went wrong.
+ * Whether the analysis failed because it ran out of memory.
  *
  * The whole cause chain is searched rather than just the direct cause, because an
  * [OutOfMemoryError] rarely is the direct cause: Shark's hash maps catch it while allocating their
  * buffers and rethrow it wrapped in a [RuntimeException] that says which buffer they failed to
  * allocate, which is the most common way for the analysis to run out of memory.
+ *
+ * [withOutOfMemoryGuidance] keeps the original failure as the cause of the guidance it swaps in, so
+ * this stays true afterwards. That's what lets the failure screen tell an analysis that ran out of
+ * memory apart from one that hit a bug worth reporting.
+ */
+internal val HeapAnalysisFailure.isOutOfMemory: Boolean
+  get() = generateSequence(exception.cause!!) { it.cause }
+    .any { it is OutOfMemoryError }
+
+/**
+ * Returns this failure with its exception replaced by one that lists what can be done about running
+ * out of memory, or this failure unchanged if that's not what went wrong.
  */
 internal fun HeapAnalysisFailure.withOutOfMemoryGuidance(): HeapAnalysisFailure {
-  val failureCause = exception.cause!!
-  val outOfMemory = generateSequence(failureCause) { it.cause }
-    .any { it is OutOfMemoryError }
-  if (!outOfMemory) {
+  if (!isOutOfMemory) {
     return this
   }
+  val failureCause = exception.cause!!
   return copy(
     exception = HeapAnalysisException(
       RuntimeException(

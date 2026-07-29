@@ -50,6 +50,38 @@ class OutOfMemoryGuidanceTest {
     assertThat(withGuidance.exception.cause!!.cause).isSameAs(sharkFailure)
   }
 
+  @Test fun `failure that ran out of memory is out of memory`() {
+    val failure = failure(
+      RuntimeException(
+        "Not enough memory to allocate buffers for rehashing: 1 -> 4194304",
+        OutOfMemoryError("Java heap space")
+      )
+    )
+
+    assertThat(failure.isOutOfMemory).isTrue()
+  }
+
+  @Test fun `failure that has nothing to do with memory is not out of memory`() {
+    val failure = failure(IOException("Heap dump file deleted"))
+
+    assertThat(failure.isOutOfMemory).isFalse()
+  }
+
+  @Test fun `failure is still out of memory once the guidance replaced the exception`() {
+    // The failure screen reads isOutOfMemory off the failure that was stored, which by then has
+    // been through withOutOfMemoryGuidance. It has to still know not to ask for a bug report.
+    val failure = failure(
+      RuntimeException(
+        "Not enough memory to allocate buffers for rehashing: 1 -> 4194304",
+        OutOfMemoryError("Java heap space")
+      )
+    )
+
+    val withGuidance = failure.withOutOfMemoryGuidance()
+
+    assertThat(withGuidance.isOutOfMemory).isTrue()
+  }
+
   private fun failure(cause: Throwable) = HeapAnalysisFailure(
     heapDumpFile = File("heap.hprof"),
     createdAtTimeMillis = 0,

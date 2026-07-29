@@ -5,6 +5,7 @@ import android.view.Window
 import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withClassName
@@ -18,8 +19,10 @@ import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable.AllLeaksProjection
 import leakcanary.internal.activity.db.ScopedLeaksDb
+import leakcanary.internal.withOutOfMemoryGuidance
 import org.hamcrest.Description
 import org.hamcrest.Matcher
+import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.endsWith
 import org.hamcrest.TypeSafeMatcher
 import org.junit.Rule
@@ -27,6 +30,8 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
+import shark.HeapAnalysisException
+import shark.HeapAnalysisFailure
 import shark.HeapAnalyzer
 import shark.HprofWriterHelper
 import shark.LeakTraceObject
@@ -122,6 +127,62 @@ internal class LeakActivityTest {
     onData(withItem<LeakTraceObject> { it.className == "com.example.Leaking" })
       .inAdapterView(withId(R.id.leak_canary_list))
       .check(matches(isDisplayed()))
+  }
+
+  @Test
+  fun outOfMemoryFailureDoesNotAskForABugReport() {
+    // The shape Shark's hash maps throw when they can't grow their buffers, which is how the
+    // analysis usually runs out of memory. See https://github.com/square/leakcanary/issues/2773
+    val analysisId = insertFailure(
+      RuntimeException(
+        "Not enough memory to allocate buffers for rehashing: 4194304 -> 8388608",
+        OutOfMemoryError("Failed to allocate a 67108888 byte allocation")
+      )
+    )
+    activityTestRule.launchActivity(createFailureIntent(analysisId))
+
+    onView(withText(containsString("The analysis ran out of memory")))
+      .check(matches(isDisplayed()))
+    onView(withText(containsString("Not enough memory to analyze heap")))
+      .check(matches(isDisplayed()))
+    onView(withText(containsString("file a bug report"))).check(doesNotExist())
+  }
+
+  @Test
+  fun failureThatIsNotOutOfMemoryAsksForABugReport() {
+    val analysisId = insertFailure(IllegalStateException("Analysis went wrong"))
+    activityTestRule.launchActivity(createFailureIntent(analysisId))
+
+    onView(withText(containsString("file a bug report")))
+      .check(matches(isDisplayed()))
+  }
+
+  private fun createFailureIntent(analysisId: Long) = LeakActivity.createFailureIntent(
+    InstrumentationRegistry.getInstrumentation().targetContext, analysisId
+  )
+
+  /**
+   * Inserts the failure of an analysis that did run, so that its heap dump file exists and the
+   * failure screen offers to share it, and returns its analysis id.
+   */
+  private fun insertFailure(cause: Throwable): Long {
+    val hprofFile = writeHeapDump {
+      "Holder" clazz {
+        staticField["leak"] = "com.example.Leaking" watchedInstance {}
+      }
+    }
+    val failure = HeapAnalysisFailure(
+      heapDumpFile = hprofFile,
+      createdAtTimeMillis = System.currentTimeMillis(),
+      analysisDurationMillis = 0,
+      exception = HeapAnalysisException(cause)
+      // Applied by AndroidDebugHeapAnalyzer before the failure is stored, so the screen always
+      // reads a failure that has already been through it.
+    ).withOutOfMemoryGuidance()
+    val context = InstrumentationRegistry.getInstrumentation().targetContext
+    return ScopedLeaksDb.writableDatabase(context) { db ->
+      HeapAnalysisTable.insert(db, failure)
+    }
   }
 
   private fun writeHeapDump(block: HprofWriterHelper.() -> Unit): File {
