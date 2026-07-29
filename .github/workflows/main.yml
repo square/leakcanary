@@ -36,7 +36,11 @@ jobs:
       fail-fast: false
       matrix:
         arch: [ x86_64 ]
-        target: [ google_apis ]
+        # AOSP images rather than google_apis: nothing here uses Google Play services, and the
+        # Google apps that only ship in google_apis crash while the device boots. The resulting
+        # "app has stopped" dialog holds window focus, and then every Espresso interaction fails
+        # with RootViewWithoutFocusException until something dismisses it.
+        target: [ default ]
         channel: [ stable ]
         api-level:
           - 24
@@ -57,53 +61,46 @@ jobs:
           java-version: 17
           distribution: 'zulu'
       - uses: gradle/actions/setup-gradle@48b5f213c81028ace310571dc5ec0fbbca0b2947 # v4
-      - name: AVD cache
-        uses: actions/cache/restore@v4
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-cached-${{ matrix.api-level }}-${{ matrix.arch }}-${{ matrix.target }}
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ matrix.api-level }}
-          target: ${{ matrix.target }}
-          arch: ${{ matrix.arch }}
-          force-avd-creation: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load
-          disable-animations: false
-          script: echo "Generated AVD snapshot for caching."
-      # Save the snapshot here rather than at the end of the job. The test step below force-kills
-      # the emulator, which leaves the AVD directory in a state that is not safe to restore, and
-      # cache entries are immutable: caching it once breaks every later run on the same key.
-      - name: Save AVD cache
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-cached-${{ matrix.api-level }}-${{ matrix.arch }}-${{ matrix.target }}
+      # Create the AVD and boot it from scratch on every run, rather than restoring a cached
+      # snapshot. android-emulator-runner decides the device is ready when `getprop
+      # sys.boot_completed` returns 1 and then immediately sends `input keyevent 82` to dismiss the
+      # lock screen. `sys.boot_completed` is part of the state a snapshot captures, so on a restored
+      # device it already reads 1 while adbd and zygote are still coming back, and that keyevent
+      # races them: it loses often enough that this was the single largest source of red builds,
+      # SIGKILLed with exit code 137 before the test script started. Booting for real makes the
+      # readiness check mean something -- the poll then takes ~10s and several attempts -- and it
+      # also means no run inherits frozen state from another. The snapshot cache saved roughly 20
+      # seconds of wall clock and had by then caused three separate classes of failure: stale test
+      # APKs (#2801), an AVD directory saved from a force-killed emulator (#2855), and a crash
+      # dialog frozen mid-boot holding window focus.
       - name: Instrumentation Tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
-          force-avd-creation: false
+          force-avd-creation: true
           target: ${{ matrix.target }}
           arch: ${{ matrix.arch }}
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-load -no-snapshot-save
           script: |
             touch emulator.log
             chmod 777 emulator.log
             adb logcat >> emulator.log &
+            # Stop a crashing process from putting up a dialog that holds window focus, which
+            # fails every Espresso interaction with RootViewWithoutFocusException. Defence in
+            # depth behind the AOSP image, and only on API 30+: ActivityTaskManagerService
+            # observes this setting and applies it right away, while older releases decide
+            # whether to show error dialogs from the configuration alone and ignore it.
+            # `|| true` so this cannot itself become a new source of failures.
+            adb shell settings put global hide_error_dialogs 1 || true
+            # Espresso fails every interaction with RootViewWithoutFocusException when some other
+            # window holds focus, and names only the window it wanted rather than the one that has
+            # focus. Recording the focused window up front says which one that is.
+            echo "Focused window before tests: $(adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp')"
             ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
             # Force-kill the emulator before the action's post-step cleanup.
-            # On API 26 google_apis, the emulator process can hang for 20+ minutes after
-            # receiving adb emu kill, causing the job to hit its 30-minute timeout. Killing
-            # the qemu-system process here ensures the post-cleanup kill check exits immediately.
+            # On API 26, the emulator process can hang for 20+ minutes after receiving
+            # adb emu kill, causing the job to hit its 30-minute timeout. Killing the
+            # qemu-system process here ensures the post-cleanup kill check exits immediately.
             # The [m] bracket trick avoids pkill matching its own parent shell process
             # (whose cmdline contains the literal string "qemu-system" as an argument).
             pkill -9 -f "qemu-syste[m]" || true
