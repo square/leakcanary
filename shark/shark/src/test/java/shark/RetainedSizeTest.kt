@@ -279,6 +279,37 @@ class RetainedSizeTest {
     assertThat(retainedByClassName).isEqualTo(mapOf("Leaking1" to 16, "Leaking2" to 4))
   }
 
+  @Test fun `an object the leaking object shares with a shorter path is not retained by it`() {
+    hprofFile.dump {
+      val answer = string("42")
+      val life = "com.example.Life" instance { field["answer"] = answer }
+      val universe = "com.example.Universe" instance { field["answer"] = answer }
+      val everything = "com.example.Everything" watchedInstance {
+        field["life"] = life
+        field["universe"] = universe
+      }
+      val fiber = "com.example.Fiber" instance { field["life"] = life }
+      val towel = "com.example.Towel" instance { field["fiber"] = fiber }
+      "Hitchhiker" clazz {
+        staticField["guide"] = everything
+        staticField["practicalTool"] = towel
+      }
+    }
+
+    // "Universe" is the only object Everything, the watched instance, dominates: "Life" is also
+    // reachable through Towel -> Fiber, and the "42" string is reachable through Life, so both are
+    // dominated by the Hitchhiker class rather than by Everything.
+    //   Everything: 2 refs (life + universe) => 8 bytes
+    //   Universe:   1 ref                    => 4 bytes
+    // The approximate dominator tree this used to be computed from also credited Everything with
+    // the "42" string (12 bytes), because it settled the string's dominator on Everything while
+    // Life's dominator was still Everything, and never revisited it once Life's dominator was
+    // raised to the Hitchhiker class through the longer Towel -> Fiber path.
+    val everythingInstanceLeak = retainedInstances().single().leakTraces.single()
+    assertThat(everythingInstanceLeak.retainedObjectCount).isEqualTo(2)
+    assertThat(everythingInstanceLeak.retainedHeapByteSize).isEqualTo(12)
+  }
+
   @Test fun nativeSizeAccountedFor() {
     val width = 24
     val height = 16
