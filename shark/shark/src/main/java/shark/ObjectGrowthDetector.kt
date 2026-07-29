@@ -302,13 +302,20 @@ class ObjectGrowthDetector(
         return@reportedGrowingNodeOrNull node
       }
 
+      val growingObjectIdGroups = reportedGrowingNodes.map { it.visitedObjectIds }
+      // Done with the traversal: release the objects of the nodes we're not reporting before
+      // computing retained sizes, which needs memory of its own.
+      dequeuedNodes.clear()
+      // The traversal is over, so we hand its visited set over to be reused instead of having a
+      // second set the size of the heap allocated.
+      visitedSet.clear()
       val leakShares = LeakShareCalculator(
         graph = graph,
         gcRootProvider = gcRootProvider,
         objectReferenceReader = objectReferenceReader,
         objectSizeCalculator = AndroidObjectSizeCalculator(graph),
-        estimatedVisitedObjects = estimatedVisitedObjects,
-      ).computeLeakShares(reportedGrowingNodes.map { it.visitedObjectIds })
+        objectsReachableWithoutGrowth = visitedSet,
+      ).computeLeakShares(growingObjectIdGroups)
 
       reportedGrowingNodes.forEachIndexed { index, node ->
         val shortestPathNode = node.shortestPathNode

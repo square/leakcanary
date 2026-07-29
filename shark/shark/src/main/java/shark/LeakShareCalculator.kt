@@ -3,10 +3,10 @@
 package shark
 
 import androidx.collection.MutableLongLongMap
+import androidx.collection.MutableLongSet
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import shark.internal.hppc.LongDeque
-import shark.internal.hppc.LongScatterSet
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
@@ -49,8 +49,21 @@ internal class LeakShareCalculator(
   private val gcRootProvider: GcRootProvider,
   private val objectReferenceReader: ReferenceReader<HeapObject>,
   private val objectSizeCalculator: ObjectSizeCalculator,
-  private val estimatedVisitedObjects: Int,
+  /**
+   * An empty set that phase 1 fills with R₀. Passed in rather than allocated here so that
+   * [ObjectGrowthDetector] can hand over the set it tracked visited objects with, which it's done
+   * with by the time leak shares are computed, instead of having a second set the size of the heap
+   * allocated.
+   */
+  private val objectsReachableWithoutGrowth: MutableLongSet,
 ) {
+
+  init {
+    check(objectsReachableWithoutGrowth.isEmpty()) {
+      "objectsReachableWithoutGrowth should be empty, " +
+        "has ${objectsReachableWithoutGrowth.size} elements"
+    }
+  }
 
   /**
    * Returns the LeakShare of each group of object ids in [growingObjectIdGroups], in the same
@@ -61,14 +74,13 @@ internal class LeakShareCalculator(
     if (growingObjectIdGroups.isEmpty()) {
       return emptyList()
     }
-    val growingObjectIds = LongScatterSet()
+    val growingObjectIds = MutableLongSet()
     growingObjectIdGroups.forEach { objectIds ->
       objectIds.forEach { objectId ->
         growingObjectIds += objectId
       }
     }
-    val objectsReachableWithoutGrowth = LongScatterSet(estimatedVisitedObjects)
-    findObjectsReachableWithoutGrowth(growingObjectIds, objectsReachableWithoutGrowth)
+    findObjectsReachableWithoutGrowth(growingObjectIds)
 
     // Object id to the count of groups that reach it, packed with the token of the last group
     // traversal that visited it, which is how each traversal knows what it already visited.
@@ -77,7 +89,7 @@ internal class LeakShareCalculator(
     growingObjectIdGroups.forEachIndexed { groupIndex, objectIds ->
       // Tokens start at 1 so that they never match the 0 of an object that hasn't been reached.
       val token = 1 + groupIndex
-      visitObjectsRetainedByGroup(objectIds, objectsReachableWithoutGrowth) { objectId ->
+      visitObjectsRetainedByGroup(objectIds) { objectId ->
         val reached = reachedObjects.getOrDefault(objectId, NOT_REACHED)
         if (reached.unpackAsSecondInt == token) {
           false
@@ -92,7 +104,7 @@ internal class LeakShareCalculator(
       val token = 1 + growingObjectIdGroups.size + groupIndex
       var heapSize = 0.0
       var objectCount = 0.0
-      visitObjectsRetainedByGroup(objectIds, objectsReachableWithoutGrowth) { objectId ->
+      visitObjectsRetainedByGroup(objectIds) { objectId ->
         val reached = reachedObjects.getOrDefault(objectId, NOT_REACHED)
         val reachedFromGroupCount = reached.unpackAsFirstInt
         // A count of 0 would mean the counting traversal didn't reach that object, which can't
@@ -114,20 +126,17 @@ internal class LeakShareCalculator(
   }
 
   /**
-   * BFS from GC roots that stops at [growingObjectIds], adding to [visitedSet] R₀: every object
-   * reachable from GC roots without going through a growing object.
+   * BFS from GC roots that stops at [growingObjectIds], filling [objectsReachableWithoutGrowth]
+   * with R₀: every object reachable from GC roots without going through a growing object.
    */
-  private fun findObjectsReachableWithoutGrowth(
-    growingObjectIds: LongScatterSet,
-    visitedSet: LongScatterSet
-  ) {
+  private fun findObjectsReachableWithoutGrowth(growingObjectIds: MutableLongSet) {
     val toVisitQueue = LongDeque()
     gcRootProvider.provideGcRoots(graph).forEach { gcRootReference ->
       val objectId = gcRootReference.gcRoot.id
       if (objectId == ValueHolder.NULL_REFERENCE || objectId in growingObjectIds) {
         return@forEach
       }
-      if (visitedSet.add(objectId)) {
+      if (objectsReachableWithoutGrowth.add(objectId)) {
         toVisitQueue += objectId
       }
     }
@@ -135,7 +144,7 @@ internal class LeakShareCalculator(
       readReferences(toVisitQueue.poll()) { reference ->
         val objectId = reference.valueObjectId
         if (objectId !in growingObjectIds &&
-          visitedSet.add(objectId) &&
+          objectsReachableWithoutGrowth.add(objectId) &&
           !reference.isLeafObject
         ) {
           toVisitQueue += objectId
@@ -151,7 +160,6 @@ internal class LeakShareCalculator(
    */
   private fun visitObjectsRetainedByGroup(
     growingObjectIds: LongArray,
-    objectsReachableWithoutGrowth: LongScatterSet,
     visit: (Long) -> Boolean
   ) {
     val toVisitQueue = LongDeque()
