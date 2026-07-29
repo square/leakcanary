@@ -71,6 +71,20 @@ class ConcurrentHeapGraphReadTest {
     }
   }
 
+  @Test fun `concurrent compute on the graph context does not lose an update`() {
+    val hprofFile = dumpHeapWithManyInstances()
+
+    hprofFile.openHeapGraph().use { graph ->
+      runConcurrently {
+        repeat(INCREMENT_COUNT) { _ ->
+          graph.context.compute<Int>("readCount") { previousCount -> (previousCount ?: 0) + 1 }
+        }
+      }
+
+      assertThat(graph.context.get<Int>("readCount")).isEqualTo(THREAD_COUNT * INCREMENT_COUNT)
+    }
+  }
+
   /**
    * More instances than [HprofHeapGraph.INTERNAL_LRU_CACHE_SIZE], so that reads keep evicting each
    * other's records from the object record cache.
@@ -144,6 +158,7 @@ class ConcurrentHeapGraphReadTest {
   companion object {
     private const val THREAD_COUNT = 4
     private const val INSTANCE_COUNT = 1500
+    private const val INCREMENT_COUNT = 1000
     private const val TIMEOUT_SECONDS = 60L
   }
 }

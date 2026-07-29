@@ -6,13 +6,19 @@ import java.util.concurrent.ConcurrentHashMap
  * In memory store that can be used to store objects in a given [HeapGraph] instance.
  * This is a simple [MutableMap] of [String] to [Any], but with unsafe generics access.
  *
- * Thread safe: several threads reading from the same [HeapGraph] can share its context.
+ * A null value and a missing key are the same thing here: [set] with a null value removes the key,
+ * and a [getOrPut] that computes null doesn't store anything.
+ *
+ * Thread safe: several threads reading from the same [HeapGraph] can share its context. [getOrPut]
+ * and [compute] both read a value and then write one, and differ in how they handle threads racing
+ * for the same key, see their documentation.
  */
 class GraphContext {
   private val store = ConcurrentHashMap<String, Any>()
 
   operator fun <T> get(key: String): T? {
-    return store[key].unwrapNull()
+    @Suppress("UNCHECKED_CAST")
+    return store[key] as T?
   }
 
   /**
@@ -21,29 +27,64 @@ class GraphContext {
    * Unlike [MutableMap.getOrPut], [defaultValue] is called without holding any lock, so when
    * several threads race to compute the value for the same key [defaultValue] may be called more
    * than once. The value that made it into the store first then wins and is returned to all
-   * callers.
+   * callers. [compute] is the one to use when the new value depends on the current one, or when
+   * computing it twice isn't acceptable.
    */
   fun <T> getOrPut(
     key: String,
     defaultValue: () -> T
   ): T {
-    val existingValue = store[key]
+    val existingValue = get<T>(key)
     if (existingValue != null) {
-      return existingValue.unwrapNull()
+      return existingValue
     }
     val newValue = defaultValue()
-    val valueThatWon = store.putIfAbsent(key, newValue.wrapNull())
-    return if (valueThatWon != null) valueThatWon.unwrapNull() else newValue
+    if (newValue == null) {
+      return newValue
+    }
+    @Suppress("UNCHECKED_CAST")
+    return (store.putIfAbsent(key, newValue) ?: newValue) as T
+  }
+
+  /**
+   * Atomically replaces the value for [key] with the result of [remapping], which is called with
+   * the current value or null if there is none, and returns that result. This is how to read a
+   * value and then update it, e.g. incrementing a counter that several threads share:
+   *
+   * ```
+   * val readCount = context.compute<Int>("readCount") { previousCount -> (previousCount ?: 0) + 1 }
+   * ```
+   *
+   * Returning null from [remapping] removes the key.
+   *
+   * [remapping] is called while holding a lock on [key], unlike [getOrPut], so it is called exactly
+   * once but it should be quick and it should not read from or write to this context again.
+   */
+  fun <T> compute(
+    key: String,
+    remapping: (T?) -> T?
+  ): T? {
+    @Suppress("UNCHECKED_CAST")
+    return store.compute(key) { _, currentValue ->
+      remapping(currentValue as T?)
+    } as T?
   }
 
   /**
    * @see MutableMap.set
+   *
+   * Setting a null [value] removes [key], as a null value and a missing key are the same thing
+   * here.
    */
   operator fun <T> set(
     key: String,
     value: T
   ) {
-    store[key] = value.wrapNull()
+    if (value == null) {
+      store -= key
+    } else {
+      store[key] = value
+    }
   }
 
   /**
@@ -59,16 +100,4 @@ class GraphContext {
   operator fun minusAssign(key: String) {
     store -= key
   }
-
-  /**
-   * [ConcurrentHashMap] doesn't support null values, but this store does: a key set to null is a
-   * key that's present with a null value, which matters for [contains] as well as for [getOrPut],
-   * which then remembers that the value is null instead of computing it again.
-   */
-  private object NullValue
-
-  private fun Any?.wrapNull(): Any = this ?: NullValue
-
-  @Suppress("UNCHECKED_CAST")
-  private fun <T> Any?.unwrapNull(): T = (if (this === NullValue) null else this) as T
 }
