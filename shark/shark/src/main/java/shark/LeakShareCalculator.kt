@@ -177,13 +177,7 @@ internal class LeakShareCalculator(
     objectId: Long,
     block: (Reference) -> Unit
   ) {
-    objectReferenceReader.read(graph.findObjectById(objectId)).forEach { reference ->
-      // Readers aren't supposed to surface null references, but a custom one might, and dropping
-      // the reference beats failing on an object id that can't be found.
-      if (reference.valueObjectId != ValueHolder.NULL_REFERENCE) {
-        block(reference)
-      }
-    }
+    objectReferenceReader.read(graph.findObjectById(objectId)).forEach(block)
   }
 
   companion object {

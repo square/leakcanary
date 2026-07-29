@@ -50,6 +50,22 @@ class OpenJdkInstanceRefReadersTest {
     }
   }
 
+  @Test fun `LinkedList with null element expanded`() {
+    val list = LinkedList<Any?>()
+    list += null
+    list += Retained()
+    leakRoot = list
+
+    val refPath = findLeak(LINKED_LIST)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(LinkedList::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[1]")
+    }
+  }
+
   @Test fun `LinkedList no expander`() {
     val list = LinkedList<Any>()
     list += Retained()
@@ -107,6 +123,22 @@ class OpenJdkInstanceRefReadersTest {
     with(refPath.first()) {
       assertThat(owningClassName).isEqualTo(ArrayList::class.qualifiedName)
       assertThat(referenceDisplayName).isEqualTo("[0]")
+    }
+  }
+
+  @Test fun `ArrayList with null element expanded`() {
+    val list = ArrayList<Any?>()
+    list += null
+    list += Retained()
+    leakRoot = list
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.ARRAY_LIST)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(ArrayList::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[1]")
     }
   }
 
@@ -179,6 +211,22 @@ class OpenJdkInstanceRefReadersTest {
 
   @Test fun `HashMap key expanded`() {
     val map = HashMap<Any, Any>()
+    map[Retained()] = "value"
+    leakRoot = map
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.HASH_MAP)
+
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.first()) {
+      assertThat(owningClassName).isEqualTo(HashMap::class.qualifiedName)
+      assertThat(referenceDisplayName).isEqualTo("[key()]")
+    }
+  }
+
+  @Test fun `HashMap with null value expanded`() {
+    val map = HashMap<Any, Any?>()
+    map[SomeKey()] = null
     map[Retained()] = "value"
     leakRoot = map
 

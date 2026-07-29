@@ -124,11 +124,6 @@ class ObjectGrowthDetector(
         val heapObject = graph.findObjectById(objectId)
         val refs = objectReferenceReader.read(heapObject)
         refs.forEach recordEdge@{ reference ->
-          // Readers aren't supposed to surface null references, but a custom one might, and
-          // dropping the reference beats failing the traversal on an object id that can't be found.
-          if (reference.valueObjectId == ValueHolder.NULL_REFERENCE) {
-            return@recordEdge
-          }
           // note: we only update visitedSet once dequeued. This could lead
           // to duplicates in queue, but avoids having to bump priority of already
           // enqueued low priority nodes.

@@ -224,10 +224,8 @@ class HeapDominatorTree private constructor(
       val successorObjectIds = MutableLongList()
       val successorIsLeafObject = ArrayList<Boolean>()
       referenceReader.read(graph.findObjectById(objectId)).forEach { reference ->
-        if (reference.valueObjectId != ValueHolder.NULL_REFERENCE) {
-          successorObjectIds += reference.valueObjectId
-          successorIsLeafObject += reference.isLeafObject
-        }
+        successorObjectIds += reference.valueObjectId
+        successorIsLeafObject += reference.isLeafObject
       }
       return Frame(
         dfsNumber = dfsNumber,

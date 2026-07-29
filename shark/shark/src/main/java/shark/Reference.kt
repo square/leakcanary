@@ -8,7 +8,8 @@ import shark.Reference.LazyDetails.Resolver
 data class Reference(
   /**
    * The value of the reference, i.e. the object the reference is pointing to. Never
-   * [ValueHolder.NULL_REFERENCE]: implementations only surface non null references.
+   * [ValueHolder.NULL_REFERENCE], which is enforced: implementations only surface non null
+   * references.
    */
   val valueObjectId: Long,
 
@@ -31,6 +32,16 @@ data class Reference(
 
   val lazyDetailsResolver: Resolver,
 ) {
+
+  init {
+    require(valueObjectId != ValueHolder.NULL_REFERENCE) {
+      "valueObjectId is a null reference. ReferenceReader implementations must not surface null " +
+        "references: filter them out with HeapValue.isNonNullReference, or read ids with " +
+        "HeapValue.asNonNullObjectId, which returns null for a null reference unlike " +
+        "HeapValue.asObjectId, which returns 0."
+    }
+  }
+
   class LazyDetails(
     val name: String,
     val locationClassObjectId: Long,
