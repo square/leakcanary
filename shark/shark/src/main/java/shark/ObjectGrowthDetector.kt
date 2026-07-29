@@ -128,6 +128,11 @@ class ObjectGrowthDetector(
         val heapObject = graph.findObjectById(objectId)
         val refs = objectReferenceReader.read(heapObject)
         refs.forEach recordEdge@{ reference ->
+          // Readers aren't supposed to surface null references, but a custom one might, and
+          // dropping the reference beats failing the traversal on an object id that can't be found.
+          if (reference.valueObjectId == ValueHolder.NULL_REFERENCE) {
+            return@recordEdge
+          }
           // dominatorTree is updated prior to enqueueing, because that's where we have the
           // parent object id information. visitedSet is updated on dequeuing, because bumping
           // node priority would be complex when as we'd need to move object ids between nodes

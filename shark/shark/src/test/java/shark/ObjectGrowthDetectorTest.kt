@@ -88,6 +88,22 @@ class ObjectGrowthDetectorTest {
   }
 
   @Test
+  fun `null list element does not fail the traversal`() {
+    val detector = ObjectGrowthDetector.forJvmHeap()
+
+    val traversal = detector.findGrowingObjects(
+      heapGraph = dump {
+        linkedListInStaticField(nullReference(), string("Hello"))
+      },
+    )
+
+    val listNode = traversal.findNode("instance of java.util.LinkedList")
+    val listElements = listNode.children.map { it.name }.filter { it.startsWith("ARRAY_ENTRY") }
+    assertThat(listElements)
+      .containsExactly("ARRAY_ENTRY LinkedList.[x] -> instance of java.lang.String")
+  }
+
+  @Test
   fun `object growth computes retained size increase with 2 iterations`() {
     val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
@@ -504,6 +520,44 @@ class ObjectGrowthDetectorTest {
 
   private fun ObjectGrowthDetector.listRepeatingHeapGraph(): ListRepeatingHeapGraphObjectGrowthDetector =
     ListRepeatingHeapGraphObjectGrowthDetector(this)
+
+  /**
+   * A `java.util.LinkedList` holding [items], shaped the way the OpenJDK implementation is so that
+   * [OpenJdkInstanceRefReaders.LINKED_LIST] expands it.
+   */
+  private fun HprofWriterHelper.linkedListInStaticField(vararg items: ValueHolder.ReferenceHolder) {
+    val nodeClassId = clazz(
+      "java.util.LinkedList\$Node",
+      fields = listOf(
+        "item" to ValueHolder.ReferenceHolder::class,
+        "next" to ValueHolder.ReferenceHolder::class,
+      )
+    )
+    val linkedListClassId = clazz(
+      "java.util.LinkedList",
+      fields = listOf("first" to ValueHolder.ReferenceHolder::class)
+    )
+    val first = items.foldRight(nullReference()) { item, next ->
+      instance(nodeClassId, listOf(item, next))
+    }
+    clazz(
+      "ClassWithStatics",
+      staticFields = listOf("list" to instance(linkedListClassId, listOf(first)))
+    )
+  }
+
+  /** The single node of [HeapTraversalOutput.shortestPathTree] whose name ends with [nameSuffix]. */
+  private fun HeapTraversalOutput.findNode(nameSuffix: String): ShortestPathObjectNode {
+    val matching = mutableListOf<ShortestPathObjectNode>()
+    fun visit(node: ShortestPathObjectNode) {
+      if (node.name.endsWith(nameSuffix)) {
+        matching += node
+      }
+      node.children.forEach { visit(it) }
+    }
+    visit(shortestPathTree)
+    return matching.single()
+  }
 
   private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {
     clazz(
