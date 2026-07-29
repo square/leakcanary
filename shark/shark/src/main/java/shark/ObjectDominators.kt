@@ -30,11 +30,6 @@ class ObjectDominators {
     val dominatedObjectIds: List<Long>
   ) : Serializable
 
-  data class OfflineDominatorNode(
-    val node: DominatorNode,
-    val name: String
-  ) : Serializable
-
   fun renderDominatorTree(
     graph: HeapGraph,
     ignoredRefs: List<IgnoredReferenceMatcher>,
@@ -137,25 +132,6 @@ class ObjectDominators {
     }
     if (largeChildren.size < node.dominatedObjectIds.size) {
       stringBuilder.append("$newPrefix╰┄\n")
-    }
-  }
-
-  fun buildOfflineDominatorTree(
-    graph: HeapGraph,
-    ignoredRefs: List<IgnoredReferenceMatcher>
-  ): Map<Long, OfflineDominatorNode> {
-    return buildDominatorTree(graph, ignoredRefs).mapValues { (objectId, node) ->
-      val name = if (objectId == ValueHolder.NULL_REFERENCE) {
-        "root"
-      } else when (val heapObject = graph.findObjectById(objectId)) {
-        is HeapClass -> "class ${heapObject.name}"
-        is HeapInstance -> heapObject.instanceClassName
-        is HeapObjectArray -> heapObject.arrayClassName
-        is HeapPrimitiveArray -> heapObject.arrayClassName
-      }
-      OfflineDominatorNode(
-        node, name
-      )
     }
   }
 
