@@ -171,6 +171,8 @@ class HprofHeapGraph internal constructor(
     return wrapIndexedObject(objectIndex, indexedObject, objectId)
   }
 
+  internal fun objectIndexOrNull(objectId: Long): Int = index.objectIndexOrNull(objectId)
+
   override fun findObjectByIdOrNull(objectId: Long): HeapObject? {
     if (objectId == javaLangObjectClass?.objectId) return javaLangObjectClass
 

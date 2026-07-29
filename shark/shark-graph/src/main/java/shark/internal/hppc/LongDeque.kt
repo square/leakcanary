@@ -54,7 +54,11 @@ internal class LongDeque(expectedElements: Int = 4) {
   }
 
   private fun grow() {
-    val grown = LongArray(elements.size * 2)
+    val grownSize = elements.size.toLong() * 2
+    check(grownSize <= Int.MAX_VALUE) {
+      "Cannot hold more than ${elements.size} elements, an array index is an Int"
+    }
+    val grown = LongArray(grownSize.toInt())
     // Unwrap the circular buffer into the new array, so that head becomes 0 again.
     val untilEnd = elements.size - head
     elements.copyInto(grown, destinationOffset = 0, startIndex = head)

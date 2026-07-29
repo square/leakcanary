@@ -10,6 +10,7 @@ import androidx.collection.emptyLongObjectMap
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
+import shark.internal.ObjectIdSet
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
@@ -114,7 +115,7 @@ class PrioritizingShortestPathFinder private constructor(
 
   private class State(
     val leakingObjectIds: LongScatterSet,
-    estimatedVisitedObjects: Int
+    graph: HeapGraph
   ) {
 
     /** Set of objects to visit */
@@ -138,7 +139,7 @@ class PrioritizingShortestPathFinder private constructor(
      * Set of visited objects. At the end of phase 1 this is R₀, then phase 2 keeps extending it
      * with the objects reachable only through leaking objects.
      */
-    val visitedSet = LongScatterSet(estimatedVisitedObjects)
+    val visitedSet = ObjectIdSet(graph)
 
     /**
      * A marker for when we're done exploring the graph of higher priority references and start
@@ -152,13 +153,10 @@ class PrioritizingShortestPathFinder private constructor(
     leakingObjectIds: Set<Long>
   ): PathFindingResults {
     listener.onEvent(StartedFindingPathsToRetainedObjects)
-    // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
-    // visit more than that but this limits the number of early array growths.
-    val estimatedVisitedObjects = (graph.instanceCount / 2).coerceAtLeast(4)
 
     val state = State(
       leakingObjectIds = leakingObjectIds.toLongScatterSet(),
-      estimatedVisitedObjects = estimatedVisitedObjects
+      graph = graph
     )
 
     return state.findPathsFromGcRoots()
@@ -240,7 +238,7 @@ class PrioritizingShortestPathFinder private constructor(
   private inner class Phase2(
     private val leakingObjectIds: LongScatterSet,
     private val foundLeakingObjectIds: LongList,
-    private val visitedSet: LongScatterSet
+    private val visitedSet: ObjectIdSet
   ) {
 
     /** Leaking object id to retained size, null when retained sizes aren't computed. */

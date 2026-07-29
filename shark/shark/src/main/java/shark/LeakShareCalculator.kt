@@ -5,6 +5,7 @@ package shark
 import androidx.collection.MutableLongLongMap
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import shark.internal.ObjectIdSet
 import shark.internal.hppc.LongDeque
 import shark.internal.hppc.LongScatterSet
 import shark.internal.packedWith
@@ -49,7 +50,6 @@ internal class LeakShareCalculator(
   private val gcRootProvider: GcRootProvider,
   private val objectReferenceReader: ReferenceReader<HeapObject>,
   private val objectSizeCalculator: ObjectSizeCalculator,
-  private val estimatedVisitedObjects: Int,
 ) {
 
   /**
@@ -67,7 +67,7 @@ internal class LeakShareCalculator(
         growingObjectIds += objectId
       }
     }
-    val objectsReachableWithoutGrowth = LongScatterSet(estimatedVisitedObjects)
+    val objectsReachableWithoutGrowth = ObjectIdSet(graph)
     findObjectsReachableWithoutGrowth(growingObjectIds, objectsReachableWithoutGrowth)
 
     // Object id to the count of groups that reach it, packed with the token of the last group
@@ -119,7 +119,7 @@ internal class LeakShareCalculator(
    */
   private fun findObjectsReachableWithoutGrowth(
     growingObjectIds: LongScatterSet,
-    visitedSet: LongScatterSet
+    visitedSet: ObjectIdSet
   ) {
     val toVisitQueue = LongDeque()
     gcRootProvider.provideGcRoots(graph).forEach { gcRootReference ->
@@ -151,7 +151,7 @@ internal class LeakShareCalculator(
    */
   private fun visitObjectsRetainedByGroup(
     growingObjectIds: LongArray,
-    objectsReachableWithoutGrowth: LongScatterSet,
+    objectsReachableWithoutGrowth: ObjectIdSet,
     visit: (Long) -> Boolean
   ) {
     val toVisitQueue = LongDeque()

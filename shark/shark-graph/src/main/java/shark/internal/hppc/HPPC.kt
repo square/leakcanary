@@ -48,17 +48,32 @@ internal object HPPC {
     length = max(MIN_HASH_ARRAY_LENGTH.toLong(), nextHighestPowerOfTwo(length))
 
     if (length > MAX_HASH_ARRAY_LENGTH) {
-      throw RuntimeException(
-        String.format(
-          Locale.ROOT,
-          "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
-          elements,
-          loadFactor
-        )
-      )
+      throw RuntimeException(tooManyElementsMessage(elements, loadFactor))
     }
 
     return length.toInt()
+  }
+
+  /**
+   * These structures hash into a power of two sized array and address slots with an [Int], so the
+   * array can't grow past 2^30 slots, which at [loadFactor] is a hard cap on how many elements they
+   * can hold. Says so, rather than leaving a caller with an array size it never asked for.
+   */
+  private fun tooManyElementsMessage(
+    elements: Int,
+    loadFactor: Double
+  ): String {
+    return String.format(
+      Locale.ROOT,
+      "Cannot hold more than %d elements (a hash array of at most %d slots at load factor %f), " +
+        "asked to hold %d. This is a limit of Shark's hash structures, not of the heap dump " +
+        "format: a heap dump with more objects than that needs a structure that doesn't hash " +
+        "object ids, like shark.internal.ObjectIdSet.",
+      expandAtCount(MAX_HASH_ARRAY_LENGTH, loadFactor),
+      MAX_HASH_ARRAY_LENGTH,
+      loadFactor,
+      elements
+    )
   }
 
   fun nextHighestPowerOfTwo(input: Long): Long {
@@ -87,14 +102,7 @@ internal object HPPC {
     loadFactor: Double
   ): Int {
     if (arraySize == MAX_HASH_ARRAY_LENGTH) {
-      throw RuntimeException(
-        String.format(
-          Locale.ROOT,
-          "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
-          elements,
-          loadFactor
-        )
-      )
+      throw RuntimeException(tooManyElementsMessage(elements, loadFactor))
     }
 
     return arraySize shl 1

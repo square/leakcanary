@@ -434,6 +434,35 @@ internal class HprofInMemoryIndex private constructor(
     )
   }
 
+  /**
+   * The object index of [objectId], or -1 if the heap dump holds no object with that id. Same index
+   * as the one [indexedObjectOrNull] returns, without reading the indexed object.
+   *
+   * The four indexes are disjoint, so this searches them in the order that resolves the fewest of
+   * them on average — most object ids are instances, then primitive arrays — rather than in object
+   * index order the way [indexedObjectOrNull] does.
+   */
+  @Suppress("ReturnCount")
+  fun objectIndexOrNull(objectId: Long): Int {
+    var index = instanceIndex.indexOf(objectId)
+    if (index >= 0) {
+      return classIndex.size + index
+    }
+    index = primitiveArrayIndex.indexOf(objectId)
+    if (index >= 0) {
+      return classIndex.size + instanceIndex.size + objectArrayIndex.size + index
+    }
+    index = objectArrayIndex.indexOf(objectId)
+    if (index >= 0) {
+      return classIndex.size + instanceIndex.size + index
+    }
+    index = classIndex.indexOf(objectId)
+    if (index >= 0) {
+      return index
+    }
+    return -1
+  }
+
   @Suppress("ReturnCount")
   fun objectIdIsIndexed(objectId: Long): Boolean {
     if (classIndex[objectId] != null) {

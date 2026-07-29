@@ -3,7 +3,6 @@
 package shark
 
 import androidx.collection.MutableLongList
-import androidx.collection.MutableLongSet
 import androidx.collection.mutableLongListOf
 import java.util.ArrayDeque
 import java.util.Deque
@@ -12,6 +11,7 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferenceLocationType.ARRAY_ENTRY
+import shark.internal.ObjectIdSet
 
 /**
  * Looks for objects that have grown in outgoing references in a new heap dump compared to a
@@ -31,10 +31,7 @@ class ObjectGrowthDetector(
         "previousTraversal:$previousTraversal"
     }
 
-    // Estimate of how many objects we'll visit. This is a conservative estimate, we should always
-    // visit more than that but this limits the number of early array growths.
-    val estimatedVisitedObjects = (heapGraph.instanceCount / 2).coerceAtLeast(4)
-    val state = TraversalState(estimatedVisitedObjects = estimatedVisitedObjects)
+    val state = TraversalState(graph = heapGraph)
     return state.traverseHeapDiffingShortestPaths(
       heapGraph,
       previousTraversal
@@ -53,7 +50,7 @@ class ObjectGrowthDetector(
   )
 
   private class TraversalState(
-    val estimatedVisitedObjects: Int
+    graph: HeapGraph
   ) {
     var visitingLast = false
 
@@ -65,9 +62,8 @@ class ObjectGrowthDetector(
      */
     val toVisitLastQueue: Deque<Node> = ArrayDeque()
 
-    val visitedSet = MutableLongSet(estimatedVisitedObjects)
+    val visitedSet = ObjectIdSet(graph)
 
-    // Not using estimatedVisitedObjects because there could be a lot less nodes than objects.
     // This is a list because order matters.
     val dequeuedNodes = mutableListOf<DequeuedNode>()
 
@@ -102,7 +98,7 @@ class ObjectGrowthDetector(
       dequeuedNodes.add(dequeuedNode)
       val current = dequeuedNode.shortestPathNode
 
-      // Note: this is different from visitedSet.size(), which includes gc roots.
+      // Note: this is different from the size of visitedSet, which includes gc roots.
       var countOfVisitedObjectForCurrentNode = 0
 
       val edgesByNodeName = mutableMapOf<EdgeKey, Edge>()
@@ -296,7 +292,6 @@ class ObjectGrowthDetector(
         gcRootProvider = gcRootProvider,
         objectReferenceReader = objectReferenceReader,
         objectSizeCalculator = AndroidObjectSizeCalculator(graph),
-        estimatedVisitedObjects = estimatedVisitedObjects,
       ).computeLeakShares(reportedGrowingNodes.map { it.objectIds })
 
       reportedGrowingNodes.forEachIndexed { index, node ->
