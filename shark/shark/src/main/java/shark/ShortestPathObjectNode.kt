@@ -56,6 +56,12 @@ class ShortestPathObjectNode(
    * traversal didn't report this node as growing, [UNKNOWN_RETAINED] if [retained] is unknown.
    *
    * The first traversal has no growing nodes, so this is only non 0 from the third traversal on.
+   *
+   * [retained] is relative to the other growing nodes of its traversal: the objects a node shares
+   * with them are split between them. Two consecutive traversals usually report the same growing
+   * nodes, but when they don't, part of this increase is that split changing rather than the heap
+   * growing. A node that shared everything it held with one other growing node which then stopped
+   * growing sees its [retained] double.
    */
   var retainedIncrease: Retained = UNKNOWN_RETAINED
     internal set
