@@ -13,10 +13,9 @@ import shark.ObjectDominators.DominatorNode
  * The dominator tree of every object reachable from the GC roots of a [HeapGraph]: object A
  * dominates object B when every path from a GC root to B goes through A.
  *
- * Unlike [ApproximateDominatorTree], this is exact. It's computed with Lengauer-Tarjan, which needs
- * the whole graph up front: it holds one entry per reachable object plus one per reference between
- * reachable objects, so it's meant for tools running on a workstation, not for the on device
- * analysis.
+ * This is computed with Lengauer-Tarjan, which needs the whole graph up front: the tree holds one
+ * entry per reachable object plus one per reference between reachable objects, so it's meant for
+ * tools running on a workstation, not for the on device analysis.
  */
 class HeapDominatorTree private constructor(
   /**

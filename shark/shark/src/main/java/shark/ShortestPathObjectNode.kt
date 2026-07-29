@@ -39,15 +39,23 @@ class ShortestPathObjectNode(
     internal set
 
   /**
-   * Set for growing nodes if the traversal requested the computation of retained sizes, otherwise
-   * null.
+   * How much of the heap this node accounts for, i.e. the heap that would be freed if every
+   * object reported as growing was released. An object that several growing nodes hold onto is
+   * split evenly between them, so [retained] is not a lower bound of what fixing this one node
+   * would free, but the [retained] of all the growing nodes add up to the size of the subgraph
+   * they hold together. See `LeakShareCalculator`.
+   *
+   * [UNKNOWN_RETAINED] for nodes that aren't reported as growing, and for every node of a
+   * [FirstHeapTraversal], which has no growing nodes to compute this from.
    */
   var retained: Retained = UNKNOWN_RETAINED
     internal set
 
   /**
-   * Set for growing nodes if [retainedOrNull] is not null. Non 0 if the previous traversal also
-   * computed retained size.
+   * How much [retained] increased since the previous traversal, [ZERO_RETAINED] if the previous
+   * traversal didn't report this node as growing, [UNKNOWN_RETAINED] if [retained] is unknown.
+   *
+   * The first traversal has no growing nodes, so this is only non 0 from the third traversal on.
    */
   var retainedIncrease: Retained = UNKNOWN_RETAINED
     internal set
