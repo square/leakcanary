@@ -11,6 +11,8 @@ dependencies {
 
   implementation(libs.androidX.test.runner)
 
+  testImplementation(libs.assertjCore)
+  testImplementation(libs.junit)
   androidTestImplementation(libs.androidX.multidex)
   androidTestImplementation(libs.androidX.test.core)
   androidTestImplementation(libs.androidX.test.runner)
@@ -23,6 +25,7 @@ android {
     minSdk = libs.versions.androidMinSdk.get().toInt()
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     multiDexEnabled = true
+    consumerProguardFiles("consumer-proguard-rules.pro")
   }
   namespace = "com.squareup.leakcanary.android.test"
   testNamespace = "com.squareup.leakcanary.android.test.test"

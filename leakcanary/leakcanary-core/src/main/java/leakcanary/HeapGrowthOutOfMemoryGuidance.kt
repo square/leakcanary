@@ -3,11 +3,17 @@ package leakcanary
 import leakcanary.HeapLimitSource.AndroidApp
 import leakcanary.HeapLimitSource.AndroidInstrumentationTest
 import leakcanary.HeapLimitSource.Jvm
-import shark.outOfMemoryOrNull
 
 private const val LARGE_HEAP_DOC_URL =
   "https://developer.android.com/guide/topics/manifest/application-element#largeHeap"
 private const val SHARK_CLI_DOC_URL = "https://square.github.io/leakcanary/shark/#shark-cli"
+
+/**
+ * The class of leakcanary-android-test that reads the heap limit of an Android instrumentation test
+ * process, loaded by name because it can only be loaded there. See [readHeapLimitSource].
+ */
+private const val ANDROID_TEST_HEAP_LIMIT_CLASS_NAME =
+  "leakcanary.internal.AndroidTestHeapLimit"
 
 private const val BYTES_PER_MB = 1024 * 1024
 
@@ -22,22 +28,23 @@ internal sealed class HeapLimitSource {
 
   /**
    * An Android process we know nothing more about than that its limit comes from the largeHeap
-   * manifest flag, either because it isn't an instrumentation test process or because the androidx
-   * test APIs that would tell us about one aren't on the classpath.
+   * manifest flag, either because it isn't an instrumentation test process or because the class that
+   * would tell us about one couldn't be loaded.
    */
   object AndroidApp : HeapLimitSource()
 
   /**
-   * An Android instrumentation test process. Such a process is created from the `ApplicationInfo` of
-   * the app under test, so `android:largeHeap="true"` raises the limit only when the app under test
-   * declares it: declaring it in `src/androidTest/AndroidManifest.xml`, which is where it ends up in
-   * the manifest of the test apk, does nothing at all.
+   * An Android instrumentation test process, as described by [ANDROID_TEST_HEAP_LIMIT_CLASS_NAME],
+   * which reads the manifest flags this module cannot see.
+   *
+   * @param heapLimitDetail what to add to the sentence stating how much memory the process can use,
+   * empty when there is nothing to add.
+   * @param raiseHeapLimitOption how to raise the limit, null when it is already raised as far as it
+   * goes.
    */
   class AndroidInstrumentationTest(
-    val appUnderTestPackageName: String,
-    val largeHeapEnabled: Boolean,
-    val largeHeapEnabledOnTestApkOnly: Boolean,
-    val largeHeapMaxMemoryMb: Int
+    val heapLimitDetail: String,
+    val raiseHeapLimitOption: String?
   ) : HeapLimitSource()
 }
 
@@ -46,6 +53,11 @@ internal sealed class HeapLimitSource {
  * traversal was allowed to use and what can be done about it running out. Null if running out of
  * memory isn't what went wrong.
  *
+ * The whole cause chain is searched rather than just the failure itself, because an
+ * [OutOfMemoryError] rarely is what a failed traversal throws: Shark's hash maps catch it while
+ * allocating their buffers and rethrow it wrapped in a [RuntimeException] that says which buffer they
+ * failed to allocate, which is the most common way for the traversal to run out of memory.
+ *
  * @param heapDumpsDeleted whether the heap dumps of this run are already gone, which changes whether
  * the guidance tells the caller to keep them.
  */
@@ -53,7 +65,9 @@ internal fun heapGrowthOutOfMemoryGuidanceOrNull(
   failure: Throwable,
   heapDumpsDeleted: Boolean
 ): String? {
-  if (failure.outOfMemoryOrNull() == null) {
+  val outOfMemory = generateSequence(failure) { it.cause }
+    .any { it is OutOfMemoryError }
+  if (!outOfMemory) {
     return null
   }
   return heapGrowthOutOfMemoryGuidance(
@@ -69,23 +83,22 @@ internal fun heapGrowthOutOfMemoryGuidance(
   heapDumpsDeleted: Boolean
 ): String {
   val options = mutableListOf<String>()
+  val heapLimitDetail: String
   when (heapLimitSource) {
-    Jvm -> options += "Raise the memory limit of the JVM running this test with the -Xmx flag."
-    AndroidApp -> options += "Increase the memory available to the app with " +
-      "android:largeHeap=\"true\": $LARGE_HEAP_DOC_URL"
-    is AndroidInstrumentationTest -> if (!heapLimitSource.largeHeapEnabled) {
-      val appUnderTest = "the app under test (${heapLimitSource.appUnderTestPackageName})"
-      options += "Raise that limit to ${heapLimitSource.largeHeapMaxMemoryMb} MB by " +
-        if (heapLimitSource.largeHeapEnabledOnTestApkOnly) {
-          "moving android:largeHeap=\"true\" to the manifest of $appUnderTest: it is set in the " +
-            "manifest of the test apk, where it has no effect, because an instrumentation process " +
-            "is created from the ApplicationInfo of the app under test. $LARGE_HEAP_DOC_URL"
-        } else {
-          "setting android:largeHeap=\"true\" in the manifest of $appUnderTest. Setting it in " +
-            "src/androidTest/AndroidManifest.xml has no effect: that manifest ends up in the test " +
-            "apk, and an instrumentation process is created from the ApplicationInfo of the app " +
-            "under test. $LARGE_HEAP_DOC_URL"
-        }
+    Jvm -> {
+      heapLimitDetail = ""
+      options += "Raise the memory limit of the JVM running this test with the -Xmx flag."
+    }
+    AndroidApp -> {
+      heapLimitDetail = ""
+      options += "Increase the memory available to this process with android:largeHeap=\"true\". " +
+        "In an instrumentation test that has to be the manifest of the app under test: an " +
+        "instrumentation process is created from the ApplicationInfo of the app under test, so " +
+        "setting it in src/androidTest/AndroidManifest.xml has no effect. $LARGE_HEAP_DOC_URL"
+    }
+    is AndroidInstrumentationTest -> {
+      heapLimitDetail = heapLimitSource.heapLimitDetail
+      heapLimitSource.raiseHeapLimitOption?.let { options += it }
     }
   }
   options += if (heapDumpsDeleted) {
@@ -98,71 +111,32 @@ internal fun heapGrowthOutOfMemoryGuidance(
       SHARK_CLI_DOC_URL
   }
 
-  val largeHeapDetail =
-    if (heapLimitSource is AndroidInstrumentationTest && heapLimitSource.largeHeapEnabled) {
-      ", with android:largeHeap=\"true\" already set in the manifest of the app under test " +
-        "(${heapLimitSource.appUnderTestPackageName})"
-    } else {
-      ""
-    }
   return "Not enough memory to detect heap growth: this process can use up to " +
-    "$maxMemoryMb MB$largeHeapDetail. You can:" +
+    "$maxMemoryMb MB$heapLimitDetail. You can:" +
     options.joinToString(prefix = "\n- ", separator = "\n- ")
 }
 
 /**
- * Reflection is how this module, which has no Android dependency, gets to tell an Android
- * instrumentation test process apart from a JVM one: [AndroidInstrumentationTest] is entirely about
- * the manifest an Android process was created from, and the androidx test API that hands us the app
- * under test and the test apk is only on the classpath when running an instrumentation test.
+ * [AndroidInstrumentationTest] is entirely about the manifests an Android process was created from,
+ * which this module cannot read: it has no Android dependency, so it loads the class that reads them
+ * by name instead. That class lives in leakcanary-android-test, which is compiled against the Android
+ * SDK and the androidx test APIs and therefore reads them directly, and it can only be loaded in an
+ * Android instrumentation test, which is exactly when it has something to say.
  */
+@Suppress("UNCHECKED_CAST")
 private fun readHeapLimitSource(): HeapLimitSource {
   // ART reports itself as Dalvik, which it replaced.
   val android = System.getProperty("java.vm.name")?.startsWith("Dalvik") == true
   if (!android) {
     return Jvm
   }
-  return readAndroidInstrumentationTestOrNull() ?: AndroidApp
-}
-
-private fun readAndroidInstrumentationTestOrNull(): AndroidInstrumentationTest? {
   return try {
-    val instrumentation = Class.forName("androidx.test.platform.app.InstrumentationRegistry")
-      .getMethod("getInstrumentation")
-      .invoke(null)
-    val instrumentationClass = Class.forName("android.app.Instrumentation")
-    val appUnderTestContext = instrumentationClass.getMethod("getTargetContext")
-      .invoke(instrumentation)
-    val testApkContext = instrumentationClass.getMethod("getContext").invoke(instrumentation)
-
-    // Methods and fields are looked up on the public API classes rather than on the runtime class of
-    // each instance, which is a hidden framework implementation we would not be allowed to call.
-    val contextClass = Class.forName("android.content.Context")
-    val getApplicationInfo = contextClass.getMethod("getApplicationInfo")
-    val applicationInfoClass = Class.forName("android.content.pm.ApplicationInfo")
-    val flagsField = applicationInfoClass.getField("flags")
-    val largeHeapFlag = applicationInfoClass.getField("FLAG_LARGE_HEAP").getInt(null)
-    val largeHeapEnabledIn = { context: Any ->
-      flagsField.getInt(getApplicationInfo.invoke(context)) and largeHeapFlag != 0
-    }
-    val appUnderTestLargeHeap = largeHeapEnabledIn(appUnderTestContext)
-
-    val activityManager = contextClass.getMethod("getSystemService", String::class.java)
-      // Context.ACTIVITY_SERVICE
-      .invoke(appUnderTestContext, "activity")
-    val largeHeapMaxMemoryMb = Class.forName("android.app.ActivityManager")
-      .getMethod("getLargeMemoryClass")
-      .invoke(activityManager) as Int
-
-    AndroidInstrumentationTest(
-      appUnderTestPackageName = contextClass.getMethod("getPackageName")
-        .invoke(appUnderTestContext) as String,
-      largeHeapEnabled = appUnderTestLargeHeap,
-      largeHeapEnabledOnTestApkOnly =
-        !appUnderTestLargeHeap && largeHeapEnabledIn(testApkContext),
-      largeHeapMaxMemoryMb = largeHeapMaxMemoryMb
-    )
+    val readHeapLimit = Class.forName(ANDROID_TEST_HEAP_LIMIT_CLASS_NAME)
+      .getDeclaredField("INSTANCE")
+      .get(null) as () -> Pair<String, String?>
+    val (heapLimitDetail, raiseHeapLimitOption) = readHeapLimit()
+    AndroidInstrumentationTest(heapLimitDetail, raiseHeapLimitOption)
   } catch (ignored: Throwable) {
-    null
+    AndroidApp
   }
 }

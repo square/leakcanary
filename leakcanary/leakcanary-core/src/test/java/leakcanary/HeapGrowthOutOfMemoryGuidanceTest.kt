@@ -29,64 +29,37 @@ class HeapGrowthOutOfMemoryGuidanceTest {
     assertThat(guidance).isNull()
   }
 
-  @Test fun `largeHeap missing points at the manifest of the app under test`() {
+  @Test fun `what an instrumentation test process says about its heap limit is passed on`() {
     val guidance = guidance(
       AndroidInstrumentationTest(
-        appUnderTestPackageName = "com.example.app.debug",
-        largeHeapEnabled = false,
-        largeHeapEnabledOnTestApkOnly = false,
-        largeHeapMaxMemoryMb = 512
+        heapLimitDetail = ", with android:largeHeap=\"true\" already set",
+        raiseHeapLimitOption = "Raise that limit to 512 MB."
       )
-    )
-
-    assertThat(guidance).contains(
-      "Raise that limit to 512 MB by setting android:largeHeap=\"true\" in the manifest of the app " +
-        "under test (com.example.app.debug). Setting it in src/androidTest/AndroidManifest.xml has " +
-        "no effect"
-    )
-  }
-
-  @Test fun `largeHeap set on the test apk only is called out as having no effect`() {
-    val guidance = guidance(
-      AndroidInstrumentationTest(
-        appUnderTestPackageName = "com.example.app.debug",
-        largeHeapEnabled = false,
-        largeHeapEnabledOnTestApkOnly = true,
-        largeHeapMaxMemoryMb = 512
-      )
-    )
-
-    assertThat(guidance).contains(
-      "Raise that limit to 512 MB by moving android:largeHeap=\"true\" to the manifest of the app " +
-        "under test (com.example.app.debug): it is set in the manifest of the test apk, where it " +
-        "has no effect"
-    )
-  }
-
-  @Test fun `largeHeap already set is stated instead of offered`() {
-    val guidance = guidance(
-      AndroidInstrumentationTest(
-        appUnderTestPackageName = "com.example.app.debug",
-        largeHeapEnabled = true,
-        largeHeapEnabledOnTestApkOnly = false,
-        largeHeapMaxMemoryMb = 512
-      ),
-      maxMemoryMb = 512
     )
 
     assertThat(guidance).startsWith(
-      "Not enough memory to detect heap growth: this process can use up to 512 MB, with " +
-        "android:largeHeap=\"true\" already set in the manifest of the app under test " +
-        "(com.example.app.debug). You can:"
+      "Not enough memory to detect heap growth: this process can use up to 192 MB, with " +
+        "android:largeHeap=\"true\" already set. You can:\n- Raise that limit to 512 MB."
+    )
+  }
+
+  @Test fun `an instrumentation test process with no way to raise its limit is offered none`() {
+    val guidance = guidance(
+      AndroidInstrumentationTest(heapLimitDetail = "", raiseHeapLimitOption = null)
+    )
+
+    assertThat(guidance).startsWith(
+      "Not enough memory to detect heap growth: this process can use up to 192 MB. You can:"
     )
     assertThat(guidance).doesNotContain("Raise that limit")
   }
 
-  @Test fun `an Android process we know nothing about still gets largeHeap guidance`() {
+  @Test fun `an Android process we know nothing about is warned about the test apk manifest`() {
     val guidance = guidance(AndroidApp)
 
     assertThat(guidance).contains(
-      "Increase the memory available to the app with android:largeHeap=\"true\""
+      "Increase the memory available to this process with android:largeHeap=\"true\". In an " +
+        "instrumentation test that has to be the manifest of the app under test"
     )
   }
 
