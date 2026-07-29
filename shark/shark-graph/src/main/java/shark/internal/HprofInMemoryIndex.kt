@@ -764,7 +764,7 @@ internal class HprofInMemoryIndex private constructor(
           reader.skip(INT.byteSize)
           val size = reader.readInt()
           val arrayClassId = reader.readId()
-          reader.skip(identifierSize * size)
+          reader.skip(identifierSize.toLong() * size)
           // record size - (ID+INT + INT + ID)
           val recordSize = reader.bytesRead - bytesReadStart
           objectArrayIndex.append(id)
@@ -780,7 +780,7 @@ internal class HprofInMemoryIndex private constructor(
           reader.skip(INT.byteSize)
           val size = reader.readInt()
           val type = PrimitiveType.primitiveTypeByHprofType.getValue(reader.readUnsignedByte())
-          reader.skip(size * type.byteSize)
+          reader.skip(size.toLong() * type.byteSize)
           val recordSize = reader.bytesRead - bytesReadStart
           primitiveArrayIndex.append(id)
             .apply {
