@@ -382,6 +382,25 @@ class RetainedSizeTest {
     assertThat(retainedSize).isEqualTo(3 * 8)
   }
 
+  @Test fun `retained values are null when retained sizes are not computed`() {
+    hprofFile.dump {
+      "GcRoot" clazz {
+        staticField["shortestPath"] = "Leaking" watchedInstance {
+          field["answer"] = string("42")
+        }
+      }
+    }
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(computeRetainedHeapSize = false)
+    val leak = analysis.applicationLeaks.single()
+    val leakTrace = leak.leakTraces.single()
+
+    assertThat(leakTrace.retainedHeapByteSize).isNull()
+    assertThat(leakTrace.retainedObjectCount).isNull()
+    assertThat(leak.totalRetainedHeapByteSize).isNull()
+    assertThat(leak.totalRetainedObjectCount).isNull()
+  }
+
   private fun retainedInstances(): List<Leak> {
     val analysis = hprofFile.checkForLeaks<HeapAnalysis>(computeRetainedHeapSize = true)
     println(analysis.toString())

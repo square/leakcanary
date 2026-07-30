@@ -55,8 +55,8 @@ data class LeakTrace(
       return allObjects.filter { it.leakingStatus == LEAKING }
         .mapNotNull { it.retainedObjectCount }
         // Only [leakingObject], the last object of the trace, is given a retained size, so there's
-        // at most one value to pick from here.
-        .max()
+        // at most one value to pick from here, and none when retained sizes weren't computed.
+        .maxOrNull()
     }
 
   /**
