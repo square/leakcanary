@@ -52,10 +52,13 @@ class HeapExplorer private constructor(
       val graph = heapDumpFile.openHeapGraph(indexedGcRootTypes = HprofRecordTag.rootTags)
       try {
         val strengthReader = ReferenceStrengthReader(graph)
+        onProgress("Working out what owns what")
+        val ownerReferences = OwnerReferences.computeFor(graph)
         onProgress("Working out what's reachable")
         val reachability = HeapReachability.computeFor(
           graph = graph,
           strengthReader = strengthReader,
+          ownerReferences = ownerReferences,
           gcRootProvider = MatchingGcRootProvider(emptyList()),
           objectSizeCalculator = AndroidObjectSizeCalculator(graph)
         )
@@ -63,7 +66,7 @@ class HeapExplorer private constructor(
         val gcRootProvider = TreeGcRootProvider(reachability)
         val dominatorTree = HeapDominatorTree.buildFor(
           graph = graph,
-          referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability),
+          referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability, ownerReferences),
           gcRootProvider = gcRootProvider
         )
         val nodes = dominatorTree.buildNodes(AndroidObjectSizeCalculator(graph))
@@ -71,6 +74,7 @@ class HeapExplorer private constructor(
           graph = graph,
           reachability = reachability,
           strengthReader = strengthReader,
+          ownerReferences = ownerReferences,
           gcRootProvider = gcRootProvider,
           dominatorTree = dominatorTree,
           nodes = nodes

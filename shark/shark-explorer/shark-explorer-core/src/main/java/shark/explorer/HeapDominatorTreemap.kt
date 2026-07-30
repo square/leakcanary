@@ -72,6 +72,7 @@ class HeapDominatorTreemap internal constructor(
   private val graph: HeapGraph,
   private val reachability: HeapReachability,
   private val strengthReader: ReferenceStrengthReader,
+  private val ownerReferences: OwnerReferences,
   /** The roots the tree was built from, which is where a path up from an object can end. */
   private val gcRootProvider: GcRootProvider,
   private val dominatorTree: HeapDominatorTree,
@@ -92,7 +93,7 @@ class HeapDominatorTreemap internal constructor(
    * too: a path through a reference the tree ignored would explain a retention the tree doesn't show.
    */
   private val pathReferenceReader by lazy {
-    WeakeningAwareReferenceReader(strengthReader, reachability)
+    WeakeningAwareReferenceReader(strengthReader, reachability, ownerReferences)
   }
 
   /**

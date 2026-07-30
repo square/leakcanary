@@ -339,8 +339,8 @@ class HeapExplorerTest {
 
     openTestHeapDump(onProgress = { steps += it }).use { }
 
-    // Indexing, reachability, dominators: the three passes over the heap dump the UI has to wait for.
-    assertThat(steps).hasSize(3)
+    // Indexing, ownership, reachability, dominators: the passes over the heap dump the UI waits for.
+    assertThat(steps).hasSize(4)
     assertThat(steps).allSatisfy { assertThat(it).isNotEmpty() }
   }
 
@@ -691,35 +691,9 @@ class HeapExplorerTest {
     return file
   }
 
-  private fun HeapDominatorTreemap.findByLabel(label: String): HeapObjectSummary =
-    allSummaries().single { it.label == label }
-
-  /**
-   * How these tests read a path: the field each step was reached through, then what it points at. The
-   * first step of a path below a group is the GC root's own object, which no field points at.
-   */
-  private fun IndependentPath.stepLabels(): List<String> = steps.map { step ->
-    val simpleClassName = step.className.substringAfterLast('.')
-    step.reference?.let { "${it.name} → $simpleClassName" } ?: simpleClassName
-  }
-
   /** The one class group of a [crowdedRootHeapDump], which is the tiles. */
   private fun HeapDominatorTreemap.classGroup(): ObjectGroupSummary =
     children(GC_ROOTS_NODE_ID).mapNotNull { groupOrNull(it) }.single()
-
-  /** Every object of the tree, walked past the groups, which stand for objects rather than being one. */
-  private fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
-    val summaries = mutableListOf<HeapObjectSummary>()
-    val toVisit = ArrayDeque(listOf(root))
-    while (toVisit.isNotEmpty()) {
-      val node = toVisit.removeFirst()
-      if (groupOrNull(node) == null) {
-        summaries += summarize(node)
-      }
-      toVisit += children(node)
-    }
-    return summaries
-  }
 
   companion object {
     private const val PAYLOAD_ELEMENT_COUNT = 1024

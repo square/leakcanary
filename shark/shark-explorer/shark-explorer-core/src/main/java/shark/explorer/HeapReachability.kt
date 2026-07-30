@@ -141,10 +141,11 @@ internal class HeapReachability private constructor(
     fun computeFor(
       graph: HeapGraph,
       strengthReader: ReferenceStrengthReader,
+      ownerReferences: OwnerReferences,
       gcRootProvider: GcRootProvider,
       objectSizeCalculator: ObjectSizeCalculator
     ): HeapReachability {
-      val walk = Walk(graph, strengthReader, objectSizeCalculator)
+      val walk = Walk(graph, strengthReader, ownerReferences, objectSizeCalculator)
       walk.walkFromGcRoots(gcRootProvider)
       val unreachableObjectIds = walk.markUnreachable()
       return HeapReachability(
@@ -186,6 +187,7 @@ internal class HeapReachability private constructor(
   private class Walk(
     private val graph: HeapGraph,
     private val strengthReader: ReferenceStrengthReader,
+    private val ownerReferences: OwnerReferences,
     private val objectSizeCalculator: ObjectSizeCalculator
   ) {
 
@@ -212,15 +214,35 @@ internal class HeapReachability private constructor(
       }
       REACHED_STRENGTHS.forEach { strength ->
         val queue = queueByStrength[strength.ordinal]
-        while (queue.isNotEmpty()) {
-          val heapObject = graph.findObjectByIdOrNull(queue.removeFirst()) ?: continue
+        // The references into an object something else owns, which this walk only follows once it has
+        // nothing else left: whatever owns the object gets every chance to reach it first, wherever in
+        // the heap dump it happens to be. That's what makes an [OwnerRule] safe without a check on the
+        // state of the object — see [OwnerReferences].
+        //
+        // Per strength, and drained within the strength that parked it, so that parking a reference
+        // can't cost an object the strength it's really held at.
+        val parked = ArrayDeque<Long>()
+        while (queue.isNotEmpty() || parked.isNotEmpty()) {
+          val isLastResort = queue.isEmpty()
+          val objectId = if (isLastResort) parked.removeFirst() else queue.removeFirst()
+          val heapObject = graph.findObjectByIdOrNull(objectId) ?: continue
           if (!reach(heapObject, strength)) {
             continue
           }
+          if (isLastResort) {
+            ownerReferences.markLastResortHeld(heapObject)
+          }
+          val ownership = ownerReferences.ownershipOf(heapObject)
           // A reference that retains its target doesn't weaken the path it's on.
           strengthReader.retainingReferencesOf(heapObject).forEach { reference ->
-            queue += reference.valueObjectId
+            if (ownerReferences.isRivalReference(ownership, reference)) {
+              parked += reference.valueObjectId
+            } else {
+              queue += reference.valueObjectId
+            }
           }
+          // Not parked: a reference that doesn't retain its target already loses to one that does, so
+          // owning what it points at is the stronger claim either way.
           strengthReader.weakeningReferencesOf(heapObject).forEach { weakening ->
             queueByStrength[maxOf(strength, weakening.strength).ordinal] += weakening.valueObjectId
           }
@@ -351,13 +373,21 @@ internal class HeapReachability private constructor(
      * Runs [block] for every unreachable object the unreachable [objectId] points at, which is the same
      * set of edges [WeakeningAwareReferenceReader] gives the dominator tree: a reference that doesn't
      * retain is followed when nothing stronger holds its target, and nothing at all holds these.
+     *
+     * It has to be the same set, because it decides which pieces of garbage the tree is walked from. A
+     * rival reference is pruned here too, and no walk ever hands the garbage the [OwnerReferences]
+     * fallback — it doesn't need one, since a reference that owns a piece of garbage comes from another
+     * piece of garbage. Anything that owns something reachable is reachable itself.
      */
     private inline fun forEachUnreachableReferent(
       objectId: Long,
       block: (HeapObject) -> Unit
     ) {
       val source = graph.findObjectById(objectId)
-      val referentIds = strengthReader.retainingReferencesOf(source).map { it.valueObjectId } +
+      val ownership = ownerReferences.ownershipOf(source)
+      val referentIds = strengthReader.retainingReferencesOf(source)
+        .filter { ownerReferences.isHeldThrough(ownership, it) }
+        .map { it.valueObjectId } +
         strengthReader.weakeningReferencesOf(source).map { it.valueObjectId }
       referentIds.forEach { referentId ->
         val referent = graph.findObjectByIdOrNull(referentId)

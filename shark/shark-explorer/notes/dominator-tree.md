@@ -180,6 +180,58 @@ Two things to know before adding an entry to that list:
   `InternalValue.image` leaves the map, the entries and the size bookkeeping strongly held by the cache,
   where they belong, and moves only the images.
 
+## An owner beats a bystander: the `OwnerReferences` rule
+
+A view that's part of a hierarchy is held by its parent, and a dominator tree that doesn't know that
+scatters a window across whatever happened to be closest to a GC root. Measured on the 82 MB dump before
+the rule: all 279 attached views had rival referrers, median ~10 and up to 246, and **170 of the 277
+attached child views were dominated by something other than their parent, misplacing 18 MB**. 125 landed
+under a `CheckoutGridTile`, 44 flat under `All GC roots`. Both `DecorView`s were dominated by
+`All GC roots` and retained 4.2 KB and 3.9 KB instead of their windows. The damaging referrers were
+`InputMethodManager.mCurRootView` / `mServedView` / `mNextServedView`, `View$AttachInfo.mRootView`,
+`PhoneFallbackEventHandler.mView`, `RealWorkflowLifecycleOwner.view`, `ComposeToastServiceImpl.rootView`,
+view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
+
+`OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus
+the fields and array classes that own them. Today, `android.view.View` owned by any `android.view.View[]`
+element — the array a `ViewGroup` keeps its children in — and by `Activity.mDecor` or `Dialog.mDecor`.
+After: **every one of the 277 child views is under its parent**, `MainActivity` retains 18 MB through one
+`mDecor` step, and the dialog's `DecorView` is dominated by the `PartialModalDialog`.
+
+**A rule is parked, not dropped, and that's the whole design.** The walk in
+`HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
+one is empty, so an owner gets every chance to reach the object first, wherever in the heap dump it is.
+When no owner turns up, `markLastResortHeld` records it and the rivals count after all. Dropping a rival
+outright would be a correctness bug, not a mis-attribution: a detached hierarchy leaked through a
+mid-tree child would become unreachable, the explorer would call live objects garbage, and the same rule
+in `PathFinder` would make LeakCanary report no leak. Measured proof that it costs nothing: after the
+rule the 82 MB dump comes out at exactly the same numbers as before — 80 MB strong, 2.0 MB thread local,
+28 B local, 2.6 KB finalizer, 186 KB unreachable.
+
+**Parking is also why a rule needs no check on the state of the object**, which is the thing that looks
+missing when you read `RULES`. "The parent owns an *attached* view" needs no attachment test, because a
+detached hierarchy isn't held by whatever holds the window: if the parent isn't reachable, no owner
+reference reaches the child and the fallback handles it. "Unless the activity is destroyed" needs no
+`mDestroyed` test either — `ActivityThread.handleDestroyActivity` sets `mDecor = null`, so the framework
+has already removed the reference the rule is about. The state a rule seems to need is expressed by which
+references exist.
+
+Two things to know before adding a rule:
+
+- **One owner per construct.** Two owner references are two ways of owning, so the object ends up
+  dominated by whatever dominates both. `PhoneWindow.mDecor` was in the list at first and cost the
+  activity all 18 MB of its hierarchy: a `JankStatsMonitor` held the window from a GC root of its own, so
+  the decor view's dominator became the top of the tree. Pick the one reference you'd want to read the
+  bytes under.
+- **An array class owns by its type**, so `View[]` owns its elements but an `ArrayList` of views doesn't,
+  since that holds them in an `Object[]`. That's deliberate — a collection of views is a bystander — but
+  it does mean an app's own `View[]` would claim ownership too.
+
+Ownership is **not** a `ReachabilityStrength` and can't be: strength is a min over the references of a
+path, while owning is a property of the last reference alone. It's a separate binary verdict per object,
+gated in the same place — `WeakeningAwareReferenceReader`, which the dominator tree, the referrer index
+and the path search all read through, so all three see one edge set.
+
 ## What holds an object: the dominator, then the paths below it
 
 "What holds this" is answered in two parts, and which part answers what is the thing to keep straight.
@@ -324,11 +376,12 @@ Measured on an 82 MB Android OOM dump, 1,019,837 objects, on a laptop:
 
 | Step | |
 | --- | --- |
-| Indexing the hprof | 0.54 s |
-| Working out what's reachable — the per strength walks, the garbage list, the garbage forest | 2.56 s |
-| Working out what retains what — `HeapDominatorTree.buildFor` plus `buildNodes` | 2.61 s |
-| First `children(root)` — the top level split and the grouping by class | 0.21 s |
-| **To the first rectangle on screen** | **≈ 5.9 s** |
+| Indexing the hprof | 0.44 s |
+| Working out what owns what — the two index scans in `OwnerReferences.computeFor` | 0.04 s |
+| Working out what's reachable — the per strength walks, the garbage list, the garbage forest | 2.41 s |
+| Working out what retains what — `HeapDominatorTree.buildFor` plus `buildNodes` | 2.48 s |
+| First `children(root)` — the top level split and the grouping by class | 0.29 s |
+| **To the first rectangle on screen** | **≈ 5.7 s** |
 
 Where it went, measured before the two garbage fixes in the section above moved 112 K objects from
 `UNREACHABLE` to `STRONG`: 74.0 MB `STRONG` over 901,734 objects, 2.6 KB `FINALIZER` over 106, 12.0 MB

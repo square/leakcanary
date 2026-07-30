@@ -316,22 +316,29 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
  * thread local or a stack frame doesn't hold what something firmer holds either, so every reference out of
  * it is weighed the same way. Without that, a `FinalizerReference` two steps up a chain would be one more
  * way of holding an object that a field holds squarely, which is a way of holding nothing.
+ *
+ * Drops the references that lose to an owner for the same reason, and it's the same rule read off a
+ * different property of the reference: see [OwnerReferences].
  */
 internal class WeakeningAwareReferenceReader(
   private val strengthReader: ReferenceStrengthReader,
-  private val reachability: HeapReachability
+  private val reachability: HeapReachability,
+  private val ownerReferences: OwnerReferences
 ) : ReferenceReader<HeapObject> {
 
   override fun read(source: HeapObject): Sequence<Reference> {
     val pathStrength = reachability.strengthOf(source)
-    val retaining = strengthReader.retainingReferencesOf(source).let { references ->
-      // Nothing to weigh when the path here is strong, which it is for nearly every object of a dump.
-      if (pathStrength == STRONG) {
-        references
-      } else {
-        references.filter { reachability.isHeldThrough(it.valueObjectId, pathStrength) }
+    val ownership = ownerReferences.ownershipOf(source)
+    val retaining = strengthReader.retainingReferencesOf(source)
+      .filter { ownerReferences.isHeldThrough(ownership, it) }
+      .let { references ->
+        // Nothing to weigh when the path here is strong, which it is for nearly every object of a dump.
+        if (pathStrength == STRONG) {
+          references
+        } else {
+          references.filter { reachability.isHeldThrough(it.valueObjectId, pathStrength) }
+        }
       }
-    }
     val followed = strengthReader.weakeningReferencesOf(source)
       .filter { reachability.isHeldThrough(it.valueObjectId, maxOf(pathStrength, it.strength)) }
     return if (followed.isEmpty()) {

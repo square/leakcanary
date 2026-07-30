@@ -88,6 +88,10 @@ it, so run it before pushing.
   the moment anything above the view changes height, which is a change to the top bar away.
 - Build test heap dumps with the `hprofFile.dump { }` DSL from `shark-hprof-test` rather than
   checking in binary fixtures or hand-writing hprof bytes.
+- **A synthetic Android class needs the fields the object inspectors read.** `HeapObjectSummary` runs
+  `AndroidObjectInspectors`, and those read fields with `!!` — an `android.view.View` without `mParent`,
+  `mWindowAttachCount`, `mAttachInfo` and `mContext` makes `summarize()` throw a bare
+  `NullPointerException` from inside shark-android, which reads like a bug in the explorer.
 
 ## Notes
 
