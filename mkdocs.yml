@@ -2,6 +2,7 @@ extra:
   leak_canary:
     release: '2.14'
     next_release: '3.0-alpha-10'
+    latest_alpha: '3.0-alpha-9'
   social:
     - icon: fontawesome/brands/github-alt
       link: https://square.github.io/
@@ -71,6 +72,7 @@ nav:
     - 'Fixing a memory leak': 'fundamentals-fixing-a-memory-leak.md'
   - 'LeakCanary at scale':
     - 'Leak detection in UI tests': 'ui-tests.md'
+    - 'Detecting heap growth': 'heap-growth.md'
     - 'Uploading analysis results': 'uploading.md'
     - 'LeakCanary for releases': 'leakcanary-for-releases.md'
   - 'Help & Community':
