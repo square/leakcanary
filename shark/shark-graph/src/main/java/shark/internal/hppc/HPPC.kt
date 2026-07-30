@@ -48,14 +48,7 @@ internal object HPPC {
     length = max(MIN_HASH_ARRAY_LENGTH.toLong(), nextHighestPowerOfTwo(length))
 
     if (length > MAX_HASH_ARRAY_LENGTH) {
-      throw RuntimeException(
-        String.format(
-          Locale.ROOT,
-          "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
-          elements,
-          loadFactor
-        )
-      )
+      throw RuntimeException(tooManyElementsMessage(elements, loadFactor))
     }
 
     return length.toInt()
@@ -87,16 +80,32 @@ internal object HPPC {
     loadFactor: Double
   ): Int {
     if (arraySize == MAX_HASH_ARRAY_LENGTH) {
-      throw RuntimeException(
-        String.format(
-          Locale.ROOT,
-          "Maximum array size exceeded for this load factor (elements: %d, load factor: %f)",
-          elements,
-          loadFactor
-        )
-      )
+      throw RuntimeException(tooManyElementsMessage(elements, loadFactor))
     }
 
     return arraySize shl 1
+  }
+
+  /**
+   * These structures hash into a power of two sized array and address its slots with an [Int], so
+   * the array can't go past [MAX_HASH_ARRAY_LENGTH] slots, which at [loadFactor] is a hard cap on
+   * how many elements they can hold. Says so, because the alternative reads like a corrupt heap
+   * dump or like running out of memory, and it's neither.
+   */
+  private fun tooManyElementsMessage(
+    elements: Int,
+    loadFactor: Double
+  ): String {
+    return String.format(
+      Locale.ROOT,
+      "Cannot hold more than %d elements (a hash array of at most %d slots at load factor %f), " +
+        "asked to hold %d. This is a limit of Shark's hash structures rather than of the heap dump " +
+        "format, so a heap dump that needs more cannot be analyzed, whatever heap the analysis " +
+        "runs with.",
+      expandAtCount(MAX_HASH_ARRAY_LENGTH, loadFactor),
+      MAX_HASH_ARRAY_LENGTH,
+      loadFactor,
+      elements
+    )
   }
 }
