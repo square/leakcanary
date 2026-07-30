@@ -17,8 +17,9 @@ class PathFindingResults(
    *
    * An object reachable from more than one leaking object is only counted once, towards one of
    * them, so these sizes never double count and always sum up to the size of the subgraph
-   * retained by the leaking objects as a group. As a result the size reported for a single
-   * leaking object is a lower bound of what fixing that leak alone would free.
+   * retained by the leaking objects as a group. The trade off is that fixing one of those leaks on
+   * its own frees less than the size reported for it, since the other leaking objects that also
+   * reach that object would keep it alive.
    */
   val retainedSizes: LongObjectMap<Retained>?,
   /**

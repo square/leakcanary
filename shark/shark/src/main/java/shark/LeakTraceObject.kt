@@ -27,15 +27,23 @@ data class LeakTraceObject(
   val leakingStatus: LeakingStatus,
   val leakingStatusReason: String,
   /**
-   * The minimum number of bytes which would be freed if all references to this object were
-   * released. Not null only if the retained heap size was computed AND [leakingStatus] is
-   * equal to [LeakingStatus.UNKNOWN] or [LeakingStatus.LEAKING].
+   * The number of bytes credited to this object: its own shallow size, plus the shallow size of
+   * every object that is only reachable through the leaking objects of the analysis and that was
+   * reached from this one first.
+   *
+   * Releasing all references to this object can free less than that: when several leaking objects
+   * hold on to the same object, its size is credited to only one of them, and the others would
+   * keep it alive. In exchange nothing is double counted, so the sizes credited to all the leaking
+   * objects of an analysis add up to what they retain together.
+   *
+   * Not null only if the retained heap size was computed AND [leakingStatus] is equal to
+   * [LeakingStatus.UNKNOWN] or [LeakingStatus.LEAKING].
    */
   val retainedHeapByteSize: Int?,
   /**
-   * The minimum number of objects which would be unreachable if all references to this object were
-   * released. Not null only if the retained heap size was computed AND [leakingStatus] is
-   * equal to [LeakingStatus.UNKNOWN] or [LeakingStatus.LEAKING].
+   * The number of objects credited to this object, counting it. Credited the same way as
+   * [retainedHeapByteSize]. Not null only if the retained heap size was computed AND
+   * [leakingStatus] is equal to [LeakingStatus.UNKNOWN] or [LeakingStatus.LEAKING].
    */
   val retainedObjectCount: Int?
 ) : Serializable {
