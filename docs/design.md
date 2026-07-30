@@ -37,11 +37,27 @@ of surfacing the same objects over and over for the rest of a process's life.
 
 ## Watch, then confirm
 
-An object that is still reachable a moment after its lifecycle ends is not evidence of anything:
-garbage collection may simply not have run yet. LeakCanary therefore never concludes on first look.
-It holds a weak reference to the watched object, waits long enough for the garbage collector to have
-had a chance to update reachability, and runs garbage collection itself before deciding. An object
-still strongly reachable after all that is **retained**, and only then is the heap worth looking at.
+An object that is still reachable a moment after its lifecycle ends is not evidence of anything.
+LeakCanary therefore never concludes on first look: it holds a weak reference to the watched object,
+and then puts three things between the end of a lifecycle and a verdict, each there for a different
+reason.
+
+First it waits for the main thread to go idle, so that the check can't run before the app has
+finished letting go of the object. Without that, a slow enough device reports a leak that is really
+just work not done yet.
+
+Then it waits five seconds — and that number is not about the garbage collector, which is the natural
+assumption and the one to resist. Android holds objects temporarily through messages posted to the
+main thread with a delay: a blinking cursor, a fling settling, an animation finishing. Those
+references clear themselves once the message runs, and five seconds is the window judged long enough
+for that backlog to drain. Tuning the number down because "a collection should have happened by now"
+is arguing with the wrong mechanism.
+
+Only then does LeakCanary run garbage collection itself, rather than waiting any longer for one to
+happen. An object still strongly reachable after all three is **retained**, and only then is the heap
+worth looking at. The five seconds are inherited from a constant that was named after the garbage
+collector before anyone worked out what the wait was really for; the
+[history page](history.md#becoming-a-library) has that story.
 
 What LeakCanary waits for is weak reachability, not collection. A weak reference is enqueued as soon
 as its target becomes weakly reachable, before finalization or collection has actually happened,
@@ -77,7 +93,8 @@ footprint: a 160 MB heap dump that takes 2 GB of memory to open in Android Studi
 Shark. Before that, the analysis had to run in a separate process, and every app needed code in
 its `Application` class to avoid initializing itself there. Fitting the analysis into the app process
 removed that requirement. A separate process is still available for apps where in-process analysis is
-too expensive, but it is now an option rather than the default.
+too expensive, but it is now an option rather than the default. Getting to that number took
+[four parsers](history.md#four-heap-parsers), three of them replaced for the same reason.
 
 Analyzing on the device also means the heap dump never has to go anywhere. A heap dump contains
 everything that was in memory, which for a real app includes user data, credentials and keys. That's
@@ -186,16 +203,9 @@ None of this is LeakCanary's invention. Showing a collection by its API rather t
 an old idea, long offered by debuggers and heap analyzers. What LeakCanary borrowed is the sharper
 version of it: abstracting *while* the graph is walked, rather than in a pass over the finished path.
 Compressing afterwards is the obvious alternative and it works badly — by the time there is a path,
-the context needed to describe what was collapsed has been thrown away.
-
-That design came from the leak checking harness the Android Studio team runs against Android Studio
-itself, where Nathan Paige built it as a set of
-[expanders](https://cs.android.com/android-studio/platform/tools/adt/idea/+/mirror-goog-studio-main:bleak/src/com/android/tools/idea/bleak/expander/Expander.kt),
-one of which elides an object's internal structure so that its children "align more closely with some
-more abstract notion of ownership". That harness is named BLeak and finds leaks the way
-[the BLeak paper](https://doi.org/10.1145/3192366.3192376) does — John Vilk and Emery D. Berger, PLDI
-2018 — but the paper is about JavaScript in web applications, and the expanders are the Android
-Studio implementation's own.
+the context needed to describe what was collapsed has been thrown away. Both the idea and the name
+for the thing that does it — an **expander** — came from the Android Studio team, and the
+[history page](history.md#expanders-and-where-they-came-from) has the provenance.
 
 ## The trace reads from the roots down
 
@@ -204,8 +214,8 @@ bottom, and every reference on its own line between the two objects it connects.
 choice, and not the obvious one. Ask a heap analyzer the same question and it answers the other way
 round: a path to garbage collection roots starts at the object you asked about and walks back. So
 does a stack trace, where the root of the call stack is at the bottom. The notes for LeakCanary 2's
-redesign argued for that convention on exactly those grounds, and several prototypes were drawn that
-way before the direction was kept as it is.
+redesign argued for that convention on exactly those grounds, and it was
+[prototyped and rejected](history.md#leakcanary-2).
 
 What settled it is the thing the rest of this page keeps coming back to: the bug is a reference, not
 an object. Read from the roots down and you are reading in the direction the references point, so
