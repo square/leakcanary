@@ -127,9 +127,18 @@ class PrioritizingShortestPathFinder private constructor(
     val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
 
     /**
-     * Enables fast checking of whether a node is already in the queue.
+     * The ids of the nodes in [toVisitLastQueue], so that [enqueue] can tell an object that is
+     * waiting in the low priority queue (and should be promoted) from one that was already visited,
+     * without scanning the queue.
+     *
+     * There's deliberately no matching set for [toVisitQueue]: an object is added to exactly one of
+     * the two queues and removed from it when polled, so it's never in both, and therefore being in
+     * this set already means not being in [toVisitQueue].
+     *
+     * Unlike [visitedSet] this stays a set of ids keyed by hash: it only ever holds references
+     * matched by a library leak pattern, java locals and matched GC roots, which peaks in the dozens
+     * on real heap dumps, where a bit per object in the dump would cost hundreds of kilobytes.
      */
-    val toVisitSet = LongScatterSet()
     val toVisitLastSet = LongScatterSet()
 
     val queuesNotEmpty: Boolean
@@ -373,9 +382,7 @@ class PrioritizingShortestPathFinder private constructor(
 
   private fun State.poll(): ReferencePathNode {
     return if (!visitingLast && !toVisitQueue.isEmpty()) {
-      val removedNode = toVisitQueue.poll()
-      toVisitSet.remove(removedNode.objectId)
-      removedNode
+      toVisitQueue.poll()
     } else {
       visitingLast = true
       val removedNode = toVisitLastQueue.poll()
@@ -427,16 +434,14 @@ class PrioritizingShortestPathFinder private constructor(
 
     when {
       alreadyEnqueued -> {
-        val bumpPriority =
-          !visitLast &&
-            node.objectId !in toVisitSet &&
-            // This could be false if node had already been visited.
-            node.objectId in toVisitLastSet
+        // Already visited and waiting in the low priority queue: it can be reached at a higher
+        // priority than we thought, so move it. Being in toVisitLastSet also means not being in
+        // toVisitQueue, since an object is only ever in one of the two queues.
+        val bumpPriority = !visitLast && node.objectId in toVisitLastSet
 
         if (bumpPriority) {
           // Move from "visit last" to "visit first" queue.
           toVisitQueue.add(node)
-          toVisitSet.add(node.objectId)
           val nodeToRemove = toVisitLastQueue.first { it.objectId == node.objectId }
           toVisitLastQueue.remove(nodeToRemove)
           toVisitLastSet.remove(node.objectId)
@@ -450,7 +455,6 @@ class PrioritizingShortestPathFinder private constructor(
 
       else -> {
         toVisitQueue.add(node)
-        toVisitSet.add(node.objectId)
       }
     }
   }
