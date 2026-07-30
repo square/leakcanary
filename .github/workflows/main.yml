@@ -105,7 +105,7 @@ jobs:
             # window holds focus, and names only the window it wanted rather than the one that has
             # focus. Recording the focused window up front says which one that is.
             echo "Focused window before tests: $(adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp')"
-            ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck --no-build-cache --no-daemon --stacktrace
+            ./gradlew leakcanary:leakcanary-android-core:connectedCheck leakcanary:leakcanary-android:connectedCheck leakcanary:leakcanary-android-instrumentation:connectedCheck leakcanary:leakcanary-android-test:connectedCheck --no-build-cache --no-daemon --stacktrace
             # Force-kill the emulator before the action's post-step cleanup.
             # On API 26, the emulator process can hang for 20+ minutes after receiving
             # adb emu kill, causing the job to hit its 30-minute timeout. Killing the

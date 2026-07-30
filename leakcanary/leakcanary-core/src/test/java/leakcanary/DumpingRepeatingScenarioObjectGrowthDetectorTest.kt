@@ -107,6 +107,28 @@ class DumpingRepeatingScenarioObjectGrowthDetectorTest {
     )
   }
 
+  @Test
+  fun `out of memory failure is replaced with guidance`() {
+    val heapDumpDirectory = tempFolder.newFolder()
+
+    val detector = DumpingRepeatingScenarioObjectGrowthDetector(
+      objectGrowthDetector = ObjectGrowthDetector.forJvmHeap(),
+      heapDumpFileProvider = {
+        File(heapDumpDirectory, "dump.hprof")
+      },
+      heapDumper = {
+        throw OutOfMemoryError("Java heap space")
+      },
+      heapDumpStorageStrategy = DeleteOnHeapDumpClose(),
+    )
+
+    assertThatThrownBy {
+      detector.findRepeatedlyGrowingObjects {
+      }
+    }.hasMessageStartingWith("Not enough memory to detect heap growth")
+      .hasRootCauseInstanceOf(OutOfMemoryError::class.java)
+  }
+
   private fun HeapDumpStorageStrategy.triggerIndexingFailure(heapDumpDirectory: File) {
     val heapDumpFiles = generateSequence(1) {
       it + 1

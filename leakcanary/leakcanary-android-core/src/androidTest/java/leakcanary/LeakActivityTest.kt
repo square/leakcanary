@@ -18,6 +18,7 @@ import java.io.File
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
 import leakcanary.internal.activity.db.LeakTable.AllLeaksProjection
+import leakcanary.internal.ProcessHeapLimit
 import leakcanary.internal.activity.db.ScopedLeaksDb
 import leakcanary.internal.withOutOfMemoryGuidance
 import org.hamcrest.Description
@@ -143,7 +144,7 @@ internal class LeakActivityTest {
 
     onView(withText(containsString("The analysis ran out of memory")))
       .check(matches(isDisplayed()))
-    onView(withText(containsString("Not enough memory to analyze heap")))
+    onView(withText(containsString("Not enough memory to analyze the heap dump")))
       .check(matches(isDisplayed()))
     onView(withText(containsString("file a bug report"))).check(doesNotExist())
   }
@@ -171,6 +172,7 @@ internal class LeakActivityTest {
         staticField["leak"] = "com.example.Leaking" watchedInstance {}
       }
     }
+    val context = InstrumentationRegistry.getInstrumentation().targetContext
     val failure = HeapAnalysisFailure(
       heapDumpFile = hprofFile,
       createdAtTimeMillis = System.currentTimeMillis(),
@@ -178,8 +180,7 @@ internal class LeakActivityTest {
       exception = HeapAnalysisException(cause)
       // Applied by AndroidDebugHeapAnalyzer before the failure is stored, so the screen always
       // reads a failure that has already been through it.
-    ).withOutOfMemoryGuidance()
-    val context = InstrumentationRegistry.getInstrumentation().targetContext
+    ).withOutOfMemoryGuidance(ProcessHeapLimit.read(context))
     return ScopedLeaksDb.writableDatabase(context) { db ->
       HeapAnalysisTable.insert(db, failure)
     }

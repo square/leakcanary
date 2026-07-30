@@ -43,9 +43,9 @@ Java 8 have to be able to use the artifacts.
 ```
 
 Instrumentation tests need a device or emulator and only cover `leakcanary-android`,
-`leakcanary-android-core` and `leakcanary-android-instrumentation`. CI runs them on one emulator per
-major Android release, from the minSdk to the newest API level with a system image, so a change that
-only works on some API levels will fail there rather than locally.
+`leakcanary-android-core`, `leakcanary-android-instrumentation` and `leakcanary-android-test`. CI
+runs them on one emulator per major Android release, from the minSdk to the newest API level with a
+system image, so a change that only works on some API levels will fail there rather than locally.
 
 ## Things that will bite you
 
