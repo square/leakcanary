@@ -48,7 +48,7 @@ recursion are directly unit-testable.
 The first version reserved an **18 dp header** at the top of every subdivided rectangle for its label,
 and `minSubdivideHeight` was 24 dp because a level had to fit a header plus one visible child. On a real
 app that hides everything worth seeing: the chain from the activity down to a list row in the 82 MB
-production dump is **38 levels**, and 38 × 18 dp is 684 dp of a 630 dp viewport. The window filled up
+production dump was **38 levels**, and 38 × 18 dp is 684 dp of a 630 dp viewport. The window filled up
 with full-width label bands and the bitmaps at the bottom of the chain never got drawn at all. Drilling
 in only bought back 18 dp per level skipped, so it took several goes and still ran out.
 
@@ -56,8 +56,11 @@ So a subdivided node's children now cover it **exactly**, and nesting is drawn a
 being given room: `TreemapView` draws every fill first and every outline second, so a level reads as a
 1 px line over its contents rather than as a strip beside them. Where a chain of single children shares
 an edge the outlines stack up into a heavier line, which is the view saying there's more here than one
-rectangle. Measured on that dump, same viewport: the three biggest bitmaps come out at **depth 38, 122×76
-px, 1.3% of the view each**, 2,032 cells, nothing truncated, 0.5 s to lay out and 0.15 s to label.
+rectangle. Measured on that dump in a 1180×630 px viewport: the three biggest bitmaps come out at
+**depth 22, 128×75 px, 1.3% of the view each**, 2,279 cells, nothing truncated. (That chain is 22 levels
+rather than 38 because the `View[]` between every two views is no longer a level of the tree — see
+`dominator-tree.md`. The arithmetic above is what it was when it was 38, and it's still 378 dp of a 630 dp
+viewport at 21 headers, so the conclusion doesn't move.)
 
 Two things follow, and both are behaviour rather than polish:
 

@@ -33,7 +33,9 @@ and only one of them belongs here:
   latter also installs `FlatteningPartitionedInstanceReferenceReader`, which surfaces a map's or
   list's internals as direct children of the collection and marks them leaf objects. Good for a leak
   trace, wrong here — a treemap needs every object to be a node exactly once, and the array a
-  `HashMap` actually holds has to be a node of its own or its bytes land nowhere.
+  `HashMap` actually holds has to be a node of its own or its bytes land nowhere. Where presenting a
+  structure that way is worth it anyway, the explorer *adds* the reference instead of swapping it in —
+  one reader does, for a `ViewGroup`'s children, and the array is still a node.
 
 **The strength that decides whether a weakening edge is followed is the target's, not the reference's.**
 A `WeakReference` whose referent is also held strongly is the common case, and following that edge adds a
@@ -193,9 +195,9 @@ under a `CheckoutGridTile`, 44 flat under `All GC roots`. Both `DecorView`s were
 view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 
 `OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus the
-fields and array classes that own them. Three today — `android.view.View` owned by any
-`android.view.View[]` element (the array a `ViewGroup` keeps its children in) and by `Activity.mDecor` or
-`Dialog.mDecor`, and `android.app.Activity` owned by
+references that own them — named fields, or the virtual references a class's instances hand out. Three
+today — `android.view.View` owned by the `ViewGroup` that reads it as a child (see below) and by
+`Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by
 `ActivityThread$ActivityClientRecord.activity`. After: **every one of the 277 child views is under its
 parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains
 18 MB under the record the framework runs it from, which is the second largest rectangle under the GC
@@ -228,14 +230,47 @@ Two things to know before adding a rule:
   activity all 18 MB of its hierarchy: a `JankStatsMonitor` held the window from a GC root of its own, so
   the decor view's dominator became the top of the tree. Pick the one reference you'd want to read the
   bytes under.
-- **An array class owns by its type**, so `View[]` owns its elements but an `ArrayList` of views doesn't,
-  since that holds them in an `Object[]`. That's deliberate — a collection of views is a bystander — but
-  it does mean an app's own `View[]` would claim ownership too.
+- **An owner has to be nameable.** A rule names a field on a class, or a class whose virtual references
+  own. An *array* can only be named by its type, which is what the first version of the view rule did —
+  every `android.view.View[]` element owned what it pointed at — and a type says nothing about whose
+  children the array holds, so an app's own `View[]` of views it merely points at claimed them too. Hence
+  the reader below.
 
 Ownership is **not** a `ReachabilityStrength` and can't be: strength is a min over the references of a
 path, while owning is a property of the last reference alone. It's a separate binary verdict per object,
 gated in the same place — `WeakeningAwareReferenceReader`, which the dominator tree, the referrer index
 and the path search all read through, so all three see one edge set.
+
+### A `ViewGroup` points at its children: the one virtual reference the explorer adds
+
+`ViewChildReferenceReader` gives a `ViewGroup` one reference per child, named by index and marked virtual,
+which is what the view `OwnerRule` claims ownership through. It reads `mChildren` bounded by
+`mChildrenCount`, in the shape Shark gives the collections it flattens.
+
+The framework stores children in a `View[]` it grows in chunks, so without this every parent to child link
+in a heap dump goes through an array, and the array is the only thing a rule can point at. Measured on the
+82 MB dump, the chain from the GC roots down to the bitmap of a list row: **37 levels with 16 `View[]`
+among them, 21 levels without**, and the biggest `View[]` went from retaining 18.55 MB — the whole window
+— to 411 B. All 96 `View[]` arrays together now retain 4,959 B against 4,859 B of their own bytes.
+
+Three things make it safe, and each one is a decision:
+
+- **Additive, not a swap.** The array is still reached through `mChildren` and is still a node of its own,
+  which is what keeps every object of the dump a node exactly once. `ReferenceStrengthReader` appends
+  these to what the matching reader returns, which is also why `HeapReachability`'s walk sees them — it
+  reads `retainingReferencesOf` directly, and an owner reference the walk didn't follow would be an owner
+  that never gets its chance.
+- **The dominator tree takes the array out of the middle, not the reader.** Both ways to a child now start
+  at the parent — straight there, and through `mChildren` — so the parent dominates it. Nothing had to
+  prune an edge for the level to collapse.
+- **The `View[]` element no longer owns**, so it's a rival like any other reference: a view in a slot past
+  `mChildrenCount` — a dump caught inside `addViewInner`, or a fork that doesn't null the slot it gives up
+  — falls back on the array holding it, rather than being attributed to a parent that doesn't hold it.
+  That's what `a view in a slot its parent doesn't count is not one of its children` pins.
+
+Byte counts are untouched by all of it, which is the check that no object moved out of the graph: 83.83 MB
+strong, 2.05 MB thread local, 28 B local, 2.6 KB finalizer, 190 KB unreachable, 1,019,837 objects, before
+and after.
 
 ## What holds an object: the dominator, then the paths below it
 

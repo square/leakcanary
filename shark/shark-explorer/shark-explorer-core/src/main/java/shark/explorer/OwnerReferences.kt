@@ -6,8 +6,8 @@ import androidx.collection.MutableLongSet
 import java.util.BitSet
 import shark.HeapGraph
 import shark.HeapObject
+import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
-import shark.HeapObject.HeapObjectArray
 import shark.Reference
 
 /**
@@ -35,8 +35,15 @@ internal class OwnerRule(
    * whole class hierarchy of the referring object, so a rule on a base class covers every subclass.
    */
   val ownerFieldsByClassName: Map<String, Set<String>> = emptyMap(),
-  /** The array classes whose every element owns what it points at. */
-  val ownerArrayClassNames: Set<String> = emptySet()
+  /**
+   * The classes whose virtual references own what they point at, subclasses included.
+   *
+   * Those are the references the explorer adds itself, to present a structure the way you think about it
+   * instead of the way it's built, and an owner named that way is named by what it is rather than by a
+   * field it holds the object in: a `ViewGroup` owns the children [ViewChildReferenceReader] reads for it,
+   * whichever slot of whichever array each one is really in.
+   */
+  val ownerVirtualClassNames: Set<String> = emptySet()
 )
 
 /**
@@ -59,15 +66,15 @@ internal class OwnerReferences private constructor(
   /** Every object of the heap dump an [OwnerRule] applies to, however it turns out to be held. */
   private val ownedObjectIds: LongSet,
   private val ownerFieldsByClassName: Map<String, Set<String>>,
-  private val ownerArrayClassIds: LongSet
+  private val ownerVirtualClassNames: Set<String>
 ) {
 
   /**
-   * Which fields of a class own what they point at, by class object id. Cached because it takes a class
-   * hierarchy walk to work out and a heap dump has far more instances than classes, the same way
+   * What the instances of a class own, by class object id. Cached because it takes a class hierarchy walk
+   * to work out and a heap dump has far more instances than classes, the same way
    * [ReferenceStrengthReader] caches its weakening fields.
    */
-  private val ownerFieldNamesByClassId = MutableLongObjectMap<Set<String>>()
+  private val ownershipByClassId = MutableLongObjectMap<Ownership>()
 
   /**
    * The owned objects nothing that owns them reached, so that what points at them is how they're held
@@ -77,11 +84,8 @@ internal class OwnerReferences private constructor(
   private val lastResortHeldObjectIndexes = BitSet(graph.objectCount)
 
   /** What [source] owns, worked out once per object rather than once per reference out of it. */
-  fun ownershipOf(source: HeapObject): Ownership = when {
-    source is HeapObjectArray && ownerArrayClassIds.contains(source.arrayClassId) -> OWNS_EVERY_ELEMENT
-    source is HeapInstance -> ownerFieldNamesOf(source)
-    else -> OWNS_NOTHING
-  }
+  fun ownershipOf(source: HeapObject): Ownership =
+    if (source is HeapInstance) ownershipOfInstancesOf(source.instanceClass) else OWNS_NOTHING
 
   /**
    * Whether [reference] out of an object with [sourceOwnership] points at an object something else owns,
@@ -119,38 +123,51 @@ internal class OwnerReferences private constructor(
     return lastResortHeldObjectIndexes.get(target.objectIndex)
   }
 
-  private fun ownerFieldNamesOf(source: HeapInstance): Ownership {
-    val ownerFieldNames = ownerFieldNamesByClassId.getOrPut(source.instanceClassId) {
+  /** Every instance of a class owns the same fields and the same virtual references. */
+  private fun ownershipOfInstancesOf(instanceClass: HeapClass): Ownership =
+    ownershipByClassId.getOrPut(instanceClass.objectId) {
+      val hierarchy = instanceClass.classHierarchy.toList()
       // Superclass first, so that a subclass adding an owner field keeps the ones it inherits: an
       // Activity subclass owns its decor view through the field android.app.Activity declares.
-      source.instanceClass.classHierarchy
-        .toList()
+      val ownerFieldNames = hierarchy
         .asReversed()
         .fold(emptySet<String>()) { inherited, heapClass ->
           ownerFieldsByClassName[heapClass.name]?.let { inherited + it } ?: inherited
         }
+      // Against the hierarchy for the same reason: a LinearLayout owns its children through the rule on
+      // android.view.ViewGroup.
+      val ownsEveryVirtualReference = hierarchy.any { it.name in ownerVirtualClassNames }
+      if (ownerFieldNames.isEmpty() && !ownsEveryVirtualReference) {
+        OWNS_NOTHING
+      } else {
+        Ownership(ownerFieldNames, ownsEveryVirtualReference)
+      }
     }
-    return if (ownerFieldNames.isEmpty()) OWNS_NOTHING else Ownership(ownerFieldNames, false)
-  }
 
   /**
-   * What one object owns: either every element it holds, or the values of a set of named fields, which
-   * for nearly every object of a heap dump is nothing at all.
+   * What one object owns: the values of a set of named fields, and whether the virtual references the
+   * explorer reads for it own what they point at. For nearly every object of a heap dump, nothing at all.
    */
   internal class Ownership(
     private val ownerFieldNames: Set<String>,
-    private val ownsEveryElement: Boolean
+    private val ownsEveryVirtualReference: Boolean
   ) {
 
     /**
      * Whether [reference] is the owning one. Only ever asked about a reference into an owned object, so
-     * resolving the details of one to read its field name stays rare — it's the field names that cost,
-     * and an object that owns nothing never gets that far.
+     * resolving the details of one to read its name stays rare — it's the names that cost, and an object
+     * that owns nothing never gets that far.
      */
-    fun owns(reference: Reference): Boolean = when {
-      ownsEveryElement -> true
-      ownerFieldNames.isEmpty() -> false
-      else -> reference.lazyDetailsResolver.resolve().name in ownerFieldNames
+    fun owns(reference: Reference): Boolean {
+      if (ownerFieldNames.isEmpty() && !ownsEveryVirtualReference) {
+        return false
+      }
+      val details = reference.lazyDetailsResolver.resolve()
+      return if (details.isVirtual) {
+        ownsEveryVirtualReference
+      } else {
+        details.name in ownerFieldNames
+      }
     }
   }
 
@@ -165,12 +182,16 @@ internal class OwnerReferences private constructor(
      * an object is held, and getting that wrong moves bytes to the wrong place in the tree.
      */
     private val RULES = listOf(
-      // A view of a hierarchy is held by its parent, through the array a ViewGroup keeps its children
-      // in. Only a View[] owns, so an ArrayList of views — which holds them in an Object[] — doesn't
-      // claim to.
+      // A view of a hierarchy is held by its parent, through the virtual reference
+      // [ViewChildReferenceReader] reads from a ViewGroup to each of its children.
+      //
+      // Not through the View[] the framework really keeps them in, which is what this rule used to say.
+      // An array owns by its type or not at all — there is nothing on it to say whose children it holds —
+      // so a rule about View[] also hands ownership to an app's own array of views it merely points at,
+      // and it leaves a hierarchy hanging off an unnamed array at every level of the tree.
       OwnerRule(
         ownedClassName = VIEW_CLASS_NAME,
-        ownerArrayClassNames = setOf("$VIEW_CLASS_NAME[]")
+        ownerVirtualClassNames = setOf(ViewChildReferenceReader.VIEW_GROUP_CLASS_NAME)
       ),
       // The root view of a hierarchy has no parent to own it, and belongs to whatever the hierarchy is
       // for. Attributing a window's views to the Activity or Dialog they're for is the whole point:
@@ -207,8 +228,6 @@ internal class OwnerReferences private constructor(
 
     private val OWNS_NOTHING = Ownership(emptySet(), false)
 
-    private val OWNS_EVERY_ELEMENT = Ownership(emptySet(), true)
-
     /**
      * Applies [RULES] to [graph], which takes one pass over its classes and one over its instances.
      *
@@ -221,15 +240,11 @@ internal class OwnerReferences private constructor(
       RULES.mapTo(mutableSetOf()) { it.ownedClassName }.forEach { className ->
         graph.findClassByName(className)?.let { ownedClassIds += it.objectId }
       }
-      val ownerArrayClassIds = MutableLongSet()
-      RULES.flatMapTo(mutableSetOf()) { it.ownerArrayClassNames }.forEach { className ->
-        graph.findClassByName(className)?.let { ownerArrayClassIds += it.objectId }
-      }
       return OwnerReferences(
         graph = graph,
         ownedObjectIds = ownedObjectIdsOf(graph, ownedClassIds),
         ownerFieldsByClassName = ownerFieldsByClassName(),
-        ownerArrayClassIds = ownerArrayClassIds
+        ownerVirtualClassNames = RULES.flatMapTo(mutableSetOf()) { it.ownerVirtualClassNames }
       )
     }
 

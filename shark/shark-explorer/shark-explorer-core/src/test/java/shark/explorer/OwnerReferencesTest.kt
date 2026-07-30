@@ -6,6 +6,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
+import shark.ReferenceLocationType.ARRAY_ENTRY
 import shark.ValueHolder
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
@@ -30,9 +31,33 @@ class OwnerReferencesTest {
       assertThat(tree.dominatorOf(decor.objectId)!!.label).isEqualTo("MainActivity")
       assertThat(tree.independentPathsTo(decor.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("mDecor → DecorView"))
-      assertThat(tree.dominatorOf(leaf.objectId)!!.label).isEqualTo("View[]")
+      // Its parent, not the View[] the parent keeps it in: the parent points at each of its children
+      // itself — see [ViewChildReferenceReader] — so the array is no step on the way down to a view, and
+      // the one step there is names the child's index on the parent's own class.
+      assertThat(tree.dominatorOf(leaf.objectId)!!.label).isEqualTo("DecorView")
       assertThat(tree.independentPathsTo(leaf.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("0 → LeafView"))
+      val leafReference = tree.independentPathsTo(leaf.objectId)
+        .paths
+        .single()
+        .steps
+        .single()
+        .reference!!
+      assertThat(leafReference.ownerClassName).isEqualTo("DecorView")
+      assertThat(leafReference.locationType).isEqualTo(ARRAY_ENTRY)
+    }
+  }
+
+  @Test fun `a view in a slot its parent doesn't count is not one of its children`() {
+    HeapExplorer.open(viewHierarchyHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val uncounted = tree.findByLabel("UncountedView")
+
+      // What a parent holds is what mChildrenCount covers, not what its array has room for. A slot past
+      // the count is a view the parent has let go of or hasn't taken yet, and calling it a child would
+      // attribute a removed view to the parent that removed it — which is the leak you'd be looking for.
+      // So nothing owns this one, and the array that points at it holds it as a last resort.
+      assertThat(tree.dominatorOf(uncounted.objectId)!!.label).isEqualTo("View[]")
     }
   }
 
@@ -51,7 +76,7 @@ class OwnerReferencesTest {
       assertThat(tree.independentPathsTo(detached.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("mNextServedView → DetachedRoot"))
       // And the hierarchy under it still nests inside it, because its own children do have a parent.
-      assertThat(tree.dominatorOf(detachedChild.objectId)!!.label).isEqualTo("View[]")
+      assertThat(tree.dominatorOf(detachedChild.objectId)!!.label).isEqualTo("DetachedRoot")
     }
   }
 
@@ -80,10 +105,11 @@ class OwnerReferencesTest {
     }
   }
   /**
-   * A heap dump shaped like the view hierarchies of a running app: an activity holding its decor view,
-   * the decor view holding a child through the array a `ViewGroup` keeps its children in, and two things
-   * pointing at views they don't hold — a `ViewRootImpl` and an `InputMethodManager`, each a GC root of
-   * its own so that both are closer to a root than the activity is.
+   * A heap dump shaped like the view hierarchies of a running app: an activity holding its decor view, the
+   * decor view holding a child through the array a `ViewGroup` keeps its children in — plus a view in a
+   * slot of that array it doesn't count — and two things pointing at views they don't hold, a
+   * `ViewRootImpl` and an `InputMethodManager`, each a GC root of its own so that both are closer to a
+   * root than the activity is.
    *
    * Plus a hierarchy that was taken off its window and is only still in memory because the input method
    * manager kept a reference into it, which is the shape of a real view leak.
@@ -105,7 +131,10 @@ class OwnerReferencesTest {
       val viewGroupClassId = clazz(
         className = "android.view.ViewGroup",
         superclassId = viewClassId,
-        fields = listOf("mChildren" to ReferenceHolder::class)
+        fields = listOf(
+          "mChildren" to ReferenceHolder::class,
+          "mChildrenCount" to IntHolder::class
+        )
       )
       val viewArrayClassId = arrayClass("android.view.View")
       val leafClassId = clazz(
@@ -142,10 +171,19 @@ class OwnerReferencesTest {
         leafClassId,
         listOf(payload, decorId, IntHolder(1), attachInfo, activityId)
       )
+      // A view in a slot of the array the parent's mChildrenCount doesn't cover, which is what a heap dump
+      // records when it suspends addViewInner between filling the slot and counting it.
+      val uncounted = instance(
+        clazz(className = "com.example.UncountedView", superclassId = viewClassId),
+        listOf(decorId, IntHolder(1), attachInfo, activityId)
+      )
       val decor = instance(
         decorClassId,
         listOf(
-          ReferenceHolder(objectArray(viewArrayClassId, longArrayOf(leaf.value))),
+          // mChildren holds two views; mChildrenCount says one of them is a child.
+          ReferenceHolder(objectArray(viewArrayClassId, longArrayOf(leaf.value, uncounted.value))),
+          IntHolder(1),
+          // Then what android.view.View declares: mParent, mWindowAttachCount, mAttachInfo, mContext.
           NO_REFERENCE,
           IntHolder(1),
           attachInfo,
@@ -163,6 +201,7 @@ class OwnerReferencesTest {
         clazz(className = "com.example.DetachedRoot", superclassId = viewGroupClassId),
         listOf(
           ReferenceHolder(objectArray(viewArrayClassId, longArrayOf(detachedChild.value))),
+          IntHolder(1),
           NO_REFERENCE,
           IntHolder(1),
           NO_REFERENCE,
