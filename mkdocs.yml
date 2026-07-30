@@ -69,6 +69,7 @@ nav:
     - 'Introduction': 'fundamentals.md'
     - 'How LeakCanary works': 'fundamentals-how-leakcanary-works.md'
     - 'Fixing a memory leak': 'fundamentals-fixing-a-memory-leak.md'
+    - 'Design decisions': 'design.md'
   - 'LeakCanary at scale':
     - 'Leak detection in UI tests': 'ui-tests.md'
     - 'Uploading analysis results': 'uploading.md'

@@ -247,4 +247,4 @@ Once you find the reference causing the leak, you need to figure out what that r
     Memory leaks cannot be fixed by replacing strong references with weak references. It's a common solution when attempting to quickly address memory issues, however it never works. The bugs that were causing references to be kept longer than necessary are still there. On top of that, it creates more bugs as some objects will now be garbage collected sooner than they should. It also makes the code much harder to maintain.
 
 
-What's next? Customize LeakCanary to your needs with [code recipes](recipes.md)!
+What's next? Learn about the [design decisions](design.md) behind LeakCanary!
