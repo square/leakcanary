@@ -158,6 +158,8 @@ internal class OwnerReferences private constructor(
 
     private const val VIEW_CLASS_NAME = "android.view.View"
 
+    private const val ACTIVITY_CLASS_NAME = "android.app.Activity"
+
     /**
      * The constructs the explorer knows about. Curated: each one is a claim that a reference is *the* way
      * an object is held, and getting that wrong moves bytes to the wrong place in the tree.
@@ -186,8 +188,19 @@ internal class OwnerReferences private constructor(
       OwnerRule(
         ownedClassName = VIEW_CLASS_NAME,
         ownerFieldsByClassName = mapOf(
-          "android.app.Activity" to setOf("mDecor"),
+          ACTIVITY_CLASS_NAME to setOf("mDecor"),
           "android.app.Dialog" to setOf("mDecor")
+        )
+      ),
+      // An activity belongs to the list of activities the process is running, and everything else that
+      // points at one — a context wrapper, a view, a fragment, a presenter, a callback — is something the
+      // activity brought along. Self-clearing in the same way: ActivityThread.handleDestroyActivity takes
+      // the record out of mActivities, so a destroyed activity has no owner left and falls back on
+      // whatever is leaking it, which is exactly what you want its bytes drawn under.
+      OwnerRule(
+        ownedClassName = ACTIVITY_CLASS_NAME,
+        ownerFieldsByClassName = mapOf(
+          "android.app.ActivityThread\$ActivityClientRecord" to setOf("activity")
         )
       )
     )

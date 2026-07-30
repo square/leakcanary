@@ -24,10 +24,10 @@ class OwnerReferencesTest {
       val decor = tree.findByLabel("DecorView")
       val leaf = tree.findByLabel("LeafView")
 
-      // A ViewRootImpl and an InputMethodManager both point at a view they don't hold, and both are one
-      // step from a GC root while the activity is three. Counting those as ways of holding a view is what
-      // scatters a window's hierarchy across whatever happens to be closest to a root.
-      assertThat(tree.dominatorOf(decor.objectId)!!.label).isEqualTo("Activity")
+      // A fallback event handler and an InputMethodManager both point at a view they don't hold, and both
+      // are one step from a GC root while the activity is two. Counting those as ways of holding a view is
+      // what scatters a window's hierarchy across whatever happens to be closest to a root.
+      assertThat(tree.dominatorOf(decor.objectId)!!.label).isEqualTo("MainActivity")
       assertThat(tree.independentPathsTo(decor.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("mDecor → DecorView"))
       assertThat(tree.dominatorOf(leaf.objectId)!!.label).isEqualTo("View[]")
@@ -52,6 +52,21 @@ class OwnerReferencesTest {
         .containsExactly(listOf("mNextServedView → DetachedRoot"))
       // And the hierarchy under it still nests inside it, because its own children do have a parent.
       assertThat(tree.dominatorOf(detachedChild.objectId)!!.label).isEqualTo("View[]")
+    }
+  }
+
+  @Test fun `an activity the framework hasn't destroyed is held by the framework`() {
+    HeapExplorer.open(viewHierarchyHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val activity = tree.findByLabel("MainActivity")
+
+      // Something else holding a live activity is holding what the framework is running, so the record in
+      // ActivityThread.mActivities is where its bytes belong. Once the framework destroys it that record
+      // is gone, and then the thing still pointing at it is both its owner and its leak.
+      assertThat(tree.dominatorOf(activity.objectId)!!.label)
+        .isEqualTo("ActivityThread\$ActivityClientRecord")
+      assertThat(tree.independentPathsTo(activity.objectId).paths.map { it.stepLabels() })
+        .containsExactly(listOf("activity → MainActivity"))
     }
   }
 
@@ -102,11 +117,16 @@ class OwnerReferencesTest {
         className = "com.android.internal.policy.DecorView",
         superclassId = viewGroupClassId
       )
-      val activityClassId = clazz(
-        className = "android.app.Activity",
-        fields = listOf(
-          "mDecor" to ReferenceHolder::class,
-          "mDestroyed" to BooleanHolder::class
+      // The owner field is declared by android.app.Activity and the instance is a subclass of it, which is
+      // how a real dump looks and what makes this cover the class hierarchy walk.
+      val mainActivityClassId = clazz(
+        className = "com.example.MainActivity",
+        superclassId = clazz(
+          className = "android.app.Activity",
+          fields = listOf(
+            "mDecor" to ReferenceHolder::class,
+            "mDestroyed" to BooleanHolder::class
+          )
         )
       )
       // Views point back at their parent, at their hierarchy's root and at their activity, so their ids
@@ -150,7 +170,12 @@ class OwnerReferencesTest {
         ),
         objectId = detachedRootId
       )
-      instance(activityClassId, listOf(decor, BooleanHolder(false)), objectId = activityId)
+      instance(mainActivityClassId, listOf(decor, BooleanHolder(false)), objectId = activityId)
+      // What the framework runs the activity from, and something outside it that also points at it.
+      val activityRecord = "android.app.ActivityThread\$ActivityClientRecord" instance {
+        field["activity"] = activityId
+      }
+      val leaker = "com.example.Leaker" instance { field["activity"] = activityId }
       val fallbackHandler = "com.android.internal.policy.PhoneFallbackEventHandler" instance {
         field["mView"] = decor
       }
@@ -158,9 +183,10 @@ class OwnerReferencesTest {
         field["mServedView"] = leaf
         field["mNextServedView"] = detachedRootId
       }
-      gcRoot(JniGlobal(id = activityId.value, jniGlobalRefId = 0))
-      gcRoot(JniGlobal(id = fallbackHandler.value, jniGlobalRefId = 1))
-      gcRoot(JniGlobal(id = inputMethodManager.value, jniGlobalRefId = 2))
+      gcRoot(JniGlobal(id = activityRecord.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = leaker.value, jniGlobalRefId = 1))
+      gcRoot(JniGlobal(id = fallbackHandler.value, jniGlobalRefId = 2))
+      gcRoot(JniGlobal(id = inputMethodManager.value, jniGlobalRefId = 3))
     }
     return file
   }
