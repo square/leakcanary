@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <!--
-    Shark Explorer: a shark, teeth bared, in LeakCanary's yellow (#FFCC32) and amber (#F5BD14), on a
+    Shark Explorer: a shark, mouth open, in LeakCanary's yellow (#FFCC32) and amber (#F5BD14), on a
     ground the colour of the app's slate scheme and nothing else. It fills the icon on purpose, so
     that it still reads as a shark at the size a dock shows.
 
@@ -25,6 +25,9 @@
   <g id="shark" transform="translate(101.1 536.5) scale(0.7888)">
     <path d="M 628 78 C 596 158 536 224 462 268 C 494 202 512 142 518 98 Z" fill="#F5BD14"/> <!-- pectoral fin -->
     <path d="M 190 -44 C 146 -122 96 -218 44 -306 C 34 -226 56 -122 116 -20 C 108 30 92 76 62 122 C 114 84 164 48 196 26 Z" fill="#FFCC32"/> <!-- tail -->
+    <!-- The lower jaw, dropped. It is drawn before the body so the body covers where it hinges, and
+         in the underside's amber so it reads as part of the shark rather than as something added. -->
+    <path d="M 830 56 C 874 74 918 84 956 76 C 950 104 906 112 862 104 C 840 98 828 80 830 56 Z" fill="#F5BD14"/>
     <path d="M 1000 6 C 1002 -26 984 -54 940 -74 C 872 -104 780 -122 682 -128 L 556 -330 C 542 -240 512 -168 462 -118 C 372 -108 268 -86 190 -46 L 190 28 C 286 74 402 104 520 114 C 636 122 744 110 830 82 C 900 60 966 34 1000 6 Z" fill="#FFCC32"/> <!-- body -->
     <path d="M 190 28 C 286 74 402 104 520 114 C 636 122 744 110 830 82 C 900 60 966 34 1000 6 C 940 26 856 44 790 50 C 640 62 400 46 190 28 Z" fill="#F5BD14"/> <!-- underside -->
     <path d="M 706 -100 C 694 -66 692 -30 700 4" fill="none" stroke="#F5BD14" stroke-width="17" stroke-linecap="round"/>
@@ -32,10 +35,15 @@
     <path d="M 790 -84 C 778 -54 776 -24 784 0" fill="none" stroke="#F5BD14" stroke-width="17" stroke-linecap="round"/>
     <!-- A shark's eye is small, and an oval tilted with the head rather than a dot. -->
     <ellipse cx="886" cy="-52" rx="19" ry="15" transform="rotate(-12 886 -52)" fill="#151C1F"/>
-    <!-- Four teeth on the upper jaw and three on the lower, interlocking. They are notched to a
-         fixed depth into a band of near constant width, which is what makes every tooth the same
-         size: notching by a fraction of a band that tapers gives big teeth at the back and slivers
-         at the front, and an uneven row reads as a saw blade rather than as a jaw. -->
-    <path d="M 794 36 L 794.3 31.1 L 795.9 26 L 799.4 20 L 804.7 13.7 L 808.4 14.8 L 818.8 24.5 L 829.1 8.1 L 844 20.6 L 853.7 3.8 L 868.9 15.9 L 878.2 -1.3 L 893.8 10.1 L 900.3 -3.2 L 902.8 -6.4 L 937.3 -1.8 L 948.7 0.6 L 952 2 L 948.5 7.4 L 940 16.4 L 927 27.9 L 915.5 36.9 L 911.8 39.5 L 896.3 43.6 L 880.3 36.2 L 870.7 47.9 L 857.3 40.9 L 847.7 52.2 L 834.5 44.7 L 822.8 57.2 L 812.6 58.4 L 805.8 54.1 L 799 47.7 L 795.4 41.9 Z" fill="#151C1F"/>
+    <!-- The mouth: the roof of the upper jaw forward, then straight down across the opening, then
+         back along the lower jaw's tooth line. The roof stops short of the snout so the snout
+         overhangs the mouth instead of thinning into a beak, which is what it did when the roof ran
+         all the way forward. -->
+    <path d="M 830 56 C 872 38 912 24 946 14 L 956 76 C 918 84 874 74 830 56 Z" fill="#151C1F"/>
+    <!-- Five teeth above and four below, interlocking. Each is the same size as the others, which is
+         what stops the row reading as a saw blade; a tooth sized to the gape it sits in can't be,
+         because the gape closes toward the hinge. Their bases sit 2 outside the tooth line so that
+         no seam shows along it. -->
+    <path d="M 847.4 46.6 L 861.8 55.9 L 866 39.2 Z M 865.2 39.5 L 879.5 49 L 883.9 32.4 Z M 883.1 32.7 L 897.2 42.5 L 902 26 Z M 901.2 26.3 L 915.1 36.3 L 920.1 19.9 Z M 919.3 20.2 L 933.1 30.5 L 938.4 14.2 Z M 849.1 65.4 L 862.8 55.2 L 868.1 71.5 Z M 874.8 73.3 L 887.6 62 L 894.3 77.6 Z M 901.2 78.7 L 912.5 66 L 921.1 80.6 Z M 928.2 80.8 L 937.2 66.5 L 948.1 79.4 Z" fill="#FFCC32"/>
   </g>
 </svg>
