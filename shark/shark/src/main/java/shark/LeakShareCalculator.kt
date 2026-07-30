@@ -6,6 +6,7 @@ import androidx.collection.MutableLongLongMap
 import androidx.collection.MutableLongSet
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import shark.internal.HeapObjectIdSet
 import shark.internal.hppc.LongDeque
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
@@ -52,21 +53,13 @@ internal class LeakShareCalculator(
   private val gcRootProvider: GcRootProvider,
   private val objectReferenceReader: ReferenceReader<HeapObject>,
   private val objectSizeCalculator: ObjectSizeCalculator,
-  /**
-   * An empty set that phase 1 fills with R₀. Passed in rather than allocated here so that
-   * [ObjectGrowthDetector] can hand over the set it tracked visited objects with, which it's done
-   * with by the time leak shares are computed, instead of having a second set the size of the heap
-   * allocated.
-   */
-  private val objectsReachableWithoutGrowth: MutableLongSet,
 ) {
 
-  init {
-    check(objectsReachableWithoutGrowth.isEmpty()) {
-      "objectsReachableWithoutGrowth should be empty, " +
-        "has ${objectsReachableWithoutGrowth.size} elements"
-    }
-  }
+  /**
+   * Phase 1 fills this with R₀. One bit per object in the heap dump, so it costs the same half a
+   * megabyte per 4 million objects whatever ends up in it.
+   */
+  private val objectsReachableWithoutGrowth = HeapObjectIdSet(graph)
 
   /**
    * The share of the heap that one group of growing objects accounts for.
@@ -91,6 +84,8 @@ internal class LeakShareCalculator(
     if (growingObjectIdGroups.isEmpty()) {
       return emptyList()
     }
+    // Stays keyed by object id, unlike [objectsReachableWithoutGrowth]: this only holds the objects
+    // reported as growing, so a bit per object in the heap dump would cost more than it saves.
     val growingObjectIds = MutableLongSet()
     growingObjectIdGroups.forEach { objectIds ->
       objectIds.forEach { objectId ->

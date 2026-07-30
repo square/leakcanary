@@ -15,9 +15,9 @@ import shark.HprofHeapGraph
  * In exchange, mapping an object id to its index is a binary search rather than a hash lookup.
  *
  * An object id that isn't in the heap dump has no index and therefore can't be stored: [add]
- * reports it as newly added every time. A heap dump that references an object it doesn't contain is
- * corrupt, and every caller either throws when it looks that id up or ignores it, so repeating
- * "newly added" changes nothing.
+ * reports it as newly added every time and [contains] reports it as absent. A heap dump that
+ * references an object it doesn't contain is corrupt, and every caller either throws when it looks
+ * that id up or ignores it, so never remembering it changes nothing.
  */
 internal class HeapObjectIdSet(private val graph: HeapGraph) {
 
@@ -47,6 +47,19 @@ internal class HeapObjectIdSet(private val graph: HeapGraph) {
     }
     words[wordIndex] = word or bit
     return true
+  }
+
+  /**
+   * Returns whether [objectId] is in this set.
+   */
+  operator fun contains(objectId: Long): Boolean {
+    val objectIndex = objectIndexOrMinusOne(objectId)
+    if (objectIndex == -1) {
+      return false
+    }
+    val wordIndex = objectIndex / BITS_PER_WORD
+    val bit = 1L shl (objectIndex % BITS_PER_WORD)
+    return words[wordIndex] and bit != 0L
   }
 
   /**

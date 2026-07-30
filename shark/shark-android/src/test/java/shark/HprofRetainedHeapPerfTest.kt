@@ -156,7 +156,7 @@ class HprofRetainedHeapPerfTest {
     val retained = heapWhenComputingLeakShares.retainedHeap(ANALYSIS_THREAD).first -
       baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
-    assertThat(retained).isEqualTo(1.56 MB +-5 % margin)
+    assertThat(retained).isEqualTo(0.98 MB +-5 % margin)
   }
 
   private fun indexRecordsOf(hprofFile: File): HprofIndex {
