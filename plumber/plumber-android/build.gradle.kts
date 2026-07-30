@@ -14,7 +14,6 @@ android {
   compileSdk = libs.versions.androidCompileSdk.get().toInt()
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
-    consumerProguardFiles("consumer-proguard-rules.pro")
   }
   namespace = "com.squareup.leakcanary.plumber"
   lint {
