@@ -197,22 +197,70 @@ more abstract notion of ownership". That harness is named BLeak and finds leaks 
 2018 — but the paper is about JavaScript in web applications, and the expanders are the Android
 Studio implementation's own.
 
+## The trace reads from the roots down
+
+A leak trace is drawn as a chain: the garbage collection root at the top, the retained object at the
+bottom, and every reference on its own line between the two objects it connects. That direction is a
+choice, and not the obvious one. Ask a heap analyzer the same question and it answers the other way
+round: a path to garbage collection roots starts at the object you asked about and walks back. So
+does a stack trace, where the root of the call stack is at the bottom. The notes for LeakCanary 2's
+redesign argued for that convention on exactly those grounds, and several prototypes were drawn that
+way before the direction was kept as it is.
+
+What settled it is the thing the rest of this page keeps coming back to: the bug is a reference, not
+an object. Read from the roots down and you are reading in the direction the references point, so
+each line answers "and what does that hold?" until the answer is an object that should have been
+gone. Read the other way and you are asking "and what holds this?" repeatedly, which is a good way to
+arrive at the object and a bad way to notice the reference that shouldn't exist. The same redesign
+gave each reference a line of its own under the object that holds it, for the same reason: version 1
+put the object and the reference it followed on one line, and what readers looked at was the class
+names.
+
+The second decision is what *not* to put on those lines. The detailed view of a version 1 trace
+listed every field of every object in it, which is complete and unreadable — the two or three fields
+that explain something are buried in a hundred that don't. So a trace shows the reference that was
+followed, and anything beyond that has to be put there on purpose, as a **label**: a short string an
+inspector attaches to an object because it says something useful about that object's state. The
+resource id name of a view, whether a service has been created, the fact that an object is a `Binder`
+stub — each of those is on a trace because someone made the case that it earns its line.
+
+That is a different thing from hiding. The path itself is never abridged: every reference from the
+root to the retained object is there to read. What's curated is the commentary around them, on the
+grounds that a trace which emphasizes everything emphasizes nothing.
+
 ## A trace names suspects, not just references
 
-A path from a garbage collection root to a retained object is a lot of references, and most of them
-belong to code you didn't write. So LeakCanary adds what it knows about the objects *along* the path,
-deciding for each whether it is known to still be in use or known to be dead. Nothing before the last
-object known to be alive can be the bug, and nothing after the first object known to be dead can be
-either. What remains is the window that contains the bad reference, and that window is what a leak
-trace highlights — and what identifies the leak, since leaks that blame the same references are the
-same bug.
+Every object in a leak trace has an expected state: either it should still be in memory, or it
+shouldn't. So a leak trace splits in two — an upper part of objects that belong in memory, a lower
+part of objects that don't — and the leak is the single reference that joins the two parts. That
+reference is the bug, and it is the only place the bug can be: everything above it is legitimately
+alive, everything below it should already be gone, and it is the one thing making the second group
+depend on the first.
 
-The knowledge that makes this work is an extension point on purpose. LeakCanary ships with what it
-knows about the Android framework — an application is a singleton and never leaks, a view whose
-context is a destroyed activity is leaking — and offers you the same hook for your own types, along
-with the ability to attach labels to objects in a trace. Your own code is exactly the code LeakCanary
-knows nothing about, so teaching it about your own lifecycles is what narrows traces in your own
-codebase.
+Finding that split is the whole job, which is why LeakCanary annotates the objects *along* the path
+instead of only listing the references between them. Each object is marked as known to be in memory
+for a good reason, known to be dead, or unknown. Everything above the last object known to be alive
+is ruled out, everything below the first object known to be dead is ruled out, and what's left is a
+window of unknowns that has to contain the bad reference. That window is what a leak trace
+highlights — and what identifies the leak, since leaks that blame the same references are the same
+bug.
+
+The window is also narrowed the same way by hand, and it collapses faster than it looks. The states
+are ordered: if an object belongs in memory then so does everything above it, and if an object
+doesn't then neither does anything below it. So answering the question for a *single* object in the
+middle of the window cuts the window roughly in half whichever way the answer comes out. Ten unknown
+objects are not ten investigations, they're about three — as long as you start in the middle instead
+of at one end.
+
+Every answer is worth keeping, too, because it is a fact about your own types that will be just as
+true on the next heap dump. So the knowledge is an extension point on purpose: an inspector reads an
+object and reports what you concluded, and LeakCanary reaches the same conclusion by itself from then
+on. It ships with what it knows about the Android framework — an application is a singleton and never
+leaks, a view whose context is a destroyed activity is leaking — and offers you the same hook for
+your own types. Your own code is exactly the code LeakCanary knows nothing about, so teaching it
+about your own lifecycles is what narrows traces in your own codebase.
+[The LeakCanary Method](https://engineering.block.xyz/blog/the-leakcanary-method) works through that
+reasoning on a real leak, from the unknown window to the inspector that removes it.
 
 These verdicts are heuristics, so the bar for adding one is deliberately high: a decision is only
 made when the state it reads is unlikely to be the result of a programmer mistake. No matter how many
@@ -246,7 +294,7 @@ is the only thing there is to show.
 Entries are scoped to the Android versions and the manufacturers they apply to, because a leak that
 has since been fixed, or that only exists in one vendor's implementation, would otherwise be claimed
 on devices where it isn't there. And the database only grows the way it was built: by developers
-reporting the framework leaks it doesn't recognize yet.
+reporting the framework leaks LeakCanary doesn't recognize yet.
 
 ## The report comes to you
 
@@ -255,9 +303,10 @@ and prints the result to Logcat, and tapping through leads to the details. Leaks
 references are grouped into one entry, and marked as new the first time that entry appears, so a bug
 that leaks a hundred objects is one thing to read rather than a hundred.
 
-The launcher icon it adds is there whether or not anything has leaked, because a tool that only
-appears when there's bad news is a tool you can't ask. Developers were confused when the icon went
-missing on a healthy app: they want to be able to go, see that nothing is leaking, and be reassured.
+The launcher icon LeakCanary adds is there whether or not anything has leaked, because a tool that
+only appears when there's bad news is a tool you can't ask. Developers were confused when the icon
+went missing on a healthy app: they want to be able to go, see that nothing is leaking, and be
+reassured.
 
 ## One heap analyzer, several places to run it
 
