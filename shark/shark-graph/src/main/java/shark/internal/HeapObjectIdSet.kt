@@ -26,8 +26,16 @@ internal class HeapObjectIdSet(private val graph: HeapGraph) {
   /**
    * Adds [objectId] to this set, returning true if it wasn't in the set already.
    */
-  fun add(objectId: Long): Boolean {
-    val objectIndex = objectIndexOrMinusOne(objectId)
+  fun add(objectId: Long): Boolean = addObjectIndex(objectIndexOrMinusOne(objectId))
+
+  /**
+   * Adds the object at [objectIndex] to this set, returning true if it wasn't in the set already.
+   *
+   * [objectIndex] is an `objectIndex` as returned by [objectIndexOrMinusOne], so -1 means an object
+   * id that isn't in the heap dump and therefore can't be stored: it is reported as newly added
+   * every time.
+   */
+  fun addObjectIndex(objectIndex: Int): Boolean {
     if (objectIndex == -1) {
       return true
     }
@@ -41,7 +49,15 @@ internal class HeapObjectIdSet(private val graph: HeapGraph) {
     return true
   }
 
-  private fun objectIndexOrMinusOne(objectId: Long): Int {
+  /**
+   * The `objectIndex` of the object with id [objectId], or -1 if the heap dump has no object with
+   * that id.
+   *
+   * Resolving that index is the only lookup this set does, so a caller that needs the index for
+   * its own purposes should resolve it once here and then call [addObjectIndex], rather than have
+   * [add] resolve it a second time.
+   */
+  fun objectIndexOrMinusOne(objectId: Long): Int {
     return if (graph is HprofHeapGraph) {
       graph.objectIndexOrMinusOne(objectId)
     } else {

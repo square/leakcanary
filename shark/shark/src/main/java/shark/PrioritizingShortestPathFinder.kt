@@ -4,6 +4,7 @@ package shark
 
 import androidx.collection.LongList
 import androidx.collection.LongObjectMap
+import androidx.collection.MutableIntSet
 import androidx.collection.MutableLongList
 import androidx.collection.MutableLongObjectMap
 import androidx.collection.emptyLongObjectMap
@@ -132,19 +133,19 @@ class PrioritizingShortestPathFinder private constructor(
     val toVisitLastQueue: Deque<QueuedNode> = ArrayDeque()
 
     /**
-     * The ids of the nodes in [toVisitLastQueue], so that [enqueue] can tell an object that is
-     * waiting in the low priority queue (and should be promoted) from one that was already visited,
-     * without scanning the queue.
+     * The object indexes of the nodes in [toVisitLastQueue], so that [enqueue] can tell an object
+     * that is waiting in the low priority queue (and should be promoted) from one that was already
+     * visited, without scanning the queue.
      *
      * There's deliberately no matching set for [toVisitQueue]: an object is added to exactly one of
      * the two queues and removed from it when polled, so it's never in both, and therefore being in
      * this set already means not being in [toVisitQueue].
      *
-     * Unlike [visitedSet] this stays a set of ids keyed by hash: it only ever holds references
-     * matched by a library leak pattern, java locals and matched GC roots, which peaks in the dozens
-     * on real heap dumps, where a bit per object in the dump would cost hundreds of kilobytes.
+     * Unlike [visitedSet] this stays keyed by hash: it only ever holds references matched by a
+     * library leak pattern, java locals and matched GC roots, which peaks in the dozens on real heap
+     * dumps, where a bit per object in the dump would cost hundreds of kilobytes.
      */
-    val toVisitLastSet = LongScatterSet()
+    val toVisitLastSet = MutableIntSet()
 
     val queuesNotEmpty: Boolean
       get() = toVisitQueue.isNotEmpty() || toVisitLastQueue.isNotEmpty()
@@ -198,10 +199,13 @@ class PrioritizingShortestPathFinder private constructor(
 
     visitingQueue@ while (queuesNotEmpty) {
       val node = poll()
+      // Positional, and it can't fail: the object index was resolved when the node was enqueued.
+      val heapObject = graph.findObjectByIndex(node.objectIndex)
+      val objectId = heapObject.objectId
 
-      if (leakingObjectIds.contains(node.objectId)) {
+      if (leakingObjectIds.contains(objectId)) {
         shortestPathsToLeakingObjects.add(node)
-        foundLeakingObjectIds += node.objectId
+        foundLeakingObjectIds += objectId
         if (foundLeakingObjectIds.size == leakingObjectIds.size() &&
           objectSizeCalculator == null
         ) {
@@ -214,15 +218,6 @@ class PrioritizingShortestPathFinder private constructor(
         continue@visitingQueue
       }
 
-      val heapObject = try {
-        graph.findObjectById(node.objectId)
-      } catch (objectIdNotFound: IllegalArgumentException) {
-        // This should never happen (a heap should only have references to objects that exist)
-        // but when it does happen, let's at least display how we got there.
-        throw RuntimeException(
-          graph.invalidObjectIdErrorMessage(node.toReferencePathNode()), objectIdNotFound
-        )
-      }
       objectReferenceReader.read(heapObject).forEachIndexed { referenceIndex, reference ->
         enqueueChild(
           parent = node,
@@ -261,10 +256,11 @@ class PrioritizingShortestPathFinder private constructor(
     var node: ReferencePathNode = (queuedNode as Root).toRootNode()
     for (index in queuedChildren.lastIndex downTo 0) {
       val queuedChild = queuedChildren[index]
+      val objectId = graph.findObjectByIndex(queuedChild.objectIndex).objectId
       node = ChildNode(
-        objectId = queuedChild.objectId,
+        objectId = objectId,
         parent = node,
-        lazyDetailsResolver = queuedChild.detailsResolver()
+        lazyDetailsResolver = queuedChild.detailsResolver(objectId)
       )
     }
     return node
@@ -279,12 +275,11 @@ class PrioritizingShortestPathFinder private constructor(
    * parent again and picking out the one at [Child.referenceIndexInParent], which is why a queued
    * node doesn't have to hold on to anything to describe its reference.
    */
-  private fun Child.detailsResolver(): LazyDetails.Resolver {
-    val objectId = objectId
-    val parentObjectId = parent.objectId
+  private fun Child.detailsResolver(objectId: Long): LazyDetails.Resolver {
+    val parentObjectIndex = parent.objectIndex
     val referenceIndex = referenceIndexInParent
     return LazyDetails.Resolver {
-      val parentObject = graph.findObjectById(parentObjectId)
+      val parentObject = graph.findObjectByIndex(parentObjectIndex)
       val reference = objectReferenceReader.read(parentObject).elementAtOrNull(referenceIndex)
       check(reference != null && reference.valueObjectId == objectId) {
         "Expected reference $referenceIndex of object ${parentObject.objectId} to point to" +
@@ -438,18 +433,31 @@ class PrioritizingShortestPathFinder private constructor(
     } else {
       visitingLast = true
       val removedNode = toVisitLastQueue.poll()
-      toVisitLastSet.remove(removedNode.objectId)
+      toVisitLastSet.remove(removedNode.objectIndex)
       removedNode
     }
   }
 
   private fun State.enqueueGcRoots() {
     gcRootProvider.provideGcRoots(graph).forEach { gcRootReference ->
+      val gcRoot = gcRootReference.gcRoot
+      if (gcRoot.id == ValueHolder.NULL_REFERENCE) {
+        return@forEach
+      }
+      val objectIndex = visitedSet.objectIndexOrMinusOne(gcRoot.id)
+      val node = Root(
+        gcRoot = gcRoot,
+        matchedLibraryLeak = gcRootReference.matchedLibraryLeak,
+        objectIndex = objectIndex
+      )
+      if (objectIndex == -1) {
+        // GC roots can point to objects that aren't in the heap dump, which is why
+        // GcRootProvider implementations filter those out. This one didn't.
+        throw IllegalStateException(graph.invalidObjectIdErrorMessage(node.toRootNode()))
+      }
       enqueue(
-        node = Root(
-          gcRoot = gcRootReference.gcRoot,
-          matchedLibraryLeak = gcRootReference.matchedLibraryLeak
-        ),
+        node = node,
+        objectId = gcRoot.id,
         isLowPriority = gcRootReference.isLowPriority,
         isLeafObject = false
       )
@@ -461,12 +469,24 @@ class PrioritizingShortestPathFinder private constructor(
     referenceIndexInParent: Int,
     reference: Reference
   ) {
+    val objectId = reference.valueObjectId
+    val objectIndex = visitedSet.objectIndexOrMinusOne(objectId)
+    if (objectIndex == -1) {
+      // This should never happen (a heap should only have references to objects that exist)
+      // but when it does happen, let's at least display how we got there.
+      throw IllegalStateException(
+        graph.invalidObjectIdErrorMessage(
+          ChildNode(objectId, parent.toReferencePathNode(), reference.lazyDetailsResolver)
+        )
+      )
+    }
     enqueue(
       node = Child(
-        objectId = reference.valueObjectId,
+        objectIndex = objectIndex,
         parent = parent,
         referenceIndexInParent = referenceIndexInParent
       ),
+      objectId = objectId,
       isLowPriority = reference.isLowPriority,
       isLeafObject = reference.isLeafObject
     )
@@ -475,14 +495,12 @@ class PrioritizingShortestPathFinder private constructor(
   @Suppress("ReturnCount")
   private fun State.enqueue(
     node: QueuedNode,
+    objectId: Long,
     isLowPriority: Boolean,
     isLeafObject: Boolean
   ) {
-    if (node.objectId == ValueHolder.NULL_REFERENCE) {
-      return
-    }
-
-    val alreadyEnqueued = !visitedSet.add(node.objectId)
+    val objectIndex = node.objectIndex
+    val alreadyEnqueued = !visitedSet.addObjectIndex(objectIndex)
 
     /**
      * A leaf object has no children to explore. We're calling into enqueue() only so that
@@ -490,7 +508,7 @@ class PrioritizingShortestPathFinder private constructor(
      *
      * However, if this is an object we're looking for, we shouldn't skip.
      */
-    if (isLeafObject && node.objectId !in leakingObjectIds) {
+    if (isLeafObject && objectId !in leakingObjectIds) {
       return
     }
 
@@ -501,20 +519,20 @@ class PrioritizingShortestPathFinder private constructor(
         // Already visited and waiting in the low priority queue: it can be reached at a higher
         // priority than we thought, so move it. Being in toVisitLastSet also means not being in
         // toVisitQueue, since an object is only ever in one of the two queues.
-        val bumpPriority = !visitLast && node.objectId in toVisitLastSet
+        val bumpPriority = !visitLast && objectIndex in toVisitLastSet
 
         if (bumpPriority) {
           // Move from "visit last" to "visit first" queue.
           toVisitQueue.add(node)
-          val nodeToRemove = toVisitLastQueue.first { it.objectId == node.objectId }
+          val nodeToRemove = toVisitLastQueue.first { it.objectIndex == objectIndex }
           toVisitLastQueue.remove(nodeToRemove)
-          toVisitLastSet.remove(node.objectId)
+          toVisitLastSet.remove(objectIndex)
         }
       }
 
       visitLast -> {
         toVisitLastQueue.add(node)
-        toVisitLastSet.add(node.objectId)
+        toVisitLastSet.add(objectIndex)
       }
 
       else -> {
