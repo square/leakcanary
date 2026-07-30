@@ -10,9 +10,14 @@ import androidx.collection.emptyLongObjectMap
 import java.util.ArrayDeque
 import java.util.Deque
 import shark.PrioritizingShortestPathFinder.Event.StartedFindingPathsToRetainedObjects
+import shark.Reference.LazyDetails
 import shark.internal.HeapObjectIdSet
+import shark.internal.QueuedNode
+import shark.internal.QueuedNode.Child
+import shark.internal.QueuedNode.Root
 import shark.internal.ReferencePathNode
 import shark.internal.ReferencePathNode.ChildNode
+import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
 import shark.internal.hppc.LongDeque
@@ -119,12 +124,12 @@ class PrioritizingShortestPathFinder private constructor(
   ) {
 
     /** Set of objects to visit */
-    val toVisitQueue: Deque<ReferencePathNode> = ArrayDeque()
+    val toVisitQueue: Deque<QueuedNode> = ArrayDeque()
 
     /**
      * Objects to visit when [toVisitQueue] is empty.
      */
-    val toVisitLastQueue: Deque<ReferencePathNode> = ArrayDeque()
+    val toVisitLastQueue: Deque<QueuedNode> = ArrayDeque()
 
     /**
      * The ids of the nodes in [toVisitLastQueue], so that [enqueue] can tell an object that is
@@ -185,7 +190,7 @@ class PrioritizingShortestPathFinder private constructor(
   private fun State.findPathsFromGcRoots(): PathFindingResults {
     enqueueGcRoots()
 
-    val shortestPathsToLeakingObjects = mutableListOf<ReferencePathNode>()
+    val shortestPathsToLeakingObjects = mutableListOf<QueuedNode>()
     // Ordered: phase 2 explores leaking objects in the order phase 1 found them, which keeps
     // retained size attribution stable across runs. A list rather than a set because phase 1
     // dequeues any given object at most once, so this can't hold duplicates.
@@ -214,18 +219,15 @@ class PrioritizingShortestPathFinder private constructor(
       } catch (objectIdNotFound: IllegalArgumentException) {
         // This should never happen (a heap should only have references to objects that exist)
         // but when it does happen, let's at least display how we got there.
-        throw RuntimeException(graph.invalidObjectIdErrorMessage(node), objectIdNotFound)
-      }
-      objectReferenceReader.read(heapObject).forEach { reference ->
-        val newNode = ChildNode(
-          objectId = reference.valueObjectId,
-          parent = node,
-          lazyDetailsResolver = reference.lazyDetailsResolver
+        throw RuntimeException(
+          graph.invalidObjectIdErrorMessage(node.toReferencePathNode()), objectIdNotFound
         )
-        enqueue(
-          node = newNode,
-          isLowPriority = reference.isLowPriority,
-          isLeafObject = reference.isLeafObject
+      }
+      objectReferenceReader.read(heapObject).forEachIndexed { referenceIndex, reference ->
+        enqueueChild(
+          parent = node,
+          referenceIndexInParent = referenceIndex,
+          reference = reference
         )
       }
     }
@@ -238,10 +240,60 @@ class PrioritizingShortestPathFinder private constructor(
     phase2.run()
 
     return PathFindingResults(
-      pathsToLeakingObjects = shortestPathsToLeakingObjects,
+      pathsToLeakingObjects = shortestPathsToLeakingObjects.map { it.toReferencePathNode() },
       retainedSizes = phase2.retainedSizes,
       subLeakedObjectsByLeakedObject = phase2.subLeakedObjectsByLeakedObject,
     )
+  }
+
+  /**
+   * Rebuilds this path of [QueuedNode] as the path of [ReferencePathNode] that leak traces are
+   * built from, which unlike a [QueuedNode] carries the details of each reference it goes through.
+   */
+  private fun QueuedNode.toReferencePathNode(): ReferencePathNode {
+    val queuedChildren = mutableListOf<Child>()
+    var queuedNode = this
+    while (queuedNode is Child) {
+      queuedChildren += queuedNode
+      queuedNode = queuedNode.parent
+    }
+    // Rebuilt from the root down, since a ChildNode needs its parent.
+    var node: ReferencePathNode = (queuedNode as Root).toRootNode()
+    for (index in queuedChildren.lastIndex downTo 0) {
+      val queuedChild = queuedChildren[index]
+      node = ChildNode(
+        objectId = queuedChild.objectId,
+        parent = node,
+        lazyDetailsResolver = queuedChild.detailsResolver()
+      )
+    }
+    return node
+  }
+
+  private fun Root.toRootNode(): RootNode {
+    return matchedLibraryLeak?.let { LibraryLeakRootNode(gcRoot, it) } ?: NormalRootNode(gcRoot)
+  }
+
+  /**
+   * Recovers the details of the reference that led to this node by reading the references of its
+   * parent again and picking out the one at [Child.referenceIndexInParent], which is why a queued
+   * node doesn't have to hold on to anything to describe its reference.
+   */
+  private fun Child.detailsResolver(): LazyDetails.Resolver {
+    val objectId = objectId
+    val parentObjectId = parent.objectId
+    val referenceIndex = referenceIndexInParent
+    return LazyDetails.Resolver {
+      val parentObject = graph.findObjectById(parentObjectId)
+      val reference = objectReferenceReader.read(parentObject).elementAtOrNull(referenceIndex)
+      check(reference != null && reference.valueObjectId == objectId) {
+        "Expected reference $referenceIndex of object ${parentObject.objectId} to point to" +
+          " $objectId but it points to ${reference?.valueObjectId}. A ReferenceReader must return" +
+          " the same references in the same order every time it reads the same object, since" +
+          " that's how the traversal recovers the details of a reference it followed."
+      }
+      reference.lazyDetailsResolver.resolve()
+    }
   }
 
   /**
@@ -380,7 +432,7 @@ class PrioritizingShortestPathFinder private constructor(
     }
   }
 
-  private fun State.poll(): ReferencePathNode {
+  private fun State.poll(): QueuedNode {
     return if (!visitingLast && !toVisitQueue.isEmpty()) {
       toVisitQueue.poll()
     } else {
@@ -394,13 +446,9 @@ class PrioritizingShortestPathFinder private constructor(
   private fun State.enqueueGcRoots() {
     gcRootProvider.provideGcRoots(graph).forEach { gcRootReference ->
       enqueue(
-        node = gcRootReference.matchedLibraryLeak?.let { matchedLibraryLeak ->
-          LibraryLeakRootNode(
-            gcRootReference.gcRoot,
-            matchedLibraryLeak
-          )
-        } ?: NormalRootNode(
-          gcRootReference.gcRoot
+        node = Root(
+          gcRoot = gcRootReference.gcRoot,
+          matchedLibraryLeak = gcRootReference.matchedLibraryLeak
         ),
         isLowPriority = gcRootReference.isLowPriority,
         isLeafObject = false
@@ -408,9 +456,25 @@ class PrioritizingShortestPathFinder private constructor(
     }
   }
 
+  private fun State.enqueueChild(
+    parent: QueuedNode,
+    referenceIndexInParent: Int,
+    reference: Reference
+  ) {
+    enqueue(
+      node = Child(
+        objectId = reference.valueObjectId,
+        parent = parent,
+        referenceIndexInParent = referenceIndexInParent
+      ),
+      isLowPriority = reference.isLowPriority,
+      isLeafObject = reference.isLeafObject
+    )
+  }
+
   @Suppress("ReturnCount")
   private fun State.enqueue(
-    node: ReferencePathNode,
+    node: QueuedNode,
     isLowPriority: Boolean,
     isLeafObject: Boolean
   ) {
