@@ -24,6 +24,7 @@ import shark.explorer.ReachabilityStrength.FINALIZER
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
 import shark.explorer.ReachabilityStrength.STRONG
+import shark.explorer.ReachabilityStrength.THREAD_LOCAL
 import shark.explorer.ReachabilityStrength.WEAK
 
 /**
@@ -145,9 +146,9 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   /**
    * The references from [source] that don't keep their target alive: a `java.lang.ref.Reference`'s
-   * `referent`, the `zombie` a `FinalizerReference` holds an object in while it's being finalized, and
-   * the entries of a cache from [CACHE_FIELDS_BY_CLASS_NAME]. Empty for anything else, which is nearly
-   * every object of a heap dump.
+   * `referent`, the `zombie` a `FinalizerReference` holds an object in while it's being finalized, a
+   * thread's own storage, and the entries of a cache from [CACHE_FIELDS_BY_CLASS_NAME]. Empty for anything
+   * else, which is nearly every object of a heap dump.
    */
   fun weakeningReferencesOf(source: HeapObject): List<WeakeningReference> {
     if (source !is HeapInstance) {
@@ -159,13 +160,13 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
     }
     val locationClassObjectId = source.instanceClass.objectId
     return source.readFields()
-      .filter { it.name in weakening.fieldNames }
       .mapNotNull { field ->
+        val strength = weakening.strengthByFieldName[field.name]
         val valueObjectId = field.value.asNonNullObjectId
-        if (valueObjectId == null || !graph.objectExists(valueObjectId)) {
+        if (strength == null || valueObjectId == null || !graph.objectExists(valueObjectId)) {
           null
         } else {
-          WeakeningReference(weakening.strength, valueObjectId, field.name, locationClassObjectId)
+          WeakeningReference(strength, valueObjectId, field.name, locationClassObjectId)
         }
       }
       .toList()
@@ -173,18 +174,21 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   private fun weakeningFieldsOf(instanceClass: HeapClass): WeakeningFields =
     weakeningFieldsByClassId.getOrPut(instanceClass.objectId) {
-      // Subclass first, which is what makes a FinalizerReference read as a finalizer reference rather
-      // than as the phantom reference it extends.
-      instanceClass.classHierarchy
-        .firstNotNullOfOrNull { WEAKENING_FIELDS_BY_CLASS_NAME[it.name] }
-        ?: NOTHING_WEAKENING
+      // Superclass first, so that a subclass's entry for the same field name wins: a FinalizerReference
+      // reads as a finalizer reference rather than as the reference class it extends. A class can weaken
+      // more than one field at more than one strength, which is how a ThreadLocalMap entry holds its key
+      // weakly and its value for as long as the thread lives.
+      val strengthByFieldName = instanceClass.classHierarchy
+        .toList()
+        .asReversed()
+        .fold(emptyMap<String, ReachabilityStrength>()) { inherited, heapClass ->
+          WEAKENING_FIELDS_BY_CLASS_NAME[heapClass.name]?.let { inherited + it } ?: inherited
+        }
+      if (strengthByFieldName.isEmpty()) NOTHING_WEAKENING else WeakeningFields(strengthByFieldName)
     }
 
-  /** Which of a class's fields hold their value without retaining it, and how weakly. */
-  private class WeakeningFields(
-    val strength: ReachabilityStrength,
-    val fieldNames: Set<String>
-  )
+  /** Which of a class's fields hold their value without retaining it, and how weakly each does. */
+  private class WeakeningFields(val strengthByFieldName: Map<String, ReachabilityStrength>)
 
   companion object {
     private const val STRING_CLASS_NAME = "java.lang.String"
@@ -248,16 +252,31 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
       "coil3.memory.RealStrongMemoryCache\$InternalValue" to setOf("image")
     )
 
+    /**
+     * Where a thread keeps what it put in a `ThreadLocal`, held for as long as the thread lives.
+     *
+     * `ThreadLocalMap.Entry` is a `WeakReference` to the `ThreadLocal` itself, so its `referent` is
+     * already weakened above; what's added here is the value, which the map holds strongly. Attributing
+     * it to the thread is what the tree does otherwise, and a thread of an app's pool retaining
+     * everything anything ever left in a thread local of it is a picture of the pool rather than of the
+     * app.
+     */
+    private val THREAD_LOCAL_FIELDS_BY_CLASS_NAME = mapOf(
+      "java.lang.ThreadLocal\$ThreadLocalMap\$Entry" to setOf("value")
+    )
+
     /** Every class whose fields don't all retain, and what each holds its values with. */
-    private val WEAKENING_FIELDS_BY_CLASS_NAME: Map<String, WeakeningFields> =
+    private val WEAKENING_FIELDS_BY_CLASS_NAME: Map<String, Map<String, ReachabilityStrength>> =
       STRENGTH_BY_REFERENCE_CLASS_NAME.mapValues { (_, strength) ->
-        WeakeningFields(strength, REFERENT_FIELD_NAMES)
+        REFERENT_FIELD_NAMES.associateWith { strength }
       } + CACHE_FIELDS_BY_CLASS_NAME.mapValues { (_, fieldNames) ->
-        WeakeningFields(CACHE, fieldNames)
+        fieldNames.associateWith { CACHE }
+      } + THREAD_LOCAL_FIELDS_BY_CLASS_NAME.mapValues { (_, fieldNames) ->
+        fieldNames.associateWith { THREAD_LOCAL }
       }
 
     /** For the classes that retain everything they point at, cached like the rest. */
-    private val NOTHING_WEAKENING = WeakeningFields(STRONG, emptySet())
+    private val NOTHING_WEAKENING = WeakeningFields(emptyMap())
 
     /**
      * The matchers that stop the retaining reader from following a reference that doesn't retain.
@@ -265,23 +284,24 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
      * [JdkReferenceMatchers.REFERENCES] covers weak, soft and phantom referents and the finalizer
      * list links. The two added here are the ones it misses because LeakCanary doesn't need them:
      * a JVM `FinalReference`'s referent, and the `zombie` an Android `FinalizerReference` moves its
-     * referent into while `finalize()` runs. Then the cache fields, from the same map that gives them
-     * their strength, so that the two halves of this class can't disagree about a reference.
+     * referent into while `finalize()` runs. Then every field of the curated lists, from the same map that
+     * gives them their strength, so that the two halves of this class can't disagree about a reference.
      */
     val WEAKENING_REFERENCE_MATCHERS: List<ReferenceMatcher> =
       ReferenceMatcher.fromListBuilders(EnumSet.of(JdkReferenceMatchers.REFERENCES)) + listOf(
         instanceField("java.lang.ref.FinalReference", "referent").ignored(patternApplies = ALWAYS),
         instanceField("java.lang.ref.FinalizerReference", "zombie").ignored(patternApplies = ALWAYS)
-      ) + CACHE_FIELDS_BY_CLASS_NAME.flatMap { (className, fieldNames) ->
-        fieldNames.map { instanceField(className, it).ignored(patternApplies = ALWAYS) }
-      }
+      ) + (CACHE_FIELDS_BY_CLASS_NAME + THREAD_LOCAL_FIELDS_BY_CLASS_NAME)
+        .flatMap { (className, fieldNames) ->
+          fieldNames.map { instanceField(className, it).ignored(patternApplies = ALWAYS) }
+        }
   }
 }
 
 /**
  * Reads the references that retain their target, plus the ones that hold an object without retaining it
- * — a `java.lang.ref.Reference`'s referent, a cache's entries — when such a reference is the strongest
- * thing reaching the object.
+ * — a `java.lang.ref.Reference`'s referent, a cache's entries, a thread local — when such a reference is
+ * the strongest thing reaching the object.
  *
  * That's what puts a weakly reachable object in the tree, dominated by the weak reference itself, and a
  * cached one under its cache entry: every object of the heap dump is a node, and every one of them is
@@ -291,6 +311,11 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
  * something else holds strongly wouldn't reveal anything — the object is already in the tree — but it
  * would add an edge, which moves the object's retained size up to whatever dominates both paths and
  * attributes it to neither. Which is exactly what a weak reference isn't: it holds nothing.
+ *
+ * **And a path stays as weak as its weakest reference.** An object held only by a finalizer queue, a
+ * thread local or a stack frame doesn't hold what something firmer holds either, so every reference out of
+ * it is weighed the same way. Without that, a `FinalizerReference` two steps up a chain would be one more
+ * way of holding an object that a field holds squarely, which is a way of holding nothing.
  */
 internal class WeakeningAwareReferenceReader(
   private val strengthReader: ReferenceStrengthReader,
@@ -298,9 +323,17 @@ internal class WeakeningAwareReferenceReader(
 ) : ReferenceReader<HeapObject> {
 
   override fun read(source: HeapObject): Sequence<Reference> {
-    val retaining = strengthReader.retainingReferencesOf(source)
+    val pathStrength = reachability.strengthOf(source)
+    val retaining = strengthReader.retainingReferencesOf(source).let { references ->
+      // Nothing to weigh when the path here is strong, which it is for nearly every object of a dump.
+      if (pathStrength == STRONG) {
+        references
+      } else {
+        references.filter { reachability.isHeldThrough(it.valueObjectId, pathStrength) }
+      }
+    }
     val followed = strengthReader.weakeningReferencesOf(source)
-      .filter { reachability.strengthOf(it.valueObjectId) != STRONG }
+      .filter { reachability.isHeldThrough(it.valueObjectId, maxOf(pathStrength, it.strength)) }
     return if (followed.isEmpty()) {
       retaining
     } else {

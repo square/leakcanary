@@ -6,6 +6,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
@@ -13,6 +14,7 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.HeapDominatorTreemap.Companion.GC_ROOTS_NODE_ID
 import shark.explorer.ReachabilityStrength.CACHE
+import shark.explorer.ReachabilityStrength.LOCAL
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.WEAK
 
@@ -257,6 +259,42 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `what only holds an object until the runtime is done with it is on no path`() {
+    HeapExplorer.open(lastResortHoldersHeapDump()).use { explorer ->
+      val tree = explorer.tree
+
+      // A thread inside a method, a value left in a thread local, an object queued for finalization: each
+      // of the three holds one of these objects, and none of the three is why it is in memory. Answering
+      // "what holds this" with one of them is answering with the runtime's bookkeeping, so the field of
+      // the owner is the whole answer, and the owner is what the bytes are drawn under.
+      listOf("OnStack", "InThreadLocal", "Finalized").forEach { className ->
+        val held = tree.findByLabel(className)
+        val field = className.replaceFirstChar { it.lowercase() }
+
+        assertThat(held.strength).describedAs(className).isEqualTo(STRONG)
+        assertThat(tree.dominatorOf(held.objectId)!!.label).describedAs(className).isEqualTo("Holder")
+        assertThat(tree.independentPathsTo(held.objectId).paths.map { it.stepLabels() })
+          .describedAs(className)
+          .containsExactly(listOf("$field → $className"))
+      }
+    }
+  }
+
+  @Test fun `an object nothing but a stack frame holds is drawn under the frame's root`() {
+    HeapExplorer.open(lastResortHoldersHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val onlyOnStack = tree.findByLabel("OnlyOnStack")
+
+      // Nothing is dropped by ignoring the weaker way of holding something: an object a running method is
+      // the only holder of is still in the tree, at the strength that says so, which is the same rule that
+      // keeps a weakly reachable object in it.
+      assertThat(onlyOnStack.strength).isEqualTo(LOCAL)
+      assertThat(tree.children(GC_ROOTS_NODE_ID)).contains(onlyOnStack.objectId)
+      assertThat(tree.independentPathsTo(onlyOnStack.objectId).paths.map { it.gcRootLabel })
+        .containsExactly("GC root: local variable of a running method")
+    }
+  }
+
   @Test fun `the root has no dominator and no path leading to it`() {
     openTestHeapDump().use { explorer ->
       val tree = explorer.tree
@@ -453,6 +491,43 @@ class HeapExplorerTest {
     return file
   }
 
+  /**
+   * A heap dump where an owner holds three objects a last resort holder also holds — a stack frame, a
+   * thread local and a finalizer queue — plus one object only the stack frame holds.
+   */
+  private fun lastResortHoldersHeapDump(): File {
+    val file = testFolder.newFile("last-resort-holders.hprof")
+    file.dump {
+      val classes = referenceClasses()
+      val onStack = "com.example.OnStack" instance { }
+      val inThreadLocal = "com.example.InThreadLocal" instance { }
+      val finalized = "com.example.Finalized" instance { }
+      val onlyOnStack = "com.example.OnlyOnStack" instance { }
+      val holder = "com.example.Holder" instance {
+        field["onStack"] = onStack
+        field["inThreadLocal"] = inThreadLocal
+        field["finalized"] = finalized
+      }
+      // What a thread keeps a ThreadLocal's value in, held by the thread for as long as it lives.
+      val worker = "com.example.Worker" instance {
+        field["locals"] = "java.lang.ThreadLocal\$ThreadLocalMap\$Entry" instance {
+          field["value"] = inThreadLocal
+        }
+      }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = worker.value, jniGlobalRefId = 1))
+      gcRoot(
+        JniGlobal(
+          id = finalizerReference(classes, referent = finalized).value,
+          jniGlobalRefId = 2
+        )
+      )
+      gcRoot(JavaFrame(id = onStack.value, threadSerialNumber = 1, frameNumber = 0))
+      gcRoot(JavaFrame(id = onlyOnStack.value, threadSerialNumber = 1, frameNumber = 1))
+    }
+    return file
+  }
+
   /** A heap dump with a bitmap in it, whose pixels live in native memory rather than in its fields. */
   private fun bitmapHeapDump(): File {
     val file = testFolder.newFile("bitmap.hprof")
@@ -624,7 +699,8 @@ class HeapExplorerTest {
    * first step of a path below a group is the GC root's own object, which no field points at.
    */
   private fun IndependentPath.stepLabels(): List<String> = steps.map { step ->
-    step.referenceName?.let { "$it → ${step.label}" } ?: step.label
+    val simpleClassName = step.className.substringAfterLast('.')
+    step.reference?.let { "${it.name} → $simpleClassName" } ?: simpleClassName
   }
 
   /** The one class group of a [crowdedRootHeapDump], which is the tiles. */

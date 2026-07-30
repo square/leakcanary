@@ -61,7 +61,7 @@ collector would. Soft references are cleared only under memory pressure, so a `S
 more about a dump taken at OOM than about heaps in general. `FINALIZER` shows up when objects are queued
 for finalization and their `finalize()` hadn't run.
 
-Every legend row in the top bar says how firmly, how many bytes and how many objects — `Weak 0 B ·
+Every legend row above the view says how firmly, how many bytes and how many objects — `Weak 0 B ·
 0 objects` — so a strength with nothing at it says so on its own. `NOTHING_WEAKER` then says why that's
 normal, since all four `java.lang.ref` strengths coming out empty reads as a broken computation until you
 know.
@@ -182,8 +182,9 @@ Two things to know before adding an entry to that list:
 
 ## What holds an object: the dominator, then the paths below it
 
-The panel answers "what holds this" in two parts, and which part answers what is the thing to keep
-straight:
+"What holds this" is answered in two parts, and which part answers what is the thing to keep straight.
+The panel names the first and has a button to the second, which is a screen of its own — a chain per path,
+drawn like a LeakCanary leak trace:
 
 - **The dominator**, exactly one node, from `HeapDominatorTreemap.dominatorOf`. Every path from a GC root
   goes through it, so it is what would free the object. It's a *group* rather than an object when nothing
@@ -229,8 +230,9 @@ whole answer, and a search up the references can't say so.
 
 ## Reachability strength
 
-`HeapReachability` classifies **every** object of the heap dump as `STRONG`, `CACHE`, `SOFT`, `WEAK`,
-`FINALIZER`, `PHANTOM` or `UNREACHABLE` — `java.lang.ref`'s strengths, the one above, and garbage. Making
+`HeapReachability` classifies **every** object of the heap dump as `STRONG`, `CACHE`, `THREAD_LOCAL`,
+`LOCAL`, `SOFT`, `WEAK`, `FINALIZER`, `PHANTOM` or `UNREACHABLE` — `java.lang.ref`'s strengths, the three
+above them, and garbage. Making
 garbage the last strength rather than a leftover is what makes the breakdown a partition: object counts
 add up to the dump's object count exactly, and byte counts to its byte count, so a UI can put a number
 next to each one and have them sum. Three things make this more than a flag per reference:
@@ -249,6 +251,18 @@ So `markUnreachable` passes over `graph.objects` and takes what no walk reached,
 that to the objects a walk of the garbage has to start from: the ones no other piece of garbage points at.
 `UncollectedGarbageGcRootProvider` hands those to `HeapDominatorTree` as `GcRoot.Unreachable`, so garbage
 nests under whatever was holding it and the whole dump is one tree.
+
+**The weakening rule is one rule, and it covers GC roots too.** `isHeldThrough(objectId, edgeStrength)`
+is `edgeStrength == STRONG || strengthOf(objectId) >= edgeStrength`: an edge that weakens the path it's on
+counts as a way of holding an object only when nothing holds it more firmly. That's the weak reference
+rule, and everything that holds an object only until it lets go of it gets it — a cache that evicts, a
+thread local, a stack frame, a finalizer queue. It applies to GC root edges through
+`GcRoot.reachabilityStrength()`, which is why a `JavaFrame` doesn't flatten the tree: an app dump has tens
+of thousands of stack frame roots, and a thread being inside a method that has an object in a local
+variable says nothing about what keeps that object in memory. Nothing is lost by it — every object was
+reached at exactly the strength this compares against, so the edges of its strongest path all survive, and
+the tree still holds every object of the dump. Withholding a *root* edge is how the dominator tree is told,
+since `HeapDominatorTree` is exact and has no notion of a low priority root.
 
 **A garbage cycle has no entry point**, and that's the part to get right: a doubly linked list nothing
 points at any more has every node pointed at by another, so "the ones nothing points at" finds none of

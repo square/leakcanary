@@ -1,35 +1,27 @@
 package shark.explorer.app
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -81,8 +73,6 @@ fun ExplorerApp(
 ) {
   var requestedFile: File? by remember { mutableStateOf(initialHeapDumpFile) }
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
-  var shape: ViewShape by remember { mutableStateOf(ViewShape.TREEMAP) }
-  var coloring: CellColoring by remember { mutableStateOf(CellColoring.DEFAULT) }
 
   LaunchedEffect(requestedFile) {
     val file = requestedFile
@@ -112,16 +102,16 @@ fun ExplorerApp(
   }
 
   Column(Modifier.fillMaxSize()) {
-    TopBar(
+    HeapDumpBar(
       state = currentState,
-      shape = shape,
-      coloring = coloring,
-      onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } },
-      onColoringChange = { coloring = it },
-      onShapeChange = { shape = it }
+      onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } }
     )
     if (currentState is HeapDumpState.Open) {
-      HeapDumpExplorer(currentState.session, shape, coloring, Modifier.weight(1f))
+      // Keyed on the session, so that opening another heap dump starts from the whole of it rather than
+      // from wherever the previous one was being read.
+      key(currentState.session) {
+        HeapDumpExplorer(currentState.session, currentState.sizes, Modifier.weight(1f))
+      }
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
@@ -160,152 +150,24 @@ private sealed interface HeapDumpState {
   ) : HeapDumpState
 }
 
+/** Which heap dump is open, and how to open another. Everything else belongs to whatever is showing it. */
 @Composable
-private fun TopBar(
+private fun HeapDumpBar(
   state: HeapDumpState,
-  shape: ViewShape,
-  coloring: CellColoring,
-  onOpenClick: () -> Unit,
-  onColoringChange: (CellColoring) -> Unit,
-  onShapeChange: (ViewShape) -> Unit
+  onOpenClick: () -> Unit
 ) {
   Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
-    Column(Modifier.fillMaxWidth().padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-      Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        Button(onClick = onOpenClick) {
-          Text(OPEN_HEAP_DUMP)
-        }
-        Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
+    Row(
+      Modifier.fillMaxWidth().padding(8.dp),
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Button(onClick = onOpenClick) {
+        Text(OPEN_HEAP_DUMP)
       }
-      if (state is HeapDumpState.Open) {
-        StrengthLegend(
-          sizes = state.sizes,
-          coloring = coloring,
-          onColoredStrengthsChange = { onColoringChange(coloring.copy(coloredStrengths = it)) }
-        )
-        Row(
-          horizontalArrangement = Arrangement.spacedBy(16.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          OptionPicker(
-            label = "Shape",
-            options = ViewShape.values().toList(),
-            selected = shape,
-            displayName = { it.displayName },
-            onSelect = onShapeChange
-          )
-          OptionPicker(
-            label = "Colours",
-            options = CellColorScheme.values().toList(),
-            selected = coloring.scheme,
-            displayName = { it.displayName },
-            onSelect = { onColoringChange(coloring.copy(scheme = it)) }
-          )
-        }
-        if (REFERENCE_STRENGTHS.none { state.sizes.byteCountByStrength.getValue(it) > 0L }) {
-          Text(NOTHING_WEAKER, style = MaterialTheme.typography.bodySmall)
-        }
-      }
+      Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
     }
   }
-}
-
-/** One of a handful of named options, as radio buttons: there are only a few and their names are short. */
-@Composable
-private fun <T> OptionPicker(
-  label: String,
-  options: List<T>,
-  selected: T,
-  displayName: (T) -> String,
-  onSelect: (T) -> Unit
-) {
-  Row(
-    horizontalArrangement = Arrangement.spacedBy(4.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Text(label, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(end = 4.dp))
-    options.forEach { option ->
-      Row(
-        // The whole thing is one radio button, label included, so clicking the name works too.
-        Modifier.selectable(
-          selected = option == selected,
-          role = Role.RadioButton,
-          onClick = { onSelect(option) }
-        ).padding(end = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        RadioButton(selected = option == selected, onClick = null)
-        Text(displayName(option), style = MaterialTheme.typography.bodySmall)
-      }
-    }
-  }
-}
-
-/**
- * How much of the heap dump is held how firmly, one row per strength, and a checkbox per row that turns
- * that strength's colour on and off.
- *
- * Everything is always drawn — the tree is the whole heap dump, garbage included — so a checkbox here
- * changes nothing but the colour scale: unchecked is grey. Which is what makes it worth having, and every
- * row worth pressing: greying the strong heap leaves the little there is of everything else lit up, and
- * greying the garbage leaves the reachable heap to read on its own.
- *
- * The rows add up to the whole dump, in bytes and in objects, which is the point of listing the ones that
- * are none of it too.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun StrengthLegend(
-  sizes: HeapSizes,
-  coloring: CellColoring,
-  onColoredStrengthsChange: (Set<ReachabilityStrength>) -> Unit
-) {
-  FlowRow(
-    horizontalArrangement = Arrangement.spacedBy(4.dp),
-    verticalArrangement = Arrangement.spacedBy(2.dp)
-  ) {
-    Text(
-      "Colour",
-      style = MaterialTheme.typography.labelLarge,
-      modifier = Modifier.padding(end = 4.dp)
-    )
-    ReachabilityStrength.values().forEach { strength ->
-      val checked = strength in coloring.coloredStrengths
-      Row(
-        // The whole thing is one toggle, label included, so clicking the name works too.
-        Modifier.toggleable(
-          value = checked,
-          role = Role.Checkbox,
-          onValueChange = { isChecked ->
-            onColoredStrengthsChange(
-              if (isChecked) {
-                coloring.coloredStrengths + strength
-              } else {
-                coloring.coloredStrengths - strength
-              }
-            )
-          }
-        ).padding(end = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        Checkbox(checked = checked, onCheckedChange = null)
-        Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, strength)))
-        Text(strength.legendText(sizes), style = MaterialTheme.typography.bodySmall)
-      }
-    }
-  }
-}
-
-/** What one legend row says: how firmly, how many bytes, how many objects. */
-private fun ReachabilityStrength.legendText(sizes: HeapSizes): String {
-  val byteCount = formatByteSize(sizes.byteCountByStrength.getValue(this))
-  val objectCount = formatObjectCount(sizes.objectCountByStrength.getValue(this))
-  return "$displayName $byteCount · $objectCount"
 }
 
 private fun HeapDumpState.statusLine(): String = when (this) {
@@ -349,25 +211,3 @@ private fun showHeapDumpFileDialog(): File? {
 
 internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
-
-/**
- * The strengths a `java.lang.ref.Reference` gives, which is what [NOTHING_WEAKER] is about. A cache, a
- * strong reference and uncollected garbage are none of them, and a heap dump wouldn't be odd for having
- * nothing at those.
- */
-private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf(
-  ReachabilityStrength.STRONG,
-  ReachabilityStrength.CACHE,
-  ReachabilityStrength.UNREACHABLE
-)
-
-/**
- * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
- * which would otherwise read as a bug. Common but not a rule — see the notes on reachability.
- */
-internal const val NOTHING_WEAKER =
-  "Nothing in this heap dump is reachable only through a java.lang.ref.Reference. That's common, " +
-    "because the garbage collection before a dump clears the references whose referent nothing else " +
-    "was holding — but it isn't a given: a referent a thread got out of a reference and has since let " +
-    "go of is weakly reachable again until the next collection. Unreachable is a different thing " +
-    "again: objects nothing points at, which that collection didn't get to."

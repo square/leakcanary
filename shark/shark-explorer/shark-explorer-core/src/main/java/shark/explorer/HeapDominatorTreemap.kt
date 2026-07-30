@@ -2,6 +2,7 @@ package shark.explorer
 
 import androidx.collection.IntSet
 import androidx.collection.MutableIntSet
+import java.util.PriorityQueue
 import shark.GcRoot
 import shark.GcRoot.Debugger
 import shark.GcRoot.Finalizing
@@ -19,6 +20,7 @@ import shark.GcRoot.ThreadObject
 import shark.GcRoot.Unknown
 import shark.GcRoot.Unreachable
 import shark.GcRoot.VmInternal
+import shark.GcRootProvider
 import shark.HeapDominatorTree
 import shark.HeapField
 import shark.HeapGraph
@@ -28,7 +30,6 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HeapValue
-import shark.MatchingGcRootProvider
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -40,7 +41,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Lo
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
-import shark.ReferenceLocationType
 import shark.AndroidObjectInspectors
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
@@ -72,6 +72,8 @@ class HeapDominatorTreemap internal constructor(
   private val graph: HeapGraph,
   private val reachability: HeapReachability,
   private val strengthReader: ReferenceStrengthReader,
+  /** The roots the tree was built from, which is where a path up from an object can end. */
+  private val gcRootProvider: GcRootProvider,
   private val dominatorTree: HeapDominatorTree,
   private val nodes: Map<Long, DominatorNode>
 ) : TreemapTree<Long> {
@@ -102,15 +104,14 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * The objects the tree hangs its halves off, by object index: the heap dump's GC roots, and the pieces of
-   * garbage nothing else points at. Where a path below either half starts. See
-   * [HeapReachability.unreachableRootObjectIds].
+   * The objects the tree hangs its halves off, by object index: the GC roots it was built from, and the
+   * pieces of garbage nothing else points at. Where a path below either half starts. See
+   * [TreeGcRootProvider].
    */
   private val treeRootIndexes: IntSet by lazy {
     val indexes = MutableIntSet()
-    val rootIds = MatchingGcRootProvider(emptyList()).provideGcRoots(graph).map { it.gcRoot.id } +
-      reachability.unreachableRootObjectIds.asSequence()
-    rootIds.forEach { objectId ->
+    gcRootProvider.provideGcRoots(graph).forEach { rootReference ->
+      val objectId = rootReference.gcRoot.id
       val index = referrerIndex.indexOf(objectId)
       if (index != ReferrerIndex.NOT_AN_OBJECT) {
         indexes += index
@@ -344,29 +345,106 @@ class HeapDominatorTreemap internal constructor(
     return HeapObjectSummary(
       objectId = objectId,
       label = label(objectId),
-      className = when (heapObject) {
-        null -> ROOT_LABEL
-        is HeapClass -> heapObject.name
-        is HeapInstance -> heapObject.instanceClassName
-        is HeapObjectArray -> heapObject.arrayClassName
-        is HeapPrimitiveArray -> heapObject.arrayClassName
-      },
+      className = heapObject?.className() ?: ROOT_LABEL,
+      kind = heapObject?.kind(),
       headline = heapObject?.headline(),
       strength = strengthOf(objectId),
       shallowSize = node.shallowSize,
       retainedSize = node.retainedSize,
       retainedCount = node.retainedCount,
       dominatedObjectCount = node.dominatedObjectIds.size,
-      inspectorLabels = if (heapObject == null) {
-        emptyList()
-      } else {
-        val reporter = ObjectReporter(heapObject)
-        AndroidObjectInspectors.appDefaults.forEach { it.inspect(reporter) }
-        reporter.labels.toList()
-      },
+      inspectorLabels = heapObject?.inspectorLabels() ?: emptyList(),
       fields = fields.shown,
       hiddenFieldCount = fields.totalCount - fields.shown.size
     )
+  }
+
+  /** What Shark's inspectors have to say about an object, e.g. that an activity is destroyed. */
+  private fun HeapObject.inspectorLabels(): List<String> {
+    val reporter = ObjectReporter(this)
+    AndroidObjectInspectors.appDefaults.forEach { it.inspect(reporter) }
+    return reporter.labels.toList()
+  }
+
+  /**
+   * The objects of the heap dump [filter] matches, the largest [limit] of them, largest first.
+   *
+   * The whole heap dump as a list, which is the view a treemap can't be: a class with a thousand small
+   * instances is one line here and a thousand rectangles too small to draw there. Sizes come from the same
+   * nodes the treemap draws, so the two agree to the byte.
+   *
+   * A pass over every object of the dump, which is seconds on a large one, so it belongs on the heap
+   * dump's thread like everything else here. Only the shown entries are read past their class name.
+   */
+  fun listObjects(
+    filter: ObjectListFilter,
+    limit: Int = MAX_LISTED_OBJECTS
+  ): ObjectList {
+    var matchCount = 0
+    // The largest matches so far, smallest of them first, so that the one to drop is the head: a dump has
+    // millions of objects and a list shows a few hundred, and sorting every match would cost more memory
+    // than the tree does.
+    val largest = PriorityQueue<Match>(limit + 1, compareBy { it.retainedSize })
+    nodes.forEach { (objectId, node) ->
+      if (objectId == root) {
+        return@forEach
+      }
+      val heapObject = graph.findObjectByIdOrNull(objectId) ?: return@forEach
+      // The class name comes from the index rather than from the record, which is what makes matching on
+      // it affordable for every object of the dump.
+      if (!filter.matches(heapObject.className(), heapObject.kind())) {
+        return@forEach
+      }
+      matchCount++
+      if (largest.size == limit && node.retainedSize <= largest.peek().retainedSize) {
+        return@forEach
+      }
+      largest += Match(objectId, node.retainedSize, node.shallowSize)
+      if (largest.size > limit) {
+        largest.poll()
+      }
+    }
+    return ObjectList(
+      filter = filter,
+      entries = largest.sortedByDescending { it.retainedSize }.map { it.entry() },
+      matchCount = matchCount,
+      // The virtual root is a node of the tree and no object of the heap dump.
+      totalCount = nodes.size - 1
+    )
+  }
+
+  /** One object a filter matched, before the read that turns it into a row. */
+  private class Match(
+    val objectId: Long,
+    val retainedSize: Long,
+    val shallowSize: Long
+  )
+
+  private fun Match.entry(): ObjectListEntry {
+    val heapObject = graph.findObjectById(objectId)
+    return ObjectListEntry(
+      objectId = objectId,
+      className = heapObject.className(),
+      kind = heapObject.kind(),
+      headline = heapObject.headline(),
+      shallowSize = shallowSize,
+      retainedSize = retainedSize,
+      strength = reachability.strengthOf(heapObject)
+    )
+  }
+
+  private fun HeapObject.className(): String = when (this) {
+    is HeapClass -> name
+    is HeapInstance -> instanceClassName
+    is HeapObjectArray -> arrayClassName
+    is HeapPrimitiveArray -> arrayClassName
+  }
+
+  private fun HeapObject.kind(): HeapObjectKind = when (this) {
+    is HeapClass -> HeapObjectKind.CLASS
+    is HeapInstance -> HeapObjectKind.INSTANCE
+    is HeapObjectArray -> HeapObjectKind.OBJECT_ARRAY
+    is HeapPrimitiveArray -> HeapObjectKind.PRIMITIVE_ARRAY
   }
 
   /**
@@ -515,7 +593,7 @@ class HeapDominatorTreemap internal constructor(
       when {
         index > 0 -> stepTo(objectId, referrerId = objectIds[index - 1])
         // The GC root's own object, which no field of the heap dump points at.
-        isBelowGroup -> step(objectId, referenceName = null)
+        isBelowGroup -> step(objectId, reference = null)
         else -> null
       }
     }
@@ -528,9 +606,16 @@ class HeapDominatorTreemap internal constructor(
     )
   }
 
-  /** Which kind of GC root reaches [objectId], or that it's garbage nothing points at. */
-  private fun gcRootLabelOf(objectId: Long): String =
-    graph.gcRoots.firstOrNull { it.id == objectId }?.let { gcRootLabel(it) } ?: UNCOLLECTED_LABEL
+  /**
+   * Which kind of GC root reaches [objectId], or that it's garbage nothing points at.
+   *
+   * Only the roots the tree followed, so that an object a local variable also happens to point at isn't
+   * named after the local variable. See [TreeGcRootProvider].
+   */
+  private fun gcRootLabelOf(objectId: Long): String = graph.gcRoots
+    .firstOrNull { it.id == objectId && reachability.isHeldThrough(objectId, it.reachabilityStrength()) }
+    ?.let { gcRootLabel(it) }
+    ?: UNCOLLECTED_LABEL
 
   /** How [referrerId] points at [objectId], which takes reading the referrer's references again. */
   private fun stepTo(
@@ -543,25 +628,43 @@ class HeapDominatorTreemap internal constructor(
       ?.resolve()
     return step(
       objectId = objectId,
-      referenceName = details?.let { referenceName(it.name, it.locationType) }
+      reference = details?.let { resolved ->
+        PathReference(
+          name = resolved.name,
+          // The class that declares the field rather than the referrer's own class, which is what tells a
+          // field inherited from a base class apart from one the subclass added.
+          ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
+            ?.let { (it as? HeapClass)?.simpleName }
+            ?: label(referrerId),
+          locationType = resolved.locationType
+        )
+      }
     )
   }
 
   private fun step(
     objectId: Long,
-    referenceName: String?
-  ) = PathStep(
-    objectId = objectId,
-    label = label(objectId),
-    referenceName = referenceName,
-    isInspectable = objectId in nodes
-  )
-
-  /** An array element reads as `[3]`, so that a path can't be read as a field called `3`. */
-  private fun referenceName(
-    name: String,
-    locationType: ReferenceLocationType
-  ): String = if (locationType == ReferenceLocationType.ARRAY_ENTRY) "[$name]" else name
+    reference: PathReference?
+  ): PathStep {
+    val node = nodes[objectId]
+    // Every step of a path is an object of the heap dump, unlike a node of the tree, which can stand for a
+    // pile of them or for the dump as a whole.
+    val heapObject = graph.findObjectById(objectId)
+    return PathStep(
+      objectId = objectId,
+      className = heapObject.className(),
+      kind = heapObject.kind(),
+      headline = heapObject.headline(),
+      strength = strengthOf(objectId),
+      // Zero for an object whose bytes are folded into another one, which is no node of the tree: a
+      // string's characters are counted inside the string. See [ReferenceStrengthReader.foldedObjectIdsOf].
+      retainedSize = node?.retainedSize ?: 0L,
+      retainedCount = node?.retainedCount ?: 0,
+      inspectorLabels = heapObject.inspectorLabels(),
+      reference = reference,
+      isInspectable = objectId in nodes
+    )
+  }
 
   /**
    * A search for the paths to one object, which walks the references backwards: from the object towards
@@ -915,6 +1018,12 @@ class HeapDominatorTreemap internal constructor(
     private const val MAX_FIELDS = 500
 
     /**
+     * How many objects [listObjects] hands out. Past a few hundred rows the list stops being something
+     * anyone reads and becomes something they filter, which is what the filter is for.
+     */
+    const val MAX_LISTED_OBJECTS = 500
+
+    /**
      * How many ways of holding an object [independentPathsTo] spells out. Six chains is already more than
      * fits in a panel, and an object held from more places than that is held by a data structure rather
      * than by anything anyone would call an owner.
@@ -964,6 +1073,8 @@ data class HeapObjectSummary(
   val label: String,
   /** Fully qualified class name, or array type. */
   val className: String,
+  /** Null for the virtual root above the heap dump, which is no object of it. */
+  val kind: HeapObjectKind?,
   /**
    * What this kind of object is worth saying before anything else — a string's content, a bitmap's
    * dimensions — for the kinds the explorer recognizes, null for the rest.
@@ -1025,48 +1136,4 @@ data class ObjectFieldValue(
   val value: String,
   /** The object the field points at, when it's in the tree and can therefore be inspected. */
   val inspectableObjectId: Long?
-)
-
-/** What holds on to an object. See [HeapDominatorTreemap.referrersOf]. */
-data class ObjectReferrers(
-  /**
-   * Whether nothing but the virtual root dominates the object, which is what makes its referrers worth
-   * showing: with more than one of them on paths that meet only at the root, no single owner would free
-   * it, so the dominator tree attributes its bytes to the whole heap.
-   */
-  val isDominatedByRoot: Boolean,
-  val referrers: List<Referrer>,
-  /**
-   * How many of the referrers keep the object in memory, which is fewer than [referrerCount] whenever
-   * one of them holds it without retaining it — a `Cleaner` pointing at a bitmap, an entry of a cache.
-   * Those are worth listing, but they aren't why the object is still here, and no path goes through
-   * them.
-   */
-  val holdingReferrerCount: Int,
-  /** How many referrers there are beyond the ones in [referrers]. */
-  val hiddenReferrerCount: Int
-) {
-  /** How many references point at this object, including the ones [referrers] left out. */
-  val referrerCount: Int get() = referrers.size + hiddenReferrerCount
-}
-
-/** One reference pointing at an object. See [ObjectReferrers]. */
-data class Referrer(
-  /** The referring object, or which kind of GC root this is. */
-  val label: String,
-  /** The field holding the reference, null for a GC root. */
-  val fieldName: String?,
-  /** The referring object, when it's in the tree and can therefore be inspected. */
-  val inspectableObjectId: Long?,
-  /**
-   * How weakly this reference holds the object when it doesn't simply retain it: a
-   * `java.lang.ref.Reference`'s referent, or an entry of a cache the explorer knows evicts. Null for a
-   * reference that retains, which is nearly all of them.
-   */
-  val weakeningStrength: ReachabilityStrength? = null,
-  /**
-   * Whether the tree follows this reference. False only for a weakening one pointing at an object that
-   * something stronger also holds, which is why nothing explains the object through it.
-   */
-  val isFollowed: Boolean = true
 )

@@ -9,14 +9,16 @@ import shark.explorer.PresentedCell
 import shark.explorer.ReachabilityStrength
 import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.FINALIZER
+import shark.explorer.ReachabilityStrength.LOCAL
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
 import shark.explorer.ReachabilityStrength.STRONG
+import shark.explorer.ReachabilityStrength.THREAD_LOCAL
 import shark.explorer.ReachabilityStrength.UNREACHABLE
 import shark.explorer.ReachabilityStrength.WEAK
 
 /**
- * How the rectangles are coloured. Pick one in the top bar.
+ * How the rectangles are coloured. Pick one above the view.
  *
  * Whichever is picked, an object that isn't strongly reachable keeps its own vivid hue, because
  * spotting one nested inside a strongly reachable block is the whole point of colouring by strength at
@@ -217,6 +219,8 @@ internal val ReachabilityStrength.displayName: String
   get() = when (this) {
     STRONG -> "Strong"
     CACHE -> "Cache"
+    THREAD_LOCAL -> "Thread local"
+    LOCAL -> "Local"
     SOFT -> "Soft"
     WEAK -> "Weak"
     FINALIZER -> "Finalizer"
@@ -229,6 +233,8 @@ internal val ReachabilityStrength.reachabilityText: String
   get() = when (this) {
     STRONG -> "Strongly reachable"
     CACHE -> "Held only by a cache that evicts"
+    THREAD_LOCAL -> "Held only by a thread's own storage"
+    LOCAL -> "Held only by a running method"
     SOFT -> "Softly reachable"
     WEAK -> "Weakly reachable"
     FINALIZER -> "Reachable only from the finalizer queue"
@@ -240,6 +246,8 @@ private val ReachabilityStrength.hue: Float
   get() = when (this) {
     STRONG -> 210f
     CACHE -> 130f
+    THREAD_LOCAL -> 100f
+    LOCAL -> 320f
     SOFT -> 35f
     WEAK -> 285f
     FINALIZER -> 0f

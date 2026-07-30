@@ -1,5 +1,7 @@
 package shark.explorer
 
+import shark.ReferenceLocationType
+
 /**
  * The one node a dominator tree attributes an object's bytes to. See
  * [HeapDominatorTreemap.dominatorOf].
@@ -72,16 +74,41 @@ data class IndependentPath(
   val hiddenStepCount: Int
 )
 
-/** One object along an [IndependentPath], and the reference that reaches it. */
+/**
+ * One object along an [IndependentPath], and the reference that reaches it.
+ *
+ * Everything a leak trace says about an object, because a path here is the same thing: what it is, how
+ * firmly it's held, what it retains, what the inspectors make of it, and which field of the object above
+ * points at it.
+ */
 data class PathStep(
   val objectId: Long,
-  /** Short name, as drawn on a rectangle. */
-  val label: String,
+  /** Fully qualified class name, or array type. */
+  val className: String,
+  val kind: HeapObjectKind,
   /**
-   * The field of the step before it that points at it, `[3]` for an array element, null for the first step
-   * of a path a GC root starts.
+   * What this kind of object is worth saying before anything else — a string's content, a bitmap's
+   * dimensions — for the kinds the explorer recognizes, null for the rest. What tells one step of a path
+   * apart from another step of the same class.
    */
-  val referenceName: String?,
+  val headline: String?,
+  val strength: ReachabilityStrength,
+  /** Bytes retained, and how many objects that is: 0 for an object folded into another one. */
+  val retainedSize: Long,
+  val retainedCount: Int,
+  /** What Shark's object inspectors have to say, e.g. that an activity is destroyed. */
+  val inspectorLabels: List<String>,
+  /** How the step before points at this one. Null for the first step of a path a GC root starts. */
+  val reference: PathReference?,
   /** Whether the object is in the tree and can therefore be opened. */
   val isInspectable: Boolean
+)
+
+/** The reference from one step of a path to the next. See [PathStep.reference]. */
+data class PathReference(
+  /** The field's name, or the index for an array element. */
+  val name: String,
+  /** Simple name of the class that declares the field, which isn't always the referrer's own class. */
+  val ownerClassName: String,
+  val locationType: ReferenceLocationType
 )

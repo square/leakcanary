@@ -83,6 +83,9 @@ it, so run it before pushing.
   tests can't find cells by tag. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on
   the details panel and breadcrumbs.
+- **A click is a fraction of the view, never of the window.** `ExplorerAppTest.viewBounds` measures the
+  view by its `contentDescription`, and every press helper is relative to that. Window fractions break
+  the moment anything above the view changes height, which is a change to the top bar away.
 - Build test heap dumps with the `hprofFile.dump { }` DSL from `shark-hprof-test` rather than
   checking in binary fixtures or hand-writing hprof bytes.
 

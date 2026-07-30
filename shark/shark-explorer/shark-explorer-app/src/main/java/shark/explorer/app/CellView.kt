@@ -20,7 +20,7 @@ import shark.explorer.CellSubject
 import shark.explorer.ObjectGroupKind
 import shark.explorer.TreemapPoint
 
-/** Which shape the dominator tree is drawn as. Pick one in the top bar. */
+/** Which shape the dominator tree is drawn as. Pick one above the view. */
 internal enum class ViewShape(val displayName: String) {
 
   /** Nested rectangles: area is retained size, nesting is domination. */

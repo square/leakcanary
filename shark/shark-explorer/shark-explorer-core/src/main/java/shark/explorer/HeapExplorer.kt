@@ -60,13 +60,21 @@ class HeapExplorer private constructor(
           objectSizeCalculator = AndroidObjectSizeCalculator(graph)
         )
         onProgress("Working out what retains what")
+        val gcRootProvider = TreeGcRootProvider(reachability)
         val dominatorTree = HeapDominatorTree.buildFor(
           graph = graph,
           referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability),
-          gcRootProvider = UncollectedGarbageGcRootProvider(reachability.unreachableRootObjectIds)
+          gcRootProvider = gcRootProvider
         )
         val nodes = dominatorTree.buildNodes(AndroidObjectSizeCalculator(graph))
-        val tree = HeapDominatorTreemap(graph, reachability, strengthReader, dominatorTree, nodes)
+        val tree = HeapDominatorTreemap(
+          graph = graph,
+          reachability = reachability,
+          strengthReader = strengthReader,
+          gcRootProvider = gcRootProvider,
+          dominatorTree = dominatorTree,
+          nodes = nodes
+        )
         return HeapExplorer(heapDumpFile, graph, reachability, tree)
       } catch (throwable: Throwable) {
         graph.close()
@@ -77,7 +85,8 @@ class HeapExplorer private constructor(
 }
 
 /**
- * The heap dump's own GC roots, plus a way into every piece of uncollected garbage.
+ * Where the dominator tree hangs the heap dump off: the GC roots that explain why what they point at is
+ * still in memory, plus a way into every piece of uncollected garbage.
  *
  * A dominator tree built from the GC roots alone covers the reachable heap only, and the garbage is
  * usually the part of a dump nobody has looked at. So the objects no other piece of garbage points at
@@ -85,20 +94,26 @@ class HeapExplorer private constructor(
  * that is no root and that nothing reachable holds.
  *
  * Whatever a piece of garbage retains still nests under it, because being pointed at by another
- * unreachable object is what keeps an object off this list. See
+ * unreachable object is what keeps an object off that list. See
  * [HeapReachability.unreachableRootObjectIds].
+ *
+ * The roots left out are the ones that don't explain anything: a local variable of a running method
+ * pointing at an object a field also points at says nothing about what keeps that object in memory, and
+ * would put it flat under the GC roots rather than under the field. Same rule as for a weak reference —
+ * see [HeapReachability.isHeldThrough] — and the same reason it's safe: a root that is the only way to an
+ * object is kept, because then nothing holds it more firmly.
  */
-internal class UncollectedGarbageGcRootProvider(
-  private val unreachableRootObjectIds: List<Long>
-) : GcRootProvider {
+internal class TreeGcRootProvider(private val reachability: HeapReachability) : GcRootProvider {
 
   override fun provideGcRoots(graph: HeapGraph): Sequence<GcRootReference> =
-    MatchingGcRootProvider(emptyList()).provideGcRoots(graph) +
-      unreachableRootObjectIds.asSequence().map { objectId ->
-        GcRootReference(
-          gcRoot = GcRoot.Unreachable(objectId),
-          isLowPriority = true,
-          matchedLibraryLeak = null
-        )
-      }
+    MatchingGcRootProvider(emptyList()).provideGcRoots(graph)
+      .filter { reference ->
+        reachability.isHeldThrough(reference.gcRoot.id, reference.gcRoot.reachabilityStrength())
+      } + reachability.unreachableRootObjectIds.asSequence().map { objectId ->
+      GcRootReference(
+        gcRoot = GcRoot.Unreachable(objectId),
+        isLowPriority = true,
+        matchedLibraryLeak = null
+      )
+    }
 }

@@ -99,6 +99,27 @@ internal class HeapReachability private constructor(
   fun strengthOf(heapObject: HeapObject): ReachabilityStrength =
     strengthByObjectIndex.strengthAt(heapObject.objectIndex)
 
+  /**
+   * Whether an edge that weakens the path it's on to [edgeStrength] is one of the ways [objectId] is
+   * held, which it is only when nothing holds it more firmly.
+   *
+   * That's the rule for a weak reference — it holds nothing that something else holds — and the explorer
+   * applies it to everything that only holds an object for as long as it takes to let go of it: a cache
+   * that evicts, a thread local, a stack frame, a finalizer queue. Two things follow from it.
+   *
+   * A reference out of an object held that way is weakened too, which is why this takes the strength of a
+   * path rather than of a reference: a `FinalizerReference` doesn't hold what its referent points at
+   * either, and a local variable holding a list doesn't hold what else is in the list.
+   *
+   * And nothing is lost by it. Every object was reached by a walk at exactly the strength this compares
+   * against — the strongest path to it — so it keeps at least the edges of that path, and the graph the
+   * dominator tree is built from still has every object of the heap dump in it.
+   */
+  fun isHeldThrough(
+    objectId: Long,
+    edgeStrength: ReachabilityStrength
+  ): Boolean = edgeStrength == STRONG || strengthOf(objectId) >= edgeStrength
+
   companion object {
     private val STRENGTHS = ReachabilityStrength.values()
 
@@ -183,8 +204,11 @@ internal class HeapReachability private constructor(
     fun walkFromGcRoots(gcRootProvider: GcRootProvider) {
       // One queue of object ids per strength, drained strongest first.
       val queueByStrength = Array(STRENGTHS.size) { ArrayDeque<Long>() }
+      // Not every root holds what it points at for as long as the program runs: see
+      // [GcRoot.reachabilityStrength].
       gcRootProvider.provideGcRoots(graph).forEach { rootReference ->
-        queueByStrength[STRONG.ordinal] += rootReference.gcRoot.id
+        val gcRoot = rootReference.gcRoot
+        queueByStrength[gcRoot.reachabilityStrength().ordinal] += gcRoot.id
       }
       REACHED_STRENGTHS.forEach { strength ->
         val queue = queueByStrength[strength.ordinal]

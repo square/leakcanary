@@ -17,18 +17,23 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
-import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasAnySibling
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
+import androidx.compose.ui.test.waitUntilExactlyOneExists
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
@@ -37,7 +42,9 @@ import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
+import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
+import shark.explorer.HeapObjectKind
 import shark.explorer.ReachabilityStrength
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.STRONG
@@ -115,7 +122,7 @@ class ExplorerAppTest {
     runComposeUiTest {
       openHeapDump()
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
 
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(NO_SELECTION).assertDoesNotExist()
@@ -127,7 +134,7 @@ class ExplorerAppTest {
     runComposeUiTest {
       openHeapDump()
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
 
       // An object id is how you point something outside the app — a script, a bug report — at this one
       // instance rather than at its class, so the panel prints the one it's describing.
@@ -139,7 +146,7 @@ class ExplorerAppTest {
     runComposeUiTest {
       openHeapDump()
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
 
       // The rectangle clicked is the payload array nested in the instance holding it, so its fields
       // are its elements, all null in this heap dump.
@@ -152,7 +159,7 @@ class ExplorerAppTest {
     runComposeUiTest {
       openHeapDump()
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
 
       // The holder is the only thing pointing at the array clicked, so it dominates it and points straight
       // at it: one line, and nothing in between for the paths below to spell out.
@@ -162,62 +169,88 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `the details panel spells out every way what was pressed is held`() {
+  @Test fun `the paths screen spells out every way what was pressed is held`() {
     runComposeUiTest {
       // The array is held by a wrapper the cache holds and by the view the tile holds, and nothing holds
-      // both: no object dominates it, which is the shape this section was built for.
+      // both: no object dominates it, which is the shape this screen was built for.
       openHeapDump(cachedPayloadHeapDump())
+      pressView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText(INDEPENDENT_PATHS), OPEN_TIMEOUT_MILLIS)
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      showPathsButton().performScrollTo().performClick()
 
+      // Two chains with nothing in common in between, each from the GC root it starts at down to the
+      // array, drawn where the treemap was and named in the breadcrumbs.
       waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
-      // Two chains with nothing in common in between, each from the GC root it starts at down to the array.
-      // They sit below the fold of a panel this narrow, hence scrolling to each of them.
-      onNodeWithText(HeapDominatorTreemap.GC_ROOTS_LABEL, substring = true)
-        .performScrollTo()
-        .assertIsDisplayed()
-      onNodeWithText(".entry Wrapper", substring = true).performScrollTo().assertIsDisplayed()
-      onNodeWithText(".view View", substring = true).performScrollTo().assertIsDisplayed()
-      onNodeWithText(".drawable Object[]", substring = true).performScrollTo().assertIsDisplayed()
+      currentCrumb(ExplorerScreen.PATHS_CRUMB).assertIsDisplayed()
+      // Each chain starts at the kind of GC root that reaches it, which is where a leak trace starts too.
+      assertThat(onAllNodesWithText("GC root:", substring = true).fetchSemanticsNodes()).hasSize(2)
+      onNodeWithText("Cache.entry").assertIsDisplayed()
+      onNodeWithText("Wrapper.payload").assertIsDisplayed()
+      onNodeWithText("Tile.view").assertIsDisplayed()
+      onNodeWithText("View.drawable").assertIsDisplayed()
     }
   }
 
-  @Test fun `clicking a step of a path shows that object and inspects it`() {
+  @Test fun `a path names each object by its class, package and all`() {
     runComposeUiTest {
       openHeapDump(cachedPayloadHeapDump())
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
-      waitUntilAtLeastOneExists(hasText(".entry Wrapper", substring = true), OPEN_TIMEOUT_MILLIS)
+      pressView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText(INDEPENDENT_PATHS), OPEN_TIMEOUT_MILLIS)
 
-      onNodeWithText(".entry Wrapper", substring = true).performScrollTo().performClick()
+      showPathsButton().performScrollTo().performClick()
+
+      // A leak trace says what each object is and how much it holds, and so does this: the package is
+      // there to be read past rather than left out, which is why it's drawn greyed.
+      waitUntilAtLeastOneExists(hasText("com.example.Wrapper instance"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("com.example.View instance").assertIsDisplayed()
+      // The array is where both paths end, so what each chain says about it is said twice: what it is,
+      // and the size the treemap draws it at. Its element count a third time, in the panel beside them.
+      mapOf(
+        "java.lang.Object[] array" to 2,
+        "Retaining ${formatByteSize(PAYLOAD_LENGTH * 4L)} in 1 object" to 2,
+        "$PAYLOAD_LENGTH elements" to 3
+      ).forEach { (line, count) ->
+        assertThat(onAllNodesWithText(line).fetchSemanticsNodes()).describedAs(line).hasSize(count)
+      }
+    }
+  }
+
+  @Test fun `clicking a step of a path shows that object on the map`() {
+    runComposeUiTest {
+      openHeapDump(cachedPayloadHeapDump())
+      showPaths()
+
+      onNodeWithText("com.example.Wrapper instance").performClick()
 
       // Described in the panel, and the treemap zoomed to where it's drawn, which is a step down from the
       // root: the wrapper is held from two places, so nothing owns it either.
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() > 1 }
     }
   }
 
-  @Test fun `going back undoes a jump to what the panel led to`() {
+  @Test fun `going back returns to the screen the move was made from`() {
     runComposeUiTest {
       openHeapDump(cachedPayloadHeapDump())
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
-      waitUntilAtLeastOneExists(hasText(".entry Wrapper", substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(".entry Wrapper", substring = true).performScrollTo().performClick()
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() > 1 }
+      showPaths()
+      onNodeWithText("com.example.Wrapper instance").performClick()
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
 
-      // Zooming out isn't the way back from a jump sideways, so the arrows are.
+      // Zooming out isn't the way back from a jump sideways, let alone from one screen to another.
       onNodeWithText(BACK_ARROW).performClick()
 
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 1 }
+      waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(FORWARD_ARROW).performClick()
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() > 1 }
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
     }
   }
 
   @Test fun `a starred object stays readable after moving on to another`() {
     runComposeUiTest {
       openHeapDump()
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
 
       onNodeWithText(UNSTARRED_GLYPH).performClick()
@@ -225,10 +258,11 @@ class ExplorerAppTest {
       onNodeWithText("$HOLDER_LABEL ·", substring = true).performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
 
-      onNodeWithText("$STARRED_GLYPH 1 starred").performClick()
+      screenButton("$STARRED_GLYPH 1 starred").performClick()
 
       // Comparing two rectangles means looking at them one after the other, and a treemap has no room to
       // keep the first on screen. So the list keeps everything the panel had read about it.
+      currentCrumb(ExplorerScreen.STARRED_CRUMB).assertIsDisplayed()
       onNodeWithText("Starred objects", substring = true).assertIsDisplayed()
       onNodeWithText(objectIdText(payloadObjectId)).assertIsDisplayed()
       onNodeWithText("dominated by $HOLDER_LABEL", substring = true).assertIsDisplayed()
@@ -238,7 +272,7 @@ class ExplorerAppTest {
   @Test fun `clicking a field in the details panel inspects what it points at`() {
     runComposeUiTest {
       openHeapDump()
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
       // Up to the instance holding the array clicked, which is what dominates it.
       waitUntilAtLeastOneExists(hasText(DOMINATOR), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("$HOLDER_LABEL ·", substring = true).performClick()
@@ -256,7 +290,7 @@ class ExplorerAppTest {
       openHeapDump()
       assertThat(breadcrumbCount()).isEqualTo(1)
 
-      onRoot().performMouseInput { doubleClick(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
 
       // The point clicked is inside the payload array, which is inside the instance holding it, which
       // is inside the reachable half of the dump: a crumb for each rather than a jump from the root
@@ -271,7 +305,7 @@ class ExplorerAppTest {
   @Test fun `clicking a breadcrumb zooms back out`() {
     runComposeUiTest {
       openHeapDump()
-      onRoot().performMouseInput { doubleClick(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() > 1 }
 
       onNodeWithText(HeapDominatorTreemap.ROOT_LABEL, substring = true).performClick()
@@ -287,7 +321,7 @@ class ExplorerAppTest {
       // left corner.
       openHeapDump(manySiblingsHeapDump())
 
-      onRoot().performMouseInput { click(percentOffset(LEFTOVER_X, LEFTOVER_Y)) }
+      pressView(LEFTOVER_X, LEFTOVER_Y)
 
       waitUntilAtLeastOneExists(hasText("smaller objects", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("Held by Object[]", substring = true).assertIsDisplayed()
@@ -330,7 +364,7 @@ class ExplorerAppTest {
       // the treemap and the weak reference holding it is a thin border around it.
       openHeapDump(weaklyReachablePayloadHeapDump())
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
 
       waitUntilAtLeastOneExists(hasText(WEAK.reachabilityText), OPEN_TIMEOUT_MILLIS)
     }
@@ -360,7 +394,7 @@ class ExplorerAppTest {
     runComposeUiTest {
       openHeapDump(uncollectedGarbageHeapDump())
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
 
       // No GC root reaches it, so there is no object to blame for it still being here: what stands in for a
       // dominator is the half of the tree it's drawn in, which is the garbage.
@@ -395,12 +429,12 @@ class ExplorerAppTest {
       // around: the tile dominates the pixels, and both ways it holds them are the tile's own.
       openHeapDump(coilCachedImageHeapDump(alsoShownByATile = true))
 
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      showPaths()
 
       waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("Tile ·", substring = true).performScrollTo().assertIsDisplayed()
-      onNodeWithText(".bitmap Object[]", substring = true).performScrollTo().assertIsDisplayed()
-      onNodeWithText(".drawable Object[]", substring = true).performScrollTo().assertIsDisplayed()
+      onNodeWithText("Tile.view").assertIsDisplayed()
+      onNodeWithText("View.drawable").assertIsDisplayed()
+      onNodeWithText("BitmapImage.bitmap").assertIsDisplayed()
       // The cache points at the image as squarely as the request result does, and holds nothing.
       assertThat(onAllNodesWithText("InternalValue", substring = true).fetchSemanticsNodes()).isEmpty()
     }
@@ -431,7 +465,7 @@ class ExplorerAppTest {
         OPEN_TIMEOUT_MILLIS
       )
       // Anywhere near the middle of the view is inside one of the rings.
-      onRoot().performMouseInput { click(percentOffset(TREEMAP_X, TREEMAP_Y)) }
+      pressView(TREEMAP_X, TREEMAP_Y)
 
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
     }
@@ -450,6 +484,125 @@ class ExplorerAppTest {
     }
   }
 
+  @Test fun `every object of the heap dump can be listed`() {
+    runComposeUiTest {
+      openHeapDump()
+
+      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+
+      // The view a treemap can't be: one line per object, whatever its size, with the retained size the
+      // treemap draws its rectangle from.
+      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
+      currentCrumb(ExplorerScreen.OBJECTS_CRUMB).assertIsDisplayed()
+      onNodeWithText("com.example.Holder instance").assertIsDisplayed()
+      onNodeWithText("$PAYLOAD_LENGTH elements").assertIsDisplayed()
+      // How much of the heap dump is being looked at, which is what says a search found little of it.
+      onNodeWithText("objects match", substring = true).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `a few characters filter the list down to the class names holding them`() {
+    runComposeUiTest {
+      openHeapDump()
+      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
+
+      // Part of a name rather than all of it, which is how anyone types a class they half remember.
+      searchBox().performTextInput("Hold")
+
+      waitUntilExactlyOneExists(hasText("com.example.Holder instance"), OPEN_TIMEOUT_MILLIS)
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        onAllNodesWithText("java.lang.Object[] array").fetchSemanticsNodes().isEmpty()
+      }
+    }
+  }
+
+  @Test fun `a class leads to the instances of it`() {
+    runComposeUiTest {
+      openHeapDump()
+      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
+      // The class object itself, which the list has a line of its own for.
+      onNodeWithText("com.example.Holder class").performClick()
+      waitUntilAtLeastOneExists(hasText(LIST_INSTANCES), OPEN_TIMEOUT_MILLIS)
+
+      onNodeWithText(LIST_INSTANCES).performClick()
+
+      // Back on the list, filtered to the instances of that one class. Exactly it: a class whose name
+      // merely contains this one is another class, and its instances are not these.
+      waitUntilAtLeastOneExists(hasText("com.example.Holder instance"), OPEN_TIMEOUT_MILLIS)
+      onNode(hasText(EXACT_MATCH) and isToggleable()).assertIsOn()
+      kindToggle(HeapObjectKind.INSTANCE).assertIsOn()
+      kindToggle(HeapObjectKind.CLASS).assertIsOff()
+      assertThat(onAllNodesWithText("com.example.Holder class").fetchSemanticsNodes()).isEmpty()
+    }
+  }
+
+  @Test fun `clicking a listed object shows it on the map and describes it`() {
+    runComposeUiTest {
+      openHeapDump()
+      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
+
+      onNodeWithText("java.lang.Object[] array").performClick()
+
+      // The same place clicking its rectangle would have taken you: the map zoomed to it, and the panel
+      // describing it.
+      waitUntilAtLeastOneExists(hasText(objectIdText(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+      onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
+      // Drawing an object that dominates nothing would be an empty view, so the map lands on what holds
+      // it, with it selected inside: the last crumb is the holder and the panel is the array.
+      currentCrumb("$HOLDER_LABEL ·", substring = true).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `the panel describes whatever the breadcrumbs name`() {
+    runComposeUiTest {
+      openHeapDump()
+      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
+      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+
+      // A crumb moves the map, so it has to move the panel with it: a window saying one thing at the top
+      // and another on the right is a window that has to be read twice.
+      crumb("$HOLDER_LABEL ·").performClick()
+
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `a breadcrumb says which object it is, not only which class`() {
+    runComposeUiTest {
+      openHeapDump()
+
+      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
+
+      // The id is how anything outside this window is pointed at the same object: another heap analyzer,
+      // a script, a colleague.
+      waitUntilAtLeastOneExists(
+        hasText(hexObjectId(payloadObjectId), substring = true),
+        OPEN_TIMEOUT_MILLIS
+      )
+    }
+  }
+
+  @Test fun `the colour and shape controls belong to the view they control`() {
+    runComposeUiTest {
+      openHeapDump()
+      strengthToggle(STRONG).assertIsDisplayed()
+      shapeOption(ViewShape.RADIAL).assertIsDisplayed()
+
+      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+
+      // A list of objects is coloured by nothing and shaped like a list, so controls for how the tree is
+      // drawn have nothing to do there.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        onAllNodesWithText(ViewShape.RADIAL.displayName).fetchSemanticsNodes().isEmpty()
+      }
+      assertThat(onAllNodesWithText(STRONG.displayName, substring = true).fetchSemanticsNodes())
+        .isEmpty()
+    }
+  }
+
   private fun ComposeUiTest.openHeapDump(heapDumpFile: File = testHeapDump()) {
     setContent { MaterialTheme { ExplorerApp(initialHeapDumpFile = heapDumpFile) } }
     waitUntilAtLeastOneExists(
@@ -458,15 +611,51 @@ class ExplorerAppTest {
     )
   }
 
-  /** The checkbox for [strength] in the top bar, which carries its name and how much it holds. */
+  /**
+   * A button on the row of screens an open heap dump can be read through, rather than the breadcrumb of
+   * the same name once it has been pressed: a crumb for where the explorer already is leads nowhere.
+   */
+  private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
+    onNode(hasText(label) and hasClickAction())
+
+  /**
+   * The last breadcrumb, which is where the explorer is and therefore isn't a button. Told apart from a
+   * panel line naming the same screen by the chevron beside it.
+   */
+  private fun ComposeUiTest.currentCrumb(
+    label: String,
+    substring: Boolean = false
+  ): SemanticsNodeInteraction =
+    onNode(hasText(label, substring = substring) and hasAnySibling(hasText(BREADCRUMB_SEPARATOR)))
+
+  /** The panel's way to the paths, which says how many of them there are. */
+  private fun ComposeUiTest.showPathsButton(): SemanticsNodeInteraction =
+    onNode(hasText(" paths", substring = true) and hasClickAction())
+
+  /** Presses the biggest rectangle of the treemap, then goes to the paths that hold it. */
+  private fun ComposeUiTest.showPaths() {
+    pressView(TREEMAP_X, TREEMAP_Y)
+    waitUntilAtLeastOneExists(hasText(INDEPENDENT_PATHS), OPEN_TIMEOUT_MILLIS)
+    showPathsButton().performScrollTo().performClick()
+    waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
+  }
+
+  /** The search box of the object list, the one thing in the window that takes typing. */
+  private fun ComposeUiTest.searchBox(): SemanticsNodeInteraction = onNode(hasSetTextAction())
+
+  /** The checkbox that filters a list of objects down to one kind of them. */
+  private fun ComposeUiTest.kindToggle(kind: HeapObjectKind): SemanticsNodeInteraction =
+    onNode(hasText(kind.displayName) and isToggleable())
+
+  /** The checkbox for [strength] above the view, which carries its name and how much it holds. */
   private fun ComposeUiTest.strengthToggle(strength: ReachabilityStrength): SemanticsNodeInteraction =
     onNode(hasText(strength.displayName, substring = true) and isToggleable())
 
-  /** The radio button for [scheme] in the top bar. */
+  /** The radio button for [scheme] above the view. */
   private fun ComposeUiTest.schemeOption(scheme: CellColorScheme): SemanticsNodeInteraction =
     onNode(hasText(scheme.displayName) and isSelectable())
 
-  /** The radio button for [shape] in the top bar. */
+  /** The radio button for [shape] above the view. */
   private fun ComposeUiTest.shapeOption(shape: ViewShape): SemanticsNodeInteraction =
     onNode(hasText(shape.displayName) and isSelectable())
 
@@ -487,24 +676,51 @@ class ExplorerAppTest {
    * squarified layout puts the largest rectangle of each level: the tree's own root is level 0, the half
    * of the heap dump that weighs most is level 1, and the largest rectangle inside that one is level 2.
    *
-   * Bands are only [HEADER_HEIGHT] tall and the bar above the treemap is as tall as the rows its legend
-   * wrapped into, so where the treemap starts is measured rather than guessed: it starts where the details
-   * panel beside it does, and the panel is the lowest thing in the window that scrolls.
+   * Bands are only [HEADER_HEIGHT] tall and the controls above the treemap are as tall as the rows the
+   * legend wrapped into, so where the treemap starts is measured rather than guessed.
    */
   private fun ComposeUiTest.pressBand(
     level: Int,
     isDoubleClick: Boolean = false
   ) {
-    val treemapTop = onAllNodes(hasScrollAction())
-      .fetchSemanticsNodes()
-      .maxOf { it.boundsInRoot.top }
+    val view = viewBounds()
     val bandHeight = HEADER_HEIGHT.value
-    val offset = Offset(
-      x = onRoot().fetchSemanticsNode().size.width * BAND_X,
-      y = treemapTop + level * bandHeight + bandHeight / 2
+    press(
+      Offset(
+        x = view.left + view.width * BAND_X,
+        y = view.top + level * bandHeight + bandHeight / 2
+      ),
+      isDoubleClick
     )
+  }
+
+  /**
+   * Presses a point of the view, given as a fraction of it: the view is a canvas with no node per cell, so
+   * a test drives it by coordinates. Of the view rather than of the window, because what sits above the
+   * view is a row of buttons and a legend that wraps to as many lines as it takes.
+   */
+  private fun ComposeUiTest.pressView(
+    xFraction: Float,
+    yFraction: Float,
+    isDoubleClick: Boolean = false
+  ) {
+    val view = viewBounds()
+    press(
+      Offset(x = view.left + view.width * xFraction, y = view.top + view.height * yFraction),
+      isDoubleClick
+    )
+  }
+
+  private fun ComposeUiTest.press(
+    offset: Offset,
+    isDoubleClick: Boolean
+  ) {
     onRoot().performMouseInput { if (isDoubleClick) doubleClick(offset) else click(offset) }
   }
+
+  /** Where the tree is drawn, which is the one part of the window a click has to land in. */
+  private fun ComposeUiTest.viewBounds() =
+    onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
 
   /** The first breadcrumb, which names the root of the tree and says how much it holds. */
   private fun ComposeUiTest.rootCrumb(): String =
@@ -661,11 +877,11 @@ class ExplorerAppTest {
   }
 
   companion object {
-    /** Somewhere in the treemap: below the top bar and breadcrumbs, left of the details panel. */
+    /** Somewhere in the middle of the view, which is inside whatever it draws biggest. */
     private const val TREEMAP_X = 0.4f
     private const val TREEMAP_Y = 0.6f
 
-    /** Down the left edge of the treemap, where a squarified layout puts the largest rectangle. */
+    /** Down the left edge of the view, where a squarified layout puts the largest rectangle. */
     private const val BAND_X = 0.05f
 
     /**

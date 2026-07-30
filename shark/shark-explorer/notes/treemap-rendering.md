@@ -107,7 +107,7 @@ above.
 Hue is what the eye picks out of a treemap, and the thing worth picking out is a weakly reachable
 block sitting inside a strongly reachable one — so an object that isn't strongly reachable gets a vivid
 hue of its own whatever the scheme. Nearly all of the heap is strongly reachable, and how *that* is
-coloured is a scheme, picked in the top bar:
+coloured is a scheme, picked above the view:
 
 - **Daisy**, the default: one hue per top level block, inherited by everything nested in it and
   lightening with depth, the way DaisyDisk colours a disk. A block then reads as one thing with its
@@ -126,7 +126,7 @@ objects rather than one — a class group, or the siblings that didn't fit — i
 strength, cool slate when that strength is `STRONG`, so it reads as "not an object" without needing a
 colour of its own. All of it is in `CellColors.kt`, the one place the colours are named.
 
-**Grey means one thing only: a strength switched off.** The checkboxes in the top bar are a `CellColoring`,
+**Grey means one thing only: a strength switched off.** The checkboxes above the view are a `CellColoring`,
 and unchecking one greys out everything held that firmly rather than hiding it — the tree is the whole heap
 dump either way, so there is no strength it makes no sense to press, and toggling one is a repaint. Greying
 the strong heap is what makes the little there is of everything else jump out. That's why nothing else in

@@ -2,9 +2,9 @@ package shark.explorer
 
 /**
  * How firmly an object is held on to, and so how likely its bytes are to be given back: the strengths
- * the `java.lang.ref` package defines, plus [CACHE] for the caches the explorer knows about.
- * **Declared strongest first**, which [HeapReachability] relies on to walk the heap one strength at a
- * time.
+ * the `java.lang.ref` package defines, plus [CACHE], [THREAD_LOCAL] and [LOCAL] for the holders that
+ * let go on their own. **Declared strongest first**, which [HeapReachability] relies on to walk the heap
+ * one strength at a time.
  *
  * An object's strength is the strongest one any path from a GC root gives it, and a path is only as
  * strong as its weakest reference: strong → weak → strong leaves its target weakly reachable. So an
@@ -23,10 +23,11 @@ enum class ReachabilityStrength {
    * Reachable only from a cache that gives its entries up on its own: an LRU that evicts as it fills,
    * and empties itself when Android says memory is short.
    *
-   * The one strength here that isn't the garbage collector's. A cache holds its entries with ordinary
-   * strong references, so as far as the GC is concerned this is [STRONG]; what makes it weaker is the
-   * cache's own contract, which no heap dump records. So it comes from a curated list of the caches the
-   * explorer recognizes — see [ReferenceStrengthReader].
+   * The first of the three strengths here that aren't the garbage collector's, [THREAD_LOCAL] and
+   * [LOCAL] being the others. A cache holds its entries with ordinary strong references, so as far as the
+   * GC is concerned this is [STRONG]; what makes it weaker is the cache's own contract, which no heap dump
+   * records. So it comes from a curated list of the caches the explorer recognizes — see
+   * [ReferenceStrengthReader].
    *
    * Ranked below [STRONG] so that an object a cache and something else both hold reads as the something
    * else's: an image the view showing it also holds is the view's, and the cache is why the dominator
@@ -34,6 +35,28 @@ enum class ReachabilityStrength {
    * a soft reference is at the mercy of the next collection that needs room.
    */
   CACHE,
+
+  /**
+   * Reachable only from a thread's own storage, which is given up when the thread dies.
+   *
+   * Like [CACHE], a strong reference as far as the garbage collector is concerned, and like a cache, a
+   * poor answer to what holds an object that something else holds too: a value in a `ThreadLocal` map is
+   * there because a thread put it there, and whatever else points at it is what's using it. Weaker than
+   * [CACHE] because a cache lets go when memory runs short and a thread local doesn't, and stronger than
+   * [SOFT] because nothing collects it while the thread lives.
+   */
+  THREAD_LOCAL,
+
+  /**
+   * Reachable only from a running method: a local variable, a JNI local reference, a native stack frame,
+   * or a monitor a thread is holding.
+   *
+   * The most transient holder there is — the frame is gone when the method returns — and the least
+   * informative, because a local variable is what a thread is doing right now rather than what keeps
+   * anything in memory. So an object a field also holds is the field's, and this is what's left for the
+   * objects nothing else points at, which are usually the ones being built.
+   */
+  LOCAL,
 
   /**
    * Reclaimed when the VM decides it wants the memory back, which is what makes a `SoftReference` a
