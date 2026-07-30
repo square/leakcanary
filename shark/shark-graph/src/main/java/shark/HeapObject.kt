@@ -605,15 +605,11 @@ sealed class HeapObject {
     override val graph: HeapGraph
       get() = hprofGraph
 
-    @Deprecated("Use byteSize property instead", ReplaceWith("byteSize"))
-    fun readByteSize() = byteSize
-
     /**
      * The total byte shallow size of elements in this array.
      */
     val byteSize: Long
       get() = recordSize - hprofGraph.primitiveArrayRecordNonElementSize
-
 
     /**
      * The [PrimitiveType] of elements in this array.
