@@ -155,7 +155,9 @@ path through it is a hint that a longer path with the real leak on it exists.
     survives every cycle that overlaps a read, and can sit in memory for as long as the loop runs,
     even though nothing but weak references point at it. Where that is known to happen, LeakCanary
     puts the reference back on the graph as one of the deprioritized kind above, so that a trace can
-    reach the object without that path ever being preferred.
+    reach the object without that path ever being preferred. [Why does LeakCanary report unreachable
+    objects?](faq.md#why-does-leakcanary-report-unreachable-objects) walks through the case this was
+    built for.
 
 A path that goes through *another* retained object is left out too, for a related reason: it would
 only tell you to go and fix that other leak first, and that other leak has a trace of its own in the
@@ -184,20 +186,26 @@ None of this is LeakCanary's invention. Showing a collection by its API rather t
 an old idea, long offered by debuggers and heap analyzers. What LeakCanary borrowed is the sharper
 version of it: abstracting *while* the graph is walked, rather than in a pass over the finished path.
 Compressing afterwards is the obvious alternative and it works badly — by the time there is a path,
-the context needed to describe what was collapsed has been thrown away. That design came from BLeak,
-the leak checking harness the Android Studio team runs against Android Studio itself, where Nathan
-Paige built it as a set of expanders. LeakCanary heard about them from Raluca Sauciuc.
+the context needed to describe what was collapsed has been thrown away.
+
+That design came from the leak checking harness the Android Studio team runs against Android Studio
+itself, where Nathan Paige built it as a set of
+[expanders](https://cs.android.com/android-studio/platform/tools/adt/idea/+/mirror-goog-studio-main:bleak/src/com/android/tools/idea/bleak/expander/Expander.kt),
+one of which elides an object's internal structure so that its children "align more closely with some
+more abstract notion of ownership". That harness is named BLeak and finds leaks the way
+[the BLeak paper](https://doi.org/10.1145/3192366.3192376) does — John Vilk and Emery D. Berger, PLDI
+2018 — but the paper is about JavaScript in web applications, and the expanders are the Android
+Studio implementation's own.
 
 ## A trace names suspects, not just references
 
 A path from a garbage collection root to a retained object is a lot of references, and most of them
-belong to code you didn't write. None of them are hidden from you — a trace you have to take on faith
-is worse than a long one, and the whole path is always there to read. What LeakCanary adds is what it
-knows about the objects *along* the path, deciding for each whether it is known to still be in use or
-known to be dead. Nothing before the last object known to be alive can be the bug, and nothing after
-the first object known to be dead can be either. What remains is
-the window that contains the bad reference, and that window is what a leak trace highlights — and
-what identifies the leak, since leaks that blame the same references are the same bug.
+belong to code you didn't write. So LeakCanary adds what it knows about the objects *along* the path,
+deciding for each whether it is known to still be in use or known to be dead. Nothing before the last
+object known to be alive can be the bug, and nothing after the first object known to be dead can be
+either. What remains is the window that contains the bad reference, and that window is what a leak
+trace highlights — and what identifies the leak, since leaks that blame the same references are the
+same bug.
 
 The knowledge that makes this work is an extension point on purpose. LeakCanary ships with what it
 knows about the Android framework — an application is a singleton and never leaks, a view whose

@@ -54,6 +54,32 @@ Here's how you can find the leaking instance in the heap dump:
 4. The `referent` field of that `KeyedWeakReference` is your leaking object.
 5. From then on, the matter is in your hands. A good start is to look at the shortest path to GC Roots (excluding weak references).
 
+## Why does LeakCanary report unreachable objects?
+
+A heap analysis can end with a section like this:
+
+```
+====================================
+1 UNREACHABLE OBJECTS
+
+An unreachable object is still in memory but LeakCanary could not find a strong reference path
+from GC roots.
+```
+
+LeakCanary watched an object, the object was still there when the heap was dumped, and yet nothing strongly reachable points at it. That can be a race, with the object becoming collectable between the retained check and the heap dump. It can also be the opposite of a race: the object really is only weakly reachable, and it is still not going away.
+
+`WeakReference.get()` hands back an ordinary strong reference, and a collector that moves objects has to guarantee the caller never sees a stale pointer. ART's Concurrent Copying collector, the default since Android 8, does that with a read barrier, and it deliberately arranges for `get()` to trip it: it [leaves a `Reference` object gray while its referent is unmarked](https://cs.android.com/android/platform/superproject/main/+/main:art/runtime/gc/collector/concurrent_copying.cc) so that, as the comment there puts it, "if `GetReferent()` is called, it triggers the read-barrier to process the referent before use". The barrier marks the referent, and reference processing later clears only the references whose referent is still unmarked. So a weak reference that is read during marking is not cleared that cycle, and its target survives it. Read a weak reference once and you lose one collection cycle. Read it every frame and you can lose all of them.
+
+Until Android 15, `ObjectAnimator` held its target through a `WeakReference` and read it on every frame to animate it, so an infinite animator that is never cancelled read that weak reference around 60 times a second, forever. If the target is a view, the view stays in memory after the activity that owned it is destroyed. LeakCanary detects the retention, dumps the heap, and then finds nothing holding the view — because nothing does, strongly. The result is an unreachable object rather than a leak trace: a report that memory is being wasted, with no path to explain it.
+
+[LeakCanary 2.8](changelog.md#objectanimator-leaks) made that case reportable. A reference reader named `ANIMATOR_WEAK_REF_SUCKS` recognizes an `ObjectAnimator` whose `mTarget` is a `WeakReference` and republishes the referent as a **virtual reference**: a reference LeakCanary puts on the graph that no field actually holds. It is marked low priority, so the path finder routes through it only when there is nothing else — which is exactly this situation. The trace then names `ObjectAnimator.mTarget` as the suspect, and there is something to go and fix. Virtual references weren't invented for this: they came out of [showing a collection the way you would write it](design.md#references-are-shown-the-way-you-would-write-them), which needs the same ability. The animator reader landed days after the machinery it uses, and heap growth detection reused it two years later.
+
+The underlying bug was [filed against AOSP](https://issuetracker.google.com/issues/212993949) in January 2022 and fixed in December 2023 by [a commit that removes the `WeakReference` outright](https://android.googlesource.com/platform/frameworks/base/+/392832f9580ff38f1fb0d7de47dbcb17eaaededf), for the same reason: "because it is animated every frame, the WeakReference can never be collected". The fix shipped in Android 15, and `ANIMATOR_WEAK_REF_SUCKS` checks that `mTarget` is a `WeakReference` before doing anything, so on Android 15 and up it stands down and the ordinary traversal follows the plain field.
+
+The pattern itself isn't gone. [`Drawable.mCallback`](https://cs.android.com/android/platform/superproject/main/+/main:frameworks/base/graphics/java/android/graphics/drawable/Drawable.java;l=194) is still a `WeakReference` — [made one in 2010](https://android.googlesource.com/platform/frameworks/base/+/f2a47782f31b58d2d31bd00b50fe43604af8b9c2) precisely to prevent leaks — and a drawable driven by an infinite `ObjectAnimator` reads it every frame, retaining the view it points at by the same mechanism. That one is tracked in [#2116](https://github.com/square/leakcanary/issues/2116).
+
+How bad this is depends on the collector, not on the Android version. ART's newer `userfaultfd`-based Concurrent Mark-Compact collector [eliminates the read barrier](https://android-developers.googleblog.com/2022/08/android-13-is-in-aosp.html), so reading a weak reference no longer marks its target. Retention then depends on the value happening to be live in a thread's stack or registers at one of the collector's root scans, rather than being guaranteed by the read. For the animation case that should turn near-certain retention into occasional retention — the object survives some cycles and gets collected in one where the read didn't line up with a root scan — which follows from how the collector works rather than from a published measurement. It doesn't make the bug harmless, it makes it less reproducible. And you can't tell which collector you have from the Android release: Concurrent Mark-Compact ships in the updatable ART module and is gated on kernel support, so two devices on the same version of Android can be running different collectors.
+
 ## How does LeakCanary get installed by only adding a dependency?
 
 On Android, content providers are created after the Application instance is created but before Application.onCreate() is called. The `leakcanary-object-watcher-android` artifact has a non exported ContentProvider defined in its `AndroidManifest.xml` file. When that ContentProvider is installed, it adds activity and fragment lifecycle listeners to the application.
