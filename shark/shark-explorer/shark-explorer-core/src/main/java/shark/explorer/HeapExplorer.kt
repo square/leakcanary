@@ -10,6 +10,7 @@ import shark.GcRootReference
 import shark.HeapDominatorTree
 import shark.HeapGraph
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.HprofRecordTag
 import shark.MatchingGcRootProvider
 
 /**
@@ -44,7 +45,11 @@ class HeapExplorer private constructor(
       onProgress: (String) -> Unit = {}
     ): HeapExplorer {
       onProgress("Indexing ${heapDumpFile.name}")
-      val graph = heapDumpFile.openHeapGraph()
+      // Every GC root kind the hprof records, rather than HprofIndex.defaultIndexedGcRootTags():
+      // those defaults drop the kinds that can't explain a leak, which on a real app dump is 180 K of
+      // the 188 K roots — interned strings and the runtime's internals. An explorer has to say where
+      // every object is held, so dropping a root kind means calling 45 K live objects garbage.
+      val graph = heapDumpFile.openHeapGraph(indexedGcRootTypes = HprofRecordTag.rootTags)
       try {
         val strengthReader = ReferenceStrengthReader(graph)
         onProgress("Working out what's reachable")
@@ -55,12 +60,13 @@ class HeapExplorer private constructor(
           objectSizeCalculator = AndroidObjectSizeCalculator(graph)
         )
         onProgress("Working out what retains what")
-        val nodes = HeapDominatorTree.buildFor(
+        val dominatorTree = HeapDominatorTree.buildFor(
           graph = graph,
           referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability),
           gcRootProvider = UncollectedGarbageGcRootProvider(reachability.unreachableRootObjectIds)
-        ).buildNodes(AndroidObjectSizeCalculator(graph))
-        val tree = HeapDominatorTreemap(graph, reachability, strengthReader, nodes)
+        )
+        val nodes = dominatorTree.buildNodes(AndroidObjectSizeCalculator(graph))
+        val tree = HeapDominatorTreemap(graph, reachability, strengthReader, dominatorTree, nodes)
         return HeapExplorer(heapDumpFile, graph, reachability, tree)
       } catch (throwable: Throwable) {
         graph.close()

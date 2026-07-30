@@ -5,7 +5,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.GcRoot.InternedString
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.StickyClass
 import shark.HprofWriterHelper
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
@@ -232,6 +234,43 @@ class HeapReachabilityTest {
       assertThat(tree.children(garbage.nodeId).map { tree.label(it) }).containsExactly("String")
       assertThat(explorer.sizes.reachableByteCount + explorer.sizes.unreachableByteCount)
         .isEqualTo(explorer.sizes.totalByteCount)
+    }
+  }
+
+  @Test fun `a string the intern table is the only holder of is reachable`() {
+    val file = testFolder.newFile("interned.hprof")
+    file.dump {
+      referenceClasses()
+      // Nothing points at it: an app dump has 67 K of these, and they only have a root record.
+      val interned = string("Interned")
+      gcRoot(InternedString(id = interned.value))
+    }
+
+    HeapExplorer.open(file).use { explorer ->
+      assertThat(explorer.sizes.unreachableByteCount).isZero()
+      assertThat(explorer.sizes.byteCountByStrength.getValue(STRONG))
+        .isEqualTo(explorer.sizes.totalByteCount)
+    }
+  }
+
+  @Test fun `the tables ART embeds in a class are held by the class`() {
+    val file = testFolder.newFile("class-overhead.hprof")
+    var holderClassId = 0L
+    file.dump {
+      // A long array rather than the byte array ART writes: what's being tested is the field name.
+      val overhead = primitiveLongArray(LongArray(8))
+      holderClassId = clazz(
+        className = "com.example.Holder",
+        staticFields = listOf("\$classOverhead" to ReferenceHolder(overhead))
+      )
+      gcRoot(StickyClass(id = holderClassId))
+    }
+
+    HeapExplorer.open(file).use { explorer ->
+      val tree = explorer.tree
+
+      assertThat(explorer.sizes.unreachableByteCount).isZero()
+      assertThat(tree.children(holderClassId).map { tree.label(it) }).containsExactly("long[]")
     }
   }
 

@@ -12,6 +12,7 @@ import shark.JdkReferenceMatchers
 import shark.Reference
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.INSTANCE_FIELD
+import shark.ReferenceLocationType.STATIC_FIELD
 import shark.ReferenceMatcher
 import shark.ReferenceMatcher.Companion.ALWAYS
 import shark.ReferencePattern.Companion.instanceField
@@ -89,7 +90,41 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   }
 
   /** The references from [source] that keep their target alive. */
-  fun retainingReferencesOf(source: HeapObject): Sequence<Reference> = retainingReader.read(source)
+  fun retainingReferencesOf(source: HeapObject): Sequence<Reference> =
+    retainingReader.read(source) + classMetadataReferencesOf(source)
+
+  /**
+   * The arrays ART hangs off a class object to hold what it embeds — its method tables in
+   * `$classOverhead`, its static field storage in `$staticOverhead`.
+   *
+   * [shark.ClassReferenceReader] skips both, since neither can explain a leak, and no other object of
+   * the heap dump points at them. On a real app dump that leaves 66 K arrays and 10.7 MB of class
+   * metadata reading as uncollected garbage, which was 88% of everything the explorer called garbage.
+   */
+  private fun classMetadataReferencesOf(source: HeapObject): Sequence<Reference> {
+    if (source !is HeapClass) {
+      return emptySequence()
+    }
+    return source.readStaticFields()
+      .filter { it.name in CLASS_METADATA_FIELD_NAMES }
+      .mapNotNull { field ->
+        field.value.asNonNullObjectId?.let { valueObjectId ->
+          Reference(
+            valueObjectId = valueObjectId,
+            isLowPriority = true,
+            lazyDetailsResolver = {
+              LazyDetails(
+                name = field.name,
+                locationClassObjectId = source.objectId,
+                locationType = STATIC_FIELD,
+                matchedLibraryLeak = null,
+                isVirtual = false
+              )
+            }
+          )
+        }
+      }
+  }
 
   /**
    * The objects whose bytes [shark.ObjectSizeCalculator] counts inside [source], because the reference
@@ -156,6 +191,9 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
     /** No heap object has id 0, which is what a null reference is. */
     private const val NO_CLASS_ID = ValueHolder.NULL_REFERENCE
+
+    /** See [classMetadataReferencesOf]. Named with a `$` so that no Java class can declare them. */
+    private val CLASS_METADATA_FIELD_NAMES = setOf("\$classOverhead", "\$staticOverhead")
 
     /**
      * The arrays whose elements [shark.ObjectArrayReferenceReader] skips, and whose size

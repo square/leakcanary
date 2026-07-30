@@ -266,6 +266,34 @@ The one thing that stays approximate is `totalByteCount`, which sums raw shallow
 a folded object that something *else* also points at is counted once inside its holder and once as a node,
 so the per-strength byte counts come out a little under the total. `HeapSizes` says so in its KDoc.
 
+## Checked against YourKit: two reasons we called live objects garbage
+
+YourKit opens an Android hprof as it is, no conversion, and on the 82 MB dump it reports 1,863 unreachable
+objects and 39,157 pending finalization. This reported 117,997 unreachable objects / 12.0 MB. Nearly all of
+that gap was ours, from two causes:
+
+**`HprofIndex.defaultIndexedGcRootTags()` drops most of a real dump's roots.** It leaves out
+`ROOT_VM_INTERNAL`, `ROOT_INTERNED_STRING`, `ROOT_UNKNOWN`, `ROOT_FINALIZING`, `ROOT_DEBUGGER`,
+`ROOT_REFERENCE_CLEANUP` and `ROOT_UNREACHABLE` — 180 K of this dump's 188 K roots, interned strings and
+the runtime's internals, none of which can explain a leak, which is what those defaults are for. An
+explorer has to say where every object is held, so `HeapExplorer` opens with `HprofRecordTag.rootTags`
+instead. The interned strings alone are ~38 K objects, and they line up with YourKit's "pending
+finalization" count.
+
+**ART hangs `$classOverhead` and `$staticOverhead` byte arrays off class objects**, holding what it embeds
+in a class — method tables and the like. Shark's `ClassReferenceReader` skips them, along with
+`<resolved_references>`, so nothing in the dump pointed at them and they came out as garbage: 66,427
+arrays, 10.7 MB, 88% of what was left. `ReferenceStrengthReader.classMetadataReferencesOf` puts them back
+as static field references of the class holding them.
+
+Together the garbage went from **117,997 objects / 12.0 MB to 6,029 / 190 KB**, the same order as YourKit's
+1,863. What's left is reference queue plumbing — 2,403 `Cleaner`, 2,401 `CleanerThunk`, 763
+`FinalizerReference`, 40 `NativeAllocationRegistry` — plus a small tail.
+
+The String `value` arrays are *not* part of this, though they look like they should be: the unreachable
+value arrays matched the unreachable Strings one for one, 19,278 each, so folding had been accounting for
+them correctly all along.
+
 ## `ObjectDominators` had the same weak reference bug
 
 `ObjectDominators.buildDominatorTree(graph, ignoredRefs)` used to pass `ignoredRefs` to
@@ -287,8 +315,9 @@ Measured on an 82 MB Android OOM dump, 1,019,837 objects, on a laptop:
 | First `children(root)` — the top level split and the grouping by class | 0.21 s |
 | **To the first rectangle on screen** | **≈ 5.9 s** |
 
-Where it went: 74.0 MB `STRONG` over 901,734 objects, 2.6 KB `FINALIZER` over 106, 12.0 MB `UNREACHABLE`
-over 117,997, 86.0 MB total.
+Where it went, measured before the two garbage fixes in the section above moved 112 K objects from
+`UNREACHABLE` to `STRONG`: 74.0 MB `STRONG` over 901,734 objects, 2.6 KB `FINALIZER` over 106, 12.0 MB
+`UNREACHABLE` over 117,997, 86.0 MB total.
 
 Two things made that number much worse before they were found, both of them a `findClassByName` in a
 per-object loop: 49 s once, then 6.8 s once. Neither showed up as an obviously hot function — it's a
