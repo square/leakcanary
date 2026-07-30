@@ -103,6 +103,7 @@ public final class shark/HeapObject$HeapInstance : shark/HeapObject {
 	public final fun get (Lkotlin/reflect/KClass;Ljava/lang/String;)Lshark/HeapField;
 	public final fun getByteSize ()J
 	public fun getGraph ()Lshark/HeapGraph;
+	public final fun getIndexedStringValueObjectId ()J
 	public final fun getInstanceClass ()Lshark/HeapObject$HeapClass;
 	public final fun getInstanceClassId ()J
 	public final fun getInstanceClassName ()Ljava/lang/String;

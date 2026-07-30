@@ -31,6 +31,8 @@ class FieldInstanceReferenceReader(
 
   private val sizeOfObjectInstances: Int
 
+  private val stringValueFastPath: Boolean
+
   init {
     val objectClass = graph.findClassByName("java.lang.Object")
     javaLangObjectId = objectClass?.objectId ?: -1
@@ -50,21 +52,25 @@ class FieldInstanceReferenceReader(
       }
     }
     this.fieldNameByClassName = fieldNameByClassName
+    // A reference matcher on a java.lang.String field is unusual, and the fast path below doesn't
+    // apply matchers, so it steps aside when there is one.
+    stringValueFastPath = "java.lang.String" !in fieldNameByClassName
   }
 
   override fun read(source: HeapInstance): Sequence<Reference> {
     if (source.isPrimitiveWrapper ||
-      // We ignore the fact that String references a value array to avoid having
-      // to read the string record and find the object id for that array, since we know
-      // it won't be interesting anyway.
-      // That also means the value array isn't added to the dominator tree, so we need to
-      // add that back when computing shallow size in ShallowSizeCalculator.
-      // Another side effect is that if the array is referenced elsewhere, we might
-      // double count its side.
-      source.instanceClassName == "java.lang.String" ||
       source.instanceClass.instanceByteSize <= sizeOfObjectInstances
     ) {
       return emptySequence()
+    }
+
+    if (stringValueFastPath) {
+      // Indexing picked up the id of the array a string holds its characters in as it read the heap
+      // dump, so the one reference of the most numerous kind of instance costs no read here.
+      val stringValueObjectId = source.indexedStringValueObjectId
+      if (stringValueObjectId != ValueHolder.NULL_REFERENCE) {
+        return sequenceOf(source.stringValueReference(stringValueObjectId))
+      }
     }
 
     val fieldReferenceMatchers = LinkedHashMap<String, ReferenceMatcher>()
@@ -130,6 +136,35 @@ class FieldInstanceReferenceReader(
       result.sortBy { it.first }
       result.asSequence().map { it.second }
     }
+  }
+
+  private fun HeapInstance.stringValueReference(stringValueObjectId: Long): Reference {
+    val locationClassObjectId = instanceClassId
+    return Reference(
+      valueObjectId = stringValueObjectId,
+      isLowPriority = false,
+      lazyDetailsResolver = {
+        LazyDetails(
+          name = stringValueFieldName(),
+          locationClassObjectId = locationClassObjectId,
+          locationType = INSTANCE_FIELD,
+          matchedLibraryLeak = null,
+          isVirtual = false
+        )
+      }
+    )
+  }
+
+  /**
+   * The name of the one and only reference field of java.lang.String, read from the class fields the
+   * index holds rather than from the heap dump. `value` in every heap dump we've seen, but the index
+   * finds the field by type, so this doesn't assume the name.
+   */
+  private fun HeapInstance.stringValueFieldName(): String {
+    val stringClass = instanceClass
+    val valueFieldRecord = stringClass.readRecordFields()
+      .single { it.type == PrimitiveType.REFERENCE_HPROF_TYPE }
+    return stringClass.instanceFieldName(valueFieldRecord)
   }
 
   /**

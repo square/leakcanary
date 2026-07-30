@@ -172,10 +172,10 @@ class HprofIOPerfTest {
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
     assertThat(metrics.withoutRetainedSize.toString()).isEqualTo(
-      "reads=19711 medianBytes=40.0 totalBytes=1021265 distinctPages=447 pageReads=19947"
+      "reads=19730 medianBytes=40.0 totalBytes=1026245 distinctPages=448 pageReads=19967"
     )
     assertThat(metrics.withRetainedSize.toString()).isEqualTo(
-      "reads=20979 medianBytes=40.0 totalBytes=1078529 distinctPages=455 pageReads=21229"
+      "reads=20993 medianBytes=40.0 totalBytes=1083329 distinctPages=456 pageReads=21244"
     )
   }
 
@@ -185,10 +185,10 @@ class HprofIOPerfTest {
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
     assertThat(metrics.withoutRetainedSize.toString()).isEqualTo(
-      "reads=17407 medianBytes=40.0 totalBytes=1953885 distinctPages=696 pageReads=17885"
+      "reads=17412 medianBytes=40.0 totalBytes=1958573 distinctPages=699 pageReads=17890"
     )
     assertThat(metrics.withRetainedSize.toString()).isEqualTo(
-      "reads=17412 medianBytes=40.0 totalBytes=1954065 distinctPages=696 pageReads=17890"
+      "reads=17412 medianBytes=40.0 totalBytes=1958573 distinctPages=699 pageReads=17890"
     )
   }
 
@@ -198,10 +198,10 @@ class HprofIOPerfTest {
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
     assertThat(metrics.withoutRetainedSize.toString()).isEqualTo(
-      "reads=11786 medianBytes=32.0 totalBytes=554362 distinctPages=511 pageReads=11922"
+      "reads=11791 medianBytes=32.0 totalBytes=559050 distinctPages=512 pageReads=11927"
     )
     assertThat(metrics.withRetainedSize.toString()).isEqualTo(
-      "reads=11788 medianBytes=32.0 totalBytes=554426 distinctPages=511 pageReads=11924"
+      "reads=11791 medianBytes=32.0 totalBytes=559050 distinctPages=512 pageReads=11927"
     )
   }
 

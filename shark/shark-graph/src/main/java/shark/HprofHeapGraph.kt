@@ -261,6 +261,10 @@ class HprofHeapGraph internal constructor(
     return index.classFieldsReader.classDumpHasReferenceFields(indexedClass)
   }
 
+  internal fun stringValueObjectId(objectId: Long): Long {
+    return index.stringValueObjectId(objectId)
+  }
+
   internal fun fieldName(
     classId: Long,
     fieldRecord: FieldRecord

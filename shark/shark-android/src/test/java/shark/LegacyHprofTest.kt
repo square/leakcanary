@@ -48,7 +48,10 @@ class LegacyHprofTest {
     val analysis = analyzeHprof("gcroot_unknown_object.hprof")
 
     assertThat(analysis.applicationLeaks).hasSize(2)
-    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(5018520)
+    // 48 bytes lower than it used to be: this heap dump holds boxed primitives that a wrapper array
+    // the leaks retain isn't the only object referencing, and the size of those is no longer added
+    // to the wrapper array holding them.
+    assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(5018472)
   }
 
   @Test fun androidMStripped() {
