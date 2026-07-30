@@ -129,7 +129,8 @@ forced on the whole project.
     Eclipse Public License, because it uses a modifier version of Eclipse's Memory Analyzer (aka MAT,
     but this fork is based of AndroMAT) which is under EPL.
 
-That AndroMAT repository was hosted on Bitbucket and no longer resolves.
+Bitbucket dropped Mercurial hosting in 2020 and took AndroMAT with it; the last working copy of that
+page is a [2016 snapshot](https://web.archive.org/web/20160114113732/https://bitbucket.org/joebowbeer/andromat).
 
 **HAHA.** Ten days later the parser moved out into a repository of its own,
 [HAHA](https://github.com/square/haha). LeakCanary was released under Apache 2.0 a few weeks after
