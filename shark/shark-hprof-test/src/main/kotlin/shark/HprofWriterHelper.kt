@@ -244,12 +244,22 @@ class HprofWriterHelper constructor(
     )
   }
 
+  /**
+   * An id for an object that hasn't been written yet, so that two objects can point at each other.
+   * Real heaps are full of cycles — a view and its own helpers, a parent and its children — and an
+   * object can only be written once every id it holds is known. Pass it back as [instance]'s
+   * `objectId`, and write that instance before the dump is read.
+   */
+  fun reserveObjectId(): ReferenceHolder = ReferenceHolder(id)
+
   fun instance(
     classId: Long,
-    fields: List<ValueHolder> = emptyList()
+    fields: List<ValueHolder> = emptyList(),
+    /** From [reserveObjectId], when something written earlier already points at this object. */
+    objectId: ReferenceHolder? = null
   ): ReferenceHolder {
     val instanceDump = InstanceDumpRecord(
-      id = id,
+      id = objectId?.value ?: id,
       stackTraceSerialNumber = 1,
       classId = classId,
       fieldValues = writer.valuesToBytes(fields)

@@ -1,0 +1,456 @@
+# Dominator tree
+
+## Which implementation to use
+
+`shark.HeapDominatorTree` — exact Lengauer–Tarjan with the simple link-eval, on `main` since
+PR #2870. `shark.ObjectDominators.buildDominatorTree` is a thin wrapper that also computes sizes.
+`shark.ApproximateDominatorTree` is the on device BFS approximation and must not be used here.
+
+Why exactness was worth it: the approximation updates dominators incrementally during BFS, so when a
+cross edge is processed the parent's dominator may still be stale and is never revisited. Retained
+sizes come out under-attributed. Minimal failing case — edges `root→a`, `root→d`, `a→b`, `a→c`,
+`d→e`, `e→b`, `b→c`: `dom(c)` is `root`, but BFS says `a`, because `b→c` is processed while `dom(b)`
+is still `a`.
+
+## How the explorer uses it
+
+`HeapExplorer.open` calls `HeapDominatorTree.buildFor` with a `WeakeningAwareReferenceReader` wrapping
+`ActualMatchingReferenceReaderFactory`, then `buildNodes` with `AndroidObjectSizeCalculator`. One tree
+per open heap dump, built once, holding every object of the dump.
+
+**Which reference matchers go in matters, and it isn't "none".** The matchers do two unrelated jobs,
+and only one of them belongs here:
+
+- `JdkReferenceMatchers.REFERENCES` is where **reference strength** lives. `WeakReference.referent`,
+  `SoftReference.referent`, `PhantomReference.referent`, `KeyedWeakReference.referent` and the
+  `Finalizer` / `FinalizerReference` / `Cleaner` list links are `IgnoredReferenceMatcher`s and nothing
+  else marks them. Follow them and a weak reference looks like it retains its referent, and the
+  finalizer list looks like one long chain of objects retaining each other. Retained size stops
+  meaning anything. **Required.**
+- `AndroidReferenceMatchers` mostly suppresses noise so a leak trace stays readable. Those are real
+  strong references, so ignoring them here would hide memory that really is retained. **Left out.**
+  This is why `ActualMatchingReferenceReaderFactory` and not `AndroidReferenceReaderFactory`: the
+  latter also installs `FlatteningPartitionedInstanceReferenceReader`, which surfaces a map's or
+  list's internals as direct children of the collection and marks them leaf objects. Good for a leak
+  trace, wrong here — a treemap needs every object to be a node exactly once, and the array a
+  `HashMap` actually holds has to be a node of its own or its bytes land nowhere. Where presenting a
+  structure that way is worth it anyway, the explorer *adds* the reference instead of swapping it in —
+  one reader does, for a `ViewGroup`'s children, and the array is still a node.
+
+**The strength that decides whether a weakening edge is followed is the target's, not the reference's.**
+A `WeakReference` whose referent is also held strongly is the common case, and following that edge adds a
+second path to an object that was already in the tree: its bytes move up to the two paths' common
+ancestor and the treemap reshuffles, revealing nothing. So `WeakeningAwareReferenceReader` asks
+`HeapReachability` how the target came out and follows a weakening edge only when nothing strong reaches
+it. Every weakly reachable object is therefore in the tree, under the reference that is the only thing
+holding it, and nothing else moves.
+
+None of that is a parameter and the reachability checkboxes in the UI don't change it — the tree covers
+the whole heap dump and they only pick which strengths are drawn in colour. See `decisions.md`.
+
+**`SOFT`, `WEAK` and `PHANTOM` often come out at 0 bytes — but don't treat that as a rule.** The
+collection that precedes a dump clears a `Reference` whose referent nothing else was holding, so on
+many dumps there's nothing left at those strengths. Measured on `compose_leak.hprof`: 12 MB strong,
+exactly 0 B soft/weak/finalizer/phantom, 3 MB uncollected garbage. On a 287 MB production dump: 262 MB
+strong, 7 MB uncollected garbage, and 5 finalizer reachable objects totalling 1.1 KB.
+
+**A dump can and does contain objects that are only weakly reachable**, and not as uncollected
+garbage: a referent a thread pulled out of a reference, used, and has since let go of is weakly
+reachable *again*, and stays that way until the next collection — the collection before the dump saw a
+strong path to it and had no reason to clear anything. A weak cache being repeatedly revived that way is
+worth seeing, which is why the tree holds those objects rather than the explorer only following what the
+collector would. Soft references are cleared only under memory pressure, so a `SOFT` count of 0 says
+more about a dump taken at OOM than about heaps in general. `FINALIZER` shows up when objects are queued
+for finalization and their `finalize()` hadn't run.
+
+Every legend row above the view says how firmly, how many bytes and how many objects — `Weak 0 B ·
+0 objects` — so a strength with nothing at it says so on its own. `NOTHING_WEAKER` then says why that's
+normal, since all four `java.lang.ref` strengths coming out empty reads as a broken computation until you
+know.
+
+Two more reference reader behaviours that surprise you when reading a treemap:
+
+- **A `java.lang.String`'s char array is not a node of its own.** `FieldInstanceReferenceReader`
+  skips the `value` field, and `ShallowSizeCalculator` adds the array's bytes to the string instead.
+- The elements of a primitive wrapper array are folded into the array the same way, by
+  `ObjectArrayReferenceReader`.
+
+Both are why `ReferenceStrengthReader.foldedObjectIdsOf` exists: **whatever Shark folds has to be
+tracked explicitly**, because the object is in no walk and in no tree, and anything counting objects or
+bytes over the whole dump would otherwise either miss it or count it twice. See the reachability section.
+
+## Why big objects sit flat under the root
+
+The first thing a production dump shows is a crowd of rectangles directly under the GC roots — on an
+82 MB Android OOM dump, **129,423 of them retaining 74 MB**, among them 82 bitmaps worth 17.7 MB. The
+tempting explanation is JNI: something native holds them, so the root does. It's wrong, and worth not
+re-deriving.
+
+(Those counts were measured before `CACHE` and before the garbage went into the tree, both of which
+moved objects around; the current tree has 221,180 children under the virtual root, the garbage entry
+points included. The reasoning below is what hasn't changed.)
+
+**They're shared, not natively held.** Two or more objects reach them by paths that meet only at the
+root, so no single owner would free them and the dominator tree attributes their bytes to the whole
+heap. Measured on that dump: of the root's direct children, **119,444 (64.8 MB) are not GC roots at
+all** — nothing points at them from outside the heap. Every one of the 82 bitmaps came out with an
+empty root list. The biggest, 1.1 MB, is held by a `BitmapImage.bitmap` and by a
+`BitmapDrawable$BitmapState.mBitmap` under a `RecyclerView`; kill either and the other still holds it.
+
+**Deprioritizing native roots would move under 1%.** The dump has 10,615 GC roots — 9,502 sticky
+classes, 579 JNI globals, 200 native stack, 171 JNI locals, 163 thread objects. Objects reachable
+*only* from a native root account for 645 KB of the root's 74 MB. So none of "ignore native refs",
+"treat native refs to bitmaps specially" or "look at native refs only for objects not already seen"
+buys anything here, and each would make the tree lie about a real retention path.
+
+What actually helps is showing the sharing, which is what the paths below the dominator are for: an
+object here has at least two of them, and they name the holders that would each have to go. See the
+section on those below.
+
+**The crowd is drawn one cell per class**, by `splitRootChildren` and `groupByClass`, so 129 K rectangles
+become a few hundred. Only at the top of the tree — everywhere else the children are objects a specific
+owner holds, and gathering those would hide the structure rather than reveal it — and only above
+`MIN_CHILDREN_TO_GROUP_BY_CLASS`, below which the objects fit and are more informative than their
+classes. A class with a single object in it is left ungrouped, since a group of one says less than the
+object.
+
+**Every node id below zero stands for a pile of objects rather than for one**, which makes "is this a
+group" a sign test and needs no second id space: `GC_ROOTS_NODE_ID` and `UNREACHABLE_NODE_ID` are −1 and
+−2, and `GroupIds` counts down from −3 for the class groups. Sequential rather than derived from the
+class, because the same class can have a group under either half. The cost is that every entry point
+taking a node id has to ask `groupOrNull()` first, so `summarize()` throws with an actionable message
+instead of failing on a missing key. Class objects group under `java.lang.Class`, which every real dump
+has — 9,502 sticky class roots on the 82 MB dump — but a `dump { }` fixture doesn't, so in tests they
+stay ungrouped; two of the core tests exist to pin both cases.
+
+**`HeapGraph.findClassByName` is not a lookup**, it's two linear scans over every string in the dump, and
+grouping is the one place that's tempting to call it per object. Doing it per class object cost 49 s and
+doing it per primitive array — via `HeapPrimitiveArray.arrayClass`, which calls it internally — cost
+another 6.8 s, so `HeapDominatorTreemap` memoizes it in `classIdByName` and reads `instanceClassId` /
+`arrayClassId` directly where they exist.
+
+## What logically owns a bitmap: Coil, measured
+
+The dominator answer to "what holds this bitmap" is "nothing on its own", which isn't what someone
+looking at a 1.1 MB rectangle wants to know. Traced on the same dump, since re-deriving it means reading
+a lot of Coil.
+
+`coil3.memory.RealMemoryCache` is two caches. `RealStrongMemoryCache` is an LRU of decoded images —
+`maxSize` is 20% of the heap, 53,687,091 B here, holding 17,652,992 B over 22 images.
+`RealWeakMemoryCache` is a `LinkedHashMap` of `WeakReference`s that `entryRemoved` demotes evicted
+entries into; empty here, nothing having been evicted yet. Trimming is
+`AndroidSystemCallbacks.onTrimMemory`, which holds the `ImageLoader` weakly: at
+`TRIM_MEMORY_BACKGROUND` and above it clears the cache, at `TRIM_MEMORY_RUNNING_LOW` and above it
+halves it. So the cache explains the bytes but never pins them.
+
+What pins them is the app. `CheckoutGridTile` keeps the `Disposable` returned by `ImageLoader.enqueue`
+in a field, and `OneShotDisposable.dispose()` returns early once the job has completed, so that field
+holds a completed `Deferred` → `SuccessResult` → `BitmapImage` → the decoded bitmap until the tile loads
+another URL. The tile holds the same bitmap the ordinary way as well, via `ImageView.mDrawable` →
+`BitmapDrawable$BitmapState.mBitmap`. Coil's own view lifecycle handling doesn't apply, because the
+request passes a lambda target rather than a `ViewTarget`. Every one of the 25 tiles in this dump is
+attached, so nothing is being wasted — but the retention belongs to the tile, not to the cache.
+
+The shape generalises: an object's holders often divide into a *cache*, which is bounded and clears
+itself under pressure, and an *owner*, which is a piece of UI or a job. The dominator tree can't tell
+them apart, so it hands the bytes to the root — which is what `ReachabilityStrength.CACHE` is for.
+
+## A cache is not an owner: the `CACHE` strength
+
+The fix for the above is to stop treating a cache's reference as retaining. `CACHE` ranks between
+`STRONG` and `SOFT`, and `ReferenceStrengthReader.CACHE_FIELDS_BY_CLASS_NAME` is the curated list of
+fields it applies to — one entry today, `coil3.memory.RealStrongMemoryCache$InternalValue.image`.
+
+The mechanics fall out of the weak reference machinery that was already there, because the rule the
+explorer wants is exactly the rule for a weak reference: **the target's strength decides**. A weakening
+edge is followed only when nothing stronger reaches the object, so an image a tile also holds is the
+tile's and the cache edge is dropped, while an image nothing else holds stays in the tree, dominated by
+the cache entry and drawn at `CACHE`. Which is what "only keep the cache reference if nothing else is
+there" means, without a line of special casing in the dominator tree.
+
+Measured on the 82 MB dump: the three 1 MB bitmaps stop being root children and nest under
+`CheckoutGridTile` → `RecyclerView`, which becomes the biggest child of the root at 17 MB. `CACHE` comes
+out at 0 B there, since every cached image is also on screen — the strength changed where the bytes are
+attributed, not how many are reachable.
+
+Two things to know before adding an entry to that list:
+
+- **The class and field names are matched literally**, so a wrong guess doesn't fail, it silently does
+  nothing. Add one only against a heap dump that has it. An obfuscated dump needs its mapping applied
+  first, for the same reason.
+- **Cut as low as the value a cache entry wraps**, not at the cache itself. Cutting at
+  `InternalValue.image` leaves the map, the entries and the size bookkeeping strongly held by the cache,
+  where they belong, and moves only the images.
+
+## An owner beats a bystander: the `OwnerReferences` rule
+
+A view that's part of a hierarchy is held by its parent, and a dominator tree that doesn't know that
+scatters a window across whatever happened to be closest to a GC root. Measured on the 82 MB dump before
+the rule: all 279 attached views had rival referrers, median ~10 and up to 246, and **170 of the 277
+attached child views were dominated by something other than their parent, misplacing 18 MB**. 125 landed
+under a `CheckoutGridTile`, 44 flat under `All GC roots`. Both `DecorView`s were dominated by
+`All GC roots` and retained 4.2 KB and 3.9 KB instead of their windows. The damaging referrers were
+`InputMethodManager.mCurRootView` / `mServedView` / `mNextServedView`, `View$AttachInfo.mRootView`,
+`PhoneFallbackEventHandler.mView`, `RealWorkflowLifecycleOwner.view`, `ComposeToastServiceImpl.rootView`,
+view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
+
+`OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus the
+references that own them — named fields, or the virtual references a class's instances hand out. Three
+today — `android.view.View` owned by the `ViewGroup` that reads it as a child (see below) and by
+`Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by
+`ActivityThread$ActivityClientRecord.activity`. After: **every one of the 277 child views is under its
+parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains
+18 MB under the record the framework runs it from, which is the second largest rectangle under the GC
+roots.
+
+**A rule is parked, not dropped, and that's the whole design.** The walk in
+`HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
+one is empty, so an owner gets every chance to reach the object first, wherever in the heap dump it is.
+When no owner turns up, `markLastResortHeld` records it and the rivals count after all. Dropping a rival
+outright would be a correctness bug, not a mis-attribution: a detached hierarchy leaked through a
+mid-tree child would become unreachable, the explorer would call live objects garbage, and the same rule
+in `PathFinder` would make LeakCanary report no leak. Measured proof that it costs nothing: after the
+rule the 82 MB dump comes out at exactly the same numbers as before — 80 MB strong, 2.0 MB thread local,
+28 B local, 2.6 KB finalizer, 186 KB unreachable.
+
+**Parking is also why a rule needs no check on the state of the object**, which is the thing that looks
+missing when you read `RULES`. "The parent owns an *attached* view" needs no attachment test, because a
+detached hierarchy isn't held by whatever holds the window: if the parent isn't reachable, no owner
+reference reaches the child and the fallback handles it. "Unless the activity is destroyed" needs no
+`mDestroyed` test either — `ActivityThread.handleDestroyActivity` sets `mDecor = null` and takes the
+`ActivityClientRecord` out of `mActivities`, so the framework has already removed both references the
+rules are about. The state a rule seems to need is expressed by which references exist, and a leaked
+destroyed activity therefore falls back on whatever is leaking it — which is the one thing you'd want to
+read its bytes under.
+
+Two things to know before adding a rule:
+
+- **One owner per construct.** Two owner references are two ways of owning, so the object ends up
+  dominated by whatever dominates both. `PhoneWindow.mDecor` was in the list at first and cost the
+  activity all 18 MB of its hierarchy: a `JankStatsMonitor` held the window from a GC root of its own, so
+  the decor view's dominator became the top of the tree. Pick the one reference you'd want to read the
+  bytes under.
+- **An owner has to be nameable.** A rule names a field on a class, or a class whose virtual references
+  own. An *array* can only be named by its type, which is what the first version of the view rule did —
+  every `android.view.View[]` element owned what it pointed at — and a type says nothing about whose
+  children the array holds, so an app's own `View[]` of views it merely points at claimed them too. Hence
+  the reader below.
+
+Ownership is **not** a `ReachabilityStrength` and can't be: strength is a min over the references of a
+path, while owning is a property of the last reference alone. It's a separate binary verdict per object,
+gated in the same place — `WeakeningAwareReferenceReader`, which the dominator tree, the referrer index
+and the path search all read through, so all three see one edge set.
+
+### A `ViewGroup` points at its children: the one virtual reference the explorer adds
+
+`ViewChildReferenceReader` gives a `ViewGroup` one reference per child, named by index and marked virtual,
+which is what the view `OwnerRule` claims ownership through. It reads `mChildren` bounded by
+`mChildrenCount`, in the shape Shark gives the collections it flattens.
+
+The framework stores children in a `View[]` it grows in chunks, so without this every parent to child link
+in a heap dump goes through an array, and the array is the only thing a rule can point at. Measured on the
+82 MB dump, the chain from the GC roots down to the bitmap of a list row: **37 levels with 16 `View[]`
+among them, 21 levels without**, and the biggest `View[]` went from retaining 18.55 MB — the whole window
+— to 411 B. All 96 `View[]` arrays together now retain 4,959 B against 4,859 B of their own bytes.
+
+Three things make it safe, and each one is a decision:
+
+- **Additive, not a swap.** The array is still reached through `mChildren` and is still a node of its own,
+  which is what keeps every object of the dump a node exactly once. `ReferenceStrengthReader` appends
+  these to what the matching reader returns, which is also why `HeapReachability`'s walk sees them — it
+  reads `retainingReferencesOf` directly, and an owner reference the walk didn't follow would be an owner
+  that never gets its chance.
+- **The dominator tree takes the array out of the middle, not the reader.** Both ways to a child now start
+  at the parent — straight there, and through `mChildren` — so the parent dominates it. Nothing had to
+  prune an edge for the level to collapse.
+- **The `View[]` element no longer owns**, so it's a rival like any other reference: a view in a slot past
+  `mChildrenCount` — a dump caught inside `addViewInner`, or a fork that doesn't null the slot it gives up
+  — falls back on the array holding it, rather than being attributed to a parent that doesn't hold it.
+  That's what `a view in a slot its parent doesn't count is not one of its children` pins.
+
+Byte counts are untouched by all of it, which is the check that no object moved out of the graph: 83.83 MB
+strong, 2.05 MB thread local, 28 B local, 2.6 KB finalizer, 190 KB unreachable, 1,019,837 objects, before
+and after.
+
+## What holds an object: the dominator, then the paths below it
+
+"What holds this" is answered in two parts, and which part answers what is the thing to keep straight.
+The panel names the first and has a button to the second, which is a screen of its own — a chain per path,
+drawn like a LeakCanary leak trace:
+
+- **The dominator**, exactly one node, from `HeapDominatorTreemap.dominatorOf`. Every path from a GC root
+  goes through it, so it is what would free the object. It's a *group* rather than an object when nothing
+  in particular holds it (`DominatorKind.ALL_GC_ROOTS`) or when nothing holds it at all
+  (`UNCOLLECTED_GARBAGE`), which is what the two halves of the tree stand for.
+- **The independent paths below it**, from `independentPathsTo`: every way the object is held, with the
+  part they all share — everything above the dominator — left out.
+
+**The name for that path set is "internally vertex-disjoint paths"**, also called independent paths: two
+of them share their endpoints and nothing else. The most there can be is the *local vertex connectivity*
+of the dominator and the object, by Menger's theorem, and there are always at least two unless the
+dominator points straight at the object — a single interior vertex common to every path would separate the
+two, which would make it a dominator closer than the dominator. Not "semidominator", which Lengauer–Tarjan
+already uses for something else.
+
+Two caveats, which `INDEPENDENT_PATHS_HINT` states in the UI rather than leaving to be discovered:
+
+- **A maximum set isn't unique, and finding one is a max flow problem.** `PathSearch` is greedy: it walks
+  the referrers up from the object, blocks the middle of each path it finds and walks again. Blocking can
+  cost a path further on, so `hasMore` means "the search stopped", not "there are more".
+- **Two paths shown apart may still reference each other**, since a path is not told about the references
+  leaving it. Parallel chains cross-linked at every layer come out as separate paths.
+
+**The search walks backwards, from the object towards what holds it**, which is the direction a heap dump
+can't answer in: it records a reference only in the direction it points. Hence `ReferrerIndex` — one pass
+over the dump, kept as a linked list per object (an int per object, two per reference, ~30 MB on a million
+object dump). That replaced a full pass per question plus a pass per fork level, which was 2.3 s per click
+on the 82 MB dump and 3.4 s when a holder was shared, with a walk in memory. The pass is paid once per
+session, lazily, on the first question about paths.
+
+**A path that loops back through the object isn't a way of holding it.** An `AppCompatImageView` has seven
+referrers, five of them helpers it created that point back at it. The walk never leaves the object it
+started from, so those don't come out as five near-identical chains ending `.mView AppCompatImageView`.
+
+**A direct edge has to be blocked as an edge, not as a vertex.** A source pointing straight at the object
+makes a path with no middle to block, so `usedLastStep` blocks that one step: blocking the source instead
+would hide the ways it holds the object round through other objects, and blocking nothing at all handed
+back the same path until the limit.
+
+**An object a GC root points at has no referrers to walk up from**, so the one path is the object itself,
+labelled with the kind of root that reaches it. Nothing inside the heap dump points at it; that is the
+whole answer, and a search up the references can't say so.
+
+## Reachability strength
+
+`HeapReachability` classifies **every** object of the heap dump as `STRONG`, `CACHE`, `THREAD_LOCAL`,
+`LOCAL`, `SOFT`, `WEAK`, `FINALIZER`, `PHANTOM` or `UNREACHABLE` — `java.lang.ref`'s strengths, the three
+above them, and garbage. Making
+garbage the last strength rather than a leftover is what makes the breakdown a partition: object counts
+add up to the dump's object count exactly, and byte counts to its byte count, so a UI can put a number
+next to each one and have them sum. Three things make this more than a flag per reference:
+
+**An object's strength is the strongest of its weakest links.** A path is only as strong as its
+weakest reference, and the object gets the best path available — a max-min (widest path) problem, not
+a shortest path one. Implemented as one BFS queue per strength, drained strongest first, so an object
+found strongly is never revisited weakly. `FINALIZER` sits between `WEAK` and `PHANTOM`: on Android
+`java.lang.ref.FinalizerReference extends PhantomReference` and holds its referent through `zombie`
+while it's being finalized, and OpenJDK's package-private `java.lang.ref.Finalizer` extends
+`FinalReference`.
+
+**The garbage is enumerated, not subtracted.** It used to come out of arithmetic —
+`total − Σ computeSize(reached)` — which is a byte count and nothing else, and the tree needs the objects.
+So `markUnreachable` passes over `graph.objects` and takes what no walk reached, and `rootsOf` reduces
+that to the objects a walk of the garbage has to start from: the ones no other piece of garbage points at.
+`UncollectedGarbageGcRootProvider` hands those to `HeapDominatorTree` as `GcRoot.Unreachable`, so garbage
+nests under whatever was holding it and the whole dump is one tree.
+
+**The weakening rule is one rule, and it covers GC roots too.** `isHeldThrough(objectId, edgeStrength)`
+is `edgeStrength == STRONG || strengthOf(objectId) >= edgeStrength`: an edge that weakens the path it's on
+counts as a way of holding an object only when nothing holds it more firmly. That's the weak reference
+rule, and everything that holds an object only until it lets go of it gets it — a cache that evicts, a
+thread local, a stack frame, a finalizer queue. It applies to GC root edges through
+`GcRoot.reachabilityStrength()`, which is why a `JavaFrame` doesn't flatten the tree: an app dump has tens
+of thousands of stack frame roots, and a thread being inside a method that has an object in a local
+variable says nothing about what keeps that object in memory. Nothing is lost by it — every object was
+reached at exactly the strength this compares against, so the edges of its strongest path all survive, and
+the tree still holds every object of the dump. Withholding a *root* edge is how the dominator tree is told,
+since `HeapDominatorTree` is exact and has no notion of a low priority root.
+
+**A garbage cycle has no entry point**, and that's the part to get right: a doubly linked list nothing
+points at any more has every node pointed at by another, so "the ones nothing points at" finds none of
+them and a walk from the others never arrives. Hence the second loop in `rootsOf` — walk from the entry
+points found, then pick the first object that walk missed, over and over. Which node of a cycle that is,
+is arbitrary; nothing in the heap dump makes one of them the owner.
+
+**Folding has to be tracked, because the arithmetic no longer hides it.** A folded object is reached by no
+walk, so it would land in the garbage list, get a rectangle of its own, and have its bytes counted twice —
+once inside its holder and once as a node. `foldedObjectIndexes` is the `BitSet` that stops that, and
+`fold()` also gives the folded object its holder's strength so the counts stay a partition. Note the
+second pass in `markUnreachable`: a candidate can turn out to be folded into a candidate that appears
+later in the same pass, so the decision can't be made on first sight.
+
+The one thing that stays approximate is `totalByteCount`, which sums raw shallow sizes over every object:
+a folded object that something *else* also points at is counted once inside its holder and once as a node,
+so the per-strength byte counts come out a little under the total. `HeapSizes` says so in its KDoc.
+
+## Checked against YourKit: two reasons we called live objects garbage
+
+YourKit opens an Android hprof as it is, no conversion, and on the 82 MB dump it reports 1,863 unreachable
+objects and 39,157 pending finalization. This reported 117,997 unreachable objects / 12.0 MB. Nearly all of
+that gap was ours, from two causes:
+
+**`HprofIndex.defaultIndexedGcRootTags()` drops most of a real dump's roots.** It leaves out
+`ROOT_VM_INTERNAL`, `ROOT_INTERNED_STRING`, `ROOT_UNKNOWN`, `ROOT_FINALIZING`, `ROOT_DEBUGGER`,
+`ROOT_REFERENCE_CLEANUP` and `ROOT_UNREACHABLE` — 180 K of this dump's 188 K roots, interned strings and
+the runtime's internals, none of which can explain a leak, which is what those defaults are for. An
+explorer has to say where every object is held, so `HeapExplorer` opens with `HprofRecordTag.rootTags`
+instead. The interned strings alone are ~38 K objects, and they line up with YourKit's "pending
+finalization" count.
+
+**ART hangs `$classOverhead` and `$staticOverhead` byte arrays off class objects**, holding what it embeds
+in a class — method tables and the like. Shark's `ClassReferenceReader` skips them, along with
+`<resolved_references>`, so nothing in the dump pointed at them and they came out as garbage: 66,427
+arrays, 10.7 MB, 88% of what was left. `ReferenceStrengthReader.classMetadataReferencesOf` puts them back
+as static field references of the class holding them.
+
+Together the garbage went from **117,997 objects / 12.0 MB to 6,029 / 190 KB**, the same order as YourKit's
+1,863. What's left is reference queue plumbing — 2,403 `Cleaner`, 2,401 `CleanerThunk`, 763
+`FinalizerReference`, 40 `NativeAllocationRegistry` — plus a small tail.
+
+The String `value` arrays are *not* part of this, though they look like they should be: the unreachable
+value arrays matched the unreachable Strings one for one, 19,278 each, so folding had been accounting for
+them correctly all along.
+
+## `ObjectDominators` had the same weak reference bug
+
+`ObjectDominators.buildDominatorTree(graph, ignoredRefs)` used to pass `ignoredRefs` to
+`MatchingGcRootProvider` only — its reference reader was hardcoded to
+`ActualMatchingReferenceReaderFactory(emptyList())`, so it followed weak references and the finalizer
+list links no matter what was passed in. Fixed in PR #2877. Nothing in the repo actually consumed the
+sizes (`HprofRetainedHeapPerfTest` only renders the tree as an assertion description), so no frozen
+number moved.
+
+## Time to open a heap dump
+
+Measured on an 82 MB Android OOM dump, 1,019,837 objects, on a laptop:
+
+| Step | |
+| --- | --- |
+| Indexing the hprof | 0.44 s |
+| Working out what owns what — the two index scans in `OwnerReferences.computeFor` | 0.04 s |
+| Working out what's reachable — the per strength walks, the garbage list, the garbage forest | 2.41 s |
+| Working out what retains what — `HeapDominatorTree.buildFor` plus `buildNodes` | 2.48 s |
+| First `children(root)` — the top level split and the grouping by class | 0.29 s |
+| **To the first rectangle on screen** | **≈ 5.7 s** |
+
+Where it went, measured before the two garbage fixes in the section above moved 112 K objects from
+`UNREACHABLE` to `STRONG`: 74.0 MB `STRONG` over 901,734 objects, 2.6 KB `FINALIZER` over 106, 12.0 MB
+`UNREACHABLE` over 117,997, 86.0 MB total.
+
+Two things made that number much worse before they were found, both of them a `findClassByName` in a
+per-object loop: 49 s once, then 6.8 s once. Neither showed up as an obviously hot function — it's a
+method on `HeapGraph` that reads like a map lookup. **Time the steps before optimizing anything else
+here**; the walks and Lengauer–Tarjan are within a factor of two of each other and neither is the outlier
+you'd expect.
+
+## Memory cost
+
+Measured on a 193 MB heap dump (~983 K reachable objects, 2.5 M edges): **~48 MB peak** while
+building the predecessor lists, ~43 MB during Lengauer–Tarjan, ~13 MB once only the dominators and
+the id mapping remain. Only the predecessor structure scales with edge count; every other array is
+sized by node count.
+
+That's affordable on a phone but comfortable on desktop, which is part of why the explorer is a
+desktop app. For reference, the app sits at ~240 MB RSS with a 24 MB heap dump open, and at ~1.2 GB
+with the 287 MB production dump open — 504 K `DominatorNode`s, which is what the section below is
+about.
+
+## Remaining inefficiency
+
+`buildNodes` materialises a `Map<Long, DominatorNode>` holding a boxed `List<Long>` of children per
+node, which is 100+ MB for a 1 M-object heap. `HeapDominatorTree.immediateDominatorOf` is the
+primitive path, but there's no primitive equivalent for retained sizes and children yet. Worth doing
+when a heap dump gets big enough to hurt — `TreemapTree` already hides the difference from the UI.
+
+`DominatorNode.retainedSize` was widened from `Int` to `Long` in PR #2871, because the root of the
+tree retains the whole reachable heap and wrapped negative past 2 GB.
