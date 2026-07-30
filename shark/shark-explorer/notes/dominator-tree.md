@@ -192,11 +192,14 @@ under a `CheckoutGridTile`, 44 flat under `All GC roots`. Both `DecorView`s were
 `PhoneFallbackEventHandler.mView`, `RealWorkflowLifecycleOwner.view`, `ComposeToastServiceImpl.rootView`,
 view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 
-`OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus
-the fields and array classes that own them. Today, `android.view.View` owned by any `android.view.View[]`
-element — the array a `ViewGroup` keeps its children in — and by `Activity.mDecor` or `Dialog.mDecor`.
-After: **every one of the 277 child views is under its parent**, `MainActivity` retains 18 MB through one
-`mDecor` step, and the dialog's `DecorView` is dominated by the `PartialModalDialog`.
+`OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus the
+fields and array classes that own them. Three today — `android.view.View` owned by any
+`android.view.View[]` element (the array a `ViewGroup` keeps its children in) and by `Activity.mDecor` or
+`Dialog.mDecor`, and `android.app.Activity` owned by
+`ActivityThread$ActivityClientRecord.activity`. After: **every one of the 277 child views is under its
+parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains
+18 MB under the record the framework runs it from, which is the second largest rectangle under the GC
+roots.
 
 **A rule is parked, not dropped, and that's the whole design.** The walk in
 `HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
@@ -212,9 +215,11 @@ rule the 82 MB dump comes out at exactly the same numbers as before — 80 MB st
 missing when you read `RULES`. "The parent owns an *attached* view" needs no attachment test, because a
 detached hierarchy isn't held by whatever holds the window: if the parent isn't reachable, no owner
 reference reaches the child and the fallback handles it. "Unless the activity is destroyed" needs no
-`mDestroyed` test either — `ActivityThread.handleDestroyActivity` sets `mDecor = null`, so the framework
-has already removed the reference the rule is about. The state a rule seems to need is expressed by which
-references exist.
+`mDestroyed` test either — `ActivityThread.handleDestroyActivity` sets `mDecor = null` and takes the
+`ActivityClientRecord` out of `mActivities`, so the framework has already removed both references the
+rules are about. The state a rule seems to need is expressed by which references exist, and a leaked
+destroyed activity therefore falls back on whatever is leaking it — which is the one thing you'd want to
+read its bytes under.
 
 Two things to know before adding a rule:
 
