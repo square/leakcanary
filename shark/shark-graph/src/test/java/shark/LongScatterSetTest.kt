@@ -125,7 +125,20 @@ class LongScatterSetTest {
       .containsExactly((1..100L).toList())
   }
 
+  /**
+   * Sized one element past the ceiling, which is rejected before anything is allocated. Sizing it
+   * at the ceiling instead allocates 8.59 GB, so only the failing side is checked here.
+   */
+  @Test fun `a set sized past the hash array ceiling says what the ceiling is`() {
+    Assertions.assertThatThrownBy { LongScatterSet(MAX_ELEMENTS + 1) }
+      .hasMessageContaining("Cannot hold more than $MAX_ELEMENTS elements")
+      .hasMessageContaining("asked to hold ${MAX_ELEMENTS + 1}")
+  }
+
   companion object {
+    /** 2^30 slots, the largest power of two an [Int] addresses, at the 0.75 load factor. */
+    const val MAX_ELEMENTS = 805_306_368
+
     // Values SAME_MIX_PHI_1 and SAME_MIX_PHI_2 have same hash when calculated via HHPC.mixPhi()
     const val SAME_MIX_PHI_1 = 11L
     const val SAME_MIX_PHI_2 = 14_723_950_898L
