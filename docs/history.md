@@ -133,9 +133,9 @@ Bitbucket dropped Mercurial hosting in 2020 and took AndroMAT with it; the last 
 page is a [2016 snapshot](https://web.archive.org/web/20160114113732/https://bitbucket.org/joebowbeer/andromat).
 
 **HAHA.** Ten days later the parser moved out into a repository of its own,
-[HAHA](https://github.com/square/haha). LeakCanary was released under Apache 2.0 a few weeks after
-that, with the MAT-derived code and its licence sitting behind a dependency rather than inside the
-library.
+[HAHA](https://github.com/square/haha), which put the MAT-derived code and its licence behind a
+dependency instead of inside the library. So the EPL only ever applied to the versions used
+internally: the first public release vendors none of it and is Apache 2.0.
 
 **perflib.** In July 2015, HAHA 2.0.2 swapped MAT's parser for
 [perflib](https://android.googlesource.com/platform/tools/base/+/2f03004c181baf9d291a9bf992e1b444e83cd82d/perflib/),
