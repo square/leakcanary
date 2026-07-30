@@ -136,8 +136,8 @@ through them is used only when there is no other. Two kinds of reference are tre
 A few references are left out entirely rather than deprioritized, because a path through them says
 nothing at all. The references that don't keep their target alive — the referent of a weak, soft or
 phantom reference, the links of the finalizer list — cannot be the reason an object is still in
-memory. Neither can the stack of the thread that runs finalization: if that is what holds your
-object, the object was about to be collected. Locals on the main thread are excluded on the same
+memory. Neither can the stack of the thread that watches over finalization: if that is what holds
+your object, the object was about to be collected. Locals on the main thread are excluded on the same
 grounds, since the main thread's stack is ever changing and unlikely to hold anything for long, so a
 path through it is a hint that a longer path with the real leak on it exists.
 
@@ -187,8 +187,8 @@ which is what makes that a safe thing to conclude from, and what rules out readi
 bugs could have set.
 
 That conservatism matters because a wrong "not leaking" verdict doesn't merely mislabel one object:
-the trace is cut at the last object known not to be leaking, so calling something alive when it isn't
-hides whatever was actually holding the leak.
+the window starts at the last object known not to be leaking, so calling something alive when it
+isn't hides whatever was actually holding the leak.
 
 ## Leaks you can't fix are reported separately, not hidden
 
