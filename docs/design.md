@@ -4,7 +4,7 @@ LeakCanary is opinionated, and this page is about the opinions: what each part o
 and what that choice costs. [How LeakCanary works](fundamentals-how-leakcanary-works.md) describes
 what happens; this page is about why it happens that way.
 
-## A leak is one object, not a number
+## One object, not a number
 
 Memory leaks announce themselves through symptoms that can't be traced back to a cause. Accumulated
 leaks make the garbage collector run more often, which surfaces as jank and
@@ -17,6 +17,12 @@ So LeakCanary works from the other end. Instead of watching memory, it watches i
 The app states that a particular object is done and should be deleted, and LeakCanary checks that
 expectation. When the expectation is broken, the answer isn't a number, it's an object and the chain
 of references keeping it alive — something you can go and change.
+
+That object is a symptom too — but unlike the others, it's one that leads somewhere. Nothing about it
+is wrong: it reached the end of its life exactly when it was supposed to. The bug is a reference that
+should have been cleared and wasn't, and since that reference is what holds the object, it has to be
+somewhere on the chain. Retention is worth detecting precisely because it's the symptom that can be
+followed back to the cause.
 
 The cost of that decision is that LeakCanary has to be told what to expect. It knows Android's
 lifecycles, so destroyed activities, destroyed fragments and their views, cleared view models and
@@ -102,13 +108,14 @@ want leak detection ask for it explicitly, at the point in the test where it mak
 ## The leak trace is chosen to be understood
 
 There are usually a great many paths of references from the garbage collection roots to a retained
-object, and LeakCanary reports exactly one of them. Which one it picks, and why, is the decision that
-determines whether a leak trace is useful.
+object, and LeakCanary reports exactly one of them. Any of them would be correct; which one it picks
+decides how much work it is to find the bad reference in it.
 
-Start from what a leak usually is: **a single bad reference**. Sometimes there is more than one, but
-then the recipe doesn't change — find one, fix it, run leak detection again. And if a single bad
-reference is what holds the object, then *every* path from the roots to that object goes through it.
-Every candidate path contains the answer.
+Start from what a leak usually is: **a single bad reference**. If that is what holds the object, then
+*every* path from the roots to that object goes through it. Every candidate path contains the answer.
+
+!!! note "More than one bad reference"
+    It happens, and it doesn't change the recipe: find one, fix it, run leak detection again.
 
 That is what makes the choice free. Since correctness doesn't separate the paths, what's left to
 optimize is how much work it is to read one. A shorter path holds fewer references, and fewer
@@ -141,15 +148,25 @@ your object, the object was about to be collected. Locals on the main thread are
 grounds, since the main thread's stack is ever changing and unlikely to hold anything for long, so a
 path through it is a hint that a longer path with the real leak on it exists.
 
+!!! note "A weak reference doesn't guarantee its target can be collected"
+    Reading a weak reference hands back an ordinary strong reference, and some collectors then treat
+    that object as strongly reachable for the rest of the collection cycle. An object whose weak
+    reference is read on a loop — animations do this to their target once per frame — therefore
+    survives every cycle that overlaps a read, and can sit in memory for as long as the loop runs,
+    even though nothing but weak references point at it. Where that is known to happen, LeakCanary
+    puts the reference back on the graph as one of the deprioritized kind above, so that a trace can
+    reach the object without that path ever being preferred.
+
 A path that goes through *another* retained object is left out too, for a related reason: it would
 only tell you to go and fix that other leak first, and that other leak has a trace of its own in the
 same results. So what you get is the shortest path that goes through neither a deprioritized
 reference nor another leaking object. It is frequently not the shortest path in the heap. It is the
-more actionable of the two.
+one chosen to be easiest to act on.
 
-One consequence is worth stating: because leaks are grouped by the references they blame, the same
-bug has to produce the same path every time. The path choice is therefore deterministic, down to
-visiting the garbage collection roots in a fixed order.
+One consequence is worth stating: because leaks are grouped by the references they blame, path
+selection has to be deterministic. Two analyses of the same bug that picked different paths would
+report it as two separate leaks, so the choice is pinned down all the way to visiting the garbage
+collection roots in a fixed order.
 
 ## References are shown the way you would write them
 
@@ -163,13 +180,22 @@ That readability decision has a second payoff. A trace that doesn't spell out th
 runtime's collections doesn't change when those internals change, so the same bug keeps the same
 signature across runtimes and versions, and stays grouped with itself.
 
+None of this is LeakCanary's invention. Showing a collection by its API rather than its internals is
+an old idea, long offered by debuggers and heap analyzers. What LeakCanary borrowed is the sharper
+version of it: abstracting *while* the graph is walked, rather than in a pass over the finished path.
+Compressing afterwards is the obvious alternative and it works badly — by the time there is a path,
+the context needed to describe what was collapsed has been thrown away. That design came from BLeak,
+the leak checking harness the Android Studio team runs against Android Studio itself, where Nathan
+Paige built it as a set of expanders. LeakCanary heard about them from Raluca Sauciuc.
+
 ## A trace names suspects, not just references
 
 A path from a garbage collection root to a retained object is a lot of references, and most of them
-belong to code you didn't write. Handing over the whole list would be honest and not very useful, so
-LeakCanary narrows it down. It reasons about the objects *along* the path, deciding for each whether
-it is known to still be in use or known to be dead. Nothing before the last object known to be alive
-can be the bug, and nothing after the first object known to be dead can be either. What remains is
+belong to code you didn't write. None of them are hidden from you — a trace you have to take on faith
+is worse than a long one, and the whole path is always there to read. What LeakCanary adds is what it
+knows about the objects *along* the path, deciding for each whether it is known to still be in use or
+known to be dead. Nothing before the last object known to be alive can be the bug, and nothing after
+the first object known to be dead can be either. What remains is
 the window that contains the bad reference, and that window is what a leak trace highlights — and
 what identifies the leak, since leaks that blame the same references are the same bug.
 
