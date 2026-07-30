@@ -76,5 +76,11 @@ split that follows: layout, the adaptive-depth budget and hit testing are pure f
 with thorough unit tests; UI tests cover the wiring by clicking coordinates and asserting on the
 details panel and breadcrumbs.
 
+A coordinate has to be worked out from what the window is actually showing, not written down as a
+fraction of it. `ExplorerAppTest.pressBand` presses the label band of the nth rectangle down the left
+edge, where a squarified layout puts the largest one of each level; a band is `HEADER_HEIGHT` tall, and
+the frozen fractions it replaced all missed by a few pixels the first time anything above the treemap
+changed height. It measures where the treemap starts from the details panel beside it.
+
 Rendering rects as individual composables would give per-rect semantics and free hit testing, but at
 a few thousand visible nodes the cost isn't worth it. Revisit if the node budget ends up much lower.

@@ -101,11 +101,9 @@ classes, 579 JNI globals, 200 native stack, 171 JNI locals, 163 thread objects. 
 "treat native refs to bitmaps specially" or "look at native refs only for objects not already seen"
 buys anything here, and each would make the tree lie about a real retention path.
 
-What actually helps is showing the sharing, so `HeapDominatorTreemap.referrersOf` reports every
-referrer of an object plus whether the root dominates it, and the details panel says so in words. It
-costs a full pass over the dump — a heap dump only records references in the direction they point, so
-there is no reverse index — about **1 second per 82 MB**, hence a call of its own that the panel fills
-in a moment after the rest rather than part of `summarize`.
+What actually helps is showing the sharing, which is what the paths below the dominator are for: an
+object here has at least two of them, and they name the holders that would each have to go. See the
+section on those below.
 
 **The crowd is drawn one cell per class**, by `splitRootChildren` and `groupByClass`, so 129 K rectangles
 become a few hundred. Only at the top of the tree — everywhere else the children are objects a specific
@@ -182,49 +180,52 @@ Two things to know before adding an entry to that list:
   `InternalValue.image` leaves the map, the entries and the size bookkeeping strongly held by the cache,
   where they belong, and moves only the images.
 
-## Spelling out what holds an object
+## What holds an object: the dominator, then the paths below it
 
-`HeapDominatorTreemap.holdingPathsTo` answers "what is keeping this in memory" with a chain of
-references per way the object is held, which is what the tree leaves open. Three things about how it
-gets there, none of them obvious from the code alone:
+The panel answers "what holds this" in two parts, and which part answers what is the thing to keep
+straight:
 
-**Where the walk forks comes out of the dominator tree, and nowhere else.** Every path to an object with
-a dominator goes through that dominator — that's what dominance is — so one chain says everything there
-is to say about how it's held, however many references point at it. Only an object the *root* dominates
-is held in ways that differ, and only those fork, the object asked about included.
+- **The dominator**, exactly one node, from `HeapDominatorTreemap.dominatorOf`. Every path from a GC root
+  goes through it, so it is what would free the object. It's a *group* rather than an object when nothing
+  in particular holds it (`DominatorKind.ALL_GC_ROOTS`) or when nothing holds it at all
+  (`UNCOLLECTED_GARBAGE`), which is what the two halves of the tree stand for.
+- **The independent paths below it**, from `independentPathsTo`: every way the object is held, with the
+  part they all share — everything above the dominator — left out.
 
-That last clause is the part that was wrong for a while. Forking at the object unconditionally listed
-three holders for a bitmap the treemap draws inside a single owner, which reads as the panel
-contradicting the picture; the two have to give the same answer, and dominance is the answer. It's also
-what makes an owned object cost the walk from the GC roots and nothing more, since every level that forks
-costs a pass over the heap dump.
+**The name for that path set is "internally vertex-disjoint paths"**, also called independent paths: two
+of them share their endpoints and nothing else. The most there can be is the *local vertex connectivity*
+of the dominator and the object, by Menger's theorem, and there are always at least two unless the
+dominator points straight at the object — a single interior vertex common to every path would separate the
+two, which would make it a dominator closer than the dominator. Not "semidominator", which Lengauer–Tarjan
+already uses for something else.
 
-**What every path goes through is the dominator, not the deepest shared step.** Counting how many shown
-paths a step is on says where the paths join, but not that the object is held through it: each path is
-only the *shortest* way to one holder, so a step they share may still have ways round it that were never
-walked. `withPathCounts` therefore asks the tree — the deepest step on the shortest path that dominates
-the object. On the bitmap under a tile, both chains run through the view and the image respectively,
-deeper than the tile, and the tile is still the only correct answer.
+Two caveats, which `INDEPENDENT_PATHS_HINT` states in the UI rather than leaving to be discovered:
 
-**A path that loops back through the object isn't a way of holding it.** An `AppCompatImageView` has
-seven referrers, five of which are helpers it created that point back at it. Following those produced
-five near-identical chains ending `.mView AppCompatImageView`. Dropping any path that already went
-through the object cut it to the two real ones.
+- **A maximum set isn't unique, and finding one is a max flow problem.** `PathSearch` is greedy: it walks
+  the referrers up from the object, blocks the middle of each path it finds and walks again. Blocking can
+  cost a path further on, so `hasMore` means "the search stopped", not "there are more".
+- **Two paths shown apart may still reference each other**, since a path is not told about the references
+  leaving it. Parallel chains cross-linked at every layer come out as separate paths.
 
-**Shark's path finder hides a target that another target holds**, because
-`PrioritizingShortestPathFinder` treats targets as leaves: ask it for a tile and the view that tile holds
-and it reports the tile only. Hence a second walk for whatever went missing, without the targets that
-swallowed it.
+**The search walks backwards, from the object towards what holds it**, which is the direction a heap dump
+can't answer in: it records a reference only in the direction it points. Hence `ReferrerIndex` — one pass
+over the dump, kept as a linked list per object (an int per object, two per reference, ~30 MB on a million
+object dump). That replaced a full pass per question plus a pass per fork level, which was 2.3 s per click
+on the 82 MB dump and 3.4 s when a holder was shared, with a walk in memory. The pass is paid once per
+session, lazily, on the first question about paths.
 
-Cost on the 82 MB dump: **~2.3 s** for the bitmap above (one referrer pass plus the walk from the GC
-roots), **~3.4 s** when a holder is shared as well and a second pass is needed. Worth knowing before this
-moves anywhere near being computed eagerly: a reverse index built once per tree would make the passes
-instant, at the price of an edge-sized structure — the same predecessor lists `HeapDominatorTree` builds
-and throws away. The walk from the GC roots is the other ~1.7 s and wouldn't be helped by it.
+**A path that loops back through the object isn't a way of holding it.** An `AppCompatImageView` has seven
+referrers, five of them helpers it created that point back at it. The walk never leaves the object it
+started from, so those don't come out as five near-identical chains ending `.mView AppCompatImageView`.
 
-A referrer that holds the object without keeping it in memory is on none of the chains, which reads as a
-bug unless the panel says so: a bitmap's referrers are its `Cleaner`, phantom and therefore on no path,
-plus the two that hold it. Hence `Referrer.weakeningStrength` and `ObjectReferrers.holdingReferrerCount`.
+**A direct edge has to be blocked as an edge, not as a vertex.** A source pointing straight at the object
+makes a path with no middle to block, so `usedLastStep` blocks that one step: blocking the source instead
+would hide the ways it holds the object round through other objects, and blocking nothing at all handed
+back the same path until the limit.
+
+**An object a GC root points at has no referrers to walk up from**, so the one path is the object itself,
+labelled with the kind of root that reaches it. Nothing inside the heap dump points at it; that is the
+whole answer, and a search up the references can't say so.
 
 ## Reachability strength
 

@@ -236,18 +236,6 @@ internal val ReachabilityStrength.reachabilityText: String
     UNREACHABLE -> "Unreachable: uncollected garbage"
   }
 
-/** How the details panel names the kind of reference one object holds another with. */
-internal val ReachabilityStrength.referenceText: String
-  get() = when (this) {
-    STRONG -> "strong reference"
-    CACHE -> "cache entry"
-    SOFT -> "soft reference"
-    WEAK -> "weak reference"
-    FINALIZER -> "finalizer queue"
-    PHANTOM -> "phantom reference"
-    UNREACHABLE -> "reference from uncollected garbage"
-  }
-
 private val ReachabilityStrength.hue: Float
   get() = when (this) {
     STRONG -> 210f

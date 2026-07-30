@@ -1,5 +1,7 @@
 package shark.explorer
 
+import androidx.collection.IntSet
+import androidx.collection.MutableIntSet
 import shark.GcRoot
 import shark.GcRoot.Debugger
 import shark.GcRoot.Finalizing
@@ -17,6 +19,7 @@ import shark.GcRoot.ThreadObject
 import shark.GcRoot.Unknown
 import shark.GcRoot.Unreachable
 import shark.GcRoot.VmInternal
+import shark.HeapDominatorTree
 import shark.HeapField
 import shark.HeapGraph
 import shark.HeapObject
@@ -26,7 +29,6 @@ import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HeapValue
 import shark.MatchingGcRootProvider
-import shark.PrioritizingShortestPathFinder
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -39,11 +41,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
 import shark.ReferenceLocationType
-import shark.ReferenceReader
 import shark.AndroidObjectInspectors
-import shark.internal.ReferencePathNode
-import shark.internal.ReferencePathNode.ChildNode
-import shark.internal.ReferencePathNode.RootNode
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
 import shark.ValueHolder.CharHolder
@@ -74,6 +72,7 @@ class HeapDominatorTreemap internal constructor(
   private val graph: HeapGraph,
   private val reachability: HeapReachability,
   private val strengthReader: ReferenceStrengthReader,
+  private val dominatorTree: HeapDominatorTree,
   private val nodes: Map<Long, DominatorNode>
 ) : TreemapTree<Long> {
 
@@ -95,12 +94,29 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * The objects the root dominates, which is to say the ones nothing owns: whatever holds them does so
-   * on paths that meet only at the root. A set because [holdingPathsTo] asks this of every object it
-   * walks past, and the root of a production dump has six figures worth of children.
+   * Which object points at each object, built on first use: the first question about how an object is held
+   * pays for a pass over the heap dump, and every question after it is answered from memory.
    */
-  private val rootDominatedIds: Set<Long> by lazy {
-    nodes.getValue(root).dominatedObjectIds.toSet()
+  private val referrerIndex: ReferrerIndex by lazy {
+    ReferrerIndex.buildFor(graph, pathReferenceReader)
+  }
+
+  /**
+   * The objects the tree hangs its halves off, by object index: the heap dump's GC roots, and the pieces of
+   * garbage nothing else points at. Where a path below either half starts. See
+   * [HeapReachability.unreachableRootObjectIds].
+   */
+  private val treeRootIndexes: IntSet by lazy {
+    val indexes = MutableIntSet()
+    val rootIds = MatchingGcRootProvider(emptyList()).provideGcRoots(graph).map { it.gcRoot.id } +
+      reachability.unreachableRootObjectIds.asSequence()
+    rootIds.forEach { objectId ->
+      val index = referrerIndex.indexOf(objectId)
+      if (index != ReferrerIndex.NOT_AN_OBJECT) {
+        indexes += index
+      }
+    }
+    indexes
   }
 
   /** Bytes retained by [node]: its own shallow size plus that of everything it dominates. */
@@ -186,7 +202,13 @@ class HeapDominatorTreemap internal constructor(
         groups[half.nodeId] = topLevelGroup(half, groups, groupIds)
       }
     }
-    return TopLevel(ids = ids, groups = groups)
+    val classGroupIdByObjectId = mutableMapOf<Long, Long>()
+    groups.forEach { (groupId, group) ->
+      if (group.kind == ObjectGroupKind.CLASS) {
+        group.childIds.forEach { classGroupIdByObjectId[it] = groupId }
+      }
+    }
+    return TopLevel(ids = ids, groups = groups, classGroupIdByObjectId = classGroupIdByObjectId)
   }
 
   /**
@@ -205,6 +227,7 @@ class HeapDominatorTreemap internal constructor(
     }
     return NodeGroup(
       kind = half.kind,
+      parentNodeId = root,
       strength = half.strength,
       // Heaviest first, like the dominated ids a node hands out, so that these children stay ordered the
       // way the rest of the tree's are. Not through [weight], which would ask for the groups being built.
@@ -234,6 +257,7 @@ class HeapDominatorTreemap internal constructor(
         val groupId = groupIds.next()
         groups[groupId] = NodeGroup(
           kind = ObjectGroupKind.CLASS,
+          parentNodeId = half.nodeId,
           className = heapClass.name,
           simpleClassName = heapClass.simpleName,
           strength = half.strength,
@@ -346,258 +370,167 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * What holds on to [objectId]: the fields pointing at it, and the GC roots if any point straight at
-   * it.
+   * The one node this tree attributes [objectId]'s bytes to, or null for the root itself and for an
+   * object that is no node of the tree.
    *
-   * This is how an object ends up dominated by nothing but the virtual root: two referrers on paths
-   * that only meet at the root mean neither of them alone would free it, so its bytes are attributed to
-   * the whole heap rather than to either owner. The dominator tree can't say that on its own, and it's
-   * the first thing you want to know about a big rectangle sitting flat under the root.
-   *
-   * Costs a pass over every object in the heap dump — around a second per 100 MB — because a heap dump
-   * only records references in the direction they point. Hence a call of its own rather than part of
-   * [summarize]: the panel fills the rest in straight away and this a moment later.
-   *
-   * Counts every referrer but keeps only the first [MAX_REFERRERS]: something like `Boolean.TRUE` is
-   * held from tens of thousands of places, and the count is the useful part of that anyway.
+   * The dominator is the answer to "what would free this": every path from a GC root to the object goes
+   * through it. There is exactly one, which is what makes it worth showing on its own, and it is a group
+   * rather than an object when nothing in particular holds the object — see [DominatorKind].
    */
-  fun referrersOf(objectId: Long): ObjectReferrers {
-    var totalCount = 0
-    var holdingCount = 0
-    val referrers = mutableListOf<Referrer>()
-    fun add(
-      isHolding: Boolean,
-      referrer: () -> Referrer
-    ) {
-      totalCount++
-      if (isHolding) {
-        holdingCount++
-      }
-      if (referrers.size < MAX_REFERRERS) {
-        referrers += referrer()
-      }
+  fun dominatorOf(objectId: Long): ObjectDominator? {
+    if (objectId == root || objectId !in nodes) {
+      return null
     }
-    // Whether the tree follows a reference that doesn't retain depends on the object it points at, not
-    // on the reference: it's followed only when it's the strongest thing reaching it. So this is one
-    // answer for all of them. See [WeakeningAwareReferenceReader].
-    val followsWeakening = strengthOf(objectId) != ReachabilityStrength.STRONG
-    graph.gcRoots
-      .filter { it.id == objectId }
-      .forEach { gcRoot ->
-        add(isHolding = true) {
-          Referrer(
-            label = gcRootLabel(gcRoot),
-            fieldName = null,
-            inspectableObjectId = null
-          )
-        }
-      }
-    graph.objects.forEach { heapObject ->
-      strengthReader.retainingReferencesOf(heapObject)
-        .filter { it.valueObjectId == objectId }
-        .forEach { reference ->
-          add(isHolding = true) { referrer(heapObject, reference.lazyDetailsResolver.resolve().name) }
-        }
-      strengthReader.weakeningReferencesOf(heapObject)
-        .filter { it.valueObjectId == objectId }
-        .forEach { weakening ->
-          add(isHolding = followsWeakening) {
-            referrer(heapObject, weakening.fieldName, weakening.strength, followsWeakening)
-          }
-        }
-    }
-    return ObjectReferrers(
-      isDominatedByRoot = objectId != root && objectId in rootDominatedIds,
-      referrers = referrers,
-      holdingReferrerCount = holdingCount,
-      hiddenReferrerCount = totalCount - referrers.size
-    )
-  }
-
-  private fun referrer(
-    heapObject: HeapObject,
-    fieldName: String,
-    weakeningStrength: ReachabilityStrength? = null,
-    isFollowed: Boolean = true
-  ) = Referrer(
-    label = label(heapObject.objectId),
-    fieldName = fieldName,
-    inspectableObjectId = heapObject.objectId.takeIf { it in nodes },
-    weakeningStrength = weakeningStrength,
-    isFollowed = isFollowed
-  )
-
-  /**
-   * Every way [objectId] is held, spelled out from a GC root down to it, field by field.
-   *
-   * [referrersOf] says which objects hold this one; this says what holds *those*, all the way up, which
-   * is what answers "what is keeping this in memory". A bitmap under the root turns out to be held by
-   * the view showing it on two of its paths and by an image cache on the third: the view is the answer
-   * anyone is after, and the cache is why the dominator tree couldn't give it.
-   *
-   * At most [MAX_HOLDING_PATHS] of them, and it stops forking after [MAX_HOLDER_LEVELS] levels, saying
-   * how many holders it didn't follow: something like a boxed `true` is held from tens of thousands of
-   * places, and no panel is going to show them.
-   *
-   * Costs a pass over the heap dump per level it forks at, plus a walk from the GC roots — a few seconds
-   * on a large dump — so it belongs off the UI thread and behind its own placeholder, like [referrersOf].
-   */
-  fun holdingPathsTo(objectId: Long): HoldingPaths {
-    val isUnreachable = objectId != root &&
-      objectId in nodes &&
-      strengthOf(objectId) == ReachabilityStrength.UNREACHABLE
-    // No path from a GC root reaches uncollected garbage, by definition, so there is nothing to walk:
-    // whatever points at it is garbage as well, and the tree shows that as the rectangle around it.
-    if (objectId == root || objectId !in nodes || isUnreachable) {
-      return HoldingPaths(
-        paths = emptyList(),
-        commonHolderObjectId = null,
-        commonHolderLabel = null,
-        isDominatedByRoot = false,
-        isUnreachable = isUnreachable,
-        hiddenPathCount = 0
+    val dominatorId = dominatorTree.immediateDominatorOf(objectId)
+    if (dominatorId != root) {
+      return ObjectDominator(
+        nodeId = dominatorId,
+        label = label(dominatorId),
+        retainedSize = weight(dominatorId),
+        kind = DominatorKind.OBJECT
       )
     }
-    val tails = tailsToWalkUpFrom(objectId)
-    val paths = shortestPathsTo(tails.tailByTipId.keys)
-      .map { (tipId, upperSteps) ->
-        val tail = tails.tailByTipId.getValue(tipId)
-        upperSteps.gcRootLabel to upperSteps.steps + tail.map { stepTo(it.objectId, it.referrerId) }
+    // Nothing owns it, so which half of the tree it sits in is what stands in for a dominator: the object
+    // is drawn there, and that half is what would have to go for it to be freed.
+    val halfId = if (strengthOf(objectId) == ReachabilityStrength.UNREACHABLE) {
+      UNREACHABLE_NODE_ID
+    } else {
+      GC_ROOTS_NODE_ID
+    }
+    return ObjectDominator(
+      nodeId = halfId,
+      label = label(halfId),
+      retainedSize = weight(halfId),
+      kind = if (halfId == UNREACHABLE_NODE_ID) {
+        DominatorKind.UNCOLLECTED_GARBAGE
+      } else {
+        DominatorKind.ALL_GC_ROOTS
       }
-      // A path that already went through the object isn't a way of holding it: a view's own helpers
-      // point back at the view, and following one of those leads back to where it started.
-      .filterNot { (_, steps) -> steps.dropLast(1).any { it.objectId == objectId } }
-      .map { (gcRootLabel, steps) ->
-        HoldingPath(
-          gcRootLabel = gcRootLabel,
-          // Kept from the object up, because what holds it directly is what a reader is looking for and
-          // the framework plumbing between a GC root and the app's own objects rarely is.
-          steps = steps.takeLast(MAX_PATH_STEPS),
-          hiddenStepCount = (steps.size - MAX_PATH_STEPS).coerceAtLeast(0)
-        )
-      }
-      .sortedBy { it.steps.size }
-    return withPathCounts(
-      objectId = objectId,
-      paths = paths,
-      // A tip with no path of its own was on the way to another tip, so its path is already shown.
-      hiddenPathCount = tails.notFollowedCount
     )
   }
 
   /**
-   * The objects to ask a path from a GC root for, each with the steps from it back down to the object
-   * asked about.
+   * Every way [objectId] is held below its dominator, spelled out field by field. See
+   * [IndependentPaths] for what "independent" means and what this search does and doesn't guarantee.
    *
-   * What forks comes out of what the dominator tree already knows: every path to an object with a
-   * dominator goes through that dominator, so one chain says everything there is to say about how it's
-   * held, however many references point at it. Only an object the root dominates is held in ways that
-   * differ, and only those fork — which is what keeps this section and the treemap telling the same
-   * story, and what makes an owned object cost the walk from the GC roots and nothing else.
+   * A bitmap under the root turns out to be held by the view showing it on one path and by an image cache
+   * on another: the view is the answer anyone is after, and the cache is why the dominator tree had
+   * nowhere to put its bytes but the whole heap.
+   *
+   * At most [MAX_INDEPENDENT_PATHS] of them, each at most [MAX_PATH_STEPS] steps long. The first call for
+   * a heap dump builds a [ReferrerIndex], which reads the whole dump; the paths themselves are then walks
+   * in memory, so the wait is once per dump rather than once per object.
    */
-  private fun tailsToWalkUpFrom(objectId: Long): Tails {
-    val tailByTipId = LinkedHashMap<Long, List<TailStep>>()
-    var notFollowedCount = 0
-    var frontier = mapOf(objectId to emptyList<TailStep>())
-    repeat(MAX_HOLDER_LEVELS) {
-      val forking = frontier.filterKeys { it in rootDominatedIds }
-      tailByTipId += frontier - forking.keys
-      if (forking.isEmpty()) {
-        return Tails(tailByTipId, notFollowedCount)
-      }
-      val referrerIds = referrerIdsOf(forking.keys)
-      val forked = LinkedHashMap<Long, List<TailStep>>()
-      forking.forEach { (heldId, tail) ->
-        val referrers = referrerIds[heldId].orEmpty()
-        if (referrers.isEmpty()) {
-          // Nothing in the heap dump points at it, so a GC root does, and the path finder starts there.
-          tailByTipId[heldId] = tail
-          return@forEach
-        }
-        // At least one per fork, however many forks there already are: a path that stops short of the
-        // object would be a path to something else.
-        val room = (MAX_HOLDING_PATHS - tailByTipId.size - forked.size).coerceAtLeast(1)
-        referrers.take(room).forEach { referrerId ->
-          forked.putIfAbsent(referrerId, listOf(TailStep(heldId, referrerId)) + tail)
-        }
-        notFollowedCount += (referrers.size - room).coerceAtLeast(0)
-      }
-      frontier = forked
+  fun independentPathsTo(objectId: Long): IndependentPaths {
+    if (objectId == root || objectId !in nodes) {
+      return IndependentPaths.NONE
     }
-    tailByTipId += frontier
-    return Tails(tailByTipId, notFollowedCount)
-  }
-
-  /** Which objects hold each of [targets], in one pass over the heap dump. */
-  private fun referrerIdsOf(targets: Set<Long>): Map<Long, List<Long>> {
-    val referrerIds = mutableMapOf<Long, MutableList<Long>>()
-    graph.objects.forEach { heapObject ->
-      pathReferenceReader.read(heapObject).forEach { reference ->
-        if (reference.valueObjectId in targets) {
-          val referrers = referrerIds.getOrPut(reference.valueObjectId) { mutableListOf() }
-          // Two fields of the same object pointing at it is one holder, not two.
-          if (referrers.lastOrNull() != heapObject.objectId) {
-            referrers += heapObject.objectId
-          }
-        }
-      }
+    val dominator = dominatorOf(objectId) ?: return IndependentPaths.NONE
+    val targetIndex = referrerIndex.indexOf(objectId)
+    if (targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
+      return IndependentPaths.NONE
     }
-    return referrerIds
+    val isBelowGroup = dominator.kind != DominatorKind.OBJECT
+    val isSource: (Int) -> Boolean = if (isBelowGroup) {
+      // Below a group, a path starts where the tree's own walk did: at a GC root, or at a piece of
+      // garbage nothing else points at.
+      ({ index -> index in treeRootIndexes })
+    } else {
+      val dominatorIndex = referrerIndex.indexOf(dominator.nodeId)
+      ({ index -> index == dominatorIndex })
+    }
+    val paths = mutableListOf<IndependentPath>()
+    // A GC root's own object, or a piece of garbage nothing points at: what holds it is the root or nothing
+    // at all, and walking up its referrers can't say so, because it has none.
+    if (isSource(targetIndex)) {
+      paths += path(intArrayOf(targetIndex), isBelowGroup)
+    }
+    val search = PathSearch(targetIndex)
+    while (paths.size < MAX_INDEPENDENT_PATHS) {
+      val found = search.findPath(isSource) ?: break
+      paths += path(found, isBelowGroup)
+    }
+    return IndependentPaths(paths = paths, hasMore = paths.size == MAX_INDEPENDENT_PATHS)
   }
 
   /**
-   * The shortest path from a GC root to each of [targets], as the steps down to it.
+   * The nodes to zoom through so that [node] is drawn, the root first.
    *
-   * [PrioritizingShortestPathFinder] treats its targets as leaves, so a target that holds another one
-   * hides it: asking for a tile and the view it holds reports the tile only. Hence a second walk for
-   * whatever went missing, without the targets that swallowed it — two rounds, because a third target
-   * nested under those two would be one holder explaining another explaining another, which the panel
-   * couldn't show as separate ways of holding anything anyway.
+   * Clicking an object in the details panel should show it where the treemap has it, which is under
+   * however many groups and dominators it sits — the panel walks the heap dump's own references, so what
+   * it leads to can be anywhere in the tree.
+   *
+   * Stops at the last node that has children: zooming into an object that dominates nothing would draw an
+   * empty view, so the caller ends up looking at what holds it, with it selected inside.
    */
-  private fun shortestPathsTo(targets: Set<Long>): Map<Long, UpperSteps> {
-    val found = mutableMapOf<Long, UpperSteps>()
-    var remaining = targets
-    repeat(MAX_PATH_FINDING_ROUNDS) {
-      if (remaining.isEmpty()) {
-        return found
-      }
-      val pathFinder = PrioritizingShortestPathFinder.Factory(
-        listener = {},
-        referenceReaderFactory = object : ReferenceReader.Factory<HeapObject> {
-          override fun createFor(heapGraph: HeapGraph) = pathReferenceReader
-        },
-        gcRootProvider = MatchingGcRootProvider(emptyList())
-      ).createFor(graph)
-      pathFinder.findShortestPathsFromGcRoots(remaining)
-        .pathsToLeakingObjects
-        .forEach { leaf -> found[leaf.objectId] = upperSteps(leaf) }
-      remaining = remaining - found.keys
+  fun pathToOpen(node: Long): List<Long> {
+    if (node == root) {
+      return listOf(root)
     }
-    return found
+    val group = group(node)
+    if (group != null) {
+      // A class group hangs off the half its instances are in; a half hangs off the root, which the path
+      // starts at anyway.
+      val above = if (group.parentNodeId == root) listOf(root) else listOf(root, group.parentNodeId)
+      return above + listOfNotNull(node.takeIf { group.childIds.isNotEmpty() })
+    }
+    if (node !in nodes) {
+      return listOf(root)
+    }
+    val dominators = ArrayDeque<Long>()
+    var current = node
+    while (current != root) {
+      dominators.addFirst(current)
+      current = dominatorTree.immediateDominatorOf(current)
+    }
+    if (children(node).isEmpty()) {
+      dominators.removeLast()
+    }
+    val topLevelObjectId = dominators.firstOrNull() ?: node
+    return listOf(root, halfContaining(topLevelObjectId)) +
+      listOfNotNull(topLevel.classGroupIdByObjectId[topLevelObjectId]) +
+      dominators
   }
 
-  /** One reported path, from its GC root down to the object it was asked for. */
-  private fun upperSteps(leaf: ReferencePathNode): UpperSteps {
-    val pathNodes = ArrayDeque<ReferencePathNode>()
-    var node = leaf
-    while (node is ChildNode) {
-      pathNodes.addFirst(node)
-      node = node.parent
+  private fun halfContaining(objectId: Long): Long =
+    if (strengthOf(objectId) == ReachabilityStrength.UNREACHABLE) {
+      UNREACHABLE_NODE_ID
+    } else {
+      GC_ROOTS_NODE_ID
     }
-    val rootNode = node as RootNode
-    pathNodes.addFirst(rootNode)
-    return UpperSteps(
-      gcRootLabel = gcRootLabel(rootNode.gcRoot),
-      steps = pathNodes.map { pathNode ->
-        step(
-          objectId = pathNode.objectId,
-          referenceName = (pathNode as? ChildNode)?.lazyDetailsResolver?.resolve()?.let { details ->
-            referenceName(details.name, details.locationType)
-          }
-        )
+
+  /**
+   * One found path as the UI shows it: from the step below the dominator down to the object.
+   *
+   * Below a group the first step is the GC rooted object itself, named by the kind of root that reaches
+   * it. Below an object the first step is what the dominator points at, and the dominator is left out
+   * because the panel shows it above the paths.
+   */
+  private fun path(
+    objectIndexes: IntArray,
+    isBelowGroup: Boolean
+  ): IndependentPath {
+    val objectIds = objectIndexes.map { referrerIndex.objectIdAt(it) }
+    val steps = objectIds.mapIndexedNotNull { index, objectId ->
+      when {
+        index > 0 -> stepTo(objectId, referrerId = objectIds[index - 1])
+        // The GC root's own object, which no field of the heap dump points at.
+        isBelowGroup -> step(objectId, referenceName = null)
+        else -> null
       }
+    }
+    return IndependentPath(
+      gcRootLabel = if (isBelowGroup) gcRootLabelOf(objectIds.first()) else null,
+      // Kept from the object up: what holds it directly is what a reader is looking for, and the
+      // plumbing between a GC root and an app's own objects rarely is.
+      steps = steps.takeLast(MAX_PATH_STEPS),
+      hiddenStepCount = (steps.size - MAX_PATH_STEPS).coerceAtLeast(0)
     )
   }
+
+  /** Which kind of GC root reaches [objectId], or that it's garbage nothing points at. */
+  private fun gcRootLabelOf(objectId: Long): String =
+    graph.gcRoots.firstOrNull { it.id == objectId }?.let { gcRootLabel(it) } ?: UNCOLLECTED_LABEL
 
   /** How [referrerId] points at [objectId], which takes reading the referrer's references again. */
   private fun stepTo(
@@ -621,59 +554,8 @@ class HeapDominatorTreemap internal constructor(
     objectId = objectId,
     label = label(objectId),
     referenceName = referenceName,
-    // Filled in once every path is known: a step is only worth pointing out if others go through it.
-    pathCount = 1,
     isInspectable = objectId in nodes
   )
-
-  /** Counts how many paths go through each step, and names the one every path goes through. */
-  private fun withPathCounts(
-    objectId: Long,
-    paths: List<HoldingPath>,
-    hiddenPathCount: Int
-  ): HoldingPaths {
-    val pathCountByObjectId = mutableMapOf<Long, Int>()
-    paths.forEach { path ->
-      path.steps.map { it.objectId }.distinct().forEach { stepId ->
-        pathCountByObjectId[stepId] = (pathCountByObjectId[stepId] ?: 0) + 1
-      }
-    }
-    val counted = paths.map { path ->
-      path.copy(
-        steps = path.steps.map { step ->
-          step.copy(pathCount = pathCountByObjectId.getValue(step.objectId))
-        }
-      )
-    }
-    // The object every path goes through is the object's dominator, and the tree already knows which one
-    // that is. Naming the deepest step the shown paths happen to share instead would be a guess: each
-    // path is only the shortest way to one of the holders, so sharing a step says nothing about the ways
-    // round it that weren't walked. Searched from the object up along the shortest path, which the
-    // dominator is on if it's shown at all, being on all of them.
-    val commonHolder = counted.firstOrNull()
-      ?.steps
-      ?.lastOrNull { it.objectId != objectId && dominates(it.objectId, objectId) }
-    return HoldingPaths(
-      paths = counted,
-      commonHolderObjectId = commonHolder?.objectId,
-      commonHolderLabel = commonHolder?.label,
-      isDominatedByRoot = objectId in rootDominatedIds,
-      isUnreachable = false,
-      hiddenPathCount = hiddenPathCount
-    )
-  }
-
-  /**
-   * Whether [holderId] is what the tree attributes [objectId]'s bytes to, which is to say whether every
-   * path to it goes through [holderId].
-   *
-   * A scan of one node's children rather than a reverse index of the whole tree: this is asked of the
-   * handful of objects on one path, and the tree has a node per reachable object.
-   */
-  private fun dominates(
-    holderId: Long,
-    objectId: Long
-  ): Boolean = nodes[holderId]?.dominatedObjectIds?.contains(objectId) == true
 
   /** An array element reads as `[3]`, so that a path can't be read as a field called `3`. */
   private fun referenceName(
@@ -681,24 +563,76 @@ class HeapDominatorTreemap internal constructor(
     locationType: ReferenceLocationType
   ): String = if (locationType == ReferenceLocationType.ARRAY_ENTRY) "[$name]" else name
 
-  /** One step of a path below the object a path was asked for. See [tailsToWalkUpFrom]. */
-  private class TailStep(
-    val objectId: Long,
-    val referrerId: Long
-  )
+  /**
+   * A search for the paths to one object, which walks the references backwards: from the object towards
+   * whatever holds it, which is the direction a [ReferrerIndex] can answer in.
+   *
+   * Every path it hands out shares no object with the ones before it, because their middles are blocked
+   * before the next walk. Greedy, so blocking can cost a path further on — see [IndependentPaths].
+   *
+   * Objects are object indexes throughout: this walks as much of a heap dump as it takes to find the
+   * paths, which on an object the root dominates is everything above it.
+   */
+  private inner class PathSearch(private val targetIndex: Int) {
+    /** The middles of the paths found so far, which the next walk goes around. */
+    private val blocked = BooleanArray(referrerIndex.objectCount)
 
-  /** Where [tailsToWalkUpFrom] stopped walking up, and what it didn't follow. */
-  private class Tails(
-    val tailByTipId: Map<Long, List<TailStep>>,
-    /** How many holders were left unfollowed because there were more of them than paths to show. */
-    val notFollowedCount: Int
-  )
+    /**
+     * Which objects a path has already reached the target from.
+     *
+     * A source pointing straight at the target makes a path with no middle to block, so without this the
+     * next walk would find that same path again. Only the last step is blocked and not the object itself,
+     * because a source can hold the target several ways: what points straight at it is one of them, and
+     * the chains round through other objects are the others.
+     */
+    private val usedLastStep = BooleanArray(referrerIndex.objectCount)
 
-  /** A path from a GC root down to the object it was asked for. See [shortestPathsTo]. */
-  private class UpperSteps(
-    val gcRootLabel: String,
-    val steps: List<PathStep>
-  )
+    /** Per walk: which object each one was reached from, one step closer to the target. */
+    private val nextTowardsTarget = IntArray(referrerIndex.objectCount)
+    private val queue = IntArray(referrerIndex.objectCount)
+
+    /** The next path from a source down to the target, or null once there are no more to find. */
+    fun findPath(isSource: (Int) -> Boolean): IntArray? {
+      nextTowardsTarget.fill(NOT_REACHED)
+      nextTowardsTarget[targetIndex] = targetIndex
+      queue[0] = targetIndex
+      var head = 0
+      var tail = 1
+      while (head < tail) {
+        val current = queue[head++]
+        if (current != targetIndex && isSource(current)) {
+          return pathFrom(current)
+        }
+        val isLastStep = current == targetIndex
+        referrerIndex.forEachReferrer(current) { referrer ->
+          // Not through the target: a walk that goes round through the object it started at would report
+          // the object as holding itself.
+          val isAvailable = !blocked[referrer] &&
+            !(isLastStep && usedLastStep[referrer]) &&
+            referrer != targetIndex
+          if (nextTowardsTarget[referrer] == NOT_REACHED && isAvailable) {
+            nextTowardsTarget[referrer] = current
+            queue[tail++] = referrer
+          }
+        }
+      }
+      return null
+    }
+
+    /** The path from [sourceIndex] down to the target, blocking it for the next walk. */
+    private fun pathFrom(sourceIndex: Int): IntArray {
+      val path = mutableListOf(sourceIndex)
+      var current = sourceIndex
+      while (current != targetIndex) {
+        current = nextTowardsTarget[current]
+        path += current
+      }
+      // Everything but the two ends, which every path shares by definition, plus the step into the target.
+      path.subList(1, path.size - 1).forEach { blocked[it] = true }
+      usedLastStep[path[path.size - 2]] = true
+      return path.toIntArray()
+    }
+  }
 
   /**
    * What's worth saying about an object before its fields, for the kinds this recognizes. Both cases
@@ -855,6 +789,8 @@ class HeapDominatorTreemap internal constructor(
   /** A cell standing for many objects rather than one. See [groupOrNull]. */
   private class NodeGroup(
     val kind: ObjectGroupKind,
+    /** The node this group hangs off: the root for a half of the tree, a half for a class. */
+    val parentNodeId: Long,
     val strength: ReachabilityStrength,
     /** What [children] answers for it. */
     val childIds: List<Long>,
@@ -868,7 +804,9 @@ class HeapDominatorTreemap internal constructor(
   /** What [children] answers for the root, and every group of this tree by its id. */
   private class TopLevel(
     val ids: List<Long>,
-    val groups: Map<Long, NodeGroup>
+    val groups: Map<Long, NodeGroup>,
+    /** Which class group each grouped child of the root is drawn in. See [pathToOpen]. */
+    val classGroupIdByObjectId: Map<Long, Long>
   )
 
   /**
@@ -976,28 +914,21 @@ class HeapDominatorTreemap internal constructor(
     /** An array can hold millions of elements, and no panel is going to show them. */
     private const val MAX_FIELDS = 500
 
-    /** Same, for the objects holding a widely shared one. */
-    private const val MAX_REFERRERS = 100
-
     /**
-     * How many ways of holding an object [holdingPathsTo] spells out. Six chains is already more than
+     * How many ways of holding an object [independentPathsTo] spells out. Six chains is already more than
      * fits in a panel, and an object held from more places than that is held by a data structure rather
-     than by anything anyone would call an owner.
+     * than by anything anyone would call an owner.
      */
-    private const val MAX_HOLDING_PATHS = 6
-
-    /**
-     * How many times the walk up from an object forks before it stops. Each fork is a pass over the heap
-     * dump, and two is what it takes to get past the wrapper an object is usually held through — a
-     * cache entry, a result object — to the holders that differ from each other.
-     */
-    private const val MAX_HOLDER_LEVELS = 2
+    private const val MAX_INDEPENDENT_PATHS = 6
 
     /** How many steps of one path are shown, counted from the object up. */
     private const val MAX_PATH_STEPS = 15
 
-    /** See [shortestPathsTo]: one walk from the GC roots, plus one for whatever a target hid. */
-    private const val MAX_PATH_FINDING_ROUNDS = 2
+    /** No object index, so it stands for an object one walk of [PathSearch] hasn't reached. */
+    private const val NOT_REACHED = -1
+
+    /** What a path below the uncollected garbage starts at, since no GC root reaches it. */
+    private const val UNCOLLECTED_LABEL = "Uncollected garbage"
 
     /**
      * ART gives every object a `shadow$_klass_` and a `shadow$_monitor_`: the class pointer and the
