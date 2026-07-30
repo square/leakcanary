@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import shark.explorer.CellContent
@@ -49,9 +50,40 @@ internal data class SelectedCell(
     fun of(subject: CellSubject<Long>): SelectedCell = when (subject) {
       is CellSubject.Node -> SelectedCell(subject.node, isGroup = false)
       is CellSubject.Group -> SelectedCell(subject.parent, isGroup = true)
+      // The same selection as the object it's nested in, so that clicking either outlines both.
+      is CellSubject.Own -> SelectedCell(subject.node, isGroup = false)
     }
   }
 }
+
+/**
+ * Names the containers the pointer is inside, outermost first.
+ *
+ * Nesting costs a rectangle one pixel of edge and no label, so this is where the names of the objects
+ * on the way down are read: a chain 30 deep is one line here and 30 header strips otherwise, which is
+ * the whole viewport.
+ */
+@Composable
+internal fun BoxScope.HoveredChain(chain: String?) {
+  if (chain == null) {
+    return
+  }
+  Surface(
+    Modifier.align(Alignment.BottomStart).padding(8.dp),
+    color = MaterialTheme.colorScheme.surfaceVariant
+  ) {
+    Text(
+      chain,
+      Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+      style = MaterialTheme.typography.labelSmall,
+      maxLines = 2,
+      overflow = TextOverflow.Ellipsis
+    )
+  }
+}
+
+/** How the [HoveredChain] separates one container from the one it holds. */
+internal const val CHAIN_SEPARATOR = " › "
 
 /** Says when a view is showing less detail than it had room for, rather than truncating silently. */
 @Composable
@@ -97,10 +129,17 @@ internal fun outlineOf(content: CellContent): Stroke = when {
  * The layout thresholds in dp. The layouts work in pixels, so they have to be scaled or a cell that's
  * big enough to subdivide on one display is too small on another.
  */
-internal val MIN_SUBDIVIDE_WIDTH = 40.dp
-internal val MIN_SUBDIVIDE_HEIGHT = 24.dp
+internal val MIN_SUBDIVIDE_WIDTH = 12.dp
+internal val MIN_SUBDIVIDE_HEIGHT = 12.dp
 internal val MIN_DRAW_SIZE = 3.dp
-internal val HEADER_HEIGHT = 18.dp
+
+/**
+ * How much of a container's outline counts as the container rather than as what's inside it.
+ *
+ * A subdivided rectangle is covered by its own contents, so its border is the only part of it left to
+ * click, and a 1 px line is not something a pointer can be expected to hit.
+ */
+internal val EDGE_GRAB = 4.dp
 internal val MIN_SUBDIVIDE_ARC_LENGTH = 40.dp
 internal val MIN_DRAW_ARC_LENGTH = 3.dp
 

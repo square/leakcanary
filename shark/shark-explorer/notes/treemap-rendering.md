@@ -32,7 +32,7 @@ absurdly fine for the long tail.
 The model instead: lay out one level, then recurse into a child's rectangle only if it's big enough
 to be worth subdividing, and stop when a rectangle would be too small to see.
 
-- Subdivide only above roughly **40×24 dp** — enough for a header strip plus one visible child.
+- Subdivide only above roughly **12×12 dp**.
 - Don't draw below roughly **3×3 dp**; it's invisible and it costs draw calls.
 - Cap the total rectangle count (order of **5000**) and spend that budget largest-rectangle-first, so
   detail lands where there's space for it.
@@ -42,6 +42,40 @@ Passing them straight through would make every rectangle half its intended size 
 
 Depth then varies across the treemap, which is the point. It's also deterministic, so the budget and
 recursion are directly unit-testable.
+
+### A level costs no area, because a label strip is the whole viewport
+
+The first version reserved an **18 dp header** at the top of every subdivided rectangle for its label,
+and `minSubdivideHeight` was 24 dp because a level had to fit a header plus one visible child. On a real
+app that hides everything worth seeing: the chain from the activity down to a list row in the 82 MB
+production dump is **38 levels**, and 38 × 18 dp is 684 dp of a 630 dp viewport. The window filled up
+with full-width label bands and the bitmaps at the bottom of the chain never got drawn at all. Drilling
+in only bought back 18 dp per level skipped, so it took several goes and still ran out.
+
+So a subdivided node's children now cover it **exactly**, and nesting is drawn afterwards instead of
+being given room: `TreemapView` draws every fill first and every outline second, so a level reads as a
+1 px line over its contents rather than as a strip beside them. Where a chain of single children shares
+an edge the outlines stack up into a heavier line, which is the view saying there's more here than one
+rectangle. Measured on that dump, same viewport: the three biggest bitmaps come out at **depth 38, 122×76
+px, 1.3% of the view each**, 2,032 cells, nothing truncated, 0.5 s to lay out and 0.15 s to label.
+
+Two things follow, and both are behaviour rather than polish:
+
+- **A node's own weight gets a cell.** `squarify()` normalizes, so children fill whatever they're given:
+  without a `CellSubject.Own` cell of `weight − Σ children`, they'd be scaled up to fill their parent and
+  area would only be proportional to weight *among siblings*. With it, a rectangle is its share of the
+  whole heap at every depth, which is what makes a big object findable without knowing where to look.
+  (On the production dump only 4 own cells survive the 3×3 dp floor — an object's own bytes are usually a
+  rounding error next to what it retains. The ones that don't survive are exactly the ones you don't need
+  to see, and the one that does is a bitmap.)
+- **A container is pressed by its outline.** Its children cover every pixel of it, so `cellAt` takes an
+  `edgeGrab` — 4 dp — within which a subdivided cell wins over whatever shares that edge. Without it
+  there is no way to point at a container at all. Pointing at a *gap* in a subdivision, area left by
+  children too small to draw, still lands on the node holding it.
+
+And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so only cells
+with nothing drawn inside them are labelled, and naming the levels is the view's job — `TreemapView`
+shows the chain of containers under the pointer as one line at the bottom of the view.
 
 ### The children that don't fit become one rectangle, they aren't dropped
 
@@ -55,23 +89,23 @@ nothing is zoomable, which reads as "everything is dominated by the root" rather
 
 So a subdivision draws the children it can — largest first, up to `maxChildrenPerNode`, the area floor
 and the remaining budget — and the rest become a single `CellSubject.Group`, weighing what they weigh
-together. The area a parent hands out is then always the full share of its children, so space a node
-keeps to itself means "this object's own bytes" and never "children I gave up on". A `Group` is a
+together, so that a child is never silently dropped from the area its parent hands out. A `Group` is a
 rectangle, not a tree node: it can't be subdivided or zoomed into, and clicking it says how many
 objects it stands for. Same dump, same viewport, after the change: 1,190 cells, 28 groups, 7 levels
 deep, nothing truncated.
 
 A radial layout has one more bound: **rings**. Eight around the centre disk, the width of each derived
 from the viewport, so the picture always fills the circle and depth past that needs a zoom. Sectors
-take their parent's whole sweep divided by weight, so the analogue of a treemap's header strip — the
-space a node keeps for itself — is the node's own ring band.
+take their parent's whole sweep divided by weight, and a ring band is where a node's own name fits, so
+the radial view has not needed the treemap's own-weight cell.
 
 Two consequences worth knowing before writing a test against the layout:
 
-- **`squarify()` needs descending weights, and a group is not in weight order.** It stands for many
-  children, so it usually outweighs the smallest ones drawn individually. `TreemapLayout` inserts it
-  at the position its combined weight belongs at, which is why the cell weights are rebuilt rather
-  than taken straight from the children.
+- **`squarify()` needs descending weights, and neither of the two synthetic cells is in weight order.**
+  A group stands for many children so it usually outweighs the smallest ones drawn individually, and a
+  node's own weight lands anywhere. `TreemapLayout` builds the cells and sorts them by weight, which is
+  why they aren't taken straight from the children — and it's a stable sort, so layout stays
+  deterministic.
 - A node whose share of the area makes it thinner than the minimum drawable size disappears rather
   than becoming a sliver — including a group, when the tail it stands for is small enough. Past
   roughly a 50:1 weight ratio between siblings, the smaller one isn't drawn at all.
@@ -139,6 +173,12 @@ can be megabytes of uncollected garbage and one flat colour over all of it would
 Cells are drawn into a single `Canvas`, so Compose has no per-cell node to hit test or to expose to
 tests. Hit testing is therefore explicit: keep the laid out cells and resolve a click against their
 geometry — deepest rectangle containing the point for a treemap, ring and angle for the radial view.
+
+**Except that the deepest rectangle is not always the answer.** A subdivided rectangle is covered by its
+own children, so `cellAt` takes an `edgeGrab`: within that distance of an edge, a container wins over
+whatever shares it, which is the line the view draws there. A gap in a subdivision still belongs to the
+node being subdivided. This is what a UI test presses to reach a container — `pressContainerEdge` — since
+the label bands it used to press are gone.
 
 The chain of dominators down to a cell comes from `nodePathTo`, which walks the `parent` on each
 `CellSubject.Node` up to the root. A press selects the cell under the pointer; a double click zooms in

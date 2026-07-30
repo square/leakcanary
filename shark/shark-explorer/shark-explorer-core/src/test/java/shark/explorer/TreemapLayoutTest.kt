@@ -1,6 +1,8 @@
 package shark.explorer
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.data.Offset.offset
+import org.assertj.core.data.Percentage.withPercentage
 import org.junit.Test
 
 class TreemapLayoutTest {
@@ -278,15 +280,59 @@ class TreemapLayoutTest {
     assertThat(result.cellAt(insideDeepest)).isEqualTo(deepest)
   }
 
-  @Test fun `hit testing a header returns the parent`() {
+  @Test fun `hit testing near the edge of a container returns the container`() {
     val tree = NodeTree(Node("root", children = listOf(Node("a", 10), Node("b", 5))))
-    val headerHeight = 18.0
 
-    val result = TreemapLayout<Node>(headerHeight = headerHeight).layout(tree, viewport)
+    val result = TreemapLayout<Node>().layout(tree, viewport)
 
-    // The top strip of the root is reserved for its label, so no child covers it.
-    val inHeader = TreemapPoint(viewport.width / 2, headerHeight / 2)
-    assertThat(result.cellAt(inHeader)!!.node.name).isEqualTo("root")
+    // Children cover every pixel of the root, so its outline is the only part of it left to point at.
+    val onTheEdge = TreemapPoint(viewport.width / 2, 2.0)
+    assertThat(result.cellAt(onTheEdge, edgeGrab = 4.0)!!.node.name).isEqualTo("root")
+    assertThat(result.cellAt(onTheEdge)!!.node.name).isNotEqualTo("root")
+  }
+
+  @Test fun `hit testing a gap in a subdivision returns the node holding it`() {
+    // One child worth drawing and 20 000 that aren't, grouped into a cell of their own — and the group
+    // is dotted around, so parts of the root come out covered by nothing.
+    val children = listOf(Node("big", ownWeight = 80_000), Node("own", ownWeight = 0)) +
+      List(20_000) { index -> Node("tiny$index", ownWeight = 1) }
+    val tree = NodeTree(Node("root", ownWeight = 20_000, children = children))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    // Every point of the viewport answers something: a gap belongs to whatever was being subdivided.
+    val points = (0..9).flatMap { x ->
+      (0..9).map { y -> TreemapPoint(x * viewport.width / 10 + 1, y * viewport.height / 10 + 1) }
+    }
+    assertThat(points.map { result.cellAt(it) }).doesNotContainNull()
+  }
+
+  @Test fun `a node's own weight gets a rectangle inside it`() {
+    // Half its weight is its own, so half of it is a cell that isn't one of its children.
+    val tree = NodeTree(Node("root", ownWeight = 100, children = listOf(Node("child", 100))))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    val own = result.cells.single { it.subject is CellSubject.Own }
+    assertThat((own.subject as CellSubject.Own).node.name).isEqualTo("root")
+    assertThat(own.weight).isEqualTo(100)
+    assertThat(own.rect.area / viewport.area).isCloseTo(0.5, withPercentage(1.0))
+  }
+
+  @Test fun `a rectangle is its share of the whole however deep it sits`() {
+    // A chain 30 levels deep holding a tenth of the weight, which is the shape of an Android view
+    // hierarchy: what used to happen is that 30 header strips ate the viewport before reaching it.
+    var deep = Node("deep.30", ownWeight = 100_000)
+    for (level in 29 downTo 0) {
+      deep = Node("deep.$level", children = listOf(deep))
+    }
+    val tree = NodeTree(Node("root", children = listOf(Node("wide", 900_000), deep)))
+
+    val result = TreemapLayout<Node>().layout(tree, viewport)
+
+    val leaf = result.nodeCells.single { it.node.name == "deep.30" }
+    assertThat(leaf.depth).isEqualTo(31)
+    assertThat(leaf.rect.area / viewport.area).isCloseTo(0.1, withPercentage(1.0))
   }
 
   @Test fun `laying out a subtree gives it the whole viewport`() {
@@ -368,24 +414,16 @@ class TreemapLayoutTest {
     val group = result.groups.single()
     assertThat(group.nodeCount).isEqualTo(20_000)
     assertThat(group.weight).isEqualTo(20_000L)
-    assertThat(group.rect.area / viewport.inset(top = 18.0).area).isCloseTo(
-      0.2,
-      org.assertj.core.data.Percentage.withPercentage(1.0)
-    )
+    assertThat(group.rect.area / viewport.area).isCloseTo(0.2, withPercentage(1.0))
   }
 
   @Test fun `a group and its siblings cover the whole area of a subdivided node`() {
     val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
     val tree = NodeTree(Node("root", children = children))
-    val headerHeight = 18.0
 
-    val result = TreemapLayout<Node>(maxChildrenPerNode = 10, headerHeight = headerHeight)
-      .layout(tree, viewport)
+    val result = TreemapLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
 
     val covered = result.cells.drop(1).sumOf { it.rect.area }
-    assertThat(covered).isCloseTo(
-      viewport.inset(top = headerHeight).area,
-      org.assertj.core.data.Offset.offset(1.0)
-    )
+    assertThat(covered).isCloseTo(viewport.area, offset(1.0))
   }
 }

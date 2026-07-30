@@ -508,8 +508,7 @@ private fun rememberTreemapLayout(): TreemapLayout<Long> {
       TreemapLayout(
         minSubdivideWidth = MIN_SUBDIVIDE_WIDTH.toPx().toDouble(),
         minSubdivideHeight = MIN_SUBDIVIDE_HEIGHT.toPx().toDouble(),
-        minDrawSize = MIN_DRAW_SIZE.toPx().toDouble(),
-        headerHeight = HEADER_HEIGHT.toPx().toDouble()
+        minDrawSize = MIN_DRAW_SIZE.toPx().toDouble()
       )
     }
   }
@@ -594,6 +593,8 @@ private sealed interface SelectionRequest {
     fun of(cell: LayoutCell<Long>): SelectionRequest = when (val subject = cell.subject) {
       is CellSubject.Node -> Object(subject.node)
       is CellSubject.Group -> Group(subject.parent, subject.nodeCount, cell.weight)
+      // Clicking an object's own bytes is clicking that object.
+      is CellSubject.Own -> Object(subject.node)
     }
   }
 }

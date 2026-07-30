@@ -334,7 +334,7 @@ class ExplorerAppTest {
       // a view can draw one by one, which is what gathers them by class.
       openHeapDump(crowdedRootHeapDump())
 
-      pressBand(level = 2)
+      pressContainerEdge(yFraction = 0.5f)
 
       waitUntilAtLeastOneExists(hasText("of one class", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(SIBLING_CLASS_NAME).assertIsDisplayed()
@@ -348,7 +348,7 @@ class ExplorerAppTest {
     runComposeUiTest {
       openHeapDump(crowdedRootHeapDump())
 
-      pressBand(level = 2, isDoubleClick = true)
+      pressContainerEdge(yFraction = 0.5f, isDoubleClick = true)
 
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 3 }
       onNodeWithText(
@@ -376,7 +376,7 @@ class ExplorerAppTest {
       // reachable half the small one.
       openHeapDump(uncollectedGarbageHeapDump())
 
-      pressBand(level = 1)
+      pressContainerEdge(yFraction = 0.5f)
 
       waitUntilAtLeastOneExists(
         hasText(HeapDominatorTreemap.UNREACHABLE_LABEL),
@@ -672,23 +672,23 @@ class ExplorerAppTest {
   )
 
   /**
-   * Presses the label band of the [level]th rectangle down the left edge of the treemap, where a
-   * squarified layout puts the largest rectangle of each level: the tree's own root is level 0, the half
-   * of the heap dump that weighs most is level 1, and the largest rectangle inside that one is level 2.
+   * Presses the outline of the innermost container down the left edge of the treemap, [yFraction] of
+   * the way down it.
    *
-   * Bands are only [HEADER_HEIGHT] tall and the controls above the treemap are as tall as the rows the
-   * legend wrapped into, so where the treemap starts is measured rather than guessed.
+   * A rectangle's children cover every pixel of it, so its outline is the only part of a container
+   * there is to press — see `TreemapLayout.cellAt`. Which container that is follows from the heap dump:
+   * a squarified layout puts the largest rectangle of every level against the left edge, so pressing
+   * there reaches the innermost of the nested containers that all but fill the view.
    */
-  private fun ComposeUiTest.pressBand(
-    level: Int,
+  private fun ComposeUiTest.pressContainerEdge(
+    yFraction: Float,
     isDoubleClick: Boolean = false
   ) {
     val view = viewBounds()
-    val bandHeight = HEADER_HEIGHT.value
     press(
       Offset(
-        x = view.left + view.width * BAND_X,
-        y = view.top + level * bandHeight + bandHeight / 2
+        x = view.left + EDGE_PRESS_INSET,
+        y = view.top + view.height * yFraction
       ),
       isDoubleClick
     )
@@ -881,8 +881,8 @@ class ExplorerAppTest {
     private const val TREEMAP_X = 0.4f
     private const val TREEMAP_Y = 0.6f
 
-    /** Down the left edge of the view, where a squarified layout puts the largest rectangle. */
-    private const val BAND_X = 0.05f
+    /** How far inside the left edge of the view a container's outline is pressed. Within EDGE_GRAB. */
+    private const val EDGE_PRESS_INSET = 2f
 
     /**
      * Well inside the largest rectangle of the second level rather than in its label band, which is what

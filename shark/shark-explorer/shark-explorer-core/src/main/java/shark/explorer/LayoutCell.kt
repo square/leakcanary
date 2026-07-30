@@ -38,15 +38,24 @@ sealed interface CellSubject<out N> {
   /**
    * The [nodeCount] children of [parent] that were left out of its subdivision, as one cell.
    *
-   * Keeps the children of a subdivided node covering their whole share of its area, so that space a
-   * node doesn't hand out to a child always means "this object's own bytes" rather than "children too
-   * small or too many to draw". A group is not a tree node, so it can't be subdivided — [parent] is
-   * there to say what it belongs to, and to tell one group from another.
+   * A group is not a tree node, so it can't be subdivided — [parent] is there to say what it belongs
+   * to, and to tell one group from another.
    */
   data class Group<out N>(
     val parent: N,
     val nodeCount: Int
   ) : CellSubject<N>
+
+  /**
+   * What [node] weighs on its own, as a cell nested inside it: its shallow size, for a dominator
+   * tree.
+   *
+   * Without it a subdivided node's children would be scaled up to fill it, and area would only be
+   * proportional to weight among siblings. With it, every rectangle of the view is its share of the
+   * whole however deep it sits — and an object whose bytes are mostly its own, a bitmap being the one
+   * that matters, is a solid block rather than an outline around its children.
+   */
+  data class Own<out N>(val node: N) : CellSubject<N>
 }
 
 /**
@@ -64,6 +73,8 @@ fun <N> List<CellSubject<N>>.nodePathTo(subject: CellSubject<N>): List<N> {
   var next: N? = when (subject) {
     is CellSubject.Node -> subject.node
     is CellSubject.Group -> subject.parent
+    // The cell for a node's own weight belongs to that node, so zooming into it zooms into the node.
+    is CellSubject.Own -> subject.node
   }
   // The root is the one node laid out without a parent, so the walk up ends there.
   while (next != null) {

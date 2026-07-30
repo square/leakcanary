@@ -19,6 +19,18 @@ data class TreemapRect(
   operator fun contains(point: TreemapPoint): Boolean =
     point.x >= left && point.x < right && point.y >= top && point.y < bottom
 
+  /**
+   * Whether [point] is inside this rectangle and closer than [distance] to one of its edges. Never for
+   * a distance of zero, so that a caller can ask for no tolerance at all.
+   */
+  fun isWithin(
+    distance: Double,
+    point: TreemapPoint
+  ): Boolean = point in this && (
+    point.x - left < distance || right - point.x < distance ||
+      point.y - top < distance || bottom - point.y < distance
+    )
+
   /** Shrinks this rectangle by [top], [left], [right] and [bottom], never past its own center. */
   fun inset(
     left: Double = 0.0,

@@ -112,6 +112,7 @@ class CellColorsTest {
     label = "node",
     content = when (val subject = cell.subject) {
       is CellSubject.Group -> CellContent.Leftover(strength)
+      is CellSubject.Own -> CellContent.Object(strength)
       is CellSubject.Node -> if (subject.node == CLASS_GROUP_NODE) {
         CellContent.ObjectGroup(ObjectGroupKind.CLASS, strength, objectCount = 3)
       } else {

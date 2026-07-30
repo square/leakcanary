@@ -102,8 +102,15 @@ internal class CellColors private constructor(
     }
   }
 
-  private fun hueIndexOf(presented: PresentedCell<*>): Int =
-    (presented.cell.subject as? CellSubject.Node)?.let { hueIndexByObjectId[it.node] } ?: 0
+  private fun hueIndexOf(presented: PresentedCell<*>): Int {
+    val objectId = when (val subject = presented.cell.subject) {
+      is CellSubject.Node -> subject.node
+      // Inherits its object's hue: it is that object, so a different one would read as a child.
+      is CellSubject.Own -> subject.node
+      is CellSubject.Group -> null
+    }
+    return objectId?.let { hueIndexByObjectId[it] } ?: 0
+  }
 
   private fun objectColor(
     strength: ReachabilityStrength,

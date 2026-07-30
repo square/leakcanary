@@ -143,6 +143,11 @@ class RadialViewTest {
             "${subject.nodeCount} smaller objects",
             CellContent.Leftover(STRONG)
           )
+          is CellSubject.Own -> PresentedCell(
+            cell,
+            "node ${subject.node}",
+            CellContent.Object(STRONG)
+          )
         }
       }
     )

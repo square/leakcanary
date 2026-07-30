@@ -882,6 +882,13 @@ class HeapDominatorTreemap internal constructor(
       label = "${subject.nodeCount} smaller objects",
       content = CellContent.Leftover(strengthOf(subject.parent))
     )
+    // An object's own bytes are that object, so this reads as the object and is where its name shows:
+    // a subdivided rectangle has no room of its own to put a label in.
+    is CellSubject.Own -> PresentedCell(
+      cell = this,
+      label = label(subject.node),
+      content = CellContent.Object(strengthOf(subject.node))
+    )
   }
 
   /** The fields of one object: what's shown, and how many there are in total. */
