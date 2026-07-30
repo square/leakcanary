@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!--
+    Shark Explorer: a shark in LeakCanary's yellow (#FFCC32) and amber (#F5BD14), on a ground the
+    colour of the app's slate scheme and nothing else. It fills the icon on purpose, so that it
+    still reads as a shark at the size a dock shows.
+
+    The macOS app icon grid is baked in, because jpackage ships this as an .icns and nothing masks
+    or insets it for us: an 824x824 body centred in a 1024x1024 canvas, corners of extent 207 whose
+    handles put the curve's 45 degree point on a superellipse rather than a circular arc, and a soft
+    shadow below. Those numbers are fitted to a stock macOS icon's silhouette, within 1.5px RMS.
+
+    The shark's transform is what makes it as large as the icon allows: it is scaled and centred so
+    that the tips of the snout, the fins and the tail clear the body's edge by 34, measured against
+    those superelliptical corners rather than against a bounding box, which is why the fin can come
+    as close to the top as it does.
+
+    Edit this, then run ./render-icons.sh to regenerate the .icns, the .ico and the runtime PNG.
+  -->
+  <defs>
+    <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <path d="M 307 100 H 717 C 852.5 100 924 171.5 924 307 V 717 C 924 852.5 852.5 924 717 924 H 307 C 171.5 924 100 852.5 100 717 V 307 C 100 171.5 171.5 100 307 100 Z" fill="#1B2428" filter="url(#shadow)"/>
+  <g id="shark" transform="translate(101.1 536.5) scale(0.7888)">
+    <path d="M 628 78 C 596 158 536 224 462 268 C 494 202 512 142 518 98 Z" fill="#F5BD14"/> <!-- pectoral fin -->
+    <path d="M 190 -44 C 146 -122 96 -218 44 -306 C 34 -226 56 -122 116 -20 C 108 30 92 76 62 122 C 114 84 164 48 196 26 Z" fill="#FFCC32"/> <!-- tail -->
+    <path d="M 1000 6 C 1002 -26 984 -54 940 -74 C 872 -104 780 -122 682 -128 L 556 -330 C 542 -240 512 -168 462 -118 C 372 -108 268 -86 190 -46 L 190 28 C 286 74 402 104 520 114 C 636 122 744 110 830 82 C 900 60 966 34 1000 6 Z" fill="#FFCC32"/> <!-- body -->
+    <path d="M 190 28 C 286 74 402 104 520 114 C 636 122 744 110 830 82 C 900 60 966 34 1000 6 C 940 26 856 44 790 50 C 640 62 400 46 190 28 Z" fill="#F5BD14"/> <!-- underside -->
+    <path d="M 706 -100 C 694 -66 692 -30 700 4" fill="none" stroke="#F5BD14" stroke-width="17" stroke-linecap="round"/>
+    <path d="M 748 -94 C 736 -62 734 -28 742 2" fill="none" stroke="#F5BD14" stroke-width="17" stroke-linecap="round"/>
+    <path d="M 790 -84 C 778 -54 776 -24 784 0" fill="none" stroke="#F5BD14" stroke-width="17" stroke-linecap="round"/>
+    <!-- A shark's eye is small, and an oval tilted with the head rather than a dot. -->
+    <ellipse cx="886" cy="-52" rx="19" ry="15" transform="rotate(-12 886 -52)" fill="#151C1F"/>
+    <!-- The closed mouth: pointed at both ends and widest a third of the way along, which is what
+         reads as a jaw. An even width reads as a scar, and teeth notched into something this thin
+         can't be equally sized, so they read as a saw. -->
+    <path d="M 798 46 C 814 34 836 24 858 20 C 890 17 934 11 974 4 C 946 22 916 36 886 46 C 862 55 834 55 798 46 Z" fill="#151C1F"/>
+  </g>
+</svg>

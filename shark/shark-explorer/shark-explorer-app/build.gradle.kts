@@ -47,6 +47,23 @@ compose.desktop {
       targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
       packageName = "Shark Explorer"
       packageVersion = "1.0.0"
+
+      // Each platform takes a different container, all three rendered from the one SVG by
+      // icons/render-icons.sh.
+      //
+      // The macOS one also fixes the dock icon of a plain `run`, which is how this app is usually
+      // launched: the Compose plugin turns this file into `-Xdock:icon` on the run task, and without
+      // it the process shows the default Java icon.
+      macOS {
+        iconFile.set(project.file("icons/shark-explorer-icon.icns"))
+      }
+      windows {
+        iconFile.set(project.file("icons/shark-explorer-icon.ico"))
+      }
+      // A .deb takes a PNG, so it reuses the one the window already loads off the classpath.
+      linux {
+        iconFile.set(project.file("src/main/resources/shark-explorer-icon.png"))
+      }
     }
   }
 }

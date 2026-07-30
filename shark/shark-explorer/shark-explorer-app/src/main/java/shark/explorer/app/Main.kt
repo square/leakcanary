@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -56,6 +57,9 @@ private fun explorerApplication(args: Array<String>) = application {
   Window(
     onCloseRequest = ::exitApplication,
     title = "Shark Explorer",
+    // What Windows and Linux show in the title bar and the window list. macOS takes the dock icon
+    // from the process instead, which the build script sets.
+    icon = painterResource(APP_ICON),
     state = rememberWindowState(width = 1440.dp, height = 900.dp)
   ) {
     MaterialTheme {
@@ -208,6 +212,9 @@ private fun showHeapDumpFileDialog(): File? {
   val fileName = dialog.file
   return if (directory == null || fileName == null) null else File(directory, fileName)
 }
+
+/** Rendered from `icons/shark-explorer-icon.svg`, and the same PNG a Linux package is built with. */
+private const val APP_ICON = "shark-explorer-icon.png"
 
 internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
