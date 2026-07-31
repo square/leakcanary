@@ -7,7 +7,7 @@ what happens; this page is about why it happens that way.
 ## One object, not a number
 
 Memory leaks announce themselves through symptoms that can't be traced back to a cause. Accumulated
-leaks make the garbage collector run more often, which surfaces as jank and
+leaks increase memory pressure, make the garbage collector run more often, which surfaces as jank and
 `Application Not Responding` freezes, and eventually as an `OutOfMemoryError` thrown from wherever
 the app happened to be — so every OOM has a different stack trace, and a thousand of them look like
 a thousand unrelated crashes instead of one bug. Aggregate memory measurements have the same
@@ -39,8 +39,7 @@ of surfacing the same objects over and over for the rest of a process's life.
 
 An object that is still reachable a moment after its lifecycle ends is not evidence of anything.
 LeakCanary therefore never concludes on first look: it holds a weak reference to the watched object,
-and then puts three things between the end of a lifecycle and a verdict, each there for a different
-reason.
+and puts two waits between the end of a lifecycle and a verdict, each there for a different reason.
 
 First it waits for the main thread to go idle, so that the check can't run before the app has
 finished letting go of the object. Without that, a slow enough device reports a leak that is really
@@ -50,14 +49,10 @@ Then it waits five seconds — and that number is not about the garbage collecto
 assumption and the one to resist. Android holds objects temporarily through messages posted to the
 main thread with a delay: a blinking cursor, a fling settling, an animation finishing. Those
 references clear themselves once the message runs, and five seconds is the window judged long enough
-for that backlog to drain. Tuning the number down because "a collection should have happened by now"
-is arguing with the wrong mechanism.
+for that backlog to drain.
 
-Only then does LeakCanary run garbage collection itself, rather than waiting any longer for one to
-happen. An object still strongly reachable after all three is **retained**, and only then is the heap
-worth looking at. The five seconds are inherited from a constant that was named after the garbage
-collector before anyone worked out what the wait was really for; the
-[history page](history.md#becoming-a-library) has that story.
+An object that is still held after both waits is **retained**, and only then is the heap worth
+looking at.
 
 What LeakCanary waits for is weak reachability, not collection. A weak reference is enqueued as soon
 as its target becomes weakly reachable, before finalization or collection has actually happened,
@@ -131,24 +126,21 @@ decides how much work it is to find the bad reference in it.
 Start from what a leak usually is: **a single bad reference**. If that is what holds the object, then
 *every* path from the roots to that object goes through it. Every candidate path contains the answer.
 
-!!! note "More than one bad reference"
-    It happens, and it doesn't change the recipe: find one, fix it, run leak detection again.
-
 That is what makes the choice free. Since correctness doesn't separate the paths, what's left to
 optimize is how much work it is to read one. A shorter path holds fewer references, and fewer
 references means fewer things to rule out before you reach the one that matters. So LeakCanary
 reports the shortest path.
 
 **But shortness was never the goal.** The shortest path is a *proxy* for the path that is easiest to
-understand, and the proxy comes apart in places. The clearest case is a reference held by a local
+understand, and that proxy comes apart in places. The clearest case is a reference held by a local
 variable on a running thread: those often yield the shortest path in the heap, and they are among the
 hardest to act on. You are told that a thread's stack is holding your object, and Android heap dumps
 carry no stack trace data, so LeakCanary can't even tell you which method. Given a short path through
 a thread's stack and a longer one through ordinary fields, the longer one is the one that teaches you
 something.
 
-So where the proxy and the goal disagree, the goal wins: some references are explored only after
-every other reference has been. Any path that avoids them is found first and reported, and a path
+So where the proxy (shortest path) and the goal (easiest to understand) disagree, the goal wins: some
+references are explored only after every other reference has been. Any path that avoids them is found first and reported, and a path
 through them is used only when there is no other. Two kinds of reference are treated that way:
 
 * References that are hard for a developer to interpret, local variables on a thread being the main
@@ -166,8 +158,9 @@ grounds, since the main thread's stack is ever changing and unlikely to hold any
 path through it is a hint that a longer path with the real leak on it exists.
 
 !!! note "A weak reference doesn't guarantee its target can be collected"
-    Reading a weak reference hands back an ordinary strong reference, and some collectors then treat
-    that object as strongly reachable for the rest of the collection cycle. An object whose weak
+    Reading a weak reference hands back an ordinary strong reference, stored into a local variable on
+    the stack, and some collectors then treat that object as strongly reachable for the rest of the
+    collection cycle. An object whose weak
     reference is read on a loop — animations do this to their target once per frame — therefore
     survives every cycle that overlaps a read, and can sit in memory for as long as the loop runs,
     even though nothing but weak references point at it. Where that is known to happen, LeakCanary
@@ -186,6 +179,12 @@ One consequence is worth stating: because leaks are grouped by the references th
 selection has to be deterministic. Two analyses of the same bug that picked different paths would
 report it as two separate leaks, so the choice is pinned down all the way to visiting the garbage
 collection roots in a fixed order.
+
+!!! note "More than one bad reference"
+    This section has assumed that a leak is a single bad reference. In practice there are sometimes
+    two separate bugs — two bad references, both preventing the object from being garbage collected.
+    LeakCanary still presents a single leak trace, to keep things simple. Find that leak, fix it, run
+    leak detection again, and the second one surfaces.
 
 ## References are shown the way you would write them
 
@@ -215,7 +214,26 @@ choice, and not the obvious one. Ask a heap analyzer the same question and it an
 round: a path to garbage collection roots starts at the object you asked about and walks back. So
 does a stack trace, where the root of the call stack is at the bottom. The notes for LeakCanary 2's
 redesign argued for that convention on exactly those grounds, and it was
-[prototyped and rejected](history.md#leakcanary-2).
+[prototyped and rejected](history.md#leakcanary-2). Here is one of those prototypes, reading upwards
+from the leaking activity to the garbage collection root:
+
+```
+MainActivity¹ is leaking, see ╭?─╮ for the potential causes:
+╭→ MainActivity¹
+│    MainActivity leaking: Activity#mDestroyed is true
+├─ Button.mContext
+┊    Button leaking: View#mAttachInfo is null
+┊                    ╭?───╮
+├─ HttpRequestHelper.button
+┊               ╭?──────────────╮
+├─ MainActivity².httpRequestHelper
+│    MainActivity not leaking: Activity#mDestroyed is not true
+├─ LinearLayout¹.mContext
+│    LinearLayout not leaking: View#mAttachInfo is not null
+├─ Toast$TN.mNextView
+│    Toast$TN not leaking: LinearLayout¹ is not leaking
+┴
+```
 
 What settled it is the thing the rest of this page keeps coming back to: the bug is a reference, not
 an object. Read from the roots down and you are reading in the direction the references point, so
@@ -224,15 +242,29 @@ gone. Read the other way and you are asking "and what holds this?" repeatedly, w
 arrive at the object and a bad way to notice the reference that shouldn't exist. The same redesign
 gave each reference a line of its own under the object that holds it, for the same reason: version 1
 put the object and the reference it followed on one line, and what readers looked at was the class
-names.
+names. That is the same leak as the prototype above, as version 1 rendered it:
 
-The second decision is what *not* to put on those lines. The detailed view of a version 1 trace
-listed every field of every object in it, which is complete and unreadable — the two or three fields
-that explain something are buried in a hundred that don't. So a trace shows the reference that was
-followed, and anything beyond that has to be put there on purpose, as a **label**: a short string an
-inspector attaches to an object because it says something useful about that object's state. The
-resource id name of a view, whether a service has been created, the fact that an object is a `Binder`
-stub — each of those is on a trace because someone made the case that it earns its line.
+```
+* com.example.leakcanary.MainActivity has leaked:
+* Toast$TN.mNextView
+* ↳ LinearLayout.mContext
+* ↳ MainActivity.!(httpRequestHelper)!
+* ↳ HttpRequestHelper.!(button)!
+* ↳ Button.mContext
+* ↳ MainActivity
+```
+
+The second decision is what *not* to put on those lines. A version 1 trace could be expanded into a
+detailed view that listed every field of every object in it. That existed for a good reason: it was
+the only way to find out anything about the state of the objects in the trace and reason about which
+reference was the bad one. But it is complete and unreadable — the two or three fields that explain
+something are buried in a hundred that don't — and it stopped being necessary once that reasoning
+could be encoded instead, as an inspector that reads an object and reports a status. So a trace shows
+the reference that was followed, and anything beyond that has to be put there on purpose, as a
+**label**: a short string an inspector attaches to an object because it says something useful about
+that object's state. The resource id name of a view, whether a service has been created, the fact
+that an object is a `Binder` stub — each of those is on a trace because someone made the case that it
+earns its line.
 
 That is a different thing from hiding. The path itself is never abridged: every reference from the
 root to the retained object is there to read. What's curated is the commentary around them, on the
@@ -330,4 +362,5 @@ adding a dependency to it, in a plain JVM application, and — experimentally �
 production. A leak found in one of those contexts is described in exactly the same terms as in
 another.
 
-What's next? Customize LeakCanary to your needs with [code recipes](recipes.md)!
+What's next? Customize LeakCanary to your needs with [code recipes](recipes.md), or read about
+LeakCanary's [history](history.md).
