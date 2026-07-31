@@ -70,6 +70,20 @@ class ExplorerBitmapsTest {
     }
   }
 
+  @Test fun `a device too old to dump its bitmaps says they come off it with a debugger`() {
+    runComposeUiTest {
+      openHeapDump(bitmapHeapDump(hasPixels = false), adb = OLD_DEVICE_ADB)
+      val fetchLabel = "$FETCH_BITMAPS ${bitmapCountText(1)}"
+      waitUntilAtLeastOneExists(hasText(fetchLabel), OPEN_TIMEOUT_MILLIS)
+
+      screenButton(fetchLabel).performClick()
+
+      // Worth saying before the button is pressed rather than after: a device that can't put bitmaps in a
+      // heap dump has them read by a debugger, and that stops the app for as long as it takes.
+      waitUntilAtLeastOneExists(hasText("suspends the app", substring = true), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
   @Test fun `a heap dump with no bitmap in it says nothing about bitmaps`() {
     runComposeUiTest {
       openHeapDump(noBitmapHeapDump())
@@ -78,7 +92,12 @@ class ExplorerBitmapsTest {
     }
   }
 
-  private fun ComposeUiTest.openHeapDump(heapDumpFile: File) {
+  private fun ComposeUiTest.openHeapDump(
+    heapDumpFile: File,
+    // An `adb` that is connected to nothing, rather than the one on this machine: a test that shells out
+    // has whatever devices happen to be plugged in to answer for.
+    adb: Adb = NO_DEVICE_ADB
+  ) {
     setContent {
       MaterialTheme {
         ExplorerApp(
@@ -86,9 +105,7 @@ class ExplorerBitmapsTest {
           // Nothing here opens a second heap dump, and which window one would land in is
           // `ExplorerWindowTest`'s.
           onHeapDumpChosen = {},
-          // An `adb` that is connected to nothing, rather than the one on this machine: a test that
-          // shells out has whatever devices happen to be plugged in to answer for.
-          deviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
+          deviceHeapDumps = DeviceHeapDumps(adb)
         )
       }
     }
@@ -125,5 +142,20 @@ class ExplorerBitmapsTest {
 
     /** What `adb devices` prints when nothing is plugged in, which is every command this test needs. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }
+
+    /** One device, old enough that no heap dump of it can carry the pixels of a bitmap. */
+    private val OLD_DEVICE_ADB = Adb { arguments ->
+      val command = arguments.joinToString(" ")
+      AdbOutput(
+        exitCode = 0,
+        text = when {
+          command == "devices" -> "List of devices attached\nemulator-5554\tdevice\n"
+          command.endsWith("shell getprop") ->
+            "[ro.product.model]: [Pixel 4]\n[ro.build.version.sdk]: [29]"
+          // No process of the app running on it, which is beside the point of this one.
+          else -> ""
+        }
+      )
+    }
   }
 }

@@ -11,6 +11,7 @@ reading the source alone — everything else is in the code. Keep it that way.
 | Module | What it is | Constraints |
 | --- | --- | --- |
 | `shark-explorer-core` | Heap dump → dominator tree → layout model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
+| `shark-explorer-jdwp` | Attaches to a live app as a debugger to read the pixels of its bitmaps. | **Imports `com.sun.jdi`, so it needs a JDK and can't be loaded on Android.** That's the whole reason it isn't in `core`. |
 | `shark-explorer-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
 
 `shark/shark-explorer/` itself holds no code, matching how `shark/` and `leakcanary/` are grouping
@@ -77,9 +78,12 @@ Which is also the rule for new code here: **anything the UI swallows or falls ba
 - **`shark-explorer-app` is excluded by name** from the repo-wide Java 8 target in the root
   `build.gradle.kts`, because Compose Multiplatform's artifacts aren't built for Java 8. If you
   rename or move the module, update that exclusion list or the build breaks confusingly.
-- **Both modules are listed in `modulesWithoutPublicApi`** in the root `build.gradle.kts`. They are
-  not published to Maven Central, their ABI isn't tracked, and they're left out of the docs site.
+- **All three modules are listed in `modulesWithoutPublicApi`** in the root `build.gradle.kts`. They
+  are not published to Maven Central, their ABI isn't tracked, and they're left out of the docs site.
   So there is no `api/*.api` file to update and `updateKotlinAbi` doesn't apply.
+- **`jdk.jdi` is listed in the app's `nativeDistributions.modules`.** jlink includes only the JDK
+  modules it detects a use of, and it detects none through `Bootstrap.virtualMachineManager()`, so a
+  packaged build without that line attaches to nothing.
 - `compose` and `composeMultiplatform` in `gradle/libs.versions.toml` are **unrelated**: the first
   is the Jetpack Compose version the Android app builds against, the second is Compose
   Multiplatform for this desktop app.
@@ -113,6 +117,7 @@ Windows and Linux title bar — macOS ignores it.
 
 ```bash
 ./gradlew :shark:shark-explorer:shark-explorer-core:test
+./gradlew :shark:shark-explorer:shark-explorer-jdwp:test
 ./gradlew :shark:shark-explorer:shark-explorer-app:test   # UI tests, headless, no emulator
 ./gradlew :shark:shark-explorer:shark-explorer-app:check   # test + detekt
 
@@ -133,7 +138,13 @@ it, so run it before pushing.
 Anything that reaches a device — taking a heap dump, fetching bitmaps — can be tried for real with an
 emulator running and `leakcanary-android-sample` installed on it
 (`ANDROID_SERIAL=emulator-5554 ./gradlew :samples:leakcanary-android-sample:installDebug`). It has to be a
-debuggable app: `am dumpheap` refuses anything else, including every app of the system image.
+debuggable app: `am dumpheap` refuses anything else, including every app of the system image, and so does
+a JDWP connection. An emulator older than API 35 is what exercises `shark-explorer-jdwp`, since a newer
+one is asked through a heap dump instead.
+
+**None of that is covered by a test**, and it can't be: a JDI client talks to a real VM or to nothing.
+Drive it from a throwaway test against a running emulator, read the numbers, and delete the test — the
+numbers belong in `notes/bitmaps.md`.
 
 ## Testing conventions
 
@@ -181,8 +192,8 @@ Design decisions and findings, kept current as the work proceeds:
 - `notes/dominator-tree.md` — dominator algorithm findings, memory/perf numbers
 - `notes/treemap-rendering.md` — adaptive depth model, the two shapes, bugs in the existing Android
   treemap
-- `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and how the ones
-  that don't are fetched off the device
+- `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and the two ways
+  the ones that don't are fetched off the device
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

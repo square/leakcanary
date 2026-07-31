@@ -6,20 +6,30 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
 /**
  * Takes heap dumps off a connected device, and fetches the pixels of a live process's bitmaps.
  *
- * The two are the same three `adb` commands — dump, wait, pull — because of where a bitmap's pixels are:
- * from API 26 they're in native memory, which a Java heap dump does not cover, and the one supported way
- * to get them is to ask the process to compress them into the dump before it's written. That's
- * `am dumpheap -b png`, and it's API 35 and up ([MIN_BITMAP_DUMP_SDK_INT]).
+ * Taking a dump and fetching bitmaps off API 35 and up are the same three `adb` commands — dump, wait,
+ * pull — because of where a bitmap's pixels are: from API 26 they're in native memory, which a Java heap
+ * dump does not cover, and the supported way to get them is to ask the process to compress them into the
+ * dump before it's written. That's `am dumpheap -b png`, and it's API 35 and up
+ * ([MIN_BITMAP_DUMP_SDK_INT]).
  *
  * So a dump taken through [dumpHeap] arrives with its bitmaps already in it wherever the device can
  * manage that, and [fetchBitmaps] is the same dump taken of the process a *previous* heap dump came from,
- * kept only for its images. See [HeapBitmaps] for the reading end of both.
+ * kept only for its images — or, on a device too old for `-b`, the same question asked of the process
+ * through a [bitmapDebugger]. See [HeapBitmaps] for the reading end of all of it.
  *
  * The steps are separate on purpose, because each of them is a question the person at the window has to
  * answer: which connected device, and which of its processes. Every step shells out to `adb` and blocks,
  * so this belongs on a background thread.
  */
-class DeviceHeapDumps(private val adb: Adb = CommandLineAdb()) {
+class DeviceHeapDumps(
+  private val adb: Adb = CommandLineAdb(),
+  /**
+   * How the pixels of a bitmap are fetched off a device older than [MIN_BITMAP_DUMP_SDK_INT], whose heap
+   * dumps can't carry them however they're taken. Null refuses instead, which is what a caller with no
+   * debugger to offer gets. `JdwpBitmaps` in `shark-explorer-jdwp` is the one there is.
+   */
+  private val bitmapDebugger: BitmapDebugger? = null
+) {
 
   /** Every device `adb` is connected to, each asked what it is so it can be matched to a dump. */
   fun connectedDevices(): List<AndroidDevice> = adb.connectedDevices()
@@ -105,10 +115,16 @@ class DeviceHeapDumps(private val adb: Adb = CommandLineAdb()) {
   }
 
   /**
-   * Dumps the heap of [process] for its bitmaps alone, and reads the compressed images out of it.
+   * The compressed images of the bitmaps [process] has live right now.
    *
-   * @throws AdbFailureException when the device can't do it, which is an Android version below
-   * [MIN_BITMAP_DUMP_SDK_INT] or a process that isn't debuggable.
+   * Two ways of asking, because a device that can put them in a heap dump should be asked that way: it
+   * costs the process nothing but the dump it was going to take anyway, where a debugger has to stop it
+   * and run code in it. So API 35 and up is dumped again with `-b png` and read; anything older is handed
+   * to [bitmapDebugger].
+   *
+   * @throws AdbFailureException when the process can't be asked at all, which is a process that isn't
+   * debuggable — the requirement both ways round — or a device older than [MIN_BITMAP_DUMP_SDK_INT] with
+   * no [bitmapDebugger] to fall back to.
    */
   fun fetchBitmaps(
     device: AndroidDevice,
@@ -116,11 +132,11 @@ class DeviceHeapDumps(private val adb: Adb = CommandLineAdb()) {
     onProgress: (String) -> Unit = {}
   ): NativeBitmapPixels {
     if (!device.canDumpBitmaps) {
-      throw AdbFailureException(
-        "${device.description} runs API ${device.sdkInt}, and `am dumpheap -b`, which is the only way " +
-          "to ask a process for the pixels of its bitmaps, arrived in Android 15 (API " +
-          "$MIN_BITMAP_DUMP_SDK_INT). Nothing short of attaching a debugger reads a native bitmap off " +
-          "an older device."
+      return bitmapDebugger?.fetchBitmaps(device, process, onProgress) ?: throw AdbFailureException(
+        "${device.description} runs API ${device.sdkInt}, and `am dumpheap -b`, which is what puts the " +
+          "pixels of a bitmap in a heap dump, arrived in Android 15 (API $MIN_BITMAP_DUMP_SDK_INT). " +
+          "Reading them off an older device means attaching a debugger to the process, and this window " +
+          "was given no way to do that."
       )
     }
     val localFile = File.createTempFile("shark-explorer-bitmaps", ".hprof")
@@ -267,6 +283,29 @@ class DeviceHeapDumps(private val adb: Adb = CommandLineAdb()) {
 
     private fun String.isSystemApp(): Boolean = SYSTEM_PACKAGE_PREFIXES.any { startsWith(it) }
   }
+}
+
+/**
+ * Asks a live process itself for the compressed images of its bitmaps, which is what it takes on the
+ * Android versions whose heap dumps can't carry them ([DeviceHeapDumps.MIN_BITMAP_DUMP_SDK_INT]).
+ *
+ * An interface here and implemented in `shark-explorer-jdwp` because the one implementation is a JDI
+ * client, and `com.sun.jdi` is part of a desktop JDK rather than of Android — where this module has to
+ * stay loadable.
+ */
+fun interface BitmapDebugger {
+
+  /**
+   * The images, keyed the same way `am dumpheap -b png` keys them: by the native pointer of the bitmap
+   * each shows, so that either source joins onto the bitmaps of a heap dump the same way.
+   *
+   * @throws AdbFailureException when the process can't be reached or asked.
+   */
+  fun fetchBitmaps(
+    device: AndroidDevice,
+    process: DeviceProcess,
+    onProgress: (String) -> Unit
+  ): NativeBitmapPixels
 }
 
 /** One process running on a device. */

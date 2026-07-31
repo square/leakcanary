@@ -3,13 +3,16 @@
 Implemented in `shark-explorer-core`: `HeapBitmaps.kt` (finding bitmaps, decoding whatever pixels the
 dump has), `BitmapImage.kt` (what a decode produces), `HeapDumpOrigin.kt` (which device and process wrote
 the dump), `Adb.kt` and `DeviceHeapDumps.kt` (taking a dump off a device, and going back to the process
-one came from). Drawn by `BitmapImages.kt`, `TreemapView` and `DetailsPanel`, and asked for by
-`TakeHeapDumpDialog` and `BitmapsFromDeviceDialog`, in `shark-explorer-app`.
+one came from). `JdwpBitmaps.kt` in `shark-explorer-jdwp` is the other way back to a process, for the
+devices that can't answer through a heap dump. Drawn by `BitmapImages.kt`, `TreemapView` and
+`DetailsPanel`, and asked for by `TakeHeapDumpDialog` and `BitmapsFromDeviceDialog`, in
+`shark-explorer-app`.
 
-**Taking the dump here is the way to get the pixels.** `DeviceHeapDumps.dumpHeap` passes `-b png`
-whenever the device is API 35 or up, so a dump taken through the window arrives with its bitmaps in it
-and nothing has to be fetched afterwards. Fetching — the same dump taken again of the process an
-already-open dump came from, kept only for its images — is for a dump that came from somewhere else.
+**Taking the dump here is the cheapest way to get the pixels.** `DeviceHeapDumps.dumpHeap` passes `-b png`
+whenever the device is API 35 or up, so a dump taken through the window arrives with its bitmaps in it and
+nothing has to be fetched afterwards. Fetching is for a dump that came from somewhere else, and it is two
+things depending on the device: another dump of the same process, kept only for its images, on API 35 and
+up; a debugger that makes the process compress them, below that. `DeviceHeapDumps.fetchBitmaps` picks.
 
 ## Three eras, and only two of them have pixels in the dump
 
@@ -35,6 +38,7 @@ case:
 | `hashmap_api_25.hprof` | 25 | 93 | 93, from `mBuffer` |
 | `large-dump.hprof` | 25 | 151 | 151, from `mBuffer` |
 | a Pixel 9, `am dumpheap -b png` | 36 | 4 | 4, from `dumpData`, 0 pointer mismatches |
+| an emulator, `am dumpheap` then a debugger | 29 | 6 | 0 in the dump, 6 after the fetch, 0 mismatches |
 
 Every heap dump in this repo is old enough to carry its pixels, so **the code path that matters most is
 the one none of the committed dumps exercise.** Write a synthetic dump for it — `BitmapDumps.kt` in
@@ -52,26 +56,58 @@ size in 24 bytes, which is why PNG is what `-b` is asked for. Rejections are cou
 (`BitmapCounts.mismatchedCount`) and said out loud, because otherwise a fetch that matched nothing looks
 exactly like a fetch that silently did nothing.
 
-## API 26 to 34 has no answer, and that isn't for lack of looking
+## API 26 to 34: the app compresses them for a debugger
 
-`am dumpheap` on those versions takes no `-b`, and there is no other supported way to ask a process to
-compress its bitmaps. Perfetto's Heap Dump Explorer, the only other tool that shows these pixels, needs
-the same flag and renders no images without it, so nothing is being missed here.
+No heap dump of those versions can carry a pixel, whatever it's asked for — `am dumpheap` takes no `-b`
+and Perfetto's Heap Dump Explorer, the only other tool that shows these pixels, renders none without it.
+But the pixels are in the process, and so is `Bitmap.compress`, so **the process can be made to compress
+its own bitmaps**: `JdwpBitmaps` attaches over JDWP, lists every live `Bitmap` with
+`ReferenceType.instances`, and invokes `compress(PNG, 100, ByteArrayOutputStream())` on each. Same
+pointer-keyed images as `dumpAll` produces, so they join onto a dump exactly the same way.
 
-What would work, neither of it worth building yet:
+`com.sun.jdi` is a JDK module, so this needs nothing built for a device: no JVMTI agent, no NDK, no
+per-ABI `.so`, nothing pushed. It does need **a debuggable app**, which is what opens a JDWP connection —
+the same condition `am dumpheap` already has — and no other debugger attached, so an app being debugged in
+Android Studio is taken.
 
-- **An agent inside the process.** A JVMTI agent, or a debugger invoking `Bitmap.compress` over JDWP,
-  can do on API 26 what `dumpAll` does on 35 — but only in a debuggable app, and only through a lot of
-  machinery.
-- **LeakCanary itself.** It already runs inside the app and already takes the heap dump. It could
-  compress the bitmaps it can reach and write them next to the dump, on any API level. That's a
-  LeakCanary feature rather than an explorer one, which is why the explorer takes
-  `NativeBitmapPixels` from a source it doesn't name: a file LeakCanary wrote would arrive the same way
-  a second `dumpheap` does.
+What it cost when measured, on an API 29 emulator dumping `leakcanary-android-sample`:
 
-Until then, the window says which of the two it is: a dump with no pixels and API 35 or up offers the
-fetch, and a fetch against an older device fails with the version in the message rather than with
-nothing.
+- 5.4 seconds for the whole fetch of 6 bitmaps, nearly all of it fixed cost: `adb forward`, the attach,
+  and the wait for the app to run something.
+- 461 ms to compress a 1080×2400 `Config.HARDWARE` bitmap, 85 ms for a 64×64 one.
+- 144 ms to read 2 MB back over JDWP, so the transfer is not what any of this costs.
+
+Things that took a while to find out, and that the code depends on:
+
+- **`Config.HARDWARE` bitmaps come back too**, which matters because that is what modern image loading
+  produces and what `getPixels` refuses. `compress` has no HARDWARE guard: it reads them back off the GPU
+  through the render thread. Which is why every invoke passes no `INVOKE_SINGLE_THREADED` — freeze the
+  render thread and the readback never finishes.
+- **Suspending the VM is not enough to invoke anything.** ART answers `IncompatibleThreadStateException`
+  for a thread stopped by `VirtualMachine.suspend()`; what it takes is a thread stopped by an *event*. So
+  the code asks for one method entry anywhere in the app, with a count filter of 1 so exactly one fires
+  and nothing stays instrumented afterwards.
+- **An idle or backgrounded app runs nothing**, so there is no event until it is nudged. `dumpsys meminfo
+  <pid>` is the nudge: the framework answers it by calling into the app over binder, so the app runs code
+  whether or not it's on screen — the safe point lands on a `Binder:<pid>_N` thread — and unlike a
+  synthetic keyevent it changes nothing about what the app is showing.
+- `Bitmap.CompressFormat` is only loaded by an app that has compressed something, which an app whose
+  bitmaps are being fetched hasn't. Most builds have it in the boot image; `loadedClass` invokes
+  `Class.forName` for the ones that don't.
+
+What is deliberately not built:
+
+- **A JVMTI/ART TI agent** does the same enumeration, but as an NDK-built `.so` per ABI that has to be
+  inside the app's own data directory before `am attach-agent` will load it. Same result, a native build
+  and artifacts versioned against ART internals to get there.
+- **Reading the pixels out of `/proc/<pid>/mem`** means chasing `mNativePtr` → `BitmapWrapper` →
+  `android::Bitmap` → `SkPixelRef::fPixels` through layouts that change between releases and ABIs, and a
+  HARDWARE bitmap's pixels sit in a `GraphicBuffer` the CPU may not be able to map at all.
+- **LeakCanary itself.** It runs inside the app and already takes the heap dump, so it could compress the
+  bitmaps it can reach and write them next to the dump — on any API level, and in an app that isn't
+  debuggable, which is the one thing none of the above can do. That's a LeakCanary feature rather than an
+  explorer one, which is why the explorer takes `NativeBitmapPixels` from a source it doesn't name: a file
+  LeakCanary wrote would arrive the same way either of these does.
 
 ## Decoding `mBuffer` without knowing the `Bitmap.Config`
 
@@ -100,10 +136,14 @@ Measured on two emulators, an API 36 and an API 29, dumping the heap of `leakcan
 with 4 bitmaps and the pixels of all 4 on API 36, 17 MB with 1 bitmap and no pixels at all on API 29. Both
 took under a second to write.
 
-- **Only a debuggable process can be dumped.** `am dumpheap` of anything else answers
+- **Only a debuggable process can be dumped**, or debugged. `am dumpheap` of anything else answers
   `java.lang.SecurityException: Process not debuggable: <package>` — that's an emulator refusing to dump
   its own launcher, so a release build on a real phone has no chance. It's the first thing that goes wrong
-  for anyone using this, which is why the message says so in words.
+  for anyone using this, which is why the message says so in words. Note that `adb forward tcp:0
+  jdwp:<pid>` sets up a forward for *any* pid just as happily; nothing says no until something connects
+  and finds nobody there, which is why that failure is worded rather than passed on.
+- **`adb forward tcp:0 <remote>` prints the port it picked**, which is how a JDWP forward gets a local port
+  without picking one and racing whatever else on the machine opens sockets.
 - **A refusal comes back in one of two shapes**, and `AdbOutput.orFail` looks for both: `Error: Unknown
   option: -b` (what API 29 says about `-b`), or `Exception occurred while executing 'dumpheap':` followed
   by an exception and twelve framework frames. `adb shell` does propagate the remote exit code (255 for

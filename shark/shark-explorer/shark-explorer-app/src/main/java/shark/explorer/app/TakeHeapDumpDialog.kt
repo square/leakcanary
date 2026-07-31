@@ -214,7 +214,8 @@ private val AndroidDevice.bitmapExplanation: String
   get() = if (canDumpBitmaps) {
     "The dump will include the pixels of its bitmaps."
   } else {
-    "API $sdkInt can't put the pixels of a bitmap in a heap dump, so the dump will have none."
+    "API $sdkInt can't put the pixels of a bitmap in a heap dump, so the dump will have none — they " +
+      "can be fetched off the process once it's open."
   }
 
 internal const val TAKE_HEAP_DUMP = "Take heap dump…"

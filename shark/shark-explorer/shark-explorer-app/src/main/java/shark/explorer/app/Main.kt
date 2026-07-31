@@ -33,11 +33,13 @@ import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.io.File
 import shark.SharkLog
+import shark.explorer.CommandLineAdb
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapSizes
 import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
+import shark.explorer.jdwp.JdwpBitmaps
 
 fun main(args: Array<String>) {
   // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
@@ -94,7 +96,11 @@ fun ExplorerApp(
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
-  deviceHeapDumps: DeviceHeapDumps = remember { DeviceHeapDumps() }
+  deviceHeapDumps: DeviceHeapDumps = remember {
+    val adb = CommandLineAdb()
+    // The debugger is what gets the pixels of a bitmap off API 26 to 34, where no heap dump has them.
+    DeviceHeapDumps(adb, JdwpBitmaps(adb))
+  }
 ) {
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
   var takesHeapDump by remember { mutableStateOf(false) }

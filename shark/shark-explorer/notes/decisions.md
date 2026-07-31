@@ -29,6 +29,19 @@ Two reasons: the logic is then unit-testable without a UI harness, and it stays 
 Android later. Keeping Compose out of `core` is what makes both true, which is why `core` defines
 its own rectangle type instead of using Compose's `Offset`/`Size`.
 
+## Then a third, for the JDI client
+
+`shark-explorer-jdwp` holds one class, `JdwpBitmaps`, and exists because of what it imports:
+`com.sun.jdi` is a module of a desktop JDK and does not exist on Android. Putting it in `core` would be
+the first thing in there that an Android consumer could not load, and the failure would be a
+`NoClassDefFoundError` at the far end of a dependency rather than a build error here.
+
+So `core` declares the `BitmapDebugger` interface and knows *when* a debugger is the way to get a
+bitmap's pixels ([bitmaps.md](bitmaps.md)); this module knows *how*. `shark-explorer-app` is where the two
+are put together, which is what a wiring layer is for. A module rather than dropping the class into
+`shark-explorer-app` because "this needs a JDK" is a dependency boundary, and a boundary that only exists
+in a comment is one nobody notices breaking.
+
 ## Depends on `shark-android`, not `shark`
 
 Same as `shark-cli`, and for the details panel: `AndroidObjectInspectors` is what turns an object into
@@ -143,6 +156,12 @@ explorer reads it lazily for as long as it's open and a dump that took a minute 
 one taken for its images alone is deleted as soon as they've been read. And because `dumpHeap` passes
 `-b png` wherever the device supports it, a dump taken through the window needs no fetch afterwards —
 the fetch is for dumps that came from somewhere else.
+
+**A dump is how a device is asked for its bitmaps whenever it can answer that way**, even though attaching
+a debugger would also work there. A dump costs the app the dump it was going to take anyway; a debugger
+stops every thread of it and runs its code. So `fetchBitmaps` only reaches for `BitmapDebugger` below API
+35, and the dialog says which of the two a device is in for before the button is pressed — an app freezing
+mid-use is worth a warning.
 
 ## Testing split
 

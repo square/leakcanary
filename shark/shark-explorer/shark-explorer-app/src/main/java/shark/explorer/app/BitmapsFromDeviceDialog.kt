@@ -142,6 +142,7 @@ private fun Candidates(
         fontWeight = FontWeight.Bold
       )
       Text(candidate.match.explanation, style = MaterialTheme.typography.bodySmall)
+      Text(candidate.device.fetchExplanation, style = MaterialTheme.typography.bodySmall)
       if (candidate.processes.isEmpty()) {
         Text(NO_MATCHING_PROCESS, style = MaterialTheme.typography.bodySmall)
       } else {
@@ -208,12 +209,26 @@ private val DeviceMatch.explanation: String
     DeviceMatch.OTHER -> "Not the device the heap dump came from."
   }
 
+/**
+ * How the pixels would be got off this device, which is worth knowing in advance for the older one: the
+ * app is stopped while a debugger reads its bitmaps, and an app that freezes for a few seconds while
+ * someone is using it is worth having been warned about.
+ */
+private val AndroidDevice.fetchExplanation: String
+  get() = if (canDumpBitmaps) {
+    "Its bitmaps come from dumping the process again, which costs it nothing."
+  } else {
+    "API $sdkInt can't put bitmaps in a heap dump, so they come from attaching a debugger to the " +
+      "process, which suspends the app while they are read."
+  }
+
 private fun BitmapCounts.summary(): String = when {
   count == 0 -> "This heap dump has no bitmaps in it."
   withoutImageCount == 0 -> "This heap dump has the pixels of all ${bitmapCountText(count)} in it."
   else -> "This heap dump has ${bitmapCountText(count)} in it, and the pixels of $withImageCount. " +
     "From API 26 a bitmap keeps its pixels in native memory, which a heap dump only carries when it " +
-    "was taken with `am dumpheap -b png` — and that needs Android 15."
+    "was taken with `am dumpheap -b png` — and that needs Android 15. The process that wrote this dump " +
+    "still has them, whichever version it runs."
 }
 
 private fun BitmapCounts.fetchedSummary(): String {

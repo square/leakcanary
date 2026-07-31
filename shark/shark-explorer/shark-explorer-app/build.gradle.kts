@@ -20,6 +20,8 @@ kotlin {
 
 dependencies {
   implementation(projects.shark.sharkExplorer.sharkExplorerCore)
+  // Reads the bitmaps of a live process off the Android versions whose heap dumps can't carry them.
+  implementation(projects.shark.sharkExplorer.sharkExplorerJdwp)
 
   implementation(compose.desktop.currentOs)
   implementation(compose.material3)
@@ -64,6 +66,10 @@ compose.desktop {
       linux {
         iconFile.set(project.file("src/main/resources/shark-explorer-icon.png"))
       }
+
+      // What `shark-explorer-jdwp` attaches to a live app with. jlink leaves out every module it
+      // doesn't detect a use of, and it detects no use of one reached through `Bootstrap`.
+      modules("jdk.jdi")
     }
   }
 }

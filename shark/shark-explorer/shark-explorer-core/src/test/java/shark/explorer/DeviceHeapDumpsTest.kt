@@ -104,6 +104,34 @@ class DeviceHeapDumpsTest {
     assertThat(adb.commands).isEmpty()
   }
 
+  @Test fun `a device too old to compress its bitmaps is handed to the debugger instead`() {
+    val adb = FakeAdb()
+    val png = pngBytes(width = 8, height = 8)
+    var asked: String? = null
+    val debugger = BitmapDebugger { debuggedDevice, debuggedProcess, _ ->
+      asked = "${debuggedProcess.name} on ${debuggedDevice.description}"
+      NativeBitmapPixels(EncodedImageFormat.PNG, mapOf(NATIVE_POINTER to png))
+    }
+
+    val pixels = DeviceHeapDumps(adb, debugger).fetchBitmaps(device(sdkInt = 34), process())
+
+    assertThat(asked).isEqualTo("com.example on Pixel 9 · API 34 · emulator-5554")
+    assertThat(pixels.bytesByNativePointer).containsOnlyKeys(NATIVE_POINTER)
+    // Not dumped as well: a dump of that device comes back with no pixels whatever it was asked for.
+    assertThat(adb.commands).isEmpty()
+  }
+
+  @Test fun `a device that can put bitmaps in a heap dump is dumped rather than debugged`() {
+    val adb = fakeDeviceWith(mapOf(NATIVE_POINTER to pngBytes(width = 8, height = 8)))
+    // Dumping costs the app the dump it was going to take anyway, where a debugger stops it and runs
+    // code in it, so the debugger is the fallback and not the way.
+    val debugger = BitmapDebugger { _, _, _ -> error("The debugger was used on a device that can dump") }
+
+    DeviceHeapDumps(adb, debugger).fetchBitmaps(device(), process())
+
+    assertThat(adb.commands.first()).contains("am dumpheap -b png")
+  }
+
   @Test fun `a dump that came back without the compressed images says that, not nothing`() {
     // Which is what a device that ignored `-b` looks like, and the failure that would otherwise read as
     // the fetch having quietly done nothing.
