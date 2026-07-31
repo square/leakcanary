@@ -104,6 +104,15 @@ Things that took a while to find out, and that the code depends on:
 
 What is deliberately not built:
 
+- **`getPixels` instead of `compress`.** It is the faster call inside the app — measured over JDWP on the
+  same API 29 emulator, 44 ms against 505 ms for a 1080×2400 `ARGB_8888` bitmap — and it is still the wrong
+  one. It **refuses `Config.HARDWARE`** (`IllegalStateException: unable to getPixels(), pixel access is not
+  supported on Config#HARDWARE bitmaps`), which is the config that matters most; it moves 10,368,000 bytes
+  where `compress` moved 15,584, so the transfer goes from 6 ms to 221 ms and gets worse with every pixel;
+  it needs an `int[]` the size of the bitmap allocated *inside the app being debugged*; JDI hands the array
+  back as boxed `IntegerValue`s, so the explorer needs gigabytes of heap to receive one screen's worth; and
+  the raw pixels carry no size, where a PNG's `IHDR` is what the pointer-reuse check reads. The 505 ms is a
+  best case for `compress` too — that bitmap was a uniform fill, which deflates unusually fast.
 - **A JVMTI/ART TI agent** does the same enumeration, but as an NDK-built `.so` per ABI that has to be
   inside the app's own data directory before `am attach-agent` will load it. Same result, a native build
   and artifacts versioned against ART internals to get there.
@@ -136,6 +145,21 @@ wrong or gives up on, in decreasing order of how much they matter:
 
 `ALPHA_8` is a mask with no colour at all; it's drawn as the black it stands in for, which is what makes a
 nine-patch shadow look like a shadow rather than like nothing.
+
+**There is no config int in the dump to go by instead**, which is worth knowing because it looks like there
+should be. `Bitmap.Config` does carry one — `final int nativeInt`, the native colour type: `ALPHA_8` 1,
+`RGB_565` 3, `ARGB_4444` 4, `ARGB_8888` 5, `RGBA_F16` 6, `HARDWARE` 7, `RGBA_1010102` 8, so a type id and
+not a byte count — and the enum constants sit in every dump with those values readable. What no dump has is
+anything pointing from a bitmap to one of them: `getConfig()` is
+`Config.nativeToConfig(nativeConfig(mNativePtr))`, answered out of native memory. Checked against five real
+dumps, from API 23, 25, 29 and 36: a `Bitmap` instance has `mWidth`, `mHeight`, `mRecycled`, `mDensity`,
+`mNativePtr`, `mRequestPremultiplied`, `mNinePatchChunk` and `mNinePatchInsets`, plus `mBuffer` and
+`mIsMutable` before API 26, `mColorSpace` from 26, and `mGainmap`, `mHardwareBuffer` and `mId` by 36. No
+config in any era, so bytes per pixel is the only evidence there is.
+
+The one collision that leaves is 2 bytes, which is `RGB_565` and also `ARGB_4444` — and `ARGB_4444` has
+been unreachable since KitKat, where `Bitmap` started creating an `ARGB_8888` for anything that asks for
+it. So a 2-byte buffer is `RGB_565` in any dump from API 19 on, which is every dump this is likely to meet.
 
 ## `adb` facts that cost time to find out
 
