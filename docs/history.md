@@ -88,12 +88,16 @@ Three things from that month are worth pulling out.
 
 **It was told to be automatic.** In April 2015 LeakCanary was a set of parts you wired together in
 your `Application` class: construct a heap dump listener, hand it to a watcher, hold on to the
-watcher. Jesse Wilson's feedback — acted on alongside Logan Johnson's, in a single commit on 24
-April — was that this was the wrong shape. LeakCanary should have a user interface, and it should
-work out of the box with no configuration: everything automatic. The wiring shrank to a single
-`LeakCanary.install(this)` by the first public release two weeks later, and disappeared altogether in
-version 2, which [installs itself](design.md#adding-the-dependency-is-the-whole-setup). That same
-commit is where `KeyedWeakReference` first appears, a class LeakCanary still has.
+watcher. That this was the wrong shape — that LeakCanary should have a user interface, and should
+work out of the box with no configuration, everything automatic — is Jesse Wilson's idea. What the
+repository records is the acting on it, over the two days after a commit on 24 April whose entire
+message is *"Logan and Jesse feedback"*: on 25 April, *"Move more out of the box stuff into the AAR"*
+moved the leak display screen out of the sample app and into the library, and the wiring collapsed to
+a single `LeakCanary.install(this)`; the next day, *"Event better out of the box experience"* (sic)
+built that screen out. Both survived to the first public release two weeks later, and the call
+disappeared altogether in version 2, which
+[installs itself](design.md#adding-the-dependency-is-the-whole-setup). The 24 April commit is also
+where `KeyedWeakReference` first appears, a class LeakCanary still has.
 
 **The five second wait got its reason.** The delay had been inherited from the diaper, where the
 constant was called `DELAY_FOR_GC_S` and the number was picked for the garbage collector. It was
