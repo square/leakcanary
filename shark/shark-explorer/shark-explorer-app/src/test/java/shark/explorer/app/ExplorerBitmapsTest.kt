@@ -104,7 +104,7 @@ class ExplorerBitmapsTest {
           heapDumpFile = heapDumpFile,
           // Nothing here opens a second heap dump, and which window one would land in is
           // `ExplorerWindowTest`'s.
-          onHeapDumpChosen = {},
+          onHeapDumpChosen = { _, _ -> },
           deviceHeapDumps = DeviceHeapDumps(adb)
         )
       }

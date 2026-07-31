@@ -1,6 +1,9 @@
 package shark.explorer.app
 
+import java.awt.image.BufferedImage
+import java.io.ByteArrayOutputStream
 import java.io.File
+import javax.imageio.ImageIO
 import shark.GcRoot.JniGlobal
 import shark.HprofWriterHelper
 import shark.ValueHolder
@@ -62,6 +65,22 @@ internal fun HprofWriterHelper.androidBuild() {
   "android.os.Build\$VERSION" clazz {
     staticField["SDK_INT"] = IntHolder(SDK_INT)
   }
+}
+
+/**
+ * A PNG of that size, which is what a device hands over for a bitmap it has no pixels for in the dump.
+ *
+ * Only the size in the `IHDR` matters here: it's what an image is accepted or rejected for a bitmap by.
+ * Duplicated from `shark-explorer-core`'s tests rather than shared, since a test helper is not worth a
+ * module's public API.
+ */
+internal fun pngBytes(
+  width: Int,
+  height: Int
+): ByteArray {
+  val bytes = ByteArrayOutputStream()
+  ImageIO.write(BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB), "png", bytes)
+  return bytes.toByteArray()
 }
 
 /** Big enough that the biggest object of the dump is the bitmap's buffer rather than anything else. */

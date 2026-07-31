@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import java.io.File
 import shark.SharkLog
+import shark.explorer.NativeBitmapPixels
 
 /**
  * One window of the app, which is one heap dump.
@@ -16,6 +17,7 @@ import shark.SharkLog
  */
 internal class ExplorerWindow(
   heapDumpFile: File?,
+  bitmapPixels: NativeBitmapPixels? = null,
   /**
    * How many steps down and to the right of centre this window opens: no two windows on screen are at
    * the same one, so a window opened from another lands beside it rather than exactly over it. Where
@@ -26,6 +28,13 @@ internal class ExplorerWindow(
 
   /** Null in the window the app starts with when it was given no heap dump to open. */
   var heapDumpFile: File? by mutableStateOf(heapDumpFile)
+
+  /**
+   * The pixels of [heapDumpFile]'s bitmaps when they were fetched off the device along with it, which is
+   * a dump taken with the box ticked and nothing else. Set only with [heapDumpFile], by [openHeapDump]:
+   * pixels of one dump shown for another would be pictures of the wrong app.
+   */
+  var bitmapPixels: NativeBitmapPixels? by mutableStateOf(bitmapPixels)
 
   /**
    * Which heap dump this window is, for the window list of the OS: several windows all called after the
@@ -56,13 +65,16 @@ internal fun explorerWindows(heapDumpFiles: List<File>): SnapshotStateList<Explo
  */
 internal fun MutableList<ExplorerWindow>.openHeapDump(
   window: ExplorerWindow,
-  heapDumpFile: File
+  heapDumpFile: File,
+  /** Fetched with the dump, for a device whose dump can't carry the pixels of its bitmaps. */
+  bitmapPixels: NativeBitmapPixels? = null
 ) {
   val isWindowOfItsOwn = window.heapDumpFile != null
   if (isWindowOfItsOwn) {
-    add(ExplorerWindow(heapDumpFile, cascade = freeCascade()))
+    add(ExplorerWindow(heapDumpFile, bitmapPixels, cascade = freeCascade()))
   } else {
     window.heapDumpFile = heapDumpFile
+    window.bitmapPixels = bitmapPixels
   }
   // One run's log covers every window of that run, and what tells the lines apart afterwards is the
   // thread each was written from, so which window a heap dump went to is worth a line of its own.

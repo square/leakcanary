@@ -36,6 +36,7 @@ import shark.SharkLog
 import shark.explorer.CommandLineAdb
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapSizes
+import shark.explorer.NativeBitmapPixels
 import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
@@ -79,7 +80,10 @@ private fun explorerApplication(heapDumpFiles: List<File>) = application {
         MaterialTheme {
           ExplorerApp(
             heapDumpFile = window.heapDumpFile,
-            onHeapDumpChosen = { file -> windows.openHeapDump(window, file) }
+            bitmapPixels = window.bitmapPixels,
+            onHeapDumpChosen = { file, fetchedPixels ->
+              windows.openHeapDump(window, file, fetchedPixels)
+            }
           )
         }
       }
@@ -91,8 +95,13 @@ private fun explorerApplication(heapDumpFiles: List<File>) = application {
 fun ExplorerApp(
   /** The one heap dump this window shows, null until one has been chosen for it. */
   heapDumpFile: File?,
+  /**
+   * The pixels of [heapDumpFile]'s bitmaps, when they were fetched off the device along with it. Null for
+   * every other way a heap dump gets here, which is most of them.
+   */
+  bitmapPixels: NativeBitmapPixels? = null,
   /** Where a heap dump chosen from the bar goes, which is a window: see [openHeapDump]. */
-  onHeapDumpChosen: (File) -> Unit,
+  onHeapDumpChosen: (File, NativeBitmapPixels?) -> Unit,
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
@@ -117,7 +126,7 @@ fun ExplorerApp(
         state = HeapDumpState.Opening(file, step)
       }
       val sizes = session.read("the sizes of ${file.name}") { it.sizes }
-      HeapDumpState.Open(session, sizes).also {
+      HeapDumpState.Open(session, sizes, bitmapPixels).also {
         SharkLog.d { "${it.statusLine()} · ${sizes.strengthsText()}" }
       }
     } catch (throwable: Throwable) {
@@ -137,9 +146,10 @@ fun ExplorerApp(
     TakeHeapDumpDialog(
       deviceHeapDumps = deviceHeapDumps,
       // The dump lands in a window the same way a chosen file does: it is one, and one window per heap
-      // dump is what keeps the windows on screen the dumps open.
-      onDumped = { file ->
-        onHeapDumpChosen(file)
+      // dump is what keeps the windows on screen the dumps open. Its bitmaps' pixels travel with it,
+      // since they were fetched for this dump and belong to no other.
+      onDumped = { file, fetchedPixels ->
+        onHeapDumpChosen(file, fetchedPixels)
         takesHeapDump = false
       },
       onDismiss = { takesHeapDump = false }
@@ -156,7 +166,9 @@ fun ExplorerApp(
           // open at all.
           SharkLog.d { "No heap dump chosen" }
         } else {
-          onHeapDumpChosen(chosenFile)
+          // No pixels: a file chosen off the disk is whatever it has in it, and only taking a dump can
+          // go and fetch what it hasn't.
+          onHeapDumpChosen(chosenFile, null)
         }
       },
       onTakeClick = { takesHeapDump = true }
@@ -166,6 +178,7 @@ fun ExplorerApp(
         session = currentState.session,
         sizes = currentState.sizes,
         deviceHeapDumps = deviceHeapDumps,
+        fetchedBitmapPixels = currentState.bitmapPixels,
         modifier = Modifier.weight(1f)
       )
     } else {
@@ -202,7 +215,9 @@ private sealed interface HeapDumpState {
 
   data class Open(
     val session: HeapDumpSession,
-    val sizes: HeapSizes
+    val sizes: HeapSizes,
+    /** Fetched off the device along with the dump, for a device whose dump can't carry them. */
+    val bitmapPixels: NativeBitmapPixels?
   ) : HeapDumpState
 }
 

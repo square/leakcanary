@@ -657,7 +657,9 @@ class ExplorerAppTest {
       var shown: File? by remember { mutableStateOf(heapDumpFile) }
       ExplorerApp(
         heapDumpFile = shown,
-        onHeapDumpChosen = { shown = it },
+        // No pixels to keep track of: nothing here takes a dump off a device, which is the only way
+        // any come with one.
+        onHeapDumpChosen = { file, _ -> shown = file },
         chooseHeapDumpFile = chooseHeapDumpFile,
         deviceHeapDumps = deviceHeapDumps
       )

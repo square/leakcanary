@@ -163,6 +163,17 @@ stops every thread of it and runs its code. So `fetchBitmaps` only reaches for `
 35, and the dialog says which of the two a device is in for before the button is pressed — an app freezing
 mid-use is worth a warning.
 
+**Below API 35, taking a dump offers the fetch in the same go**, as a checkbox next to the process in
+`TakeHeapDumpDialog`. The pixels only exist in the live process, so the moment the dump is taken is the one
+moment they are certainly still reachable — an hour later the app may be dead, and then the dump has
+pictures nothing can ever fill in. Off by default, because it suspends the app for as long as compressing
+every bitmap takes and there's no way to know from here how many that is; ticked when there's time.
+
+**A failed fetch doesn't fail the dump.** The dump is tens of megabytes already pulled and the fetch is an
+extra, so a debugger that can't attach leaves the dump opening normally, with the reason in the log and the
+fetch still on offer from the window — which is where it would report the same failure again, in front of
+someone who just asked for it. Losing the expensive thing over the cheap one would be the wrong way round.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real

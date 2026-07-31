@@ -44,6 +44,7 @@ import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
 import shark.explorer.IndependentPaths
 import shark.explorer.LayoutCell
+import shark.explorer.NativeBitmapPixels
 import shark.explorer.NavigationHistory
 import shark.explorer.ObjectDominator
 import shark.explorer.ObjectList
@@ -76,6 +77,8 @@ internal fun HeapDumpExplorer(
   sizes: HeapSizes,
   /** The way back to the live process, for the bitmaps this heap dump has no pixels for. */
   deviceHeapDumps: DeviceHeapDumps,
+  /** Already fetched off the device, when the dump was taken with the pixels asked for in the same go. */
+  fetchedBitmapPixels: NativeBitmapPixels? = null,
   modifier: Modifier = Modifier
 ) {
   var history by remember {
@@ -185,10 +188,15 @@ internal fun HeapDumpExplorer(
 
   // How many bitmaps there are is a pass over the instances of one class, so it's read once. Fetching
   // pixels from the device changes the answer, and the fetch reports the new one rather than this running
-  // again.
+  // again. Pixels fetched along with the dump go in here, before anything has been asked to draw: adding
+  // them later would mean every bitmap already on screen having to be asked for a second time.
   LaunchedEffect(session) {
     bitmapCounts = session.read("how many bitmaps ${session.heapDumpFile.name} has") { explorer ->
-      explorer.tree.bitmapCounts()
+      if (fetchedBitmapPixels == null) {
+        explorer.tree.bitmapCounts()
+      } else {
+        explorer.tree.addNativeBitmapPixels(fetchedBitmapPixels)
+      }
     }
   }
 

@@ -14,6 +14,12 @@ nothing has to be fetched afterwards. Fetching is for a dump that came from some
 things depending on the device: another dump of the same process, kept only for its images, on API 35 and
 up; a debugger that makes the process compress them, below that. `DeviceHeapDumps.fetchBitmaps` picks.
 
+Below API 35, `TakeHeapDumpDialog` offers the fetch as a checkbox next to the process, so a dump and the
+debugger run in one go — the process is still there and still holds the pixels, which is the one moment
+that's guaranteed. It's off by default and says what it costs, since the app is suspended for it. A fetch
+that fails then doesn't fail the dump: the file is already pulled, the window still offers the fetch, and
+that is where the reason shows up.
+
 ## Three eras, and only two of them have pixels in the dump
 
 | Android | Where a bitmap's pixels are | What a heap dump has |
@@ -73,7 +79,8 @@ Android Studio is taken.
 What it cost when measured, on an API 29 emulator dumping `leakcanary-android-sample`:
 
 - 5.4 seconds for the whole fetch of 6 bitmaps, nearly all of it fixed cost: `adb forward`, the attach,
-  and the wait for the app to run something.
+  and the wait for the app to run something. Dumping and fetching in one go costs the two added up and
+  nothing more — 2.3 s for a 17 MB dump, then 5.5 s to attach and read the bitmaps of the same process.
 - 461 ms to compress a 1080×2400 `Config.HARDWARE` bitmap, 85 ms for a 64×64 one.
 - 144 ms to read 2 MB back over JDWP, so the transfer is not what any of this costs.
 
