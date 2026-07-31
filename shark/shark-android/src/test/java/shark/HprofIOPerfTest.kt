@@ -205,6 +205,91 @@ class HprofIOPerfTest {
     )
   }
 
+  @Test fun `freeze object growth detection random access metrics`() {
+    val dumps = growingHeapDumps(
+      dumpCount = 2,
+      stableEntryCount = 20_000,
+      growthPerDump = 2
+    )
+
+    val skippingRetainedSizes = growthTraversalRandomAccessMetrics(
+      dumps = dumps,
+      expectedGrowingObjectCount = 1,
+      computeRetainedSizes = false
+    )
+    val computingRetainedSizes = growthTraversalRandomAccessMetrics(
+      dumps = dumps,
+      expectedGrowingObjectCount = 1,
+      computeRetainedSizes = true
+    )
+
+    assertThat(skippingRetainedSizes.toString()).isEqualTo(
+      "reads=20006 medianBytes=24.0 totalBytes=560144 distinctPages=445 pageReads=20142"
+    )
+    assertThat(computingRetainedSizes.toString()).isEqualTo(
+      "reads=40016 medianBytes=24.0 totalBytes=1120384 distinctPages=445 pageReads=40288"
+    )
+  }
+
+  /**
+   * Growing objects that share the subgraph they hold, which is what makes computing their leak
+   * shares cost more than one traversal of that subgraph.
+   */
+  @Test fun `freeze object growth detection random access metrics of shared growth`() {
+    val dumps = growingHeapDumps(
+      dumpCount = 2,
+      stableEntryCount = 2_000,
+      growthPerDump = 2_000,
+      growingArrayCount = 4
+    )
+
+    val metrics = growthTraversalRandomAccessMetrics(
+      dumps = dumps,
+      expectedGrowingObjectCount = 4,
+      computeRetainedSizes = true
+    )
+
+    assertThat(metrics.toString()).isEqualTo(
+      "reads=40010 medianBytes=24.0 totalBytes=1104160 distinctPages=218 pageReads=40262"
+    )
+  }
+
+  /**
+   * The reads of the traversal of the last of the [dumps] of a growing heap, which is the
+   * traversal that diffs the last two and reports the growing objects.
+   */
+  private fun growthTraversalRandomAccessMetrics(
+    dumps: List<DualSourceProvider>,
+    expectedGrowingObjectCount: Int,
+    computeRetainedSizes: Boolean
+  ): Reads {
+    val detector = ObjectGrowthDetector.forJvmHeap()
+    var previousTraversal: HeapTraversalInput = InitialState(
+      scenarioLoopsPerGraph = 1,
+      // Retained sizes are computed for the last 2 heap dumps, so a count of 2 computes them for
+      // the traversal we measure and a count of 4 skips them.
+      heapDumpCount = if (computeRetainedSizes) 2 else 4
+    )
+    lateinit var lastSource: MetricsDualSourceProvider
+    dumps.forEach { dump ->
+      val source = MetricsDualSourceProvider(dump)
+      lastSource = source
+      previousTraversal = source.openHeapGraph().use { graph ->
+        detector.findGrowingObjects(graph, previousTraversal)
+      }
+    }
+    val growingObjects = (previousTraversal as HeapDiff).growingObjects
+    check(growingObjects.size == expectedGrowingObjectCount) {
+      "Expected $expectedGrowingObjectCount growing objects, found $growingObjects"
+    }
+    growingObjects.forEach { growingObject ->
+      check(growingObject.retained.isUnknown != computeRetainedSizes) {
+        "Expected retained size to be ${if (computeRetainedSizes) "" else "un"}known: $growingObject"
+      }
+    }
+    return Reads(lastSource.sourcesMetrics.last())
+  }
+
   class Reads(reads: List<Read>) {
     val readsCount = reads.size
     val medianBytesRead = reads.byteCounts.median()

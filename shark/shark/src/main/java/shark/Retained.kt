@@ -42,4 +42,11 @@ value class Retained @PublishedApi internal constructor(
 }
 
 val ZERO_RETAINED = Retained(ZERO_BYTES, 0)
-val UNKNOWN_RETAINED = Retained((-1).bytes, -1)
+
+/**
+ * A [Retained] that isn't known. Encoded with [Int.MIN_VALUE], which neither a real [Retained] nor
+ * the difference of two [Retained] can be: both are within [0..Int.MAX_VALUE], so a difference is
+ * at worst -[Int.MAX_VALUE]. That's what keeps a [Retained] that decreased by exactly 1 from
+ * looking like an unknown one.
+ */
+val UNKNOWN_RETAINED = Retained(Int.MIN_VALUE.bytes, Int.MIN_VALUE)

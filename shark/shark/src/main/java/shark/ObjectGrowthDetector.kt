@@ -93,6 +93,12 @@ class ObjectGrowthDetector(
     val secondTraversal = previousTraversal is FirstHeapTraversal
     val objectReferenceReader = referenceReaderFactory.createFor(graph)
 
+    // Computing retained sizes traverses the heap again and holds on to the objects of every node
+    // we might report, so we skip it for the traversals whose retained sizes nothing will read.
+    val computeRetainedSizes = previousTraversal.heapDumpCount?.let { heapDumpCount ->
+      previousTraversal.traversalCount + 1 >= heapDumpCount - 1
+    } ?: true
+
     enqueueRoots(previousTree, graph)
 
     while (queuesNotEmpty) {
@@ -115,6 +121,10 @@ class ObjectGrowthDetector(
           return@exploreObjectEdges
         }
 
+        // Moving the objects we visit to the front of the array turns it into the set of objects
+        // this node stands for, dropping the ones another node visited first. Safe to do while
+        // iterating: we only ever write to an index we already read.
+        node.objectIds[countOfVisitedObjectForCurrentNode] = objectId
         countOfVisitedObjectForCurrentNode++
 
         if (node.isLeafObject) {
@@ -162,6 +172,18 @@ class ObjectGrowthDetector(
               edge.nonVisitedDistinctObjectIds += reference.valueObjectId
             }
           }
+        }
+      }
+
+      // Nodes that can't be reported as growing don't need their objects kept around: retained
+      // sizes are only computed for the nodes we report. Same condition as the one that skips
+      // nodes in reportedGrowingNodeOrNull below.
+      if (computeRetainedSizes && node.previousPathNode?.growing == true) {
+        val objectIds = node.objectIds
+        dequeuedNode.visitedObjectIds = if (countOfVisitedObjectForCurrentNode == objectIds.size) {
+          objectIds
+        } else {
+          objectIds.copyOf(countOfVisitedObjectForCurrentNode)
         }
       }
 
@@ -291,41 +313,67 @@ class ObjectGrowthDetector(
         return@reportedGrowingNodeOrNull node
       }
 
-      val leakShares = LeakShareCalculator(
-        graph = graph,
-        gcRootProvider = gcRootProvider,
-        objectReferenceReader = objectReferenceReader,
-        objectSizeCalculator = AndroidObjectSizeCalculator(graph),
-        estimatedVisitedObjects = estimatedVisitedObjects,
-      ).computeLeakShares(reportedGrowingNodes.map { it.objectIds })
-
-      reportedGrowingNodes.forEachIndexed { index, node ->
-        val shortestPathNode = node.shortestPathNode
-        val retained = leakShares[index]
-        shortestPathNode.retained = retained
-        val previousRetained = node.previousPathNode?.retained ?: UNKNOWN_RETAINED
-        // The first traversal doesn't report growing objects, so there's nothing to diff on until
-        // the third traversal.
-        shortestPathNode.retainedIncrease = if (previousRetained.isUnknown) {
-          ZERO_RETAINED
-        } else {
-          Retained(
-            retained.heapSize - previousRetained.heapSize,
-            retained.objectCount - previousRetained.objectCount
-          )
-        }
+      if (computeRetainedSizes) {
+        val growingObjectIdGroups = reportedGrowingNodes.map { it.visitedObjectIds }
+        // Done with the traversal: release the objects of the nodes we're not reporting before
+        // computing retained sizes, which needs memory of its own.
+        dequeuedNodes.clear()
+        computeRetainedSizes(
+          graph = graph,
+          objectReferenceReader = objectReferenceReader,
+          reportedGrowingNodes = reportedGrowingNodes,
+          growingObjectIdGroups = growingObjectIdGroups
+        )
       }
 
       HeapDiff(
         traversalCount = previousTraversal.traversalCount + 1,
         shortestPathTree = tree,
         // Sorted by decreasing leak share: BLeak reports that growing objects with a large leak
-        // share are the ones worth looking at first.
+        // share are the ones worth looking at first. Retained sizes are all unknown when we skip
+        // computing them, in which case this keeps the traversal order.
         growingObjects = reportedGrowingNodes
           .sortedByDescending { it.shortestPathNode.retained.heapSize }
           .map { it.shortestPathNode },
         previousTraversal = previousTraversal
       )
+    }
+  }
+
+  private fun TraversalState.computeRetainedSizes(
+    graph: HeapGraph,
+    objectReferenceReader: ReferenceReader<HeapObject>,
+    reportedGrowingNodes: List<DequeuedNode>,
+    growingObjectIdGroups: List<LongArray>
+  ) {
+    // The traversal is over, so we hand its visited set over to be reused instead of having a
+    // second set the size of the heap allocated.
+    visitedSet.clear()
+    val leakShares = LeakShareCalculator(
+      graph = graph,
+      gcRootProvider = gcRootProvider,
+      objectReferenceReader = objectReferenceReader,
+      objectSizeCalculator = AndroidObjectSizeCalculator(graph),
+      objectsReachableWithoutGrowth = visitedSet,
+    ).computeLeakShares(growingObjectIdGroups)
+
+    reportedGrowingNodes.forEachIndexed { index, node ->
+      val shortestPathNode = node.shortestPathNode
+      val leakShare = leakShares[index]
+      val retained = leakShare.retained
+      shortestPathNode.retained = retained
+      shortestPathNode.exclusiveRetained = leakShare.exclusiveRetained
+      val previousRetained = node.previousPathNode?.retained ?: UNKNOWN_RETAINED
+      // The first traversal doesn't report growing objects, so there's nothing to diff on until
+      // the third traversal.
+      shortestPathNode.retainedIncrease = if (previousRetained.isUnknown) {
+        ZERO_RETAINED
+      } else {
+        Retained(
+          retained.heapSize - previousRetained.heapSize,
+          retained.objectCount - previousRetained.objectCount
+        )
+      }
     }
   }
 
@@ -410,7 +458,12 @@ class ObjectGrowthDetector(
   }
 
   private class Node(
-    // All objects that you can reach through paths that all resolves to the same structure.
+    /**
+     * All objects that you can reach through paths that all resolves to the same structure, and
+     * that hadn't been visited yet when this node was enqueued. Some of them might have been
+     * visited by another node since then, so this is a superset of the objects this node stands
+     * for. Compacted in place when dequeued, see [DequeuedNode.visitedObjectIds].
+     */
     val objectIds: LongArray,
     val parentPathNode: ShortestPathObjectNode,
     val nodeAndEdgeName: String,
@@ -421,10 +474,15 @@ class ObjectGrowthDetector(
   private class DequeuedNode(
     node: Node
   ) {
-    // All objects that you can reach through paths that all resolves to the same structure.
-    val objectIds = node.objectIds
     val shortestPathNode = ShortestPathObjectNode(node.nodeAndEdgeName, node.parentPathNode)
     val previousPathNode = node.previousPathNode
+
+    /**
+     * The objects this node stands for, i.e. the objects it was the first node to visit. Only set
+     * for the nodes that can be reported as growing, as those are the only ones we need the
+     * objects of, to compute a retained size. Reading it for any other node is a bug.
+     */
+    lateinit var visitedObjectIds: LongArray
   }
 
   /**

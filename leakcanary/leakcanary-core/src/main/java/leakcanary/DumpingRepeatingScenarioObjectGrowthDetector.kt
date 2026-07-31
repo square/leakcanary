@@ -52,7 +52,10 @@ class DumpingRepeatingScenarioObjectGrowthDetector(
     maxHeapDumps: Int,
     roundTripScenario: () -> Unit
   ): HeapDiff {
-    var lastTraversalOutput: HeapTraversalInput = InitialState(scenarioLoopsPerDump)
+    var lastTraversalOutput: HeapTraversalInput = InitialState(
+      scenarioLoopsPerGraph = scenarioLoopsPerDump,
+      heapDumpCount = maxHeapDumps
+    )
     for (i in 1..maxHeapDumps) {
       repeat(scenarioLoopsPerDump) {
         roundTripScenario()

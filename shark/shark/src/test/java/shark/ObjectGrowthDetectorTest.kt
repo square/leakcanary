@@ -1,9 +1,8 @@
 package shark
 
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.ValueHolder.Companion.NULL_REFERENCE
 
 class ObjectGrowthDetectorTest {
 
@@ -148,6 +147,8 @@ class ObjectGrowthDetectorTest {
     val arraySize = 2 * 4
     val wrappersSize = 2 * 4
     assertThat(growingObject.retained.heapSize).isEqualTo((arraySize + wrappersSize).bytes)
+    // Nothing is shared with another growing object, so all of it is this node's alone.
+    assertThat(growingObject.exclusiveRetained).isEqualTo(growingObject.retained)
   }
 
   @Test
@@ -155,10 +156,10 @@ class ObjectGrowthDetectorTest {
     val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
     val dumps = listOf(
       dump {
-        twoArraysOfWrappersSharingInstances(sharedInstanceCount = 1)
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 1)
       },
       dump {
-        twoArraysOfWrappersSharingInstances(sharedInstanceCount = 2)
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 2)
       }
     )
 
@@ -173,7 +174,91 @@ class ObjectGrowthDetectorTest {
       val halfOfSharedSize = 2 * 4 / 2
       assertThat(growingObject.retained.heapSize)
         .isEqualTo((arraySize + wrappersSize + halfOfSharedSize).bytes)
+      // The shared instances are the other growing object's too, so they're not counted here.
+      assertThat(growingObject.exclusiveRetained.objectCount).isEqualTo(3)
+      assertThat(growingObject.exclusiveRetained.heapSize)
+        .isEqualTo((arraySize + wrappersSize).bytes)
     }
+  }
+
+  @Test
+  fun `retained size of shared objects is split between more growing objects than a mask holds`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    // One more than the 64 groups that fit in the mask LeakShareCalculator splits objects with,
+    // so this goes through its fallback.
+    val arrayCount = 65
+    val dumps = listOf(
+      dump {
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 1, arrayCount = arrayCount)
+      },
+      dump {
+        arraysOfWrappersSharingInstances(sharedInstanceCount = 2, arrayCount = arrayCount)
+      }
+    )
+
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    assertThat(heapTraversal.growingObjects).hasSize(arrayCount)
+    heapTraversal.growingObjects.forEach { growingObject ->
+      // The array, the 2 wrappers it holds and a 65th of the 2 shared instances, which rounds down
+      // to 0 objects.
+      assertThat(growingObject.retained.objectCount).isEqualTo(3)
+      val arraySize = 2 * 4
+      val wrappersSize = 2 * 4
+      val shareOfSharedSize = 2 * 4 / arrayCount
+      assertThat(growingObject.retained.heapSize)
+        .isEqualTo((arraySize + wrappersSize + shareOfSharedSize).bytes)
+      assertThat(growingObject.exclusiveRetained.objectCount).isEqualTo(3)
+      assertThat(growingObject.exclusiveRetained.heapSize)
+        .isEqualTo((arraySize + wrappersSize).bytes)
+    }
+  }
+
+  @Test
+  fun `retained size skips objects visited by another node`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = listOf(
+      dump {
+        arraysSharingAnArray(growingArraySize = 1)
+      },
+      dump {
+        arraysSharingAnArray(growingArraySize = 2)
+      }
+    )
+
+    val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
+
+    val growingObject = heapTraversal.growingObjects.single()
+    // The growing array and the 2 instances it holds. The shared array was visited by the node for
+    // the other static field, so it and what it holds aren't this node's to account for.
+    assertThat(growingObject.retained.objectCount).isEqualTo(3)
+    val growingArraySize = 2 * 4
+    val heldInstancesSize = 2 * 4
+    assertThat(growingObject.retained.heapSize)
+      .isEqualTo((growingArraySize + heldInstancesSize).bytes)
+  }
+
+  @Test
+  fun `retained size not computed before the second to last heap dump`() {
+    val detector = ObjectGrowthDetector.forJvmHeap().listRepeatingHeapGraph()
+    val dumps = (1..4).map { dumpIndex ->
+      dump {
+        classWithStringsInStaticField(*(1..dumpIndex).map { "Hello $it" }.toTypedArray())
+      }
+    }
+
+    val traversals = detector.traverseAll(dumps)
+
+    val retainedPerTraversal = traversals.map { traversal ->
+      (traversal as? HeapDiff)?.growingObjects?.single()?.retained
+    }
+    assertThat(retainedPerTraversal[0]).isNull()
+    assertThat(retainedPerTraversal[1]!!.isUnknown).isTrue()
+    assertThat(retainedPerTraversal[2]!!.isUnknown).isFalse()
+    assertThat(retainedPerTraversal[3]!!.isUnknown).isFalse()
+    // Computed for the 3rd traversal, so the 4th can diff against it.
+    assertThat(traversals.last().let { it as HeapDiff }.growingObjects.single().retainedIncrease)
+      .isNotEqualTo(ZERO_RETAINED)
   }
 
   @Test
@@ -557,114 +642,34 @@ class ObjectGrowthDetectorTest {
     fun findRepeatedlyGrowingObjects(
       heapGraphs: List<HeapGraph>,
       scenarioLoopsPerGraph: Int = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
-    ): HeapDiff {
-      var previousTraversal: HeapTraversalInput = InitialState(scenarioLoopsPerGraph)
+    ) = traverseAll(heapGraphs, scenarioLoopsPerGraph).last() as HeapDiff
+
+    /** The output of the traversal of each heap dump, in order. */
+    fun traverseAll(
+      heapGraphs: List<HeapGraph>,
+      scenarioLoopsPerGraph: Int = InitialState.DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
+    ): List<HeapTraversalOutput> {
+      val outputs = mutableListOf<HeapTraversalOutput>()
+      var previousTraversal: HeapTraversalInput = InitialState(
+        scenarioLoopsPerGraph = scenarioLoopsPerGraph,
+        heapDumpCount = heapGraphs.size
+      )
       for (heapGraph in heapGraphs) {
-        previousTraversal = objectGrowthDetector.findGrowingObjects(heapGraph, previousTraversal)
-        if (previousTraversal is HeapDiff && !previousTraversal.isGrowing) {
-          check(previousTraversal.traversalCount == heapGraphs.size) {
-            "Expected to go through all ${heapGraphs.size} heap dumps, stopped at ${previousTraversal.traversalCount}"
+        val output = objectGrowthDetector.findGrowingObjects(heapGraph, previousTraversal)
+        outputs += output
+        previousTraversal = output
+        if (output is HeapDiff && !output.isGrowing) {
+          check(output.traversalCount == heapGraphs.size) {
+            "Expected to go through all ${heapGraphs.size} heap dumps, stopped at ${output.traversalCount}"
           }
         }
       }
-      return previousTraversal as HeapDiff
+      return outputs
     }
   }
 
   private fun ObjectGrowthDetector.listRepeatingHeapGraph(): ListRepeatingHeapGraphObjectGrowthDetector =
     ListRepeatingHeapGraphObjectGrowthDetector(this)
-
-  /**
-   * A `java.util.LinkedList` holding [items], shaped the way the OpenJDK implementation is so that
-   * [OpenJdkInstanceRefReaders.LINKED_LIST] expands it.
-   */
-  private fun HprofWriterHelper.linkedListInStaticField(vararg items: ValueHolder.ReferenceHolder) {
-    val nodeClassId = clazz(
-      "java.util.LinkedList\$Node",
-      fields = listOf(
-        "item" to ValueHolder.ReferenceHolder::class,
-        "next" to ValueHolder.ReferenceHolder::class,
-      )
-    )
-    val linkedListClassId = clazz(
-      "java.util.LinkedList",
-      fields = listOf("first" to ValueHolder.ReferenceHolder::class)
-    )
-    val first = items.foldRight(nullReference()) { item, next ->
-      instance(nodeClassId, listOf(item, next))
-    }
-    clazz(
-      "ClassWithStatics",
-      staticFields = listOf("list" to instance(linkedListClassId, listOf(first)))
-    )
-  }
-
-  /** The single node of [HeapTraversalOutput.shortestPathTree] whose name ends with [nameSuffix]. */
-  private fun HeapTraversalOutput.findNode(nameSuffix: String): ShortestPathObjectNode {
-    val matching = mutableListOf<ShortestPathObjectNode>()
-    fun visit(node: ShortestPathObjectNode) {
-      if (node.name.endsWith(nameSuffix)) {
-        matching += node
-      }
-      node.children.forEach { visit(it) }
-    }
-    visit(shortestPathTree)
-    return matching.single()
-  }
-
-  /**
-   * A static field holding an array of [wrapperCount] wrappers, each wrapping one of the 2
-   * instances that another static field holds onto directly, so that those 2 instances stay
-   * reachable without going through the growing array.
-   */
-  private fun HprofWriterHelper.arrayOfWrappersOfStablyHeldInstances(wrapperCount: Int) {
-    val heldClassId = clazz("Held", fields = listOf("value" to ValueHolder.IntHolder::class))
-    val wrapperClassId = clazz(
-      "Wrapper",
-      fields = listOf("held" to ValueHolder.ReferenceHolder::class)
-    )
-    val heldInstances = (1..2).map { value ->
-      instance(heldClassId, listOf(ValueHolder.IntHolder(value)))
-    }
-    val wrappers = heldInstances.take(wrapperCount).map { instance(wrapperClassId, listOf(it)) }
-    clazz(
-      "ClassWithStatics",
-      staticFields = listOf(
-        "stable" to objectArray(*heldInstances.toTypedArray()),
-        "growing" to objectArray(*wrappers.toTypedArray())
-      )
-    )
-  }
-
-  /**
-   * Two static fields, each holding an array of [sharedInstanceCount] wrappers, where the wrapper
-   * at a given index in one array and the wrapper at that index in the other array both reference
-   * the same shared instance.
-   */
-  private fun HprofWriterHelper.twoArraysOfWrappersSharingInstances(sharedInstanceCount: Int) {
-    val sharedClassId = clazz("Shared", fields = listOf("value" to ValueHolder.IntHolder::class))
-    val wrapperClassId = clazz(
-      "Wrapper",
-      fields = listOf("shared" to ValueHolder.ReferenceHolder::class)
-    )
-    val sharedInstances = (1..sharedInstanceCount).map { value ->
-      instance(sharedClassId, listOf(ValueHolder.IntHolder(value)))
-    }
-    val wrapperArray = {
-      objectArray(*sharedInstances.map { instance(wrapperClassId, listOf(it)) }.toTypedArray())
-    }
-    clazz(
-      "ClassWithStatics",
-      staticFields = listOf("first" to wrapperArray(), "second" to wrapperArray())
-    )
-  }
-
-  private fun HprofWriterHelper.classWithStringsInStaticField(vararg strings: String) {
-    clazz(
-      "ClassWithStatics",
-      staticFields = listOf("strings" to objectArray(*strings.map { string(it) }.toTypedArray()))
-    )
-  }
 
   private fun emptyHeapDump() = dump {}
 
@@ -673,6 +678,4 @@ class ObjectGrowthDetectorTest {
   ): CloseableHeapGraph {
     return dump(HprofHeader(), block).openHeapGraph()
   }
-
-  private fun nullReference() = ValueHolder.ReferenceHolder(NULL_REFERENCE)
 }

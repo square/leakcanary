@@ -11,16 +11,30 @@ sealed interface HeapTraversalInput {
    * growing at least [scenarioLoopsPerGraph] times since the previous traversal.
    */
   val scenarioLoopsPerGraph: Int
+
+  /**
+   * How many heap dumps will be traversed in total, null if the caller can't tell.
+   *
+   * Retained sizes are only useful for the last traversal and the one before it, which is what
+   * their increase is computed against, and computing them costs an additional traversal of the
+   * heap. A caller that knows how many heap dumps it will traverse lets the earlier traversals
+   * skip that work.
+   */
+  val heapDumpCount: Int?
 }
 
 class InitialState(
   override val scenarioLoopsPerGraph: Int = DEFAULT_SCENARIO_LOOPS_PER_GRAPH,
+  override val heapDumpCount: Int? = null,
 ) : HeapTraversalInput {
   override val traversalCount = 0
 
   init {
     check(scenarioLoopsPerGraph >= 1) {
       "There should be at least 1 scenario loop per heap dump"
+    }
+    check(heapDumpCount == null || heapDumpCount >= 1) {
+      "heapDumpCount should be at least 1 or null, not $heapDumpCount"
     }
   }
 
@@ -66,6 +80,7 @@ class FirstHeapTraversal constructor(
 ) : HeapTraversalOutput {
   override val traversalCount = 1
   override val scenarioLoopsPerGraph = previousTraversal.scenarioLoopsPerGraph
+  override val heapDumpCount = previousTraversal.heapDumpCount
 }
 
 class HeapDiff(
@@ -82,6 +97,8 @@ class HeapDiff(
   val isGrowing: Boolean get() = growingObjects.isNotEmpty()
 
   override val scenarioLoopsPerGraph = previousTraversal.scenarioLoopsPerGraph
+  override val heapDumpCount = previousTraversal.heapDumpCount
+
   override fun toString(): String {
     return "HeapGrowthTraversal(traversal=$traversalCount, " +
       "isGrowing=$isGrowing, " +

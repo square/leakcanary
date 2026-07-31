@@ -118,6 +118,47 @@ class HprofRetainedHeapPerfTest {
     assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.47 MB +-5 % margin)
   }
 
+  @Test fun `freeze retained memory when computing leak shares`() {
+    // Created outside of the analysis thread so that the dump bytes aren't part of what it retains.
+    val dumps = growingHeapDumps(dumpCount = 2, stableEntryCount = 20_000, growthPerDump = 2)
+
+    val (baselineHeap, heapWhenComputingLeakShares) = runInThread(ANALYSIS_THREAD) {
+      val baselineHeap = dumpHeap("baseline")
+      lateinit var heapWhenComputingLeakShares: File
+      val referenceMatchers = JvmObjectGrowthReferenceMatchers.defaults
+      val realGcRootProvider = MatchingGcRootProvider(referenceMatchers)
+      val detector = ObjectGrowthDetector(
+        gcRootProvider = object : GcRootProvider {
+          private var previousGraph: HeapGraph? = null
+
+          override fun provideGcRoots(graph: HeapGraph): Sequence<GcRootReference> {
+            // Being asked for the gc roots of a graph a 2nd time is the leak share computation
+            // starting, at which point everything the traversal allocated is still reachable.
+            if (graph === previousGraph) {
+              heapWhenComputingLeakShares = dumpHeap("computing-leak-shares")
+            }
+            previousGraph = graph
+            return realGcRootProvider.provideGcRoots(graph)
+          }
+        },
+        referenceReaderFactory = OpenJdkReferenceReaderFactory(referenceMatchers)
+      )
+      var previousTraversal: HeapTraversalInput = InitialState(scenarioLoopsPerGraph = 1)
+      dumps.forEach { dump ->
+        previousTraversal = dump.openHeapGraph().use { graph ->
+          detector.findGrowingObjects(graph, previousTraversal)
+        }
+      }
+      check((previousTraversal as HeapDiff).isGrowing)
+      baselineHeap to heapWhenComputingLeakShares
+    }
+
+    val retained = heapWhenComputingLeakShares.retainedHeap(ANALYSIS_THREAD).first -
+      baselineHeap.retainedHeap(ANALYSIS_THREAD).first
+
+    assertThat(retained).isEqualTo(1.56 MB +-5 % margin)
+  }
+
   private fun indexRecordsOf(hprofFile: File): HprofIndex {
     return HprofIndex.indexRecordsOf(
       hprofSourceProvider = FileSourceProvider(hprofFile),
