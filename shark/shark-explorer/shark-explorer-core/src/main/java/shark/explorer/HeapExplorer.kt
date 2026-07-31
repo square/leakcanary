@@ -4,6 +4,7 @@ import java.io.Closeable
 import java.io.File
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import shark.AndroidObjectSizeCalculator
+import shark.CancelSignal
 import shark.CloseableHeapGraph
 import shark.GcRoot
 import shark.GcRootProvider
@@ -43,10 +44,16 @@ class HeapExplorer private constructor(
      * Opens [heapDumpFile], indexes it, works out what's reachable and builds the dominator tree, which
      * takes seconds and a few hundred MB of heap on a large dump. [onProgress] is called with a
      * description of each step as it starts.
+     *
+     * [cancelSignal] stops this and **every later read of the heap dump**, because the graph is asked on
+     * every record it reads and the tree keeps that graph. So it belongs to whoever owns the open heap
+     * dump: a signal that only means "stop opening" would go on cancelling reads long after this
+     * returned.
      */
     fun open(
       heapDumpFile: File,
-      onProgress: (String) -> Unit = {}
+      onProgress: (String) -> Unit = {},
+      cancelSignal: CancelSignal = CancelSignal.NEVER
     ): HeapExplorer {
       SharkLog.d { "Opening heap dump $heapDumpFile, ${formatByteSize(heapDumpFile.length())}" }
       val startNanos = System.nanoTime()
@@ -56,7 +63,10 @@ class HeapExplorer private constructor(
       // the 188 K roots — interned strings and the runtime's internals. An explorer has to say where
       // every object is held, so dropping a root kind means calling 45 K live objects garbage.
       val graph = steps.run("Indexing ${heapDumpFile.name}") {
-        heapDumpFile.openHeapGraph(indexedGcRootTypes = HprofRecordTag.rootTags)
+        heapDumpFile.openHeapGraph(
+          indexedGcRootTypes = HprofRecordTag.rootTags,
+          cancelSignal = cancelSignal
+        )
       }
       try {
         val strengthReader = ReferenceStrengthReader(graph)

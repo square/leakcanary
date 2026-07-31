@@ -44,11 +44,20 @@ laid out, labelled view is a `TreemapPresentation` or a `RadialPresentation`, an
 The one thing that isn't thread safe is a `Sequence` a `HeapGraph` hands out — iterating one reads
 through it — so a thread reading `graph.objects` needs its own rather than a shared one.
 
-**A read that has been submitted can't be called off.** Cancelling the coroutine that asked for it, which
-is what a `LaunchedEffect` being relaunched does, only stops anything from waiting for the answer: the
-block is already queued on that one thread and runs to the end, since nothing inside a layout or a
-summary is a cancellation point. So dragging a window edge pays in full for every size it passes through,
-and the read that draws the size it lands on waits behind all of them.
+**Cancelling the coroutine that asked for a read stops the read**, which is what a `LaunchedEffect`
+being relaunched does. Shark does the stopping, not us: the heap dump is opened with a `CancelSignal`
+asking whether the read in flight is still wanted, and it's asked on every record read, so the work
+gives up shortly after the question is withdrawn and comes back as a `CancellationException`. A read
+given up on while it was still queued never starts at all. So dragging a window edge costs the size it
+lands on and a little of each size it passed through, rather than all of them in full.
+
+Two things follow. **A read is only cancellable at the granularity of what it reads** — a stretch that
+computes without reading, like a layout over an already-labelled tree, stops when it next reads — so the
+`HOVER_SETTLE_MILLIS` half of this, not starting work that isn't wanted yet, still earns its keep.
+And **anything a read mutates has to survive being abandoned half way**: today's reads are safe because
+the built-on-first-use indexes are `by lazy` initializers that build a whole object before assigning it
+(a cancelled build is simply retried, since `lazy` doesn't cache a failure), and the walks reuse arrays
+stamped with a generation per walk rather than cleared at the end.
 
 **The pointer asks questions on that thread too**, because moving over a rectangle describes it. Which is
 why nothing is read until the pointer has been still for `HOVER_SETTLE_MILLIS`, and why what a hover asks

@@ -32,6 +32,7 @@ import java.awt.FileDialog
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import shark.SharkLog
 import shark.explorer.CommandLineAdb
 import shark.explorer.DeviceHeapDumps
@@ -164,6 +165,11 @@ fun ExplorerApp(
       HeapDumpState.Open(session, sizes, bitmapPixels).also {
         SharkLog.d { "${it.statusLine()} · ${sizes.strengthsText()}" }
       }
+    } catch (cancellation: CancellationException) {
+      // Not a failure to show: this window is closing, or is already opening another heap dump. Rethrown
+      // rather than caught below, because the state of a window nobody is looking at must not become the
+      // state of the window that replaced it.
+      throw cancellation
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not open $file" }
       HeapDumpState.Failed(file, throwable.toString())

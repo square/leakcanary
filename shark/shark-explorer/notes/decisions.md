@@ -75,6 +75,29 @@ reads the object it stands for. Resizing the window therefore queues behind what
 is doing. One thread is also a choice rather than a constraint — the graph would take a pool — so if
 layout ever becomes the bottleneck, that's where to look.
 
+## A read stops when nobody is waiting for it any more
+
+One thread means a queue, and a UI asks questions it stops wanting: a window being dragged asks for a
+layout per size it passes through, a pointer crossing a treemap asks about rectangles it has already left.
+Every one of those that runs to its end is time the answer the user is waiting for spends queued.
+
+Shark cancels its own work — `CancelSignal`, asked on every record read and at the long stretches of an
+analysis — so the explorer doesn't have to find cancellation points of its own. `HeapDumpSession` opens
+the heap dump with one signal for the life of it, and that signal reports the read currently in flight as
+unwanted as soon as the coroutine that asked for it is no longer active. Which coroutine that is comes
+from `withContext`, so cancelling a `LaunchedEffect` is all a caller does. A read given up on while it was
+still queued never starts: the dispatcher drops a cancelled coroutine rather than running it.
+
+Two consequences worth knowing:
+
+- **Cancellation lands where the read reads.** A stretch that computes without reading finishes first. So
+  the point of `HOVER_SETTLE_MILLIS` isn't gone — not starting a read still beats stopping one.
+- **A read has to be safe to abandon half way.** Which today's are: the indexes built on first use are
+  `by lazy`, whose initializers build a whole object before assigning it and don't cache a failure, so a
+  cancelled build is retried rather than half kept. The walks reuse their arrays across calls by stamping
+  entries with a generation per walk, so a walk that stopped mid-way leaves nothing to clear. Anything new
+  that mutates state a later read depends on has to hold to that.
+
 ## One dominator tree, covering the whole heap dump
 
 There is exactly one tree per open heap dump, built once, and it holds every object of the dump —
@@ -191,9 +214,9 @@ What made this affordable, on the 38 MB dump in the repo, over all 4,572 rectang
   hover pays for it, which is exactly the moment the app has to feel instant.
 - Describing one object, which is a summary, its dominator and the chain from a GC root: **median 0 ms, p90
   10 ms, worst 105 ms.** The chain alone is at most 20 ms of that.
-- A hover waits `HOVER_SETTLE_MILLIS` (100 ms) before reading anything. A submitted read can't be called
-  off (see above), so a pointer crossing forty rectangles would otherwise queue forty reads and the fortieth
-  would arrive long after the pointer stopped.
+- A hover waits `HOVER_SETTLE_MILLIS` (100 ms) before reading anything, so a pointer crossing forty
+  rectangles asks about the one it stops on rather than about all forty. Reads *can* be called off (see
+  above), which caps what the thirty-nine cost, but not starting them is still cheaper than stopping them.
 - `independentPathsTo` — every way an object is held, which is the expensive question — is **only asked for
   the object clicked.** A hovered object's panel says so rather than answering it.
 
