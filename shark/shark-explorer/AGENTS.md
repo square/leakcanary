@@ -57,10 +57,17 @@ through it — so a thread reading `graph.objects` needs its own rather than a s
 
 ## The app icon is generated, and its macOS shape is baked in
 
-`shark-explorer-app/icons/shark-explorer-icon.svg` is the source. The `.icns`, the `.ico` and
-`src/main/resources/shark-explorer-icon.png` next to it are **rendered from it** by
-`icons/render-icons.sh`, so edit the SVG and re-run that script rather than touching a binary. It
-needs `rsvg-convert` (`brew install librsvg`), and `iconutil`, which is macOS only.
+`shark-explorer-app/icons/shark-explorer-icon.svg` is the source, and
+`shark-explorer-icon-small.svg` beside it is the **same shark with the gills, teeth and brow left
+out**, for the sizes where those come out under a pixel. The `.icns`, the `.ico` and
+`src/main/resources/shark-explorer-icon.png` are **rendered from the two of them** by
+`icons/render-icons.sh`, which picks by size, so edit an SVG and re-run that script rather than
+touching a binary. It needs `rsvg-convert` (`brew install librsvg`), and `iconutil`, which is macOS
+only.
+
+**The two drawings share one transform**, hard coded rather than fitted twice, so that the shark
+doesn't shift when the dock crosses between them. Changing the shape in one means changing it in the
+other and keeping that transform identical.
 
 The SVG has the macOS app icon grid drawn into it — an 824x824 rounded body inside a 1024x1024
 canvas, with its own shadow — because jpackage ships an `.icns` and **nothing masks or insets that for

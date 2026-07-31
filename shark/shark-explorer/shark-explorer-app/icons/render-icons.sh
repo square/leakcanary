@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
-# Rasterises shark-explorer-icon.svg into the icons the build needs:
+# Rasterises the icon drawings into the icons the build needs:
 #
 #   shark-explorer-icon.icns              the macOS .dmg, via iconutil, so macOS only
 #   shark-explorer-icon.ico               the Windows .msi
 #   ../src/main/resources/                the window icon at runtime, and the Linux .deb
 #     shark-explorer-icon.png
 #
+# Both .icns and .ico hold one image per size, so the small sizes are rasterised from
+# shark-explorer-icon-small.svg, which is the same shark with the detail that would be under a pixel
+# left out. See the comment at the top of that file.
+#
 # Needs librsvg (brew install librsvg) for rsvg-convert, and python3 to pack the .ico, which has no
 # command line tool on macOS.
 set -euo pipefail
 
 cd "$(dirname "$0")"
-svg=shark-explorer-icon.svg
 runtime_png=../src/main/resources/shark-explorer-icon.png
 
-render() { rsvg-convert -w "$1" -h "$1" "$svg" -o "$2"; }
+# Where the teeth and the gills stop being worth drawing. At 64 a tooth is a pixel and a half of
+# grey along the jaw, at 128 it is three and reads as a tooth.
+detailed_from=128
+
+render() {
+  local size=$1 out=$2 svg=shark-explorer-icon-small.svg
+  if [ "$size" -ge "$detailed_from" ]; then svg=shark-explorer-icon.svg; fi
+  rsvg-convert -w "$size" -h "$size" "$svg" -o "$out"
+}
 
 # The runtime icon is a single PNG, so it has to be big enough for a Retina dock.
 mkdir -p "$(dirname "$runtime_png")"
