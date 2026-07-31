@@ -19,20 +19,20 @@ class ExplorerWindowTest {
   @get:Rule val logged = RecordedLog()
 
   @Test fun `an app started with no heap dump has one window to open one from`() {
-    val windows = explorerWindows(emptyList())
+    val windows = explorerWindows(noHeapDumps())
 
     assertThat(windows).hasSize(1)
     assertThat(windows.single().heapDumpFile).isNull()
   }
 
   @Test fun `every heap dump on the command line gets a window`() {
-    val windows = explorerWindows(listOf(FIRST_DUMP, SECOND_DUMP))
+    val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
 
     assertThat(windows.map { it.heapDumpFile }).containsExactly(FIRST_DUMP, SECOND_DUMP)
   }
 
   @Test fun `the first heap dump opens in the window that has none`() {
-    val windows = explorerWindows(emptyList())
+    val windows = explorerWindows(noHeapDumps())
 
     windows.openHeapDump(windows.single(), FIRST_DUMP)
 
@@ -43,7 +43,7 @@ class ExplorerWindowTest {
   }
 
   @Test fun `another heap dump opens in a window of its own`() {
-    val windows = explorerWindows(listOf(FIRST_DUMP))
+    val windows = explorerWindows(opening(FIRST_DUMP))
     val first = windows.single()
 
     windows.openHeapDump(first, SECOND_DUMP)
@@ -56,7 +56,7 @@ class ExplorerWindowTest {
   }
 
   @Test fun `the same heap dump twice is two windows`() {
-    val windows = explorerWindows(listOf(FIRST_DUMP))
+    val windows = explorerWindows(opening(FIRST_DUMP))
 
     windows.openHeapDump(windows.single(), FIRST_DUMP)
 
@@ -66,7 +66,7 @@ class ExplorerWindowTest {
   }
 
   @Test fun `no two windows open at the same place`() {
-    val windows = explorerWindows(listOf(FIRST_DUMP, SECOND_DUMP))
+    val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
 
     windows.openHeapDump(windows.first(), FIRST_DUMP)
 
@@ -76,7 +76,7 @@ class ExplorerWindowTest {
   }
 
   @Test fun `a window opens where a closed one was`() {
-    val windows = explorerWindows(listOf(FIRST_DUMP, SECOND_DUMP))
+    val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
     windows -= windows.first()
 
     windows.openHeapDump(windows.single(), FIRST_DUMP)
@@ -87,7 +87,7 @@ class ExplorerWindowTest {
   }
 
   @Test fun `a window is named after the heap dump it shows`() {
-    val windows = explorerWindows(listOf(FIRST_DUMP))
+    val windows = explorerWindows(opening(FIRST_DUMP))
 
     // Which is what tells one window from another in the window list of the OS, where every window of
     // an app is otherwise the app.
@@ -95,9 +95,39 @@ class ExplorerWindowTest {
     assertThat(ExplorerWindow(null).title).isEqualTo(APP_NAME)
   }
 
+  @Test fun `a run given a title says it in front of every window name`() {
+    val windows = explorerWindows(opening(FIRST_DUMP, titlePrefix = TITLE))
+
+    // Which is what tells one explorer from another, where a heap dump opened twice for two reasons is
+    // otherwise the same window twice.
+    assertThat(windows.single().title).isEqualTo("$TITLE · ${FIRST_DUMP.name}")
+    assertThat(explorerWindows(noHeapDumps(titlePrefix = TITLE)).single().title)
+      .isEqualTo("$TITLE · $APP_NAME")
+  }
+
+  @Test fun `a heap dump opened into a window of its own keeps the run's title`() {
+    val windows = explorerWindows(opening(FIRST_DUMP, titlePrefix = TITLE))
+
+    windows.openHeapDump(windows.single(), SECOND_DUMP)
+
+    // Every window of one explorer belongs to whatever that explorer was started for, however many heap
+    // dumps end up open in it.
+    assertThat(windows.map { it.title })
+      .containsExactly("$TITLE · ${FIRST_DUMP.name}", "$TITLE · ${SECOND_DUMP.name}")
+  }
+
+  private fun noHeapDumps(titlePrefix: String? = null) =
+    ExplorerArguments(heapDumpFiles = emptyList(), titlePrefix = titlePrefix)
+
+  private fun opening(
+    vararg heapDumpFiles: File,
+    titlePrefix: String? = null
+  ) = ExplorerArguments(heapDumpFiles = heapDumpFiles.toList(), titlePrefix = titlePrefix)
+
   companion object {
     /** Never opened, so these don't have to exist. */
     private val FIRST_DUMP = File("first.hprof")
     private val SECOND_DUMP = File("second.hprof")
+    private const val TITLE = "Hover previews"
   }
 }

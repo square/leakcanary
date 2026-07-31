@@ -23,7 +23,9 @@ internal class ExplorerWindow(
    * the same one, so a window opened from another lands beside it rather than exactly over it. Where
    * that is, is `cascadedPosition`.
    */
-  val cascade: Int = 0
+  val cascade: Int = 0,
+  /** What this run calls its windows, in front of the heap dump. See [ExplorerArguments.titlePrefix]. */
+  val titlePrefix: String? = null
 ) {
 
   /** Null in the window the app starts with when it was given no heap dump to open. */
@@ -37,22 +39,28 @@ internal class ExplorerWindow(
   var bitmapPixels: NativeBitmapPixels? by mutableStateOf(bitmapPixels)
 
   /**
-   * Which heap dump this window is, for the window list of the OS: several windows all called after the
-   * app tell you nothing about which one to switch to.
+   * Which heap dump this window is, and which run it belongs to, for the window list of the OS: several
+   * windows all called after the app tell you nothing about which one to switch to.
    */
-  val title: String get() = heapDumpFile?.name ?: APP_NAME
+  val title: String
+    get() = listOfNotNull(titlePrefix, heapDumpFile?.name ?: APP_NAME).joinToString(TITLE_SEPARATOR)
 }
 
 /**
  * A window per heap dump named on the command line, or one window with none — something has to carry
  * the button that opens the first one.
  */
-internal fun explorerWindows(heapDumpFiles: List<File>): SnapshotStateList<ExplorerWindow> =
+internal fun explorerWindows(arguments: ExplorerArguments): SnapshotStateList<ExplorerWindow> =
   mutableStateListOf<ExplorerWindow>().apply {
-    if (heapDumpFiles.isEmpty()) {
-      add(ExplorerWindow(null))
+    val titlePrefix = arguments.titlePrefix
+    if (arguments.heapDumpFiles.isEmpty()) {
+      add(ExplorerWindow(null, titlePrefix = titlePrefix))
     } else {
-      addAll(heapDumpFiles.mapIndexed { index, file -> ExplorerWindow(file, cascade = index) })
+      addAll(
+        arguments.heapDumpFiles.mapIndexed { index, file ->
+          ExplorerWindow(file, cascade = index, titlePrefix = titlePrefix)
+        }
+      )
     }
   }
 
@@ -71,7 +79,16 @@ internal fun MutableList<ExplorerWindow>.openHeapDump(
 ) {
   val isWindowOfItsOwn = window.heapDumpFile != null
   if (isWindowOfItsOwn) {
-    add(ExplorerWindow(heapDumpFile, bitmapPixels, cascade = freeCascade()))
+    // Named after the same run as the window it was opened from: every window of one explorer belongs to
+    // whatever that explorer was started for, however many heap dumps end up open in it.
+    add(
+      ExplorerWindow(
+        heapDumpFile,
+        bitmapPixels,
+        cascade = freeCascade(),
+        titlePrefix = window.titlePrefix
+      )
+    )
   } else {
     window.heapDumpFile = heapDumpFile
     window.bitmapPixels = bitmapPixels
@@ -83,6 +100,9 @@ internal fun MutableList<ExplorerWindow>.openHeapDump(
     "Opening ${heapDumpFile.name} in $where"
   }
 }
+
+/** Between what a run is called and which heap dump a window shows, as elsewhere in this window. */
+private const val TITLE_SEPARATOR = " · "
 
 /** The first step of the cascade no window is at, which is where the next window goes. */
 private fun List<ExplorerWindow>.freeCascade(): Int =

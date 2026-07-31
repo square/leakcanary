@@ -48,14 +48,26 @@ fun main(args: Array<String>) {
   // back after it. See [installLogging].
   installLogging().use {
     SharkLog.d { "Started with ${if (args.isEmpty()) "no arguments" else args.joinToString(" ")}" }
+    val arguments = try {
+      ExplorerArguments.parse(args.toList())
+    } catch (invalidArguments: IllegalArgumentException) {
+      // Said on stdout and in the log rather than thrown, because a command line nobody can read is a
+      // message to whoever typed it and not a crash to report.
+      SharkLog.d { invalidArguments.message.orEmpty() }
+      return@use
+    }
+    // What the arguments above were taken to mean, which is not obvious from them: a shell, Gradle's
+    // `--args` and a run configuration each split a quoted title differently, and a title split in two
+    // reads as one on the line above.
+    SharkLog.d { "Read that as $arguments" }
     // Heap dump paths on the command line open straight away, which is how this is usually run.
-    explorerApplication(args.map(::File))
+    explorerApplication(arguments)
   }
 }
 
 /** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
-private fun explorerApplication(heapDumpFiles: List<File>) = application {
-  val windows = remember { explorerWindows(heapDumpFiles) }
+private fun explorerApplication(arguments: ExplorerArguments) = application {
+  val windows = remember { explorerWindows(arguments) }
   windows.forEach { window ->
     // Keyed on the window, so that closing one doesn't hand its size and position to the next one along.
     key(window) {
