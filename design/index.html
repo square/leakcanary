@@ -1,0 +1,1942 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A memory leak detection library for Android">
+      
+      
+        <meta name="author" content="Square, Inc.">
+      
+      
+        <link rel="canonical" href="https://square.github.io/leakcanary/design/">
+      
+      
+        <link rel="prev" href="../fundamentals-fixing-a-memory-leak/">
+      
+      
+        <link rel="next" href="../history/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../images/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Design decisions - LeakCanary</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-orange" data-md-color-accent="deep-purple">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#design-decisions" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+        <aside class="md-banner">
+          <div class="md-banner__inner md-grid md-typeset">
+            
+             
+   Upgrade to <a href="../changelog/">LeakCanary <strong>2.14</strong></a> 🐤 Want to help?  <a href="../how_to_help/">Here's how you can contribute<a> 🙏
+
+          </div>
+          
+        </aside>
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="LeakCanary" class="md-header__button md-logo" aria-label="LeakCanary" data-md-component="logo">
+      
+  <img src="../images/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            LeakCanary
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Design decisions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/square/leakcanary" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    LeakCanary
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="LeakCanary" class="md-nav__button md-logo" aria-label="LeakCanary" data-md-component="logo">
+      
+  <img src="../images/logo.png" alt="logo">
+
+    </a>
+    LeakCanary
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/square/leakcanary" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    LeakCanary
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Fundamentals
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fundamentals-how-leakcanary-works/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How LeakCanary works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fundamentals-fixing-a-memory-leak/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fixing a memory leak
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design decisions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design decisions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#one-object-not-a-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One object, not a number
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#watch-then-confirm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watch, then confirm
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-analysis-runs-on-the-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The analysis runs on the device
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-the-dependency-is-the-whole-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding the dependency is the whole setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-leak-trace-is-chosen-to-be-understood" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The leak trace is chosen to be understood
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references-are-shown-the-way-you-would-write-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References are shown the way you would write them
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-trace-reads-from-the-roots-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The trace reads from the roots down
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-trace-names-suspects-not-just-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A trace names suspects, not just references
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#leaks-you-cant-fix-are-reported-separately-not-hidden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leaks you can&rsquo;t fix are reported separately, not hidden
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-report-comes-to-you" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The report comes to you
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-heap-analyzer-several-places-to-run-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One heap analyzer, several places to run it
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../history/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    History
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LeakCanary at scale
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    LeakCanary at scale
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ui-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Leak detection in UI tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uploading/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uploading analysis results
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../leakcanary-for-releases/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LeakCanary for releases
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Help & Community
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Help & Community
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Support
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../upgrading-to-leakcanary-2.0/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrading to LeakCanary 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recorded-presentations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recorded Presentations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blog-articles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blog Articles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack Overflow ⏏
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_8" id="__nav_5_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code_of_conduct/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-env/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dev Environment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../releasing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Releasing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how_to_help/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How to help
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shark
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Shark
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/shark/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shark API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LeakCanary API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Change Log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#one-object-not-a-number" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One object, not a number
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#watch-then-confirm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watch, then confirm
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-analysis-runs-on-the-device" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The analysis runs on the device
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-the-dependency-is-the-whole-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding the dependency is the whole setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-leak-trace-is-chosen-to-be-understood" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The leak trace is chosen to be understood
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references-are-shown-the-way-you-would-write-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References are shown the way you would write them
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-trace-reads-from-the-roots-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The trace reads from the roots down
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#a-trace-names-suspects-not-just-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A trace names suspects, not just references
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#leaks-you-cant-fix-are-reported-separately-not-hidden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leaks you can&rsquo;t fix are reported separately, not hidden
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-report-comes-to-you" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The report comes to you
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#one-heap-analyzer-several-places-to-run-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One heap analyzer, several places to run it
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+  
+    
+  <span style="float: right">🤔 Documentation issue? <a href="https://github.com/square/leakcanary/issues/new?assignees=&labels=type%3A+documentation&template=4-doc.md&title=Doc%20issue%20with%20design/%20page">Report</a> or <a href="https://github.com/square/leakcanary/edit/main/docs/design.md">edit</a></span>
+    
+  
+  
+    
+  
+  
+  <h1 id="design-decisions">Design decisions<a class="headerlink" href="#design-decisions" title="Permanent link">&para;</a></h1>
+<p>LeakCanary is opinionated, and this page is about the opinions: what each part of it optimizes for,
+and what that choice costs. <a href="../fundamentals-how-leakcanary-works/">How LeakCanary works</a> describes
+what happens; this page is about why it happens that way.</p>
+<h2 id="one-object-not-a-number">One object, not a number<a class="headerlink" href="#one-object-not-a-number" title="Permanent link">&para;</a></h2>
+<p>Memory leaks announce themselves through symptoms that can&rsquo;t be traced back to a cause. Accumulated
+leaks increase memory pressure, make the garbage collector run more often, which surfaces as jank and
+<code>Application Not Responding</code> freezes, and eventually as an <code>OutOfMemoryError</code> thrown from wherever
+the app happened to be — so every OOM has a different stack trace, and a thousand of them look like
+a thousand unrelated crashes instead of one bug. Aggregate memory measurements have the same
+problem in a milder form: they tell you that something is wrong without telling you what to change.</p>
+<p>So LeakCanary works from the other end. Instead of watching memory, it watches individual objects.
+The app states that a particular object is done and should be deleted, and LeakCanary checks that
+expectation. When the expectation is broken, the answer isn&rsquo;t a number, it&rsquo;s an object and the chain
+of references keeping it alive — something you can go and change.</p>
+<p>That object is a symptom too — but unlike the others, it&rsquo;s one that leads somewhere. Nothing about it
+is wrong: it reached the end of its life exactly when it was supposed to. The bug is a reference that
+should have been cleared and wasn&rsquo;t, and since that reference is what holds the object, it has to be
+somewhere on the chain. Retention is worth detecting precisely because it&rsquo;s the symptom that can be
+followed back to the cause.</p>
+<p>The cost of that decision is that LeakCanary has to be told what to expect. It knows Android&rsquo;s
+lifecycles, so destroyed activities, destroyed fragments and their views, cleared view models and
+destroyed services are watched for you. Anything else — a presenter, a detached view, a scope of
+your own — LeakCanary can only check if you hand it over.</p>
+<p>Detection is also incremental by design: the objects reported by one analysis aren&rsquo;t carried into the
+next one, so a leak you&rsquo;ve already been told about doesn&rsquo;t come back at you on every heap dump. The
+alternative — scanning the whole heap for every object of a type known to have a lifecycle — finds
+more leaks and is available for the runs where that&rsquo;s what you want, like a test suite, at the price
+of surfacing the same objects over and over for the rest of a process&rsquo;s life.</p>
+<h2 id="watch-then-confirm">Watch, then confirm<a class="headerlink" href="#watch-then-confirm" title="Permanent link">&para;</a></h2>
+<p>An object that is still reachable a moment after its lifecycle ends is not evidence of anything, so
+LeakCanary holds a weak reference to the watched object and waits five seconds before concluding
+anything. That wait is not about the garbage collector. Android holds objects temporarily through
+messages posted to the main thread with a delay — a blinking cursor, a fling settling, an animation
+finishing — and those references clear themselves once the message runs. Five seconds is the window
+judged long enough for that backlog to drain.</p>
+<p>An object still held after that wait is <strong>retained</strong>, and only then is the heap worth looking at.</p>
+<p>What LeakCanary waits for is weak reachability, not collection. A weak reference is enqueued as soon
+as its target becomes weakly reachable, before finalization or collection has actually happened,
+which is the earliest moment at which the object is known not to be held — and the cheapest, since
+LeakCanary can then stop tracking it and forget about it. Watching therefore costs almost nothing for
+the objects that behave.</p>
+<p>The same caution decides when to dump the heap. Dumping freezes the app, and being frozen at random
+while you are trying to work is worse than hearing about a leak a little later — particularly since
+some of what you&rsquo;ll hear about can&rsquo;t be fixed from app code at all. So while the app is visible
+LeakCanary waits until several objects are retained before dumping, and it accepts the trade
+explicitly: a higher threshold means fewer heap dumps and less interruption, at the risk of missing
+leaks. Once the app is in the background or the screen is off, nothing is being interrupted and one
+retained object is enough. For the same reason LeakCanary doesn&rsquo;t dump the heap while a debugger is
+attached — a thread stopped on a breakpoint holds objects alive that aren&rsquo;t leaking.</p>
+<p>Choosing <em>what</em> to watch follows the same rule, because a report you learn to disbelieve is worse
+than no report. Some Android widgets keep a detached view around to reattach it later, and app
+developers do the same with dialogs, keeping one instance and calling <code>show()</code> and <code>hide()</code>. Watching
+every detached root view indiscriminately therefore reported leaks that were not leaks, and the
+watching was narrowed rather than left broad.</p>
+<h2 id="the-analysis-runs-on-the-device">The analysis runs on the device<a class="headerlink" href="#the-analysis-runs-on-the-device" title="Permanent link">&para;</a></h2>
+<p>A leak you have to go looking for is a leak that doesn&rsquo;t get fixed. Pull a heap dump off the device,
+open it in a heap analyzer, find the object, walk it back to the roots — every step is a step at
+which the leak stops being worth the trouble. LeakCanary&rsquo;s premise is that the report should arrive
+on its own, while you are still on the screen that leaked.</p>
+<p>That only works if the analysis is cheap enough to run on the device, in the app&rsquo;s own process,
+which is why LeakCanary 2 replaced its heap parser with one written from scratch for a small memory
+footprint: a 160 MB heap dump that takes 2 GB of memory to open in Android Studio opens in 40 MB with
+Shark. Before that, the analysis had to run in a separate process, and every app needed code in
+its <code>Application</code> class to avoid initializing itself there. Fitting the analysis into the app process
+removed that requirement. A separate process is still available for apps where in-process analysis is
+too expensive, but it is now an option rather than the default. Getting to that number took
+<a href="../history/#four-heap-parsers">four parsers</a>, three of them replaced for the same reason.</p>
+<p>Analyzing on the device also means the heap dump never has to go anywhere. A heap dump contains
+everything that was in memory, which for a real app includes user data, credentials and keys. That&rsquo;s
+why LeakCanary can strip a heap dump of its data before you share one, and why analysis in production
+is set up to keep heap dumps in storage private to the app and to offer stripping as the analysis&rsquo;s
+first step, at the cost of processing time and for the benefit of a shorter window during which that
+data exists on disk.</p>
+<h2 id="adding-the-dependency-is-the-whole-setup">Adding the dependency is the whole setup<a class="headerlink" href="#adding-the-dependency-is-the-whole-setup" title="Permanent link">&para;</a></h2>
+<p>Every setup step is a step that can be skipped, done wrong, or lost in a merge. So LeakCanary has no
+setup step: on Android, content providers are created before <code>Application.onCreate()</code> is called, and
+LeakCanary declares one in its own manifest, which is enough for it to start itself. There is nothing
+to call and nothing to remember.</p>
+<p>The flip side is that a tool which installs itself must not be able to ship. LeakCanary is a
+development tool — it freezes the app, writes heap dumps to storage and posts notifications — so it
+is meant to be a debug-only dependency, which is also why it adds zero methods to a release build:
+it isn&rsquo;t in one. Documentation alone didn&rsquo;t prevent apps from shipping it, so a mistake that used to
+be silent is now loud: LeakCanary refuses to start in a build that isn&rsquo;t debuggable, and says how to
+fix the dependency declaration or, if you really meant it, how to allow it.</p>
+<p>The same reasoning disables LeakCanary in tests. Watching continuously, freezing the VM and
+reporting through notifications is right for someone using an app and wrong for a test run, so
+automatic heap dumping turns itself off when JUnit is found on the runtime classpath. Tests that do
+want leak detection ask for it explicitly, at the point in the test where it makes sense.</p>
+<h2 id="the-leak-trace-is-chosen-to-be-understood">The leak trace is chosen to be understood<a class="headerlink" href="#the-leak-trace-is-chosen-to-be-understood" title="Permanent link">&para;</a></h2>
+<p>There are usually a great many paths of references from the garbage collection roots to a retained
+object, and LeakCanary reports exactly one of them. Any of them would be correct; which one it picks
+decides how much work it is to find the bad reference in it.</p>
+<p>Start from what a leak usually is: <strong>a single bad reference</strong>. If that is what holds the object, then
+<em>every</em> path from the roots to that object goes through it. Every candidate path contains the answer.</p>
+<p>That is what makes the choice free. Since correctness doesn&rsquo;t separate the paths, what&rsquo;s left to
+optimize is how much work it is to read one. A shorter path holds fewer references, and fewer
+references means fewer things to rule out before you reach the one that matters. So LeakCanary
+reports the shortest path.</p>
+<p><strong>But shortness was never the goal.</strong> The shortest path is a <em>proxy</em> for the path that is easiest to
+understand, and that proxy comes apart in places. The clearest case is a reference held by a local
+variable on a running thread: those often yield the shortest path in the heap, and they are among the
+hardest to act on. You are told that a thread&rsquo;s stack is holding your object, and Android heap dumps
+carry no stack trace data, so LeakCanary can&rsquo;t even tell you which method. Given a short path through
+a thread&rsquo;s stack and a longer one through ordinary fields, the longer one is the one that teaches you
+something.</p>
+<p>So where the proxy (shortest path) and the goal (easiest to understand) disagree, the goal wins: some
+references are explored only after every other reference has been. Any path that avoids them is found first and reported, and a path
+through them is used only when there is no other. Two kinds of reference are treated that way:</p>
+<ul>
+<li>References that are hard for a developer to interpret, local variables on a thread being the main
+  example.</li>
+<li>References that match a known leak in library code. Preferring paths that avoid them means that
+  when your app has a leak of its own, that&rsquo;s the leak you hear about, rather than a framework bug
+  that happens to sit on a shorter path.</li>
+</ul>
+<p>A few references are left out entirely rather than deprioritized, because a path through them says
+nothing at all. The references that don&rsquo;t keep their target alive — the referent of a weak, soft or
+phantom reference, the links of the finalizer list — cannot be the reason an object is still in
+memory. Neither can the stack of the thread that watches over finalization: if that is what holds
+your object, the object was about to be collected. Locals on the main thread are excluded on the same
+grounds, since the main thread&rsquo;s stack is ever changing and unlikely to hold anything for long, so a
+path through it is a hint that a longer path with the real leak on it exists.</p>
+<div class="admonition note">
+<p class="admonition-title">A weak reference doesn&rsquo;t guarantee its target can be collected</p>
+<p>Reading a weak reference hands back an ordinary strong reference, stored into a local variable on
+the stack, and some collectors then treat that object as strongly reachable for the rest of the
+collection cycle. An object whose weak
+reference is read on a loop — animations do this to their target once per frame — therefore
+survives every cycle that overlaps a read, and can sit in memory for as long as the loop runs,
+even though nothing but weak references point at it. Where that is known to happen, LeakCanary
+puts the reference back on the graph as one of the deprioritized kind above, so that a trace can
+reach the object without that path ever being preferred. <a href="../faq/#why-does-leakcanary-report-unreachable-objects">Why does LeakCanary report unreachable
+objects?</a> walks through the case this was
+built for.</p>
+</div>
+<p>A path that goes through <em>another</em> retained object is left out too, for a related reason: it would
+only tell you to go and fix that other leak first, and that other leak has a trace of its own in the
+same results. So what you get is the shortest path that goes through neither a deprioritized
+reference nor another leaking object. It is frequently not the shortest path in the heap. It is the
+one chosen to be easiest to act on.</p>
+<p>One consequence is worth stating: because leaks are grouped by the references they blame, path
+selection has to be deterministic. Two analyses of the same bug that picked different paths would
+report it as two separate leaks, so the choice is pinned down all the way to visiting the garbage
+collection roots in a fixed order.</p>
+<div class="admonition note">
+<p class="admonition-title">More than one bad reference</p>
+<p>This section has assumed that a leak is a single bad reference. In practice there are sometimes
+two separate bugs — two bad references, both preventing the same object from being garbage
+collected. LeakCanary still presents a single leak trace, to keep things simple. Find that leak,
+fix it, run leak detection again, and the second one surfaces.</p>
+</div>
+<h2 id="references-are-shown-the-way-you-would-write-them">References are shown the way you would write them<a class="headerlink" href="#references-are-shown-the-way-you-would-write-them" title="Permanent link">&para;</a></h2>
+<p>A leak trace that walked a hash map the way a hash map is really built — through the table array,
+into a bucket, along a chain of nodes — would be accurate and nearly unreadable. Developers think of
+a map entry as <code>map["key"] = value</code>, not as <code>map.table[hash("key")].next.next.next = Node(value)</code>, so
+that is how LeakCanary presents it: the internals of common data structures collapse into the single
+reference a developer would have written.</p>
+<p>That readability decision has a second payoff. A trace that doesn&rsquo;t spell out the internals of the
+runtime&rsquo;s collections doesn&rsquo;t change when those internals change, so the same bug keeps the same
+signature across runtimes and versions, and stays grouped with itself.</p>
+<p>None of this is LeakCanary&rsquo;s invention. Showing a collection by its API rather than its internals is
+an old idea, long offered by debuggers and heap analyzers. What LeakCanary borrowed is the sharper
+version of it: abstracting <em>while</em> the graph is walked, rather than in a pass over the finished path.
+Compressing afterwards is the obvious alternative and it works badly — by the time there is a path,
+the context needed to describe what was collapsed has been thrown away. Both the idea and the name
+for the thing that does it — an <strong>expander</strong> — came from the Android Studio team, and the
+<a href="../history/#expanders-and-where-they-came-from">history page</a> has the provenance.</p>
+<h2 id="the-trace-reads-from-the-roots-down">The trace reads from the roots down<a class="headerlink" href="#the-trace-reads-from-the-roots-down" title="Permanent link">&para;</a></h2>
+<p>A leak trace is drawn as a chain: the garbage collection root at the top, the retained object at the
+bottom, and every reference on its own line between the two objects it connects. That direction is a
+choice, and not the obvious one. Ask a heap analyzer the same question and it answers the other way
+round: a path to garbage collection roots starts at the object you asked about and walks back. So
+does a stack trace, where the root of the call stack is at the bottom. The notes for LeakCanary 2&rsquo;s
+redesign argued for that convention on exactly those grounds, and it was
+<a href="../history/#leakcanary-2">prototyped and rejected</a>. Here is one of those prototypes, reading upwards
+from the leaking activity to the garbage collection root:</p>
+<div class="highlight"><pre><span></span><code>MainActivity¹ is leaking, see ╭?─╮ for the potential causes:
+╭→ MainActivity¹
+│    MainActivity leaking: Activity#mDestroyed is true
+├─ Button.mContext
+┊    Button leaking: View#mAttachInfo is null
+┊                    ╭?───╮
+├─ HttpRequestHelper.button
+┊               ╭?──────────────╮
+├─ MainActivity².httpRequestHelper
+│    MainActivity not leaking: Activity#mDestroyed is not true
+├─ LinearLayout¹.mContext
+│    LinearLayout not leaking: View#mAttachInfo is not null
+├─ Toast$TN.mNextView
+│    Toast$TN not leaking: LinearLayout¹ is not leaking
+┴
+</code></pre></div>
+<p>What settled it is the thing the rest of this page keeps coming back to: the bug is a reference, not
+an object. Read from the roots down and you are reading in the direction the references point, so
+each line answers &ldquo;and what does that hold?&rdquo; until the answer is an object that should have been
+gone. Read the other way and you are asking &ldquo;and what holds this?&rdquo; repeatedly, which is a good way to
+arrive at the object and a bad way to notice the reference that shouldn&rsquo;t exist. The same redesign
+gave each reference a line of its own under the object that holds it, for the same reason: version 1
+put the object and the reference it followed on one line, and what readers looked at was the class
+names. That is the same leak as the prototype above, as version 1 rendered it:</p>
+<div class="highlight"><pre><span></span><code>* com.example.leakcanary.MainActivity has leaked:
+* Toast$TN.mNextView
+* ↳ LinearLayout.mContext
+* ↳ MainActivity.!(httpRequestHelper)!
+* ↳ HttpRequestHelper.!(button)!
+* ↳ Button.mContext
+* ↳ MainActivity
+</code></pre></div>
+<p>The second decision is what <em>not</em> to put on those lines. A version 1 trace could be expanded into a
+detailed view that listed every field of every object in it. That existed for a good reason: it was
+the only way to find out anything about the state of the objects in the trace and reason about which
+reference was the bad one. But it is complete and unreadable — the two or three fields that explain
+something are buried in a hundred that don&rsquo;t — and it stopped being necessary once that reasoning
+could be encoded instead, as an inspector that reads an object and reports a status. So a trace shows
+the reference that was followed, and anything beyond that has to be put there on purpose, as a
+<strong>label</strong>: a short string an inspector attaches to an object because it says something useful about
+that object&rsquo;s state. The resource id name of a view, whether a service has been created, the fact
+that an object is a <code>Binder</code> stub — each of those is on a trace because someone made the case that it
+earns its line.</p>
+<p>That is a different thing from hiding. The path itself is never abridged: every reference from the
+root to the retained object is there to read. What&rsquo;s curated is the commentary around them, on the
+grounds that a trace which emphasizes everything emphasizes nothing.</p>
+<h2 id="a-trace-names-suspects-not-just-references">A trace names suspects, not just references<a class="headerlink" href="#a-trace-names-suspects-not-just-references" title="Permanent link">&para;</a></h2>
+<p>Every object in a leak trace has an expected state: either it should still be in memory, or it
+shouldn&rsquo;t. So a leak trace splits in two — an upper part of objects that belong in memory, a lower
+part of objects that don&rsquo;t — and the leak is the single reference that joins the two parts. That
+reference is the bug, and it is the only place the bug can be: everything above it is legitimately
+alive, everything below it should already be gone, and it is the one thing making the second group
+depend on the first.</p>
+<p>Finding that split is the whole job, which is why LeakCanary annotates the objects <em>along</em> the path
+instead of only listing the references between them. Each object is marked as known to be in memory
+for a good reason, known to be dead, or unknown. Everything above the last object known to be alive
+is ruled out, everything below the first object known to be dead is ruled out, and what&rsquo;s left is a
+window of unknowns that has to contain the bad reference. That window is what a leak trace
+highlights — and what identifies the leak, since leaks that blame the same references are the same
+bug.</p>
+<p>The window is also narrowed the same way by hand, and it collapses faster than it looks. The states
+are ordered: if an object belongs in memory then so does everything above it, and if an object
+doesn&rsquo;t then neither does anything below it. So answering the question for a <em>single</em> object in the
+middle of the window cuts the window roughly in half whichever way the answer comes out. Ten unknown
+objects are not ten investigations, they&rsquo;re about three — as long as you start in the middle instead
+of at one end.</p>
+<p>Every answer is worth keeping, too, because it is a fact about your own types that will be just as
+true on the next heap dump. So the knowledge is an extension point on purpose: an inspector reads an
+object and reports what you concluded, and LeakCanary reaches the same conclusion by itself from then
+on. It ships with what it knows about the Android framework — an application is a singleton and never
+leaks, a view whose context is a destroyed activity is leaking — and offers you the same hook for
+your own types. Your own code is exactly the code LeakCanary knows nothing about, so teaching it
+about your own lifecycles is what narrows traces in your own codebase.
+<a href="https://engineering.block.xyz/blog/the-leakcanary-method">The LeakCanary Method</a> works through that
+reasoning on a real leak, from the unknown window to the inspector that removes it.</p>
+<p>These verdicts are heuristics, so the bar for adding one is deliberately high: a decision is only
+made when the state it reads is unlikely to be the result of a programmer mistake. No matter how many
+mistakes you make in your own code, none of them will change whether an activity has been destroyed —
+which is what makes that a safe thing to conclude from, and what rules out reading state that your
+bugs could have set.</p>
+<p>That conservatism matters because a wrong &ldquo;not leaking&rdquo; verdict doesn&rsquo;t merely mislabel one object:
+the window starts at the last object known not to be leaking, so calling something alive when it
+isn&rsquo;t hides whatever was actually holding the leak.</p>
+<h2 id="leaks-you-cant-fix-are-reported-separately-not-hidden">Leaks you can&rsquo;t fix are reported separately, not hidden<a class="headerlink" href="#leaks-you-cant-fix-are-reported-separately-not-hidden" title="Permanent link">&para;</a></h2>
+<p>The Android framework and manufacturer ROMs contain leaks that no amount of app code will fix. Mixed
+in with your own leaks they are noise, and enough noise turns a leak report into something you stop
+reading. So LeakCanary keeps a database of known leak patterns, matches them by reference name, and
+reports what matches as <strong>Library Leaks</strong> in their own section, grouped by the pattern they matched
+rather than by their path.</p>
+<p>Reporting them at all, rather than suppressing them, is also deliberate:</p>
+<div class="admonition quote">
+<p class="admonition-title">Since I can&rsquo;t do much about this leak, is there a way I can ask LeakCanary to ignore it?</p>
+<p>There&rsquo;s no way for LeakCanary to know whether a leak is a Library Leak prior to dumping the heap
+and analyzing it. If LeakCanary didn&rsquo;t show the result notification when a Library Leak is found
+then you&rsquo;d start wondering what happened to the LeakCanary analysis after the dumping toast.</p>
+</div>
+<p>The same database does double duty: knowing that a reference is part of a known library leak is what
+lets the path search prefer any path that avoids it, so a library leak is what you&rsquo;re shown when it
+is the only thing there is to show.</p>
+<p>Entries are scoped to the Android versions and the manufacturers they apply to, because a leak that
+has since been fixed, or that only exists in one vendor&rsquo;s implementation, would otherwise be claimed
+on devices where it isn&rsquo;t there. And the database only grows the way it was built: by developers
+reporting the framework leaks LeakCanary doesn&rsquo;t recognize yet.</p>
+<h2 id="the-report-comes-to-you">The report comes to you<a class="headerlink" href="#the-report-comes-to-you" title="Permanent link">&para;</a></h2>
+<p>Analysis results are pushed, not pulled. When an analysis finishes, LeakCanary posts a notification
+and prints the result to Logcat, and tapping through leads to the details. Leaks that blame the same
+references are grouped into one entry, and marked as new the first time that entry appears, so a bug
+that leaks a hundred objects is one thing to read rather than a hundred.</p>
+<p>The launcher icon LeakCanary adds is there whether or not anything has leaked, because a tool that
+only appears when there&rsquo;s bad news is a tool you can&rsquo;t ask. Developers were confused when the icon
+went missing on a healthy app: they want to be able to go, see that nothing is leaking, and be
+reassured.</p>
+<h2 id="one-heap-analyzer-several-places-to-run-it">One heap analyzer, several places to run it<a class="headerlink" href="#one-heap-analyzer-several-places-to-run-it" title="Permanent link">&para;</a></h2>
+<p>The heap analysis is released as a standalone library rather than as an internal part of the Android
+library, in layers that can be used on their own: reading a heap dump, navigating the object graph,
+producing an analysis, and the Android-specific heuristics on top.</p>
+<p>That&rsquo;s what makes the same analysis available in each of the places a leak can be worth finding: in a
+debug build on a device, in UI tests on CI, from a workstation against any debuggable app without
+adding a dependency to it, in a plain JVM application, and — experimentally — in release builds in
+production. A leak found in one of those contexts is described in exactly the same terms as in
+another.</p>
+<p>What&rsquo;s next? Customize LeakCanary to your needs with <a href="../recipes/">code recipes</a>, or read about
+LeakCanary&rsquo;s <a href="../history/">history</a>.</p>
+  
+
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2015 Square, Inc.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://square.github.io/" target="_blank" rel="noopener" title="square.github.io" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M202.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1M496 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2m-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3m-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://twitter.com/Piwai" target="_blank" rel="noopener" title="twitter.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M459.4 151.7c.3 4.5.3 9.1.3 13.6 0 138.7-105.6 298.6-298.6 298.6-59.5 0-114.7-17.2-161.1-47.1 8.4 1 16.6 1.3 25.3 1.3 49.1 0 94.2-16.6 130.3-44.8-46.1-1-84.8-31.2-98.1-72.8 6.5 1 13 1.6 19.8 1.6 9.4 0 18.8-1.3 27.6-3.6-48.1-9.7-84.1-52-84.1-103v-1.3c14 7.8 30.2 12.7 47.4 13.3-28.3-18.8-46.8-51-46.8-87.4 0-19.5 5.2-37.4 14.3-53C87.4 130.8 165 172.4 252.1 176.9c-1.6-7.8-2.6-15.9-2.6-24C249.5 95.1 296.3 48 354.4 48c30.2 0 57.5 12.7 76.7 33.1 23.7-4.5 46.5-13.3 66.6-25.3-7.8 24.4-24.4 44.8-46.1 57.8 21.1-2.3 41.6-8.1 60.4-16.2-14.3 20.8-32.2 39.3-52.6 54.3"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://stackoverflow.com/questions/tagged/leakcanary?sort=active" target="_blank" rel="noopener" title="stackoverflow.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M291 311 95.3 269.7 87.1 309l195.7 41zm51-87L188.5 95.7 163 126.5l153.5 128.3zm-31.2 39.7L129.5 179l-16.7 36.5L294 300zM262.3 32l-32 24 119.3 160.3 32-24zm20.5 328h-200v39.7h200zm39.7 80H43V320H3v160h359.5V320h-40z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://www.linkedin.com/company/joinsquare/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3M135.4 416H69V202.2h66.5V416zM102.2 96a38.5 38.5 0 1 1 0 77 38.5 38.5 0 1 1 0-77m282.1 320h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["tabs"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
