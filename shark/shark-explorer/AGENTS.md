@@ -59,6 +59,9 @@ what was being read and how long it took. What that makes readable:
   didn't.
 - Everything the window does silently — a path zoomed out because a node left the tree, a click landing
   on an object the tree has no node for, a list that came back empty — says so there rather than nowhere.
+- A run is every window of it, and a window is a heap dump, so the reads of several dumps interleave.
+  The `[heap-dump-<file name>]` a line was written from is which dump it is about; lines from the
+  window's own thread name the file instead.
 
 Which is also the rule for new code here: **anything the UI swallows or falls back from gets a
 `SharkLog.d` line saying so.** The file is only worth reading if it's complete.
@@ -107,7 +110,8 @@ Windows and Linux title bar — macOS ignores it.
 ./gradlew :shark:shark-explorer:shark-explorer-app:test   # UI tests, headless, no emulator
 ./gradlew :shark:shark-explorer:shark-explorer-app:check   # test + detekt
 
-# Launch it. The path is optional; without one, use the "Open heap dump…" button.
+# Launch it. Paths are optional; without one, use the "Open heap dump…" button. One window per path,
+# and one per heap dump opened from the button — see `notes/decisions.md`.
 ./gradlew :shark:shark-explorer:shark-explorer-app:run \
   --args="shark/shark-android/src/test/resources/compose_leak.hprof"
 ```
@@ -132,6 +136,10 @@ it, so run it before pushing.
   line is built from state — an index into a path, a node id — so a line built from the wrong state
   should fail the test that reaches it rather than wait for a session nobody can read. Which means a
   test that leaves `SharkLog.logger` set breaks the ones after it, hence the `@After`.
+- **A `Window` needs a display, so nothing inside `application { }` is covered headless.** Which
+  window a heap dump opens in is plain state in `ExplorerWindow.kt`, unit tested by
+  `ExplorerWindowTest`. `ExplorerApp` is one window's worth of app and takes the heap dump it shows
+  as a parameter, so a UI test drives one window and nothing else.
 - **A click is a fraction of the view, never of the window.** `ExplorerAppTest.viewBounds` measures the
   view by its `contentDescription`, and every press helper is relative to that. Window fractions break
   the moment anything above the view changes height, which is a change to the top bar away.

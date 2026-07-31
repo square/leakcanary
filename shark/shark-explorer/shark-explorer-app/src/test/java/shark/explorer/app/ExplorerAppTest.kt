@@ -1,6 +1,10 @@
 package shark.explorer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -98,7 +102,7 @@ class ExplorerAppTest {
 
   @Test fun `nothing is open until a heap dump is chosen`() {
     runComposeUiTest {
-      setContent { MaterialTheme { ExplorerApp(chooseHeapDumpFile = { null }) } }
+      setExplorerContent()
 
       onNodeWithText(NO_HEAP_DUMP).assertIsDisplayed()
       onNodeWithText(OPEN_HEAP_DUMP).assertIsDisplayed()
@@ -117,7 +121,7 @@ class ExplorerAppTest {
   @Test fun `the chosen heap dump is opened`() {
     runComposeUiTest {
       val heapDumpFile = testHeapDump()
-      setContent { MaterialTheme { ExplorerApp(chooseHeapDumpFile = { heapDumpFile }) } }
+      setExplorerContent(chooseHeapDumpFile = { heapDumpFile })
 
       onNodeWithText(OPEN_HEAP_DUMP).performClick()
 
@@ -131,7 +135,7 @@ class ExplorerAppTest {
   @Test fun `a file that is not a heap dump is reported rather than crashing`() {
     runComposeUiTest {
       val notAHeapDump = testFolder.newFile("not-a-heap-dump.txt").apply { writeText("nope") }
-      setContent { MaterialTheme { ExplorerApp(initialHeapDumpFile = notAHeapDump) } }
+      setExplorerContent(notAHeapDump)
 
       waitUntilAtLeastOneExists(hasText("could not be opened", substring = true), OPEN_TIMEOUT_MILLIS)
     }
@@ -144,7 +148,7 @@ class ExplorerAppTest {
   @Test fun `a file that is not a heap dump is logged with what went wrong`() {
     runComposeUiTest {
       val notAHeapDump = testFolder.newFile("not-a-heap-dump.txt").apply { writeText("nope") }
-      setContent { MaterialTheme { ExplorerApp(initialHeapDumpFile = notAHeapDump) } }
+      setExplorerContent(notAHeapDump)
 
       waitUntilAtLeastOneExists(hasText("could not be opened", substring = true), OPEN_TIMEOUT_MILLIS)
     }
@@ -667,8 +671,22 @@ class ExplorerAppTest {
     }
   }
 
+  /**
+   * One window's worth of app, showing [heapDumpFile] and taking a chosen heap dump the way the window
+   * that has none does. Which window a chosen one lands in is `ExplorerWindowTest`'s.
+   */
+  private fun ComposeUiTest.setExplorerContent(
+    heapDumpFile: File? = null,
+    chooseHeapDumpFile: () -> File? = { null }
+  ) = setContent {
+    MaterialTheme {
+      var shown: File? by remember { mutableStateOf(heapDumpFile) }
+      ExplorerApp(shown, onHeapDumpChosen = { shown = it }, chooseHeapDumpFile = chooseHeapDumpFile)
+    }
+  }
+
   private fun ComposeUiTest.openHeapDump(heapDumpFile: File = testHeapDump()) {
-    setContent { MaterialTheme { ExplorerApp(initialHeapDumpFile = heapDumpFile) } }
+    setExplorerContent(heapDumpFile)
     waitUntilAtLeastOneExists(
       hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
       OPEN_TIMEOUT_MILLIS
