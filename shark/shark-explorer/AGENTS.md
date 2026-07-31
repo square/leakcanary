@@ -124,13 +124,21 @@ Windows and Linux title bar — macOS ignores it.
 # Launch it. Paths are optional; without one, use the "Open heap dump…" button. One window per path,
 # and one per heap dump opened from the button — see `notes/decisions.md`.
 ./gradlew :shark:shark-explorer:shark-explorer-app:run \
-  --args="shark/shark-android/src/test/resources/compose_leak.hprof"
+  --args="--title=\"Hover previews\" shark/shark-android/src/test/resources/compose_leak.hprof"
 ```
 
 The repo has real Android heap dumps to try it on: `shark/shark-android/src/test/resources/*.hprof`
 and `leakcanary/leakcanary-android-instrumentation/src/androidTest/assets/large-dump.hprof` (39 MB,
 the biggest one). All of them are from API 25 or earlier, so every bitmap in them carries its pixels —
 anything about a modern dump has to be tried on one taken off a device. See `notes/bitmaps.md`.
+
+**Launch with `--title` when starting the app for someone to look at.** Several explorers end up open
+at once — one per piece of work, often on the same heap dump — and the window title is all the OS gives
+you to tell them apart. `--title` goes in front of the heap dump name in every window of that run,
+including windows opened from it later, so name the run after the change it contains rather than
+leaving two identical `large-dump.hprof` windows on screen. `ExplorerArguments` is the whole command
+line, and it is strict: an unknown option is a message saying what to type, not a heap dump that can't
+be found.
 
 `check` runs detekt (config at `config/detekt-config.yml`); CI and the pre-push hook both enforce
 it, so run it before pushing.
