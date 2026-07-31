@@ -43,6 +43,12 @@ laid out, labelled view is a `TreemapPresentation` or a `RadialPresentation`, an
 The one thing that isn't thread safe is a `Sequence` a `HeapGraph` hands out — iterating one reads
 through it — so a thread reading `graph.objects` needs its own rather than a shared one.
 
+**A read that has been submitted can't be called off.** Cancelling the coroutine that asked for it, which
+is what a `LaunchedEffect` being relaunched does, only stops anything from waiting for the answer: the
+block is already queued on that one thread and runs to the end, since nothing inside a layout or a
+summary is a cancellation point. So dragging a window edge pays in full for every size it passes through,
+and the read that draws the size it lands on waits behind all of them.
+
 ## Every run writes a log file
 
 `installLogging()` in `shark-explorer-app` points `SharkLog` at stdout **and** at
@@ -132,10 +138,15 @@ it, so run it before pushing.
   tests can't find cells by tag. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on
   the details panel and breadcrumbs.
-- **`ExplorerAppTest` records `SharkLog` for every test**, not only for the two that assert on it. A log
+- **The UI tests record `SharkLog` for every test**, not only for the ones asserting on it. A log
   line is built from state — an index into a path, a node id — so a line built from the wrong state
-  should fail the test that reaches it rather than wait for a session nobody can read. Which means a
-  test that leaves `SharkLog.logger` set breaks the ones after it, hence the `@After`.
+  should fail the test that reaches it rather than wait for a session nobody can read. The `RecordedLog`
+  rule does the recording, and is a rule rather than a `@Before` because putting the logger back is the
+  part that isn't optional: a test that leaves `SharkLog.logger` set breaks every test after it.
+- **What the log says is also how often something happened.** Every read of the heap dump is one line
+  through `HeapDumpSession.read`, so counting them is what holds the window to laying the tree out once
+  per view asked for, which is what `TreeLayoutTest` does. Those counts are sound because reads queue on
+  that one thread in order: anything queued behind the read a test waited for is already logged by then.
 - **A `Window` needs a display, so nothing inside `application { }` is covered headless.** Which
   window a heap dump opens in is plain state in `ExplorerWindow.kt`, unit tested by
   `ExplorerWindowTest`. `ExplorerApp` is one window's worth of app and takes the heap dump it shows

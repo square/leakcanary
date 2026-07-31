@@ -107,52 +107,50 @@ internal fun HeapDumpExplorer(
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
 
+  // Everything one laid out view follows from, as one value: a view is asked for, and the one that comes
+  // back is the answer to it. Null until the view has been measured, which is the one state there is
+  // nothing to lay out for.
+  val viewRequest = viewportSize.takeIf { it != IntSize.Zero }?.let { size ->
+    ViewRequest(
+      navigation = navigation,
+      viewportSize = size,
+      shape = shape,
+      treemapLayout = treemapLayout,
+      radialLayout = radialLayout
+    )
+  }
+
   // Resizing, zooming and switching shape all lay the tree out again, which reads the heap dump for
-  // every visible label. All of it ends up here, on the heap dump's thread. Keyed on the navigation
-  // rather than on the screen, so that reading a list of objects doesn't lay the map out again and the
-  // map is ready by the time the breadcrumbs lead back to it.
-  LaunchedEffect(
-    session,
-    navigation,
-    viewportSize,
-    shape,
-    treemapLayout,
-    radialLayout
-  ) {
-    if (viewportSize == IntSize.Zero) {
+  // every visible label. All of it ends up here, on the heap dump's thread. Keyed on the request rather
+  // than on the screen, so that reading a list of objects doesn't lay the map out again and the map is
+  // ready by the time the breadcrumbs lead back to it.
+  LaunchedEffect(session, viewRequest) {
+    if (viewRequest == null) {
       // Which is what a window showing a spinner and nothing else has been waiting for all along.
       SharkLog.d { "Not laying the tree out yet: the view has no size" }
       return@LaunchedEffect
     }
     isLayingOut = true
-    val viewport = TreemapRect(
-      left = 0.0,
-      top = 0.0,
-      right = viewportSize.width.toDouble(),
-      bottom = viewportSize.height.toDouble()
-    )
-    view = session.read(
-      "the ${shape.displayName.lowercase()} rooted at ${hexObjectId(navigation.current)}, " +
-        "${viewportSize.width}×${viewportSize.height}"
-    ) { explorer ->
+    view = session.read(viewRequest.description()) { explorer ->
       val tree = explorer.tree
+      val requested = viewRequest.navigation
       // An object zoomed into may no longer be dominated by the one above it on the path.
-      val reachablePath = navigation.retainingWhere { it in tree }
-      if (reachablePath.path.size < navigation.path.size) {
+      val reachablePath = requested.retainingWhere { it in tree }
+      if (reachablePath.path.size < requested.path.size) {
         SharkLog.d {
-          "Rooted at ${reachablePath.path.size} of the ${navigation.path.size} nodes zoomed through: " +
-            "${hexObjectId(navigation.path[reachablePath.path.size])} is no node of the tree"
+          "Rooted at ${reachablePath.path.size} of the ${requested.path.size} nodes zoomed through: " +
+            "${hexObjectId(requested.path[reachablePath.path.size])} is no node of the tree"
         }
       }
       ViewState(
         navigation = reachablePath,
         crumbs = reachablePath.path.map { objectId -> tree.crumb(objectId) },
-        presentation = when (shape) {
+        presentation = when (viewRequest.shape) {
           ViewShape.TREEMAP -> ViewPresentation.Treemap(
-            tree.present(treemapLayout, viewport, reachablePath.current)
+            tree.present(viewRequest.treemapLayout, viewRequest.viewport, reachablePath.current)
           )
           ViewShape.RADIAL -> ViewPresentation.Radial(
-            tree.presentRadial(radialLayout, viewport, reachablePath.current)
+            tree.presentRadial(viewRequest.radialLayout, viewRequest.viewport, reachablePath.current)
           )
         }
       )
@@ -162,7 +160,7 @@ internal fun HeapDumpExplorer(
     // Settling for the path that could actually be shown isn't a move, so it replaces where the explorer
     // is rather than being somewhere the back arrow returns to. Only if it's still there: a move made
     // while this was being laid out is not something to overwrite.
-    if (history.current.treeNavigation == navigation) {
+    if (history.current.treeNavigation == viewRequest.navigation) {
       history = history.replacingCurrent(history.current.withTreeNavigation(view.navigation))
     }
     isLayingOut = false
@@ -590,6 +588,39 @@ private fun HeapDominatorTreemap.crumb(objectId: Long): Crumb = Crumb(
     hexObjectId(objectId).takeIf { objectId > 0L }
   ).joinToString(CRUMB_SEPARATOR)
 )
+
+/**
+ * Everything one view of the tree follows from, which is therefore everything that lays it out again:
+ * where the map is, how big the view is, which shape it's drawn as, and the thresholds that shape is laid
+ * out to. A [ViewState] is the answer to one of these.
+ *
+ * One value rather than a key each on the effect that lays the tree out, because that effect has to work
+ * off exactly what it was keyed on. Keying it on the viewport while reading the viewport back out of the
+ * state is what laid every heap dump out twice as it opened: the run keyed on the size the view had before
+ * it was measured ran after the measurement, laid the whole tree out to the size it found there, and had
+ * that thrown away when the very measurement it had used relaunched it.
+ */
+private data class ViewRequest(
+  val navigation: TreemapNavigation<Long>,
+  /** In pixels, which is what the layouts and their thresholds work in. */
+  val viewportSize: IntSize,
+  val shape: ViewShape,
+  val treemapLayout: TreemapLayout<Long>,
+  val radialLayout: RadialLayout<Long>
+) {
+  val viewport: TreemapRect
+    get() = TreemapRect(
+      left = 0.0,
+      top = 0.0,
+      right = viewportSize.width.toDouble(),
+      bottom = viewportSize.height.toDouble()
+    )
+}
+
+/** What is being laid out, for the log. See [HeapDumpSession.read]. */
+private fun ViewRequest.description(): String =
+  "the ${shape.displayName.lowercase()} rooted at ${hexObjectId(navigation.current)}, " +
+    "${viewportSize.width}×${viewportSize.height}"
 
 /** Everything read off the heap dump's thread to draw one view of the tree. */
 internal class ViewState(
