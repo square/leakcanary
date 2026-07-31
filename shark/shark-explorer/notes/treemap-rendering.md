@@ -77,8 +77,10 @@ Two things follow, and both are behaviour rather than polish:
   children too small to draw, still lands on the node holding it.
 
 And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so only cells
-with nothing drawn inside them are labelled, and naming the levels is the view's job — `TreemapView`
-shows the chain of containers under the pointer as one line at the bottom of the view.
+with nothing drawn inside them are labelled, and naming the levels falls to what is drawn beside the view
+— `RootPathPanel`, which draws the chain from a GC root down to the object under the pointer and marks the
+steps that dominate it. Those marked steps are the containers the rectangle sits inside, so the same pane
+answers both "what is this" and "where in the picture am I". See `decisions.md`.
 
 ### The children that don't fit become one rectangle, they aren't dropped
 

@@ -186,6 +186,51 @@ class TreemapViewTest {
     }
   }
 
+  @Test fun `moving the pointer onto a rectangle reports it as hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { TreemapUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput { hover(presentation.centerOf(CHILD)) }
+
+      assertThat(hovered.last()?.node).isEqualTo(CHILD)
+    }
+  }
+
+  @Test fun `moving the pointer out of the view reports nothing hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { TreemapUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput {
+        hover(presentation.centerOf(CHILD))
+        exit()
+      }
+
+      assertThat(hovered.last()).isNull()
+    }
+  }
+
+  @Test fun `laying the tree out again reports what the pointer is on now`() {
+    runComposeUiTest {
+      // Zooming, resizing and switching shape move the rectangles rather than the pointer, and no pointer
+      // event follows. Both trees are laid out in the same viewport, so the point the pointer is left on
+      // belongs to the child in one and to the root in the other.
+      var presentation by mutableStateOf(oneChild.present())
+      val onChild = presentation.centerOf(CHILD)
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { TreemapUnderTest(presentation, onHover = { hovered += it }) }
+      onRoot().performMouseInput { hover(onChild) }
+
+      presentation = leafRoot.present()
+      waitForIdle()
+
+      assertThat(hovered.last()?.node).isEqualTo(ROOT)
+    }
+  }
+
   @Test fun `nodes left out for lack of room are reported`() {
     runComposeUiTest {
       // Not enough room to subdivide anything, so even the root is left as it is.
@@ -282,10 +327,12 @@ private fun TreemapUnderTest(
   presentation: TreemapPresentation,
   bitmapImages: Map<Long, ImageBitmap> = emptyMap(),
   onSelect: (LayoutCell<Long>) -> Unit = {},
+  onHover: (LayoutCell<Long>?) -> Unit = {},
   onZoomInto: (List<Long>) -> Unit = {}
 ) {
   MaterialTheme {
     var selected: SelectedCell? by remember { mutableStateOf(null) }
+    var hovered: SelectedCell? by remember { mutableStateOf(null) }
     val rect = presentation.layout.cells.first().rect
     val density = LocalDensity.current
     // Sized in pixels, matching the viewport the presentation was laid out in, so that a click at a
@@ -301,9 +348,14 @@ private fun TreemapUnderTest(
         coloring = CellColoring.DEFAULT,
         selected = selected,
         bitmapImages = bitmapImages,
+        hovered = hovered,
         onSelect = {
           selected = SelectedCell.of(it.subject)
           onSelect(it)
+        },
+        onHover = { cell ->
+          hovered = cell?.let { SelectedCell.of(it.subject) }
+          onHover(cell)
         },
         onZoomInto = onZoomInto
       )

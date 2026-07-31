@@ -50,6 +50,13 @@ block is already queued on that one thread and runs to the end, since nothing in
 summary is a cancellation point. So dragging a window edge pays in full for every size it passes through,
 and the read that draws the size it lands on waits behind all of them.
 
+**The pointer asks questions on that thread too**, because moving over a rectangle describes it. Which is
+why nothing is read until the pointer has been still for `HOVER_SETTLE_MILLIS`, and why what a hover asks
+for is capped and index-backed: a chain from a GC root is one walk over `ReferrerIndex` with at most 20
+steps read out, and the search for every way an object is held runs for the object clicked and no other.
+A new question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md`
+has the numbers on the biggest dump in the repo.
+
 ## Every run writes a log file
 
 `installLogging()` in `shark-explorer-app` points `SharkLog` at stdout **and** at
@@ -249,6 +256,12 @@ numbers belong in `notes/bitmaps.md`.
 - **UI tests are headless JVM tests**, not instrumentation tests. They live in `src/test/` and use
   `androidx.compose.ui.test.v2.runComposeUiTest`. Import from the **`.v2` package** — the non-v2
   `runComposeUiTest` is deprecated.
+- **A test of the whole window runs at the size a window opens at**, which is what `explorerUiTest` is
+  for. The default test window is smaller, and there the panes beside the view squeeze the controls above
+  it to zero width, so a test would be pressing a window nobody has.
+- **Hovering takes two moves.** A view describes what the pointer *moved* onto and ignores the enter that
+  comes with a pointer arriving, so a single injected `moveTo` reports nothing hovered. `hover()` in
+  `ExplorerUiTest.kt` moves twice; `notes/decisions.md` says why the views read events that way.
 - **Each shape draws into a single `Canvas`, so there are no per-cell semantics nodes.** UI
   tests can't find cells by tag. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on

@@ -174,6 +174,64 @@ extra, so a debugger that can't attach leaves the dump opening normally, with th
 fetch still on offer from the window — which is where it would report the same failure again, in front of
 someone who just asked for it. Losing the expensive thing over the cheap one would be the wrong way round.
 
+## The pointer describes, the click keeps
+
+Moving over a rectangle describes it in the panes beside the view; moving off the view brings back the
+object last clicked. So reading a treemap is a sweep of the mouse rather than a click per rectangle, and
+the click still means what it meant — this is the object I'm working on.
+
+Both are kept, as two sets of details from the same code: one for what was clicked, one for what the
+pointer is on. Nothing is read when the pointer leaves, and the details it left behind are kept rather than
+blanked, so a sweep out of the view doesn't flicker through an empty panel.
+
+What made this affordable, on the 38 MB dump in the repo, over all 4,572 rectangles of the opening view:
+
+- `ReferrerIndex` — the pass that reads which object points at which, 399 ms — is **warmed up as soon as
+  the first view is laid out**, rather than by the first question about a path. Without that the first
+  hover pays for it, which is exactly the moment the app has to feel instant.
+- Describing one object, which is a summary, its dominator and the chain from a GC root: **median 0 ms, p90
+  10 ms, worst 105 ms.** The chain alone is at most 20 ms of that.
+- A hover waits `HOVER_SETTLE_MILLIS` (100 ms) before reading anything. A submitted read can't be called
+  off (see above), so a pointer crossing forty rectangles would otherwise queue forty reads and the fortieth
+  would arrive long after the pointer stopped.
+- `independentPathsTo` — every way an object is held, which is the expensive question — is **only asked for
+  the object clicked.** A hovered object's panel says so rather than answering it.
+
+## The chain from a GC root is a pane, not a popover
+
+Hovering used to draw the tree's containers as a grey popover following the pointer. What it said was a
+list of what the treemap already draws, in a shape that couldn't hold more, and it covered the picture.
+
+Instead the chain is drawn the way a leak trace is, by the same code the paths screen uses
+(`PathDrawing.kt`): the shortest way a GC root reaches the object, one row per object, with the steps that
+dominate it marked. Shortest in steps, so it's the plainest way the object is held; the marked steps are
+the rectangles it sits inside, which is what ties the chain to the picture. On the production dump the
+longest one is 34 steps, two of them views and the rest RxJava plumbing — which is why it is cut at 20 and
+cut at the root end.
+
+It sits **between the view and the details panel**, and only on the map screen. A chain and the details are
+both tall columns, so one pane holding both would always have one of them scrolled off; the details panel
+keeps the window edge it has always had, and the chain sits against the map it explains. The paths screen
+draws chains of its own the full width of the window, and a list of objects wants that width more than it
+wants a chain.
+
+## Only a move is a hover
+
+A view reacts to `PointerEventType.Move` and ignores the `Enter` that comes with a pointer arriving. When a
+view is composed under a pointer that hasn't moved — clicking a row of a list, which puts the map where the
+row was — Compose sends it an enter carrying the pointer's position, and describing what that lands on
+answers a rectangle nobody pointed at instead of the object just clicked.
+
+Measured rather than assumed, and the measurement is worth keeping: in a Compose UI test, injecting one
+`moveTo` produces an enter and nothing else, a second one produces a move, and `previousPosition` equals
+`position` on every injected event — so `positionChangedIgnoreConsumed()` is false even for a real move and
+cannot be what tells the two apart. Which is also why hovering in a test is two moves: see `hover()` in
+`ExplorerUiTest.kt`.
+
+Zooming, resizing and switching shape move the rectangles rather than the pointer, and no pointer event
+follows at all, so each view remembers where the pointer is and works out what it is on again whenever it
+is laid out anew.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real

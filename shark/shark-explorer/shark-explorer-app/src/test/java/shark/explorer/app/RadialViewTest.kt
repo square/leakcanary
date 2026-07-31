@@ -98,6 +98,33 @@ class RadialViewTest {
     }
   }
 
+  @Test fun `moving the pointer onto a sector reports it as hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { RadialUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput { hover(presentation.middleOf(CHILD)) }
+
+      assertThat(hovered.last()?.node).isEqualTo(CHILD)
+    }
+  }
+
+  @Test fun `moving the pointer out of the view reports nothing hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { RadialUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput {
+        hover(presentation.middleOf(CHILD))
+        exit()
+      }
+
+      assertThat(hovered.last()).isNull()
+    }
+  }
+
   @Test fun `pressing outside the rings selects nothing`() {
     runComposeUiTest {
       val presentation = oneChild.present(RadialLayout(ringCount = 2))
@@ -184,10 +211,12 @@ class RadialViewTest {
 private fun RadialUnderTest(
   presentation: RadialPresentation,
   onSelect: (LayoutCell<Long>) -> Unit = {},
+  onHover: (LayoutCell<Long>?) -> Unit = {},
   onZoomInto: (List<Long>) -> Unit = {}
 ) {
   MaterialTheme {
     var selected: SelectedCell? by remember { mutableStateOf(null) }
+    var hovered: SelectedCell? by remember { mutableStateOf(null) }
     val density = LocalDensity.current
     // Sized in pixels, matching the viewport the presentation was laid out in, so that a click at a
     // sector's coordinates lands on that sector.
@@ -201,9 +230,14 @@ private fun RadialUnderTest(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
         selected = selected,
+        hovered = hovered,
         onSelect = {
           selected = SelectedCell.of(it.subject)
           onSelect(it)
+        },
+        onHover = { cell ->
+          hovered = cell?.let { SelectedCell.of(it.subject) }
+          onHover(cell)
         },
         onZoomInto = onZoomInto
       )

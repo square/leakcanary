@@ -354,6 +354,77 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `the shortest way a gc root holds an object marks what dominates it`() {
+    HeapExplorer.open(twoWaysToOnePayloadHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val path = tree.rootPathTo(payload.objectId)
+
+      // The holder points at the payload and also at the relay that leads to it the long way round. The
+      // chain beside the treemap is the plainest answer to how the payload is held, so it's the short way,
+      // and the holder is marked because letting go of it is what would free the payload.
+      assertThat(path.gcRootLabel).isEqualTo("GC root: JNI global reference")
+      assertThat(path.stepLabels()).containsExactly("Holder", "payload → Object[]")
+      assertThat(path.steps.map { it.isDominator }).containsExactly(true, false)
+      assertThat(path.hiddenStepCount).isZero()
+    }
+  }
+
+  @Test fun `a chain too long to read leaves out the steps nearest the gc root`() {
+    HeapExplorer.open(longChainHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val path = tree.rootPathTo(payload.objectId)
+
+      // What the reader is after is what holds the object, and the plumbing between a GC root and an app's
+      // own objects rarely is, so a chain past what fits is cut at the root end.
+      assertThat(path.hiddenStepCount).isEqualTo(CHAIN_LINK_COUNT + 1 - MAX_ROOT_PATH_STEPS_SHOWN)
+      assertThat(path.steps).hasSize(MAX_ROOT_PATH_STEPS_SHOWN)
+      // Named by the field it is held in even though the object holding it is one of the steps left out.
+      assertThat(path.stepLabels().first()).isEqualTo("next → Link18")
+      assertThat(path.stepLabels().last()).isEqualTo("next → Object[]")
+    }
+  }
+
+  @Test fun `an object a gc root points at is the whole chain on its own`() {
+    openTestHeapDump().use { explorer ->
+      val tree = explorer.tree
+      val holder = tree.findByLabel("Holder")
+
+      val path = tree.rootPathTo(holder.objectId)
+
+      // Nothing in the heap dump points at it, so which kind of GC root reaches it is the whole answer.
+      assertThat(path.gcRootLabel).isEqualTo("GC root: JNI global reference")
+      assertThat(path.stepLabels()).containsExactly("Holder")
+      assertThat(path.steps.single().step.reference).isNull()
+    }
+  }
+
+  @Test fun `a chain that starts at no gc root says the object is garbage`() {
+    HeapExplorer.open(uncollectedGarbageHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val path = tree.rootPathTo(payload.objectId)
+
+      // Bytes that are still bytes, held by an object that is garbage itself: there is a chain to draw,
+      // and no GC root at the top of it.
+      assertThat(path.gcRootLabel).isEqualTo("Uncollected garbage")
+      assertThat(path.stepLabels()).containsExactly("Forgotten", "payload → Object[]")
+    }
+  }
+
+  @Test fun `neither the whole heap dump nor a pile of objects has a chain leading to it`() {
+    openTestHeapDump().use { explorer ->
+      val tree = explorer.tree
+
+      assertThat(tree.rootPathTo(tree.root)).isEqualTo(RootPath.NONE)
+      assertThat(tree.rootPathTo(GC_ROOTS_NODE_ID)).isEqualTo(RootPath.NONE)
+    }
+  }
+
   @Test fun `progress is reported for each step`() {
     val steps = mutableListOf<String>()
 
@@ -671,6 +742,60 @@ class HeapExplorerTest {
   }
 
   /**
+   * A heap dump where one GC rooted object holds a payload directly and again through two objects, so
+   * that the ways it is held differ in length.
+   */
+  private fun twoWaysToOnePayloadHeapDump(): File {
+    val file = testFolder.newFile("two-ways-to-one-payload.hprof")
+    file.dump {
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      val middle = "com.example.Middle" instance { field["payload"] = payload }
+      val relay = "com.example.Relay" instance { field["middle"] = middle }
+      val holder = "com.example.Holder" instance {
+        field["payload"] = payload
+        field["relay"] = relay
+      }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+    }
+    return file
+  }
+
+  /**
+   * A heap dump where a payload is held at the end of a chain of [CHAIN_LINK_COUNT] objects, which is
+   * longer than a chain is drawn.
+   */
+  private fun longChainHeapDump(): File {
+    val file = testFolder.newFile("long-chain.hprof")
+    file.dump {
+      var held = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      // A class per link, numbered from the payload out, so that a step says how far along it is.
+      repeat(CHAIN_LINK_COUNT) { index ->
+        held = "com.example.Link$index" instance { field["next"] = held }
+      }
+      gcRoot(JniGlobal(id = held.value, jniGlobalRefId = 0))
+    }
+    return file
+  }
+
+  /** A heap dump where a payload is held by an object no GC root reaches: garbage, not yet collected. */
+  private fun uncollectedGarbageHeapDump(): File {
+    val file = testFolder.newFile("uncollected-garbage.hprof")
+    file.dump {
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      "com.example.Forgotten" instance { field["payload"] = payload }
+      val holder = "com.example.Holder" instance { }
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+    }
+    return file
+  }
+
+  /**
    * A heap dump where an object is held by its owner and by a helper of its own, the way an
    * `AppCompatImageView` is held by the layout above it and by the helpers it created, which point back
    * at it.
@@ -747,6 +872,12 @@ class HeapExplorerTest {
 
     /** Matches `MAX_FIELDS` in [HeapDominatorTreemap], which isn't public. */
     private const val MAX_FIELDS_SHOWN = 500
+
+    /** Matches `MAX_ROOT_PATH_STEPS` in [HeapDominatorTreemap], which isn't public. */
+    private const val MAX_ROOT_PATH_STEPS_SHOWN = 20
+
+    /** Enough objects between a GC root and a payload that the chain to it has to be cut. */
+    private const val CHAIN_LINK_COUNT = 25
 
     /** Object ids are 4 bytes in a dump built by the test DSL. */
     private const val PAYLOAD_BYTE_SIZE = PAYLOAD_ELEMENT_COUNT * 4L

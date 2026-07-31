@@ -314,3 +314,9 @@ private val LABEL = Color(0xFF1B1B1B)
 
 /** The outline of the selected rectangle. The same in every scheme: it isn't part of the picture. */
 internal val SELECTION_COLOR = Color(0xFF0B57D0)
+
+/**
+ * And of the one under the pointer: the same hue washed out, because the two mean the same thing about a
+ * rectangle — the panels are describing it — and only one of them survives the pointer moving on.
+ */
+internal val HOVER_COLOR = Color(0x990B57D0)

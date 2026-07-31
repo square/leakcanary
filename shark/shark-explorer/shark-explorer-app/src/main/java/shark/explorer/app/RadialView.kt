@@ -5,7 +5,11 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -15,6 +19,7 @@ import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
@@ -35,14 +40,19 @@ import shark.explorer.RadialPresentation
  * the ring around the one before it, the way DaisyDisk draws a disk.
  *
  * The same gestures as [TreemapView] — a press selects the sector under the pointer, a double click
- * zooms into it — and the same single [Canvas], so the same holds for tests.
+ * zooms into it, moving over one reports it as hovered — and the same single [Canvas], so the same holds
+ * for tests.
  */
 @Composable
 internal fun RadialView(
   presentation: RadialPresentation,
   coloring: CellColoring,
   selected: SelectedCell?,
+  /** The sector the pointer is on, which is outlined more lightly than the selected one. */
+  hovered: SelectedCell?,
   onSelect: (LayoutCell<Long>) -> Unit,
+  /** The sector the pointer moved onto, or null when it moved onto none or left the view. */
+  onHover: (LayoutCell<Long>?) -> Unit,
   /** The chain of nodes from the current root down to the one double clicked. */
   onZoomInto: (List<Long>) -> Unit,
   modifier: Modifier = Modifier
@@ -54,9 +64,33 @@ internal fun RadialView(
     val colors = CellColors.of(coloring, presentation.cells)
     presentation.cells.map { it.measure(center, colors, textMeasurer, density) }
   }
+  // As in [TreemapView]: the rings move under the pointer without a pointer event to say so.
+  var pointerOffset: Offset? by remember { mutableStateOf(null) }
+  LaunchedEffect(presentation) {
+    onHover(pointerOffset?.let { presentation.cellAt(it) })
+  }
   Box(modifier) {
     Canvas(
       Modifier.fillMaxSize()
+        .pointerInput(presentation) {
+          awaitPointerEventScope {
+            while (true) {
+              val event = awaitPointerEvent()
+              when (event.type) {
+                // A move, and not the enter that comes with it, as in [TreemapView].
+                PointerEventType.Move -> {
+                  val position = event.changes.first().position
+                  pointerOffset = position
+                  onHover(presentation.cellAt(position))
+                }
+                PointerEventType.Exit -> {
+                  pointerOffset = null
+                  onHover(null)
+                }
+              }
+            }
+          }
+        }
         .pointerInput(presentation) {
           detectTapGestures(
             onPress = { offset -> presentation.cellAt(offset)?.let(onSelect) },
@@ -67,8 +101,13 @@ internal fun RadialView(
         }
     ) {
       sectors.forEach { sector -> drawSector(sector) }
-      // Sectors don't overlap, unlike nested rectangles, but a selected one still has to be outlined
-      // over its neighbours' borders to read as one shape.
+      // Sectors don't overlap, unlike nested rectangles, but a selected or hovered one still has to be
+      // outlined over its neighbours' borders to read as one shape.
+      if (hovered != selected) {
+        sectors.firstOrNull { it.selects == hovered }?.let { sector ->
+          drawPath(sector.path, color = HOVER_COLOR, style = Stroke(width = HOVER_WIDTH))
+        }
+      }
       sectors.firstOrNull { it.selects == selected }?.let { sector ->
         drawPath(sector.path, color = SELECTION_COLOR, style = Stroke(width = SELECTION_WIDTH))
       }

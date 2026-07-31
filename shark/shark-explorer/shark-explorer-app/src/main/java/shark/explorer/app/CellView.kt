@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import shark.explorer.CellContent
@@ -55,35 +54,6 @@ internal data class SelectedCell(
     }
   }
 }
-
-/**
- * Names the containers the pointer is inside, outermost first.
- *
- * Nesting costs a rectangle one pixel of edge and no label, so this is where the names of the objects
- * on the way down are read: a chain 30 deep is one line here and 30 header strips otherwise, which is
- * the whole viewport.
- */
-@Composable
-internal fun BoxScope.HoveredChain(chain: String?) {
-  if (chain == null) {
-    return
-  }
-  Surface(
-    Modifier.align(Alignment.BottomStart).padding(8.dp),
-    color = MaterialTheme.colorScheme.surfaceVariant
-  ) {
-    Text(
-      chain,
-      Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-      style = MaterialTheme.typography.labelSmall,
-      maxLines = 2,
-      overflow = TextOverflow.Ellipsis
-    )
-  }
-}
-
-/** How the [HoveredChain] separates one container from the one it holds. */
-internal const val CHAIN_SEPARATOR = " › "
 
 /** Says when a view is showing less detail than it had room for, rather than truncating silently. */
 @Composable
@@ -148,6 +118,13 @@ internal val MIN_LABEL_WIDTH = 24.dp
 internal val MIN_LABEL_HEIGHT = 13.dp
 internal const val BORDER_WIDTH = 1f
 internal const val SELECTION_WIDTH = 3f
+
+/**
+ * Thinner than the selection's outline, because the pointer is already saying where it is: this only has
+ * to say which rectangle the panels beside the view are describing, and a second heavy outline following
+ * the mouse around reads as a second selection.
+ */
+internal const val HOVER_WIDTH = 2f
 internal const val PILE_BORDER_WIDTH = 2f
 internal val CLASS_GROUP_DASH_INTERVALS = floatArrayOf(5f, 4f)
 internal val LEFTOVER_DOT_INTERVALS = floatArrayOf(2f, 3f)

@@ -69,6 +69,11 @@ import shark.ValueHolder.ShortHolder
  *
  * Reads the heap dump, so not from the UI thread. See [HeapExplorer].
  */
+// Everything the UI asks about one heap dump: the tree, what a cell of it says, and how an object is held.
+// One class because every answer reads the same graph, reachability, ownership and referrer index, so
+// splitting it means threading all four into a second class that calls back into this one. Worth doing,
+// and worth doing on its own rather than inside a change that adds one more answer.
+@Suppress("LargeClass")
 class HeapDominatorTreemap internal constructor(
   private val graph: HeapGraph,
   private val reachability: HeapReachability,
@@ -107,6 +112,15 @@ class HeapDominatorTreemap internal constructor(
 
   /** Where the pixels of the heap dump's bitmaps come from, and whether it has any. */
   private val bitmaps = HeapBitmaps(graph)
+
+  /**
+   * The walk up to the roots the tree was built from, kept between questions: it works over three arrays
+   * the size of the heap dump, and the pointer moving across a treemap asks for one path per rectangle it
+   * crosses. Built on first use, like the index it walks.
+   */
+  private val rootPathSearch: RootPathSearch by lazy {
+    RootPathSearch(referrerIndex, treeRootIndexes)
+  }
 
   /**
    * The objects the tree hangs its halves off, by object index: the GC roots it was built from, and the
@@ -574,6 +588,87 @@ class HeapDominatorTreemap internal constructor(
       }
     }
     return IndependentPaths(paths = paths, hasMore = paths.size == MAX_INDEPENDENT_PATHS)
+  }
+
+  /**
+   * Reads the heap dump to work out which object points at which, and says how many objects that
+   * covered.
+   *
+   * A pass over the whole dump, seconds on a large one, paid once and then answered from memory: every
+   * question about how an object is held walks this. Worth calling before the questions start, because
+   * otherwise the first of them is the one that waits for it — and the first of them is now the pointer
+   * moving over a rectangle.
+   */
+  fun indexReferrers(): Int = referrerIndex.objectCount
+
+  /**
+   * The shortest way a GC root reaches [objectId], or [RootPath.NONE] when nothing the tree was built
+   * from does.
+   *
+   * Shortest in steps, over the same references the tree was built by, so it is the plainest answer to
+   * "how is this held" — and the steps that dominate [objectId] are marked, which is what ties the chain
+   * back to the rectangle the treemap draws it in. Every path from a GC root goes through every one of
+   * those dominators, so they are always all on it.
+   *
+   * Cheap enough to ask as the pointer moves, once [indexReferrers] has been paid for: one breadth first
+   * walk over as much of the graph as it takes to reach a root, and only the steps that end up shown are
+   * read out of the heap dump. At most [MAX_ROOT_PATH_STEPS] of them.
+   */
+  fun rootPathTo(objectId: Long): RootPath {
+    if (objectId == root || objectId !in nodes) {
+      return RootPath.NONE
+    }
+    val targetIndex = referrerIndex.indexOf(objectId)
+    if (targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
+      // A node of the tree the heap dump has no object for: nothing to walk up from, and the tree and the
+      // dump disagreeing about what is in the dump.
+      SharkLog.d {
+        "No path to ${hexObjectId(objectId)}: it is a node of the tree and no object of the heap dump"
+      }
+      return RootPath.NONE
+    }
+    val found = rootPathSearch.findPath(targetIndex)
+    if (found == null) {
+      // The tree hangs every object off one of the roots it walked from, so there is a path by
+      // construction. Not finding one means this walk and that one followed different references, which
+      // shows as the panel saying nothing reaches an object the treemap draws.
+      SharkLog.d {
+        "No path from a GC root down to ${hexObjectId(objectId)}, though the tree hangs it off one"
+      }
+      return RootPath.NONE
+    }
+    // Kept from the object up, like an independent path: what holds it directly is what a reader is
+    // after, and the plumbing between a GC root and an app's own objects rarely is.
+    val hiddenStepCount = (found.size - MAX_ROOT_PATH_STEPS).coerceAtLeast(0)
+    // One before the first shown step, when there is one: it names the field that step is held in.
+    val fromIndex = (hiddenStepCount - 1).coerceAtLeast(0)
+    val objectIds = (fromIndex until found.size).map { referrerIndex.objectIdAt(found[it]) }
+    val dominatorIds = dominatorIdsOf(objectId)
+    val steps = objectIds.mapIndexedNotNull { index, stepObjectId ->
+      when {
+        index > 0 -> stepTo(stepObjectId, referrerId = objectIds[index - 1])
+        // The GC root's own object, which no field of the heap dump points at. Only when the whole chain
+        // is shown: otherwise this is the last of the objects left out, here to name that field.
+        hiddenStepCount == 0 -> step(stepObjectId, reference = null)
+        else -> null
+      }
+    }
+    return RootPath(
+      gcRootLabel = gcRootLabelOf(referrerIndex.objectIdAt(found.first())),
+      steps = steps.map { RootPathStep(it, isDominator = it.objectId in dominatorIds) },
+      hiddenStepCount = hiddenStepCount
+    )
+  }
+
+  /** The objects that dominate [objectId], which every path from a GC root down to it goes through. */
+  private fun dominatorIdsOf(objectId: Long): Set<Long> {
+    val dominatorIds = mutableSetOf<Long>()
+    var current = dominatorTree.immediateDominatorOf(objectId)
+    while (current != root) {
+      dominatorIds += current
+      current = dominatorTree.immediateDominatorOf(current)
+    }
+    return dominatorIds
   }
 
   /**
@@ -1151,6 +1246,16 @@ class HeapDominatorTreemap internal constructor(
 
     /** How many steps of one path are shown, counted from the object up. */
     private const val MAX_PATH_STEPS = 15
+
+    /**
+     * And how many of a path from a GC root, counted the same way.
+     *
+     * Longer than an independent path's, because this one starts at a GC root rather than below the
+     * dominator, and shorter than the chains a real heap dump has: the way from a thread down to a list
+     * row is dozens of steps of framework plumbing, and each step shown is a read of the heap dump on the
+     * way to answering what the pointer is on.
+     */
+    private const val MAX_ROOT_PATH_STEPS = 20
 
     /** No object index, so it stands for an object one walk of [PathSearch] hasn't reached. */
     private const val NOT_REACHED = -1

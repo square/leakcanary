@@ -345,8 +345,12 @@ private const val APP_ICON = "shark-explorer-icon.png"
 /** What a window with no heap dump in it is called, since it has no better name to go by. */
 internal const val APP_NAME = "Shark Explorer"
 
-private val WINDOW_WIDTH = 1440.dp
-private val WINDOW_HEIGHT = 900.dp
+/**
+ * How large a window opens, which is also the size the UI tests drive one at: what a test presses is only
+ * where a user would find it if the window it presses is the window that opens.
+ */
+internal val WINDOW_WIDTH = 1440.dp
+internal val WINDOW_HEIGHT = 900.dp
 
 /** How far a window opens from the one before it, which is about the height of a title bar. */
 private val CASCADE_STEP = 28.dp

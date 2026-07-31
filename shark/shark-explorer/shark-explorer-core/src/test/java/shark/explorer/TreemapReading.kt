@@ -23,7 +23,12 @@ internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
  * How these tests read a path: the field each step was reached through, then what it points at. The
  * first step of a path below a group is the GC root's own object, which no field points at.
  */
-internal fun IndependentPath.stepLabels(): List<String> = steps.map { step ->
-  val simpleClassName = step.className.substringAfterLast('.')
-  step.reference?.let { "${it.name} → $simpleClassName" } ?: simpleClassName
+internal fun IndependentPath.stepLabels(): List<String> = steps.map { it.label() }
+
+/** The same, for the one chain leading down from a GC root. */
+internal fun RootPath.stepLabels(): List<String> = steps.map { it.step.label() }
+
+private fun PathStep.label(): String {
+  val simpleClassName = className.substringAfterLast('.')
+  return reference?.let { "${it.name} → $simpleClassName" } ?: simpleClassName
 }

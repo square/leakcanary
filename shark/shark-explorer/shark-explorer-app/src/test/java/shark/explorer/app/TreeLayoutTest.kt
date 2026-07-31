@@ -16,7 +16,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
-import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
@@ -47,7 +46,7 @@ class TreeLayoutTest {
   @get:Rule val logged = RecordedLog()
 
   @Test fun `opening a heap dump lays the tree out once`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
 
       settleTheHeapDumpThread()
@@ -62,7 +61,7 @@ class TreeLayoutTest {
    * rather than the one already drawn.
    */
   @Test fun `switching shape lays the tree out once more`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
 
       shapeOption(ViewShape.RADIAL).performClick()
