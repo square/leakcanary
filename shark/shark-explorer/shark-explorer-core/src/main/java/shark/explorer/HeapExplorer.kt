@@ -26,7 +26,9 @@ class HeapExplorer private constructor(
   private val graph: CloseableHeapGraph,
   private val reachability: HeapReachability,
   /** Every object of the heap dump, reachable or not, weighted by what it retains. */
-  val tree: HeapDominatorTreemap
+  val tree: HeapDominatorTreemap,
+  /** The device and process that wrote the heap dump, which is where its bitmaps still are. */
+  val origin: HeapDumpOrigin
 ) : Closeable {
 
   /** How the objects of the heap dump split up by reachability. */
@@ -93,7 +95,13 @@ class HeapExplorer private constructor(
             "${formatObjectCount(sizes.totalObjectCount)}, ${formatByteSize(sizes.totalByteCount)}, " +
             "${formatByteSize(sizes.unreachableByteCount)} of it unreachable"
         }
-        return HeapExplorer(heapDumpFile, graph, reachability, tree)
+        return HeapExplorer(
+          heapDumpFile = heapDumpFile,
+          graph = graph,
+          reachability = reachability,
+          tree = tree,
+          origin = HeapDumpOrigin.readFrom(graph)
+        )
       } catch (throwable: Throwable) {
         // Closing on the way out must not replace what went wrong with a failure to close, which is
         // what would be reported and is never the cause.

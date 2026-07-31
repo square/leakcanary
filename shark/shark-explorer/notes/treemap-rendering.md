@@ -171,6 +171,28 @@ any scheme is allowed to be grey, which is what the `CellColorsTest` cases about
 `UNREACHABLE` is shaded by depth like the strong heap, unlike the other non-strong strengths, because there
 can be megabytes of uncollected garbage and one flat colour over all of it would hide its shape.
 
+## A bitmap's rectangle shows the bitmap
+
+Where the pixels come from is `bitmaps.md`; what the view does with them is three things.
+
+**They're drawn between the fills and the outlines.** A bitmap's own pixels are the child rectangle
+covering it — its `byte[]` before API 26, nothing at all after — so an image drawn with the fills would
+be painted over by that child, and drawn with the outlines it would cover the nesting it sits in. Order
+is therefore: every fill, every image, every outline and label, then the selection.
+
+**An image is fitted, never stretched.** A rectangle's aspect ratio is its share of the heap, which has
+nothing to do with the bitmap's, and an icon squashed into it isn't recognisable. So `imageBounds`
+centres the biggest fit and the rest of the rectangle stays its fill colour.
+
+**A cell with an image gets no label**, since text over a picture reads as neither. The chain at the
+bottom of the view already names what the pointer is on, which is where a bitmap's class and size are
+read.
+
+Two wiring details that are easy to get wrong: images are asked for per presentation, only for
+rectangles at least `MIN_BITMAP_DRAW_SIZE` (8 dp) each way — below that an image is a smear of one
+colour and it would still cost a heap dump read and a decode — and `bitmapImages` is a key of the
+`remember` that measures the cells, because a label depends on whether there's an image.
+
 ## Hit testing
 
 Cells are drawn into a single `Canvas`, so Compose has no per-cell node to hit test or to expose to

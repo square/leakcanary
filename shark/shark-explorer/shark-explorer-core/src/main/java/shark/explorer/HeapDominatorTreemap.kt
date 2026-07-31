@@ -105,6 +105,9 @@ class HeapDominatorTreemap internal constructor(
     ReferrerIndex.buildFor(graph, pathReferenceReader)
   }
 
+  /** Where the pixels of the heap dump's bitmaps come from, and whether it has any. */
+  private val bitmaps = HeapBitmaps(graph)
+
   /**
    * The objects the tree hangs its halves off, by object index: the GC roots it was built from, and the
    * pieces of garbage nothing else points at. Where a path below either half starts. See
@@ -337,21 +340,24 @@ class HeapDominatorTreemap internal constructor(
     }
     val group = group(node)
     if (group != null) {
-      return when (group.kind) {
-        ObjectGroupKind.GC_ROOTS -> GC_ROOTS_LABEL
-        ObjectGroupKind.UNREACHABLE -> UNREACHABLE_LABEL
-        // "42 × Bitmap" rather than "Bitmap": a count and a multiplication sign say this cell is a pile
-        // of objects and not one of them, on a rectangle with room for nothing else.
-        ObjectGroupKind.CLASS ->
-          "${group.objectCount} $CLASS_GROUP_LABEL_SEPARATOR ${group.simpleClassName}"
-      }
+      return group.label()
     }
-    return when (val heapObject = graph.findObjectById(node)) {
-      is HeapClass -> "class ${heapObject.simpleName}"
-      is HeapInstance -> heapObject.instanceClassSimpleName
-      is HeapObjectArray -> heapObject.arrayClassSimpleName
-      is HeapPrimitiveArray -> heapObject.arrayClassName
-    }
+    return graph.findObjectById(node).cellLabel()
+  }
+
+  private fun NodeGroup.label(): String = when (kind) {
+    ObjectGroupKind.GC_ROOTS -> GC_ROOTS_LABEL
+    ObjectGroupKind.UNREACHABLE -> UNREACHABLE_LABEL
+    // "42 × Bitmap" rather than "Bitmap": a count and a multiplication sign say this cell is a pile
+    // of objects and not one of them, on a rectangle with room for nothing else.
+    ObjectGroupKind.CLASS -> "$objectCount $CLASS_GROUP_LABEL_SEPARATOR $simpleClassName"
+  }
+
+  private fun HeapObject.cellLabel(): String = when (this) {
+    is HeapClass -> "class $simpleName"
+    is HeapInstance -> instanceClassSimpleName
+    is HeapObjectArray -> arrayClassSimpleName
+    is HeapPrimitiveArray -> arrayClassName
   }
 
   /**
@@ -931,13 +937,13 @@ class HeapDominatorTreemap internal constructor(
   }
 
   private fun <C : LayoutCell<Long>> C.presented(): PresentedCell<C> = when (val subject = subject) {
-    is CellSubject.Node -> PresentedCell(
-      cell = this,
-      label = label(subject.node),
-      content = group(subject.node)?.let { group ->
-        CellContent.ObjectGroup(group.kind, group.strength, group.objectCount)
-      } ?: CellContent.Object(strengthOf(subject.node))
-    )
+    is CellSubject.Node -> group(subject.node)?.let { group ->
+      PresentedCell(
+        cell = this,
+        label = group.label(),
+        content = CellContent.ObjectGroup(group.kind, group.strength, group.objectCount)
+      )
+    } ?: presentedObject(subject.node)
     is CellSubject.Group -> PresentedCell(
       cell = this,
       label = "${subject.nodeCount} smaller objects",
@@ -945,12 +951,53 @@ class HeapDominatorTreemap internal constructor(
     )
     // An object's own bytes are that object, so this reads as the object and is where its name shows:
     // a subdivided rectangle has no room of its own to put a label in.
-    is CellSubject.Own -> PresentedCell(
+    is CellSubject.Own -> presentedObject(subject.node)
+  }
+
+  /**
+   * One object as a cell, read once: a rectangle needs the object's name and whether it's a bitmap, and
+   * a presentation of a production dump has a couple of thousand of them.
+   */
+  private fun <C : LayoutCell<Long>> C.presentedObject(node: Long): PresentedCell<C> {
+    if (node == root) {
+      return PresentedCell(
+        cell = this,
+        label = ROOT_LABEL,
+        content = CellContent.Object(ReachabilityStrength.STRONG, isBitmap = false)
+      )
+    }
+    val heapObject = graph.findObjectById(node)
+    return PresentedCell(
       cell = this,
-      label = label(subject.node),
-      content = CellContent.Object(strengthOf(subject.node))
+      label = heapObject.cellLabel(),
+      content = CellContent.Object(strengthOf(node), bitmaps.isBitmap(heapObject))
     )
   }
+
+  /**
+   * The images of the bitmaps [objectIds], for however many of them anything has the pixels of, scaled
+   * down to [maxDimension] where the pixels come raw. See [HeapBitmaps].
+   */
+  fun bitmapImages(
+    objectIds: Collection<Long>,
+    maxDimension: Int
+  ): Map<Long, BitmapImage> {
+    val images = LinkedHashMap<Long, BitmapImage>(objectIds.size)
+    objectIds.forEach { objectId ->
+      bitmaps.imageOf(objectId, maxDimension)?.let { images[objectId] = it }
+    }
+    return images
+  }
+
+  /** How many bitmaps this heap dump has, and how many of them can be drawn. */
+  fun bitmapCounts(): BitmapCounts = bitmaps.counts()
+
+  /**
+   * Takes the pixels of the bitmaps of the live process this dump was written by, so that the bitmaps
+   * of a dump that carries none can be drawn. See [HeapBitmaps.addNativePixels] and [DeviceBitmaps].
+   */
+  fun addNativeBitmapPixels(pixels: NativeBitmapPixels): BitmapCounts =
+    bitmaps.addNativePixels(pixels)
 
   /** The fields of one object: what's shown, and how many there are in total. */
   private class FieldList(

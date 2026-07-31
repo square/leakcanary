@@ -124,7 +124,8 @@ Windows and Linux title bar — macOS ignores it.
 
 The repo has real Android heap dumps to try it on: `shark/shark-android/src/test/resources/*.hprof`
 and `leakcanary/leakcanary-android-instrumentation/src/androidTest/assets/large-dump.hprof` (39 MB,
-the biggest one).
+the biggest one). All of them are from API 25 or earlier, so every bitmap in them carries its pixels —
+anything about a modern dump has to be tried on one taken off a device. See `notes/bitmaps.md`.
 
 `check` runs detekt (config at `config/detekt-config.yml`); CI and the pre-push hook both enforce
 it, so run it before pushing.
@@ -155,7 +156,12 @@ it, so run it before pushing.
   view by its `contentDescription`, and every press helper is relative to that. Window fractions break
   the moment anything above the view changes height, which is a change to the top bar away.
 - Build test heap dumps with the `hprofFile.dump { }` DSL from `shark-hprof-test` rather than
-  checking in binary fixtures or hand-writing hprof bytes.
+  checking in binary fixtures or hand-writing hprof bytes. A dump with bitmaps in it is `BitmapDumps.kt`
+  in `shark-explorer-core`'s tests — the `"a.b.C" instance { }` shorthand declares a class per instance,
+  so two bitmaps built that way are two `android.graphics.Bitmap` classes, which no real dump has.
+- **A UI test must pass a `DeviceBitmaps` built on a fake `Adb`.** `ExplorerApp`'s default shells out to
+  the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for. `FakeAdb`
+  matches command prefixes, because the remote dump path contains a timestamp.
 - **A synthetic Android class needs the fields the object inspectors read.** `HeapObjectSummary` runs
   `AndroidObjectInspectors`, and those read fields with `!!` — an `android.view.View` without `mParent`,
   `mWindowAttachCount`, `mAttachInfo` and `mContext` makes `summarize()` throw a bare
@@ -169,6 +175,8 @@ Design decisions and findings, kept current as the work proceeds:
 - `notes/dominator-tree.md` — dominator algorithm findings, memory/perf numbers
 - `notes/treemap-rendering.md` — adaptive depth model, the two shapes, bugs in the existing Android
   treemap
+- `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and how the ones
+  that don't are fetched off the device
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

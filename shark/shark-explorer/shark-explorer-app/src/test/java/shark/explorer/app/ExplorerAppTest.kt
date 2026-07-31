@@ -46,6 +46,9 @@ import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
+import shark.explorer.Adb
+import shark.explorer.AdbOutput
+import shark.explorer.DeviceBitmaps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
@@ -645,11 +648,19 @@ class ExplorerAppTest {
    */
   private fun ComposeUiTest.setExplorerContent(
     heapDumpFile: File? = null,
-    chooseHeapDumpFile: () -> File? = { null }
+    chooseHeapDumpFile: () -> File? = { null },
+    // An `adb` that is connected to nothing, rather than the one on this machine: a test that shells out
+    // has whatever devices happen to be plugged in to answer for.
+    deviceBitmaps: DeviceBitmaps = DeviceBitmaps(NO_DEVICE_ADB)
   ) = setContent {
     MaterialTheme {
       var shown: File? by remember { mutableStateOf(heapDumpFile) }
-      ExplorerApp(shown, onHeapDumpChosen = { shown = it }, chooseHeapDumpFile = chooseHeapDumpFile)
+      ExplorerApp(
+        heapDumpFile = shown,
+        onHeapDumpChosen = { shown = it },
+        chooseHeapDumpFile = chooseHeapDumpFile,
+        deviceBitmaps = deviceBitmaps
+      )
     }
   }
 
@@ -945,7 +956,19 @@ class ExplorerAppTest {
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
 
+    /** What `adb devices` prints when nothing is plugged in, which is every command this test needs. */
+    private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }
+
     private const val HOLDER_LABEL = "Holder"
+
+    /** Big enough that the row of the object list naming it is the bitmap rather than its buffer. */
+    private const val BITMAP_SIDE = 64
+    private const val BITMAP_ROW = "android.graphics.Bitmap instance"
+    private const val BITMAP_DUMP_MODEL = "Pixel 9"
+    private const val BITMAP_DUMP_SDK_INT = 36
+
+    /** What the dialog says the heap dump came from, off the `android.os.Build` written into it. */
+    private const val DUMP_ORIGIN = "Google $BITMAP_DUMP_MODEL · API $BITMAP_DUMP_SDK_INT"
     private const val PAYLOAD_LENGTH = 4096
     private const val WEAKLY_REACHABLE_DUMP_NAME = "weakly-reachable.hprof"
     private const val WEAK_PAYLOAD_LENGTH = 32768

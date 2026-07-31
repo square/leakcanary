@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
 import shark.SharkLog
+import shark.explorer.HeapDumpOrigin
 import shark.explorer.HeapExplorer
 
 /**
@@ -31,6 +32,14 @@ class HeapDumpSession private constructor(
 ) : Closeable {
 
   val heapDumpFile: File get() = explorer.heapDumpFile
+
+  /**
+   * The device and process that wrote the heap dump, which was read while opening it.
+   *
+   * Not through [read], because nothing about it is read on demand: it's a handful of strings the
+   * explorer already has.
+   */
+  val origin: HeapDumpOrigin get() = explorer.origin
 
   /**
    * Runs [block] against the heap dump on the thread that owns it, logging [description] as it starts

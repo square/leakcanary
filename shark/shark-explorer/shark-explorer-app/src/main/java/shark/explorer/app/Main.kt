@@ -33,6 +33,7 @@ import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.io.File
 import shark.SharkLog
+import shark.explorer.DeviceBitmaps
 import shark.explorer.HeapSizes
 import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
@@ -91,7 +92,9 @@ fun ExplorerApp(
   /** Where a heap dump chosen from the bar goes, which is a window: see [openHeapDump]. */
   onHeapDumpChosen: (File) -> Unit,
   /** Overridden by tests, which have no display to put a file dialog on. */
-  chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog
+  chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
+  /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
+  deviceBitmaps: DeviceBitmaps = remember { DeviceBitmaps() }
 ) {
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
 
@@ -138,7 +141,12 @@ fun ExplorerApp(
       }
     )
     if (currentState is HeapDumpState.Open) {
-      HeapDumpExplorer(currentState.session, currentState.sizes, Modifier.weight(1f))
+      HeapDumpExplorer(
+        session = currentState.session,
+        sizes = currentState.sizes,
+        deviceBitmaps = deviceBitmaps,
+        modifier = Modifier.weight(1f)
+      )
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(

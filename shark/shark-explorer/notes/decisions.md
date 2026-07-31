@@ -50,6 +50,13 @@ accident, because it never has a reference to it. A composable holds `TreemapPre
 `HeapObjectSummary`s — values computed on that thread — and shows a spinner while the next one is on
 its way.
 
+There is a third place work goes, for the same reason: **decoding is neither the UI thread's nor the heap
+dump thread's.** Reading a hundred bitmaps' pixels out of a dump has to be on the heap dump thread, but
+turning them into images is PNG decoding and premultiplication arithmetic that would hold that thread up
+behind every other read, so the read hands back bytes and `Dispatchers.Default` turns them into
+`ImageBitmap`s. Fetching pixels off a device is a fourth: `Dispatchers.IO`, because it is minutes of
+`adb` and not something the heap dump thread should be sitting in.
+
 Cost of that choice: the layout runs on the heap dump's thread too, because labelling a rectangle
 reads the object it stands for. Resizing the window therefore queues behind whatever else that thread
 is doing. One thread is also a choice rather than a constraint — the graph would take a pool — so if
@@ -108,6 +115,27 @@ for before starting over.
 
 The memory cost is per window and it isn't small — a tree, a graph and an index each — so N windows on
 large dumps is N times the numbers in `dominator-tree.md`.
+
+## Going back to the live device, through the `adb` command line
+
+Reaching into the process that wrote the heap dump — which is the only place a native bitmap's pixels
+still are, see `bitmaps.md` — goes through `adb` as a subprocess rather than through a library. The
+alternative is `ddmlib` (or its successor, the `adblib` of Android Studio), which speaks the adb
+protocol directly and would give typed devices and a real API. Not worth it here: what this needs is
+five commands, `adb` is on every machine that has the SDK, and a dependency on Studio's internals is a
+dependency on Studio's release cadence.
+
+`Adb` is a `fun interface` over "run these arguments, get the output", which is what makes every step
+above it testable without a device — `FakeAdb` in `shark-explorer-core`'s tests answers by command
+prefix. **UI tests must pass a `DeviceBitmaps` built on such an `Adb`**: the default one shells out to
+the developer's `adb`, and a test that does that has whatever phone happens to be plugged in to answer
+for.
+
+**Nothing is picked automatically.** The dialog lists the connected devices ranked by how well each
+matches the dump, and the processes of the one chosen, and waits. Each of those is a question only the
+person at the window can answer — a fingerprint is one build of one model rather than one device, and
+dumping the heap of the wrong process is seconds of someone's phone and tens of megabytes for pixels of
+the wrong app.
 
 ## Testing split
 
