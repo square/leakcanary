@@ -23,9 +23,8 @@ Its notification icon was a nappy with a safety pin:
 <img src="../images/history-diaper-icon.png" width="96" alt="The memory diaper notification icon: a nappy with a safety pin">
 
 It watched every destroyed activity through a weak reference, waited five seconds, forced a garbage
-collection, and if the activity was still there, dumped the heap and posted a notification — titled
-`<Activity> has leaked!`, content text *"We love you!"*, notification id `0xDEAFBEEF` — that opened
-an email with the `.hprof` file attached, under a message that read:
+collection, and if the activity was still there, dumped the heap and posted a notification that
+opened an email with the `.hprof` file attached, under a message that read:
 
 !!! quote ""
     You just found a memory leak and the Register Android team loves you for that. Please email
@@ -72,33 +71,34 @@ version of Eclipse MemoryAnalyzer. Analysis moved onto the device, and the code 
 could now tell you what was in it.
 
 The month that followed — 5 April to 30 April 2015, 50 commits — is where most of the design that
-survives today was settled. It also produced the two images LeakCanary started out with, neither of
-them drawn for it.
+survives today was settled. It is also where LeakCanary got a canary, twice.
 
-The canary is a sprite from Swipey Bird, a Flappy Bird clone built at a Square hack week in 2014, in
-which you made the bird fly by swiping a credit card through a card reader. There was a 250 ms delay
-between the swipe and the app picking up the reader signal, which made the game very hard. Its bird,
-reused as it was, became the first image the readme ever had:
+The first one was not drawn for it. It was a sprite lifted from Swipey Bird, a Flappy Bird clone
+built at a Square hack week in 2014, in which you made the bird fly by swiping a credit card through
+a card reader — with a 250 ms delay between the swipe and the app picking up the reader signal, which
+made the game very hard. The bird is a credit card with an eye, a beak and a wing, and the yellow one
+made a serviceable canary. It was the first image the readme ever had:
 
-<img src="../images/history-first-canary.gif" width="160" alt="The original pixel art canary, a sprite reused from Swipey Bird">
+<img src="../images/history-first-canary.gif" width="160" alt="The first canary: a pixel art credit card with an eye and a beak, a sprite from Swipey Bird">
 
 <img src="../images/history-swipey-bird.jpg" width="200" alt="The Swipey Bird poster from Square's Q3 2014 hack week">
 
-The icon was assembled rather than drawn: a photograph of a real canary, outlined in Photoshop, over
-a shield taken from one of the online Android icon generators of the time. The canary's head came out
-badly pixelated. Romain Guy noticed, and days after the first public release he replaced the whole
-thing with a vector version.
+A day later it was replaced by an icon of LeakCanary's own, assembled rather than drawn: a photograph
+of a real canary, outlined in Photoshop, over a shield taken from one of the online Android icon
+generators of the time. The outline was rough, both in the bird and in the shield around it. Two days
+after the first public release Romain Guy redrew the whole thing, and two days after that he
+committed the vector it was drawn from — his version on the right:
 
-<img src="../images/history-first-notification-icon.png" width="72" alt="The first LeakCanary notification icon: a shield with an exclamation mark and a canary">
+<img src="../images/history-icon-before-after.png" width="480" alt="The hand outlined icon next to Romain Guy's redraw of it">
 
 Two things from that month are worth pulling out.
 
-**It was told to be automatic.** In April 2015 LeakCanary was a set of parts you wired together in
-your `Application` class: construct a heap dump listener, hand it to a watcher, hold on to the
-watcher — plus a sample app demonstrating that wiring, and a sample activity carrying the code that
-displayed the leaks. Jesse Wilson suggested that instead LeakCanary should have a user interface and
-should work out of the box with no configuration: all of that code belonged in the library. Within
-days it was there, and the wiring had collapsed to a single `LeakCanary.install(this)`. It
+**It was made to work out of the box.** In April 2015 LeakCanary was a set of parts you wired
+together in your `Application` class: construct a heap dump listener, hand it to a watcher, hold on
+to the watcher — plus a sample app demonstrating that wiring, and a sample activity carrying the code
+that displayed the leaks. Jesse Wilson suggested that instead LeakCanary should have a user interface
+and should work out of the box with no configuration: all of that code belonged in the library.
+Within days it was there, and the wiring had collapsed to a single `LeakCanary.install(this)`. It
 disappeared altogether in version 2, which
 [installs itself](design.md#adding-the-dependency-is-the-whole-setup). `KeyedWeakReference`, a class
 LeakCanary still has, first appears that same month.

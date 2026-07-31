@@ -37,22 +37,14 @@ of surfacing the same objects over and over for the rest of a process's life.
 
 ## Watch, then confirm
 
-An object that is still reachable a moment after its lifecycle ends is not evidence of anything.
-LeakCanary therefore never concludes on first look: it holds a weak reference to the watched object,
-and puts two waits between the end of a lifecycle and a verdict, each there for a different reason.
+An object that is still reachable a moment after its lifecycle ends is not evidence of anything, so
+LeakCanary holds a weak reference to the watched object and waits five seconds before concluding
+anything. That wait is not about the garbage collector. Android holds objects temporarily through
+messages posted to the main thread with a delay — a blinking cursor, a fling settling, an animation
+finishing — and those references clear themselves once the message runs. Five seconds is the window
+judged long enough for that backlog to drain.
 
-First it waits for the main thread to go idle, so that the check can't run before the app has
-finished letting go of the object. Without that, a slow enough device reports a leak that is really
-just work not done yet.
-
-Then it waits five seconds — and that number is not about the garbage collector, which is the natural
-assumption and the one to resist. Android holds objects temporarily through messages posted to the
-main thread with a delay: a blinking cursor, a fling settling, an animation finishing. Those
-references clear themselves once the message runs, and five seconds is the window judged long enough
-for that backlog to drain.
-
-An object that is still held after both waits is **retained**, and only then is the heap worth
-looking at.
+An object still held after that wait is **retained**, and only then is the heap worth looking at.
 
 What LeakCanary waits for is weak reachability, not collection. A weak reference is enqueued as soon
 as its target becomes weakly reachable, before finalization or collection has actually happened,
@@ -182,9 +174,9 @@ collection roots in a fixed order.
 
 !!! note "More than one bad reference"
     This section has assumed that a leak is a single bad reference. In practice there are sometimes
-    two separate bugs — two bad references, both preventing the object from being garbage collected.
-    LeakCanary still presents a single leak trace, to keep things simple. Find that leak, fix it, run
-    leak detection again, and the second one surfaces.
+    two separate bugs — two bad references, both preventing the same object from being garbage
+    collected. LeakCanary still presents a single leak trace, to keep things simple. Find that leak,
+    fix it, run leak detection again, and the second one surfaces.
 
 ## References are shown the way you would write them
 
