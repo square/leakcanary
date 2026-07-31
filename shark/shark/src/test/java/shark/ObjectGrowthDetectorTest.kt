@@ -118,8 +118,8 @@ class ObjectGrowthDetectorTest {
     val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
 
     val growingObject = heapTraversal.growingObjects.single()
-    // The string array and the 2 strings it holds.
-    assertThat(growingObject.retained.objectCount).isEqualTo(3)
+    // The string array, the 2 strings it holds and the array of characters of each of those.
+    assertThat(growingObject.retained.objectCount).isEqualTo(5)
     val expectedRetainedSize = (2 * 4 + (8 + "Hello".length * 2) + (8 + "World!".length * 2)).bytes
     assertThat(growingObject.retained.heapSize).isEqualTo(expectedRetainedSize)
     // The first traversal has no growing objects to compute a retained size from, so there's
@@ -194,7 +194,8 @@ class ObjectGrowthDetectorTest {
     val heapTraversal = detector.findRepeatedlyGrowingObjects(dumps)
 
     val growingObject = heapTraversal.growingObjects.single()
-    assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(1)
+    // The added string and the array of characters it holds.
+    assertThat(growingObject.retainedIncrease.objectCount).isEqualTo(2)
     val expectedRetainedSizeIncrease = (12 + "Turtles".length * 2).bytes
     assertThat(growingObject.retainedIncrease.heapSize).isEqualTo(expectedRetainedSizeIncrease)
   }

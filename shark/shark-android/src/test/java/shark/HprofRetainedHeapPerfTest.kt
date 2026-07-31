@@ -52,7 +52,7 @@ class HprofRetainedHeapPerfTest {
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
-    assertThat(retained).isEqualTo(4.5 MB +-5 % margin)
+    assertThat(retained).isEqualTo(4.8 MB +-5 % margin)
   }
 
   @Test fun `freeze retained memory when indexing leak_asynctask_m`() {
@@ -69,7 +69,7 @@ class HprofRetainedHeapPerfTest {
 
     val retained = analysisRetained - baselineHeap.retainedHeap(ANALYSIS_THREAD).first
 
-    assertThat(retained).isEqualTo(4.4 MB +-5 % margin)
+    assertThat(retained).isEqualTo(4.8 MB +-5 % margin)
   }
 
   @Test fun `freeze retained memory through analysis steps of leak_asynctask_o`() {
@@ -109,13 +109,13 @@ class HprofRetainedHeapPerfTest {
       retainedPair.first - retainedBeforeAnalysis to retainedPair.second
     }
 
-    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(4.98 MB +-5 % margin)
-    assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.20 MB +-5 % margin)
-    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.28 MB +-5 % margin)
-    assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(5.47 MB +-5 % margin)
-    assertThat(retained after INSPECTING_OBJECTS).isEqualTo(5.47 MB +-5 % margin)
-    assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(5.47 MB +-5 % margin)
-    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.47 MB +-5 % margin)
+    assertThat(retained after PARSING_HEAP_DUMP).isEqualTo(5.32 MB +-5 % margin)
+    assertThat(retained after EXTRACTING_METADATA).isEqualTo(5.55 MB +-5 % margin)
+    assertThat(retained after FINDING_RETAINED_OBJECTS).isEqualTo(5.62 MB +-5 % margin)
+    assertThat(retained after FINDING_PATHS_TO_RETAINED_OBJECTS).isEqualTo(5.82 MB +-5 % margin)
+    assertThat(retained after INSPECTING_OBJECTS).isEqualTo(5.82 MB +-5 % margin)
+    assertThat(retained after COMPUTING_NATIVE_RETAINED_SIZE).isEqualTo(5.82 MB +-5 % margin)
+    assertThat(retained after COMPUTING_RETAINED_SIZE).isEqualTo(5.82 MB +-5 % margin)
   }
 
   private fun indexRecordsOf(hprofFile: File): HprofIndex {

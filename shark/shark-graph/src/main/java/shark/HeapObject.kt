@@ -367,6 +367,17 @@ sealed class HeapObject {
       get() = indexedObject.classId
 
     /**
+     * If this is a `java.lang.String`, the heap identifier of the array holding its characters,
+     * which indexing picked up as it read the heap dump, so reading this triggers no IO.
+     *
+     * [ValueHolder.NULL_REFERENCE] for every other instance, and for a string too when the heap
+     * dump didn't let indexing work out where `java.lang.String` keeps that array. Callers that
+     * need the array in every case have to fall back to [readRecord] and read the field.
+     */
+    val indexedStringValueObjectId: Long
+      get() = hprofGraph.stringValueObjectId(objectId)
+
+    /**
      * Reads and returns the underlying [InstanceDumpRecord].
      *
      * This may trigger IO reads.

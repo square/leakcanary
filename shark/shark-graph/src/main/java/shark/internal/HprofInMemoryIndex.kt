@@ -67,6 +67,83 @@ internal class ThreadStackFrame(
   val localObjectIds: List<Long>
 )
 
+private const val JAVA_LANG_STRING = "java.lang.String"
+
+/**
+ * Where `java.lang.String` keeps the array holding its characters, worked out by the first indexing
+ * pass so that the second pass can pick that array's id up for every string as its record streams
+ * past. Strings are 44% to 70% of the instances in our test heap dumps and their only reference is
+ * that array, so having it in the index is what lets a traversal follow it without a read.
+ *
+ * A string's only reference *is* that array, so the field is found by type rather than by name. That
+ * saves matching the name against the heap dump's strings and works whatever the field is called (it
+ * was `value` in every heap dump we've seen).
+ */
+private class StringLayout(
+  val classId: Long = ValueHolder.NULL_REFERENCE,
+  /** Byte offset of the array's id within a string's field values. */
+  val valueFieldOffset: Int = NO_OFFSET,
+  /** How many strings the first pass counted, which sizes the index exactly. */
+  val instanceCount: Int = 0
+) {
+  val hasClassId: Boolean
+    get() = classId != ValueHolder.NULL_REFERENCE
+
+  /**
+   * False when the heap dump didn't let the first pass work out the layout: no `java.lang.String`
+   * class, or it holds a number of references other than one, or its class dump comes before the
+   * record that names it. Indexing then captures nothing and reading a string's reference falls
+   * back to reading its record.
+   */
+  val isKnown: Boolean
+    get() = hasClassId && valueFieldOffset != NO_OFFSET && instanceCount > 0
+
+  fun withValueFieldOffset(offset: Int) = StringLayout(classId, offset, instanceCount)
+
+  fun withInstanceCount(count: Int) = StringLayout(classId, valueFieldOffset, count)
+
+  companion object {
+    const val NO_OFFSET = -1
+    val UNKNOWN = StringLayout()
+  }
+}
+
+/**
+ * Reads the field list of a class dump record, returning the byte offset of its one and only
+ * reference field within an instance's field values, or [StringLayout.NO_OFFSET] if the class
+ * doesn't have exactly one. Consumes exactly what [HprofRecordReader.skipClassDumpFields] would.
+ */
+private fun HprofRecordReader.readSingleReferenceFieldOffset(identifierByteSize: Int): Int {
+  var offset = 0
+  var referenceFieldOffset = StringLayout.NO_OFFSET
+  var referenceFieldCount = 0
+  val fieldCount = readUnsignedShort()
+  repeat(fieldCount) {
+    // field name string id
+    skip(identifierByteSize)
+    val type = readUnsignedByte()
+    if (type == PrimitiveType.REFERENCE_HPROF_TYPE) {
+      referenceFieldCount++
+      referenceFieldOffset = offset
+      offset += identifierByteSize
+    } else {
+      offset += PrimitiveType.byteSizeByHprofType.getValue(type)
+    }
+  }
+  return if (referenceFieldCount == 1) referenceFieldOffset else StringLayout.NO_OFFSET
+}
+
+/** As [HprofRecordReader.skipInstanceDumpRecord], but says which class the instance is of. */
+private fun HprofRecordReader.skipInstanceDumpRecordReturningClassId(
+  identifierByteSize: Int
+): Long {
+  // object id, then stack trace serial number
+  skip(identifierByteSize + INT.byteSize)
+  val classId = readId()
+  skip(readInt())
+  return classId
+}
+
 /**
  * Building an index with [indexHprof] should happen on a single thread, but the index that comes
  * out of it is read only and can then be read from several threads at the same time.
@@ -93,6 +170,7 @@ internal class HprofInMemoryIndex private constructor(
   private val stackTraces: LongObjectScatterMap<StackTraceRecord>,
   private val classSerialNameStringIds: LongLongScatterMap,
   private val threadObjects: List<ThreadObject>,
+  private val stringValueIndex: SortedBytesMap?,
 ) {
 
   /**
@@ -114,6 +192,21 @@ internal class HprofInMemoryIndex private constructor(
 
   val primitiveArrayCount: Int
     get() = primitiveArrayIndex.size
+
+  /**
+   * The id of the array holding the characters of the string with id [objectId], picked up while
+   * indexing, or [ValueHolder.NULL_REFERENCE] if it wasn't. Reading a string's only reference this
+   * way costs no heap dump read, which matters because strings are a large share of the instances
+   * in a heap dump: 44% to 70% of them in our test heap dumps.
+   *
+   * It's absent for every object that isn't a string, and for strings too when the heap dump didn't
+   * let indexing work out the layout of `java.lang.String` up front. Callers are expected to fall
+   * back to reading the instance record.
+   */
+  fun stringValueObjectId(objectId: Long): Long {
+    val value = stringValueIndex?.get(objectId) ?: return ValueHolder.NULL_REFERENCE
+    return value.readId()
+  }
 
   fun fieldName(
     classId: Long,
@@ -504,6 +597,7 @@ internal class HprofInMemoryIndex private constructor(
     private val neededClassSerials: LongScatterSet,
     stackFrameCount: Int,
     stackTraceCount: Int,
+    private val stringLayout: StringLayout,
   ) : OnHprofRecordTagListener {
 
     private val identifierSize = if (longIdentifiers) 8 else 4
@@ -551,6 +645,24 @@ internal class HprofInMemoryIndex private constructor(
       longIdentifiers = longIdentifiers,
       entryCount = primitiveArrayCount
     )
+
+    /**
+     * String id to the id of the array holding its characters, for as many strings as
+     * [StringLayout.instanceCount] promised. Null when the first pass couldn't work out the layout
+     * of `java.lang.String`, in which case reading a string's reference falls back to reading its
+     * record.
+     */
+    private val stringValueIndex = if (stringLayout.isKnown) {
+      SortedBytesMaps.newBuilder(
+        bytesPerValue = identifierSize,
+        longIdentifiers = longIdentifiers,
+        entryCount = stringLayout.instanceCount
+      )
+    } else {
+      null
+    }
+
+    private var stringValueCount = 0
 
     // Pre seeding gc roots with the sticky class gc roots we've already parsed.
     private val gcRoots: MutableList<GcRoot> = ArrayList<GcRoot>(stickyClassGcRootIds.size()).apply {
@@ -780,7 +892,22 @@ internal class HprofInMemoryIndex private constructor(
           reader.skip(INT.byteSize)
           val classId = reader.readId()
           val remainingBytesInInstance = reader.readInt()
-          reader.skip(remainingBytesInInstance)
+          if (stringValueIndex != null &&
+            classId == stringLayout.classId &&
+            stringValueCount < stringLayout.instanceCount
+          ) {
+            // These bytes are streaming past either way, so picking the value out of them costs no
+            // read. See HprofInMemoryIndex.stringValueObjectId.
+            reader.skip(stringLayout.valueFieldOffset.toLong())
+            val valueObjectId = reader.readId()
+            reader.skip(
+              remainingBytesInInstance - stringLayout.valueFieldOffset - identifierSize
+            )
+            stringValueCount++
+            stringValueIndex.append(id).writeId(valueObjectId)
+          } else {
+            reader.skip(remainingBytesInInstance)
+          }
           val recordSize = reader.bytesRead - bytesReadStart
           instanceIndex.append(id)
             .apply {
@@ -848,6 +975,8 @@ internal class HprofInMemoryIndex private constructor(
       val sortedPrimitiveArrayIndex = primitiveArrayIndex.moveToSortedMap()
       cancelSignal.throwIfCanceled()
       val sortedClassIndex = classIndex.moveToSortedMap()
+      cancelSignal.throwIfCanceled()
+      val sortedStringValueIndex = stringValueIndex?.moveToSortedMap()
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
         positionSize = positionSize,
@@ -871,6 +1000,7 @@ internal class HprofInMemoryIndex private constructor(
         stackTraces = stackTraces,
         classSerialNameStringIds = classSerialNameStringIds,
         threadObjects = threadObjects,
+        stringValueIndex = sortedStringValueIndex,
       )
     }
   }
@@ -896,6 +1026,9 @@ internal class HprofInMemoryIndex private constructor(
     ): HprofInMemoryIndex {
 
       // First pass to count and correctly size arrays once and for all.
+      var stringLayout = StringLayout.UNKNOWN
+      var javaLangStringNameStringId = ValueHolder.NULL_REFERENCE
+      var stringInstanceCount = 0
       var maxClassSize = 0L
       var maxInstanceSize = 0L
       var maxObjectArraySize = 0L
@@ -914,6 +1047,8 @@ internal class HprofInMemoryIndex private constructor(
 
       val bytesRead = reader.readRecords(
         EnumSet.of(
+          STRING_IN_UTF8,
+          LOAD_CLASS,
           CLASS_DUMP,
           INSTANCE_DUMP,
           OBJECT_ARRAY_DUMP,
@@ -925,18 +1060,57 @@ internal class HprofInMemoryIndex private constructor(
       ) { tag, length, reader ->
         val bytesReadStart = reader.bytesRead
         when (tag) {
+          // Read only to find out where java.lang.String keeps the array holding its characters,
+          // which the second pass then picks up for every string as it goes. The second pass reads
+          // these records for real.
+          STRING_IN_UTF8 -> {
+            if (javaLangStringNameStringId == ValueHolder.NULL_REFERENCE) {
+              val record = reader.readStringRecord(length)
+              if (record.string == JAVA_LANG_STRING) {
+                javaLangStringNameStringId = record.id
+              }
+            } else {
+              reader.skip(length)
+            }
+          }
+          LOAD_CLASS -> {
+            if (!stringLayout.hasClassId &&
+              javaLangStringNameStringId != ValueHolder.NULL_REFERENCE
+            ) {
+              val record = reader.readLoadClassRecord()
+              if (record.classNameStringId == javaLangStringNameStringId) {
+                stringLayout = StringLayout(classId = record.id)
+              }
+            } else {
+              reader.skip(length)
+            }
+          }
           CLASS_DUMP -> {
             classCount++
-            reader.skipClassDumpHeader()
+            val classId = reader.readId()
+            // The rest of what skipClassDumpHeader() skips: stack trace serial number, the 6
+            // remaining ids, instance size, then the constant pool.
+            reader.skip(INT.byteSize * 2L + hprofHeader.identifierByteSize * 6L)
+            reader.skipClassDumpConstantPool()
             val bytesReadStaticFieldStart = reader.bytesRead
             reader.skipClassDumpStaticFields()
-            reader.skipClassDumpFields()
+            if (stringLayout.hasClassId && classId == stringLayout.classId) {
+              stringLayout = stringLayout.withValueFieldOffset(
+                reader.readSingleReferenceFieldOffset(hprofHeader.identifierByteSize)
+              )
+            } else {
+              reader.skipClassDumpFields()
+            }
             maxClassSize = max(maxClassSize, reader.bytesRead - bytesReadStart)
             classFieldsTotalBytes += (reader.bytesRead - bytesReadStaticFieldStart).toInt()
           }
           INSTANCE_DUMP -> {
             instanceCount++
-            reader.skipInstanceDumpRecord()
+            val instanceClassId =
+              reader.skipInstanceDumpRecordReturningClassId(hprofHeader.identifierByteSize)
+            if (stringLayout.hasClassId && instanceClassId == stringLayout.classId) {
+              stringInstanceCount++
+            }
             maxInstanceSize = max(maxInstanceSize, reader.bytesRead - bytesReadStart)
           }
           OBJECT_ARRAY_DUMP -> {
@@ -979,6 +1153,8 @@ internal class HprofInMemoryIndex private constructor(
       val bytesForObjectArraySize = byteSizeForUnsigned(maxObjectArraySize)
       val bytesForPrimitiveArraySize = byteSizeForUnsigned(maxPrimitiveArraySize)
 
+      stringLayout = stringLayout.withInstanceCount(stringInstanceCount)
+
       val indexBuilderListener = Builder(
         longIdentifiers = hprofHeader.identifierByteSize == 8,
         maxPosition = bytesRead,
@@ -996,6 +1172,7 @@ internal class HprofInMemoryIndex private constructor(
         neededClassSerials = neededClassSerials,
         stackFrameCount = stackFrameCount,
         stackTraceCount = stackTraceCount,
+        stringLayout = stringLayout,
       )
 
       val recordTypes = EnumSet.of(
