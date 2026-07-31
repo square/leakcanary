@@ -35,11 +35,15 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilExactlyOneExists
 import java.io.File
+import java.util.concurrent.CopyOnWriteArrayList
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
+import shark.SharkLog
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.ExplorerScreen
@@ -60,6 +64,37 @@ class ExplorerAppTest {
 
   /** The object id of the array in [testHeapDump], recorded as the dump is written. */
   private var payloadObjectId = 0L
+
+  /**
+   * Everything Shark logged during this test, a line per log with the throwable it came with appended.
+   *
+   * Recorded for every test rather than only for the ones asserting on it, so that a log line built from
+   * the wrong state — an index into a path that has been shortened, say — fails the test that reaches it.
+   * The window's thread and the heap dump's both log, hence the concurrent list.
+   */
+  private val logged = CopyOnWriteArrayList<String>()
+
+  private var previousLogger: SharkLog.Logger? = null
+
+  @Before fun recordWhatIsLogged() {
+    previousLogger = SharkLog.logger
+    SharkLog.logger = object : SharkLog.Logger {
+      override fun d(message: String) {
+        logged += message
+      }
+
+      override fun d(
+        throwable: Throwable,
+        message: String
+      ) {
+        logged += "$message: $throwable"
+      }
+    }
+  }
+
+  @After fun stopRecordingWhatIsLogged() {
+    SharkLog.logger = previousLogger
+  }
 
   @Test fun `nothing is open until a heap dump is chosen`() {
     runComposeUiTest {
@@ -100,6 +135,35 @@ class ExplorerAppTest {
 
       waitUntilAtLeastOneExists(hasText("could not be opened", substring = true), OPEN_TIMEOUT_MILLIS)
     }
+  }
+
+  /**
+   * A window reporting a failure and a log saying nothing about it is a report nobody can answer, so what
+   * the window says has to be what the log says too. Where the log goes: [shark.explorer.SessionLog].
+   */
+  @Test fun `a file that is not a heap dump is logged with what went wrong`() {
+    runComposeUiTest {
+      val notAHeapDump = testFolder.newFile("not-a-heap-dump.txt").apply { writeText("nope") }
+      setContent { MaterialTheme { ExplorerApp(initialHeapDumpFile = notAHeapDump) } }
+
+      waitUntilAtLeastOneExists(hasText("could not be opened", substring = true), OPEN_TIMEOUT_MILLIS)
+    }
+
+    assertThat(logged).anyMatch { "Could not open" in it && "not-a-heap-dump.txt" in it }
+  }
+
+  /**
+   * What makes a session readable after it: which dump was opened, which step of opening it was running,
+   * and every read of it once it's open. See [HeapDumpSession.read].
+   */
+  @Test fun `opening a heap dump and reading it are logged`() {
+    runComposeUiTest { openHeapDump() }
+
+    assertThat(logged).anyMatch { it.startsWith("Opening heap dump") }
+    assertThat(logged).anyMatch { it.startsWith("Indexing") }
+    assertThat(logged).anyMatch { it.startsWith("Opened") }
+    assertThat(logged).anyMatch { it.startsWith("Read the sizes of") }
+    assertThat(logged).anyMatch { it.startsWith("Read the treemap rooted at") }
   }
 
   @Test fun `the whole heap dump is accounted for at the top`() {

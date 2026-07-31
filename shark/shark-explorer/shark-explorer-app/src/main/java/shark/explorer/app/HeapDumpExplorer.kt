@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import shark.SharkLog
 import shark.explorer.CellSubject
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
@@ -49,6 +50,7 @@ import shark.explorer.TreemapNavigation
 import shark.explorer.TreemapPresentation
 import shark.explorer.TreemapRect
 import shark.explorer.formatByteSize
+import shark.explorer.formatObjectCount
 
 /**
  * One open heap dump, read through whichever screen the breadcrumbs say: the dominator tree as a treemap
@@ -118,6 +120,8 @@ internal fun HeapDumpExplorer(
     radialLayout
   ) {
     if (viewportSize == IntSize.Zero) {
+      // Which is what a window showing a spinner and nothing else has been waiting for all along.
+      SharkLog.d { "Not laying the tree out yet: the view has no size" }
       return@LaunchedEffect
     }
     isLayingOut = true
@@ -127,10 +131,19 @@ internal fun HeapDumpExplorer(
       right = viewportSize.width.toDouble(),
       bottom = viewportSize.height.toDouble()
     )
-    view = session.read { explorer ->
+    view = session.read(
+      "the ${shape.displayName.lowercase()} rooted at ${hexObjectId(navigation.current)}, " +
+        "${viewportSize.width}×${viewportSize.height}"
+    ) { explorer ->
       val tree = explorer.tree
       // An object zoomed into may no longer be dominated by the one above it on the path.
       val reachablePath = navigation.retainingWhere { it in tree }
+      if (reachablePath.path.size < navigation.path.size) {
+        SharkLog.d {
+          "Rooted at ${reachablePath.path.size} of the ${navigation.path.size} nodes zoomed through: " +
+            "${hexObjectId(navigation.path[reachablePath.path.size])} is no node of the tree"
+        }
+      }
       ViewState(
         navigation = reachablePath,
         crumbs = reachablePath.path.map { objectId -> tree.crumb(objectId) },
@@ -144,6 +157,8 @@ internal fun HeapDumpExplorer(
         }
       )
     }
+    // What a view that came out looking empty or coarse actually drew.
+    SharkLog.d { "Laid out ${view.presentation.description()}" }
     // Settling for the path that could actually be shown isn't a move, so it replaces where the explorer
     // is rather than being somewhere the back arrow returns to. Only if it's still there: a move made
     // while this was being laid out is not something to overwrite.
@@ -162,7 +177,7 @@ internal fun HeapDumpExplorer(
     selection = if (currentRequest == null) {
       null
     } else {
-      session.read { explorer ->
+      session.read(currentRequest.description()) { explorer ->
         val tree = explorer.tree
         when (currentRequest) {
           is SelectionRequest.Object -> {
@@ -170,7 +185,14 @@ internal fun HeapDumpExplorer(
             when {
               group != null -> Selection.ObjectGroup(group)
               currentRequest.objectId in tree -> Selection.Object(tree.summarize(currentRequest.objectId))
-              else -> null
+              // Which is why the panel goes back to saying nothing is selected.
+              else -> {
+                SharkLog.d {
+                  "Nothing to describe for ${hexObjectId(currentRequest.objectId)}: " +
+                    "it is no node of the tree"
+                }
+                null
+              }
             }
           }
           is SelectionRequest.Group -> Selection.Group(
@@ -188,7 +210,9 @@ internal fun HeapDumpExplorer(
   val selectedObjectId = (selection as? Selection.Object)?.summary?.objectId
   LaunchedEffect(session, selectedObjectId) {
     dominator = selectedObjectId?.let { objectId ->
-      session.read { explorer -> explorer.tree.dominatorOf(objectId) }
+      session.read("the dominator of ${hexObjectId(objectId)}") { explorer ->
+        explorer.tree.dominatorOf(objectId)
+      }
     }
   }
 
@@ -196,7 +220,9 @@ internal fun HeapDumpExplorer(
   // heap dump that indexes which object points at which. So it lands after the rest of the panel.
   LaunchedEffect(session, selectedObjectId) {
     paths = selectedObjectId?.let { objectId ->
-      session.read { explorer -> explorer.tree.independentPathsTo(objectId) }
+      session.read("the paths holding ${hexObjectId(objectId)}") { explorer ->
+        explorer.tree.independentPathsTo(objectId)
+      }
     }
   }
 
@@ -209,7 +235,14 @@ internal fun HeapDumpExplorer(
     }
     isListing = true
     delay(FILTER_SETTLE_MILLIS)
-    objects = session.read { explorer -> explorer.tree.listObjects(objectFilter) }
+    objects = session.read("the objects matching $objectFilter") { explorer ->
+      explorer.tree.listObjects(objectFilter)
+    }
+    // What a list that came back looking empty or short was actually asked for.
+    SharkLog.d {
+      "Listed ${objects.entries.size} of the ${formatObjectCount(objects.matchCount)} matched, " +
+        "out of ${formatObjectCount(objects.totalCount)}"
+    }
     isListing = false
   }
 
@@ -217,7 +250,14 @@ internal fun HeapDumpExplorer(
   // of a list leads to is a heap dump read as well.
   LaunchedEffect(session, nodeToOpen) {
     val open = nodeToOpen ?: return@LaunchedEffect
-    val path = session.read { explorer -> explorer.tree.pathToOpen(open.nodeId) }
+    val path = session.read("where the map draws ${hexObjectId(open.nodeId)}") { explorer ->
+      explorer.tree.pathToOpen(open.nodeId)
+    }
+    if (open.nodeId != ROOT_NODE && path == listOf(ROOT_NODE)) {
+      // Clicking a field or a row led to an object the tree has no node for, so the map has nowhere to
+      // go and stays on the whole heap dump.
+      SharkLog.d { "${hexObjectId(open.nodeId)} is nowhere on the map: it is no node of the tree" }
+    }
     val zoomed = history.current.treeNavigation.zoomInto(path)
     history = history.goTo(
       if (open.showsPaths) {
@@ -359,11 +399,21 @@ internal fun HeapDumpExplorer(
           )
         },
         onToggleStar = {
-          val summary = selectedSummary ?: return@DetailsPanel
-          favourites = if (favourites.any { it.objectId == summary.objectId }) {
-            favourites.filterNot { it.objectId == summary.objectId }
+          val summary = selectedSummary
+          if (summary == null) {
+            // The star is only ever drawn beside a selected object, so this is the panel and the
+            // selection disagreeing rather than a click on nothing.
+            SharkLog.d { "Nothing to star: no object is selected" }
           } else {
-            favourites + Favourite.of(summary, dominator)
+            val wasStarred = favourites.any { it.objectId == summary.objectId }
+            SharkLog.d {
+              "${if (wasStarred) "Unstarred" else "Starred"} ${hexObjectId(summary.objectId)}"
+            }
+            favourites = if (wasStarred) {
+              favourites.filterNot { it.objectId == summary.objectId }
+            } else {
+              favourites + Favourite.of(summary, dominator)
+            }
           }
         },
         modifier = Modifier.width(DETAILS_WIDTH).fillMaxHeight()
@@ -566,6 +616,14 @@ internal sealed interface ViewPresentation {
   data class Radial(val presentation: RadialPresentation) : ViewPresentation
 }
 
+/** What a laid out view amounts to, for the log: one that drew nothing at all says so here. */
+private fun ViewPresentation.description(): String = when (this) {
+  is ViewPresentation.Treemap ->
+    "${presentation.cells.size} rectangles, ${presentation.truncatedNodeCount} nodes not expanded"
+  is ViewPresentation.Radial ->
+    "${presentation.cells.size} sectors, ${presentation.truncatedNodeCount} nodes not expanded"
+}
+
 internal class Crumb(
   val objectId: Long,
   val label: String
@@ -597,6 +655,12 @@ private sealed interface SelectionRequest {
       is CellSubject.Own -> Object(subject.node)
     }
   }
+}
+
+/** What the panel is being filled in for, for the log. See [HeapDumpSession.read]. */
+private fun SelectionRequest.description(): String = when (this) {
+  is SelectionRequest.Object -> "what ${hexObjectId(objectId)} is"
+  is SelectionRequest.Group -> "what the $nodeCount objects under ${hexObjectId(parentObjectId)} are"
 }
 
 private const val ROOT_NODE = HeapDominatorTreemap.ROOT_OBJECT_ID

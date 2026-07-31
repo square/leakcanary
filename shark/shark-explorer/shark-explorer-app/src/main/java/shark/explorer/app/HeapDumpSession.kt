@@ -4,9 +4,12 @@ import java.io.Closeable
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.TimeUnit.NANOSECONDS
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.withContext
+import shark.SharkLog
 import shark.explorer.HeapExplorer
 
 /**
@@ -29,8 +32,32 @@ class HeapDumpSession private constructor(
 
   val heapDumpFile: File get() = explorer.heapDumpFile
 
-  /** Runs [block] against the heap dump on the thread that owns it. */
-  suspend fun <T> read(block: (HeapExplorer) -> T): T = withContext(dispatcher) { block(explorer) }
+  /**
+   * Runs [block] against the heap dump on the thread that owns it, logging [description] as it starts
+   * and as it comes back.
+   *
+   * Every read of an open heap dump goes through here, so this is also the trace of what the window was
+   * doing: how long each read took says which one made it feel stuck, a read logged as started and
+   * never as done is where a session that was killed or ran out of memory was, and a read that throws
+   * is logged with what it was reading rather than with a stack trace alone.
+   *
+   * [description] therefore names what is being read, e.g. "the dominator of 0x12ab4000".
+   */
+  suspend fun <T> read(
+    description: String,
+    block: (HeapExplorer) -> T
+  ): T = withContext(dispatcher) {
+    SharkLog.d { "Reading $description" }
+    val startNanos = System.nanoTime()
+    try {
+      block(explorer).also {
+        SharkLog.d { "Read $description in ${millisSince(startNanos)} ms" }
+      }
+    } catch (throwable: Throwable) {
+      SharkLog.d(throwable) { "Failed to read $description after ${millisSince(startNanos)} ms" }
+      throw throwable
+    }
+  }
 
   /**
    * Closes the heap dump on its own thread, then releases the thread.
@@ -39,7 +66,21 @@ class HeapDumpSession private constructor(
    * behind whatever read is in flight rather than waited for.
    */
   override fun close() {
-    executor.execute { explorer.close() }
+    SharkLog.d { "Closing ${heapDumpFile.name}" }
+    try {
+      executor.execute {
+        try {
+          explorer.close()
+          SharkLog.d { "Closed ${heapDumpFile.name}" }
+        } catch (throwable: Throwable) {
+          // Nothing is waiting on this, so an exception here would otherwise reach an executor's
+          // uncaught handler and be printed by nobody.
+          SharkLog.d(throwable) { "Failed to close ${heapDumpFile.name}" }
+        }
+      }
+    } catch (rejected: RejectedExecutionException) {
+      SharkLog.d(rejected) { "${heapDumpFile.name} was already being closed" }
+    }
     executor.shutdown()
   }
 
@@ -64,5 +105,7 @@ class HeapDumpSession private constructor(
         throw throwable
       }
     }
+
+    private fun millisSince(startNanos: Long): Long = NANOSECONDS.toMillis(System.nanoTime() - startNanos)
   }
 }
