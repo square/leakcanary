@@ -10,9 +10,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithText
@@ -151,6 +157,35 @@ class TreemapViewTest {
     }
   }
 
+  @Test fun `a bitmap's pixels are drawn on its rectangle`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val pixels = solidImage(MAGENTA)
+      setContent { TreemapUnderTest(presentation, bitmapImages = mapOf(CHILD to pixels)) }
+
+      val drawn = onRoot().captureToImage().toPixelMap()
+
+      // The middle of the rectangle, where an image fitted inside it always reaches.
+      val center = presentation.centerOf(CHILD)
+      assertThat(drawn[center.x.toInt(), center.y.toInt()]).isEqualTo(MAGENTA)
+    }
+  }
+
+  @Test fun `a bitmap keeps its shape rather than filling its rectangle`() {
+    runComposeUiTest {
+      // A rectangle is whatever shape its share of the heap makes it, and an icon squashed into that
+      // shape is not recognisable. So the image is centred, and the fill shows on either side of it.
+      val presentation = leafRoot.present()
+      setContent { TreemapUnderTest(presentation, bitmapImages = mapOf(ROOT to solidImage(MAGENTA))) }
+
+      val drawn = onRoot().captureToImage().toPixelMap()
+
+      // The view is wider than it is tall, so the image is as tall as the view and the sides are not it.
+      assertThat(drawn[VIEWPORT.width.toInt() / 2, VIEWPORT.height.toInt() / 2]).isEqualTo(MAGENTA)
+      assertThat(drawn[2, VIEWPORT.height.toInt() / 2]).isNotEqualTo(MAGENTA)
+    }
+  }
+
   @Test fun `nodes left out for lack of room are reported`() {
     runComposeUiTest {
       // Not enough room to subdivide anything, so even the root is left as it is.
@@ -159,6 +194,19 @@ class TreemapViewTest {
 
       onNodeWithText("1 node not expanded").assertIsDisplayed()
     }
+  }
+
+  /** An image of one colour, so that a pixel of what was drawn says whether it was drawn. */
+  private fun solidImage(color: Color): ImageBitmap {
+    val bitmap = ImageBitmap(width = 2, height = 2)
+    Canvas(bitmap).drawRect(
+      left = 0f,
+      top = 0f,
+      right = 2f,
+      bottom = 2f,
+      paint = Paint().apply { this.color = color }
+    )
+    return bitmap
   }
 
   private fun mapTree(vararg children: Pair<Long, List<Long>>): TreemapTree<Long> {
@@ -223,12 +271,16 @@ class TreemapViewTest {
     private const val OTHER_PARENT = 3L
 
     private val VIEWPORT = TreemapRect(left = 0.0, top = 0.0, right = 600.0, bottom = 400.0)
+
+    /** A colour no cell is filled with, so that finding it is finding the image. */
+    private val MAGENTA = Color(0xFFFF00FF)
   }
 }
 
 @Composable
 private fun TreemapUnderTest(
   presentation: TreemapPresentation,
+  bitmapImages: Map<Long, ImageBitmap> = emptyMap(),
   onSelect: (LayoutCell<Long>) -> Unit = {},
   onZoomInto: (List<Long>) -> Unit = {}
 ) {
@@ -248,6 +300,7 @@ private fun TreemapUnderTest(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
         selected = selected,
+        bitmapImages = bitmapImages,
         onSelect = {
           selected = SelectedCell.of(it.subject)
           onSelect(it)

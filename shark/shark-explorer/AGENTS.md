@@ -11,6 +11,7 @@ reading the source alone — everything else is in the code. Keep it that way.
 | Module | What it is | Constraints |
 | --- | --- | --- |
 | `shark-explorer-core` | Heap dump → dominator tree → layout model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
+| `shark-explorer-jdwp` | Attaches to a live app as a debugger to read the pixels of its bitmaps. | **Imports `com.sun.jdi`, so it needs a JDK and can't be loaded on Android.** That's the whole reason it isn't in `core`. |
 | `shark-explorer-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
 
 `shark/shark-explorer/` itself holds no code, matching how `shark/` and `leakcanary/` are grouping
@@ -77,9 +78,12 @@ Which is also the rule for new code here: **anything the UI swallows or falls ba
 - **`shark-explorer-app` is excluded by name** from the repo-wide Java 8 target in the root
   `build.gradle.kts`, because Compose Multiplatform's artifacts aren't built for Java 8. If you
   rename or move the module, update that exclusion list or the build breaks confusingly.
-- **Both modules are listed in `modulesWithoutPublicApi`** in the root `build.gradle.kts`. They are
-  not published to Maven Central, their ABI isn't tracked, and they're left out of the docs site.
+- **All three modules are listed in `modulesWithoutPublicApi`** in the root `build.gradle.kts`. They
+  are not published to Maven Central, their ABI isn't tracked, and they're left out of the docs site.
   So there is no `api/*.api` file to update and `updateKotlinAbi` doesn't apply.
+- **`jdk.jdi` is listed in the app's `nativeDistributions.modules`.** jlink includes only the JDK
+  modules it detects a use of, and it detects none through `Bootstrap.virtualMachineManager()`, so a
+  packaged build without that line attaches to nothing.
 - `compose` and `composeMultiplatform` in `gradle/libs.versions.toml` are **unrelated**: the first
   is the Jetpack Compose version the Android app builds against, the second is Compose
   Multiplatform for this desktop app.
@@ -113,6 +117,7 @@ Windows and Linux title bar — macOS ignores it.
 
 ```bash
 ./gradlew :shark:shark-explorer:shark-explorer-core:test
+./gradlew :shark:shark-explorer:shark-explorer-jdwp:test
 ./gradlew :shark:shark-explorer:shark-explorer-app:test   # UI tests, headless, no emulator
 ./gradlew :shark:shark-explorer:shark-explorer-app:check   # test + detekt
 
@@ -124,10 +129,22 @@ Windows and Linux title bar — macOS ignores it.
 
 The repo has real Android heap dumps to try it on: `shark/shark-android/src/test/resources/*.hprof`
 and `leakcanary/leakcanary-android-instrumentation/src/androidTest/assets/large-dump.hprof` (39 MB,
-the biggest one).
+the biggest one). All of them are from API 25 or earlier, so every bitmap in them carries its pixels —
+anything about a modern dump has to be tried on one taken off a device. See `notes/bitmaps.md`.
 
 `check` runs detekt (config at `config/detekt-config.yml`); CI and the pre-push hook both enforce
 it, so run it before pushing.
+
+Anything that reaches a device — taking a heap dump, fetching bitmaps — can be tried for real with an
+emulator running and `leakcanary-android-sample` installed on it
+(`ANDROID_SERIAL=emulator-5554 ./gradlew :samples:leakcanary-android-sample:installDebug`). It has to be a
+debuggable app: `am dumpheap` refuses anything else, including every app of the system image, and so does
+a JDWP connection. An emulator older than API 35 is what exercises `shark-explorer-jdwp`, since a newer
+one is asked through a heap dump instead.
+
+**None of that is covered by a test**, and it can't be: a JDI client talks to a real VM or to nothing.
+Drive it from a throwaway test against a running emulator, read the numbers, and delete the test — the
+numbers belong in `notes/bitmaps.md`.
 
 ## Testing conventions
 
@@ -155,7 +172,13 @@ it, so run it before pushing.
   view by its `contentDescription`, and every press helper is relative to that. Window fractions break
   the moment anything above the view changes height, which is a change to the top bar away.
 - Build test heap dumps with the `hprofFile.dump { }` DSL from `shark-hprof-test` rather than
-  checking in binary fixtures or hand-writing hprof bytes.
+  checking in binary fixtures or hand-writing hprof bytes. A dump with bitmaps in it is `BitmapDumps.kt`
+  in `shark-explorer-core`'s tests — the `"a.b.C" instance { }` shorthand declares a class per instance,
+  so two bitmaps built that way are two `android.graphics.Bitmap` classes, which no real dump has.
+- **A UI test must pass a `DeviceHeapDumps` built on a fake `Adb`.** `ExplorerApp`'s default shells out to
+  the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for — and the
+  window can dump the heap of a real process. `FakeAdb` matches command prefixes, because the remote dump
+  path contains a timestamp.
 - **A synthetic Android class needs the fields the object inspectors read.** `HeapObjectSummary` runs
   `AndroidObjectInspectors`, and those read fields with `!!` — an `android.view.View` without `mParent`,
   `mWindowAttachCount`, `mAttachInfo` and `mContext` makes `summarize()` throw a bare
@@ -169,6 +192,8 @@ Design decisions and findings, kept current as the work proceeds:
 - `notes/dominator-tree.md` — dominator algorithm findings, memory/perf numbers
 - `notes/treemap-rendering.md` — adaptive depth model, the two shapes, bugs in the existing Android
   treemap
+- `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and the two ways
+  the ones that don't are fetched off the device
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

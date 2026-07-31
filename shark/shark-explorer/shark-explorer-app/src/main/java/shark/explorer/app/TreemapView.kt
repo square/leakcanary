@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -25,6 +26,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import shark.explorer.CellSubject
 import shark.explorer.LayoutCell
 import shark.explorer.PresentedCell
@@ -46,6 +49,8 @@ internal fun TreemapView(
   presentation: TreemapPresentation,
   coloring: CellColoring,
   selected: SelectedCell?,
+  /** The pixels read for the bitmaps of this presentation so far, by object id. */
+  bitmapImages: Map<Long, ImageBitmap>,
   onSelect: (LayoutCell<Long>) -> Unit,
   /** The chain of nodes from the current root down to the one double clicked. */
   onZoomInto: (List<Long>) -> Unit,
@@ -55,10 +60,16 @@ internal fun TreemapView(
   val density = LocalDensity.current
   // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
   // the presentation changes and never on a redraw.
-  val cells = remember(presentation, coloring, textMeasurer, density) {
+  val cells = remember(presentation, coloring, bitmapImages, textMeasurer, density) {
     val colors = CellColors.of(coloring, presentation.cells)
     presentation.cells.map { presented ->
-      presented.measure(colors, textMeasurer, density, presentation.layout.isSubdivided(presented.cell))
+      presented.measure(
+        colors = colors,
+        textMeasurer = textMeasurer,
+        density = density,
+        isSubdivided = presentation.layout.isSubdivided(presented.cell),
+        image = presented.imageOf(bitmapImages)
+      )
     }
   }
   val edgeGrab = with(density) { EDGE_GRAB.toPx().toDouble() }
@@ -99,6 +110,10 @@ internal fun TreemapView(
       // what draws nesting, and where a chain of single children shares an edge the outlines stack up
       // into a heavier line, which is the view saying there is more here than one rectangle.
       cells.forEach { cell -> drawFill(cell) }
+      // Between the two, because a bitmap's pixels are the child rectangle covering it — its `byte[]`
+      // before API 26, nothing at all after — and the image belongs over that rather than under it.
+      // Still under every outline, so the nesting a bitmap sits in stays readable.
+      cells.forEach { cell -> drawImage(cell) }
       cells.forEach { cell -> drawOutlineAndLabel(cell) }
       // On top of everything: a selected rectangle that has children would otherwise have most of its
       // outline painted over by them.
@@ -168,26 +183,42 @@ private class MeasuredCell(
   val labelColor: Color,
   val labelOffset: Offset,
   /** Null when the rectangle is too small for a readable label. */
-  val label: TextLayoutResult?
+  val label: TextLayoutResult?,
+  /** The bitmap's pixels and where they go, for a cell that is a bitmap the dump has the pixels of. */
+  val image: ImageBitmap?,
+  val imageOffset: IntOffset,
+  val imageSize: IntSize
 )
+
+/** The pixels read for this cell, for a cell that stands for one bitmap. */
+private fun PresentedCell<TreemapCell<Long>>.imageOf(images: Map<Long, ImageBitmap>): ImageBitmap? {
+  val subject = cell.subject
+  return if (subject is CellSubject.Node) images[subject.node] else null
+}
 
 private fun PresentedCell<TreemapCell<Long>>.measure(
   colors: CellColors,
   textMeasurer: TextMeasurer,
   density: Density,
   /** Whether something is drawn inside this cell, which would cover a label anyway. */
-  isSubdivided: Boolean
+  isSubdivided: Boolean,
+  image: ImageBitmap?
 ): MeasuredCell {
   val rect = cell.rect
   val labelPadding = with(density) { LABEL_PADDING.toPx() }
   val labelWidth = rect.width - 2 * labelPadding
-  val fitsALabel = !isSubdivided &&
+  // An image covers the rectangle, so a label on it would be text over a picture. The chain at the
+  // bottom of the view names what the pointer is on, which is where the name of a bitmap is read.
+  val fitsALabel = !isSubdivided && image == null &&
     labelWidth >= with(density) { MIN_LABEL_WIDTH.toPx() } &&
     rect.height >= with(density) { MIN_LABEL_HEIGHT.toPx() }
+  val topLeft = Offset(rect.left.toFloat(), rect.top.toFloat())
+  val size = Size(rect.width.toFloat(), rect.height.toFloat())
+  val bounds = image?.let { imageBounds(it, topLeft, size) }
   return MeasuredCell(
     selects = SelectedCell.of(cell.subject),
-    topLeft = Offset(rect.left.toFloat(), rect.top.toFloat()),
-    size = Size(rect.width.toFloat(), rect.height.toFloat()),
+    topLeft = topLeft,
+    size = size,
     color = colors.colorOf(this),
     borderColor = colors.borderOf(this),
     outline = outlineOf(content),
@@ -203,12 +234,26 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
       )
     } else {
       null
-    }
+    },
+    image = image,
+    imageOffset = bounds?.first ?: IntOffset.Zero,
+    imageSize = bounds?.second ?: IntSize.Zero
   )
 }
 
 private fun DrawScope.drawFill(cell: MeasuredCell) {
   drawRect(color = cell.color, topLeft = cell.topLeft, size = cell.size)
+}
+
+private fun DrawScope.drawImage(cell: MeasuredCell) {
+  val image = cell.image ?: return
+  drawImage(
+    image = image,
+    srcOffset = IntOffset.Zero,
+    srcSize = IntSize(image.width, image.height),
+    dstOffset = cell.imageOffset,
+    dstSize = cell.imageSize
+  )
 }
 
 private fun DrawScope.drawOutlineAndLabel(cell: MeasuredCell) {

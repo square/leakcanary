@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -21,6 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,6 +53,8 @@ internal fun DetailsPanel(
   selection: Selection?,
   dominator: ObjectDominator?,
   paths: IndependentPaths?,
+  /** The selected object's pixels, when it's a bitmap anything has the pixels of. */
+  bitmap: ImageBitmap?,
   isStarred: Boolean,
   coloring: CellColoring,
   onOpen: (Long) -> Unit,
@@ -78,6 +86,7 @@ internal fun DetailsPanel(
           summary = selection.summary,
           dominator = dominator,
           paths = paths,
+          bitmap = bitmap,
           isStarred = isStarred,
           coloring = coloring,
           onOpen = onOpen,
@@ -150,6 +159,7 @@ private fun ObjectDetails(
   summary: HeapObjectSummary,
   dominator: ObjectDominator?,
   paths: IndependentPaths?,
+  bitmap: ImageBitmap?,
   isStarred: Boolean,
   coloring: CellColoring,
   onOpen: (Long) -> Unit,
@@ -183,6 +193,9 @@ private fun ObjectDetails(
   summary.headline?.let { headline ->
     Text(headline, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
   }
+  // Right under the headline, which for a bitmap is its size and its format: the picture is what the
+  // bitmap is, and the sentence describing it stops just short of saying it.
+  BitmapPreview(bitmap)
   Row(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
@@ -209,6 +222,28 @@ private fun ObjectDetails(
   DominatorSection(dominator, onOpen)
   IndependentPathsSection(summary.objectId, paths, dominator, onShowPaths)
   Fields(summary, onOpen)
+}
+
+/**
+ * What the selected bitmap looks like, as wide as the panel and never stretched.
+ *
+ * On grey rather than on the panel, because the transparent pixels of a bitmap take the colour of
+ * whatever is behind them: an icon drawn in white and an icon drawn in black both have to show, and one
+ * of them would disappear against anything at either end.
+ */
+@Composable
+private fun BitmapPreview(bitmap: ImageBitmap?) {
+  if (bitmap == null) {
+    return
+  }
+  Image(
+    bitmap = bitmap,
+    contentDescription = BITMAP_DESCRIPTION,
+    modifier = Modifier.fillMaxWidth()
+      .heightIn(max = BITMAP_PREVIEW_MAX_HEIGHT)
+      .background(BITMAP_BACKGROUND),
+    contentScale = ContentScale.Fit
+  )
 }
 
 /**
@@ -436,7 +471,16 @@ internal const val CLASS_GROUP_EXPLANATION =
 private const val GROUP_EXPLANATION =
   "Too small or too many to draw one by one. Zoom into what holds them to see them."
 
+/** What the pixels of the selected bitmap are, to anything that can't look at them. */
+internal const val BITMAP_DESCRIPTION = "The pixels of the selected bitmap."
+
 internal val DETAILS_WIDTH = 320.dp
+
+/** Tall enough for a portrait screenshot to be recognisable, short enough to leave the fields in view. */
+private val BITMAP_PREVIEW_MAX_HEIGHT = 320.dp
+
+/** Neither end of the range, so that neither a white bitmap nor a black one vanishes into it. */
+private val BITMAP_BACKGROUND = Color(0xFF808080)
 
 /** Wide enough for the hints to read as paragraphs rather than as one long line. */
 private val HINT_WIDTH = 320.dp

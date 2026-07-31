@@ -101,7 +101,7 @@ class TreeLayoutTest {
     setContent {
       MaterialTheme {
         var shown: File? by remember { mutableStateOf(heapDumpFile) }
-        ExplorerApp(shown, onHeapDumpChosen = { shown = it })
+        ExplorerApp(shown, onHeapDumpChosen = { file, _ -> shown = file })
       }
     }
     waitUntilAtLeastOneExists(

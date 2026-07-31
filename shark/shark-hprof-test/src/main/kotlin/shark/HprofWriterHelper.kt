@@ -8,6 +8,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.FieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord.StaticFieldRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ObjectArrayDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.CharArrayDump
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
@@ -337,6 +338,12 @@ class HprofWriterHelper constructor(
 
   fun primitiveLongArray(array: LongArray): Long {
     val arrayDump = LongArrayDump(id, 1, array)
+    writer.write(arrayDump)
+    return arrayDump.id
+  }
+
+  fun primitiveByteArray(array: ByteArray): Long {
+    val arrayDump = ByteArrayDump(id, 1, array)
     writer.write(arrayDump)
     return arrayDump.id
   }

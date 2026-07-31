@@ -93,6 +93,26 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `a bitmap is a cell with its pixels on it`() {
+    HeapExplorer.open(pixelBitmapHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val bitmap = tree.findByLabel("Bitmap")
+      val presented = tree.present(TreemapLayout(), VIEWPORT)
+        .cells
+        .single { (it.cell.subject as? CellSubject.Node)?.node == bitmap.objectId }
+
+      // Which is what has the view draw the image on that rectangle instead of a label on it.
+      assertThat(presented.content).isEqualTo(CellContent.Object(STRONG, isBitmap = true))
+      assertThat(tree.bitmapCounts()).isEqualTo(
+        BitmapCounts(count = 1, withImageCount = 1, carriesNativePixels = false)
+      )
+      val image = tree.bitmapImages(listOf(bitmap.objectId), maxDimension = 64)
+        .getValue(bitmap.objectId)
+      assertThat((image as BitmapImage.Pixels).argb.single().toUInt().toString(16))
+        .isEqualTo("ffff0000")
+    }
+  }
+
   @Test fun `an object lists its fields, references reading as what they point at`() {
     openTestHeapDump().use { explorer ->
       val holder = explorer.tree.findByLabel("Holder")
@@ -537,6 +557,22 @@ class HeapExplorerTest {
         field["mHeight"] = IntHolder(467)
         field["mRecycled"] = BooleanHolder(false)
       }
+      gcRoot(JniGlobal(id = bitmap.value, jniGlobalRefId = 0))
+    }
+    return file
+  }
+
+  /** A heap dump written before API 26, so one whose bitmap keeps its pixels in a field. */
+  private fun pixelBitmapHeapDump(): File {
+    val file = testFolder.newFile("pixel-bitmap.hprof")
+    file.dump {
+      val bitmap = bitmapInstance(
+        bitmapClassId = bitmapClass(),
+        width = 1,
+        height = 1,
+        // One red pixel, in the RGBA byte order the framework stores ARGB_8888 in.
+        pixels = byteArrayOf(0xff.toByte(), 0x00, 0x00, 0xff.toByte())
+      )
       gcRoot(JniGlobal(id = bitmap.value, jniGlobalRefId = 0))
     }
     return file

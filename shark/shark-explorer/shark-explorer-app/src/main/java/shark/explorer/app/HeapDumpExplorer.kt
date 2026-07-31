@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -30,15 +31,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import shark.SharkLog
+import shark.explorer.BitmapCounts
 import shark.explorer.CellSubject
+import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
 import shark.explorer.IndependentPaths
 import shark.explorer.LayoutCell
+import shark.explorer.NativeBitmapPixels
 import shark.explorer.NavigationHistory
 import shark.explorer.ObjectDominator
 import shark.explorer.ObjectList
@@ -69,6 +75,10 @@ import shark.explorer.formatObjectCount
 internal fun HeapDumpExplorer(
   session: HeapDumpSession,
   sizes: HeapSizes,
+  /** The way back to the live process, for the bitmaps this heap dump has no pixels for. */
+  deviceHeapDumps: DeviceHeapDumps,
+  /** Already fetched off the device, when the dump was taken with the pixels asked for in the same go. */
+  fetchedBitmapPixels: NativeBitmapPixels? = null,
   modifier: Modifier = Modifier
 ) {
   var history by remember {
@@ -90,6 +100,13 @@ internal fun HeapDumpExplorer(
   var paths: IndependentPaths? by remember { mutableStateOf(null) }
   var objects by remember { mutableStateOf(ObjectList.EMPTY) }
   var isListing by remember { mutableStateOf(false) }
+  /** How many bitmaps this heap dump has and how many of them can be drawn, which fetching changes. */
+  var bitmapCounts by remember { mutableStateOf(BitmapCounts.NONE) }
+  /** The bitmaps decoded so far, by object id. Only grows: a decoded image stays valid. */
+  var bitmapImages by remember { mutableStateOf(emptyMap<Long, ImageBitmap>()) }
+  /** Bumped when pixels arrive from the device, which is what makes the bitmaps be asked for again. */
+  var bitmapRevision by remember { mutableStateOf(0) }
+  var showsBitmapsFromDevice by remember { mutableStateOf(false) }
   /** The objects starred so far, with everything the list shows about them read once. */
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
   /** A node something led to, until the path the treemap has it under is worked out. */
@@ -106,6 +123,9 @@ internal fun HeapDumpExplorer(
 
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
+  // In pixels, like everything a layout is measured in, so that how small is too small for an image to be
+  // worth drawing is the same size on every display. See MIN_BITMAP_DRAW_SIZE.
+  val minBitmapDrawSize = with(LocalDensity.current) { MIN_BITMAP_DRAW_SIZE.toPx() }
 
   // Everything one laid out view follows from, as one value: a view is asked for, and the one that comes
   // back is the answer to it. Null until the view has been measured, which is the one state there is
@@ -166,6 +186,43 @@ internal fun HeapDumpExplorer(
     isLayingOut = false
   }
 
+  // How many bitmaps there are is a pass over the instances of one class, so it's read once. Fetching
+  // pixels from the device changes the answer, and the fetch reports the new one rather than this running
+  // again. Pixels fetched along with the dump go in here, before anything has been asked to draw: adding
+  // them later would mean every bitmap already on screen having to be asked for a second time.
+  LaunchedEffect(session) {
+    bitmapCounts = session.read("how many bitmaps ${session.heapDumpFile.name} has") { explorer ->
+      if (fetchedBitmapPixels == null) {
+        explorer.tree.bitmapCounts()
+      } else {
+        explorer.tree.addNativeBitmapPixels(fetchedBitmapPixels)
+      }
+    }
+  }
+
+  // A bitmap is worth the pixels only once it's on the map and big enough to make out, so this follows
+  // the presentation rather than the heap dump: zooming in asks for the bitmaps zooming in brought into
+  // view. The ones already asked for are skipped, including the ones that turned out to have no pixels —
+  // until some arrive from the device, which is what the revision is for.
+  val askedForBitmaps = remember(session, bitmapRevision) { mutableSetOf<Long>() }
+  LaunchedEffect(session, view.presentation, bitmapRevision) {
+    val treemap = (view.presentation as? ViewPresentation.Treemap)?.presentation
+      ?: return@LaunchedEffect
+    val nodeIds = treemap.bitmapNodeIds(minBitmapDrawSize) - askedForBitmaps
+    if (nodeIds.isEmpty()) {
+      return@LaunchedEffect
+    }
+    askedForBitmaps += nodeIds
+    val images = session.read("the pixels of ${nodeIds.size} bitmaps on the map") { explorer ->
+      explorer.tree.bitmapImages(nodeIds, MAX_TREEMAP_BITMAP_PIXELS)
+    }
+    // Decoding is neither a heap dump read nor something to do on the thread drawing the window: a
+    // presentation of a real dump can have a hundred images on it.
+    bitmapImages = bitmapImages + withContext(Dispatchers.Default) {
+      images.mapNotNull { (nodeId, image) -> image.toImageBitmap()?.let { nodeId to it } }
+    }
+  }
+
   // Reading what a cell stands for is a heap dump read too, so the details panel fills in a beat after
   // the click. Keyed on the request, so that nothing else clears it.
   LaunchedEffect(session, request) {
@@ -206,6 +263,24 @@ internal fun HeapDumpExplorer(
   // The tree already knows what dominates what, so this is a read of one label rather than a search.
   // Keyed on the selection: a new one invalidates this.
   val selectedObjectId = (selection as? Selection.Object)?.summary?.objectId
+
+  // The panel shows a selected bitmap as big as the panel is wide, so its pixels are read again at that
+  // size: a treemap rectangle is a couple of hundred pixels across and this is four times that.
+  var selectedBitmap: ImageBitmap? by remember { mutableStateOf(null) }
+  LaunchedEffect(session, selectedObjectId, bitmapRevision) {
+    val objectId = selectedObjectId
+    // Nothing says whether the selection is a bitmap at all, and asking is cheaper than tracking it: an
+    // object that isn't one comes back with no image.
+    val image = if (objectId == null) {
+      null
+    } else {
+      session.read("the pixels of ${hexObjectId(objectId)}") { explorer ->
+        explorer.tree.bitmapImages(listOf(objectId), MAX_PANEL_BITMAP_PIXELS)[objectId]
+      }
+    }
+    selectedBitmap = image?.let { withContext(Dispatchers.Default) { it.toImageBitmap() } }
+  }
+
   LaunchedEffect(session, selectedObjectId) {
     dominator = selectedObjectId?.let { objectId ->
       session.read("the dominator of ${hexObjectId(objectId)}") { explorer ->
@@ -284,13 +359,33 @@ internal fun HeapDumpExplorer(
   val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = NodeToOpen(nodeId, showsPaths = false) }
   val onGoTo: (ExplorerScreen) -> Unit = { destination -> history = history.goTo(destination) }
 
+  if (showsBitmapsFromDevice) {
+    BitmapsFromDeviceDialog(
+      origin = session.origin,
+      counts = bitmapCounts,
+      deviceHeapDumps = deviceHeapDumps,
+      onFetched = { pixels ->
+        val counts = session.read("which bitmaps the fetched pixels belong to") { explorer ->
+          explorer.tree.addNativeBitmapPixels(pixels)
+        }
+        bitmapCounts = counts
+        // Which is what has every bitmap on the map asked for again, this time with pixels behind it.
+        bitmapRevision++
+        counts
+      },
+      onDismiss = { showsBitmapsFromDevice = false }
+    )
+  }
+
   Column(modifier) {
     ScreenBar(
       starredCount = favourites.size,
+      bitmapCounts = bitmapCounts,
       onListObjects = {
         onGoTo(ExplorerScreen.Objects(navigation, ObjectListFilter(), screen.describedNode))
       },
-      onShowStarred = { onGoTo(ExplorerScreen.Starred(navigation, screen.describedNode)) }
+      onShowStarred = { onGoTo(ExplorerScreen.Starred(navigation, screen.describedNode)) },
+      onFetchBitmaps = { showsBitmapsFromDevice = true }
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
       HistoryArrows(
@@ -338,6 +433,7 @@ internal fun HeapDumpExplorer(
               coloring = coloring,
               selected = selected,
               isLayingOut = isLayingOut,
+              bitmapImages = bitmapImages,
               onSelect = onSelect,
               onZoomInto = onZoomInto,
               // Measured here rather than around every screen, so that leaving the map and coming back
@@ -379,6 +475,7 @@ internal fun HeapDumpExplorer(
         selection = selection,
         dominator = dominator,
         paths = paths,
+        bitmap = selectedBitmap,
         isStarred = favourites.any { it.objectId == selectedSummary?.objectId },
         coloring = coloring,
         onOpen = onOpen,
@@ -424,8 +521,10 @@ internal fun HeapDumpExplorer(
 @Composable
 private fun ScreenBar(
   starredCount: Int,
+  bitmapCounts: BitmapCounts,
   onListObjects: () -> Unit,
-  onShowStarred: () -> Unit
+  onShowStarred: () -> Unit,
+  onFetchBitmaps: () -> Unit
 ) {
   Row(
     Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -438,6 +537,13 @@ private fun ScreenBar(
     TextButton(onClick = onShowStarred, enabled = starredCount > 0) {
       Text("$STARRED_GLYPH $starredCount starred")
     }
+    // Only when there are bitmaps the dump has no pixels for, because that's the only thing a device can
+    // add: pixels the dump carries are already on the map by the time this bar is read.
+    if (bitmapCounts.withoutImageCount > 0) {
+      TextButton(onClick = onFetchBitmaps) {
+        Text("$FETCH_BITMAPS ${bitmapCountText(bitmapCounts.withoutImageCount)}")
+      }
+    }
   }
 }
 
@@ -448,6 +554,8 @@ private fun TreeScreen(
   coloring: CellColoring,
   selected: SelectedCell?,
   isLayingOut: Boolean,
+  /** The pixels read for the bitmaps of the treemap so far, by object id. */
+  bitmapImages: Map<Long, ImageBitmap>,
   onSelect: (LayoutCell<Long>) -> Unit,
   onZoomInto: (List<Long>) -> Unit,
   modifier: Modifier = Modifier
@@ -461,6 +569,7 @@ private fun TreeScreen(
         presentation = presentation.presentation,
         coloring = coloring,
         selected = selected,
+        bitmapImages = bitmapImages,
         onSelect = onSelect,
         onZoomInto = onZoomInto,
         modifier = Modifier.fillMaxSize()
@@ -703,6 +812,9 @@ internal const val BACK_ARROW = "←"
 internal const val FORWARD_ARROW = "→"
 
 internal const val BREADCRUMB_SEPARATOR = "›"
+
+/** What the button that goes back to the live process offers, before it says how many bitmaps. */
+internal const val FETCH_BITMAPS = "Fetch the pixels of"
 
 /** What the tree looks like to anything that can't look at it, a screen reader or a test. */
 internal const val VIEW_DESCRIPTION =

@@ -29,6 +29,19 @@ Two reasons: the logic is then unit-testable without a UI harness, and it stays 
 Android later. Keeping Compose out of `core` is what makes both true, which is why `core` defines
 its own rectangle type instead of using Compose's `Offset`/`Size`.
 
+## Then a third, for the JDI client
+
+`shark-explorer-jdwp` holds one class, `JdwpBitmaps`, and exists because of what it imports:
+`com.sun.jdi` is a module of a desktop JDK and does not exist on Android. Putting it in `core` would be
+the first thing in there that an Android consumer could not load, and the failure would be a
+`NoClassDefFoundError` at the far end of a dependency rather than a build error here.
+
+So `core` declares the `BitmapDebugger` interface and knows *when* a debugger is the way to get a
+bitmap's pixels ([bitmaps.md](bitmaps.md)); this module knows *how*. `shark-explorer-app` is where the two
+are put together, which is what a wiring layer is for. A module rather than dropping the class into
+`shark-explorer-app` because "this needs a JDK" is a dependency boundary, and a boundary that only exists
+in a comment is one nobody notices breaking.
+
 ## Depends on `shark-android`, not `shark`
 
 Same as `shark-cli`, and for the details panel: `AndroidObjectInspectors` is what turns an object into
@@ -49,6 +62,13 @@ in. Confinement is then structural rather than a convention: the UI cannot touch
 accident, because it never has a reference to it. A composable holds `TreemapPresentation`s and
 `HeapObjectSummary`s — values computed on that thread — and shows a spinner while the next one is on
 its way.
+
+There is a third place work goes, for the same reason: **decoding is neither the UI thread's nor the heap
+dump thread's.** Reading a hundred bitmaps' pixels out of a dump has to be on the heap dump thread, but
+turning them into images is PNG decoding and premultiplication arithmetic that would hold that thread up
+behind every other read, so the read hands back bytes and `Dispatchers.Default` turns them into
+`ImageBitmap`s. Fetching pixels off a device is a fourth: `Dispatchers.IO`, because it is minutes of
+`adb` and not something the heap dump thread should be sitting in.
 
 Cost of that choice: the layout runs on the heap dump's thread too, because labelling a rectangle
 reads the object it stands for. Resizing the window therefore queues behind whatever else that thread
@@ -108,6 +128,51 @@ for before starting over.
 
 The memory cost is per window and it isn't small — a tree, a graph and an index each — so N windows on
 large dumps is N times the numbers in `dominator-tree.md`.
+
+## Going back to the live device, through the `adb` command line
+
+Reaching into the process that wrote the heap dump — which is the only place a native bitmap's pixels
+still are, see `bitmaps.md` — goes through `adb` as a subprocess rather than through a library. The
+alternative is `ddmlib` (or its successor, the `adblib` of Android Studio), which speaks the adb
+protocol directly and would give typed devices and a real API. Not worth it here: what this needs is
+five commands, `adb` is on every machine that has the SDK, and a dependency on Studio's internals is a
+dependency on Studio's release cadence.
+
+`Adb` is a `fun interface` over "run these arguments, get the output", which is what makes every step
+above it testable without a device — `FakeAdb` in `shark-explorer-core`'s tests answers by command
+prefix. **UI tests must pass a `DeviceHeapDumps` built on such an `Adb`**: the default one shells out to
+the developer's `adb`, and a test that does that has whatever phone happens to be plugged in to answer
+for.
+
+**Nothing is picked automatically.** Both dialogs — `TakeHeapDumpDialog` and `BitmapsFromDeviceDialog` —
+list the connected devices, then the processes of the one chosen, and wait. Each of those is a question
+only the person at the window can answer: a fingerprint is one build of one model rather than one device,
+and dumping the heap of the wrong process is seconds of someone's phone and tens of megabytes for the
+wrong app.
+
+**Taking a heap dump and fetching bitmaps are the same three `adb` commands**, which is why one class does
+both. The difference is what happens to the file: a dump taken to be explored is kept, because the
+explorer reads it lazily for as long as it's open and a dump that took a minute is worth reopening, while
+one taken for its images alone is deleted as soon as they've been read. And because `dumpHeap` passes
+`-b png` wherever the device supports it, a dump taken through the window needs no fetch afterwards —
+the fetch is for dumps that came from somewhere else.
+
+**A dump is how a device is asked for its bitmaps whenever it can answer that way**, even though attaching
+a debugger would also work there. A dump costs the app the dump it was going to take anyway; a debugger
+stops every thread of it and runs its code. So `fetchBitmaps` only reaches for `BitmapDebugger` below API
+35, and the dialog says which of the two a device is in for before the button is pressed — an app freezing
+mid-use is worth a warning.
+
+**Below API 35, taking a dump offers the fetch in the same go**, as a checkbox next to the process in
+`TakeHeapDumpDialog`. The pixels only exist in the live process, so the moment the dump is taken is the one
+moment they are certainly still reachable — an hour later the app may be dead, and then the dump has
+pictures nothing can ever fill in. Off by default, because it suspends the app for as long as compressing
+every bitmap takes and there's no way to know from here how many that is; ticked when there's time.
+
+**A failed fetch doesn't fail the dump.** The dump is tens of megabytes already pulled and the fetch is an
+extra, so a debugger that can't attach leaves the dump opening normally, with the reason in the log and the
+fetch still on offer from the window — which is where it would report the same failure again, in front of
+someone who just asked for it. Losing the expensive thing over the cheap one would be the wrong way round.
 
 ## Testing split
 

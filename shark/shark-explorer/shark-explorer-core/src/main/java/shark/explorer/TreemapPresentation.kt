@@ -63,7 +63,15 @@ class PresentedCell<out C : LayoutCell<Long>>(
 sealed interface CellContent {
 
   /** One object of the heap dump. */
-  data class Object(val strength: ReachabilityStrength) : CellContent
+  data class Object(
+    val strength: ReachabilityStrength,
+    /**
+     * Whether the object is an `android.graphics.Bitmap`, which is what makes a cell one an image can
+     * be drawn on. Says nothing about whether the heap dump has that image: see
+     * [HeapDominatorTreemap.bitmapImages], which is the read that finds out.
+     */
+    val isBitmap: Boolean = false
+  ) : CellContent
 
   /**
    * A pile of objects as one cell: half of the heap dump, or every instance of one class the root
