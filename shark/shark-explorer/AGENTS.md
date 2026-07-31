@@ -43,6 +43,26 @@ laid out, labelled view is a `TreemapPresentation` or a `RadialPresentation`, an
 The one thing that isn't thread safe is a `Sequence` a `HeapGraph` hands out — iterating one reads
 through it — so a thread reading `graph.objects` needs its own rather than a shared one.
 
+## Every run writes a log file
+
+`installLogging()` in `shark-explorer-app` points `SharkLog` at stdout **and** at
+`~/.shark-explorer/logs/shark-explorer-<when-it-started>.log`, one file per run, the newest
+`SessionLog.KEEP_SESSION_COUNT` kept and the rest deleted as a run starts.
+
+**So ask for that file when someone reports something odd**, and read it before guessing. It holds the
+environment (JVM, OS, heap limit — a dump too large for the explorer runs out of exactly that), every
+step of opening the dump with its duration, and every read of it through `HeapDumpSession.read` with
+what was being read and how long it took. What that makes readable:
+
+- A read logged as started and never as done is where the app was killed, hung, or ran out of memory.
+- The last line being `Shark Explorer closed` is how a session that ended cleanly is told from one that
+  didn't.
+- Everything the window does silently — a path zoomed out because a node left the tree, a click landing
+  on an object the tree has no node for, a list that came back empty — says so there rather than nowhere.
+
+Which is also the rule for new code here: **anything the UI swallows or falls back from gets a
+`SharkLog.d` line saying so.** The file is only worth reading if it's complete.
+
 ## Gradle facts that aren't visible from these build scripts
 
 - **`shark-explorer-app` is excluded by name** from the repo-wide Java 8 target in the root
@@ -83,6 +103,10 @@ it, so run it before pushing.
   tests can't find cells by tag. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on
   the details panel and breadcrumbs.
+- **`ExplorerAppTest` records `SharkLog` for every test**, not only for the two that assert on it. A log
+  line is built from state — an index into a path, a node id — so a line built from the wrong state
+  should fail the test that reaches it rather than wait for a session nobody can read. Which means a
+  test that leaves `SharkLog.logger` set breaks the ones after it, hence the `@After`.
 - **A click is a fraction of the view, never of the window.** `ExplorerAppTest.viewBounds` measures the
   view by its `contentDescription`, and every press helper is relative to that. Window fractions break
   the moment anything above the view changes height, which is a change to the top bar away.

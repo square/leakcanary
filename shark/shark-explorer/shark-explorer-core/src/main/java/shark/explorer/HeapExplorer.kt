@@ -2,6 +2,7 @@ package shark.explorer
 
 import java.io.Closeable
 import java.io.File
+import java.util.concurrent.TimeUnit.NANOSECONDS
 import shark.AndroidObjectSizeCalculator
 import shark.CloseableHeapGraph
 import shark.GcRoot
@@ -12,6 +13,7 @@ import shark.HeapGraph
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecordTag
 import shark.MatchingGcRootProvider
+import shark.SharkLog
 
 /**
  * A heap dump, open and indexed, with its reachability worked out and its dominator [tree] built.
@@ -44,49 +46,92 @@ class HeapExplorer private constructor(
       heapDumpFile: File,
       onProgress: (String) -> Unit = {}
     ): HeapExplorer {
-      onProgress("Indexing ${heapDumpFile.name}")
+      SharkLog.d { "Opening heap dump $heapDumpFile, ${formatByteSize(heapDumpFile.length())}" }
+      val startNanos = System.nanoTime()
+      val steps = OpenSteps(onProgress)
       // Every GC root kind the hprof records, rather than HprofIndex.defaultIndexedGcRootTags():
       // those defaults drop the kinds that can't explain a leak, which on a real app dump is 180 K of
       // the 188 K roots — interned strings and the runtime's internals. An explorer has to say where
       // every object is held, so dropping a root kind means calling 45 K live objects garbage.
-      val graph = heapDumpFile.openHeapGraph(indexedGcRootTypes = HprofRecordTag.rootTags)
+      val graph = steps.run("Indexing ${heapDumpFile.name}") {
+        heapDumpFile.openHeapGraph(indexedGcRootTypes = HprofRecordTag.rootTags)
+      }
       try {
         val strengthReader = ReferenceStrengthReader(graph)
-        onProgress("Working out what owns what")
-        val ownerReferences = OwnerReferences.computeFor(graph)
-        onProgress("Working out what's reachable")
-        val reachability = HeapReachability.computeFor(
-          graph = graph,
-          strengthReader = strengthReader,
-          ownerReferences = ownerReferences,
-          gcRootProvider = MatchingGcRootProvider(emptyList()),
-          objectSizeCalculator = AndroidObjectSizeCalculator(graph)
-        )
-        onProgress("Working out what retains what")
+        val ownerReferences = steps.run("Working out what owns what") {
+          OwnerReferences.computeFor(graph)
+        }
+        val reachability = steps.run("Working out what's reachable") {
+          HeapReachability.computeFor(
+            graph = graph,
+            strengthReader = strengthReader,
+            ownerReferences = ownerReferences,
+            gcRootProvider = MatchingGcRootProvider(emptyList()),
+            objectSizeCalculator = AndroidObjectSizeCalculator(graph)
+          )
+        }
         val gcRootProvider = TreeGcRootProvider(reachability)
-        val dominatorTree = HeapDominatorTree.buildFor(
-          graph = graph,
-          referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability, ownerReferences),
-          gcRootProvider = gcRootProvider
-        )
-        val nodes = dominatorTree.buildNodes(AndroidObjectSizeCalculator(graph))
-        val tree = HeapDominatorTreemap(
-          graph = graph,
-          reachability = reachability,
-          strengthReader = strengthReader,
-          ownerReferences = ownerReferences,
-          gcRootProvider = gcRootProvider,
-          dominatorTree = dominatorTree,
-          nodes = nodes
-        )
+        val tree = steps.run("Working out what retains what") {
+          val dominatorTree = HeapDominatorTree.buildFor(
+            graph = graph,
+            referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability, ownerReferences),
+            gcRootProvider = gcRootProvider
+          )
+          HeapDominatorTreemap(
+            graph = graph,
+            reachability = reachability,
+            strengthReader = strengthReader,
+            ownerReferences = ownerReferences,
+            gcRootProvider = gcRootProvider,
+            dominatorTree = dominatorTree,
+            nodes = dominatorTree.buildNodes(AndroidObjectSizeCalculator(graph))
+          )
+        }
+        SharkLog.d {
+          val sizes = reachability.sizes
+          "Opened ${heapDumpFile.name} in ${millisSince(startNanos)} ms: " +
+            "${formatObjectCount(sizes.totalObjectCount)}, ${formatByteSize(sizes.totalByteCount)}, " +
+            "${formatByteSize(sizes.unreachableByteCount)} of it unreachable"
+        }
         return HeapExplorer(heapDumpFile, graph, reachability, tree)
       } catch (throwable: Throwable) {
-        graph.close()
+        // Closing on the way out must not replace what went wrong with a failure to close, which is
+        // what would be reported and is never the cause.
+        try {
+          graph.close()
+        } catch (closeFailure: Throwable) {
+          SharkLog.d(closeFailure) { "Failed to close $heapDumpFile after giving up on opening it" }
+        }
         throw throwable
       }
     }
   }
 }
+
+/**
+ * Runs the steps of opening a heap dump, telling the caller and the log which one is running and how
+ * long it took.
+ *
+ * Which step a session was in is the first thing to ask of its log when opening a dump never finished:
+ * a step logged as started and never as done is where the app was killed, or where it ran out of the
+ * heap a large dump needs.
+ */
+private class OpenSteps(private val onProgress: (String) -> Unit) {
+
+  fun <T> run(
+    description: String,
+    step: () -> T
+  ): T {
+    onProgress(description)
+    SharkLog.d { description }
+    val startNanos = System.nanoTime()
+    return step().also {
+      SharkLog.d { "$description: done in ${millisSince(startNanos)} ms" }
+    }
+  }
+}
+
+private fun millisSince(startNanos: Long): Long = NANOSECONDS.toMillis(System.nanoTime() - startNanos)
 
 /**
  * Where the dominator tree hangs the heap dump off: the GC roots that explain why what they point at is

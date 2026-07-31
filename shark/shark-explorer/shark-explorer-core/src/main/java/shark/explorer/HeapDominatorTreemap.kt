@@ -42,6 +42,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
 import shark.AndroidObjectInspectors
+import shark.SharkLog
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
 import shark.ValueHolder.CharHolder
@@ -122,12 +123,21 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /** Bytes retained by [node]: its own shallow size plus that of everything it dominates. */
-  override fun weight(node: Long): Long = group(node)?.retainedSize
-    ?: nodes.getValue(node).retainedSize
+  override fun weight(node: Long): Long = group(node)?.retainedSize ?: nodeOf(node).retainedSize
 
   override fun children(node: Long): List<Long> = when {
     node == root -> topLevel.ids
-    else -> group(node)?.childIds ?: nodes.getValue(node).dominatedObjectIds
+    else -> group(node)?.childIds ?: nodeOf(node).dominatedObjectIds
+  }
+
+  /**
+   * This tree's node for [nodeId], which every object of the heap dump has one of.
+   *
+   * Not [Map.getValue], whose "Key 21474836480 is missing in the map" is what asking this tree about an
+   * object of another heap dump reads as, three frames below whatever asked.
+   */
+  private fun nodeOf(nodeId: Long): DominatorNode = requireNotNull(nodes[nodeId]) {
+    "$nodeId is no node of this tree, which has ${nodes.size} of them. Ask contains() first."
   }
 
   /** Whether [objectId] is a node of this tree, which every object of the heap dump is. */
@@ -184,14 +194,14 @@ class HeapDominatorTreemap internal constructor(
     )
     // One pass, one read of each child: a production dump has six figures worth of them, and looking one
     // up twice — once for its strength and once for its class — was seconds of the wait to first paint.
-    nodes.getValue(root).dominatedObjectIds.forEach { objectId ->
+    nodeOf(root).dominatedObjectIds.forEach { objectId ->
       val heapObject = graph.findObjectById(objectId)
       val half = if (reachability.strengthOf(heapObject) == ReachabilityStrength.UNREACHABLE) {
         unreachable
       } else {
         reachable
       }
-      half.add(heapObject, nodes.getValue(objectId).retainedSize)
+      half.add(heapObject, nodeOf(objectId).retainedSize)
     }
     val groups = LinkedHashMap<Long, NodeGroup>()
     val ids = mutableListOf<Long>()
@@ -233,7 +243,7 @@ class HeapDominatorTreemap internal constructor(
       strength = half.strength,
       // Heaviest first, like the dominated ids a node hands out, so that these children stay ordered the
       // way the rest of the tree's are. Not through [weight], which would ask for the groups being built.
-      childIds = grouped.sortedByDescending { groups[it]?.retainedSize ?: nodes.getValue(it).retainedSize },
+      childIds = grouped.sortedByDescending { groups[it]?.retainedSize ?: nodeOf(it).retainedSize },
       retainedSize = half.retainedSize,
       objectCount = half.objectCount
     )
@@ -255,7 +265,10 @@ class HeapDominatorTreemap internal constructor(
       if (objectIds.size == 1) {
         ids += objectIds
       } else {
-        val heapClass = graph.findObjectById(classId).asClass!!
+        val heapClass = checkNotNull(graph.findObjectById(classId).asClass) {
+          "The class ${objectIds.size} objects were gathered under, ${hexObjectId(classId)}, is no " +
+            "class of the heap dump"
+        }
         val groupId = groupIds.next()
         groups[groupId] = NodeGroup(
           kind = ObjectGroupKind.CLASS,
@@ -264,7 +277,7 @@ class HeapDominatorTreemap internal constructor(
           simpleClassName = heapClass.simpleName,
           strength = half.strength,
           childIds = objectIds,
-          retainedSize = objectIds.sumOf { nodes.getValue(it).retainedSize },
+          retainedSize = objectIds.sumOf { nodeOf(it).retainedSize },
           objectCount = objectIds.size
         )
         ids += groupId
@@ -286,12 +299,24 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * The id of a class by name, looked up once per name: [HeapGraph.findClassByName] performs two linear
-   * scans over every string of the heap dump, and asking it per object of a production dump — once for
-   * every class object, once for every `byte[]` — took the best part of a minute.
+   * The id of a class by name, looked up once per name and remembered whether it was found or not:
+   * [HeapGraph.findClassByName] performs two linear scans over every string of the heap dump, and asking
+   * it per object of a production dump — once for every class object, once for every `byte[]` — took the
+   * best part of a minute.
    */
-  private fun classIdOf(className: String): Long? =
-    classIdByName.getOrPut(className) { graph.findClassByName(className)?.objectId }
+  private fun classIdOf(className: String): Long? {
+    if (className in classIdByName) {
+      return classIdByName[className]
+    }
+    val classId = graph.findClassByName(className)?.objectId
+    if (classId == null) {
+      // Which leaves every object of that class as a rectangle of its own under the root rather than
+      // gathered with its siblings, so it's worth a line saying so.
+      SharkLog.d { "No class named $className in the heap dump, so nothing groups by it" }
+    }
+    classIdByName[className] = classId
+    return classId
+  }
 
   private val classIdByName = mutableMapOf<String, Long?>()
 
@@ -340,7 +365,7 @@ class HeapDominatorTreemap internal constructor(
       "$objectId stands for a pile of objects rather than for one. Ask groupOrNull() first, and " +
         "describe it with what that returns."
     }
-    val node = nodes.getValue(objectId)
+    val node = nodeOf(objectId)
     val heapObject = if (objectId == root) null else graph.findObjectById(objectId)
     val fields = heapObject?.fieldsOf() ?: FieldList(emptyList(), totalCount = 0)
     return HeapObjectSummary(
@@ -507,6 +532,11 @@ class HeapDominatorTreemap internal constructor(
     val dominator = dominatorOf(objectId) ?: return IndependentPaths.NONE
     val targetIndex = referrerIndex.indexOf(objectId)
     if (targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
+      // A node of the tree the heap dump has no object for: nothing to walk up from, and the tree and
+      // the dump disagreeing about what is in the dump.
+      SharkLog.d {
+        "No paths to ${hexObjectId(objectId)}: it is a node of the tree and no object of the heap dump"
+      }
       return IndependentPaths.NONE
     }
     val isBelowGroup = dominator.kind != DominatorKind.OBJECT
@@ -528,6 +558,14 @@ class HeapDominatorTreemap internal constructor(
     while (paths.size < MAX_INDEPENDENT_PATHS) {
       val found = search.findPath(isSource) ?: break
       paths += path(found, isBelowGroup)
+    }
+    if (paths.isEmpty()) {
+      // The tree attributes the object's bytes to that dominator, so there is a path from it by
+      // construction. Not finding one means the walk up the referrers and the walk down the tree were
+      // built through different references, which is the panel saying an object is held by nothing.
+      SharkLog.d {
+        "No path found from ${dominator.label} down to ${hexObjectId(objectId)}, though it dominates it"
+      }
     }
     return IndependentPaths(paths = paths, hasMore = paths.size == MAX_INDEPENDENT_PATHS)
   }
@@ -613,10 +651,24 @@ class HeapDominatorTreemap internal constructor(
    * Only the roots the tree followed, so that an object a local variable also happens to point at isn't
    * named after the local variable. See [TreeGcRootProvider].
    */
-  private fun gcRootLabelOf(objectId: Long): String = graph.gcRoots
-    .firstOrNull { it.id == objectId && reachability.isHeldThrough(objectId, it.reachabilityStrength()) }
-    ?.let { gcRootLabel(it) }
-    ?: UNCOLLECTED_LABEL
+  private fun gcRootLabelOf(objectId: Long): String {
+    val gcRoot = graph.gcRoots.firstOrNull {
+      it.id == objectId && reachability.isHeldThrough(objectId, it.reachabilityStrength())
+    }
+    if (gcRoot != null) {
+      return gcRootLabel(gcRoot)
+    }
+    val strength = strengthOf(objectId)
+    if (strength != ReachabilityStrength.UNREACHABLE) {
+      // Which is the paths screen calling an object garbage while the treemap draws it in the reachable
+      // half, and the two can only disagree if the roots the tree walked from aren't the roots here.
+      SharkLog.d {
+        "The path to ${hexObjectId(objectId)} starts at no GC root this tree was built from, though the " +
+          "object is reachable ($strength), so the path says uncollected garbage instead"
+      }
+    }
+    return UNCOLLECTED_LABEL
+  }
 
   /** How [referrerId] points at [objectId], which takes reading the referrer's references again. */
   private fun stepTo(
@@ -627,6 +679,15 @@ class HeapDominatorTreemap internal constructor(
       .firstOrNull { it.valueObjectId == objectId }
       ?.lazyDetailsResolver
       ?.resolve()
+    if (details == null) {
+      // The walk found this step through the referrer index, which was built with this same reader, so a
+      // step with no reference to name means the two disagree about the same pair of objects. Shows as a
+      // step naming the object and not how it's held.
+      SharkLog.d {
+        "No reference from ${hexObjectId(referrerId)} to ${hexObjectId(objectId)}, though the path to it " +
+          "was found through one"
+      }
+    }
     return step(
       objectId = objectId,
       reference = details?.let { resolved ->
@@ -1017,6 +1078,9 @@ class HeapDominatorTreemap internal constructor(
      * object. The root is [NULL_REFERENCE], neither.
      */
     private fun isGroupId(node: Long) = node < 0L
+
+    /** How an object id reads in a log line: hex, the way a heap dump records it. */
+    private fun hexObjectId(objectId: Long): String = "0x${objectId.toString(16)}"
 
     private const val BITMAP_CLASS_NAME = "android.graphics.Bitmap"
     private const val NULL_VALUE = "null"

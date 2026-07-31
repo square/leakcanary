@@ -36,20 +36,13 @@ import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
 
 fun main(args: Array<String>) {
-  // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong
-  // on stdout as well as in the window.
-  SharkLog.logger = object : SharkLog.Logger {
-    override fun d(message: String) = println(message)
-
-    override fun d(
-      throwable: Throwable,
-      message: String
-    ) {
-      println(message)
-      throwable.printStackTrace()
-    }
+  // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
+  // stdout as well as in the window — and in a file, so that a session someone reports on can be read
+  // back after it. See [installLogging].
+  installLogging().use {
+    SharkLog.d { "Started with ${if (args.isEmpty()) "no arguments" else args.joinToString(" ")}" }
+    explorerApplication(args)
   }
-  explorerApplication(args)
 }
 
 private fun explorerApplication(args: Array<String>) = application {
@@ -85,7 +78,7 @@ fun ExplorerApp(
       val session = HeapDumpSession.open(file) { step ->
         state = HeapDumpState.Opening(file, step)
       }
-      val sizes = session.read { it.sizes }
+      val sizes = session.read("the sizes of ${file.name}") { it.sizes }
       HeapDumpState.Open(session, sizes).also {
         SharkLog.d { "${it.statusLine()} · ${sizes.strengthsText()}" }
       }
@@ -104,7 +97,16 @@ fun ExplorerApp(
   Column(Modifier.fillMaxSize()) {
     HeapDumpBar(
       state = currentState,
-      onOpenClick = { chooseHeapDumpFile()?.let { requestedFile = it } }
+      onOpenClick = {
+        val chosenFile = chooseHeapDumpFile()
+        if (chosenFile == null) {
+          // Which is why nothing happened, and the only way to tell that from a dialog that failed to
+          // open at all.
+          SharkLog.d { "No heap dump chosen" }
+        } else {
+          requestedFile = chosenFile
+        }
+      }
     )
     if (currentState is HeapDumpState.Open) {
       // Keyed on the session, so that opening another heap dump starts from the whole of it rather than

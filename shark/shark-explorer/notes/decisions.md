@@ -66,6 +66,23 @@ asked, since the sizes say what's held how firmly without leaving anything out o
 What the reachability checkboxes do instead is colour: unchecked greys everything held that firmly.
 That's a repaint, not a rebuild, so it's instant and there is no strength it makes no sense to press.
 
+## A log file per run, in `core` rather than in `shark-log`
+
+Reports arrive as "it showed nothing" or "it hung", about a session that has ended. So every run writes
+what it did to `~/.shark-explorer/logs`, and the reads are logged with their durations: without them a
+report is a guess about which of half a dozen heap dump reads was slow, failed, or never came back.
+
+`SessionLog` lives in `shark-explorer-core` and not in `shark-log`, next to `SharkLog` itself, because
+`shark-log` is published with a tracked ABI and this would grow the public API of an artifact a great
+many apps depend on, to serve a desktop tool none of them run. `core` is published nowhere, so it costs
+nothing there. It takes a directory rather than choosing one, which is what keeps it Android-consumable
+and unit testable; the app picks the directory.
+
+A file per run rather than one file appended to: the question asked of a log here is always what one
+session did. Every write is flushed, because the session worth reading is the one that ended by
+crashing, and a buffered tail is the part that would have said why. The last line of a clean run is
+`Shark Explorer closed`, which is how a session that ended is told from one that was killed.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real
