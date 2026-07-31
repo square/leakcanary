@@ -198,10 +198,10 @@ class HprofIOPerfTest {
     val metrics = trackAnalyzeRandomAccessMetrics(hprofFile)
 
     assertThat(metrics.withoutRetainedSize.toString()).isEqualTo(
-      "reads=11786 medianBytes=32.0 totalBytes=554362 distinctPages=511 pageReads=11922"
+      "reads=11787 medianBytes=32.0 totalBytes=554390 distinctPages=511 pageReads=11923"
     )
     assertThat(metrics.withRetainedSize.toString()).isEqualTo(
-      "reads=11788 medianBytes=32.0 totalBytes=554426 distinctPages=511 pageReads=11924"
+      "reads=11789 medianBytes=32.0 totalBytes=554454 distinctPages=511 pageReads=11925"
     )
   }
 
