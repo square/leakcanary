@@ -62,12 +62,14 @@ Watching for weak reachability rather than for collection is still
 
 The name didn't make the trip. It was settled on Slack, in three messages:
 
-!!! quote ""
-    **P-Y:** Is "memory-diaper" a suitable project / repo name? I'm in lack of a better pun.
+!!! quote "P-Y"
+    Is "memory-diaper" a suitable project / repo name? I'm in lack of a better pun.
 
-    **Logan Johnson:** No, it's gross and not really funny. I wouldn't want to see it on a slide deck.
+!!! quote "Logan Johnson"
+    No, it's gross and not really funny. I wouldn't want to see it on a slide deck.
 
-    **Eric Denman:** maybe something "canary in the coal mine" related?
+!!! quote "Eric Denman"
+    maybe something "canary in the coal mine" related?
 
 On 5 April 2015 the detection code was lifted out of the app into a repository of its own, under a
 commit called *"Introducing LeakCanary, au revoir memory leaks"*, and started using a headless
@@ -161,9 +163,9 @@ touched. Some of that list was about the analysis, but the entries that changed 
     right way. The API provides ways to replace specific components but is not driven by use cases
     (e.g. "I want to sometimes disable leakcanary" vs "I want to replace the heap dumper")
 
-Those are notes from talking to developers running LeakCanary across large apps, and they are why the
-reporting became batched and why the configuration API was rebuilt around what people were trying to
-do rather than around which component they wanted to replace.
+Those are notes from a conversation with Ty Smith about running LeakCanary across Uber's app, and they
+are why the reporting became batched and why the configuration API was rebuilt around what people were
+trying to do rather than around which component they wanted to replace.
 
 Three changes to how leaks are reported came out of that rewrite:
 
@@ -179,10 +181,10 @@ Three changes to how leaks are reported came out of that rewrite:
   the app to go to the background, or for five retained instances in the foreground, then finds all
   the leaks at once and groups the identical ones.
 
-The Kotlin was mostly other people's. Over the first four days of April 2019, ahead of the rewrite
-proper, Colin Marsch and Brandon Cheng translated the 1.x code class by class in a series of small
-pull requests. Artem Chubaryan later added Android TV support, and a run of memory and speed
-improvements to Shark.
+The rewrite began in a Square hack week, the first week of April 2019, and the Kotlin was mostly other
+people's: over its first four days Colin Marsch and Brandon Cheng translated the 1.x code class by
+class in a series of small pull requests. Artem Chubaryan later added Android TV support, and a run of
+memory and speed improvements to Shark.
 
 The release date was a conference. Version 2.0 alpha 1 was tagged at 06:43 Paris time on 23 April
 2019, in the middle of Android Makers, where the talk was
