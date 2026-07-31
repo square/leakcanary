@@ -83,6 +83,32 @@ session did. Every write is flushed, because the session worth reading is the on
 crashing, and a buffered tail is the part that would have said why. The last line of a clean run is
 `Shark Explorer closed`, which is how a session that ended is told from one that was killed.
 
+## One heap dump per window
+
+Opening a heap dump opens a window, so the windows on screen are the heap dumps open. A window never
+swaps the dump it shows for another: it costs seconds and a 100+ MB tree to open one, and the trail
+through it — where the map is zoomed, what's starred, what the panel is describing — is worth nothing
+for a different dump. Replacing meant the second dump erased the first, which is exactly what
+comparing two of them can't have.
+
+The one window that takes a heap dump into itself is the one showing none, which is what the app
+starts with when it was given no file: it's there to carry the button, and it has nothing to keep.
+
+What follows: `heapDumpFile` is a window's, not `ExplorerApp`'s, because the window title is the file
+name — several windows all called after the app say nothing about which one to switch to, and the OS
+window list is the only way between them. `explorerWindows` and `openHeapDump` are plain state so the
+rule is unit tested; the `application` block only draws a window per entry. Closing the last window
+quits.
+
+Where a window opens is ours to decide too, which `WindowPosition.PlatformDefault` was not doing:
+measured on macOS, every window it places is centred, so two windows landed on exactly the same pixels
+and the second looked like the first having been replaced — the very thing this is meant not to look
+like. `cascadedPosition` centres and then steps down and right, as many steps as the screen has room
+for before starting over.
+
+The memory cost is per window and it isn't small — a tree, a graph and an index each — so N windows on
+large dumps is N times the numbers in `dominator-tree.md`.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real

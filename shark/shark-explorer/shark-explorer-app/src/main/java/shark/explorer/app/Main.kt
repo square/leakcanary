@@ -25,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import java.awt.FileDialog
 import java.awt.Frame
+import java.awt.GraphicsEnvironment
 import java.io.File
 import shark.SharkLog
 import shark.explorer.HeapSizes
@@ -42,37 +44,59 @@ fun main(args: Array<String>) {
   // back after it. See [installLogging].
   installLogging().use {
     SharkLog.d { "Started with ${if (args.isEmpty()) "no arguments" else args.joinToString(" ")}" }
-    explorerApplication(args)
+    // Heap dump paths on the command line open straight away, which is how this is usually run.
+    explorerApplication(args.map(::File))
   }
 }
 
-private fun explorerApplication(args: Array<String>) = application {
-  Window(
-    onCloseRequest = ::exitApplication,
-    title = "Shark Explorer",
-    // What Windows and Linux show in the title bar and the window list. macOS takes the dock icon
-    // from the process instead, which the build script sets.
-    icon = painterResource(APP_ICON),
-    state = rememberWindowState(width = 1440.dp, height = 900.dp)
-  ) {
-    MaterialTheme {
-      // A heap dump path on the command line opens straight away, which is how this is usually run.
-      ExplorerApp(initialHeapDumpFile = args.firstOrNull()?.let(::File))
+/** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
+private fun explorerApplication(heapDumpFiles: List<File>) = application {
+  val windows = remember { explorerWindows(heapDumpFiles) }
+  windows.forEach { window ->
+    // Keyed on the window, so that closing one doesn't hand its size and position to the next one along.
+    key(window) {
+      Window(
+        onCloseRequest = {
+          windows -= window
+          // The app is its windows, so there is nothing left to come back to.
+          if (windows.isEmpty()) {
+            exitApplication()
+          }
+        },
+        title = window.title,
+        // What Windows and Linux show in the title bar and the window list. macOS takes the dock icon
+        // from the process instead, which the build script sets.
+        icon = painterResource(APP_ICON),
+        state = rememberWindowState(
+          width = WINDOW_WIDTH,
+          height = WINDOW_HEIGHT,
+          position = cascadedPosition(window.cascade)
+        )
+      ) {
+        MaterialTheme {
+          ExplorerApp(
+            heapDumpFile = window.heapDumpFile,
+            onHeapDumpChosen = { file -> windows.openHeapDump(window, file) }
+          )
+        }
+      }
     }
   }
 }
 
 @Composable
 fun ExplorerApp(
-  initialHeapDumpFile: File? = null,
+  /** The one heap dump this window shows, null until one has been chosen for it. */
+  heapDumpFile: File?,
+  /** Where a heap dump chosen from the bar goes, which is a window: see [openHeapDump]. */
+  onHeapDumpChosen: (File) -> Unit,
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog
 ) {
-  var requestedFile: File? by remember { mutableStateOf(initialHeapDumpFile) }
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
 
-  LaunchedEffect(requestedFile) {
-    val file = requestedFile
+  LaunchedEffect(heapDumpFile) {
+    val file = heapDumpFile
     if (file == null) {
       state = HeapDumpState.None
       return@LaunchedEffect
@@ -93,7 +117,8 @@ fun ExplorerApp(
   }
 
   val currentState = state
-  // Opening another heap dump replaces this state, which is when the previous one has to be closed.
+  // Closing the window is what ends the session: it's the only thing that takes this heap dump off
+  // screen, since another one opens in a window of its own.
   DisposableEffect(currentState) {
     onDispose { (currentState as? HeapDumpState.Open)?.session?.close() }
   }
@@ -108,16 +133,12 @@ fun ExplorerApp(
           // open at all.
           SharkLog.d { "No heap dump chosen" }
         } else {
-          requestedFile = chosenFile
+          onHeapDumpChosen(chosenFile)
         }
       }
     )
     if (currentState is HeapDumpState.Open) {
-      // Keyed on the session, so that opening another heap dump starts from the whole of it rather than
-      // from wherever the previous one was being read.
-      key(currentState.session) {
-        HeapDumpExplorer(currentState.session, currentState.sizes, Modifier.weight(1f))
-      }
+      HeapDumpExplorer(currentState.session, currentState.sizes, Modifier.weight(1f))
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
@@ -203,6 +224,24 @@ private fun HeapDumpState.centerMessage(): String = when (this) {
 }
 
 /**
+ * Where a window opens: centred, then [cascade] steps down and to the right.
+ *
+ * Placing it is ours to do because macOS centres every window it is left to place itself, and a window
+ * landing exactly over the one it was opened from is what "the heap dump was replaced" looks like.
+ */
+private fun cascadedPosition(cascade: Int): WindowPosition {
+  // The screen minus whatever the OS keeps for itself, so a window doesn't open under the menu bar.
+  val screen = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+  val centredX = ((screen.width.dp - WINDOW_WIDTH) / 2).coerceAtLeast(0.dp)
+  val centredY = ((screen.height.dp - WINDOW_HEIGHT) / 2).coerceAtLeast(0.dp)
+  // As many steps as there is room for below and to the right of centred, then over from the centre
+  // again: two windows sharing a spot beats one opening half off the screen.
+  val stepCount = (minOf(centredX, centredY) / CASCADE_STEP).toInt().coerceAtLeast(1)
+  val step = CASCADE_STEP * (cascade % stepCount)
+  return WindowPosition(x = screen.x.dp + centredX + step, y = screen.y.dp + centredY + step)
+}
+
+/**
  * The platform file picker, through AWT: Compose Multiplatform has none of its own, and this is the
  * native dialog on macOS and Windows.
  */
@@ -217,6 +256,15 @@ private fun showHeapDumpFileDialog(): File? {
 
 /** Rendered from `icons/shark-explorer-icon.svg`, and the same PNG a Linux package is built with. */
 private const val APP_ICON = "shark-explorer-icon.png"
+
+/** What a window with no heap dump in it is called, since it has no better name to go by. */
+internal const val APP_NAME = "Shark Explorer"
+
+private val WINDOW_WIDTH = 1440.dp
+private val WINDOW_HEIGHT = 900.dp
+
+/** How far a window opens from the one before it, which is about the height of a title bar. */
+private val CASCADE_STEP = 28.dp
 
 internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
