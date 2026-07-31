@@ -262,6 +262,8 @@ In the previous example, LeakCanary narrowed down the suspect references to `Exa
 
 Once you find the reference causing the leak, you need to figure out what that reference is about, when it should have been cleared and why it hasn't been. Sometimes it's obvious, like in the previous example. Sometimes you need more information to figure it out. You can [add labels](recipes.md#identifying-leaking-objects-and-labeling-objects), or explore the hprof directly (see [How can I dig beyond the leak trace?](faq.md#how-can-i-dig-beyond-the-leak-trace)).
 
+[The LeakCanary Method](https://engineering.block.xyz/blog/the-leakcanary-method) works all four steps through on a real leak in a third party SDK, including the part this page can't cover: what to do when the leak trace runs out of answers and the root cause is somewhere else entirely.
+
 
 !!! warning
     Memory leaks cannot be fixed by replacing strong references with weak references. It's a common solution when attempting to quickly address memory issues, however it never works. The bugs that were causing references to be kept longer than necessary are still there. On top of that, it creates more bugs as some objects will now be garbage collected sooner than they should. It also makes the code much harder to maintain.
