@@ -127,15 +127,22 @@ dependency on Studio's release cadence.
 
 `Adb` is a `fun interface` over "run these arguments, get the output", which is what makes every step
 above it testable without a device — `FakeAdb` in `shark-explorer-core`'s tests answers by command
-prefix. **UI tests must pass a `DeviceBitmaps` built on such an `Adb`**: the default one shells out to
+prefix. **UI tests must pass a `DeviceHeapDumps` built on such an `Adb`**: the default one shells out to
 the developer's `adb`, and a test that does that has whatever phone happens to be plugged in to answer
 for.
 
-**Nothing is picked automatically.** The dialog lists the connected devices ranked by how well each
-matches the dump, and the processes of the one chosen, and waits. Each of those is a question only the
-person at the window can answer — a fingerprint is one build of one model rather than one device, and
-dumping the heap of the wrong process is seconds of someone's phone and tens of megabytes for pixels of
-the wrong app.
+**Nothing is picked automatically.** Both dialogs — `TakeHeapDumpDialog` and `BitmapsFromDeviceDialog` —
+list the connected devices, then the processes of the one chosen, and wait. Each of those is a question
+only the person at the window can answer: a fingerprint is one build of one model rather than one device,
+and dumping the heap of the wrong process is seconds of someone's phone and tens of megabytes for the
+wrong app.
+
+**Taking a heap dump and fetching bitmaps are the same three `adb` commands**, which is why one class does
+both. The difference is what happens to the file: a dump taken to be explored is kept, because the
+explorer reads it lazily for as long as it's open and a dump that took a minute is worth reopening, while
+one taken for its images alone is deleted as soon as they've been read. And because `dumpHeap` passes
+`-b png` wherever the device supports it, a dump taken through the window needs no fetch afterwards —
+the fetch is for dumps that came from somewhere else.
 
 ## Testing split
 

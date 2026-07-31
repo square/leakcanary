@@ -19,16 +19,11 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
-import shark.HprofWriterHelper
-import shark.ValueHolder
-import shark.ValueHolder.BooleanHolder
-import shark.ValueHolder.IntHolder
-import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
-import shark.explorer.DeviceBitmaps
+import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 
@@ -93,7 +88,7 @@ class ExplorerBitmapsTest {
           onHeapDumpChosen = {},
           // An `adb` that is connected to nothing, rather than the one on this machine: a test that
           // shells out has whatever devices happen to be plugged in to answer for.
-          deviceBitmaps = DeviceBitmaps(NO_DEVICE_ADB)
+          deviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
         )
       }
     }
@@ -107,46 +102,8 @@ class ExplorerBitmapsTest {
   private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
     onNode(hasText(label) and hasClickAction())
 
-  /**
-   * A heap dump with one bitmap in it, and the device it came from recorded the way a real one records it.
-   *
-   * [hasPixels] writes the `mBuffer` a bitmap keeps its pixels in before API 26. Without it the dump is
-   * what every device since has written: the size of the bitmap, the address of its pixels, and no pixels.
-   */
-  private fun bitmapHeapDump(hasPixels: Boolean): File {
-    val file = testFolder.newFile("bitmap-$hasPixels.hprof")
-    file.dump {
-      val bitmapClassId = clazz(
-        className = "android.graphics.Bitmap",
-        fields = listOf(
-          "mWidth" to IntHolder::class,
-          "mHeight" to IntHolder::class,
-          "mRecycled" to BooleanHolder::class,
-          "mNativePtr" to LongHolder::class,
-          "mBuffer" to ReferenceHolder::class
-        )
-      )
-      val pixels = if (hasPixels) {
-        // Four bytes a pixel, which is what makes them ARGB_8888.
-        ReferenceHolder(primitiveByteArray(ByteArray(BITMAP_SIDE * BITMAP_SIDE * 4)))
-      } else {
-        ReferenceHolder(ValueHolder.NULL_REFERENCE)
-      }
-      val bitmap = instance(
-        classId = bitmapClassId,
-        fields = listOf(
-          IntHolder(BITMAP_SIDE),
-          IntHolder(BITMAP_SIDE),
-          BooleanHolder(false),
-          LongHolder(NATIVE_POINTER),
-          pixels
-        )
-      )
-      gcRoot(JniGlobal(id = bitmap.value, jniGlobalRefId = 0))
-      androidBuild()
-    }
-    return file
-  }
+  private fun bitmapHeapDump(hasPixels: Boolean): File =
+    testFolder.newFile("bitmap-$hasPixels.hprof").apply { writeBitmapHeapDump(hasPixels) }
 
   private fun noBitmapHeapDump(): File {
     val file = testFolder.newFile("no-bitmap.hprof")
@@ -160,34 +117,11 @@ class ExplorerBitmapsTest {
     return file
   }
 
-  /** What `android.os.Build` looks like in a dump, which is how the explorer knows which device to go to. */
-  private fun HprofWriterHelper.androidBuild() {
-    "android.os.Build" clazz {
-      staticField["FINGERPRINT"] = string(
-        "google/tokay/tokay:16/BP31.250610.004/13698546:user/release-keys"
-      )
-      staticField["MANUFACTURER"] = string("Google")
-      staticField["MODEL"] = string(MODEL)
-    }
-    "android.os.Build\$VERSION" clazz {
-      staticField["SDK_INT"] = IntHolder(SDK_INT)
-    }
-  }
-
   companion object {
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
 
-    /** Big enough that the biggest object of the dump is the bitmap's buffer rather than anything else. */
-    private const val BITMAP_SIDE = 64
     private const val BITMAP_ROW = "android.graphics.Bitmap instance"
-    private const val NATIVE_POINTER = 0x7f4321L
-
-    private const val MODEL = "Pixel 9"
-    private const val SDK_INT = 36
-
-    /** What the dialog says the heap dump came from, off the `android.os.Build` written into it. */
-    private const val DUMP_ORIGIN = "Google $MODEL · API $SDK_INT"
 
     /** What `adb devices` prints when nothing is plugged in, which is every command this test needs. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

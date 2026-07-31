@@ -6,6 +6,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.dump
 
 /**
@@ -15,7 +16,7 @@ import shark.dump
  * Everything here is driven through a [FakeAdb], so the flow is tested without a device — which is the
  * point of `adb` being an interface. What a real device answers is in `notes/bitmaps.md`.
  */
-class DeviceBitmapsTest {
+class DeviceHeapDumpsTest {
 
   @get:Rule
   var testFolder = TemporaryFolder()
@@ -32,7 +33,7 @@ class DeviceBitmapsTest {
       """.trimIndent()
     )
 
-    val processes = DeviceBitmaps(adb).matchingProcesses(device(), origin())
+    val processes = DeviceHeapDumps(adb).matchingProcesses(device(), origin())
 
     // The app's other processes are offered too: the one that wrote the dump may have died and been
     // restarted, and a `:remote` service holds bitmaps of its own.
@@ -44,7 +45,7 @@ class DeviceBitmapsTest {
   @Test fun `a dump that doesn't say which process wrote it matches none`() {
     val adb = FakeAdb(PS_COMMAND to "PID NAME\n1201 com.example\n")
 
-    val processes = DeviceBitmaps(adb).matchingProcesses(
+    val processes = DeviceHeapDumps(adb).matchingProcesses(
       device(),
       HeapDumpOrigin(
         sdkInt = 36,
@@ -64,7 +65,7 @@ class DeviceBitmapsTest {
     val png = pngBytes(width = 8, height = 8)
     val adb = fakeDeviceWith(mapOf(NATIVE_POINTER to png))
 
-    val pixels = DeviceBitmaps(adb).fetchBitmaps(device(), process())
+    val pixels = DeviceHeapDumps(adb).fetchBitmaps(device(), process())
 
     assertThat(pixels.format).isEqualTo(EncodedImageFormat.PNG)
     assertThat(pixels.bytesByNativePointer).containsOnlyKeys(NATIVE_POINTER)
@@ -74,7 +75,7 @@ class DeviceBitmapsTest {
   @Test fun `the heap dump is asked for with its bitmaps, and taken off the device afterwards`() {
     val adb = fakeDeviceWith(mapOf(NATIVE_POINTER to pngBytes(width = 8, height = 8)))
 
-    DeviceBitmaps(adb).fetchBitmaps(device(), process())
+    DeviceHeapDumps(adb).fetchBitmaps(device(), process())
 
     // Tens of megabytes of someone's device, and a dump nobody asked to keep.
     assertThat(adb.commands.first()).contains("am dumpheap -b png 1201 /data/local/tmp/")
@@ -85,7 +86,7 @@ class DeviceBitmapsTest {
     val adb = fakeDeviceWith(mapOf(NATIVE_POINTER to pngBytes(width = 8, height = 8)))
     val progress = mutableListOf<String>()
 
-    DeviceBitmaps(adb).fetchBitmaps(device(), process()) { progress += it }
+    DeviceHeapDumps(adb).fetchBitmaps(device(), process()) { progress += it }
 
     assertThat(progress.first()).isEqualTo("Dumping the heap of com.example with its bitmaps")
     assertThat(progress.last()).isEqualTo("Reading the bitmaps out of it")
@@ -95,10 +96,10 @@ class DeviceBitmapsTest {
     val adb = FakeAdb()
 
     assertThatThrownBy {
-      DeviceBitmaps(adb).fetchBitmaps(device(sdkInt = 34), process())
+      DeviceHeapDumps(adb).fetchBitmaps(device(sdkInt = 34), process())
     }.isInstanceOf(AdbFailureException::class.java)
       .hasMessageContaining("runs API 34")
-      .hasMessageContaining("API ${DeviceBitmaps.MIN_BITMAP_DUMP_SDK_INT}")
+      .hasMessageContaining("API ${DeviceHeapDumps.MIN_BITMAP_DUMP_SDK_INT}")
 
     assertThat(adb.commands).isEmpty()
   }
@@ -108,7 +109,7 @@ class DeviceBitmapsTest {
     // the fetch having quietly done nothing.
     val adb = fakeDeviceWith(dumpedImages = null)
 
-    assertThatThrownBy { DeviceBitmaps(adb).fetchBitmaps(device(), process()) }
+    assertThatThrownBy { DeviceHeapDumps(adb).fetchBitmaps(device(), process()) }
       .isInstanceOf(AdbFailureException::class.java)
       .hasMessageContaining("no `Bitmap.dumpData` in it")
   }
@@ -116,12 +117,105 @@ class DeviceBitmapsTest {
   @Test fun `a process that isn't there is a failure, though adb exits successfully`() {
     val adb = FakeAdb("$DEVICE shell am dumpheap" to "Error: Unknown process: 1201")
 
-    assertThatThrownBy { DeviceBitmaps(adb).fetchBitmaps(device(), process()) }
+    assertThatThrownBy { DeviceHeapDumps(adb).fetchBitmaps(device(), process()) }
       .isInstanceOf(AdbFailureException::class.java)
       .hasMessageContaining("Unknown process")
 
     // Nothing was pulled and nothing waited for: the dump the rest of the flow reads doesn't exist.
     assertThat(adb.commands.none { it.contains(" pull ") }).isTrue()
+  }
+
+  @Test fun `a heap dump taken to be explored is asked for with its bitmaps, and kept`() {
+    val adb = fakeDeviceWith(mapOf(NATIVE_POINTER to pngBytes(width = 8, height = 8)))
+
+    val heapDumpFile = DeviceHeapDumps(adb).dumpHeap(device(), process())
+
+    assertThat(adb.commands.first()).contains("am dumpheap -b png 1201 /data/local/tmp/")
+    // The explorer reads a heap dump lazily and for as long as it's open, so this one outlives the call
+    // that pulled it — unlike the one a fetch of the bitmaps alone takes.
+    assertThat(heapDumpFile).exists()
+    heapDumpFile.openHeapGraph().use { graph ->
+      assertThat(graph.findClassByName("android.graphics.Bitmap")).isNotNull()
+    }
+    heapDumpFile.delete()
+  }
+
+  @Test fun `a device too old to compress its bitmaps still gets its heap dumped`() {
+    val adb = fakeDeviceWith(dumpedImages = null)
+    val progress = mutableListOf<String>()
+
+    val heapDumpFile = DeviceHeapDumps(adb).dumpHeap(device(sdkInt = 30), process()) { progress += it }
+
+    // Where the pixels of a bitmap are is the one thing an API level changes about a heap dump, and it
+    // changes nothing about the rest of it: a dump without them is still worth taking.
+    assertThat(adb.commands.first()).doesNotContain("-b png")
+    assertThat(progress.first()).isEqualTo(
+      "Dumping the heap of com.example, which on API 30 can't include its bitmaps"
+    )
+    assertThat(heapDumpFile).exists()
+    heapDumpFile.delete()
+  }
+
+  @Test fun `a heap dump that failed leaves no local file behind`() {
+    val adb = FakeAdb("$DEVICE shell am dumpheap" to "Error: Unknown process: 1201")
+    val temporaryFilesBefore = temporaryHeapDumps()
+
+    assertThatThrownBy { DeviceHeapDumps(adb).dumpHeap(device(), process()) }
+      .isInstanceOf(AdbFailureException::class.java)
+
+    // The file is created before the dump is asked for, so a failure has one to clean up.
+    assertThat(temporaryHeapDumps()).isEqualTo(temporaryFilesBefore)
+  }
+
+  @Test fun `a process that can't be dumped is told why, since the framework doesn't say`() {
+    val adb = FakeAdb(
+      "$DEVICE shell am dumpheap" to """
+        Exception occurred while executing 'dumpheap':
+        java.lang.SecurityException: Process not debuggable: com.example
+          at com.android.server.am.ActivityManagerService.enforceDebuggable(ActivityManagerService.java:1)
+      """.trimIndent()
+    )
+
+    assertThatThrownBy { DeviceHeapDumps(adb).dumpHeap(device(), process()) }
+      .isInstanceOf(AdbFailureException::class.java)
+      .hasMessageContaining("Process not debuggable: com.example")
+      .hasMessageContaining("Only a debuggable app")
+      // The twelve frames under it say nothing anyone at a window can act on.
+      .hasMessageNotContaining("at com.android.server")
+  }
+
+  @Test fun `the processes offered for a fresh dump are the apps, the app being worked on first`() {
+    val adb = FakeAdb(
+      PS_COMMAND to """
+        PID NAME
+        1 init
+        320 surfaceflinger
+        400 android.hardware.audio.service
+        521 media.extractor
+        914 com.android.systemui
+        1046 com.google.android.apps.nexuslauncher
+        1201 com.example
+        1202 com.example:remote
+        1500 kworker/u16:2
+      """.trimIndent(),
+      PACKAGES_COMMAND to """
+        package:com.android.systemui
+        package:com.google.android.apps.nexuslauncher
+        package:com.example
+      """.trimIndent()
+    )
+
+    val processes = DeviceHeapDumps(adb).appProcesses(device())
+
+    // A native service reads exactly like a package — `media.extractor`, `android.hardware.audio.service`
+    // — so what the device says is installed is what separates them from an app. The one being worked on
+    // is the only process here that can really be dumped, so it belongs at the top.
+    assertThat(processes.map { it.name }).containsExactly(
+      "com.example",
+      "com.example:remote",
+      "com.android.systemui",
+      "com.google.android.apps.nexuslauncher"
+    )
   }
 
   @Test fun `the pid and name of each process are read off ps`() {
@@ -162,6 +256,16 @@ class DeviceBitmapsTest {
     )
   }
 
+  /**
+   * The files a [DeviceHeapDumps.dumpHeap] of this test's process would have left, which go where the
+   * platform puts a temp file: a dump that is kept is not the caller's to place.
+   */
+  private fun temporaryHeapDumps(): List<String> =
+    File(System.getProperty("java.io.tmpdir")).list()
+      .orEmpty()
+      .filter { it.startsWith("com.example-1201-") }
+      .sorted()
+
   private fun device(sdkInt: Int = 36) = AndroidDevice(
     serialNumber = "emulator-5554",
     state = "device",
@@ -185,6 +289,7 @@ class DeviceBitmapsTest {
     private const val DEVICE = "-s emulator-5554"
 
     private const val PS_COMMAND = "$DEVICE shell ps -A -o PID,NAME"
+    private const val PACKAGES_COMMAND = "$DEVICE shell pm list packages"
     private const val NATIVE_POINTER = 0x7f4321L
   }
 }

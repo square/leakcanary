@@ -33,7 +33,7 @@ import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.io.File
 import shark.SharkLog
-import shark.explorer.DeviceBitmaps
+import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapSizes
 import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
@@ -94,9 +94,10 @@ fun ExplorerApp(
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
-  deviceBitmaps: DeviceBitmaps = remember { DeviceBitmaps() }
+  deviceHeapDumps: DeviceHeapDumps = remember { DeviceHeapDumps() }
 ) {
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
+  var takesHeapDump by remember { mutableStateOf(false) }
 
   LaunchedEffect(heapDumpFile) {
     val file = heapDumpFile
@@ -126,6 +127,19 @@ fun ExplorerApp(
     onDispose { (currentState as? HeapDumpState.Open)?.session?.close() }
   }
 
+  if (takesHeapDump) {
+    TakeHeapDumpDialog(
+      deviceHeapDumps = deviceHeapDumps,
+      // The dump lands in a window the same way a chosen file does: it is one, and one window per heap
+      // dump is what keeps the windows on screen the dumps open.
+      onDumped = { file ->
+        onHeapDumpChosen(file)
+        takesHeapDump = false
+      },
+      onDismiss = { takesHeapDump = false }
+    )
+  }
+
   Column(Modifier.fillMaxSize()) {
     HeapDumpBar(
       state = currentState,
@@ -138,13 +152,14 @@ fun ExplorerApp(
         } else {
           onHeapDumpChosen(chosenFile)
         }
-      }
+      },
+      onTakeClick = { takesHeapDump = true }
     )
     if (currentState is HeapDumpState.Open) {
       HeapDumpExplorer(
         session = currentState.session,
         sizes = currentState.sizes,
-        deviceBitmaps = deviceBitmaps,
+        deviceHeapDumps = deviceHeapDumps,
         modifier = Modifier.weight(1f)
       )
     } else {
@@ -189,7 +204,8 @@ private sealed interface HeapDumpState {
 @Composable
 private fun HeapDumpBar(
   state: HeapDumpState,
-  onOpenClick: () -> Unit
+  onOpenClick: () -> Unit,
+  onTakeClick: () -> Unit
 ) {
   Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
     Row(
@@ -199,6 +215,11 @@ private fun HeapDumpBar(
     ) {
       Button(onClick = onOpenClick) {
         Text(OPEN_HEAP_DUMP)
+      }
+      // Next to opening one, because taking one off a device ends in the same place: a file to open. And
+      // a dump taken here arrives with its bitmaps in it, which one taken by hand only does with `-b`.
+      Button(onClick = onTakeClick) {
+        Text(TAKE_HEAP_DUMP)
       }
       Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
     }

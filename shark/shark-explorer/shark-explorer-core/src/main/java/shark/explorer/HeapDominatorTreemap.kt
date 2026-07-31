@@ -994,7 +994,7 @@ class HeapDominatorTreemap internal constructor(
 
   /**
    * Takes the pixels of the bitmaps of the live process this dump was written by, so that the bitmaps
-   * of a dump that carries none can be drawn. See [HeapBitmaps.addNativePixels] and [DeviceBitmaps].
+   * of a dump that carries none can be drawn. See [HeapBitmaps.addNativePixels] and [DeviceHeapDumps].
    */
   fun addNativeBitmapPixels(pixels: NativeBitmapPixels): BitmapCounts =
     bitmaps.addNativePixels(pixels)

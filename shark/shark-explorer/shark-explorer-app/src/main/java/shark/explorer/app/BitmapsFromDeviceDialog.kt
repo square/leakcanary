@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -29,7 +28,7 @@ import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.AndroidDevice
 import shark.explorer.BitmapCounts
-import shark.explorer.DeviceBitmaps
+import shark.explorer.DeviceHeapDumps
 import shark.explorer.DeviceMatch
 import shark.explorer.DeviceProcess
 import shark.explorer.HeapDumpOrigin
@@ -47,10 +46,10 @@ import shark.explorer.NativeBitmapPixels
  * [Dispatchers.IO] and only the pixels come back here.
  */
 @Composable
-internal fun DeviceBitmapsDialog(
+internal fun BitmapsFromDeviceDialog(
   origin: HeapDumpOrigin,
   counts: BitmapCounts,
-  deviceBitmaps: DeviceBitmaps,
+  deviceHeapDumps: DeviceHeapDumps,
   /** Hands the pixels to the open heap dump, which is a read of it, and says what they matched. */
   onFetched: suspend (NativeBitmapPixels) -> BitmapCounts,
   onDismiss: () -> Unit
@@ -58,9 +57,9 @@ internal fun DeviceBitmapsDialog(
   var step: FetchStep by remember { mutableStateOf(FetchStep.Listing) }
   var requestedFetch: RequestedFetch? by remember { mutableStateOf(null) }
 
-  LaunchedEffect(deviceBitmaps) {
+  LaunchedEffect(deviceHeapDumps) {
     step = try {
-      FetchStep.Devices(withContext(Dispatchers.IO) { deviceBitmaps.candidatesFor(origin) })
+      FetchStep.Devices(withContext(Dispatchers.IO) { deviceHeapDumps.candidatesFor(origin) })
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not list the devices adb is connected to" }
       FetchStep.Failed(throwable.messageForWindow())
@@ -71,7 +70,7 @@ internal fun DeviceBitmapsDialog(
     val fetch = requestedFetch ?: return@LaunchedEffect
     step = try {
       val pixels = withContext(Dispatchers.IO) {
-        deviceBitmaps.fetchBitmaps(fetch.device, fetch.process) { progress ->
+        deviceHeapDumps.fetchBitmaps(fetch.device, fetch.process) { progress ->
           step = FetchStep.Fetching(progress)
         }
       }
@@ -158,17 +157,6 @@ private fun Candidates(
   }
 }
 
-@Composable
-private fun Waiting(message: String) {
-  Row(
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    CircularProgressIndicator(Modifier.heightIn(max = SPINNER_SIZE).padding(2.dp))
-    Text(message, style = MaterialTheme.typography.bodyMedium)
-  }
-}
-
 /** Where the dialog is: listing devices, waiting on one, or done with it one way or the other. */
 private sealed interface FetchStep {
 
@@ -201,7 +189,7 @@ private class DeviceCandidate(
  * Devices that match nothing are listed too rather than filtered out: `adb` is often connected to more
  * than one, and a list that silently drops the one you meant looks like `adb` not seeing it.
  */
-private fun DeviceBitmaps.candidatesFor(origin: HeapDumpOrigin): List<DeviceCandidate> =
+private fun DeviceHeapDumps.candidatesFor(origin: HeapDumpOrigin): List<DeviceCandidate> =
   connectedDevices()
     .filter { it.isReady }
     .map { device ->
@@ -238,18 +226,6 @@ private fun BitmapCounts.fetchedSummary(): String {
   }
 }
 
-/**
- * What went wrong, for someone looking at a window rather than at a stack trace: everything thrown on
- * the way to a device's bitmaps is worded to be read, so the message is the whole of it.
- */
-private fun Throwable.messageForWindow(): String = message ?: toString()
-
 internal const val FETCH_BITMAPS_TITLE = "Bitmaps from the live process"
-internal const val LISTING_DEVICES = "Asking adb which devices are connected…"
-internal const val NO_DEVICES = "adb is not connected to any device."
 internal const val NO_MATCHING_PROCESS =
   "No process of that app is running on this device, so its bitmaps are gone."
-internal const val CLOSE = "Close"
-
-private val DIALOG_MAX_HEIGHT = 400.dp
-private val SPINNER_SIZE = 20.dp

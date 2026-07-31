@@ -48,7 +48,7 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
-import shark.explorer.DeviceBitmaps
+import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
@@ -651,7 +651,7 @@ class ExplorerAppTest {
     chooseHeapDumpFile: () -> File? = { null },
     // An `adb` that is connected to nothing, rather than the one on this machine: a test that shells out
     // has whatever devices happen to be plugged in to answer for.
-    deviceBitmaps: DeviceBitmaps = DeviceBitmaps(NO_DEVICE_ADB)
+    deviceHeapDumps: DeviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
   ) = setContent {
     MaterialTheme {
       var shown: File? by remember { mutableStateOf(heapDumpFile) }
@@ -659,7 +659,7 @@ class ExplorerAppTest {
         heapDumpFile = shown,
         onHeapDumpChosen = { shown = it },
         chooseHeapDumpFile = chooseHeapDumpFile,
-        deviceBitmaps = deviceBitmaps
+        deviceHeapDumps = deviceHeapDumps
       )
     }
   }

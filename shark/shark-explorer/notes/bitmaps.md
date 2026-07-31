@@ -2,8 +2,14 @@
 
 Implemented in `shark-explorer-core`: `HeapBitmaps.kt` (finding bitmaps, decoding whatever pixels the
 dump has), `BitmapImage.kt` (what a decode produces), `HeapDumpOrigin.kt` (which device and process wrote
-the dump), `Adb.kt` and `DeviceBitmaps.kt` (going back to that process). Drawn by `BitmapImages.kt`,
-`TreemapView` and `DetailsPanel`, and asked for by `DeviceBitmapsDialog`, in `shark-explorer-app`.
+the dump), `Adb.kt` and `DeviceHeapDumps.kt` (taking a dump off a device, and going back to the process
+one came from). Drawn by `BitmapImages.kt`, `TreemapView` and `DetailsPanel`, and asked for by
+`TakeHeapDumpDialog` and `BitmapsFromDeviceDialog`, in `shark-explorer-app`.
+
+**Taking the dump here is the way to get the pixels.** `DeviceHeapDumps.dumpHeap` passes `-b png`
+whenever the device is API 35 or up, so a dump taken through the window arrives with its bitmaps in it
+and nothing has to be fetched afterwards. Fetching — the same dump taken again of the process an
+already-open dump came from, kept only for its images — is for a dump that came from somewhere else.
 
 ## Three eras, and only two of them have pixels in the dump
 
@@ -90,11 +96,29 @@ nine-patch shadow look like a shadow rather than like nothing.
 
 ## `adb` facts that cost time to find out
 
-- **`am dumpheap` returns before the dump is written.** Pulling when it returns pulls a partial file.
-  `DeviceBitmaps` polls `stat -c %s` until the size stops changing, which is the only signal available.
-- **`adb` exits 0 for a shell command that failed**, because the exit code it reports is the shell's.
-  A device's refusal shows up as a line starting with `Error:` on stdout, which is what `AdbOutput.orFail`
-  looks for.
+Measured on two emulators, an API 36 and an API 29, dumping the heap of `leakcanary-android-sample`: 45 MB
+with 4 bitmaps and the pixels of all 4 on API 36, 17 MB with 1 bitmap and no pixels at all on API 29. Both
+took under a second to write.
+
+- **Only a debuggable process can be dumped.** `am dumpheap` of anything else answers
+  `java.lang.SecurityException: Process not debuggable: <package>` — that's an emulator refusing to dump
+  its own launcher, so a release build on a real phone has no chance. It's the first thing that goes wrong
+  for anyone using this, which is why the message says so in words.
+- **A refusal comes back in one of two shapes**, and `AdbOutput.orFail` looks for both: `Error: Unknown
+  option: -b` (what API 29 says about `-b`), or `Exception occurred while executing 'dumpheap':` followed
+  by an exception and twelve framework frames. `adb shell` does propagate the remote exit code (255 for
+  both of those), but not always — an `Error:` with an exit code of 0 is a real combination — and the
+  stack trace is worth reducing to its first line before it reaches a window.
+- **`am dumpheap` sometimes waits for the write and sometimes doesn't.** API 36 prints "Waiting for dump
+  to finish" and blocks; older versions return early, and pulling then pulls a partial file. `stat -c %s`
+  until the size stops changing covers both, and costs one extra `stat` and one sleep where the wait
+  already happened.
+- **The dump in `/data/local/tmp` belongs to `shell`, not to the app.** `am` opens the file itself and
+  passes the descriptor to the process, so `adb pull` can read it. An app-created file there couldn't be.
+- **A process name doesn't say whether it's an app.** `media.extractor` and
+  `android.hardware.audio.service` read exactly like packages, and neither has a Java heap. `pm list
+  packages` is what separates them — one extra call per device, and worth it: it takes the API 36
+  emulator's process list from 44 "apps" to 35 real ones.
 - **Don't `adb shell` an unauthorized device**: it blocks until someone taps the dialog. `connectedDevices`
   only asks `getprop` of a device whose state is `device`.
 - **A desktop app can't rely on the `PATH`.** Launched from a dock or a launcher it inherits almost none,

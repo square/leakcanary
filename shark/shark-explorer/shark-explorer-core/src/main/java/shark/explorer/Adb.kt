@@ -34,22 +34,36 @@ class AdbOutput(
   /**
    * The output of a command that has to have worked.
    *
-   * `adb` exits 0 for a shell command that failed, because the exit code it reports is the shell's, so
-   * an "Error:" the device printed is a failure as much as a non zero exit is.
+   * `adb` exits 0 for some shell commands that failed, because the exit code it reports is the shell's,
+   * so a line of the output saying no is a failure as much as a non zero exit is.
    */
   fun orFail(what: String): String {
-    val error = text.lines().firstOrNull { it.trimStart().startsWith(DEVICE_ERROR_PREFIX) }
-    if (!isSuccess || error != null) {
+    val failure = failureLine()
+    if (!isSuccess || failure != null) {
       throw AdbFailureException(
-        "Could not $what: ${(error ?: text).trim().ifEmpty { "adb exited with $exitCode" }}"
+        "Could not $what: ${failure ?: text.trim().ifEmpty { "adb exited with $exitCode" }}"
       )
     }
     return text
   }
 
+  /**
+   * The one line of the output worth reading, or null when nothing in it says a failure.
+   *
+   * Two shapes, because `am` refuses in two ways: `Error: Unknown option: -b`, and an exception with a
+   * stack trace under it — of which the first line is the whole of the message and the twelve below it
+   * are framework frames nobody at a window can act on.
+   */
+  private fun failureLine(): String? = text.lines().map { it.trim() }.firstOrNull {
+    it.startsWith(DEVICE_ERROR_PREFIX) || THROWN_LINE.matches(it)
+  }
+
   companion object {
     /** How every command `am` refuses starts its complaint. */
     private const val DEVICE_ERROR_PREFIX = "Error:"
+
+    /** `java.lang.SecurityException: Process not debuggable: com.example`, and not the frames below it. */
+    private val THROWN_LINE = Regex("[\\w.$]*(Exception|Error): .*")
   }
 }
 
@@ -134,6 +148,13 @@ class AndroidDevice(
 ) {
 
   val isReady: Boolean get() = state == READY_STATE
+
+  /**
+   * Whether a heap dump taken of this device can carry the pixels of its bitmaps, which is what
+   * `am dumpheap -b` does and what Android 15 added. See [DeviceHeapDumps].
+   */
+  val canDumpBitmaps: Boolean
+    get() = sdkInt != null && sdkInt >= DeviceHeapDumps.MIN_BITMAP_DUMP_SDK_INT
 
   /** How well this device matches the machine a heap dump was written on. */
   fun matchTo(origin: HeapDumpOrigin): DeviceMatch = when {

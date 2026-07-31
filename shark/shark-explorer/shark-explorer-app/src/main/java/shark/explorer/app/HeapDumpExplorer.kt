@@ -37,7 +37,7 @@ import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.BitmapCounts
 import shark.explorer.CellSubject
-import shark.explorer.DeviceBitmaps
+import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
@@ -75,7 +75,7 @@ internal fun HeapDumpExplorer(
   session: HeapDumpSession,
   sizes: HeapSizes,
   /** The way back to the live process, for the bitmaps this heap dump has no pixels for. */
-  deviceBitmaps: DeviceBitmaps,
+  deviceHeapDumps: DeviceHeapDumps,
   modifier: Modifier = Modifier
 ) {
   var history by remember {
@@ -103,7 +103,7 @@ internal fun HeapDumpExplorer(
   var bitmapImages by remember { mutableStateOf(emptyMap<Long, ImageBitmap>()) }
   /** Bumped when pixels arrive from the device, which is what makes the bitmaps be asked for again. */
   var bitmapRevision by remember { mutableStateOf(0) }
-  var showsDeviceBitmaps by remember { mutableStateOf(false) }
+  var showsBitmapsFromDevice by remember { mutableStateOf(false) }
   /** The objects starred so far, with everything the list shows about them read once. */
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
   /** A node something led to, until the path the treemap has it under is worked out. */
@@ -351,11 +351,11 @@ internal fun HeapDumpExplorer(
   val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = NodeToOpen(nodeId, showsPaths = false) }
   val onGoTo: (ExplorerScreen) -> Unit = { destination -> history = history.goTo(destination) }
 
-  if (showsDeviceBitmaps) {
-    DeviceBitmapsDialog(
+  if (showsBitmapsFromDevice) {
+    BitmapsFromDeviceDialog(
       origin = session.origin,
       counts = bitmapCounts,
-      deviceBitmaps = deviceBitmaps,
+      deviceHeapDumps = deviceHeapDumps,
       onFetched = { pixels ->
         val counts = session.read("which bitmaps the fetched pixels belong to") { explorer ->
           explorer.tree.addNativeBitmapPixels(pixels)
@@ -365,7 +365,7 @@ internal fun HeapDumpExplorer(
         bitmapRevision++
         counts
       },
-      onDismiss = { showsDeviceBitmaps = false }
+      onDismiss = { showsBitmapsFromDevice = false }
     )
   }
 
@@ -377,7 +377,7 @@ internal fun HeapDumpExplorer(
         onGoTo(ExplorerScreen.Objects(navigation, ObjectListFilter(), screen.describedNode))
       },
       onShowStarred = { onGoTo(ExplorerScreen.Starred(navigation, screen.describedNode)) },
-      onFetchBitmaps = { showsDeviceBitmaps = true }
+      onFetchBitmaps = { showsBitmapsFromDevice = true }
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
       HistoryArrows(

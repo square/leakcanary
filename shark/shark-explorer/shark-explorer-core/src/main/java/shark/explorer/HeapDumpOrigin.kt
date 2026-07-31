@@ -7,7 +7,7 @@ import shark.HeapGraph
  *
  * Which is what makes going back to that process possible: a heap dump of API 26 and up carries no
  * bitmap pixels unless it was asked to, and the process that wrote it is the only place they still
- * are. See [DeviceBitmaps].
+ * are. See [DeviceHeapDumps].
  *
  * Every field is nullable because a heap dump is not necessarily an Android one, and a stripped one has
  * the fields without the strings.

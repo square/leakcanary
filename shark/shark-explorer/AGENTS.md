@@ -130,6 +130,11 @@ anything about a modern dump has to be tried on one taken off a device. See `not
 `check` runs detekt (config at `config/detekt-config.yml`); CI and the pre-push hook both enforce
 it, so run it before pushing.
 
+Anything that reaches a device — taking a heap dump, fetching bitmaps — can be tried for real with an
+emulator running and `leakcanary-android-sample` installed on it
+(`ANDROID_SERIAL=emulator-5554 ./gradlew :samples:leakcanary-android-sample:installDebug`). It has to be a
+debuggable app: `am dumpheap` refuses anything else, including every app of the system image.
+
 ## Testing conventions
 
 - **UI tests are headless JVM tests**, not instrumentation tests. They live in `src/test/` and use
@@ -159,9 +164,10 @@ it, so run it before pushing.
   checking in binary fixtures or hand-writing hprof bytes. A dump with bitmaps in it is `BitmapDumps.kt`
   in `shark-explorer-core`'s tests — the `"a.b.C" instance { }` shorthand declares a class per instance,
   so two bitmaps built that way are two `android.graphics.Bitmap` classes, which no real dump has.
-- **A UI test must pass a `DeviceBitmaps` built on a fake `Adb`.** `ExplorerApp`'s default shells out to
-  the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for. `FakeAdb`
-  matches command prefixes, because the remote dump path contains a timestamp.
+- **A UI test must pass a `DeviceHeapDumps` built on a fake `Adb`.** `ExplorerApp`'s default shells out to
+  the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for — and the
+  window can dump the heap of a real process. `FakeAdb` matches command prefixes, because the remote dump
+  path contains a timestamp.
 - **A synthetic Android class needs the fields the object inspectors read.** `HeapObjectSummary` runs
   `AndroidObjectInspectors`, and those read fields with `!!` — an `android.view.View` without `mParent`,
   `mWindowAttachCount`, `mAttachInfo` and `mContext` makes `summarize()` throw a bare

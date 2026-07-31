@@ -112,6 +112,23 @@ class AdbTest {
       .hasMessage("Could not dump the heap: Error: Unknown process: com.example")
   }
 
+  @Test fun `a failure the device answered with a stack trace is the one line of it that says why`() {
+    val output = AdbOutput(
+      exitCode = 255,
+      text = """
+        Exception occurred while executing 'dumpheap':
+        java.lang.SecurityException: Process not debuggable: com.example
+          at com.android.server.am.ActivityManagerService.enforceDebuggable(ActivityManagerService.java:1)
+          at com.android.server.am.ActivityManagerService.dumpHeap(ActivityManagerService.java:2)
+      """.trimIndent()
+    )
+
+    assertThatThrownBy { output.orFail("dump the heap") }
+      .isInstanceOf(AdbFailureException::class.java)
+      // A window has room for the answer, not for the framework's way of giving it.
+      .hasMessage("Could not dump the heap: java.lang.SecurityException: Process not debuggable: com.example")
+  }
+
   @Test fun `a non zero exit is a failure even when nothing was printed`() {
     assertThatThrownBy { AdbOutput(exitCode = 1, text = "").orFail("list the devices") }
       .isInstanceOf(AdbFailureException::class.java)
