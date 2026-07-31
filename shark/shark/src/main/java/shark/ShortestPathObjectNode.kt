@@ -39,6 +39,14 @@ class ShortestPathObjectNode(
     internal set
 
   /**
+   * The reference this node was reached through, as structured data instead of the display string
+   * that is [name]. Null for the tree root and for the gc root nodes right below it, which aren't
+   * reached through a reference.
+   */
+  var reference: ReferenceLocation? = null
+    internal set
+
+  /**
    * How much of the heap this node accounts for, i.e. the heap that would be freed if every
    * object reported as growing was released. An object that several growing nodes hold onto is
    * split evenly between them, so [retained] is not a lower bound of what fixing this one node
@@ -82,6 +90,7 @@ class ShortestPathObjectNode(
 
   private fun copyResetRecursive(newParent: ShortestPathObjectNode?): ShortestPathObjectNode {
     val newNode = ShortestPathObjectNode(name, newParent)
+    newNode.reference = reference
     newNode.selfObjectCount = selfObjectCount
     newNode.retained = retained
     if (!retained.isUnknown) {

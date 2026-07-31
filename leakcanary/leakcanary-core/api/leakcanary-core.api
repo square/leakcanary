@@ -14,6 +14,32 @@ public final class leakcanary/DumpingRepeatingScenarioObjectGrowthDetector : sha
 	public fun findRepeatedlyGrowingObjects (IILkotlin/jvm/functions/Function0;)Lshark/HeapDiff;
 }
 
+public abstract interface class leakcanary/GrowthAttribution {
+	public abstract fun getGrowingObject ()Lshark/ShortestPathObjectNode;
+}
+
+public final class leakcanary/GrowthAttribution$Attributed : leakcanary/GrowthAttribution {
+	public fun <init> (Lshark/ShortestPathObjectNode;Ljava/util/List;)V
+	public fun getGrowingObject ()Lshark/ShortestPathObjectNode;
+	public final fun getGrowthStacks ()Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/GrowthAttribution$NotAttributed : leakcanary/GrowthAttribution {
+	public fun <init> (Lshark/ShortestPathObjectNode;Ljava/lang/String;)V
+	public fun getGrowingObject ()Lshark/ShortestPathObjectNode;
+	public final fun getReason ()Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class leakcanary/GrowthStack {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;I)V
+	public final fun getCount ()I
+	public final fun getMethodName ()Ljava/lang/String;
+	public final fun getStackTrace ()Ljava/util/List;
+	public fun toString ()Ljava/lang/String;
+}
+
 public abstract interface class leakcanary/HeapDumpDirectoryProvider {
 	public abstract fun heapDumpDirectory ()Ljava/io/File;
 }
@@ -79,6 +105,14 @@ public final class leakcanary/HeapDumper$Companion {
 public final class leakcanary/HeapDumperKt {
 	public static final fun withGc (Lleakcanary/HeapDumper;Lleakcanary/GcTrigger;)Lleakcanary/HeapDumper;
 	public static synthetic fun withGc$default (Lleakcanary/HeapDumper;Lleakcanary/GcTrigger;ILjava/lang/Object;)Lleakcanary/HeapDumper;
+}
+
+public final class leakcanary/ObjectGrowthAttributor {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun attributeGrowth (Lshark/HeapDiff;ILkotlin/jvm/functions/Function0;)Ljava/util/List;
+	public static synthetic fun attributeGrowth$default (Lleakcanary/ObjectGrowthAttributor;Lshark/HeapDiff;ILkotlin/jvm/functions/Function0;ILjava/lang/Object;)Ljava/util/List;
 }
 
 public final class leakcanary/ObjectGrowthWarmupHeapDumper : leakcanary/HeapDumper {
