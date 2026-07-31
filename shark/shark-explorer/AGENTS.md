@@ -113,6 +113,91 @@ one line from the build script and the flag is gone from the run's JVM arguments
 icon is back. So `java.awt.Taskbar` has nothing to add here. `Window(icon = …)` does, but only for the
 Windows and Linux title bar — macOS ignores it.
 
+## What macOS calls the run, as against what it calls a window
+
+A run is one process and many windows, so the OS gets one name for all of them, and `main` sets it from
+`--title` before the first window: `apple.awt.application.name`. That reaches the menu bar next to the
+Apple logo, the app switcher, and every name macOS reports through an API. **It does not reach the
+dock** — nothing a process can do reaches the dock, see the next section. Three things about that line
+aren't visible from it.
+
+**It is read once, as AWT starts**, and the process registers with macOS under whatever it said then.
+Setting it after a window is up changes nothing — measured, not assumed — so it belongs between parsing
+the command line and `application { }`, which is the only gap there is.
+
+**It is the same name `-Xdock:name` sets.** That JVM argument only puts the name in an environment
+variable AWT reads at that same moment: a run given `-Xdock:name=X` and a run that sets the property to
+`X` in `main` produce LaunchServices records differing in nothing but their audit token and check-in
+time. So the run task passes no name and an IDE run configuration needs none either, and
+`java.awt.Taskbar` is no help — its API is icon, badge, menu and progress, and no name.
+
+**A packaged app ignores the property and keeps its bundle's name.** `Shark Explorer.app` launched with
+`--title="Packaged with a title"` logs that title and is still called `Shark Explorer` by macOS, because
+jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
+bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it until
+something names it.
+
+## The dock only reads a bundle's file name, so `runNamed` gives it one
+
+`-Xdock:name` has not named the dock since around macOS 10.9 — [JDK-8173753][dock-bug], still open,
+where the reported symptom is exactly what you get: the name reaches the menu bar and the dock goes on
+saying `java`. Confirmed here, three explorer runs whose LaunchServices, `NSRunningApplication` and
+WindowServer names were all different showed three dock tiles all called `java`. **So don't spend time
+looking for the property or the API call that fixes this. There isn't one.**
+
+What the dock reads is the file name of the bundle a process was launched from. Not `CFBundleName`:
+two bundles carrying the same `CFBundleName` and differing only in file name are two differently named
+tiles.
+
+`runNamed` is `run` with a bundle around it, generated per launch and named after `--title`:
+
+```bash
+./gradlew :shark:shark-explorer:shark-explorer-app:runNamed \
+  --args="--title=\"Hover previews\" shark/shark-android/src/test/resources/compose_leak.hprof"
+```
+
+- **It is a launcher script and an `Info.plist` around the classes `run` would have run**, not a
+  `jpackage` build. Packaging is a minute of jlink per code change, which would be a minute per look;
+  this is a compile.
+- **The script `exec`s the JVM** rather than starting it as a child. The JVM has to end up being the
+  process macOS launched from the bundle or it is a process of its own again, and the dock is back to
+  calling it java.
+- **`open` gives it no terminal**, so stdout goes to `build/named/<title>.out` — which is where a run
+  that died before it could open a log file says why. Everything after that is in the usual place, see
+  the logging section.
+- **Relaunching a title while a window of that title is open** is the one thing to avoid: the bundle is
+  rewritten in place, and that window is reading it.
+
+[dock-bug]: https://bugs.openjdk.org/browse/JDK-8173753
+
+## Reading these names without being able to see the screen
+
+```bash
+lsappinfo find pid=<pid>            # ASN:0x0-0x2338336-"Hover previews":
+```
+
+`NSRunningApplication.localizedName`, which the app switcher shows, and `kCGWindowOwnerName`, which the
+WindowServer holds, agree with it and are readable from `osascript -l JavaScript` through `ObjC.import`.
+None of them is what the dock displays, which is why all three can say one thing and the tile another.
+
+The dock tile names, and an app's menu bar, are readable **only with the Accessibility permission**, and
+they are the ones worth reading, since they are what someone looking at the screen sees:
+
+```bash
+osascript -e 'tell application "System Events" to tell process "Dock" \
+  to get name of UI elements of list 1'
+osascript -e 'tell application "System Events" to tell process "<the run>" \
+  to get name of menu bar items of menu bar 1'      # Apple, <the run>
+```
+
+Without that permission both fail with `-1719 not allowed assistive access`, and the only way to know
+what the dock says is to ask the person in front of it. It is granted per responsible process — for an
+agent, whichever app launched the session — in System Settings → Privacy & Security → Accessibility.
+Screen Recording is separate, and without it a screenshot of another process comes back as wallpaper.
+
+An icon can be checked without either: `NSWorkspace.iconForFile` on a bundle hands back what macOS
+resolved for it, and writing that to a PNG is a picture an agent can open.
+
 ## Build and test
 
 ```bash
@@ -132,13 +217,18 @@ and `leakcanary/leakcanary-android-instrumentation/src/androidTest/assets/large-
 the biggest one). All of them are from API 25 or earlier, so every bitmap in them carries its pixels —
 anything about a modern dump has to be tried on one taken off a device. See `notes/bitmaps.md`.
 
-**Launch with `--title` when starting the app for someone to look at.** Several explorers end up open
-at once — one per piece of work, often on the same heap dump — and the window title is all the OS gives
-you to tell them apart. `--title` goes in front of the heap dump name in every window of that run,
-including windows opened from it later, so name the run after the change it contains rather than
-leaving two identical `large-dump.hprof` windows on screen. `ExplorerArguments` is the whole command
-line, and it is strict: an unknown option is a message saying what to type, not a heap dump that can't
-be found.
+**Always pass `--title`, and name the run after the piece of work it is for.** Several explorers end up
+open at once — one per task, often on the same heap dump — and a name is all the OS gives you to tell
+them apart. `--title` goes in front of the heap dump name in every window of that run, including windows
+opened from it later, so that two identical `large-dump.hprof` windows never end up on screen.
+`ExplorerArguments` is the whole command line, and it is strict: an unknown option is a message saying
+what to type, not a heap dump that can't be found.
+
+**`run` while you work, `runNamed` when you hand a window over.** They take the same command line.
+`run` streams the log to the terminal and is a compile away, so it is the one for trying your own
+change — don't reach for `runNamed` for that. When the change is done and the app is being started for
+someone else to look at, use `runNamed`: it is the only one of the two the dock will name, and with
+several explorers open the dock is what they navigate by. See the dock section above.
 
 `check` runs detekt (config at `config/detekt-config.yml`); CI and the pre-push hook both enforce
 it, so run it before pushing.
