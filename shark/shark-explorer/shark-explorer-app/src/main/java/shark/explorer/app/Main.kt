@@ -56,6 +56,10 @@ fun main(args: Array<String>) {
       SharkLog.d { invalidArguments.message.orEmpty() }
       return@use
     }
+    // What the arguments above were taken to mean, which is not obvious from them: a shell, Gradle's
+    // `--args` and a run configuration each split a quoted title differently, and a title split in two
+    // reads as one on the line above.
+    SharkLog.d { "Read that as $arguments" }
     // Heap dump paths on the command line open straight away, which is how this is usually run.
     explorerApplication(arguments)
   }
