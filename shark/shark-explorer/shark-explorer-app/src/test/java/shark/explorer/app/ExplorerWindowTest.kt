@@ -2,10 +2,8 @@ package shark.explorer.app
 
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.After
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import shark.SharkLog
 
 /**
  * How many windows the app has and which heap dump each one shows. No heap dump is read here: a window
@@ -14,33 +12,11 @@ import shark.SharkLog
 class ExplorerWindowTest {
 
   /**
-   * What Shark logged during this test, recorded the way [ExplorerAppTest] records it and for the same
-   * reason: a log line is built lazily, so one built from the wrong state says nothing until a test runs
-   * with a logger installed.
+   * What Shark logged during this test, recorded for the same reason every test here records it: a log line
+   * is built lazily, so one built from the wrong state says nothing until a test runs with a logger
+   * installed. See [RecordedLog].
    */
-  private val logged = mutableListOf<String>()
-
-  private var previousLogger: SharkLog.Logger? = null
-
-  @Before fun recordWhatIsLogged() {
-    previousLogger = SharkLog.logger
-    SharkLog.logger = object : SharkLog.Logger {
-      override fun d(message: String) {
-        logged += message
-      }
-
-      override fun d(
-        throwable: Throwable,
-        message: String
-      ) {
-        logged += "$message: $throwable"
-      }
-    }
-  }
-
-  @After fun stopRecordingWhatIsLogged() {
-    SharkLog.logger = previousLogger
-  }
+  @get:Rule val logged = RecordedLog()
 
   @Test fun `an app started with no heap dump has one window to open one from`() {
     val windows = explorerWindows(emptyList())
