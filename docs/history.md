@@ -84,7 +84,16 @@ first image the readme ever had:
 
 <img src="../images/history-first-notification-icon.png" width="72" alt="The first LeakCanary notification icon: a shield with an exclamation mark and a canary">
 
-Two things from that month are worth pulling out.
+Three things from that month are worth pulling out.
+
+**It was told to be automatic.** In April 2015 LeakCanary was a set of parts you wired together in
+your `Application` class: construct a heap dump listener, hand it to a watcher, hold on to the
+watcher. Jesse Wilson's feedback — acted on alongside Logan Johnson's, in a single commit on 24
+April — was that this was the wrong shape. LeakCanary should have a user interface, and it should
+work out of the box with no configuration: everything automatic. The wiring shrank to a single
+`LeakCanary.install(this)` by the first public release two weeks later, and disappeared altogether in
+version 2, which [installs itself](design.md#adding-the-dependency-is-the-whole-setup). That same
+commit is where `KeyedWeakReference` first appears, a class LeakCanary still has.
 
 **The five second wait got its reason.** The delay had been inherited from the diaper, where the
 constant was called `DELAY_FOR_GC_S` and the number was picked for the garbage collector. It was
