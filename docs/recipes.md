@@ -26,6 +26,19 @@ class MyService : Service {
 }
 ```
 
+## Watching dismissed dialogs
+
+LeakCanary watches root views that stay in memory after `View.onDetachedFromWindow()`, but it skips the root views of dialogs by default. A single `Dialog` instance can be shown and dismissed several times, so its view hierarchy can be attached and detached several times, and watching every dismissed dialog would report leaks that aren't leaks.
+
+If your codebase has a rule that a dialog is created where it's needed and shown once, that ambiguity doesn't exist and dismissed dialogs are worth watching. Turn it on with a resource boolean:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <bool name="leak_canary_watcher_watch_dismissed_dialogs">true</bool>
+</resources>
+```
+
 ## Configuration
 
 LeakCanary has a default configuration that works well for most apps. You can also customize it to your needs. The LeakCanary configuration is held by two singleton objects (`AppWatcher` and `LeakCanary`) and can be updated at any time. Most developers configure LeakCanary in their **debug** [Application](https://developer.android.com/reference/android/app/Application) class:
@@ -205,6 +218,10 @@ Sometimes a 3rd party library provides its own activities or fragments which con
 
 ## Identifying leaking objects and labeling objects
 
+Working out whether an object in a leak trace should still be in memory is something you do by reading your own code, and the answer is a property of the type, not of that one heap dump — so it will hold the next time too. An `ObjectInspector` is how you write that conclusion down once and have LeakCanary reach it on its own from then on, [narrowing the suspect references](fundamentals-fixing-a-memory-leak.md#2-narrow-down-the-suspect-references) automatically.
+
+An inspector is called for every object in a leak trace. Add `leakingReasons` or `notLeakingReasons` to state a conclusion, and `labels` to attach information that helps without settling anything:
+
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
 
@@ -239,6 +256,40 @@ class DebugExampleApplication : ExampleApplication() {
   }
 }
 ```
+
+### Deciding from objects further down the graph
+
+An inspector isn't limited to the fields of the object it was called for. It receives a `HeapInstance`, which can be navigated like any other object in the heap dump, so a conclusion about one object can be drawn from the state of another.
+
+That is often the only way to state a lifecycle. An object whose lifetime is tied to something it holds — a helper that lives exactly as long as the view it was created for — is leaking exactly when that view is, and the way to say so is to go and look at the view:
+
+```kotlin
+val jankStatsInspector = ObjectInspector { reporter ->
+  reporter.whenInstanceOf("androidx.metrics.performance.JankStats") { jankStats ->
+    // A JankStats lives as long as the window it tracks, so it's leaking if
+    // the decor view of that window has been detached.
+    val decorView = jankStats["androidx.metrics.performance.JankStats", "implementation"]
+      ?.valueAsInstance
+      ?.get("androidx.metrics.performance.JankStatsApi24Impl", "window")
+      ?.valueAsInstance
+      ?.get("com.android.internal.policy.PhoneWindow", "mDecor")
+      ?.valueAsInstance
+
+    val attachInfo = decorView?.get("android.view.View", "mAttachInfo")
+    if (attachInfo != null) {
+      if (attachInfo.value.isNullReference) {
+        leakingReasons += "JankStats is retaining a detached DecorView"
+      } else {
+        notLeakingReasons += "JankStats is retaining an attached DecorView"
+      }
+    }
+  }
+}
+```
+
+Every step returns null when the field or the class isn't what you expected, so an inspector written this way says nothing rather than saying something wrong on a device where the internals differ. That matters: a wrong `notLeakingReasons` hides the object that was actually holding the leak.
+
+[The LeakCanary Method](https://engineering.block.xyz/blog/the-leakcanary-method) walks through the investigation these two inspectors came out of.
 
 ## Running the LeakCanary analysis in a separate process
 
