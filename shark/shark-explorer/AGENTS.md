@@ -138,6 +138,13 @@ it, so run it before pushing.
   tests can't find cells by tag. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on
   the details panel and breadcrumbs.
+- **A headless test can write a PNG of what Skia drew**, which is how an agent gets to look at this
+  UI at all: `onRoot().captureToImage().toAwtImage()` and `ImageIO.write`, after a
+  `performMouseInput`, renders the hover highlight and the path bar the same as a real window does.
+  Nothing outside the JVM can do this — macOS shows a process that lacks Screen Recording only the
+  desktop picture and its own windows, so a screenshot of a `./gradlew run` taken from any other
+  process comes back as wallpaper. Delete the capture again once it has been looked at; it's
+  scaffolding, not a test.
 - **The UI tests record `SharkLog` for every test**, not only for the ones asserting on it. A log
   line is built from state — an index into a path, a node id — so a line built from the wrong state
   should fail the test that reaches it rather than wait for a session nobody can read. The `RecordedLog`
