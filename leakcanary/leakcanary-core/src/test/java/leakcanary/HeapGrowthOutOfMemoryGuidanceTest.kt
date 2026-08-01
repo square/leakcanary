@@ -70,18 +70,28 @@ class HeapGrowthOutOfMemoryGuidanceTest {
   }
 
   @Test fun `deleted heap dumps are worth keeping`() {
-    val guidance = guidance(Jvm, heapDumpsDeleted = true)
+    val guidance = guidance(AndroidApp, heapDumpsDeleted = true)
 
+    // Instantiated so that the strategy the guidance tells the caller to write is one that can be
+    // written: HeapDumpStorageStrategy.KeepHeapDumps is an object, so naming that one with
+    // parentheses would be code that doesn't compile.
+    val strategy = HeapDumpStorageStrategy.KeepHeapDumpsOnObjectsGrowing()
     assertThat(guidance).contains(
-      "Keep the heap dumps (heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepHeapDumps())"
+      "heapDumpStorageStrategy = HeapDumpStorageStrategy.${strategy::class.java.simpleName}()"
     )
   }
 
   @Test fun `kept heap dumps are there to be analyzed`() {
-    val guidance = guidance(Jvm, heapDumpsDeleted = false)
+    val guidance = guidance(AndroidApp, heapDumpsDeleted = false)
 
     assertThat(guidance).contains("on the heap dumps this run kept")
     assertThat(guidance).doesNotContain("Keep the heap dumps")
+  }
+
+  @Test fun `a JVM is not offered a command that only reads Android heap dumps`() {
+    val guidance = guidance(Jvm, heapDumpsDeleted = true)
+
+    assertThat(guidance).doesNotContain("shark-cli")
   }
 
   private fun guidance(

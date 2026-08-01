@@ -71,22 +71,36 @@ Usage: shark-cli [OPTIONS] COMMAND [ARGS]...
                                       /|\  /|\
 
 Options:
-  -p, --process TEXT              Full or partial name of a process, e.g.
-                                  "example" would match "com.example.app"
+  -p, --process TEXT              Full name of a process, e.g.
+                                  "com.example.app"
   -d, --device ID                 device/emulator id
   -m, --obfuscation-mapping PATH  path to obfuscation mapping file
   --verbose / --no-verbose        provide additional details as to what
                                   shark-cli is doing
-  -h, --hprof FILE                path to a .hprof file
+  -h, --hprof PATH                path to a .hprof file or a folder containing
+                                  hprof files
+  --version                       Show the version and exit
   --help                          Show this message and exit
 
 Commands:
-  interactive   Explore a heap dump.
-  analyze       Analyze a heap dump.
-  dump-process  Dump the heap and pull the hprof file.
-  strip-hprof   Replace all primitive arrays from the provided heap dump with
-                arrays of zeroes and generate a new "-stripped.hprof" file.
+  interactive        Explore a heap dump.
+  analyze            Analyze a heap dump.
+  neo4j              Convert heap dump to Neo4j database
+  dump-process       Dump the heap and pull the hprof file.
+  strip-hprof        Replace all primitive arrays from the provided heap dump
+                     with arrays of zeroes and generate a new
+                     "-stripped.hprof" file.
+  deobfuscate-hprof  Deobfuscate the provided heap dump and generate a new
+                     "-deobfuscated.hprof" file.
+  heap-growth        Detect heap growth
 ```
+
+!!! info "`heap-growth` needs a 3.0 alpha"
+    The `heap-growth` command, which [detects heap growth](heap-growth.md) from a directory of heap
+    dumps or from a live app, only exists in the LeakCanary 3.0 alphas. Alphas can't be released to
+    Homebrew, so download the
+    [alpha zip](https://github.com/square/leakcanary/releases/download/v{{ leak_canary.latest_alpha }}/shark-cli-{{ leak_canary.latest_alpha }}.zip)
+    for it.
 
 
 ## Shark code examples

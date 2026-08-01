@@ -9,9 +9,9 @@ import shark.HeapDiff
 class AndroidInProcessOutOfMemoryGuidanceTest {
 
   /**
-   * The guidance reads the manifest flags of the app under test and of the test apk by reflection,
-   * which only resolves when running as an instrumentation test on Android, so nothing but an
-   * instrumentation test can tell us that it still does.
+   * The guidance reads the manifest flags of the app under test and of the test apk from a class
+   * loaded by name, which only loads when running as an instrumentation test on Android, so nothing
+   * but an instrumentation test can tell us that it still does.
    */
   @Test fun out_of_memory_guidance_names_the_app_under_test() {
     val appUnderTestPackageName =

@@ -84,13 +84,18 @@ internal fun heapGrowthOutOfMemoryGuidance(
 ): String {
   val options = mutableListOf<String>()
   val heapLimitDetail: String
+  // Shark's heap-growth command only reads Android heap dumps, and a JVM test already runs on the
+  // computer that would run it, so moving the detection there is only an option on Android.
+  val detectFromComputer: Boolean
   when (heapLimitSource) {
     Jvm -> {
       heapLimitDetail = ""
+      detectFromComputer = false
       options += "Raise the memory limit of the JVM running this test with the -Xmx flag."
     }
     AndroidApp -> {
       heapLimitDetail = ""
+      detectFromComputer = true
       options += "Increase the memory available to this process with android:largeHeap=\"true\". " +
         "In an instrumentation test that has to be the manifest of the app under test: an " +
         "instrumentation process is created from the ApplicationInfo of the app under test, so " +
@@ -98,17 +103,21 @@ internal fun heapGrowthOutOfMemoryGuidance(
     }
     is AndroidInstrumentationTest -> {
       heapLimitDetail = heapLimitSource.heapLimitDetail
+      detectFromComputer = true
       heapLimitSource.raiseHeapLimitOption?.let { options += it }
     }
   }
-  options += if (heapDumpsDeleted) {
-    "Keep the heap dumps (heapDumpStorageStrategy = HeapDumpStorageStrategy.KeepHeapDumps()) then " +
-      "detect heap growth from your computer instead, where memory is cheaper: " +
-      "shark-cli --hprof <heap dump directory> heap-growth. $SHARK_CLI_DOC_URL"
-  } else {
-    "Detect heap growth from your computer instead, where memory is cheaper, by running " +
-      "shark-cli --hprof <heap dump directory> heap-growth on the heap dumps this run kept. " +
-      SHARK_CLI_DOC_URL
+  if (detectFromComputer) {
+    options += if (heapDumpsDeleted) {
+      "Keep the heap dumps (heapDumpStorageStrategy = " +
+        "HeapDumpStorageStrategy.KeepHeapDumpsOnObjectsGrowing()) then detect heap growth from " +
+        "your computer instead, where memory is cheaper: shark-cli --hprof <heap dump directory> " +
+        "heap-growth --loops <scenarioLoopsPerDump>. $SHARK_CLI_DOC_URL"
+    } else {
+      "Detect heap growth from your computer instead, where memory is cheaper, by running " +
+        "shark-cli --hprof <heap dump directory> heap-growth --loops <scenarioLoopsPerDump> on " +
+        "the heap dumps this run kept. $SHARK_CLI_DOC_URL"
+    }
   }
 
   return "Not enough memory to detect heap growth: this process can use up to " +

@@ -82,11 +82,15 @@ sed -i '' "s/VERSION_NAME=.*/VERSION_NAME=$NEW_VERSION/" gradle.properties
 ```
 
 * Update `mkdocs.yml`. `next_release` is the in-development version referenced by
-  the snapshot docs — bump it to the next version. `release` is the latest
-  **stable** version used throughout the getting-started docs; only change it when
-  releasing a stable version, so leave it alone for alpha/beta releases.
+  the snapshot docs — bump it to the next version. `latest_alpha` is the latest
+  released alpha, referenced by the docs for features that only exist in the
+  alphas. `release` is the latest **stable** version used throughout the
+  getting-started docs; only change it when releasing a stable version, so leave it
+  alone for alpha/beta releases.
 ```bash
 sed -i '' "s/next_release: .*/next_release: '$NEXT_VERSION'/" mkdocs.yml
+# Alpha releases ONLY:
+sed -i '' "s/latest_alpha: .*/latest_alpha: '$NEW_VERSION'/" mkdocs.yml
 # Stable releases ONLY — also promote the stable version:
 # sed -i '' "s/release: .*/release: '$NEW_VERSION'/" mkdocs.yml
 ```
