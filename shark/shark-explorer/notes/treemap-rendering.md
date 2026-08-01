@@ -76,9 +76,10 @@ Two things follow, and both are behaviour rather than polish:
   children too small to draw, still lands on the node holding it.
 
 And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so naming the
-levels falls to what is drawn beside the view — `RootPathPanel`, which draws the chain from a GC root down
-to the object under the pointer and marks the steps that dominate it. Those marked steps are the containers
-the rectangle sits inside, so the same pane answers both "what is this" and "where in the picture am I".
+levels falls to what is drawn beside the view — `RootPathPanel`, which draws the chain from the whole heap
+dump down to the object clicked, runs it on to the object under the pointer, and marks the steps that
+dominate it. Those marked steps are the containers the rectangle sits inside, so the same pane answers both
+"what is this" and "where in the picture am I".
 See `decisions.md`.
 
 ### One level is named, and its boundaries are the heavy lines

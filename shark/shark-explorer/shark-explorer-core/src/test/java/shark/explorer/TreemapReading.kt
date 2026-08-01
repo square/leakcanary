@@ -20,6 +20,23 @@ internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
 }
 
 /**
+ * Every way an object is held below whatever the tree says holds it, which is the question these tests ask
+ * of the search: the same two ends the window asks it of when the stretch of a chain in doubt is the one
+ * running down from a dominator.
+ *
+ * A group holds an object from the roots the tree was walked from rather than from an object of the heap
+ * dump, so which of the two searches answers depends on which kind of thing dominates it.
+ */
+internal fun HeapDominatorTreemap.independentPathsBelowDominator(objectId: Long): IndependentPaths {
+  val dominator = dominatorOf(objectId) ?: return IndependentPaths.NONE
+  return if (dominator.kind == DominatorKind.OBJECT) {
+    independentPathsBetween(dominator.nodeId, objectId)
+  } else {
+    independentPathsFromRoots(objectId)
+  }
+}
+
+/**
  * How these tests read a path: the field each step was reached through, then what it points at. The
  * first step of a path below a group is the GC root's own object, which no field points at.
  */

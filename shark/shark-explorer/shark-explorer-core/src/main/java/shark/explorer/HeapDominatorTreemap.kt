@@ -530,39 +530,60 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * Every way [objectId] is held below its dominator, spelled out field by field. See
+   * Every way [toObjectId] is held below [fromObjectId], spelled out field by field. See
    * [IndependentPaths] for what "independent" means and what this search does and doesn't guarantee.
    *
-   * A bitmap under the root turns out to be held by the view showing it on one path and by an image cache
-   * on another: the view is the answer anyone is after, and the cache is why the dominator tree had
-   * nowhere to put its bytes but the whole heap.
+   * Asked of the two ends of a stretch of a chain that isn't forced: the steps between two objects that
+   * both dominate [toObjectId] are only one of the ways the lower one is reached from the upper, and these
+   * are the rest of them. See [RootPathDetour].
    *
    * At most [MAX_INDEPENDENT_PATHS] of them, each at most [MAX_PATH_STEPS] steps long. The first call for
    * a heap dump builds a [ReferrerIndex], which reads the whole dump; the paths themselves are then walks
    * in memory, so the wait is once per dump rather than once per object.
    */
-  fun independentPathsTo(objectId: Long): IndependentPaths {
-    if (objectId == root || objectId !in nodes) {
+  fun independentPathsBetween(
+    fromObjectId: Long,
+    toObjectId: Long
+  ): IndependentPaths {
+    val fromIndex = referrerIndex.indexOf(fromObjectId)
+    if (fromIndex == ReferrerIndex.NOT_AN_OBJECT) {
+      SharkLog.d {
+        "No paths from ${hexObjectId(fromObjectId)}: it is no object of the heap dump"
+      }
       return IndependentPaths.NONE
     }
-    val dominator = dominatorOf(objectId) ?: return IndependentPaths.NONE
-    val targetIndex = referrerIndex.indexOf(objectId)
+    return independentPathsTo(toObjectId, isBelowGroup = false) { index -> index == fromIndex }
+  }
+
+  /**
+   * And every way [toObjectId] is held from where the tree's own walk started: a GC root, or a piece of
+   * garbage nothing else points at.
+   *
+   * What the top of a chain is asked, since nothing above it holds it. A bitmap under the root turns out to
+   * be held by the view showing it on one path and by an image cache on another: the view is the answer
+   * anyone is after, and the cache is why the dominator tree had nowhere to put its bytes but the whole
+   * heap.
+   */
+  fun independentPathsFromRoots(toObjectId: Long): IndependentPaths =
+    independentPathsTo(toObjectId, isBelowGroup = true) { index -> index in treeRootIndexes }
+
+  private fun independentPathsTo(
+    toObjectId: Long,
+    /** Whether a path starts at a GC rooted object, which is then a step of it rather than left out. */
+    isBelowGroup: Boolean,
+    isSource: (Int) -> Boolean
+  ): IndependentPaths {
+    if (toObjectId == root || toObjectId !in nodes) {
+      return IndependentPaths.NONE
+    }
+    val targetIndex = referrerIndex.indexOf(toObjectId)
     if (targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
       // A node of the tree the heap dump has no object for: nothing to walk up from, and the tree and
       // the dump disagreeing about what is in the dump.
       SharkLog.d {
-        "No paths to ${hexObjectId(objectId)}: it is a node of the tree and no object of the heap dump"
+        "No paths to ${hexObjectId(toObjectId)}: it is a node of the tree and no object of the heap dump"
       }
       return IndependentPaths.NONE
-    }
-    val isBelowGroup = dominator.kind != DominatorKind.OBJECT
-    val isSource: (Int) -> Boolean = if (isBelowGroup) {
-      // Below a group, a path starts where the tree's own walk did: at a GC root, or at a piece of
-      // garbage nothing else points at.
-      ({ index -> index in treeRootIndexes })
-    } else {
-      val dominatorIndex = referrerIndex.indexOf(dominator.nodeId)
-      ({ index -> index == dominatorIndex })
     }
     val paths = mutableListOf<IndependentPath>()
     // A GC root's own object, or a piece of garbage nothing points at: what holds it is the root or nothing
@@ -576,12 +597,11 @@ class HeapDominatorTreemap internal constructor(
       paths += path(found, isBelowGroup)
     }
     if (paths.isEmpty()) {
-      // The tree attributes the object's bytes to that dominator, so there is a path from it by
-      // construction. Not finding one means the walk up the referrers and the walk down the tree were
-      // built through different references, which is the panel saying an object is held by nothing.
-      SharkLog.d {
-        "No path found from ${dominator.label} down to ${hexObjectId(objectId)}, though it dominates it"
-      }
+      // Asked between two objects one of which dominates the other, or from the roots the tree was walked
+      // from, so there is a path by construction. Not finding one means the walk up the referrers and the
+      // walk down the tree were built through different references, which shows as a chain the window says
+      // has no alternative.
+      SharkLog.d { "No path found down to ${hexObjectId(toObjectId)}, though something above holds it" }
     }
     return IndependentPaths(paths = paths, hasMore = paths.size == MAX_INDEPENDENT_PATHS)
   }
@@ -712,11 +732,11 @@ class HeapDominatorTreemap internal constructor(
     UNREACHABLE_NODE_ID.takeIf { strengthOf(objectId) == ReachabilityStrength.UNREACHABLE }
 
   /**
-   * One found path as the UI shows it: from the step below the dominator down to the object.
+   * One found path as the UI shows it: from the step below where it starts down to the object.
    *
    * Below a group the first step is the GC rooted object itself, named by the kind of root that reaches
-   * it. Below an object the first step is what the dominator points at, and the dominator is left out
-   * because the panel shows it above the paths.
+   * it. Below an object the first step is what that object points at, and the object itself is left out
+   * because it is already on the chain this is an alternative stretch of.
    */
   private fun path(
     objectIndexes: IntArray,
@@ -755,8 +775,8 @@ class HeapDominatorTreemap internal constructor(
     }
     val strength = strengthOf(objectId)
     if (strength != ReachabilityStrength.UNREACHABLE) {
-      // Which is the paths screen calling an object garbage while the treemap draws it in the reachable
-      // half, and the two can only disagree if the roots the tree walked from aren't the roots here.
+      // Which is a chain calling an object garbage while the treemap draws it in the reachable half, and
+      // the two can only disagree if the roots the tree walked from aren't the roots here.
       SharkLog.d {
         "The path to ${hexObjectId(objectId)} starts at no GC root this tree was built from, though the " +
           "object is reachable ($strength), so the path says uncollected garbage instead"
@@ -1238,9 +1258,9 @@ class HeapDominatorTreemap internal constructor(
     const val MAX_LISTED_OBJECTS = 500
 
     /**
-     * How many ways of holding an object [independentPathsTo] spells out. Six chains is already more than
-     * fits in a panel, and an object held from more places than that is held by a data structure rather
-     * than by anything anyone would call an owner.
+     * How many ways of holding an object [independentPathsBetween] spells out. Six chains is already more
+     * than fits in a panel, and an object held from more places than that is held by a data structure
+     * rather than by anything anyone would call an owner.
      */
     private const val MAX_INDEPENDENT_PATHS = 6
 

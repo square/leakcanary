@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import shark.explorer.HeapObjectSummary
 import shark.explorer.ObjectDominator
 import shark.explorer.formatByteSize
+import shark.explorer.hexObjectId
 
 /**
  * The objects starred so far, everything about them read when they were starred.
@@ -47,7 +48,7 @@ internal fun StarredScreen(
             Inspectable(favourite.label, favourite.objectId, onOpen)
             Text(favourite.className, style = MaterialTheme.typography.bodySmall)
             SelectionContainer {
-              Text(objectIdText(favourite.objectId), style = MaterialTheme.typography.bodySmall)
+              Text(hexObjectId(favourite.objectId), style = MaterialTheme.typography.bodySmall)
             }
             Text(
               "Retained ${formatByteSize(favourite.retainedSize)} · " +

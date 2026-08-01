@@ -45,30 +45,23 @@ class RootPathTest {
     assertThat(RootPath.NONE.stepsBelow(ROOT_OBJECT_ID)).isEmpty()
   }
 
-  private fun List<RootPathStep>.objectIds(): List<Long> = map { it.step.objectId }
+  @Test fun `what a chain adds below an object is the steps under it`() {
+    val path = chain(1L to DOMINATES, 2L to DOMINATES, 3L to ON_THE_WAY, 5L to ON_THE_WAY)
 
-  /** A chain of objects by id, each of them either a dominator of the last one or only on the way to it. */
-  private fun chain(vararg steps: Pair<Long, Boolean>): RootPath = RootPath(
-    gcRootLabel = "GC root: JNI global reference",
-    steps = steps.map { (objectId, isDominator) -> RootPathStep(step(objectId), isDominator) },
-    hiddenStepCount = 0
-  )
+    assertThat(path.stepsAfter(objectId = 2L)!!.objectIds()).containsExactly(3L, 5L)
+  }
 
-  private fun step(objectId: Long): PathStep = PathStep(
-    objectId = objectId,
-    className = "com.example.Step$objectId",
-    kind = HeapObjectKind.INSTANCE,
-    headline = null,
-    strength = ReachabilityStrength.STRONG,
-    retainedSize = 0L,
-    retainedCount = 0,
-    inspectorLabels = emptyList(),
-    reference = null,
-    isInspectable = true
-  )
+  @Test fun `a chain adds nothing below the object it leads to`() {
+    val path = chain(1L to DOMINATES, 5L to ON_THE_WAY)
 
-  companion object {
-    private const val DOMINATES = true
-    private const val ON_THE_WAY = false
+    assertThat(path.stepsAfter(objectId = 5L)).isEmpty()
+  }
+
+  @Test fun `a chain that doesn't run through an object says so rather than adding all of itself`() {
+    // The pointer on a rectangle held some other way entirely: the two chains have no object in common, so
+    // there is no telling where the one on screen would have to be cut for the other to carry on from it.
+    val path = chain(1L to DOMINATES, 5L to ON_THE_WAY)
+
+    assertThat(path.stepsAfter(objectId = 4L)).isNull()
   }
 }

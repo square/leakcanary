@@ -143,7 +143,7 @@ class HeapExplorerTest {
       val dominator = tree.dominatorOf(payload.objectId)!!
       assertThat(dominator.kind).isEqualTo(DominatorKind.WHOLE_HEAP_DUMP)
       assertThat(dominator.nodeId).isEqualTo(tree.root)
-      assertThat(tree.independentPathsTo(payload.objectId).paths.map { it.stepLabels() })
+      assertThat(tree.independentPathsBelowDominator(payload.objectId).paths.map { it.stepLabels() })
         .containsExactlyInAnyOrder(
           listOf("Holder", "payload → Object[]"),
           listOf("OtherHolder", "payload → Object[]")
@@ -156,7 +156,7 @@ class HeapExplorerTest {
       val tree = explorer.tree
       val payload = tree.findByLabel("Object[]")
 
-      val paths = tree.independentPathsTo(payload.objectId)
+      val paths = tree.independentPathsBelowDominator(payload.objectId)
 
       // Two chains sharing nothing in between: the tile that shows the payload holds it as what its view
       // draws, and the cache holds it through the wrapper. There is no third — the tile holds the wrapper
@@ -178,7 +178,7 @@ class HeapExplorerTest {
       val view = tree.findByLabel("View")
 
       val dominator = tree.dominatorOf(view.objectId)!!
-      val paths = tree.independentPathsTo(view.objectId)
+      val paths = tree.independentPathsBelowDominator(view.objectId)
 
       // Everything holding the view goes through the tile, so the tile is the whole story and the one
       // path below it is the field it holds the view in.
@@ -222,7 +222,7 @@ class HeapExplorerTest {
     HeapExplorer.open(testFolder.coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
       val tree = explorer.tree
 
-      val paths = tree.independentPathsTo(tree.findByLabel("Object[]").objectId)
+      val paths = tree.independentPathsBelowDominator(tree.findByLabel("Object[]").objectId)
 
       // The tile holds the pixels two ways, as what its view draws and through the result of the request
       // that loaded them, and neither way is round through the other. The cache holds them as well and is
@@ -266,7 +266,7 @@ class HeapExplorerTest {
       assertThat(cacheEntry.fields.map { "${it.name} = ${it.value}" }).containsExactly("image = BitmapImage")
       assertThat(tree.children(cacheEntry.objectId)).isEmpty()
       assertThat(tree.dominatorOf(image.objectId)!!.label).isEqualTo("SuccessResult")
-      assertThat(tree.independentPathsTo(image.objectId).paths.map { it.stepLabels() })
+      assertThat(tree.independentPathsBelowDominator(image.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("image → BitmapImage"))
     }
   }
@@ -285,7 +285,7 @@ class HeapExplorerTest {
 
         assertThat(held.strength).describedAs(className).isEqualTo(STRONG)
         assertThat(tree.dominatorOf(held.objectId)!!.label).describedAs(className).isEqualTo("Holder")
-        assertThat(tree.independentPathsTo(held.objectId).paths.map { it.stepLabels() })
+        assertThat(tree.independentPathsBelowDominator(held.objectId).paths.map { it.stepLabels() })
           .describedAs(className)
           .containsExactly(listOf("$field → $className"))
       }
@@ -302,7 +302,7 @@ class HeapExplorerTest {
       // keeps a weakly reachable object in it.
       assertThat(onlyOnStack.strength).isEqualTo(LOCAL)
       assertThat(tree.children(tree.root)).contains(onlyOnStack.objectId)
-      assertThat(tree.independentPathsTo(onlyOnStack.objectId).paths.map { it.gcRootLabel })
+      assertThat(tree.independentPathsBelowDominator(onlyOnStack.objectId).paths.map { it.gcRootLabel })
         .containsExactly("GC root: local variable of a running method")
     }
   }
@@ -312,7 +312,7 @@ class HeapExplorerTest {
       val tree = explorer.tree
 
       assertThat(tree.dominatorOf(tree.root)).isNull()
-      assertThat(tree.independentPathsTo(tree.root).paths).isEmpty()
+      assertThat(tree.independentPathsBelowDominator(tree.root).paths).isEmpty()
     }
   }
 
@@ -322,7 +322,7 @@ class HeapExplorerTest {
       val holder = tree.findByLabel("Holder")
 
       val dominator = tree.dominatorOf(holder.objectId)!!
-      val path = tree.independentPathsTo(holder.objectId).paths.single()
+      val path = tree.independentPathsBelowDominator(holder.objectId).paths.single()
 
       // Nothing in the heap dump points at it, so there is no chain to walk up and the whole answer to how
       // it's held is which kind of GC root reaches it.
@@ -341,7 +341,7 @@ class HeapExplorerTest {
       // The view's own helper points back at it, so one of its two referrers is only reachable through the
       // view itself. Counting that as a way of holding the view would report the view as holding itself.
       assertThat(tree.children(view.objectId).map { tree.label(it) }).contains("Helper")
-      assertThat(tree.independentPathsTo(view.objectId).paths.map { it.stepLabels() })
+      assertThat(tree.independentPathsBelowDominator(view.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("view → View"))
     }
   }

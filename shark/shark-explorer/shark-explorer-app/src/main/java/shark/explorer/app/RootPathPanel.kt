@@ -1,8 +1,9 @@
 package shark.explorer.app
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -12,15 +13,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import shark.explorer.DrawnRootPath
+import shark.explorer.HEAD_INDEX
 import shark.explorer.HeapDominatorTreemap
+import shark.explorer.HeapObjectSummary
 import shark.explorer.RootPath
+import shark.explorer.RootPathStep
+import shark.explorer.RootPathWay
+import shark.explorer.detours
+import shark.explorer.drawnWith
+import shark.explorer.stepsAfter
 import shark.explorer.stepsBelow
 
 /**
- * The shortest way a GC root reaches whatever the window is describing, drawn as a chain down the pane.
+ * The chain of objects holding whatever the window is describing, from the whole heap dump down to it.
  *
  * Beside the map rather than in the details panel, because a chain is a column of objects with something to
  * say about each of them and the panel is already one: both of them in one pane means one is always
@@ -29,132 +41,144 @@ import shark.explorer.stepsBelow
  * The objects that dominate the one at the end are ringed and labelled, which is what ties the chain back to
  * the treemap: those are the rectangles it is drawn inside of, and the rest are only on the way to it. Every
  * object of it is a click away from the map going there, so this is also the way back out — the ringed steps
- * are the nesting the map zoomed through, in the order it zoomed through them.
+ * are the nesting the map zoomed through, in the order it zoomed through them, and the whole heap dump at
+ * the top of it is the way back to the first screen.
+ *
+ * **What the pointer is on is drawn onto the end of it**, lightly, rather than as a panel of its own: the
+ * rectangle under the pointer is inside the one the window is describing, so the chain holding it is this
+ * chain and a few more steps. Which makes moving the pointer around the map read as the chain growing and
+ * shrinking, and leaves the reader the part of it they were already reading.
  *
  * Everything here is read on the heap dump's thread — see [shark.explorer.HeapDominatorTreemap.rootPathTo] —
  * so [rootPath] arrives a little after whatever was pointed at changed.
  */
 @Composable
 internal fun RootPathPanel(
-  /** The cell clicked, which is what this pane describes whatever the pointer is doing. */
+  /** The cell clicked, which is what this pane is about however far the pointer has moved since. */
   selection: Selection?,
   /** Null until the walk up to the GC roots has come back. */
   rootPath: RootPath?,
-  coloring: CellColoring,
-  onOpen: (Long) -> Unit,
-  modifier: Modifier = Modifier
-) {
-  Surface(modifier, color = MaterialTheme.colorScheme.surface) {
-    Column(
-      Modifier.verticalScroll(rememberScrollState()).padding(12.dp),
-      verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-      SectionHeading(ROOT_PATH, ROOT_PATH_HINT)
-      RootPathContent(selection, rootPath, coloring, onOpen, PathDetail.FULL)
-    }
-  }
-}
-
-/**
- * The same chain for the rectangle under the pointer, floating over the one for the rectangle clicked.
- *
- * Floating rather than replacing it, because the two answer different questions: what is this thing I am
- * looking at, and what is that thing over there. Moving the pointer off the map puts the pane back to the
- * first without anything having to be read again. Two chains of the same shape in the same place is also the
- * one thing here that can be misread as one chain, which is why this is lifted off the pane it covers rather
- * than merely drawn over it: a border, a shadow, its own corners, and the pane behind it dimmed.
- *
- * **Only the part of the chain the map is showing**, from the rectangle the reader is looking at down. What
- * holds that rectangle is what going there would answer, and the pointer is not there yet. See
- * [shark.explorer.stepsBelow].
- *
- * Which object it is, is the one thing this doesn't say: that follows the pointer instead, close to the
- * rectangle it is about. See [PointerCard].
- */
-@Composable
-internal fun HoveredPathPanel(
-  selection: Selection?,
-  rootPath: RootPath?,
-  /** The node the map is rooted at, which is where the chain drawn here starts. */
+  /** The cell under the pointer, whose chain is drawn onto the end of this one. */
+  hoveredSelection: Selection?,
+  hoveredRootPath: RootPath?,
+  /** The node the map is rooted at, which is where a hovered chain starts when it isn't below this one. */
   rootNodeId: Long,
-  coloring: CellColoring,
-  modifier: Modifier = Modifier
-) {
-  // The cut made here rather than by the chain itself, because it is what makes this chain the brief one:
-  // the head row it leaves is the dots saying the chain runs on above.
-  val shown = rootPath?.let { it.copy(steps = it.stepsBelow(rootNodeId)) }
-  Surface(
-    modifier,
-    color = MaterialTheme.colorScheme.surface,
-    shape = RoundedCornerShape(HOVER_PANEL_CORNER),
-    border = BorderStroke(HOVER_PANEL_BORDER_WIDTH, HOVER_PANEL_BORDER_COLOR),
-    shadowElevation = HOVER_PANEL_ELEVATION
-  ) {
-    Column(
-      Modifier.verticalScroll(rememberScrollState()).padding(10.dp),
-      verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-      // Named, because the pane under it answers the same question about a different object: which of the
-      // two chains is which is not something a reader should have to work out from what they last did.
-      Text(POINTED_AT_PATH, style = MaterialTheme.typography.labelSmall, color = MUTED_TEXT)
-      // Nothing to click on: the pointer is on the map, and it leaving the map is what closes this.
-      RootPathContent(selection, shown, coloring, onOpen = {}, detail = PathDetail.BRIEF)
-    }
-  }
-}
-
-/** The chain, or what there is to say instead when there is none to draw. */
-@Composable
-private fun RootPathContent(
-  selection: Selection?,
-  rootPath: RootPath?,
+  /** The ways each stretch of the chain could run, by [shark.explorer.RootPathDetour.fromIndex]. */
+  ways: Map<Int, List<RootPathWay>>,
+  /** Which of them is drawn, for the stretches the reader has switched. */
+  chosenWays: Map<Int, Int>,
+  onChooseWay: (Int, Int) -> Unit,
   coloring: CellColoring,
   onOpen: (Long) -> Unit,
-  detail: PathDetail
+  modifier: Modifier = Modifier
 ) {
   val summary = (selection as? Selection.Object)?.summary
-  when {
-    // A floating chain is only ever drawn for a rectangle the pointer is on, so it having no object yet
-    // means the read for that rectangle hasn't come back rather than that nothing has been clicked.
-    selection == null -> Text(
-      if (detail == PathDetail.FULL) NO_ROOT_PATH_YET else SEARCHING_ROOT_PATH,
-      style = MaterialTheme.typography.bodySmall
-    )
-    // A pile of objects is held as many ways as it has objects in it, so there is no one chain.
-    summary == null -> Text(NO_ROOT_PATH_FOR_A_PILE, style = MaterialTheme.typography.bodySmall)
-    summary.objectId == HeapDominatorTreemap.ROOT_OBJECT_ID ->
-      Text(EVERYTHING_STARTS_HERE, style = MaterialTheme.typography.bodySmall)
-    rootPath == null -> Text(SEARCHING_ROOT_PATH, style = MaterialTheme.typography.bodySmall)
-    rootPath.steps.isEmpty() -> Text(NO_ROOT_PATH, style = MaterialTheme.typography.bodySmall)
-    else -> RootPathTrace(rootPath, coloring, onOpen, detail)
+  val isWholeHeapDump = summary?.objectId == HeapDominatorTreemap.ROOT_OBJECT_ID
+  val chain = rootPath?.takeIf { summary != null && !isWholeHeapDump && it.steps.isNotEmpty() }
+  val drawn = chain?.let { path ->
+    path.drawnWith(path.detours()) { detour ->
+      val chosen = chosenWays[detour.fromIndex] ?: 0
+      // The chain's own way is the first of them, and it is already where it is.
+      if (chosen == 0) null else ways[detour.fromIndex]?.getOrNull(chosen)
+    }
+  }
+  // Only the steps the chain on screen doesn't already have, which is what makes this the same chain running
+  // on rather than a second one. Null when the pointer is on a rectangle that isn't inside the object shown,
+  // which a click on an object that dominates nothing leaves the map able to do.
+  val target = drawn?.path?.steps?.lastOrNull()?.step?.objectId
+  val hoveredChain = hoveredRootPath?.takeIf { (hoveredSelection as? Selection.Object) != null }
+  val tail = hoveredChain?.let { hovered ->
+    target?.let { hovered.stepsAfter(it) }?.takeIf { it.isNotEmpty() }
+  }
+  val cutTail = if (tail == null) {
+    hoveredChain?.stepsBelow(rootNodeId)?.takeIf { it.isNotEmpty() }
+  } else {
+    null
+  }
+  val scrollState = rememberScrollState()
+  // The bottom of the chain is what a reader is looking at, so that is what the pane is scrolled to: opening
+  // an object runs the chain down to it, and the last few steps are the ones that say how it is held. Every
+  // time the chain grows, which is also the pointer moving from rectangle to rectangle.
+  val bottomObjectId = (tail ?: cutTail)?.lastOrNull()?.step?.objectId ?: target
+  LaunchedEffect(bottomObjectId) {
+    if (bottomObjectId != null) {
+      snapshotFlow { scrollState.maxValue }.collect { scrollState.animateScrollTo(it) }
+    }
+  }
+  Surface(modifier, color = MaterialTheme.colorScheme.surface) {
+    Column(
+      Modifier.verticalScroll(scrollState).padding(12.dp),
+      verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+      // Where every chain starts, and the way back to the screen the window opens on.
+      PathRootRow(
+        nextStrength = drawn?.path?.steps?.firstOrNull()?.step?.strength
+          ?: cutTail?.firstOrNull()?.step?.strength,
+        onOpen = onOpen
+      )
+      if (drawn != null) {
+        RootPathTrace(
+          drawn = drawn,
+          ways = ways,
+          chosenWays = chosenWays,
+          onChooseWay = onChooseWay,
+          coloring = coloring,
+          onOpen = onOpen
+        )
+      } else {
+        noChainText(selection, summary, isWholeHeapDump, rootPath, hasTail = cutTail != null)?.let {
+          Text(it, style = MaterialTheme.typography.bodySmall)
+        }
+      }
+      if (tail != null) {
+        HoveredTail(steps = tail, isCut = false, coloring = coloring)
+      } else if (cutTail != null) {
+        // Nothing above it on screen is what holds it, so the end of it is the object being described here.
+        HoveredTail(steps = cutTail, isCut = true, coloring = coloring)
+      }
+    }
   }
 }
 
-/** The chain itself: the GC root at the top, the object pointed at at the bottom. */
+/** What there is to say when there is no chain to draw, and null when the chain says it. */
+private fun noChainText(
+  selection: Selection?,
+  summary: HeapObjectSummary?,
+  isWholeHeapDump: Boolean,
+  rootPath: RootPath?,
+  hasTail: Boolean
+): String? = when {
+  // The whole heap dump is the row above: every chain starts below it rather than reaching it.
+  isWholeHeapDump -> null
+  // Whatever the pointer is on is being drawn, and that is more use than a line asking for a click.
+  hasTail -> null
+  selection == null -> NO_ROOT_PATH_YET
+  // A pile of objects is held as many ways as it has objects in it, so there is no one chain.
+  summary == null -> NO_ROOT_PATH_FOR_A_PILE
+  rootPath == null -> SEARCHING_ROOT_PATH
+  else -> NO_ROOT_PATH
+}
+
+/** The chain itself: the GC root at the top, the object the window is describing at the bottom. */
 @Composable
 private fun RootPathTrace(
-  rootPath: RootPath,
+  drawn: DrawnRootPath,
+  ways: Map<Int, List<RootPathWay>>,
+  chosenWays: Map<Int, Int>,
+  onChooseWay: (Int, Int) -> Unit,
   coloring: CellColoring,
-  onOpen: (Long) -> Unit,
-  detail: PathDetail
+  onOpen: (Long) -> Unit
 ) {
-  Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-    if (detail == PathDetail.FULL) {
-      PathHeadRow(
-        label = rootPath.headLabel(),
-        reference = rootPath.steps.first().step.reference,
-        nextStrength = rootPath.steps.first().step.strength,
-        // A GC root is a record of the heap dump rather than an object of it, so there is nowhere to go.
-        nodeId = null,
-        onOpen = onOpen
-      )
-    } else {
-      // A brief chain starts at the rectangle the map is showing, so what is above it is cut rather than
-      // named: the GC root at the top of it is several steps further up than this chain now goes.
-      PathCutRow(nextStrength = rootPath.steps.first().step.strength)
-    }
-    rootPath.steps.forEachIndexed { depth, step ->
-      val next = rootPath.steps.getOrNull(depth + 1)
+  val steps = drawn.path.steps
+  Column(Modifier.fillMaxWidth()) {
+    PathHeadRow(
+      label = drawn.path.headLabel(),
+      reference = steps.first().step.reference,
+      nextStrength = steps.first().step.strength,
+      below = { WaysOfDetour(drawn, HEAD_INDEX, ways, chosenWays, onChooseWay) }
+    )
+    steps.forEachIndexed { depth, step ->
+      val next = steps.getOrNull(depth + 1)
       PathStepRow(
         step = step.step,
         // How this step points at the next one, which is what the next step was reached through.
@@ -163,21 +187,112 @@ private fun RootPathTrace(
         coloring = coloring,
         onOpen = onOpen,
         role = when {
+          // The object the details panel is about, whatever the pointer has added below it.
           next == null -> PathRole.TARGET
           step.isDominator -> PathRole.DOMINATOR
           else -> PathRole.STEP
         },
-        detail = detail
+        below = { WaysOfDetour(drawn, depth, ways, chosenWays, onChooseWay) }
       )
     }
   }
 }
 
 /**
+ * The chain for the rectangle under the pointer, drawn onto the end of the chain for the object shown.
+ *
+ * Lightly: what the reader wants of a rectangle they are only pointing at is which objects hold it and how
+ * much each of those is worth, and everything else on a full row of the chain is four more lines of a pane
+ * that is already the height of the window.
+ */
+@Composable
+private fun HoveredTail(
+  steps: List<RootPathStep>,
+  /** Whether it runs on from the chain above or starts somewhere else, which the dots say. */
+  isCut: Boolean,
+  coloring: CellColoring
+) {
+  Column(Modifier.fillMaxWidth()) {
+    if (isCut) {
+      // Not below the object shown, so the chain above isn't the way to this one: the dots are that said in
+      // the gutter, and the map itself is the rest of the answer.
+      PathCutRow(nextStrength = steps.first().step.strength)
+    }
+    steps.forEachIndexed { depth, step ->
+      val next = steps.getOrNull(depth + 1)
+      PathStepRow(
+        step = step.step,
+        reference = next?.step?.reference,
+        nextStrength = next?.step?.strength,
+        coloring = coloring,
+        // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
+        onOpen = {},
+        role = when {
+          // The end of a cut tail is the only object being described here, since the chain above it isn't
+          // the way to it; the end of one that runs on is described by the card at the pointer instead.
+          next == null && isCut -> PathRole.TARGET
+          step.isDominator -> PathRole.DOMINATOR
+          else -> PathRole.STEP
+        },
+        detail = PathDetail.BRIEF
+      )
+    }
+  }
+}
+
+/**
+ * How else the stretch of the chain below one step could have run, and which of those ways is drawn.
+ *
+ * Only where there is a choice to make. A run of steps between two objects that both dominate the object at
+ * the end is a run the chain didn't have to take — if it had, those steps would dominate it too — so this is
+ * where "held how else?" has an answer, and the arrows are how the reader reads the others.
+ */
+@Composable
+private fun WaysOfDetour(
+  drawn: DrawnRootPath,
+  row: Int,
+  ways: Map<Int, List<RootPathWay>>,
+  chosenWays: Map<Int, Int>,
+  onChooseWay: (Int, Int) -> Unit
+) {
+  val detour = drawn.detourByRow[row] ?: return
+  val found = ways[detour.fromIndex] ?: return
+  if (found.size < 2) {
+    return
+  }
+  val chosen = chosenWays[detour.fromIndex] ?: 0
+  Row(
+    Modifier.padding(top = 2.dp)
+      .background(WAYS_BACKGROUND, RoundedCornerShape(4.dp))
+      .padding(horizontal = 4.dp),
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Text(
+      PREVIOUS_WAY,
+      Modifier.clickableRow { onChooseWay(detour.fromIndex, (chosen - 1 + found.size) % found.size) },
+      style = MaterialTheme.typography.bodySmall
+    )
+    Hint(WAYS_HINT) {
+      Text(
+        "${chosen + 1} of ${found.size} $WAYS_FROM_HERE",
+        style = MaterialTheme.typography.labelSmall,
+        color = MUTED_TEXT
+      )
+    }
+    Text(
+      NEXT_WAY,
+      Modifier.clickableRow { onChooseWay(detour.fromIndex, (chosen + 1) % found.size) },
+      style = MaterialTheme.typography.bodySmall
+    )
+  }
+}
+
+/**
  * Which GC root the chain starts at, and how many steps below it were left out.
  *
- * As on the paths screen, the reference drawn under this row then belongs to the last of the objects left
- * out rather than to the root, and the class it names is how the reader can tell.
+ * When steps were left out, the reference drawn under this row belongs to the last of the objects left out
+ * rather than to the root, and the class it names is how the reader can tell.
  */
 private fun RootPath.headLabel(): String = if (hiddenStepCount == 0) {
   gcRootLabel.orEmpty()
@@ -185,51 +300,35 @@ private fun RootPath.headLabel(): String = if (hiddenStepCount == 0) {
   "${gcRootLabel.orEmpty()}, then $ELLIPSIS $hiddenStepCount steps"
 }
 
-/** The heading of the pane, which is the question the chain answers. */
-internal const val ROOT_PATH = "Held from a GC root"
-
-internal const val ROOT_PATH_HINT =
-  "The shortest chain of references from a GC root down to this object, which is why it is still in " +
-    "memory. Shortest in steps, so it's the plainest of the ways it's held rather than one of the ways " +
-    "round; the paths from the dominator are the rest of them. The steps ringed and marked as dominators " +
-    "are the ones that would free it — every chain from a GC root goes through each of those, which is " +
-    "why the treemap draws this object inside them. Click any object of it to go there."
-
 /** Shown until a rectangle has been clicked, which is what this pane draws a chain for. */
 internal const val NO_ROOT_PATH_YET = "Click a rectangle to see what holds it."
 
 internal const val NO_ROOT_PATH_FOR_A_PILE =
-  "Not one object, so there is no one chain holding it. Zoom in to reach the objects it stands for."
-
-/** The virtual root above the whole heap dump, which every chain starts below rather than reaching. */
-internal const val EVERYTHING_STARTS_HERE =
-  "The whole heap dump. Every chain below starts at one of its GC roots."
+  "Not one object, so there is no one chain holding it. Click it to reach the objects it stands for."
 
 /** Shown while the walk up to the GC roots is still running. */
 internal const val SEARCHING_ROOT_PATH = "Working out what holds it…"
 
 internal const val NO_ROOT_PATH = "No chain from a GC root down to this object was found."
 
-/** What the floating chain is of, since the pane under it is the same chain of the object clicked. */
-internal const val POINTED_AT_PATH = "UNDER THE POINTER"
+/** What the arrows either side of a stretch of the chain do, which is worth spelling out once. */
+internal const val WAYS_HINT =
+  "The steps between two objects that both hold this one are a stretch the chain didn't have to take: if " +
+    "it had, those steps would hold it too and be marked as dominators. So there are other ways from the " +
+    "object above down to the one below, and these arrows walk through them. They share no object in " +
+    "between, which graph theory calls independent, and they are found greedily, so there can be more of " +
+    "them than are counted here."
+
+/** What the count between the arrows counts, after which of them is drawn: `2 of 3 ways from here`. */
+internal const val WAYS_FROM_HERE = "ways from here"
+
+internal const val PREVIOUS_WAY = "◂"
+internal const val NEXT_WAY = "▸"
+
+internal const val ELLIPSIS = "…"
 
 /** As wide as a class name plus what a step says about the object, and no wider: the map needs the room. */
 internal val ROOT_PATH_WIDTH = 300.dp
 
-/** How far inside the pane the floating chain sits, which is what makes it read as being over it. */
-internal val HOVER_PANEL_INSET = 8.dp
-
-/**
- * How dark the pane goes behind the floating chain.
- *
- * The panel's own shadow says it is above something; this says what. Without it the two chains read as one
- * pane whose contents changed, which is exactly the wrong thing to think while the pointer is moving.
- */
-internal val HOVER_SCRIM_COLOR = Color(0x59000000)
-
-private val HOVER_PANEL_ELEVATION = 16.dp
-private val HOVER_PANEL_CORNER = 8.dp
-private val HOVER_PANEL_BORDER_WIDTH = 1.dp
-
-/** Dark enough to read as the panel's own edge against the dimmed pane behind it. */
-private val HOVER_PANEL_BORDER_COLOR = Color(0xFF9E9E9E)
+/** What the arrows for switching a stretch of the chain sit on, so they don't read as one of its objects. */
+private val WAYS_BACKGROUND = Color(0x14000000)

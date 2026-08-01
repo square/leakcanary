@@ -1,6 +1,5 @@
 package shark.explorer.app
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -45,7 +46,6 @@ import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapObjectSummary
 import shark.explorer.HeapSizes
-import shark.explorer.IndependentPaths
 import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
 import shark.explorer.NavigationHistory
@@ -55,26 +55,32 @@ import shark.explorer.ObjectListFilter
 import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
 import shark.explorer.RootPath
+import shark.explorer.RootPathWay
 import shark.explorer.TreemapLayout
 import shark.explorer.TreemapNavigation
 import shark.explorer.TreemapPresentation
 import shark.explorer.TreemapRect
+import shark.explorer.detours
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
 import shark.explorer.nodeIdText
+import shark.explorer.waysOf
 
 /**
- * One open heap dump, read through one of its screens: the dominator tree as a treemap or as rings, the
- * ways one object is held, every object as a list, the ones starred so far. The details panel and the chain
- * holding an object sit either side of all of them.
+ * One open heap dump, read through one of its screens: the dominator tree as a treemap or as rings, every
+ * object as a list, the ones starred so far.
+ *
+ * The map is the screen with panes: the chain holding an object on one side of it and what that object holds
+ * on the other, with which object it is in the bar above them both. Every other screen is the width of the
+ * window, because each of them is a list and a list wants that width more than it wants a pane.
  *
  * Every read of the heap dump goes through [session], which puts it on a thread of its own, so what's
  * drawn is state that arrives a little after whatever asked for it changed: a presentation is a view
  * already laid out and labelled somewhere else, and a selection is a summary already read.
  *
  * **A click goes to a rectangle and the pointer asks about one.** So the window is about the object clicked
- * — the details panel, the chain beside the map, the star, the paths — and what the pointer is on gets a card
- * at the pointer and one floating chain, which is enough to tell whether it's worth going there. See
+ * — the bar, the chain, the details panel, the star — and what the pointer is on gets a card at the pointer
+ * and a few more steps on the end of the chain, which is enough to tell whether it's worth going there. See
  * [DescribedCell].
  *
  * Where the explorer is, is one [NavigationHistory] of [ExplorerScreen]s, and what the panes describe
@@ -111,8 +117,13 @@ internal fun HeapDumpExplorer(
   var clickedDetails: CellDetails? by remember { mutableStateOf(null) }
   /** And what the cell under the pointer is, once it has stayed on one long enough to be read. */
   var hoveredDetails: CellDetails? by remember { mutableStateOf(null) }
-  /** Null until the search for the ways the clicked object is held comes back. */
-  var paths: IndependentPaths? by remember { mutableStateOf(null) }
+  /**
+   * The other ways each stretch of the clicked object's chain could have run, by
+   * [shark.explorer.RootPathDetour.fromIndex]. Empty until the searches come back.
+   */
+  var detourWays by remember { mutableStateOf(emptyMap<Int, List<RootPathWay>>()) }
+  /** And which of them the reader has switched that stretch of the chain to. */
+  var chosenWays by remember { mutableStateOf(emptyMap<Int, Int>()) }
   var objects by remember { mutableStateOf(ObjectList.EMPTY) }
   var isListing by remember { mutableStateOf(false) }
   /** How many bitmaps this heap dump has and how many of them can be drawn, which fetching changes. */
@@ -125,7 +136,7 @@ internal fun HeapDumpExplorer(
   /** The objects starred so far, with everything the list shows about them read once. */
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
   /** A node something led to, until the path the treemap has it under is worked out. */
-  var nodeToOpen: NodeToOpen? by remember { mutableStateOf(null) }
+  var nodeToOpen: Long? by remember { mutableStateOf(null) }
 
   /**
    * Points the panels at a node, which every move does. Each screen says which node that is once it is
@@ -297,17 +308,30 @@ internal fun HeapDumpExplorer(
     describedBitmap = image?.let { withContext(Dispatchers.Default) { it.toImageBitmap() } }
   }
 
-  // Searching for the paths is a walk in memory, but over an index of what points at what, and it walks
-  // several times. Far too much to run as the pointer moves, so it is only ever asked for the clicked
-  // object — which is also why the panel offers the search rather than claiming to be running it.
-  val clickedObjectId = (clickedDetails?.selection as? Selection.Object)?.summary?.objectId
-  LaunchedEffect(session, clickedObjectId) {
-    paths = null
-    if (clickedObjectId == null) {
+  // Which stretches of the chain could have run elsewhere is a walk in memory per stretch, over an index of
+  // what points at what, and each walks several times. Far too much to run as the pointer moves, so it is
+  // only ever asked for the object clicked, and only once the chain to it is known — the chain is what says
+  // where the stretches are. See [shark.explorer.detours].
+  val clickedRootPath = clickedDetails?.rootPath
+  LaunchedEffect(session, clickedRootPath) {
+    detourWays = emptyMap()
+    chosenWays = emptyMap()
+    val path = clickedRootPath ?: return@LaunchedEffect
+    val detours = path.detours()
+    val target = path.steps.lastOrNull()?.step?.objectId
+    if (detours.isEmpty() || target == null) {
       return@LaunchedEffect
     }
-    paths = session.read("the paths holding ${hexObjectId(clickedObjectId)}") { explorer ->
-      explorer.tree.independentPathsTo(clickedObjectId)
+    detourWays = session.read("the other ways ${hexObjectId(target)} is held") { explorer ->
+      detours.associate { detour ->
+        val from = detour.fromObjectId
+        val found = if (from == null) {
+          explorer.tree.independentPathsFromRoots(detour.toObjectId)
+        } else {
+          explorer.tree.independentPathsBetween(from, detour.toObjectId)
+        }
+        detour.fromIndex to path.waysOf(detour, found)
+      }
     }
   }
 
@@ -346,24 +370,18 @@ internal fun HeapDumpExplorer(
   // Where the treemap draws a node takes walking up its dominators, so showing what a panel line or a row
   // of a list leads to is a heap dump read as well.
   LaunchedEffect(session, nodeToOpen) {
-    val open = nodeToOpen ?: return@LaunchedEffect
-    val path = session.read("where the map draws ${nodeIdText(open.nodeId)}") { explorer ->
-      explorer.tree.pathToOpen(open.nodeId)
+    val openNodeId = nodeToOpen ?: return@LaunchedEffect
+    val path = session.read("where the map draws ${nodeIdText(openNodeId)}") { explorer ->
+      explorer.tree.pathToOpen(openNodeId)
     }
-    if (open.nodeId != ROOT_NODE && path == listOf(ROOT_NODE)) {
+    if (openNodeId != ROOT_NODE && path == listOf(ROOT_NODE)) {
       // Clicking a field or a row led to an object the tree has no node for, so the map has nowhere to
       // go and stays on the whole heap dump.
-      SharkLog.d { "${nodeIdText(open.nodeId)} is nowhere on the map: it is no node of the tree" }
+      SharkLog.d { "${nodeIdText(openNodeId)} is nowhere on the map: it is no node of the tree" }
     }
     val zoomed = history.current.treeNavigation.zoomInto(path)
-    history = history.goTo(
-      if (open.showsPaths) {
-        ExplorerScreen.Paths(zoomed, open.nodeId)
-      } else {
-        ExplorerScreen.Tree(zoomed, open.nodeId)
-      }
-    )
-    describe(open.nodeId)
+    history = history.goTo(ExplorerScreen.Tree(zoomed, openNodeId))
+    describe(openNodeId)
     nodeToOpen = null
   }
 
@@ -388,11 +406,11 @@ internal fun HeapDumpExplorer(
       clicked = DescribedCell.of(cell)
       history = history.replacingCurrent(ExplorerScreen.Tree(navigation, subject.parent))
     } else {
-      nodeToOpen = NodeToOpen(DescribedCell.of(cell).cell.objectId, showsPaths = false)
+      nodeToOpen = DescribedCell.of(cell).cell.objectId
     }
   }
   /** Shows a node on the map with it selected, and describes it, which is the object detail view. */
-  val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = NodeToOpen(nodeId, showsPaths = false) }
+  val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = nodeId }
   val onGoTo: (ExplorerScreen) -> Unit = { destination -> history = history.goTo(destination) }
 
   if (showsBitmapsFromDevice) {
@@ -438,54 +456,30 @@ internal fun HeapDumpExplorer(
           describe(history.current.describedNode)
         }
       )
+      // Which object the window is about, beside the arrows that moved to it: above every screen rather than
+      // in a pane, because it is the one thing that is as true of a list of objects as of the map.
+      DescribedObject(details?.selection)
     }
     Row(Modifier.weight(1f)) {
-      // Left of the view rather than at the far edge of the window: everything in it is about the object
-      // clicked, and so is the chain on the other side of the map, so the two of them read as one answer
-      // around the thing they are about rather than as the window's two outer edges.
-      DetailsPanel(
-        selection = details?.selection,
-        dominator = details?.dominator,
-        paths = paths,
-        bitmap = describedBitmap,
-        isStarred = favourites.any { it.objectId == describedSummary?.objectId },
-        coloring = coloring,
-        onOpen = onOpen,
-        onShowPaths = { objectId -> nodeToOpen = NodeToOpen(objectId, showsPaths = true) },
-        onListInstances = { className ->
-          onGoTo(
-            ExplorerScreen.Objects(
-              navigation,
-              ObjectListFilter(
-                query = className,
-                isExactMatch = true,
-                kinds = setOf(HeapObjectKind.INSTANCE)
-              ),
-              screen.describedNode
-            )
-          )
-        },
-        onToggleStar = {
-          val summary = describedSummary
-          if (summary == null) {
-            // The star is only ever drawn beside a selected object, so this is the panel and the
-            // selection disagreeing rather than a click on nothing.
-            SharkLog.d { "Nothing to star: no object is selected" }
-          } else {
-            val wasStarred = favourites.any { it.objectId == summary.objectId }
-            SharkLog.d {
-              "${if (wasStarred) "Unstarred" else "Starred"} ${hexObjectId(summary.objectId)}"
-            }
-            favourites = if (wasStarred) {
-              favourites.filterNot { it.objectId == summary.objectId }
-            } else {
-              // Described, since a summary to star came from the same read as the dominator beside it.
-              favourites + Favourite.of(summary, details.dominator)
-            }
-          }
-        },
-        modifier = Modifier.width(DETAILS_WIDTH).fillMaxHeight()
-      )
+      // The chain first, the map, then what the object holds: read left to right that is where the object
+      // came from, where it is, and what it is keeping alive. Beside the map alone — a list of objects wants
+      // the width of the window more than it wants either pane.
+      if (screen is ExplorerScreen.Tree) {
+        RootPathPanel(
+          selection = details?.selection,
+          rootPath = details?.rootPath,
+          // What the pointer is on, which is drawn onto the end of the chain rather than over it.
+          hoveredSelection = hoveredCellDetails?.selection,
+          hoveredRootPath = hoveredCellDetails?.rootPath,
+          rootNodeId = view.navigation.current,
+          ways = detourWays,
+          chosenWays = chosenWays,
+          onChooseWay = { detour, way -> chosenWays = chosenWays + (detour to way) },
+          coloring = coloring,
+          onOpen = onOpen,
+          modifier = Modifier.width(ROOT_PATH_WIDTH).fillMaxHeight()
+        )
+      }
       Column(Modifier.weight(1f).fillMaxHeight()) {
         // Above the view and as wide as it, because that's what it controls, and only there: the list of
         // objects is coloured by nothing and shaped like a list.
@@ -519,14 +513,6 @@ internal fun HeapDumpExplorer(
               // doesn't lay it out twice for a viewport that ends up the size it already was.
               modifier = Modifier.fillMaxSize().onSizeChanged { viewportSize = it }
             )
-            is ExplorerScreen.Paths -> PathsScreen(
-              target = describedSummary,
-              dominator = details?.dominator,
-              paths = paths,
-              coloring = coloring,
-              onOpen = onOpen,
-              modifier = Modifier.fillMaxSize()
-            )
             is ExplorerScreen.Objects -> ObjectsScreen(
               list = objects,
               filter = screen.filter,
@@ -549,39 +535,80 @@ internal fun HeapDumpExplorer(
           }
         }
       }
-      // The other side of the view from the details panel: a chain is a column of objects and so is the
-      // panel, so one pane holding both would always have one of them scrolled off.
-      //
-      // Beside the map alone, like the controls above it: the paths screen draws chains of its own the full
-      // width of the window, and a list of objects wants that width more than it wants a chain.
       if (screen is ExplorerScreen.Tree) {
-        Box(Modifier.width(ROOT_PATH_WIDTH).fillMaxHeight()) {
-          RootPathPanel(
-            selection = details?.selection,
-            rootPath = details?.rootPath,
-            coloring = coloring,
-            onOpen = onOpen,
-            modifier = Modifier.fillMaxSize()
-          )
-          // Over the chain for the cell clicked rather than in place of it, so that the pointer wandering
-          // across the map never costs the reader the chain they were reading. Dimmed underneath, because
-          // one chain of the same shape over another is otherwise read as one chain that changed.
-          if (hoveredRequest != null) {
-            Box(Modifier.fillMaxSize().background(HOVER_SCRIM_COLOR))
-            HoveredPathPanel(
-              selection = hoveredCellDetails?.selection,
-              rootPath = hoveredCellDetails?.rootPath,
-              // Where the chain it draws starts, which is the level the map is showing.
-              rootNodeId = view.navigation.current,
-              coloring = coloring,
-              // As tall as it needs and no taller, at the top of the pane: a floating panel the height of
-              // what it covers is indistinguishable from the pane itself.
-              modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().padding(HOVER_PANEL_INSET)
+        DetailsPanel(
+          selection = details?.selection,
+          bitmap = describedBitmap,
+          isStarred = favourites.any { it.objectId == describedSummary?.objectId },
+          coloring = coloring,
+          onOpen = onOpen,
+          onListInstances = { className ->
+            onGoTo(
+              ExplorerScreen.Objects(
+                navigation,
+                ObjectListFilter(
+                  query = className,
+                  isExactMatch = true,
+                  kinds = setOf(HeapObjectKind.INSTANCE)
+                ),
+                screen.describedNode
+              )
             )
-          }
-        }
+          },
+          onToggleStar = {
+            val summary = describedSummary
+            if (summary == null) {
+              // The star is only ever drawn beside a selected object, so this is the panel and the
+              // selection disagreeing rather than a click on nothing.
+              SharkLog.d { "Nothing to star: no object is selected" }
+            } else {
+              val wasStarred = favourites.any { it.objectId == summary.objectId }
+              SharkLog.d {
+                "${if (wasStarred) "Unstarred" else "Starred"} ${hexObjectId(summary.objectId)}"
+              }
+              favourites = if (wasStarred) {
+                favourites.filterNot { it.objectId == summary.objectId }
+              } else {
+                // Described, since a summary to star came from the same read as the dominator beside it.
+                favourites + Favourite.of(summary, details.dominator)
+              }
+            }
+          },
+          modifier = Modifier.width(DETAILS_WIDTH).fillMaxHeight()
+        )
       }
     }
+  }
+}
+
+/**
+ * Which object the window is about, in the bar above every screen.
+ *
+ * Above rather than in the details panel, where it used to be, because it is the answer to a different
+ * question than the rest of that panel: which object, as against what that object holds. It is also the one
+ * line that is worth having on a list of objects and on the starred ones, where there is no panel.
+ */
+@Composable
+private fun DescribedObject(selection: Selection?) {
+  when (selection) {
+    null -> Unit
+    // Selectable so it can be copied out: an object id is how you point something else — a script, a
+    // colleague, a bug report — at this one instance rather than at its class.
+    is Selection.Object -> SelectionContainer {
+      ObjectIdentity(
+        className = selection.summary.className,
+        typeName = selection.summary.kind?.typeName,
+        objectId = selection.summary.objectId
+      )
+    }
+    is Selection.ObjectGroup -> Text(
+      selection.summary.className ?: HeapDominatorTreemap.UNREACHABLE_LABEL,
+      style = MaterialTheme.typography.bodyMedium
+    )
+    is Selection.Group -> Text(
+      "${selection.nodeCount} smaller objects",
+      style = MaterialTheme.typography.bodyMedium
+    )
   }
 }
 
@@ -797,13 +824,6 @@ private fun ViewPresentation.description(): String = when (this) {
   is ViewPresentation.Radial ->
     "${presentation.cells.size} sectors, ${presentation.truncatedNodeCount} nodes not expanded"
 }
-
-/** A node a panel line or a row of a list led to, and what to show once the map has been walked to it. */
-private data class NodeToOpen(
-  val nodeId: Long,
-  /** Whether to spell out the ways it's held rather than to draw the map it sits on. */
-  val showsPaths: Boolean
-)
 
 /**
  * A cell described somewhere in the window: which one to outline, and what to read the heap dump for.

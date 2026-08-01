@@ -56,6 +56,18 @@ fun RootPath.stepsBelow(rootNodeId: Long): List<RootPathStep> {
 }
 
 /**
+ * The part of this chain below [objectId], or null when no step of it is that object.
+ *
+ * What the chain to the rectangle under the pointer has to add to the chain already on screen: the object
+ * the window is describing is on both of them, so the steps below it are the whole of the difference, and
+ * they read as the chain running on rather than as a second chain of their own.
+ */
+fun RootPath.stepsAfter(objectId: Long): List<RootPathStep>? {
+  val index = steps.indexOfFirst { it.step.objectId == objectId }
+  return if (index == -1) null else steps.subList(index + 1, steps.size)
+}
+
+/**
  * One object along a [RootPath].
  *
  * [isDominator] is what makes the chain more than a list of holders: every path from a GC root to the

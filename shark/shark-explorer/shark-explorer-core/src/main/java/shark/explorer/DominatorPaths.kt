@@ -37,13 +37,16 @@ enum class DominatorKind {
 }
 
 /**
- * The ways an object is held below its dominator, each spelled out from the dominator down to it.
+ * The ways an object is held below something above it that dominates it, each spelled out from below that
+ * down to the object.
  *
- * Every path from a GC root to the object goes through its dominator, so these are every way it is held,
- * with the part they all share left out. They share no object in between either: **internally
- * vertex-disjoint** paths, also called independent paths, of which there are always at least two unless
- * the dominator points straight at the object — one alone would mean the object it goes through is a
- * closer dominator. How many there are at most is the local vertex connectivity of the two, by Menger's
+ * Asked of the two ends of a stretch of a chain that could have run otherwise — see [RootPathDetour] — or of
+ * the roots the tree was walked from, which is what the top of a chain is held by. Every path from a GC root
+ * to the object goes through what dominates it, so these are every way it is held, with the part they all
+ * share left out. They share no object in between either: **internally vertex-disjoint** paths, also called
+ * independent paths, of which there are always at least two unless the upper end points straight at the
+ * object — one alone would mean the object it goes through dominates it as well, and so is where the stretch
+ * would have been cut. How many there are at most is the local vertex connectivity of the two, by Menger's
  * theorem.
  *
  * A set of them isn't unique, and finding a largest one is a max flow problem; this searches greedily,
@@ -65,16 +68,17 @@ data class IndependentPaths(
   }
 }
 
-/** One way an object is held: a chain of references from its dominator down to it. */
+/** One way an object is held: a chain of references from where the search started down to it. */
 data class IndependentPath(
   /**
-   * Which kind of GC root the chain starts at, for a path below [DominatorKind.WHOLE_HEAP_DUMP] or
-   * [DominatorKind.UNCOLLECTED_GARBAGE]. Null below an object, which is where the chain starts instead.
+   * Which kind of GC root the chain starts at, for a path found by
+   * [HeapDominatorTreemap.independentPathsFromRoots]. Null for one found below an object, which is where
+   * that chain starts instead.
    */
   val gcRootLabel: String?,
-  /** From the step below the dominator down to the object itself, which is the last step. */
+  /** From the step below where the search started down to the object itself, which is the last step. */
   val steps: List<PathStep>,
-  /** How many steps between the dominator and [steps], left out to keep the chain readable. */
+  /** How many steps between where it started and [steps], left out to keep the chain readable. */
   val hiddenStepCount: Int
 )
 

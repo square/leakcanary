@@ -275,8 +275,13 @@ numbers belong in `notes/bitmaps.md`.
   tests can't find cells by tag, and **not by label either** — a cell's label is painted text, so no
   assertion and no wait can reach it. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on what
-  is written outside the view: the details panel and the chain either side of it, and the card that
+  is written outside the view: the chain pane and the details panel either side of it, and the card that
   follows the pointer, whose text is real text and so can be found and its bounds read.
+- **A clickable block naming an object is one semantics node**, because `Modifier.clickable` merges its
+  descendants, so a step of the chain is found by any one of the three lines it prints. The same object is
+  usually named in more than one place at once — a step of the chain, the bar above the map, the details
+  panel — so an assertion about it either counts `onAllNodesWithText` matches or picks the one it means
+  with `hasClickAction()`. `onNodeWithText` failing with "found 2" is that, not a duplicated composable.
 - **A UI test knows the map is drawn through `waitForTheTree`**, which waits for the view's
   `contentDescription` with nothing left spinning, because the drawn map itself adds no text to the
   window. Where "the map *moved*" is the point rather than "the map is there", wait on the log line

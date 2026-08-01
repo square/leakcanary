@@ -280,27 +280,30 @@ Byte counts are untouched by all of it, which is the check that no object moved 
 strong, 2.05 MB thread local, 28 B local, 2.6 KB finalizer, 190 KB unreachable, 1,019,837 objects, before
 and after.
 
-## What holds an object: the dominator, then the paths below it
+## What holds an object: one chain, with the dominators on it marked
 
-"What holds this" is answered in two parts, and which part answers what is the thing to keep straight.
-The panel names the first and has a button to the second, which is a screen of its own — a chain per path,
-drawn like a LeakCanary leak trace:
+"What holds this" is answered as a single chain from a GC root down to the object, `rootPathTo`, drawn
+like a LeakCanary leak trace. Which of its steps *dominate* the object is marked on it, and that marking
+is what the reader gets two different things out of:
 
-- **The dominator**, exactly one node, from `HeapDominatorTreemap.dominatorOf`. Every path from a GC root
-  goes through it, so it is what would free the object. It's a *group* rather than an object when nothing
+- **A step marked a dominator is one every way of holding the object goes through**, so it is what would
+  free it. The lowest such step is `dominatorOf`, and it is a *group* rather than an object when nothing
   in particular holds it (`DominatorKind.WHOLE_HEAP_DUMP`, where the tree draws it directly under the root)
   or when nothing holds it at all (`UNCOLLECTED_GARBAGE`, the one pile the top of the tree has).
-- **The independent paths below it**, from `independentPathsTo`: every way the object is held, with the
-  part they all share — everything above the dominator — left out.
+- **A stretch of unmarked steps between two marked ones is a stretch the chain didn't have to take**, since
+  a step every way went through would have been marked too. So that is exactly where "held how else?" has
+  an answer: `RootPath.detours()` finds those stretches on a chain, and
+  `independentPathsBetween(above, below)` — or `independentPathsFromRoots(below)` for a stretch hanging off
+  the head, where what is above is a set of GC roots rather than one object — finds the ways it could have
+  run. `RootPath.drawnWith` substitutes a chosen one back in, so the drawing only ever sees one flat chain.
 
 **The name for that path set is "internally vertex-disjoint paths"**, also called independent paths: two
 of them share their endpoints and nothing else. The most there can be is the *local vertex connectivity*
-of the dominator and the object, by Menger's theorem, and there are always at least two unless the
-dominator points straight at the object — a single interior vertex common to every path would separate the
-two, which would make it a dominator closer than the dominator. Not "semidominator", which Lengauer–Tarjan
-already uses for something else.
+of the two ends, by Menger's theorem, and for a stretch found this way there are always at least two — a
+single interior vertex common to every path would be a dominator, which is what the stretch being unmarked
+rules out. Not "semidominator", which Lengauer–Tarjan already uses for something else.
 
-Two caveats, which `INDEPENDENT_PATHS_HINT` states in the UI rather than leaving to be discovered:
+Two caveats, which `WAYS_HINT` states in the UI rather than leaving to be discovered:
 
 - **A maximum set isn't unique, and finding one is a max flow problem.** `PathSearch` is greedy: it walks
   the referrers up from the object, blocks the middle of each path it finds and walks again. Blocking can

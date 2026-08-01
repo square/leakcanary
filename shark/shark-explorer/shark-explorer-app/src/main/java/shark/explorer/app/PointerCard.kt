@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
@@ -31,8 +30,8 @@ import shark.explorer.formatObjectCount
  *
  * Beside the pointer rather than in a pane, because this is the one thing the reader is asking as they sweep
  * across the map — what is this rectangle — and answering it at the edge of the window makes them look away
- * from the thing they're pointing at. The chain holding it is the slower question, and that stays in the
- * pane: see [HoveredPathPanel].
+ * from the thing they're pointing at. The chain holding it is the slower question, and that is drawn onto the
+ * end of the chain in the pane: see [RootPathPanel].
  *
  * [placeCard] keeps it clear of the pointer and inside the view. Nothing here is clickable — the pointer is
  * on the map, and it leaving the map is what closes this.
@@ -53,11 +52,13 @@ internal fun PointerCard(
       Modifier.padding(POINTER_CARD_PADDING),
       verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
-      Text(summary.label, style = MaterialTheme.typography.titleSmall)
-      Text(summary.className, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
-      if (summary.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID) {
-        Text(objectIdText(summary.objectId), style = MaterialTheme.typography.bodySmall)
-      }
+      // The same three lines a step of a chain names an object with, so that the card and the chain beside
+      // the map read as one answer rather than as two ways of saying which object this is.
+      ObjectIdentity(
+        className = summary.className,
+        typeName = summary.kind?.typeName,
+        objectId = summary.objectId
+      )
       summary.headline?.let { headline ->
         Text(headline, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
       }

@@ -3,10 +3,9 @@ package shark.explorer
 /**
  * What the explorer is showing, which is what the back arrow walks through.
  *
- * The treemap is one screen among several, and the others are reached from it: the paths that hold an
- * object, every object of the heap dump as a list, the objects starred so far. So each of them keeps the
- * [treeNavigation] it was opened from, which is what makes going back to the map going back to where it
- * was rather than to the top of the tree.
+ * The treemap is one screen among several, and the others are reached from it: every object of the heap dump
+ * as a list, the objects starred so far. So each of them keeps the [treeNavigation] it was opened from, which
+ * is what makes going back to the map going back to where it was rather than to the top of the tree.
  *
  * Immutable, and in this module rather than in the UI so that navigation stays unit testable. See
  * [NavigationHistory].
@@ -35,18 +34,6 @@ sealed interface ExplorerScreen {
     /** The node the map is rooted at unless a cell inside it was picked out. */
     override val describedNode: Long = treeNavigation.current
   ) : ExplorerScreen {
-
-    override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
-  }
-
-  /** Every way one object is held below its dominator. See [IndependentPaths]. */
-  data class Paths(
-    override val treeNavigation: TreemapNavigation<Long>,
-    val objectId: Long
-  ) : ExplorerScreen {
-
-    /** The object the paths hold, which is what they're worth reading beside. */
-    override val describedNode: Long get() = objectId
 
     override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
   }
