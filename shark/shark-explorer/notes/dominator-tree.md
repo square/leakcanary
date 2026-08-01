@@ -21,13 +21,13 @@ per open heap dump, built once, holding every object of the dump.
 **Which reference matchers go in matters, and it isn't "none".** The matchers do two unrelated jobs,
 and only one of them belongs here:
 
-- **Reference strength** is `ReferenceStrengthReader.WEAKENING_REFERENCE_MATCHERS`, one
-  `IgnoredReferenceMatcher` per field of `WEAKENING_FIELDS_BY_CLASS_NAME` and nothing else, read off the
-  same map that gives those fields their strength: the `referent` and `zombie` of the five reference
-  classes, plus the cache and thread local fields. Follow one of those and a weak reference looks like it
-  retains its referent, and retained size stops meaning anything. **Required.** A field pattern matches on
-  any class of an object's hierarchy, so a `KeyedWeakReference` is covered by the `WeakReference` entry and
-  needs none of its own.
+- **Reference strength** is `ExplorerRules.weakeningReferenceMatchers`, one `IgnoredReferenceMatcher` per
+  field of its weakening field rules and nothing else, derived from the same list that gives those fields
+  their strength: the `referent` of the five reference classes, the `zombie` of Android's
+  `FinalizerReference`, and the cache and thread local fields. Follow one of those and a weak reference
+  looks like it retains its referent, and retained size stops meaning anything. **Required.** A field
+  pattern matches on any class of an object's hierarchy, so a `KeyedWeakReference` is covered by the
+  `WeakReference` entry and needs none of its own.
 - **Deliberately not `JdkReferenceMatchers.REFERENCES`**, which is that list plus the `prev`, `next` and
   `element` links of the lists a runtime keeps its `Finalizer`s, `FinalizerReference`s and `Cleaner`s on,
   ignored there so that a leak trace can't run through the queue of objects waiting to be finalized.
@@ -185,8 +185,8 @@ them apart, so it hands the bytes to the root — which is what `ReachabilityStr
 ## A cache is not an owner: the `CACHE` strength
 
 The fix for the above is to stop treating a cache's reference as retaining. `CACHE` ranks between
-`STRONG` and `SOFT`, and `ReferenceStrengthReader.CACHE_FIELDS_BY_CLASS_NAME` is the curated list of
-fields it applies to — one entry today, `coil3.memory.RealStrongMemoryCache$InternalValue.image`.
+`STRONG` and `SOFT`, and `ExplorerRules`' cache entries are the curated list of fields it applies to — one
+today, `coil3.memory.RealStrongMemoryCache$InternalValue.image`.
 
 The mechanics fall out of the weak reference machinery that was already there, because the rule the
 explorer wants is exactly the rule for a weak reference: **the target's strength decides**. A weakening
@@ -221,10 +221,10 @@ itself and retained 4.2 KB and 3.9 KB instead of their windows. The damaging ref
 `PhoneFallbackEventHandler.mView`, `RealWorkflowLifecycleOwner.view`, `ComposeToastServiceImpl.rootView`,
 view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 
-`OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus the
-references that own them — named fields, or the virtual references a class's instances hand out. Three
-today — `android.view.View` owned by the `ViewGroup` that reads it as a child (see below) and by
-`Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by
+`OwnerReferences` applies a curated list of `OwnerRule`s from `ExplorerRules`: a class whose instances
+something owns, plus the references that own them — named fields, or the virtual references a class's
+instances hand out. Three today — `android.view.View` owned by the `ViewGroup` that reads it as a child
+(see below) and by `Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by
 `ActivityThread$ActivityClientRecord.activity`. After: **every one of the 277 child views is under its
 parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains
 18 MB under the record the framework runs it from, which is the second largest rectangle under the GC
@@ -241,7 +241,7 @@ rule the 82 MB dump comes out at exactly the same numbers as before — 80 MB st
 28 B local, 2.6 KB finalizer, 186 KB unreachable.
 
 **Parking is also why a rule needs no check on the state of the object**, which is the thing that looks
-missing when you read `RULES`. "The parent owns an *attached* view" needs no attachment test, because a
+missing when you read the rules. "The parent owns an *attached* view" needs no attachment test, because a
 detached hierarchy isn't held by whatever holds the window: if the parent isn't reachable, no owner
 reference reaches the child and the fallback handles it. "Unless the activity is destroyed" needs no
 `mDestroyed` test either — `ActivityThread.handleDestroyActivity` sets `mDecor = null` and takes the
@@ -298,6 +298,34 @@ Three things make it safe, and each one is a decision:
 Byte counts are untouched by all of it, which is the check that no object moved out of the graph: 83.83 MB
 strong, 2.05 MB thread local, 28 B local, 2.6 KB finalizer, 190 KB unreachable, 1,019,837 objects, before
 and after.
+
+## One rule set, and why the explorer can't just reuse shark's matchers
+
+Every curated list is in `ExplorerRules`: the fields that weaken and how, and the `OwnerRule`s. Each used
+to be declared next to the class applying it, which is fine until you want to read them all and ask whether
+they're still true — and the `java.lang.ref` fields were for a while declared twice over, the strengths here
+and the ignoring of the same fields inherited from LeakCanary. That is worth recording even though the
+second copy is gone, because of *why* it was there.
+
+**That duplication was not a design, it was the absence of a place to put a strength.** Shark's matchers
+are a boolean: `IgnoredReferenceMatcher` carries no payload, `FieldInstanceReferenceReader` drops a matched
+reference with `if (referenceMatcher !is IgnoredReferenceMatcher)`, and `Reference.LazyDetails` carries only
+a `matchedLibraryLeak`. So there is nowhere for "and it's weak" to live, and no way to ask shark which
+matcher dropped a reference. Two ways out: add a strength-carrying matcher to shark — `ReferenceMatcher` is
+`sealed`, so it has to be added *in* shark, an ABI change plus a reader that emits what it currently drops,
+on LeakCanary's hot path — or invert the direction and derive the ignore list from the strengths. The second
+is what the matchers section above describes, and it's why the explorer keeps its own copy of those field
+names rather than importing one.
+
+One redundancy went with the gathering: `zombie` on the four reference classes that don't declare it, which
+only Android's `FinalizerReference` has. That takes the matcher list from 12 to 8, and A/B'd on
+`leak_asynctask_o.hprof` and on the 39 MB `large-dump.hprof` the two lists come out at the same tree —
+every per-strength byte and object count identical, totals identical, and the same number of children
+under the root weighing the same.
+
+**GC root strength is still code**, in `GcRoot.reachabilityStrength()`, and is deliberately not part of the
+rule set: it's a mapping from a `sealed` hierarchy, so making it data means mirroring that hierarchy in an
+enum of our own — more duplication of exactly the kind this section is about.
 
 ## What holds an object: one chain, with the dominators on it marked
 

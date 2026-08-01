@@ -27,7 +27,7 @@ enum class ReachabilityStrength {
    * [LOCAL] being the others. A cache holds its entries with ordinary strong references, so as far as the
    * GC is concerned this is [STRONG]; what makes it weaker is the cache's own contract, which no heap dump
    * records. So it comes from a curated list of the caches the explorer recognizes — see
-   * [ReferenceStrengthReader].
+   * [ExplorerRules].
    *
    * Ranked below [STRONG] so that an object a cache and something else both hold reads as the something
    * else's: an image the view showing it also holds is the view's, and the cache is why the dominator
