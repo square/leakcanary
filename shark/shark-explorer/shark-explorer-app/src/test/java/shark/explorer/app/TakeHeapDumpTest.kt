@@ -54,9 +54,9 @@ class TakeHeapDumpTest {
       // And it came with the pixels of its bitmaps in it, so there is nothing left to go and fetch.
       assertThat(onAllNodesWithText(FETCH_BITMAPS, substring = true).fetchSemanticsNodes()).isEmpty()
     }
-    // Asked for with `-b png`, which is what puts the bitmaps in it.
+    // Asked for with `-g`, which collects the garbage first, and `-b png`, which puts the bitmaps in it.
     assertThat(adb.commands.single { it.contains("am dumpheap") })
-      .contains("am dumpheap -b png 1201 /data/local/tmp/")
+      .contains("am dumpheap -g -b png 1201 /data/local/tmp/")
   }
 
   @Test fun `a device that can't put bitmaps in a heap dump says so before one is taken`() {

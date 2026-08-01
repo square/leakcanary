@@ -2,6 +2,7 @@ package shark.explorer
 
 import java.io.File
 import shark.HprofHeapGraph.Companion.openHeapGraph
+import shark.SharkLog
 
 /**
  * Takes heap dumps off a connected device, and fetches the pixels of a live process's bitmaps.
@@ -16,6 +17,15 @@ import shark.HprofHeapGraph.Companion.openHeapGraph
  * manage that, and [fetchBitmaps] is the same dump taken of the process a *previous* heap dump came from,
  * kept only for its images — or, on a device too old for `-b`, the same question asked of the process
  * through a [bitmapDebugger]. See [HeapBitmaps] for the reading end of all of it.
+ *
+ * A dump taken to be explored also asks for the garbage to be collected first, with `-g`, because
+ * **nothing else collects it**: `am dumpheap` on its own writes whatever is in the heap, and ART's hprof
+ * dumper suspends the runtime rather than collecting. `-g` is `System.gc()`, `System.runFinalization()`
+ * and `System.gc()` run on the dumped process's main thread — `ActivityThread.handleDumpHeap` — which is
+ * the same trio LeakCanary's own `GcTrigger` runs before it dumps. Without it an explorer opens on a heap
+ * that is mostly garbage nobody can act on: measured on a 125 MB dump of a real app, 12.0 MB of it over
+ * 208 K objects was unreachable, and the same app dumped with `-g` moments later came to 0.29 MB over
+ * 10 K. See `notes/decisions.md`.
  *
  * The steps are separate on purpose, because each of them is a question the person at the window has to
  * answer: which connected device, and which of its processes. Every step shells out to `adb` and blocks,
@@ -107,8 +117,22 @@ class DeviceHeapDumps(
   ): File {
     // Named after the process, because this one is kept and its name is what the window shows.
     val localFile = File.createTempFile("${process.name}-${process.processId}-", ".hprof")
+    if (!device.canCollectGarbageBeforeDump) {
+      SharkLog.d {
+        "${device.description} runs API ${device.sdkInt}, which is older than " +
+          "$MIN_GC_BEFORE_DUMP_SDK_INT, so its garbage can't be collected before the dump and this one " +
+          "will have uncollected garbage in it."
+      }
+    }
     try {
-      pullHeapDump(device, process, device.canDumpBitmaps, localFile, onProgress)
+      pullHeapDump(
+        device = device,
+        process = process,
+        withBitmaps = device.canDumpBitmaps,
+        withGc = device.canCollectGarbageBeforeDump,
+        localFile = localFile,
+        onProgress = onProgress
+      )
     } catch (throwable: Throwable) {
       localFile.delete()
       throw throwable
@@ -143,7 +167,17 @@ class DeviceHeapDumps(
     }
     val localFile = File.createTempFile("shark-explorer-bitmaps", ".hprof")
     try {
-      pullHeapDump(device, process, withBitmaps = true, localFile = localFile, onProgress = onProgress)
+      pullHeapDump(
+        device = device,
+        process = process,
+        withBitmaps = true,
+        // Unlike a dump taken to be explored: this one is read for the pixels of the bitmaps of a dump
+        // taken earlier, and collecting first is how a bitmap that is still in that dump stops being in
+        // this one. Garbage costs nothing here — nothing but the images is ever read.
+        withGc = false,
+        localFile = localFile,
+        onProgress = onProgress
+      )
       onProgress("Reading the bitmaps out of it")
       return localFile.readNativeBitmapPixels()
     } finally {
@@ -157,23 +191,29 @@ class DeviceHeapDumps(
     device: AndroidDevice,
     process: DeviceProcess,
     withBitmaps: Boolean,
+    withGc: Boolean,
     localFile: File,
     onProgress: (String) -> Unit
   ) {
     // Named after the pid and the time, because a dump that failed to clean up must not be the file the
     // next one reads.
     val remotePath = "$REMOTE_DIRECTORY/shark-explorer-${process.processId}-${System.nanoTime()}.hprof"
+    val gcArguments = if (withGc) listOf("-g") else emptyList()
     val bitmapArguments = if (withBitmaps) listOf("-b", BITMAP_FORMAT) else emptyList()
     try {
       onProgress(
-        if (withBitmaps) {
-          "Dumping the heap of ${process.name} with its bitmaps"
+        (if (withGc) {
+          "Collecting the garbage of ${process.name}, then dumping its heap"
         } else {
-          "Dumping the heap of ${process.name}, which on API ${device.sdkInt} can't include its bitmaps"
+          "Dumping the heap of ${process.name}"
+        }) + if (withBitmaps) {
+          " with its bitmaps"
+        } else {
+          ", which on API ${device.sdkInt} can't include its bitmaps"
         }
       )
       adb.run(
-        listOf("-s", device.serialNumber, "shell", "am", "dumpheap") + bitmapArguments +
+        listOf("-s", device.serialNumber, "shell", "am", "dumpheap") + gcArguments + bitmapArguments +
           listOf(process.processId.toString(), remotePath)
       ).orFailToDump(process, device)
       val byteCount = awaitDumpWritten(device, remotePath, onProgress)
@@ -263,6 +303,13 @@ class DeviceHeapDumps(
      * fetched off at all. See [HeapBitmaps].
      */
     const val MIN_BITMAP_DUMP_SDK_INT = 35
+
+    /**
+     * Where `am dumpheap -g` was added, so the first Android version whose garbage can be collected
+     * before the dump is written. An older one refuses the whole command with `Error: Unknown option`,
+     * which is why this is asked before it's passed.
+     */
+    const val MIN_GC_BEFORE_DUMP_SDK_INT = 27
 
     /** What `-b` is asked for. PNG is lossless, and its header is what a pointer match is checked against. */
     private const val BITMAP_FORMAT = "png"

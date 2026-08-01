@@ -197,6 +197,40 @@ extra, so a debugger that can't attach leaves the dump opening normally, with th
 fetch still on offer from the window — which is where it would report the same failure again, in front of
 someone who just asked for it. Losing the expensive thing over the cheap one would be the wrong way round.
 
+## Nothing collects the garbage unless `am dumpheap -g` asks for it
+
+`am dumpheap` on its own writes whatever happens to be in the heap. There is no GC anywhere on that path:
+`ActivityThread.handleDumpHeap` collects only when the `runGc` flag is set, which is what `-g` sets, and
+ART's hprof dumper below it takes a GC critical section and suspends every thread rather than collecting.
+So a dump taken without `-g` is the live heap *plus* everything that had become garbage since the last
+collection, and the explorer draws all of it under `Unreachable`.
+
+How much that is, measured here on an API 29 `userdebug` emulator, dumping a real app's main process twice
+about a minute apart:
+
+| | Dump on disk | Total | Strongly reachable | Unreachable |
+| --- | --- | --- | --- | --- |
+| `am dumpheap` | 125.3 MB | 92.9 MB, 1.49 M objects | 72.11 MB | **12.02 MB, 208 733 objects** |
+| `am dumpheap -g` | 110.2 MB | 81.2 MB, 1.29 M objects | 72.15 MB | **0.29 MB, 10 467 objects** |
+
+The strongly reachable figure moving by 0.06% across the two is what says this is garbage rather than a
+difference in what the explorer can *see*: the same live heap, with 12 MB of uncollected objects beside it
+in one and not the other. Which also answers the other way it could have read — reference rules quietly
+dropping paths and stranding live objects — with no: what survives the collection is 0.29 MB of `Cleaner`,
+`NativeAllocationRegistry$CleanerThunk`, `FinalizerReference` and a TLS handshake's `DerInputBuffer`s, all
+of it either genuinely pending finalization or allocated in the gap between the collection and the dump.
+
+`-g` runs `System.gc()`, `System.runFinalization()`, `System.gc()` on the dumped process's main thread —
+the same trio as LeakCanary's `FinalizingInProcessGcTrigger`, minus the 100 ms that trigger sleeps in the
+middle to let the `ReferenceQueueDaemon` catch up. Nothing over `adb` can add that sleep, and the residual
+above is what it costs, so this is as clean as a dump taken from outside the process gets.
+
+**It is gated on API 27**, where `-g` was added: an older device answers `Error: Unknown option: -g` and
+takes no dump at all, so `AndroidDevice.canCollectGarbageBeforeDump` asks first and the log says when a
+dump is going to have garbage in it. `fetchBitmaps` deliberately doesn't pass it — that dump is read for
+the pixels of bitmaps named in a dump taken *earlier*, and collecting first is how a bitmap that is still
+in that one stops being in this one.
+
 ## The pointer describes, the click goes there
 
 Moving over a rectangle describes it beside the view; a single click **goes to** it, rooting the map there.
