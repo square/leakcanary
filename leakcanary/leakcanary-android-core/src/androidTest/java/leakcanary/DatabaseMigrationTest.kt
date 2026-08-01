@@ -51,6 +51,19 @@ class DatabaseMigrationTest {
     }
   }
 
+  /**
+   * The retention cleanup keeps heap dumps that no stored analysis was run on, so an analysis stored
+   * before the heap dump file path column existed has to be backfilled, or the heap dump it already
+   * analyzed would look like it's still waiting for an analysis.
+   */
+  @Test fun v24_heap_dumps_are_known_to_have_been_analyzed() {
+    DB_V24 upgrade {
+      val analyzedFilePaths = HeapAnalysisTable.retrieveAnalyzedHeapDumpFilePaths(this)
+
+      analyzedFilePaths.size assertEquals 1
+    }
+  }
+
   @Test fun v24_has_3_leak_types() {
     DB_V24 upgrade {
       LeakTable.retrieveAllLeaks(this).size assertEquals 3

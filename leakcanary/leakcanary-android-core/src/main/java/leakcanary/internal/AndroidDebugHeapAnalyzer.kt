@@ -12,6 +12,7 @@ import leakcanary.EventListener.Event.HeapDump
 import leakcanary.LeakCanary
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.db.HeapDumpDeletionTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.ScopedLeaksDb
 import shark.CancelSignal
@@ -200,13 +201,27 @@ internal object AndroidDebugHeapAnalyzer {
       }
   }
 
+  /**
+   * The heap dump was there when the analysis was queued and isn't there now. LeakCanary records why
+   * it deletes a heap dump file in the database, which outlives the process that deleted it, so this
+   * can name the reason even when the analysis only runs after a restart. No record means LeakCanary
+   * didn't delete it, and since heap dumps live in a directory only this app can reach, that leaves
+   * the app's data being cleared or something else in the app removing the file.
+   */
   private fun missingFileFailure(
     heapDumpFile: File
   ): HeapAnalysisFailure {
-    val deletedReason = LeakDirectoryProvider.hprofDeleteReason(heapDumpFile)
-    val exception = IllegalStateException(
-      "Hprof file $heapDumpFile missing, deleted because: $deletedReason"
-    )
+    val deletionReason = ScopedLeaksDb.readableDatabase(application) { db ->
+      HeapDumpDeletionTable.retrieveReason(db, heapDumpFile)
+    }
+    val message = if (deletionReason != null) {
+      "Hprof file $heapDumpFile missing. $deletionReason"
+    } else {
+      "Hprof file $heapDumpFile missing, and LeakCanary has no record of deleting it. That " +
+        "directory is private to this app, so either the app's data was cleared or something " +
+        "else in the app deleted the file."
+    }
+    val exception = IllegalStateException(message)
     return HeapAnalysisFailure(
       heapDumpFile = heapDumpFile,
       createdAtTimeMillis = System.currentTimeMillis(),

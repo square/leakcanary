@@ -2,8 +2,6 @@ package leakcanary.internal.activity.db
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
-import android.os.AsyncTask
-import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.Serializables
 import leakcanary.internal.toByteArray
 import leakcanary.internal.friendly.checkNotMainThread
@@ -32,11 +30,18 @@ internal object HeapAnalysisTable {
         dump_duration_millis INTEGER DEFAULT -1,
         leak_count INTEGER DEFAULT 0,
         exception_summary TEXT DEFAULT NULL,
+        heap_dump_file_path TEXT DEFAULT NULL,
         object BLOB
         )"""
 
   @Language("RoomSql")
   const val drop = "DROP TABLE IF EXISTS heap_analysis"
+
+  private const val ANALYSIS_DELETED_REASON =
+    "Its heap analysis was deleted from the LeakCanary UI."
+
+  private const val ALL_ANALYSES_DELETED_REASON =
+    "All heap analyses were deleted from the LeakCanary UI."
 
   fun onUpdate(block: () -> Unit): () -> Unit {
     updateListeners.add(block)
@@ -52,6 +57,7 @@ internal object HeapAnalysisTable {
     val values = ContentValues()
     values.put("created_at_time_millis", heapAnalysis.createdAtTimeMillis)
     values.put("dump_duration_millis", heapAnalysis.dumpDurationMillis)
+    values.put("heap_dump_file_path", heapAnalysis.heapDumpFile.absolutePath)
     values.put("object", heapAnalysis.toByteArray())
     when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
@@ -111,6 +117,29 @@ internal object HeapAnalysisTable {
       }
   }
 
+  /**
+   * The absolute path of every heap dump file a stored analysis was run on. A heap dump file that
+   * isn't in that set is still waiting to be analyzed, which is what the retention cleanup needs to
+   * know before deleting it.
+   */
+  fun retrieveAnalyzedHeapDumpFilePaths(db: SQLiteDatabase): Set<String> {
+    return db.rawQuery(
+      """
+          SELECT
+          heap_dump_file_path
+          FROM heap_analysis
+          WHERE heap_dump_file_path IS NOT NULL
+          """, null
+    )
+      .use { cursor ->
+        val paths = mutableSetOf<String>()
+        while (cursor.moveToNext()) {
+          paths += cursor.getString(0)
+        }
+        paths
+      }
+  }
+
   fun retrieveAll(db: SQLiteDatabase): List<Projection> {
     return db.rawQuery(
       """
@@ -143,19 +172,10 @@ internal object HeapAnalysisTable {
     heapAnalysisId: Long,
     heapDumpFile: File?
   ) {
-    if (heapDumpFile != null) {
-      AsyncTask.SERIAL_EXECUTOR.execute {
-        val path = heapDumpFile.absolutePath
-        val heapDumpDeleted = heapDumpFile.delete()
-        if (heapDumpDeleted) {
-          LeakDirectoryProvider.filesDeletedRemoveLeak += path
-        } else {
-          SharkLog.d { "Could not delete heap dump file ${heapDumpFile.path}" }
-        }
-      }
-    }
-
     db.inTransaction {
+      if (heapDumpFile != null) {
+        deleteHeapDumpFile(db, heapDumpFile, ANALYSIS_DELETED_REASON)
+      }
       db.delete("heap_analysis", "id=$heapAnalysisId", null)
       LeakTable.deleteByHeapAnalysisId(db, heapAnalysisId)
     }
@@ -168,31 +188,43 @@ internal object HeapAnalysisTable {
         """
               SELECT
               id,
-              object
+              heap_dump_file_path
               FROM heap_analysis
               """, null
       )
         .use { cursor ->
-          val all = mutableListOf<Pair<Long, HeapAnalysis>>()
+          val all = mutableListOf<Pair<Long, String?>>()
           while (cursor.moveToNext()) {
-            val id = cursor.getLong(0)
-            val analysis = Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(1))
-            if (analysis != null) {
-              all += id to analysis
-            }
+            all += cursor.getLong(0) to cursor.getString(1)
           }
-          all.forEach { (id, _) ->
+          all.forEach { (id, heapDumpFilePath) ->
             db.delete("heap_analysis", "id=$id", null)
             LeakTable.deleteByHeapAnalysisId(db, id)
-          }
-          AsyncTask.SERIAL_EXECUTOR.execute {
-            all.forEach { (_, analysis) ->
-              analysis.heapDumpFile.delete()
+            if (heapDumpFilePath != null) {
+              deleteHeapDumpFile(db, File(heapDumpFilePath), ALL_ANALYSES_DELETED_REASON)
             }
           }
         }
     }
     notifyUpdateOnMainThread()
+  }
+
+  /**
+   * Deletes [heapDumpFile] and, when that worked, records why, so that an analysis still queued for
+   * that file can say what happened to it rather than only that the file is gone. A delete that
+   * returns false left the file in place, and overwriting an earlier reason with this one would
+   * misattribute a deletion that already happened.
+   */
+  private fun deleteHeapDumpFile(
+    db: SQLiteDatabase,
+    heapDumpFile: File,
+    reason: String
+  ) {
+    if (heapDumpFile.delete()) {
+      HeapDumpDeletionTable.insert(db, heapDumpFile, reason)
+    } else {
+      SharkLog.d { "Could not delete heap dump file ${heapDumpFile.path}" }
+    }
   }
 
   class Projection(

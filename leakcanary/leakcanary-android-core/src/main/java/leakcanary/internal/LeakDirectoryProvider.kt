@@ -16,6 +16,10 @@
 package leakcanary.internal
 
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import leakcanary.internal.activity.db.HeapAnalysisTable
+import leakcanary.internal.activity.db.HeapDumpDeletionTable
+import leakcanary.internal.activity.db.ScopedLeaksDb
 import shark.SharkLog
 import java.io.File
 import java.io.FilenameFilter
@@ -60,6 +64,17 @@ internal class LeakDirectoryProvider constructor(
     return (success || directory.exists()) && directory.canWrite()
   }
 
+  /**
+   * Deletes heap dumps until at most [maxStoredHeapDumps] are left, oldest first, taking the ones
+   * that were already analyzed before the ones that weren't.
+   *
+   * A heap dump no stored analysis was run on is still waiting for its analysis, which is queued on
+   * WorkManager and therefore survives process death and reboots: it can run minutes or days after
+   * the heap dump was created. Deleting that file leaves the analysis nothing to read, so it's the
+   * last thing to go. The limit is still a limit though, so when every stored heap dump is waiting
+   * the oldest one is deleted anyway, and why gets recorded so that the analysis failure can say so
+   * instead of reporting a file that vanished for no reason.
+   */
   private fun cleanupOldHeapDumps() {
     val hprofFiles = listHeapDumpFiles { _, name ->
       name.endsWith(
@@ -72,43 +87,61 @@ internal class LeakDirectoryProvider constructor(
     }
 
     val filesToRemove = hprofFiles.size - maxStoredHeapDumps
-    if (filesToRemove > 0) {
-      SharkLog.d { "Removing $filesToRemove heap dumps" }
-      // Sort with oldest modified first.
-      hprofFiles.sortWith { lhs, rhs ->
-        java.lang.Long.valueOf(lhs.lastModified())
-          .compareTo(rhs.lastModified())
+    if (filesToRemove <= 0) {
+      return
+    }
+    SharkLog.d { "Removing $filesToRemove heap dumps" }
+    ScopedLeaksDb.writableDatabase(context) { db ->
+      val analyzedFilePaths = HeapAnalysisTable.retrieveAnalyzedHeapDumpFilePaths(db)
+      val (analyzed, waitingForAnalysis) = hprofFiles.partition {
+        it.absolutePath in analyzedFilePaths
       }
-      for (i in 0 until filesToRemove) {
-        val path = hprofFiles[i].absolutePath
-        val deleted = hprofFiles[i].delete()
-        if (deleted) {
-          filesDeletedTooOld += path
-        } else {
-          SharkLog.d { "Could not delete old hprof file ${hprofFiles[i].path}" }
+      val analyzedToRemove = minOf(filesToRemove, analyzed.size)
+      deleteOldest(db, analyzed, analyzedToRemove, alreadyAnalyzedReason(maxStoredHeapDumps))
+      val waitingToRemove = filesToRemove - analyzedToRemove
+      if (waitingToRemove > 0) {
+        SharkLog.d {
+          "Removing $waitingToRemove heap dumps that are still waiting to be analyzed"
         }
+        deleteOldest(
+          db, waitingForAnalysis, waitingToRemove, stillWaitingReason(maxStoredHeapDumps)
+        )
       }
     }
   }
 
-  private fun listHeapDumpFiles(filter: FilenameFilter): MutableList<File> {
-    val files = heapDumpDirectory().listFiles(filter) ?: emptyArray()
-    return files.toMutableList()
+  private fun deleteOldest(
+    db: SQLiteDatabase,
+    hprofFiles: List<File>,
+    count: Int,
+    reason: String
+  ) {
+    hprofFiles.sortedBy { it.lastModified() }
+      .take(count)
+      .forEach { file ->
+        if (file.delete()) {
+          HeapDumpDeletionTable.insert(db, file, reason)
+        } else {
+          SharkLog.d { "Could not delete old hprof file ${file.path}" }
+        }
+      }
+  }
+
+  private fun listHeapDumpFiles(filter: FilenameFilter): List<File> {
+    return heapDumpDirectory().listFiles(filter)?.toList() ?: emptyList()
   }
 
   companion object {
-    private val filesDeletedTooOld = mutableListOf<String>()
-    val filesDeletedRemoveLeak = mutableListOf<String>()
-
     private const val HPROF_SUFFIX = ".hprof"
 
-    fun hprofDeleteReason(file: File): String {
-      val path = file.absolutePath
-      return when {
-        filesDeletedTooOld.contains(path) -> "older than all other hprof files"
-        filesDeletedRemoveLeak.contains(path) -> "leak manually removed"
-        else -> "unknown"
-      }
-    }
+    private fun alreadyAnalyzedReason(maxStoredHeapDumps: Int) =
+      "LeakCanary hit its maxStoredHeapDumps limit of $maxStoredHeapDumps and deleted this heap " +
+        "dump, the oldest one it had already analyzed."
+
+    private fun stillWaitingReason(maxStoredHeapDumps: Int) =
+      "LeakCanary hit its maxStoredHeapDumps limit of $maxStoredHeapDumps with every stored heap " +
+        "dump still waiting to be analyzed, so it deleted the oldest one. Raise " +
+        "LeakCanary.Config.maxStoredHeapDumps if heap dumps pile up faster than they can be " +
+        "analyzed."
   }
 }
