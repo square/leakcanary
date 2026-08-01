@@ -135,7 +135,8 @@ private fun ObjectGroupDetails(
   Detail("Objects", formatObjectCount(summary.objectCount))
 }
 
-private fun ObjectGroupSummary.title(): String = when (kind) {
+/** What a pile of objects is called wherever it is described: here, and on the card at the pointer. */
+internal fun ObjectGroupSummary.title(): String = when (kind) {
   ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
   ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
 }
@@ -311,7 +312,8 @@ internal const val CLASS_GROUP_EXPLANATION =
     "so the root's children can be read. Click it to see them one by one."
 
 private const val GROUP_EXPLANATION =
-  "Too small or too many to draw one by one. Click what holds them to see them."
+  "Too small or too many to draw one by one in the rectangle they belong to. Clicking them roots the " +
+    "map at what holds them, which gives it the whole view to draw them in."
 
 /** What the pixels of the selected bitmap are, to anything that can't look at them. */
 internal const val BITMAP_DESCRIPTION = "The pixels of the selected bitmap."

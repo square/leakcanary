@@ -101,9 +101,10 @@ class TreemapLayoutResult<N>(
  *
  * A node is subdivided only when its rectangle is at least [minSubdivideWidth] by
  * [minSubdivideHeight]. Its children are drawn largest first, and those that would come out below
- * [minDrawSize], that are past [maxChildrenPerNode] or that don't fit in the remaining [maxCells]
- * budget become one [CellSubject.Group] instead. Subdivision happens largest rectangle first, so the
- * budget is spent where there is space to show detail.
+ * [minDrawSize], that are past [maxChildrenPerNode] — [maxRootChildren] for the node the viewport is
+ * rooted at — or that don't fit in the remaining [maxCells] budget become one [CellSubject.Group]
+ * instead. Subdivision happens largest rectangle first, so the budget is spent where there is space to
+ * show detail.
  *
  * **A rectangle's area is its weight's share of the whole, at every depth.** A node's children cover
  * it exactly, and what it weighs on its own gets a [CellSubject.Own] cell rather than being spread
@@ -131,7 +132,20 @@ class TreemapLayout<N>(
    * tree has tens of thousands of children, and past a couple of hundred rectangles in one parent
    * there is nothing left to read.
    */
-  private val maxChildrenPerNode: Int = 200
+  private val maxChildrenPerNode: Int = 200,
+  /**
+   * And how many for the node the viewport is rooted at, which is more because it has the whole
+   * viewport to itself.
+   *
+   * Zooming into a node is how the siblings a rectangle had no room for get drawn, so a cap that
+   * doesn't move when the room does makes zooming pointless: a node with 668 children draws 200 of
+   * them and a pile of 468 whether it is a sliver of the map or the whole of it, and clicking that
+   * pile lands on the same picture it was clicked from.
+   *
+   * Still capped, at half the cell budget, so that one level can't spend all of [maxCells] and leave
+   * nothing to draw what is inside the rectangles it drew.
+   */
+  private val maxRootChildren: Int = maxCells / 2
 ) {
 
   fun layout(
@@ -188,7 +202,8 @@ class TreemapLayout<N>(
       val weights = LongArray(children.size) { tree.weight(children[it]) }
       val drawnCount = minOf(
         drawableChildCount(weights, rect.area, cell.weight),
-        maxChildrenPerNode,
+        // Depth 0 is the node the viewport is rooted at, and the only cell there is.
+        if (cell.depth == 0) maxRootChildren else maxChildrenPerNode,
         budget - 2
       )
       val groupedCount = children.size - drawnCount

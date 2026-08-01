@@ -12,7 +12,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -29,19 +31,21 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.LayoutCell
 import shark.explorer.PresentedCell
 import shark.explorer.TreemapCell
+import shark.explorer.TreemapLayoutResult
 import shark.explorer.TreemapPresentation
 
 /**
  * Draws an already laid out [TreemapPresentation], filling the available space.
  *
  * A press reports the rectangle under the pointer, which is what the window goes to, and moving over one
- * reports it as hovered, which is what the chain beside the view describes. Everything is drawn into a
- * single [Canvas], so there are no per-rectangle composables: see this module's `AGENTS.md` for what that
- * means for tests.
+ * reports it as hovered, which is what the chain beside the view describes. The names the map draws are
+ * rectangles of their own for both of those — see [namedCellAt]. Everything is drawn into a single [Canvas],
+ * so there are no per-rectangle composables: see this module's `AGENTS.md` for what that means for tests.
  *
  * Takes a presentation rather than a tree, because laying a treemap out reads the heap dump for every
  * visible label, and that has to have happened on the heap dump's own thread before we get here.
@@ -63,16 +67,19 @@ internal fun TreemapView(
 ) {
   val textMeasurer = rememberTextMeasurer()
   val density = LocalDensity.current
+  // One tile shared by every pile on the map, since they are all filled with the same dots.
+  val dots = remember(density) { pileDots(density) }
   // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
   // the presentation changes and never on a redraw.
-  val cells = remember(presentation, coloring, bitmapImages, textMeasurer, density) {
+  val cells = remember(presentation, coloring, bitmapImages, textMeasurer, density, dots) {
     val colors = CellColors.of(coloring, presentation.cells)
     presentation.cells.map { presented ->
       presented.measure(
         colors = colors,
         textMeasurer = textMeasurer,
         density = density,
-        image = presented.imageOf(bitmapImages)
+        image = presented.imageOf(bitmapImages),
+        dots = dots
       )
     }
   }
@@ -83,15 +90,15 @@ internal fun TreemapView(
   // Zooming, resizing and switching shape all move the rectangles rather than the pointer, and no pointer
   // event follows: without this the panels would keep describing whatever was under it before, until the
   // mouse next moved.
-  LaunchedEffect(presentation, edgeGrab) {
-    onHover(pointerOffset?.let { offset -> presentation.pointedAt(offset, edgeGrab) })
+  LaunchedEffect(presentation, cells, edgeGrab) {
+    onHover(pointerOffset?.let { offset -> presentation.pointedAt(offset, cells, edgeGrab) })
   }
   Box(modifier) {
     Canvas(
       Modifier.fillMaxSize()
         // Before the tap handler, so that the rectangle under the pointer is read wherever it is rather
         // than only where a gesture hasn't already claimed the events.
-        .pointerInput(presentation, edgeGrab) {
+        .pointerInput(presentation, cells, edgeGrab) {
           awaitPointerEventScope {
             while (true) {
               val event = awaitPointerEvent()
@@ -103,7 +110,7 @@ internal fun TreemapView(
                 PointerEventType.Move -> {
                   val position = event.changes.first().position
                   pointerOffset = position
-                  onHover(presentation.pointedAt(position, edgeGrab))
+                  onHover(presentation.pointedAt(position, cells, edgeGrab))
                 }
                 PointerEventType.Exit -> {
                   pointerOffset = null
@@ -113,11 +120,11 @@ internal fun TreemapView(
             }
           }
         }
-        .pointerInput(presentation, edgeGrab) {
+        .pointerInput(presentation, cells, edgeGrab) {
           detectTapGestures(
             // On press rather than on tap, which is immediate: with nothing waiting for a second click,
             // a tap handler would still hold every click for the double click window.
-            onPress = { offset -> presentation.cellAt(offset, edgeGrab)?.let(onClick) }
+            onPress = { offset -> presentation.cellAt(offset, cells, edgeGrab)?.let(onClick) }
           )
         }
     ) {
@@ -163,33 +170,67 @@ internal fun TreemapView(
 
 private fun TreemapPresentation.cellAt(
   offset: Offset,
+  /** This presentation's cells as measured for drawing, which is what says where the names ended up. */
+  cells: List<MeasuredCell>,
   edgeGrab: Double
-): TreemapCell<Long>? = layout.cellAt(offset.toTreemapPoint(), edgeGrab)
+): TreemapCell<Long>? = cells.namedCellAt(offset) ?: layout.cellAt(offset.toTreemapPoint(), edgeGrab)
 
 /** What the pointer is on at [offset], with the offset kept: the card following the pointer needs both. */
 private fun TreemapPresentation.pointedAt(
   offset: Offset,
+  cells: List<MeasuredCell>,
   edgeGrab: Double
-): PointedAt? = cellAt(offset, edgeGrab)?.let { PointedAt(cell = it, offset = offset) }
+): PointedAt? = cellAt(offset, cells, edgeGrab)?.let { PointedAt(cell = it, offset = offset) }
+
+/**
+ * The rectangle whose name is drawn at [offset], or null where no name is drawn.
+ *
+ * A rectangle's children cover every pixel of it, so the name the map gives it is drawn over them, and the
+ * plate under that name is the one piece of a subdivided rectangle that is still the rectangle itself. So
+ * pointing at a name means the thing named rather than whichever descendant happens to be under the
+ * lettering, and clicking one walks into the level the map is divided into rather than to the bottom of it.
+ * Everywhere else the innermost rectangle wins, as before: see [TreemapLayoutResult.cellAt].
+ *
+ * Last match first, which is topmost first: the names are painted in this order, so where two of them
+ * overlap the one drawn last is the one being pointed at.
+ */
+private fun List<MeasuredCell>.namedCellAt(offset: Offset): TreemapCell<Long>? =
+  lastOrNull { it.label?.plate?.contains(offset) == true }?.cell
 
 /** A rectangle with its label measured and its colour resolved, so that drawing does no work. */
 private class MeasuredCell(
+  /** The cell as laid out, which is what pointing at this rectangle reports. */
+  val cell: TreemapCell<Long>,
   val selects: SelectedCell,
   val topLeft: Offset,
   val size: Size,
   val color: Color,
+  /** The dots filling a pile of siblings its parent had no room for, and null for every other cell. */
+  val dots: Brush?,
   val borderColor: Color,
   val outline: Stroke,
   /** Whether this rectangle is one of the current root's own children, which are the named level. */
   val isRootChild: Boolean,
-  val labelColor: Color,
-  val labelOffset: Offset,
   /** Null when the rectangle is too small for a readable label, or when it isn't a named one. */
-  val label: TextLayoutResult?,
+  val label: MeasuredLabel?,
   /** The bitmap's pixels and where they go, for a cell that is a bitmap the dump has the pixels of. */
   val image: ImageBitmap?,
   val imageOffset: IntOffset,
   val imageSize: IntSize
+)
+
+/**
+ * A name drawn on a rectangle, and the plate it is drawn on.
+ *
+ * One value holding both what is painted and where, because the plate is a hit target as well as a
+ * background — see [namedCellAt] — and a plate the pointer answers to that isn't the plate on screen would
+ * be the view lying about where its own names are.
+ */
+private class MeasuredLabel(
+  val text: TextLayoutResult,
+  val color: Color,
+  val textTopLeft: Offset,
+  val plate: Rect
 )
 
 /** The pixels read for this cell, for a cell that stands for one bitmap. */
@@ -202,7 +243,8 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
   colors: CellColors,
   textMeasurer: TextMeasurer,
   density: Density,
-  image: ImageBitmap?
+  image: ImageBitmap?,
+  dots: Brush
 ): MeasuredCell {
   val rect = cell.rect
   val labelPadding = with(density) { LABEL_PADDING.toPx() }
@@ -221,15 +263,15 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
   val size = Size(rect.width.toFloat(), rect.height.toFloat())
   val bounds = image?.let { imageBounds(it, topLeft, size) }
   return MeasuredCell(
+    cell = cell,
     selects = SelectedCell.of(cell.subject),
     topLeft = topLeft,
     size = size,
     color = colors.colorOf(this),
+    dots = dots.takeIf { content is CellContent.Leftover },
     borderColor = colors.borderOf(this),
     outline = outlineOf(content),
     isRootChild = isRootChild,
-    labelColor = colors.label,
-    labelOffset = Offset(labelPadding, labelPadding),
     label = if (fitsALabel) {
       textMeasurer.measure(
         text = label,
@@ -237,6 +279,10 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
         overflow = TextOverflow.Ellipsis,
         maxLines = 1,
         constraints = Constraints(maxWidth = labelWidth.toInt())
+      ).asLabel(
+        color = colors.label,
+        textTopLeft = topLeft + Offset(labelPadding, labelPadding),
+        cellBounds = Rect(offset = topLeft, size = size)
       )
     } else {
       null
@@ -247,8 +293,35 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
   )
 }
 
+/** A measured name placed at [textTopLeft], with the plate it sits on around it. */
+private fun TextLayoutResult.asLabel(
+  color: Color,
+  textTopLeft: Offset,
+  /** The rectangle being named, which the plate stays inside. */
+  cellBounds: Rect
+) = MeasuredLabel(
+  text = this,
+  color = color,
+  textTopLeft = textTopLeft,
+  plate = Rect(
+    offset = textTopLeft - Offset(LABEL_PLATE_PADDING, LABEL_PLATE_PADDING),
+    size = Size(
+      size.width + 2 * LABEL_PLATE_PADDING,
+      size.height + 2 * LABEL_PLATE_PADDING
+    )
+  )
+    // A rectangle only a line of text tall has less room than the plate wants, and the overhang would be
+    // drawn on the sibling below it as well as answering the pointer for it. The lettering can still
+    // overflow, as it always could; what stands for the rectangle can't reach outside it.
+    .intersect(cellBounds)
+)
+
 private fun DrawScope.drawFill(cell: MeasuredCell) {
   drawRect(color = cell.color, topLeft = cell.topLeft, size = cell.size)
+  // Straight after its own fill rather than in a pass of its own: a pile is where the map stops dividing,
+  // so there is never a rectangle drawn inside one for the dots to end up under.
+  val dots = cell.dots ?: return
+  drawRect(brush = dots, topLeft = cell.topLeft, size = cell.size)
 }
 
 private fun DrawScope.drawImage(cell: MeasuredCell) {
@@ -291,18 +364,11 @@ private fun DrawScope.drawSeparator(cell: MeasuredCell) {
  *
  * On a translucent plate rather than straight onto the map, because the text sits over rectangles, bitmaps
  * and outlines it has no say over: solid text on a washed out background is readable against all of them
- * while still letting what it covers show through.
+ * while still letting what it covers show through. That plate is also what pointing at the name points at,
+ * see [namedCellAt].
  */
 private fun DrawScope.drawLabel(cell: MeasuredCell) {
   val label = cell.label ?: return
-  val plate = cell.topLeft + cell.labelOffset
-  drawRect(
-    color = LABEL_PLATE_COLOR,
-    topLeft = Offset(plate.x - LABEL_PLATE_PADDING, plate.y - LABEL_PLATE_PADDING),
-    size = Size(
-      label.size.width + 2 * LABEL_PLATE_PADDING,
-      label.size.height + 2 * LABEL_PLATE_PADDING
-    )
-  )
-  drawText(textLayoutResult = label, color = cell.labelColor, topLeft = plate)
+  drawRect(color = LABEL_PLATE_COLOR, topLeft = label.plate.topLeft, size = label.plate.size)
+  drawText(textLayoutResult = label.text, color = label.color, topLeft = label.textTopLeft)
 }

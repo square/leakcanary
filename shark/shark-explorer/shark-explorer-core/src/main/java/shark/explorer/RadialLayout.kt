@@ -85,9 +85,10 @@ class RadialLayoutResult<N>(
  *
  * Depth is adaptive the way it is in a treemap, only measured along a ring rather than as an area: a
  * node is subdivided while its sector is at least [minSubdivideArcLength] long, children shorter than
- * [minDrawArcLength], past [maxChildrenPerNode] or outside the [maxCells] budget become one
- * [CellSubject.Group], and the widest sector is subdivided first so the budget buys visible detail.
- * [ringCount] then bounds how far out the picture goes, and zooming into a node is what reveals more.
+ * [minDrawArcLength], past [maxChildrenPerNode] — [maxRootChildren] for the node in the middle — or
+ * outside the [maxCells] budget become one [CellSubject.Group], and the widest sector is subdivided
+ * first so the budget buys visible detail. [ringCount] then bounds how far out the picture goes, and
+ * zooming into a node is what reveals more.
  */
 class RadialLayout<N>(
   /** How many rings around the centre disk. Deeper than that needs a zoom. */
@@ -95,7 +96,9 @@ class RadialLayout<N>(
   private val minSubdivideArcLength: Double = 24.0,
   private val minDrawArcLength: Double = 3.0,
   private val maxCells: Int = 5000,
-  private val maxChildrenPerNode: Int = 200
+  private val maxChildrenPerNode: Int = 200,
+  /** And how many for the node in the middle, which has the whole first ring. See [TreemapLayout]. */
+  private val maxRootChildren: Int = maxCells / 2
 ) {
 
   fun layout(
@@ -169,7 +172,8 @@ class RadialLayout<N>(
       )
       val drawnCount = minOf(
         drawableChildCount(weights, span.arcLength),
-        maxChildrenPerNode,
+        // Depth 0 is the node the rings are drawn around, and the only cell there is.
+        if (cell.depth == 0) maxRootChildren else maxChildrenPerNode,
         budget - 1
       )
       val childDepth = cell.depth + 1

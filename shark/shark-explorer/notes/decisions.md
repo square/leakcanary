@@ -216,6 +216,12 @@ rather than sliding when that would leave the view, because the card is a Materi
 the pointer ends up inside takes the hover off the map — which would close the card, and start over. Hence
 also the gap, and hence nothing in the card being clickable.
 
+**A rectangle that isn't one object gets the card too**, and needs it most. A pile is named on the map by a
+count and a simple class name — `400 × Sibling`, `300 smaller objects` — which is all a rectangle has room
+for, so the qualified class name, or which rectangle a leftover pile was left out of, fits nowhere but here.
+The card used to be drawn for `Selection.Object` alone, which meant pointing at the one kind of cell whose
+name is incomplete answered nothing at all.
+
 Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
 pointer is on. Nothing is read when the pointer leaves, and nothing on the map screen is blanked as the
 next cell is read, so a sweep across the map doesn't flicker.
@@ -263,6 +269,12 @@ of breadcrumbs above the view used to be the way out; it went because it said a 
 says, in a strip that couldn't hold a class name. **The whole heap dump is the top row of every chain**, for
 the same reason: the way back to the screen the window opens on belongs where the chain says the whole heap
 is, and a chain of the whole heap dump is that one row and nothing else.
+
+**The screen bar has a button of the same name, which is not a duplicate of that row.** The chain is drawn
+for the rectangle clicked, on the map screen only, so until something has been clicked, and from a list of
+objects, that row isn't there — and the way back to the top of the tree is the one move that has to be
+available whatever the window is showing. Hence a button beside the other screens rather than a second one
+above the map: leaving the map and going back to the top of it are the same kind of move.
 
 **The pointer's chain is drawn onto the end of the clicked one.** The rectangle under the pointer is inside
 the one the window is describing, so the chain holding it *is* this chain plus a few steps — and drawing it

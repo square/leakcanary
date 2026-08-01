@@ -6,9 +6,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -267,7 +269,7 @@ class ExplorerAppTest {
       waitUntilAtLeastOneExists(hasText("Object[] · ", substring = true), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText("com.example.Holder").fetchSemanticsNodes()).isNotEmpty()
       // One chain, so one row for the whole heap dump it hangs below.
-      assertThat(onAllNodesWithText(HeapDominatorTreemap.ROOT_LABEL).fetchSemanticsNodes()).hasSize(1)
+      assertThat(onAllNodes(isWholeHeapDumpRow()).fetchSemanticsNodes()).hasSize(1)
     }
   }
 
@@ -398,7 +400,7 @@ class ExplorerAppTest {
       // stretch of what holds this object, and everything above and below it is where it was.
       waitUntilAtLeastOneExists(hasText("2 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(if (throughTheCache) "com.example.Tile" else "com.example.Cache").assertIsDisplayed()
-      onNodeWithText(HeapDominatorTreemap.ROOT_LABEL).assertIsDisplayed()
+      wholeHeapDumpRow().assertIsDisplayed()
     }
   }
 
@@ -661,6 +663,9 @@ class ExplorerAppTest {
       // bug until something explains it.
       strengthToggle(PHANTOM).assertTextContains(formatByteSize(0L), substring = true)
       onNodeWithText(NOTHING_WEAKER).assertIsDisplayed()
+      // The paragraph saying why that is normal waits for the pointer: it is above the map for as long as
+      // the heap dump is open, and read once it is in the way of the thing it is about.
+      onNodeWithText(NOTHING_WEAKER_HINT).assertDoesNotExist()
     }
   }
 
@@ -846,13 +851,22 @@ class ExplorerAppTest {
     }
   }
 
-  /** The row every chain hangs below, which is the one thing naming the whole heap dump that leads anywhere. */
-  private fun ComposeUiTest.wholeHeapDumpRow(): SemanticsNodeInteraction =
-    onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and hasClickAction())
+  /** The row every chain hangs below, which leads to the whole heap dump as the screen bar's button does. */
+  private fun ComposeUiTest.wholeHeapDumpRow(): SemanticsNodeInteraction = onNode(isWholeHeapDumpRow())
 
   /** A button on the row of screens an open heap dump can be read through. */
   private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
-    onNode(hasText(label) and hasClickAction())
+    onNode(hasText(label) and isButton())
+
+  /**
+   * What names the whole heap dump in the chain pane, which is a clickable line and not a button: the
+   * screen bar has a button of the same name, so the text alone matches two nodes.
+   */
+  private fun isWholeHeapDumpRow(): SemanticsMatcher =
+    hasText(HeapDominatorTreemap.ROOT_LABEL) and hasClickAction() and !isButton()
+
+  private fun isButton(): SemanticsMatcher =
+    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
   /** The search box of the object list, the one thing in the window that takes typing. */
   private fun ComposeUiTest.searchBox(): SemanticsNodeInteraction = onNode(hasSetTextAction())

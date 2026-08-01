@@ -9,13 +9,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.LayoutCell
@@ -109,6 +120,36 @@ internal fun outlineOf(content: CellContent): Stroke = when {
 }
 
 /**
+ * What the siblings a rectangle had no room for are filled with: dots, over the flat colour every other
+ * cell gets.
+ *
+ * A pile of them can be a good part of the view, and one flat block that size reads as one enormous object
+ * — a bitmap, usually, since that is the only thing that ever is one. A texture says "many small things"
+ * before the label is read, and being an even texture over the whole rectangle rather than a drawing of
+ * each of them keeps the pile looking like the one thing a click can land on.
+ *
+ * One repeated tile rather than a circle per dot, because the whole map is redrawn every time the pointer
+ * moves onto another rectangle, and a pile that fills the view is tens of thousands of dots.
+ */
+internal fun pileDots(density: Density): Brush {
+  val side = with(density) { PILE_DOT_SPACING.toPx() }.roundToInt().coerceAtLeast(1)
+  val tile = ImageBitmap(side, side)
+  CanvasDrawScope().draw(
+    density = density,
+    layoutDirection = LayoutDirection.Ltr,
+    canvas = Canvas(tile),
+    size = Size(side.toFloat(), side.toFloat())
+  ) {
+    drawCircle(
+      color = PILE_DOT_COLOR,
+      radius = with(density) { PILE_DOT_RADIUS.toPx() },
+      center = Offset(side / 2f, side / 2f)
+    )
+  }
+  return ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
+}
+
+/**
  * The layout thresholds in dp. The layouts work in pixels, so they have to be scaled or a cell that's
  * big enough to subdivide on one display is too small on another.
  */
@@ -161,4 +202,15 @@ internal const val HOVER_WIDTH = 2f
 internal const val PILE_BORDER_WIDTH = 2f
 internal val CLASS_GROUP_DASH_INTERVALS = floatArrayOf(5f, 4f)
 internal val LEFTOVER_DOT_INTERVALS = floatArrayOf(2f, 3f)
+
 internal val LABEL_STYLE = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Medium)
+
+/**
+ * How far apart the dots of [pileDots] are, and how big. Far enough apart to read as dots at a glance and
+ * small enough that the colour under them still says how firmly the pile is held.
+ */
+private val PILE_DOT_SPACING = 7.dp
+private val PILE_DOT_RADIUS = 1.1.dp
+
+/** The same near white as a name's plate, and for the same reason: it lightens without recolouring. */
+private val PILE_DOT_COLOR = Color(0x8CFFFFFF)

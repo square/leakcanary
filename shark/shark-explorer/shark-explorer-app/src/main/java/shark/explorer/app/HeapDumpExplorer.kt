@@ -44,7 +44,6 @@ import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
-import shark.explorer.HeapObjectSummary
 import shark.explorer.HeapSizes
 import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
@@ -135,21 +134,15 @@ internal fun HeapDumpExplorer(
   var showsBitmapsFromDevice by remember { mutableStateOf(false) }
   /** The objects starred so far, with everything the list shows about them read once. */
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
-  /** A node something led to, until the path the treemap has it under is worked out. */
-  var nodeToOpen: Long? by remember { mutableStateOf(null) }
+  /** A move something led to, until the path the treemap has its destination under is worked out. */
+  var nodeToOpen: NodeToOpen? by remember { mutableStateOf(null) }
 
   /**
-   * Points the panels at a node, which every move does. Each screen says which node that is once it is
-   * arrived at, so this is called with [ExplorerScreen.describedNode] rather than deciding for itself.
+   * Points the panels at a node, which is what walking the history does. Each screen says which node that
+   * is, so this is called with [ExplorerScreen.describedNode] rather than deciding for itself — a move
+   * forwards carries what it is about along with it instead, see [NodeToOpen].
    */
-  val describe: (Long) -> Unit = { nodeId ->
-    clicked = DescribedCell(
-      // Never a group: what a move names is a node of the tree, and the one cell that isn't one stands for
-      // the siblings its parent didn't draw, which nothing leads to.
-      cell = SelectedCell(nodeId, isGroup = false),
-      request = SelectionRequest.Object(nodeId)
-    )
-  }
+  val describe: (Long) -> Unit = { nodeId -> clicked = DescribedCell.of(nodeId) }
 
   // Nothing is under the pointer while a screen other than the map is showing: the view isn't there, so
   // the rectangle it was on last is neither where the pointer is now nor what the screen is about.
@@ -370,7 +363,8 @@ internal fun HeapDumpExplorer(
   // Where the treemap draws a node takes walking up its dominators, so showing what a panel line or a row
   // of a list leads to is a heap dump read as well.
   LaunchedEffect(session, nodeToOpen) {
-    val openNodeId = nodeToOpen ?: return@LaunchedEffect
+    val move = nodeToOpen ?: return@LaunchedEffect
+    val openNodeId = move.nodeId
     val path = session.read("where the map draws ${nodeIdText(openNodeId)}") { explorer ->
       explorer.tree.pathToOpen(openNodeId)
     }
@@ -381,7 +375,7 @@ internal fun HeapDumpExplorer(
     }
     val zoomed = history.current.treeNavigation.zoomInto(path)
     history = history.goTo(ExplorerScreen.Tree(zoomed, openNodeId))
-    describe(openNodeId)
+    clicked = move.described
     nodeToOpen = null
   }
 
@@ -392,7 +386,7 @@ internal fun HeapDumpExplorer(
     pointerOffset = pointedAt?.offset
   }
   /**
-   * Where a click on the view goes, which is wherever was clicked.
+   * Where a click on the view goes, which is wherever was clicked. Every rectangle is a move.
    *
    * Through the same walk as a click on a line of a panel, so that the two land in the same place: an
    * object that dominates nothing is shown inside what holds it and described there, rather than as a view
@@ -400,17 +394,17 @@ internal fun HeapDumpExplorer(
    */
   val onClick: (LayoutCell<Long>) -> Unit = { cell ->
     val subject = cell.subject
-    if (subject is CellSubject.Group) {
-      // The siblings too small to draw are no node of the tree, so there is nowhere to go: clicking them
-      // says what they are and leaves the map where it is.
-      clicked = DescribedCell.of(cell)
-      history = history.replacingCurrent(ExplorerScreen.Tree(navigation, subject.parent))
+    nodeToOpen = if (subject is CellSubject.Group) {
+      // The siblings too small to draw are no node of the tree, so where a click on them goes is the
+      // rectangle they were left out of: rooted there, the map has the room to draw them one by one.
+      // The panels stay on the pile, because the pile is what was clicked.
+      NodeToOpen(subject.parent, DescribedCell.of(cell))
     } else {
-      nodeToOpen = DescribedCell.of(cell).cell.objectId
+      NodeToOpen.of(SelectedCell.of(subject).objectId)
     }
   }
   /** Shows a node on the map with it selected, and describes it, which is the object detail view. */
-  val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = nodeId }
+  val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = NodeToOpen.of(nodeId) }
   val onGoTo: (ExplorerScreen) -> Unit = { destination -> history = history.goTo(destination) }
 
   if (showsBitmapsFromDevice) {
@@ -435,6 +429,7 @@ internal fun HeapDumpExplorer(
     ScreenBar(
       starredCount = favourites.size,
       bitmapCounts = bitmapCounts,
+      onShowWholeHeapDump = { onOpen(ROOT_NODE) },
       onListObjects = {
         onGoTo(ExplorerScreen.Objects(navigation, ObjectListFilter(), screen.describedNode))
       },
@@ -502,7 +497,7 @@ internal fun HeapDumpExplorer(
               hovered = hovered?.cell,
               // What the pointer is on, for the card that follows it, and where the pointer is. Read
               // already: a card that appears empty and fills in a beat later reads as a flicker.
-              pointedSummary = (hoveredCellDetails?.selection as? Selection.Object)?.summary,
+              pointedSelection = hoveredCellDetails?.selection,
               pointerOffset = pointerOffset,
               viewSize = viewportSize,
               isLayingOut = isLayingOut,
@@ -612,11 +607,12 @@ private fun DescribedObject(selection: Selection?) {
   }
 }
 
-/** The screens an open heap dump can be read through that aren't the map, and how many are starred. */
+/** The screens an open heap dump can be read through, and how many objects are starred. */
 @Composable
 private fun ScreenBar(
   starredCount: Int,
   bitmapCounts: BitmapCounts,
+  onShowWholeHeapDump: () -> Unit,
   onListObjects: () -> Unit,
   onShowStarred: () -> Unit,
   onFetchBitmaps: () -> Unit
@@ -626,6 +622,12 @@ private fun ScreenBar(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
+    // First, because it is the screen the others were opened from and the way back out to all of it: the
+    // map zoomed in far enough is several clicks and a guess away from the top, and the back arrow walks
+    // where the reader has been rather than out.
+    TextButton(onClick = onShowWholeHeapDump) {
+      Text(HeapDominatorTreemap.ROOT_LABEL)
+    }
     TextButton(onClick = onListObjects) {
       Text(ExplorerScreen.OBJECTS_LABEL)
     }
@@ -650,7 +652,7 @@ private fun TreeScreen(
   selected: SelectedCell?,
   hovered: SelectedCell?,
   /** What the cell under the pointer is, once it has been read, and null while it hasn't. */
-  pointedSummary: HeapObjectSummary?,
+  pointedSelection: Selection?,
   /** Where the pointer is in the view, which is what the card naming that cell is placed by. */
   pointerOffset: Offset?,
   /** How big the view is, so that the card stays inside it. */
@@ -693,9 +695,9 @@ private fun TreeScreen(
     }
     // Beside the pointer, over the map, because what a rectangle is, is the question being asked by pointing
     // at it: an answer at the edge of the window is read by looking away from the rectangle it is about.
-    if (pointedSummary != null && pointerOffset != null) {
+    if (pointedSelection != null && pointerOffset != null) {
       PointerCard(
-        summary = pointedSummary,
+        selection = pointedSelection,
         coloring = coloring,
         modifier = Modifier
           .onSizeChanged { cardSize = it }
@@ -841,6 +843,30 @@ private data class DescribedCell(
       cell = SelectedCell.of(cell.subject),
       request = SelectionRequest.of(cell)
     )
+
+    /** A node of the tree, which is what a move arrives at and what every pane but the map leads to. */
+    fun of(nodeId: Long): DescribedCell = DescribedCell(
+      // Never a group: the one cell that isn't a node stands for the siblings its parent didn't draw,
+      // and nothing outside the map leads to one of those.
+      cell = SelectedCell(nodeId, isGroup = false),
+      request = SelectionRequest.Object(nodeId)
+    )
+  }
+}
+
+/**
+ * A move the map is about to make, waiting on the read that says where it draws [nodeId].
+ *
+ * [described] is what the panels are about once there, which is the destination itself for every move but
+ * a click on the siblings a rectangle had no room for: those are no node of the tree, so the map goes to
+ * the rectangle holding them while the panels stay on the pile that was clicked.
+ */
+private data class NodeToOpen(
+  val nodeId: Long,
+  val described: DescribedCell
+) {
+  companion object {
+    fun of(nodeId: Long) = NodeToOpen(nodeId, DescribedCell.of(nodeId))
   }
 }
 

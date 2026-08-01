@@ -66,7 +66,8 @@ for finalization and their `finalize()` hadn't run.
 Every legend row above the view says how firmly, how many bytes and how many objects — `Weak 0 B ·
 0 objects` — so a strength with nothing at it says so on its own. `NOTHING_WEAKER` then says why that's
 normal, since all four `java.lang.ref` strengths coming out empty reads as a broken computation until you
-know.
+know. It is one line, with the paragraph above on hover: it is true of most dumps, so it would otherwise be
+a paragraph sitting over the map for the whole session to answer a question asked once.
 
 Two more reference reader behaviours that surprise you when reading a treemap:
 

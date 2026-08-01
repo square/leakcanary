@@ -22,23 +22,29 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import shark.explorer.HeapObjectSummary
+import shark.explorer.ObjectGroupSummary
+import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
 
 /**
- * Which object the pointer is on, in a card that follows it around the view.
+ * What the pointer is on, in a card that follows it around the view.
  *
  * Beside the pointer rather than in a pane, because this is the one thing the reader is asking as they sweep
  * across the map — what is this rectangle — and answering it at the edge of the window makes them look away
  * from the thing they're pointing at. The chain holding it is the slower question, and that is drawn onto the
  * end of the chain in the pane: see [RootPathPanel].
  *
+ * A rectangle that isn't one object gets the card too, and needs it most: a pile is named on the map by a
+ * count and a simple class name, and the fully qualified name saying which class that is fits nowhere else.
+ * See [Selection].
+ *
  * [placeCard] keeps it clear of the pointer and inside the view. Nothing here is clickable — the pointer is
  * on the map, and it leaving the map is what closes this.
  */
 @Composable
 internal fun PointerCard(
-  summary: HeapObjectSummary,
+  selection: Selection,
   coloring: CellColoring,
   modifier: Modifier = Modifier
 ) {
@@ -52,28 +58,82 @@ internal fun PointerCard(
       Modifier.padding(POINTER_CARD_PADDING),
       verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
-      // The same three lines a step of a chain names an object with, so that the card and the chain beside
-      // the map read as one answer rather than as two ways of saying which object this is.
-      ObjectIdentity(
-        className = summary.className,
-        typeName = summary.kind?.typeName,
-        objectId = summary.objectId
-      )
-      summary.headline?.let { headline ->
-        Text(headline, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+      when (selection) {
+        is Selection.Object -> ObjectLines(selection.summary, coloring)
+        is Selection.ObjectGroup -> ObjectGroupLines(selection.summary, coloring)
+        is Selection.Group -> GroupLines(selection)
       }
-      Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
-        Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
-      }
-      // The same numbers the details panel gives a labelled row each, on two lines: a card that follows the
-      // pointer has to be read at a glance, and it covers the map for as long as it's up.
-      Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
-      Text(summary.shallowText(), style = MaterialTheme.typography.bodySmall)
     }
+  }
+}
+
+@Composable
+private fun ObjectLines(
+  summary: HeapObjectSummary,
+  coloring: CellColoring
+) {
+  // The same three lines a step of a chain names an object with, so that the card and the chain beside
+  // the map read as one answer rather than as two ways of saying which object this is.
+  ObjectIdentity(
+    className = summary.className,
+    typeName = summary.kind?.typeName,
+    objectId = summary.objectId
+  )
+  summary.headline?.let { headline ->
+    Text(headline, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+  }
+  StrengthLine(summary.strength, coloring)
+  // The same numbers the details panel gives a labelled row each, on two lines: a card that follows the
+  // pointer has to be read at a glance, and it covers the map for as long as it's up.
+  Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
+  Text(summary.shallowText(), style = MaterialTheme.typography.bodySmall)
+}
+
+/**
+ * Every instance of one class under the root, or the uncollected garbage.
+ *
+ * The fully qualified class name is the line the map can't draw: a rectangle has room for `42 × Bitmap`
+ * and no more, and which `Bitmap` that is, is the whole question a pile of them raises.
+ */
+@Composable
+private fun ObjectGroupLines(
+  summary: ObjectGroupSummary,
+  coloring: CellColoring
+) {
+  Text(summary.title(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+  summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+  StrengthLine(summary.strength, coloring)
+  Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
+  Text(PILE_OF_OBJECTS, style = MaterialTheme.typography.bodySmall)
+}
+
+/** The children of a rectangle that its subdivision had no room for. See [shark.explorer.CellSubject.Group]. */
+@Composable
+private fun GroupLines(selection: Selection.Group) {
+  Text(
+    "${selection.nodeCount} smaller objects",
+    style = MaterialTheme.typography.bodyMedium,
+    fontWeight = FontWeight.Bold
+  )
+  // Which rectangle they were left out of, since they have nothing else in common: that is the object to
+  // go to if any of them is worth finding.
+  Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
+  Text("Retains ${formatByteSize(selection.byteCount)}", style = MaterialTheme.typography.bodySmall)
+  Text(LEFTOVER_OBJECTS, style = MaterialTheme.typography.bodySmall)
+}
+
+/** How firmly what the pointer is on is held, beside the colour the map drew it in. */
+@Composable
+private fun StrengthLine(
+  strength: ReachabilityStrength,
+  coloring: CellColoring
+) {
+  Row(
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, strength)))
+    Text(strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
 }
 
@@ -82,6 +142,27 @@ private fun HeapObjectSummary.retainedText(): String =
 
 private fun HeapObjectSummary.shallowText(): String =
   "${formatByteSize(shallowSize)} of its own, dominates ${formatObjectCount(dominatedObjectCount)}"
+
+private fun ObjectGroupSummary.retainedText(): String =
+  "Retains ${formatByteSize(retainedSize)} in ${formatObjectCount(objectCount)}"
+
+/**
+ * What a pile of objects has to say for itself in one line, because a rectangle full of them looks exactly
+ * like one object until something says otherwise. The details panel spells out which kind of pile it is.
+ *
+ * A pile of one class is a node of the tree, so clicking it goes into it and the objects are there. See
+ * [LEFTOVER_OBJECTS] for the pile that isn't.
+ */
+internal const val PILE_OF_OBJECTS = "Not one object. Click it to reach the objects it stands for."
+
+/**
+ * The other kind of pile: what a rectangle's subdivision had no room for. It is no node of the tree, so
+ * there is nothing to go into and the promise [PILE_OF_OBJECTS] makes would be a lie here. What a click
+ * does instead is root the map at the rectangle they were left out of, which is where there is the room
+ * to draw them one by one. See `TreemapLayout.maxRootChildren`.
+ */
+internal const val LEFTOVER_OBJECTS =
+  "Not one object. Click it for what holds them, where there is room to draw them one by one."
 
 /**
  * Where a card of [cardSize] goes for a pointer at [pointer] in a view of [viewSize]: below and to the right

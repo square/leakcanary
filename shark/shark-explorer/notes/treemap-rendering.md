@@ -70,10 +70,11 @@ Two things follow, and both are behaviour rather than polish:
   (On the production dump only 4 own cells survive the 3×3 dp floor — an object's own bytes are usually a
   rounding error next to what it retains. The ones that don't survive are exactly the ones you don't need
   to see, and the one that does is a bitmap.)
-- **A container is pressed by its outline.** Its children cover every pixel of it, so `cellAt` takes an
-  `edgeGrab` — 4 dp — within which a subdivided cell wins over whatever shares that edge. Without it
-  there is no way to point at a container at all. Pointing at a *gap* in a subdivision, area left by
-  children too small to draw, still lands on the node holding it.
+- **A container is pressed by its name, or by its outline.** Its children cover every pixel of it, so
+  `cellAt` takes an `edgeGrab` — 4 dp — within which a subdivided cell wins over whatever shares that
+  edge, and the view checks the plate under a rectangle's name before that. Without either there is no
+  way to point at a container at all. Pointing at a *gap* in a subdivision, area left by children too
+  small to draw, still lands on the node holding it.
 
 And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so naming the
 levels falls to what is drawn beside the view — `RootPathPanel`, which draws the chain from the whole heap
@@ -94,6 +95,8 @@ Two things make that one level legible:
 - **The label goes over what's nested inside it**, on a translucent plate (`LABEL_PLATE_COLOR`). Text sits
   over fills, outlines and bitmaps it has no say over, so solid text on a washed out plate is readable
   against all of them while still letting what it covers show through. Drawn last, after the outlines.
+  That plate is a hit target as well as a background — see *Hit testing* below — so it is measured once,
+  into `MeasuredLabel`, and the rectangle painted and the rectangle pointed at are the same value.
 - **A child of the root is outlined heavily** (`ROOT_CHILD_BORDER_WIDTH`) and over every outline inside it,
   because the levels below cover their parent exactly: without it the boundary between two named blocks looks
   like every other edge on the map, and the map has no visible structure at the level it's named at.
@@ -116,6 +119,15 @@ together, so that a child is never silently dropped from the area its parent han
 rectangle, not a tree node: it can't be subdivided or zoomed into, and clicking it says how many
 objects it stands for. Same dump, same viewport, after the change: 1,190 cells, 28 groups, 7 levels
 deep, nothing truncated.
+
+**`maxChildrenPerNode` doesn't apply to the node the viewport is rooted at**, which gets
+`maxRootChildren` — half the cell budget — instead. A count that doesn't move when the room does makes
+zooming pointless, and the pile is the one thing zooming exists for: the `LongSparseArray[]` of drawable
+caches in `compose_leak.hprof` has 668 children, so it drew 200 and a pile of 468 whether it was a
+sliver of the whole-heap-dump map or the whole viewport, and clicking that pile landed on the picture it
+was clicked from. Rooted there it now draws 516 of them and a pile of 103, the ones still under the area
+floor. The whole-heap-dump map is unchanged — 1,726 cells, 93 rectangles at the top level — because at
+that root the area floor bites long before 200 does.
 
 A radial layout has one more bound: **rings**. Eight around the centre disk, the width of each derived
 from the viewport, so the picture always fills the circle and depth past that needs a zoom. Sectors
@@ -201,6 +213,14 @@ objects rather than one — a class group, or the siblings that didn't fit — i
 strength, cool slate when that strength is `STRONG`, so it reads as "not an object" without needing a
 colour of its own. All of it is in `CellColors.kt`, the one place the colours are named.
 
+**The siblings that didn't fit are filled with dots on top of that**, `pileDots` in `CellView.kt`. That
+rectangle is often the biggest thing on the map — a class group of 54,000 strings is one rectangle with
+one of these filling almost all of it — and at that size a flat block reads as one enormous object, which
+on a real dump means a bitmap. A texture says "many small things" before the label is read, and being an
+even texture rather than a drawing of each of them keeps the pile looking like the one thing a click can
+land on. It's a repeated `ImageShader` tile rather than a circle per dot, because the whole map is redrawn
+every time the pointer moves onto another rectangle.
+
 **Grey means one thing only: a strength switched off.** The checkboxes above the view are a `CellColoring`,
 and unchecking one greys out everything held that firmly rather than hiding it — the tree is the whole heap
 dump either way, so there is no strength it makes no sense to press, and toggling one is a repaint. Greying
@@ -243,6 +263,14 @@ whatever shares it, which is the line the view draws there. A gap in a subdivisi
 node being subdivided. This is what a UI test clicks to reach a container — `clickContainerEdge` — since
 the label bands it used to press are gone.
 
+**And the name on a rectangle is a target of its own**, checked before the layout: `namedCellAt` in
+`TreemapView`, against the plates measured for drawing. A name is written over everything nested inside
+the rectangle it names, so the plate is the one piece of a subdivided rectangle still showing, and reading
+the map is reading those names — pointing at one meaning the descendant under the lettering was the view
+answering a question nobody asked. It lives in the app module rather than in `core` because only Compose
+can measure text, and the plate is clamped to the rectangle it names, so a name on a cell barely a line
+tall doesn't answer for the sibling below it. Everywhere else the innermost rectangle still wins.
+
 **A single click goes to the rectangle it landed on**, and it's handled on press rather than on tap:
 `detectTapGestures` holds `onTap` for the double click window whenever `onDoubleTap` is set, and with
 nothing waiting for a second click there is nothing to wait for. So the whole map is one click deep, which
@@ -255,8 +283,11 @@ into **along the whole chain**, and the chain beside the map is the way back out
 from resolving it that way rather than from the cell's own `parent`: an object that dominates nothing lands
 inside what holds it with itself selected, rather than filling the view with one rectangle and nothing to
 read; and it's the same code path whatever led there, so a class name clicked in the details panel and a
-rectangle clicked on the map land in the same place. A group isn't a node of the tree, so clicking one has
-nowhere to go: it describes what it stands for and leaves the map where it is.
+rectangle clicked on the map land in the same place. A group isn't a node of the tree, so what a click on
+one is walked to is its `parent` — the rectangle it was left out of, which is where those objects are, and
+rooted there the map has the room to draw the biggest of them one by one. The panels stay on the group,
+since the group is what was clicked. **Every rectangle moves the map**, in other words, and the group used
+to be the one that didn't.
 
 Keeping all of that pure functions in `shark-explorer-core` is what makes it testable — see
 `decisions.md` for how the UI tests are structured around this.
