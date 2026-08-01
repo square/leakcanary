@@ -1,12 +1,12 @@
 package shark.explorer
 
 /**
- * What the explorer is showing, which is what the breadcrumbs say and what the back arrow walks through.
+ * What the explorer is showing, which is what the back arrow walks through.
  *
  * The treemap is one screen among several, and the others are reached from it: the paths that hold an
  * object, every object of the heap dump as a list, the objects starred so far. So each of them keeps the
- * [treeNavigation] it was opened from, which is what makes the breadcrumbs a trail rather than a label —
- * every crumb but the last leads back to the map, wherever the screen went.
+ * [treeNavigation] it was opened from, which is what makes going back to the map going back to where it
+ * was rather than to the top of the tree.
  *
  * Immutable, and in this module rather than in the UI so that navigation stays unit testable. See
  * [NavigationHistory].
@@ -21,13 +21,10 @@ sealed interface ExplorerScreen {
    *
    * Not the node the map is rooted at: zooming into an object that dominates nothing would draw an empty
    * view, so opening one leaves the map on what holds it with the object selected inside. Kept per screen
-   * so that a screen returned to by the back arrow describes what it described before — a screen the
-   * breadcrumbs name and a panel describing something else is a window that has to be read twice.
+   * so that a screen returned to by the back arrow describes what it described before: a window whose
+   * panes describe something other than what it is showing has to be read twice.
    */
   val describedNode: Long
-
-  /** What the breadcrumbs say past the tree's own path, or null on the tree itself. */
-  val trailingCrumb: String?
 
   /** The same screen, with the treemap somewhere else. */
   fun withTreeNavigation(navigation: TreemapNavigation<Long>): ExplorerScreen
@@ -38,8 +35,6 @@ sealed interface ExplorerScreen {
     /** The node the map is rooted at unless a cell inside it was picked out. */
     override val describedNode: Long = treeNavigation.current
   ) : ExplorerScreen {
-
-    override val trailingCrumb: String? get() = null
 
     override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
   }
@@ -53,8 +48,6 @@ sealed interface ExplorerScreen {
     /** The object the paths hold, which is what they're worth reading beside. */
     override val describedNode: Long get() = objectId
 
-    override val trailingCrumb: String get() = PATHS_CRUMB
-
     override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
   }
 
@@ -66,8 +59,6 @@ sealed interface ExplorerScreen {
     override val describedNode: Long = treeNavigation.current
   ) : ExplorerScreen {
 
-    override val trailingCrumb: String get() = OBJECTS_CRUMB
-
     override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
   }
 
@@ -78,14 +69,11 @@ sealed interface ExplorerScreen {
     override val describedNode: Long = treeNavigation.current
   ) : ExplorerScreen {
 
-    override val trailingCrumb: String get() = STARRED_CRUMB
-
     override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
   }
 
   companion object {
-    const val PATHS_CRUMB = "Paths from the dominator"
-    const val OBJECTS_CRUMB = "All objects"
-    const val STARRED_CRUMB = "Starred"
+    /** What the button leading to the list of every object says, which is the only one of these named. */
+    const val OBJECTS_LABEL = "All objects"
   }
 }

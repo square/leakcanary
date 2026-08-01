@@ -234,39 +234,6 @@ class TreemapLayoutTest {
     assertThat(result.groups.single().groupParent.name).isEqualTo("root")
   }
 
-  @Test fun `the path to a cell is every node between the root and it`() {
-    val tree = NodeTree(uniformTree("root", depth = 3, breadth = 2, leafWeight = 1_000_000))
-
-    val result = TreemapLayout<Node>().layout(tree, viewport)
-
-    val deepest = result.nodeCells.maxBy { it.depth }
-    val names = result.nodePathTo(deepest).map { it.name }
-    assertThat(names).hasSize(deepest.depth)
-    assertThat(names.last()).isEqualTo(deepest.node.name)
-    // Every node here is named after the one above it, so the path reads as a chain of dominators.
-    assertThat((listOf("root") + names).zipWithNext()).allSatisfy { (dominator, dominated) ->
-      assertThat(dominated).startsWith("$dominator.")
-    }
-  }
-
-  @Test fun `the path to the root is empty`() {
-    val tree = NodeTree(Node("root", children = listOf(Node("a", 10))))
-
-    val result = TreemapLayout<Node>().layout(tree, viewport)
-
-    assertThat(result.nodePathTo(result.cells.first())).isEmpty()
-  }
-
-  @Test fun `the path to a group ends at the node whose children it stands for`() {
-    val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
-    val tree = NodeTree(Node("root", children = listOf(Node("holder", children = children))))
-
-    val result = TreemapLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
-
-    // A group can't be zoomed into, so double clicking one has to zoom into what holds it.
-    assertThat(result.nodePathTo(result.groups.single()).map { it.name }).containsExactly("holder")
-  }
-
   @Test fun `hit testing returns the deepest cell at a point`() {
     val tree = NodeTree(uniformTree("root", depth = 3, breadth = 2, leafWeight = 1_000_000))
 

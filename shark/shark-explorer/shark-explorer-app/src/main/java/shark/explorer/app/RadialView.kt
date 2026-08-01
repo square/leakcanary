@@ -39,9 +39,8 @@ import shark.explorer.RadialPresentation
  * Draws an already laid out [RadialPresentation]: the root as the disk in the middle and each level as
  * the ring around the one before it, the way DaisyDisk draws a disk.
  *
- * The same gestures as [TreemapView] — a press selects the sector under the pointer, a double click
- * zooms into it, moving over one reports it as hovered — and the same single [Canvas], so the same holds
- * for tests.
+ * The same gestures as [TreemapView] — a press reports the sector under the pointer, moving over one
+ * reports it as hovered — and the same single [Canvas], so the same holds for tests.
  */
 @Composable
 internal fun RadialView(
@@ -50,11 +49,10 @@ internal fun RadialView(
   selected: SelectedCell?,
   /** The sector the pointer is on, which is outlined more lightly than the selected one. */
   hovered: SelectedCell?,
-  onSelect: (LayoutCell<Long>) -> Unit,
   /** The sector the pointer moved onto, or null when it moved onto none or left the view. */
   onHover: (LayoutCell<Long>?) -> Unit,
-  /** The chain of nodes from the current root down to the one double clicked. */
-  onZoomInto: (List<Long>) -> Unit,
+  /** The sector pressed, which is where the window goes. */
+  onClick: (LayoutCell<Long>) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
@@ -93,10 +91,7 @@ internal fun RadialView(
         }
         .pointerInput(presentation) {
           detectTapGestures(
-            onPress = { offset -> presentation.cellAt(offset)?.let(onSelect) },
-            onDoubleTap = { offset ->
-              presentation.cellAt(offset)?.let { onZoomInto(presentation.layout.nodePathTo(it)) }
-            }
+            onPress = { offset -> presentation.cellAt(offset)?.let(onClick) }
           )
         }
     ) {

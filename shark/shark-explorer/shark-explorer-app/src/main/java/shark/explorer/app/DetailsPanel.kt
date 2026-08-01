@@ -41,21 +41,24 @@ import shark.explorer.ObjectGroupKind
 import shark.explorer.ObjectGroupSummary
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
+import shark.explorer.hexObjectId
 
 /**
- * What the object under the pointer is, or the clicked one when the pointer is on nothing, beside whichever
- * screen is showing.
+ * What the clicked object is, beside whichever screen is showing.
  *
- * Everything here that leads somewhere leads there by navigating: clicking a dominator, a field or a
- * button moves the breadcrumbs too, so that what this panel describes is always what they name. Which is
- * also why nothing here acts on the pointed at object rather than the clicked one — reaching this panel
- * means leaving the view, and the pointer leaving the view is what puts the clicked object back.
+ * The clicked one and never the one under the pointer: this panel is a column of everything there is to say
+ * about an object, several screens tall on a real one, and having it follow the mouse across the map made it
+ * unreadable. What the pointer is on gets a chain of its own beside the map — see [HoveredPathPanel].
+ *
+ * Everything here that leads somewhere leads there by navigating, so that what this panel describes stays
+ * what the window is showing: clicking a dominator or a field moves the map to that object as well.
  */
 @Composable
 internal fun DetailsPanel(
   selection: Selection?,
   dominator: ObjectDominator?,
-  paths: PathsSearch,
+  /** Null until the search for the ways the clicked object is held comes back. */
+  paths: IndependentPaths?,
   /** The selected object's pixels, when it's a bitmap anything has the pixels of. */
   bitmap: ImageBitmap?,
   isStarred: Boolean,
@@ -101,28 +104,6 @@ internal fun DetailsPanel(
     }
   }
 }
-
-/**
- * How far the search for the ways an object is held has got.
- *
- * A state of its own rather than a nullable, because the search only runs for a clicked object: it indexes
- * the whole heap dump once and then walks it several times, which is nothing to do as the pointer moves. So
- * a panel describing a rectangle the pointer is merely on says there is a click's worth of work waiting
- * rather than claiming to be searching for something nobody asked for.
- */
-internal sealed interface PathsSearch {
-
-  /** Nobody has asked: the object is being pointed at rather than looked at. */
-  object Unasked : PathsSearch
-
-  object Searching : PathsSearch
-
-  data class Searched(val paths: IndependentPaths) : PathsSearch
-}
-
-/** What the search came back with, or null while it hasn't or wasn't asked for. */
-internal val PathsSearch.found: IndependentPaths?
-  get() = (this as? PathsSearch.Searched)?.paths
 
 /** What the details panel is showing. */
 internal sealed interface Selection {
@@ -183,7 +164,7 @@ private fun ObjectGroupSummary.explanation(): String = when (kind) {
 private fun ObjectDetails(
   summary: HeapObjectSummary,
   dominator: ObjectDominator?,
-  paths: PathsSearch,
+  paths: IndependentPaths?,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
   coloring: CellColoring,
@@ -308,7 +289,7 @@ private fun ObjectDominator.hint(): String = when (kind) {
 @Composable
 private fun IndependentPathsSection(
   objectId: Long,
-  paths: PathsSearch,
+  paths: IndependentPaths?,
   dominator: ObjectDominator?,
   onShowPaths: (Long) -> Unit
 ) {
@@ -316,15 +297,13 @@ private fun IndependentPathsSection(
     return
   }
   SectionHeading(INDEPENDENT_PATHS, INDEPENDENT_PATHS_HINT)
-  val found = paths.found
   when {
-    paths is PathsSearch.Unasked -> Text(CLICK_FOR_PATHS, style = MaterialTheme.typography.bodySmall)
-    found == null -> Text(SEARCHING_PATHS, style = MaterialTheme.typography.bodySmall)
-    found.isStraightFromDominator(dominator) ->
+    paths == null -> Text(SEARCHING_PATHS, style = MaterialTheme.typography.bodySmall)
+    paths.isStraightFromDominator(dominator) ->
       Text(NO_PATHS, style = MaterialTheme.typography.bodySmall)
-    found.paths.isEmpty() -> Text(NO_PATH_FOUND, style = MaterialTheme.typography.bodySmall)
+    paths.paths.isEmpty() -> Text(NO_PATH_FOUND, style = MaterialTheme.typography.bodySmall)
     else -> Button(onClick = { onShowPaths(objectId) }) {
-      Text(found.buttonText())
+      Text(paths.buttonText())
     }
   }
 }
@@ -445,17 +424,11 @@ internal fun Detail(
  */
 internal fun objectIdText(objectId: Long): String = "id $objectId · ${hexObjectId(objectId)}"
 
-/** Hex alone, for the places that name an object in passing, like a breadcrumb. */
-internal fun hexObjectId(objectId: Long): String = "0x${objectId.toString(16)}"
-
-/** Shown by the details panel until something is pointed at. */
-internal const val NO_SELECTION = "Point at a rectangle or a sector to see what it retains."
-
 /**
- * What the panel offers instead of searching for the ways an object is held while the pointer is only
- * passing over it. See [PathsSearch].
+ * Shown by the details panel until something has been clicked, which is what it describes: pointing at a
+ * rectangle draws the chain holding it beside the map instead. See [HoveredPathPanel].
  */
-internal const val CLICK_FOR_PATHS = "Click this object to search for the ways it's held."
+internal const val NO_SELECTION = "Click a rectangle or a sector to see what it retains."
 
 /** The heading of the section naming the one node the tree attributes the object's bytes to. */
 internal const val DOMINATOR = "Dominator"

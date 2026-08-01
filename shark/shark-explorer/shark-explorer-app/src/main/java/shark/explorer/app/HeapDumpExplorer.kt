@@ -1,6 +1,5 @@
 package shark.explorer.app
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,9 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,7 +26,6 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +40,7 @@ import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
+import shark.explorer.IndependentPaths
 import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
 import shark.explorer.NavigationHistory
@@ -57,24 +54,25 @@ import shark.explorer.TreemapLayout
 import shark.explorer.TreemapNavigation
 import shark.explorer.TreemapPresentation
 import shark.explorer.TreemapRect
-import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
+import shark.explorer.hexObjectId
+import shark.explorer.nodeIdText
 
 /**
- * One open heap dump, read through whichever screen the breadcrumbs say: the dominator tree as a treemap
- * or as rings, the ways one object is held, every object as a list, the ones starred so far. The chain
- * holding an object and the details panel sit beside all of them.
+ * One open heap dump, read through one of its screens: the dominator tree as a treemap or as rings, the
+ * ways one object is held, every object as a list, the ones starred so far. The chain holding an object and
+ * the details panel sit beside all of them.
  *
  * Every read of the heap dump goes through [session], which puts it on a thread of its own, so what's
  * drawn is state that arrives a little after whatever asked for it changed: a presentation is a view
  * already laid out and labelled somewhere else, and a selection is a summary already read.
  *
- * Which is what makes moving the pointer over the view worth describing at all: the panels fill in from
- * the rectangle under it, so reading the map is moving the mouse rather than clicking through it. A click
- * still picks one, and is what the panels go back to when the pointer is on nothing — see [DescribedCell].
+ * **A click goes to a rectangle and the pointer asks about one.** So the window is about the object clicked
+ * — the details panel, the chain beside the map, the star, the paths — and what the pointer is on gets one
+ * floating chain of its own, which is enough to tell whether it's worth going there. See [DescribedCell].
  *
- * Where the explorer is, is one [NavigationHistory] of [ExplorerScreen]s, and what the panels describe
- * follows it — a screen the breadcrumbs name and a panel describing something else was the one thing about
+ * Where the explorer is, is one [NavigationHistory] of [ExplorerScreen]s, and what the panes describe
+ * follows it: a window whose panes describe something other than what it is showing was the one thing about
  * this window that read as a bug.
  */
 @Composable
@@ -97,16 +95,16 @@ internal fun HeapDumpExplorer(
   var viewportSize by remember { mutableStateOf(IntSize.Zero) }
   var view by remember { mutableStateOf(ViewState.EMPTY) }
   var isLayingOut by remember { mutableStateOf(true) }
-  /** The cell clicked, which the panels describe whenever the pointer is on none. */
+  /** The cell the window is about, which every pane but the floating chain describes. */
   var clicked: DescribedCell? by remember { mutableStateOf(null) }
-  /** Where the pointer last was on the view, which is what the panels describe while it's there. */
+  /** Where the pointer last was on the view, which is what the floating chain describes while it's there. */
   var pointerCell: DescribedCell? by remember { mutableStateOf(null) }
-  /** What the clicked cell is, kept aside so that the pointer leaving the view puts it back for free. */
+  /** What that cell is, kept while the next one is being read so that the panes never blank out. */
   var clickedDetails: CellDetails? by remember { mutableStateOf(null) }
   /** And what the cell under the pointer is, once it has stayed on one long enough to be read. */
   var hoveredDetails: CellDetails? by remember { mutableStateOf(null) }
-  /** Unasked until an object is clicked: see [PathsSearch]. */
-  var paths: PathsSearch by remember { mutableStateOf(PathsSearch.Unasked) }
+  /** Null until the search for the ways the clicked object is held comes back. */
+  var paths: IndependentPaths? by remember { mutableStateOf(null) }
   var objects by remember { mutableStateOf(ObjectList.EMPTY) }
   var isListing by remember { mutableStateOf(false) }
   /** How many bitmaps this heap dump has and how many of them can be drawn, which fetching changes. */
@@ -127,19 +125,26 @@ internal fun HeapDumpExplorer(
    */
   val describe: (Long) -> Unit = { nodeId ->
     clicked = DescribedCell(
-      cell = SelectedCell(nodeId, isGroup = nodeId < 0L),
+      // Never a group: what a move names is a node of the tree, and the one cell that isn't one stands for
+      // the siblings its parent didn't draw, which nothing leads to.
+      cell = SelectedCell(nodeId, isGroup = false),
       request = SelectionRequest.Object(nodeId)
     )
   }
 
-  // Nothing is under the pointer while the breadcrumbs lead off the map: the view isn't showing, so the
-  // rectangle it was on last is neither where the pointer is now nor what the screen is about.
+  // Nothing is under the pointer while a screen other than the map is showing: the view isn't there, so
+  // the rectangle it was on last is neither where the pointer is now nor what the screen is about.
   val hovered = pointerCell.takeIf { screen is ExplorerScreen.Tree }
-  // What the pointer being where it is leaves to read, which is nothing when it's on the cell already
-  // clicked: the panels are showing that one.
+  // What the pointer being where it is leaves to read, which is nothing when it's on the cell the window is
+  // already about: the panes are describing that one.
   val hoveredRequest = hovered?.request?.takeIf { it != clicked?.request }
-  // Everything the panels describe: the cell under the pointer, or the clicked one when it's on none.
-  val details = if (hoveredRequest == null) clickedDetails else hoveredDetails
+  // What the panes say, which is the cell clicked and never the one under the pointer. The pointer asking
+  // its own questions is what the floating chain is for: a rectangle is pointed at to find out whether it's
+  // worth going to, and having the whole window follow the mouse made that impossible to read.
+  val details = clickedDetails
+  // And what the floating chain says, which is nothing until the cell under the pointer has been read: the
+  // details of the cell before it belong to a rectangle the pointer has left.
+  val hoveredCellDetails = hoveredDetails?.takeIf { it.request == hoveredRequest }
   val describedSummary = (details?.selection as? Selection.Object)?.summary
 
   val treemapLayout = rememberTreemapLayout()
@@ -164,7 +169,7 @@ internal fun HeapDumpExplorer(
   // Resizing, zooming and switching shape all lay the tree out again, which reads the heap dump for
   // every visible label. All of it ends up here, on the heap dump's thread. Keyed on the request rather
   // than on the screen, so that reading a list of objects doesn't lay the map out again and the map is
-  // ready by the time the breadcrumbs lead back to it.
+  // ready by the time a screen is left for it.
   LaunchedEffect(session, viewRequest) {
     if (viewRequest == null) {
       // Which is what a window showing a spinner and nothing else has been waiting for all along.
@@ -180,12 +185,11 @@ internal fun HeapDumpExplorer(
       if (reachablePath.path.size < requested.path.size) {
         SharkLog.d {
           "Rooted at ${reachablePath.path.size} of the ${requested.path.size} nodes zoomed through: " +
-            "${hexObjectId(requested.path[reachablePath.path.size])} is no node of the tree"
+            "${nodeIdText(requested.path[reachablePath.path.size])} is no node of the tree"
         }
       }
       ViewState(
         navigation = reachablePath,
-        crumbs = reachablePath.path.map { objectId -> tree.crumb(objectId) },
         presentation = when (viewRequest.shape) {
           ViewShape.TREEMAP -> ViewPresentation.Treemap(
             tree.present(viewRequest.treemapLayout, viewRequest.viewport, reachablePath.current)
@@ -255,10 +259,9 @@ internal fun HeapDumpExplorer(
     session.describing(clickedRequest) { clickedDetails = it }
   }
 
-  // The same for the cell under the pointer, once it has stayed on one long enough to be looking at it. A
-  // read that has been submitted can't be called off, so without that wait a sweep across the map would
-  // queue a read of the heap dump for every rectangle it crossed and the panels would end up minutes
-  // behind the pointer.
+  // The same for the cell under the pointer, once it has stayed on one long enough to be looking at it.
+  // Without that wait, a sweep across the map would ask about every rectangle it crossed: the reads that
+  // are no longer wanted do get called off, but only where they next read the heap dump.
   LaunchedEffect(session, hoveredRequest) {
     if (hoveredRequest == null) {
       // Whatever was read for the last cell stays where it is: nothing is waiting for it, and the panels
@@ -291,16 +294,13 @@ internal fun HeapDumpExplorer(
   // object — which is also why the panel offers the search rather than claiming to be running it.
   val clickedObjectId = (clickedDetails?.selection as? Selection.Object)?.summary?.objectId
   LaunchedEffect(session, clickedObjectId) {
+    paths = null
     if (clickedObjectId == null) {
-      paths = PathsSearch.Unasked
       return@LaunchedEffect
     }
-    paths = PathsSearch.Searching
-    paths = PathsSearch.Searched(
-      session.read("the paths holding ${hexObjectId(clickedObjectId)}") { explorer ->
-        explorer.tree.independentPathsTo(clickedObjectId)
-      }
-    )
+    paths = session.read("the paths holding ${hexObjectId(clickedObjectId)}") { explorer ->
+      explorer.tree.independentPathsTo(clickedObjectId)
+    }
   }
 
   // Walking up to the GC roots needs an index of which object points at which, and building it is a pass
@@ -339,13 +339,13 @@ internal fun HeapDumpExplorer(
   // of a list leads to is a heap dump read as well.
   LaunchedEffect(session, nodeToOpen) {
     val open = nodeToOpen ?: return@LaunchedEffect
-    val path = session.read("where the map draws ${hexObjectId(open.nodeId)}") { explorer ->
+    val path = session.read("where the map draws ${nodeIdText(open.nodeId)}") { explorer ->
       explorer.tree.pathToOpen(open.nodeId)
     }
     if (open.nodeId != ROOT_NODE && path == listOf(ROOT_NODE)) {
       // Clicking a field or a row led to an object the tree has no node for, so the map has nowhere to
       // go and stays on the whole heap dump.
-      SharkLog.d { "${hexObjectId(open.nodeId)} is nowhere on the map: it is no node of the tree" }
+      SharkLog.d { "${nodeIdText(open.nodeId)} is nowhere on the map: it is no node of the tree" }
     }
     val zoomed = history.current.treeNavigation.zoomInto(path)
     history = history.goTo(
@@ -359,19 +359,26 @@ internal fun HeapDumpExplorer(
     nodeToOpen = null
   }
 
-  val onSelect: (LayoutCell<Long>) -> Unit = { cell ->
-    val described = DescribedCell.of(cell)
-    clicked = described
-    // Recorded on the screen rather than only shown, so that the back arrow returning to the map describes
-    // what was being looked at on it. Cells are the tree's own, so this screen is one.
-    history = history.replacingCurrent(ExplorerScreen.Tree(navigation, described.cell.objectId))
-  }
   // Only what the pointer is on, never where the explorer is: moving the mouse across the map is not a
-  // move, so it leaves the breadcrumbs and the back arrow alone.
+  // move, so it leaves the back arrow alone.
   val onHover: (LayoutCell<Long>?) -> Unit = { cell -> pointerCell = cell?.let { DescribedCell.of(it) } }
-  val onZoomInto: (List<Long>) -> Unit = { path ->
-    history = history.goTo(ExplorerScreen.Tree(navigation.zoomInto(path), path.last()))
-    describe(path.last())
+  /**
+   * Where a click on the view goes, which is wherever was clicked.
+   *
+   * Through the same walk as a click on a line of a panel, so that the two land in the same place: an
+   * object that dominates nothing is shown inside what holds it and described there, rather than as a view
+   * with one rectangle in it and nothing to read.
+   */
+  val onClick: (LayoutCell<Long>) -> Unit = { cell ->
+    val subject = cell.subject
+    if (subject is CellSubject.Group) {
+      // The siblings too small to draw are no node of the tree, so there is nowhere to go: clicking them
+      // says what they are and leaves the map where it is.
+      clicked = DescribedCell.of(cell)
+      history = history.replacingCurrent(ExplorerScreen.Tree(navigation, subject.parent))
+    } else {
+      nodeToOpen = NodeToOpen(DescribedCell.of(cell).cell.objectId, showsPaths = false)
+    }
   }
   /** Shows a node on the map with it selected, and describes it, which is the object detail view. */
   val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = NodeToOpen(nodeId, showsPaths = false) }
@@ -420,15 +427,6 @@ internal fun HeapDumpExplorer(
           describe(history.current.describedNode)
         }
       )
-      Breadcrumbs(
-        crumbs = view.crumbs,
-        trailingCrumb = screen.trailingCrumb,
-        onClick = { objectId ->
-          onGoTo(ExplorerScreen.Tree(navigation.zoomInto(objectId), objectId))
-          describe(objectId)
-        },
-        modifier = Modifier.weight(1f)
-      )
     }
     Row(Modifier.weight(1f)) {
       Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -453,9 +451,8 @@ internal fun HeapDumpExplorer(
               hovered = hovered?.cell,
               isLayingOut = isLayingOut,
               bitmapImages = bitmapImages,
-              onSelect = onSelect,
               onHover = onHover,
-              onZoomInto = onZoomInto,
+              onClick = onClick,
               // Measured here rather than around every screen, so that leaving the map and coming back
               // doesn't lay it out twice for a viewport that ends up the size it already was.
               modifier = Modifier.fillMaxSize().onSizeChanged { viewportSize = it }
@@ -463,7 +460,7 @@ internal fun HeapDumpExplorer(
             is ExplorerScreen.Paths -> PathsScreen(
               target = describedSummary,
               dominator = details?.dominator,
-              paths = paths.found,
+              paths = paths,
               coloring = coloring,
               onOpen = onOpen,
               modifier = Modifier.fillMaxSize()
@@ -497,19 +494,30 @@ internal fun HeapDumpExplorer(
       // Beside the map alone, like the controls above it: the paths screen draws chains of its own the full
       // width of the window, and a list of objects wants that width more than it wants a chain.
       if (screen is ExplorerScreen.Tree) {
-        RootPathPanel(
-          selection = details?.selection,
-          rootPath = details?.rootPath,
-          coloring = coloring,
-          onOpen = onOpen,
-          modifier = Modifier.width(ROOT_PATH_WIDTH).fillMaxHeight()
-        )
+        Box(Modifier.width(ROOT_PATH_WIDTH).fillMaxHeight()) {
+          RootPathPanel(
+            selection = details?.selection,
+            rootPath = details?.rootPath,
+            coloring = coloring,
+            onOpen = onOpen,
+            modifier = Modifier.fillMaxSize()
+          )
+          // Over the chain for the cell clicked rather than in place of it, so that the pointer wandering
+          // across the map never costs the reader the chain they were reading.
+          if (hoveredRequest != null) {
+            HoveredPathPanel(
+              selection = hoveredCellDetails?.selection,
+              rootPath = hoveredCellDetails?.rootPath,
+              coloring = coloring,
+              modifier = Modifier.fillMaxSize().padding(HOVER_PANEL_INSET)
+            )
+          }
+        }
       }
       DetailsPanel(
         selection = details?.selection,
         dominator = details?.dominator,
-        // The search only ever runs for the clicked object, so a panel describing another one says so.
-        paths = if (hoveredRequest == null) paths else PathsSearch.Unasked,
+        paths = paths,
         bitmap = describedBitmap,
         isStarred = favourites.any { it.objectId == describedSummary?.objectId },
         coloring = coloring,
@@ -568,7 +576,7 @@ private fun ScreenBar(
     verticalAlignment = Alignment.CenterVertically
   ) {
     TextButton(onClick = onListObjects) {
-      Text(ExplorerScreen.OBJECTS_CRUMB)
+      Text(ExplorerScreen.OBJECTS_LABEL)
     }
     TextButton(onClick = onShowStarred, enabled = starredCount > 0) {
       Text("$STARRED_GLYPH $starredCount starred")
@@ -593,9 +601,8 @@ private fun TreeScreen(
   isLayingOut: Boolean,
   /** The pixels read for the bitmaps of the treemap so far, by object id. */
   bitmapImages: Map<Long, ImageBitmap>,
-  onSelect: (LayoutCell<Long>) -> Unit,
   onHover: (LayoutCell<Long>?) -> Unit,
-  onZoomInto: (List<Long>) -> Unit,
+  onClick: (LayoutCell<Long>) -> Unit,
   modifier: Modifier = Modifier
 ) {
   // A shape drawn into one canvas is nothing to anything that isn't looking at it, which is what this
@@ -609,9 +616,8 @@ private fun TreeScreen(
         selected = selected,
         bitmapImages = bitmapImages,
         hovered = hovered,
-        onSelect = onSelect,
         onHover = onHover,
-        onZoomInto = onZoomInto,
+        onClick = onClick,
         modifier = Modifier.fillMaxSize()
       )
       is ViewPresentation.Radial -> RadialView(
@@ -619,9 +625,8 @@ private fun TreeScreen(
         coloring = coloring,
         selected = selected,
         hovered = hovered,
-        onSelect = onSelect,
         onHover = onHover,
-        onZoomInto = onZoomInto,
+        onClick = onClick,
         modifier = Modifier.fillMaxSize()
       )
     }
@@ -645,54 +650,6 @@ private fun HistoryArrows(
   TextButton(onClick = onForward, enabled = canGoForward) {
     Text(FORWARD_ARROW)
   }
-}
-
-/**
- * Where the explorer is: the path down the tree, and the screen it was left for.
- *
- * Every crumb but the last leads back to the map, which is what makes a screen reached from it something
- * to come back from rather than somewhere else entirely.
- */
-@Composable
-private fun Breadcrumbs(
-  crumbs: List<Crumb>,
-  trailingCrumb: String?,
-  onClick: (Long) -> Unit,
-  modifier: Modifier = Modifier
-) {
-  Row(
-    modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    val isTreeLast = trailingCrumb == null
-    crumbs.forEachIndexed { index, crumb ->
-      if (index > 0) {
-        Text(BREADCRUMB_SEPARATOR, style = MaterialTheme.typography.bodyMedium)
-      }
-      if (isTreeLast && index == crumbs.lastIndex) {
-        CurrentCrumb(crumb.label)
-      } else {
-        TextButton(onClick = { onClick(crumb.objectId) }) {
-          Text(crumb.label, maxLines = 1)
-        }
-      }
-    }
-    if (trailingCrumb != null) {
-      Text(BREADCRUMB_SEPARATOR, style = MaterialTheme.typography.bodyMedium)
-      CurrentCrumb(trailingCrumb)
-    }
-  }
-}
-
-/** The last crumb, which is where the explorer is and therefore leads nowhere. */
-@Composable
-private fun CurrentCrumb(label: String) {
-  Text(
-    label,
-    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-    style = MaterialTheme.typography.bodyMedium,
-    fontWeight = FontWeight.Bold
-  )
 }
 
 /**
@@ -727,19 +684,6 @@ private fun rememberRadialLayout(): RadialLayout<Long> {
   }
 }
 
-/** What one breadcrumb says about a node of the tree. */
-private fun HeapDominatorTreemap.crumb(objectId: Long): Crumb = Crumb(
-  objectId = objectId,
-  label = listOfNotNull(
-    label(objectId),
-    formatByteSize(weight(objectId)),
-    // Which instance, not just which class: the id is how anything outside this window — a script, a
-    // colleague, another heap analyzer — is pointed at the same object. Only the tree's own nodes have
-    // none, the root and the piles of objects it gathers.
-    hexObjectId(objectId).takeIf { objectId > 0L }
-  ).joinToString(CRUMB_SEPARATOR)
-)
-
 /**
  * Everything one view of the tree follows from, which is therefore everything that lays it out again:
  * where the map is, how big the view is, which shape it's drawn as, and the thresholds that shape is laid
@@ -770,21 +714,19 @@ private data class ViewRequest(
 
 /** What is being laid out, for the log. See [HeapDumpSession.read]. */
 private fun ViewRequest.description(): String =
-  "the ${shape.displayName.lowercase()} rooted at ${hexObjectId(navigation.current)}, " +
+  "the ${shape.displayName.lowercase()} rooted at ${nodeIdText(navigation.current)}, " +
     "${viewportSize.width}×${viewportSize.height}"
 
 /** Everything read off the heap dump's thread to draw one view of the tree. */
 internal class ViewState(
   /** The path actually laid out, which can be shorter than the one asked for. */
   val navigation: TreemapNavigation<Long>,
-  val crumbs: List<Crumb>,
   val presentation: ViewPresentation
 ) {
   companion object {
     /** Nothing laid out yet. An empty treemap and an empty radial view draw the same nothing. */
     val EMPTY = ViewState(
       navigation = TreemapNavigation(HeapDominatorTreemap.ROOT_OBJECT_ID),
-      crumbs = emptyList(),
       presentation = ViewPresentation.Treemap(TreemapPresentation.EMPTY)
     )
   }
@@ -806,11 +748,6 @@ private fun ViewPresentation.description(): String = when (this) {
     "${presentation.cells.size} sectors, ${presentation.truncatedNodeCount} nodes not expanded"
 }
 
-internal class Crumb(
-  val objectId: Long,
-  val label: String
-)
-
 /** A node a panel line or a row of a list led to, and what to show once the map has been walked to it. */
 private data class NodeToOpen(
   val nodeId: Long,
@@ -819,11 +756,11 @@ private data class NodeToOpen(
 )
 
 /**
- * A cell the panels describe: which one to outline, and what to read the heap dump for.
+ * A cell described somewhere in the window: which one to outline, and what to read the heap dump for.
  *
- * There are two of these at a time — the cell clicked and the cell under the pointer — and the panels
- * describe the second when there is one and the first otherwise. Which is what makes moving the pointer off
- * the map free: the clicked cell's details were never thrown away, so putting them back is not a read.
+ * There are two of these at a time — the cell clicked, which the panels are about, and the cell under the
+ * pointer, which the floating chain is. Keeping them apart is what makes moving the pointer off the map
+ * free: the clicked cell's details were never thrown away, so putting the chain for it back is not a read.
  */
 private data class DescribedCell(
   val cell: SelectedCell,
@@ -844,6 +781,8 @@ private data class DescribedCell(
  * far: what a rectangle stands for should never wait on a walk up to the GC roots.
  */
 private class CellDetails(
+  /** Which cell these are of, so that a pane can tell them from the ones it is waiting to replace. */
+  val request: SelectionRequest,
   val selection: Selection?,
   val dominator: ObjectDominator?,
   /** Null until the walk up to the GC roots comes back. */
@@ -872,7 +811,7 @@ private suspend fun HeapDumpSession.describing(
           // Which is why the panel goes back to saying nothing is selected.
           else -> {
             SharkLog.d {
-              "Nothing to describe for ${hexObjectId(request.objectId)}: it is no node of the tree"
+              "Nothing to describe for ${nodeIdText(request.objectId)}: it is no node of the tree"
             }
             null
           }
@@ -888,6 +827,7 @@ private suspend fun HeapDumpSession.describing(
     // and it belongs in the same read: two of them means the panel showing a dominator a beat late.
     val objectId = (selection as? Selection.Object)?.summary?.objectId
     CellDetails(
+      request = request,
       selection = selection,
       dominator = objectId?.let { tree.dominatorOf(it) },
       rootPath = null
@@ -900,6 +840,7 @@ private suspend fun HeapDumpSession.describing(
   }
   onDetails(
     CellDetails(
+      request = request,
       selection = cellDetails.selection,
       dominator = cellDetails.dominator,
       rootPath = rootPath
@@ -930,8 +871,8 @@ private sealed interface SelectionRequest {
 
 /** What the panel is being filled in for, for the log. See [HeapDumpSession.read]. */
 private fun SelectionRequest.description(): String = when (this) {
-  is SelectionRequest.Object -> "what ${hexObjectId(objectId)} is"
-  is SelectionRequest.Group -> "what the $nodeCount objects under ${hexObjectId(parentObjectId)} are"
+  is SelectionRequest.Object -> "what ${nodeIdText(objectId)} is"
+  is SelectionRequest.Group -> "what the $nodeCount objects under ${nodeIdText(parentObjectId)} are"
 }
 
 private const val ROOT_NODE = HeapDominatorTreemap.ROOT_OBJECT_ID
@@ -950,14 +891,9 @@ private const val HOVER_SETTLE_MILLIS = 100L
 internal const val BACK_ARROW = "←"
 internal const val FORWARD_ARROW = "→"
 
-internal const val BREADCRUMB_SEPARATOR = "›"
-
 /** What the button that goes back to the live process offers, before it says how many bitmaps. */
 internal const val FETCH_BITMAPS = "Fetch the pixels of"
 
 /** What the tree looks like to anything that can't look at it, a screen reader or a test. */
 internal const val VIEW_DESCRIPTION =
   "The dominator tree of the heap dump: every cell is an object, drawn inside the one that holds it."
-
-/** What a crumb puts between what a node is, what it retains, and which object it is. */
-private const val CRUMB_SEPARATOR = " · "

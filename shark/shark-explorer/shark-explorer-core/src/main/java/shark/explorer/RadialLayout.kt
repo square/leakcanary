@@ -76,9 +76,6 @@ class RadialLayoutResult<N>(
     val angle = Math.toDegrees(atan2(dy, dx))
     return cells.firstOrNull { it.arc.contains(radius, angle) }
   }
-
-  /** See [nodePathTo]. */
-  fun nodePathTo(cell: RadialCell<N>): List<N> = cells.map { it.subject }.nodePathTo(cell.subject)
 }
 
 /**

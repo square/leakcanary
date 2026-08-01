@@ -38,8 +38,8 @@ import shark.explorer.TreemapPresentation
 /**
  * Draws an already laid out [TreemapPresentation], filling the available space.
  *
- * A press selects the rectangle under the pointer, a double click zooms into it, and moving over one
- * reports it as hovered, which is what the panels beside the view describe. Everything is drawn into a
+ * A press reports the rectangle under the pointer, which is what the window goes to, and moving over one
+ * reports it as hovered, which is what the chain beside the view describes. Everything is drawn into a
  * single [Canvas], so there are no per-rectangle composables: see this module's `AGENTS.md` for what that
  * means for tests.
  *
@@ -55,11 +55,10 @@ internal fun TreemapView(
   bitmapImages: Map<Long, ImageBitmap>,
   /** The rectangle the pointer is on, which is outlined more lightly than the selected one. */
   hovered: SelectedCell?,
-  onSelect: (LayoutCell<Long>) -> Unit,
   /** The rectangle the pointer moved onto, or null when it moved onto none or left the view. */
   onHover: (LayoutCell<Long>?) -> Unit,
-  /** The chain of nodes from the current root down to the one double clicked. */
-  onZoomInto: (List<Long>) -> Unit,
+  /** The rectangle pressed, which is where the window goes. */
+  onClick: (LayoutCell<Long>) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
@@ -73,7 +72,6 @@ internal fun TreemapView(
         colors = colors,
         textMeasurer = textMeasurer,
         density = density,
-        isSubdivided = presentation.layout.isSubdivided(presented.cell),
         image = presented.imageOf(bitmapImages)
       )
     }
@@ -117,13 +115,9 @@ internal fun TreemapView(
         }
         .pointerInput(presentation, edgeGrab) {
           detectTapGestures(
-            // On press rather than on tap: with a double click handler installed, a tap is only
-            // reported once the double click window has passed, which makes selection feel stuck.
-            onPress = { offset -> presentation.cellAt(offset, edgeGrab)?.let(onSelect) },
-            onDoubleTap = { offset ->
-              presentation.cellAt(offset, edgeGrab)
-                ?.let { onZoomInto(presentation.layout.nodePathTo(it)) }
-            }
+            // On press rather than on tap, which is immediate: with nothing waiting for a second click,
+            // a tap handler would still hold every click for the double click window.
+            onPress = { offset -> presentation.cellAt(offset, edgeGrab)?.let(onClick) }
           )
         }
     ) {
@@ -136,7 +130,11 @@ internal fun TreemapView(
       // before API 26, nothing at all after — and the image belongs over that rather than under it.
       // Still under every outline, so the nesting a bitmap sits in stays readable.
       cells.forEach { cell -> drawImage(cell) }
-      cells.forEach { cell -> drawOutlineAndLabel(cell) }
+      cells.forEach { cell -> drawOutline(cell) }
+      // And the current root's own children last, over whatever is nested inside them: the one level the
+      // view names is the level being read, and its rectangles are the ones a click walks into.
+      cells.forEach { cell -> if (cell.isRootChild) drawSeparator(cell) }
+      cells.forEach { cell -> if (cell.isRootChild) drawLabel(cell) }
       // On top of everything: a selected or hovered rectangle that has children would otherwise have most
       // of its outline painted over by them. The hover outline goes under the selection's, so that the two
       // landing on one rectangle reads as selected rather than as hovered.
@@ -176,9 +174,11 @@ private class MeasuredCell(
   val color: Color,
   val borderColor: Color,
   val outline: Stroke,
+  /** Whether this rectangle is one of the current root's own children, which are the named level. */
+  val isRootChild: Boolean,
   val labelColor: Color,
   val labelOffset: Offset,
-  /** Null when the rectangle is too small for a readable label. */
+  /** Null when the rectangle is too small for a readable label, or when it isn't a named one. */
   val label: TextLayoutResult?,
   /** The bitmap's pixels and where they go, for a cell that is a bitmap the dump has the pixels of. */
   val image: ImageBitmap?,
@@ -196,16 +196,19 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
   colors: CellColors,
   textMeasurer: TextMeasurer,
   density: Density,
-  /** Whether something is drawn inside this cell, which would cover a label anyway. */
-  isSubdivided: Boolean,
   image: ImageBitmap?
 ): MeasuredCell {
   val rect = cell.rect
   val labelPadding = with(density) { LABEL_PADDING.toPx() }
   val labelWidth = rect.width - 2 * labelPadding
-  // An image covers the rectangle, so a label on it would be text over a picture. The chain at the
-  // bottom of the view names what the pointer is on, which is where the name of a bitmap is read.
-  val fitsALabel = !isSubdivided && image == null &&
+  // Only the current root's own children are named, and every one of them that has the room for it is,
+  // nested contents and pictures included: the label goes over those rather than under them.
+  //
+  // Naming every rectangle instead is what made a treemap of a real dump unreadable — a hundred class
+  // names in half a dozen levels, each of them the name of something the level below it covers. The one
+  // level being read is named on the map, and the chain beside it names what the pointer is on.
+  val isRootChild = cell.depth == ROOT_CHILD_DEPTH
+  val fitsALabel = isRootChild &&
     labelWidth >= with(density) { MIN_LABEL_WIDTH.toPx() } &&
     rect.height >= with(density) { MIN_LABEL_HEIGHT.toPx() }
   val topLeft = Offset(rect.left.toFloat(), rect.top.toFloat())
@@ -218,6 +221,7 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
     color = colors.colorOf(this),
     borderColor = colors.borderOf(this),
     outline = outlineOf(content),
+    isRootChild = isRootChild,
     labelColor = colors.label,
     labelOffset = Offset(labelPadding, labelPadding),
     label = if (fitsALabel) {
@@ -252,18 +256,47 @@ private fun DrawScope.drawImage(cell: MeasuredCell) {
   )
 }
 
-private fun DrawScope.drawOutlineAndLabel(cell: MeasuredCell) {
+private fun DrawScope.drawOutline(cell: MeasuredCell) {
   drawRect(
     color = cell.borderColor,
     topLeft = cell.topLeft,
     size = cell.size,
     style = cell.outline
   )
-  cell.label?.let { label ->
-    drawText(
-      textLayoutResult = label,
-      color = cell.labelColor,
-      topLeft = cell.topLeft + cell.labelOffset
+}
+
+/**
+ * The line around one of the current root's own children, which is the boundary the map is read by.
+ *
+ * Heavier than any outline inside it and drawn over all of them: the levels below cover their parent
+ * exactly, so without this the edge between two children looks like every other edge on the map.
+ */
+private fun DrawScope.drawSeparator(cell: MeasuredCell) {
+  drawRect(
+    color = ROOT_CHILD_BORDER_COLOR,
+    topLeft = cell.topLeft,
+    size = cell.size,
+    style = Stroke(width = ROOT_CHILD_BORDER_WIDTH)
+  )
+}
+
+/**
+ * What one of those children is, over whatever is nested inside it.
+ *
+ * On a translucent plate rather than straight onto the map, because the text sits over rectangles, bitmaps
+ * and outlines it has no say over: solid text on a washed out background is readable against all of them
+ * while still letting what it covers show through.
+ */
+private fun DrawScope.drawLabel(cell: MeasuredCell) {
+  val label = cell.label ?: return
+  val plate = cell.topLeft + cell.labelOffset
+  drawRect(
+    color = LABEL_PLATE_COLOR,
+    topLeft = Offset(plate.x - LABEL_PLATE_PADDING, plate.y - LABEL_PLATE_PADDING),
+    size = Size(
+      label.size.width + 2 * LABEL_PLATE_PADDING,
+      label.size.height + 2 * LABEL_PLATE_PADDING
     )
-  }
+  )
+  drawText(textLayoutResult = label, color = cell.labelColor, topLeft = plate)
 }

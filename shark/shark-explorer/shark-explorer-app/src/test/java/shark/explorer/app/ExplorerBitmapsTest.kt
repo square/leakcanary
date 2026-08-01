@@ -25,7 +25,6 @@ import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
-import shark.explorer.HeapDominatorTreemap
 
 /**
  * Covers what the window does about a bitmap: shows the picture when the heap dump has the pixels, and
@@ -42,7 +41,7 @@ class ExplorerBitmapsTest {
   @Test fun `a bitmap the heap dump has the pixels of is shown`() {
     runComposeUiTest {
       openHeapDump(bitmapHeapDump(hasPixels = true))
-      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
       waitUntilAtLeastOneExists(hasText(BITMAP_ROW), OPEN_TIMEOUT_MILLIS)
 
       onNodeWithText(BITMAP_ROW).performClick()
@@ -109,10 +108,7 @@ class ExplorerBitmapsTest {
         )
       }
     }
-    waitUntilAtLeastOneExists(
-      hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
-      OPEN_TIMEOUT_MILLIS
-    )
+    waitForTheTree(OPEN_TIMEOUT_MILLIS)
   }
 
   /** A button on the row of screens an open heap dump can be read through. */

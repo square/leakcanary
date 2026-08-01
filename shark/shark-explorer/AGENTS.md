@@ -272,9 +272,14 @@ numbers belong in `notes/bitmaps.md`.
   comes with a pointer arriving, so a single injected `moveTo` reports nothing hovered. `hover()` in
   `ExplorerUiTest.kt` moves twice; `notes/decisions.md` says why the views read events that way.
 - **Each shape draws into a single `Canvas`, so there are no per-cell semantics nodes.** UI
-  tests can't find cells by tag. Test layout and hit testing as pure functions in
-  `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on
-  the details panel and breadcrumbs.
+  tests can't find cells by tag, and **not by label either** — a cell's label is painted text, so no
+  assertion and no wait can reach it. Test layout and hit testing as pure functions in
+  `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on the
+  panels beside the view: the chain of objects holding what the map is on, and the details panel.
+- **A UI test knows the map is drawn through `waitForTheTree`**, which waits for the view's
+  `contentDescription` with nothing left spinning, because the drawn map itself adds no text to the
+  window. Where "the map *moved*" is the point rather than "the map is there", wait on the log line
+  every layout writes instead — `ExplorerAppTest.waitUntilZoomedIn`.
 - **A headless test can write a PNG of what Skia drew**, which is how an agent gets to look at this
   UI at all: `onRoot().captureToImage().toAwtImage()` and `ImageIO.write`, after a
   `performMouseInput`, renders the hover highlight and the path bar the same as a real window does.

@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
@@ -118,6 +119,26 @@ internal val MIN_LABEL_WIDTH = 24.dp
 internal val MIN_LABEL_HEIGHT = 13.dp
 internal const val BORDER_WIDTH = 1f
 internal const val SELECTION_WIDTH = 3f
+
+/**
+ * How deep the children of the node the view is rooted at are, which are the ones the map names and marks
+ * off from each other. The root itself fills the viewport, so its own outline is the view's edge.
+ */
+internal const val ROOT_CHILD_DEPTH = 1
+
+/** Heavier than a selection's outline, because it says what the whole map is divided into. */
+internal const val ROOT_CHILD_BORDER_WIDTH = 4f
+
+/** Near black rather than the fill's own border colour, so that the division reads at a glance. */
+internal val ROOT_CHILD_BORDER_COLOR = Color(0xFF1A1A1A)
+
+/**
+ * What a name on the map is drawn on: light enough to read solid text against, see through enough to leave
+ * the rectangles and bitmaps under it visible.
+ */
+internal val LABEL_PLATE_COLOR = Color(0xB8FFFFFF)
+
+internal const val LABEL_PLATE_PADDING = 2f
 
 /**
  * Thinner than the selection's outline, because the pointer is already saying where it is: this only has

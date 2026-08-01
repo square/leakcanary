@@ -23,7 +23,6 @@ import shark.explorer.AdbOutput
 import shark.explorer.BitmapDebugger
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.EncodedImageFormat
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.NativeBitmapPixels
 
 /**
@@ -51,7 +50,7 @@ class TakeHeapDumpTest {
       onNodeWithText(PROCESS_ROW).performClick()
 
       // No file dialog and no path to type: the dump the device just wrote is the one being explored.
-      waitUntilAtLeastOneExists(hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true), TIMEOUT_MILLIS)
+      waitForTheTree(TIMEOUT_MILLIS)
       // And it came with the pixels of its bitmaps in it, so there is nothing left to go and fetch.
       assertThat(onAllNodesWithText(FETCH_BITMAPS, substring = true).fetchSemanticsNodes()).isEmpty()
     }
@@ -97,7 +96,7 @@ class TakeHeapDumpTest {
       onNodeWithText(FETCH_BITMAPS_WITH_DUMP).performClick()
       onNodeWithText(PROCESS_ROW).performClick()
 
-      waitUntilAtLeastOneExists(hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true), TIMEOUT_MILLIS)
+      waitForTheTree(TIMEOUT_MILLIS)
       // The pixels the debugger read are already in, so the dump opens with its pictures and there is
       // nothing left to go back for — which is the whole point of doing it in one go.
       assertThat(onAllNodesWithText(FETCH_BITMAPS, substring = true).fetchSemanticsNodes()).isEmpty()
@@ -119,7 +118,7 @@ class TakeHeapDumpTest {
 
       // Tens of megabytes were pulled before the fetch was even tried, so the dump opens either way,
       // with the fetch still on offer from the window.
-      waitUntilAtLeastOneExists(hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true), TIMEOUT_MILLIS)
+      waitForTheTree(TIMEOUT_MILLIS)
       waitUntilAtLeastOneExists(hasText(FETCH_BITMAPS, substring = true), TIMEOUT_MILLIS)
     }
   }

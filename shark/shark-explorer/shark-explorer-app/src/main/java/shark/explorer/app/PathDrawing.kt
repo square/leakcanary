@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import shark.ReferenceLocationType
 import shark.explorer.PathReference
@@ -58,13 +59,14 @@ internal fun PathHeadRow(
   nextStrength: ReachabilityStrength?,
   /** The object the label names, when it is one and can therefore be opened. */
   nodeId: Long?,
-  onOpen: (Long) -> Unit
+  onOpen: (Long) -> Unit,
+  detail: PathDetail = PathDetail.FULL
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     Canvas(Modifier.width(GUTTER_WIDTH).fillMaxHeight()) {
       drawConnector(nodeColor = null, incoming = null, outgoing = nextStrength, role = PathRole.STEP)
     }
-    Column(Modifier.padding(bottom = 8.dp)) {
+    Column(Modifier.padding(bottom = detail.rowSpacing)) {
       Text(
         label,
         modifier = if (nodeId != null) Modifier.clickable { onOpen(nodeId) } else Modifier,
@@ -85,7 +87,8 @@ internal fun PathStepRow(
   nextStrength: ReachabilityStrength?,
   coloring: CellColoring,
   onOpen: (Long) -> Unit,
-  role: PathRole = PathRole.STEP
+  role: PathRole = PathRole.STEP,
+  detail: PathDetail = PathDetail.FULL
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     Canvas(Modifier.width(GUTTER_WIDTH).fillMaxHeight()) {
@@ -97,9 +100,9 @@ internal fun PathStepRow(
         role = role
       )
     }
-    Column(Modifier.padding(bottom = 8.dp)) {
-      ClassNameLine(step, onOpen)
-      if (role == PathRole.DOMINATOR) {
+    Column(Modifier.padding(bottom = detail.rowSpacing)) {
+      ClassNameLine(step, onOpen, detail)
+      if (role == PathRole.DOMINATOR && detail == PathDetail.FULL) {
         // In words as well as with the ring: a chain from a GC root runs through a dozen objects, and
         // which of them the treemap draws this one inside is the whole reason to read it.
         Text(
@@ -109,12 +112,14 @@ internal fun PathStepRow(
           fontWeight = FontWeight.Bold
         )
       }
-      step.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-      if (step.retainedCount > 0) {
-        Text(
-          "Retaining ${formatByteSize(step.retainedSize)} in " + formatObjectCount(step.retainedCount),
-          style = MaterialTheme.typography.bodySmall
-        )
+      if (detail == PathDetail.FULL) {
+        step.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        if (step.retainedCount > 0) {
+          Text(
+            "Retaining ${formatByteSize(step.retainedSize)} in " + formatObjectCount(step.retainedCount),
+            style = MaterialTheme.typography.bodySmall
+          )
+        }
       }
       if (step.strength != ReachabilityStrength.STRONG) {
         Text(
@@ -123,12 +128,31 @@ internal fun PathStepRow(
           color = legendColor(coloring, step.strength)
         )
       }
-      step.inspectorLabels.forEach { label ->
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+      if (detail == PathDetail.FULL) {
+        step.inspectorLabels.forEach { label ->
+          Text(label, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+        }
       }
       reference?.let { ReferenceLine(it) }
     }
   }
+}
+
+/**
+ * How much a chain says about each of its objects.
+ *
+ * A chain from a GC root down to a bitmap of a real app runs through a dozen objects and can be cut at
+ * twenty, and everything worth saying about each of them is four lines: that chain is taller than any
+ * window. So a chain the reader is only glancing at says as little as still names the object, and the one
+ * they stopped on says all of it.
+ */
+internal enum class PathDetail(val rowSpacing: Dp) {
+
+  /** What each object is, what it retains, what an inspector makes of it, and what holds the next. */
+  FULL(8.dp),
+
+  /** Its class and the field the object above holds it in, with its retained size beside the class. */
+  BRIEF(2.dp)
 }
 
 /** What one object of a chain is to the object the chain leads to, drawn as a ring around its circle. */
@@ -154,24 +178,32 @@ internal enum class PathRole {
 @Composable
 private fun ClassNameLine(
   step: PathStep,
-  onOpen: (Long) -> Unit
+  onOpen: (Long) -> Unit,
+  detail: PathDetail
 ) {
   val simpleName = step.className.substringAfterLast('.')
   val packageName = step.className.substringBeforeLast('.', missingDelimiterValue = "")
   val text = buildAnnotatedString {
-    if (packageName.isNotEmpty()) {
+    if (detail == PathDetail.FULL && packageName.isNotEmpty()) {
       withStyle(SpanStyle(color = MUTED_TEXT)) { append("$packageName.") }
     }
     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(simpleName) }
-    withStyle(SpanStyle(color = MUTED_TEXT)) { append(" ${step.kind.typeName}") }
+    if (detail == PathDetail.FULL) {
+      withStyle(SpanStyle(color = MUTED_TEXT)) { append(" ${step.kind.typeName}") }
+    } else if (step.retainedCount > 0) {
+      // On the class name's own line rather than under it, which is the one place a brief chain has room
+      // for how much of the heap a step holds — and that is what the map is being read for.
+      withStyle(SpanStyle(color = MUTED_TEXT)) { append(" · ${formatByteSize(step.retainedSize)}") }
+    }
   }
+  // Nothing to open from a chain that only shows while the pointer is somewhere else, and folded objects
+  // are drawn nowhere either: a string's characters are counted inside the string.
+  val isClickable = step.isInspectable && detail == PathDetail.FULL
   Text(
     text,
-    // Folded objects are drawn nowhere, so there is nowhere to take a click on one: a string's characters
-    // are counted inside the string.
-    modifier = if (step.isInspectable) Modifier.clickable { onOpen(step.objectId) } else Modifier,
+    modifier = if (isClickable) Modifier.clickable { onOpen(step.objectId) } else Modifier,
     style = MaterialTheme.typography.bodyMedium,
-    color = if (step.isInspectable) LINK_COLOR else Color.Unspecified
+    color = if (isClickable) LINK_COLOR else Color.Unspecified
   )
 }
 
