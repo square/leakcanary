@@ -31,6 +31,7 @@ class ClassReferenceReader(
 
   override fun read(source: HeapClass): Sequence<Reference> {
     val ignoredStaticFields = staticFieldNameByClassName[source.name] ?: emptyMap()
+    val graph = source.graph
 
     return source.readStaticFields().mapNotNull { staticField ->
       // not non null: no null + no primitives.
@@ -52,6 +53,15 @@ class ClassReferenceReader(
       // Note: instead of calling staticField.value.asObjectId!! we cast holder to ReferenceHolder
       // and access value directly. This allows us to avoid unnecessary boxing of Long.
       val valueObjectId = (staticField.value.holder as ReferenceHolder).value
+
+      // A class can reference an object that the heap dump doesn't contain: when a class fails to
+      // load, ART creates the matching array class anyway and points its $class$componentType at
+      // the class object that failed, yet never dumps that class object. Reading GC roots and
+      // object array elements skips missing objects for the same reason. See #2567.
+      if (!graph.objectExists(valueObjectId)) {
+        return@mapNotNull null
+      }
+
       val referenceMatcher = ignoredStaticFields[fieldName]
 
       if (referenceMatcher is IgnoredReferenceMatcher) {
