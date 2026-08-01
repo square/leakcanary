@@ -2,7 +2,6 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
-    <ID>ChainWrapping:HeapDumpRenderer.kt$HeapDumpRenderer$&amp;&amp;</ID>
     <ID>ChainWrapping:LeakCanaryTextView.kt$LeakCanaryTextView$+</ID>
     <ID>ChainWrapping:SquigglySpanRenderer.kt$SquigglySpanRenderer.Companion$||</ID>
     <ID>FinalNewline:HeapAnalysisTable.kt$leakcanary.internal.activity.db.HeapAnalysisTable.kt</ID>
@@ -43,7 +42,6 @@
     <ID>NoConsecutiveBlankLines:InternalLeakCanary.kt$InternalLeakCanary$ </ID>
     <ID>NoConsecutiveBlankLines:LeakCanary.kt$LeakCanary.Config.Builder$ </ID>
     <ID>NoConsecutiveBlankLines:LeakCanaryAndroidInternalUtils.kt$ </ID>
-    <ID>NoConsecutiveBlankLines:RenderHeapDumpScreen.kt$ </ID>
     <ID>NoMultipleSpaces:LogcatEventListener.kt$LogcatEventListener$ </ID>
     <ID>NoMultipleSpaces:NotificationEventListener.kt$NotificationEventListener$ </ID>
     <ID>NoSemicolons:NotificationType.kt$NotificationType.LEAKCANARY_MAX$;</ID>

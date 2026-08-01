@@ -78,13 +78,6 @@ internal class HeapDumpScreen(
             true
           }
       }
-      if (heapDumpFileExist) {
-        menu.add(R.string.leak_canary_options_menu_render_heap_dump)
-          .setOnMenuItemClickListener {
-            goTo(RenderHeapDumpScreen(heapAnalysis.heapDumpFile))
-            true
-          }
-      }
     }
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)

@@ -22,7 +22,7 @@ class ReleaseExampleApplication : ExampleApplication() {
     LogcatSharkLog.install()
 
     val analysisClient = HeapAnalysisClient(
-      heapDumpDirectoryProvider = { cacheDir },
+      heapDumpDirectoryProvider = { noBackupFilesDir },
       config = HeapAnalysisConfig(),
       interceptors = HeapAnalysisClient.defaultInterceptors(this)
     )

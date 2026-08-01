@@ -123,14 +123,12 @@ object LeakCanary {
     val maxStoredHeapDumps: Int = 7,
 
     /**
-     * LeakCanary always attempts to store heap dumps on the external storage if the
-     * WRITE_EXTERNAL_STORAGE is already granted, and otherwise uses the app storage.
-     * If the WRITE_EXTERNAL_STORAGE permission is not granted and
-     * [requestWriteExternalStoragePermission] is true, then LeakCanary will display a notification
-     * to ask for that permission.
-     *
-     * Defaults to false because that permission notification can be annoying.
+     * No longer does anything. LeakCanary used to store heap dumps in the public `Download`
+     * directory when the app held the `WRITE_EXTERNAL_STORAGE` permission, and would show a
+     * notification asking for that permission when this was true. Heap dumps are now always stored
+     * in the app's own storage, which needs no permission on any Android version.
      */
+    @Deprecated("LeakCanary no longer stores heap dumps on the external storage, so this does nothing.")
     val requestWriteExternalStoragePermission: Boolean = false,
 
     /**
@@ -241,6 +239,8 @@ object LeakCanary {
       private var metadataExtractor = config.metadataExtractor
       private var computeRetainedHeapSize = config.computeRetainedHeapSize
       private var maxStoredHeapDumps = config.maxStoredHeapDumps
+
+      @Suppress("DEPRECATION")
       private var requestWriteExternalStoragePermission =
         config.requestWriteExternalStoragePermission
       private var leakingObjectFinder = config.leakingObjectFinder
@@ -281,6 +281,7 @@ object LeakCanary {
         apply { this.maxStoredHeapDumps = maxStoredHeapDumps }
 
       /** @see [LeakCanary.Config.requestWriteExternalStoragePermission] */
+      @Deprecated("LeakCanary no longer stores heap dumps on the external storage, so this does nothing.")
       fun requestWriteExternalStoragePermission(requestWriteExternalStoragePermission: Boolean) =
         apply { this.requestWriteExternalStoragePermission = requestWriteExternalStoragePermission }
 
@@ -301,6 +302,7 @@ object LeakCanary {
         apply { this.showNotifications = showNotifications }
 
 
+      @Suppress("DEPRECATION")
       fun build() = config.copy(
         dumpHeap = dumpHeap,
         dumpHeapWhenDebugging = dumpHeapWhenDebugging,

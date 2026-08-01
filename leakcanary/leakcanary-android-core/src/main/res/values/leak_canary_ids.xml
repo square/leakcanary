@@ -15,7 +15,6 @@
   ~ limitations under the License.
   -->
 <resources>
-  <item type="id" name="leak_canary_notification_write_permission" />
   <item type="id" name="leak_canary_notification_analysis_result" />
   <item type="id" name="leak_canary_notification_dumping_heap" />
   <item type="id" name="leak_canary_notification_analyzing_heap" />
