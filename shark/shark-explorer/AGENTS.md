@@ -365,6 +365,8 @@ Design decisions and findings, kept current as the work proceeds:
   treemap
 - `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and the two ways
   the ones that don't are fetched off the device
+- `notes/android-studio-leakcanary.md` — every feature of Android Studio's LeakCanary Profiler task,
+  read out of the AOSP sources, and the plan for supporting all of them here
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.
