@@ -6,6 +6,7 @@ import java.util.LinkedList
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.reflect.KClass
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Rule
@@ -288,7 +289,11 @@ class OpenJdkInstanceRefReadersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak(NO_EXPANDER)
+    val hprofFile = dumpHeap()
+    val refPath = hprofFile.findPathFromLeak(
+      computeRetainedHeapSize = false,
+      virtualRefReaderFactory = NO_EXPANDER
+    )
 
     assertThat(refPath).hasSize(3)
 
@@ -298,7 +303,9 @@ class OpenJdkInstanceRefReadersTest {
     }
     with(refPath[1]) {
       assertThat(owningClassName).isEqualTo("java.util.concurrent.ConcurrentHashMap\$Node[]")
-      assertThat(referenceDisplayName).isEqualTo("[0]")
+      assertThat(referenceDisplayName).isEqualTo(
+        hprofFile.singleTableEntryName(ConcurrentHashMap::class to "table")
+      )
     }
     with(refPath[2]) {
       assertThat(owningClassName).isEqualTo("java.util.concurrent.ConcurrentHashMap\$Node")
@@ -311,7 +318,11 @@ class OpenJdkInstanceRefReadersTest {
     map[SomeKey()] = Retained()
     leakRoot = map
 
-    val refPath = findLeak(NO_EXPANDER)
+    val hprofFile = dumpHeap()
+    val refPath = hprofFile.findPathFromLeak(
+      computeRetainedHeapSize = false,
+      virtualRefReaderFactory = NO_EXPANDER
+    )
 
     assertThat(refPath).hasSize(3)
 
@@ -321,7 +332,9 @@ class OpenJdkInstanceRefReadersTest {
     }
     with(refPath[1]) {
       assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node[]")
-      assertThat(referenceDisplayName).isEqualTo("[0]")
+      assertThat(referenceDisplayName).isEqualTo(
+        hprofFile.singleTableEntryName(HashMap::class to "table")
+      )
     }
     with(refPath[2]) {
       assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node")
@@ -363,7 +376,11 @@ class OpenJdkInstanceRefReadersTest {
 
     System.gc()
 
-    val refPath = findLeak(NO_EXPANDER)
+    val hprofFile = dumpHeap()
+    val refPath = hprofFile.findPathFromLeak(
+      computeRetainedHeapSize = false,
+      virtualRefReaderFactory = NO_EXPANDER
+    )
 
     assertThat(refPath).hasSize(3)
 
@@ -373,7 +390,9 @@ class OpenJdkInstanceRefReadersTest {
     }
     with(refPath[1]) {
       assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry[]")
-      assertThat(referenceDisplayName).isEqualTo("[0]")
+      assertThat(referenceDisplayName).isEqualTo(
+        hprofFile.singleTableEntryName(WeakHashMap::class to "table")
+      )
     }
     with(refPath[2]) {
       assertThat(owningClassName).isEqualTo("java.util.WeakHashMap\$Entry")
@@ -467,7 +486,11 @@ class OpenJdkInstanceRefReadersTest {
     set += Retained()
     leakRoot = set
 
-    val refPath = findLeak(NO_EXPANDER)
+    val hprofFile = dumpHeap()
+    val refPath = hprofFile.findPathFromLeak(
+      computeRetainedHeapSize = false,
+      virtualRefReaderFactory = NO_EXPANDER
+    )
 
     assertThat(refPath).hasSize(4)
 
@@ -481,12 +504,38 @@ class OpenJdkInstanceRefReadersTest {
     }
     with(refPath[2]) {
       assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node[]")
-      assertThat(referenceDisplayName).isEqualTo("[0]")
+      assertThat(referenceDisplayName).isEqualTo(
+        hprofFile.singleTableEntryName(HashSet::class to "map", HashMap::class to "table")
+      )
     }
     with(refPath[3]) {
       assertThat(owningClassName).isEqualTo("java.util.HashMap\$Node")
       assertThat(referenceDisplayName).isEqualTo("key")
     }
+  }
+
+  /**
+   * The display name a leak trace should give the reference from a hash table array to the single
+   * entry it holds, i.e. `[index]` where index is the position of that entry in the array. The
+   * array is the one reached by following [fieldPath] from [leakRoot].
+   *
+   * Which bucket an entry lands in comes from the identity hash of its key, since [SomeKey] and
+   * [Retained] don't override [Any.hashCode], so it changes from one JVM run to the next and can't
+   * be asserted as a literal.
+   */
+  private fun File.singleTableEntryName(
+    vararg fieldPath: Pair<KClass<out Any>, String>
+  ): String {
+    val entryIndex = openHeapGraph().use { graph ->
+      val testClass = graph.findClassByName(OpenJdkInstanceRefReadersTest::class.java.name)!!
+      var field = testClass[::leakRoot.name]!!
+      fieldPath.forEach { (declaringClass, fieldName) ->
+        field = field.valueAsInstance!![declaringClass, fieldName]!!
+      }
+      val elementIds = field.valueAsObjectArray!!.readRecord().elementIds
+      elementIds.indices.single { elementIds[it] != ValueHolder.NULL_REFERENCE }
+    }
+    return "[$entryIndex]"
   }
 
   private fun findLeak(expanderFactory: OptionalFactory): List<LeakTraceReference> {
