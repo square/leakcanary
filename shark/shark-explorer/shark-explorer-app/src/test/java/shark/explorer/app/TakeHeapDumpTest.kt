@@ -64,9 +64,64 @@ class TakeHeapDumpTest {
       setExplorerContent(DeviceHeapDumps(fakeAdb(deviceSdkInt = 30)))
 
       onNodeWithText(TAKE_HEAP_DUMP).performClick()
+      waitUntilAtLeastOneExists(hasText(OLD_DEVICE_DESCRIPTION), TIMEOUT_MILLIS)
+      // Not on the device list, which says nothing about bitmaps: it is on the screen where the fetch
+      // is offered, next to the checkbox it is the reason for.
+      assertThat(onAllNodesWithText("can't put", substring = true).fetchSemanticsNodes()).isEmpty()
+      onNodeWithText(OLD_DEVICE_DESCRIPTION).performClick()
 
       // The dump is still worth taking, and it's the one thing about it worth knowing in advance.
       waitUntilAtLeastOneExists(hasText("API 30 can't put", substring = true), TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `a user build says that only a debuggable app can be dumped`() {
+    runComposeUiTest {
+      setExplorerContent(DeviceHeapDumps(fakeAdb()))
+
+      onNodeWithText(TAKE_HEAP_DUMP).performClick()
+      waitUntilAtLeastOneExists(hasText(DEVICE_DESCRIPTION), TIMEOUT_MILLIS)
+      onNodeWithText(DEVICE_DESCRIPTION).performClick()
+
+      waitUntilAtLeastOneExists(hasText("ro.debuggable=0", substring = true), TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `a userdebug build says that any of its processes can be dumped`() {
+    runComposeUiTest {
+      // `ro.debuggable=1` is what `ActivityManagerService.enforceDebuggable` lets everything through
+      // on, so on this one the system's own apps can be dumped as well — which is the whole reason
+      // someone reaches for such an image, and the reason "only a debuggable app" is the wrong answer.
+      setExplorerContent(DeviceHeapDumps(fakeAdb(deviceIsDebuggable = true)))
+
+      onNodeWithText(TAKE_HEAP_DUMP).performClick()
+      waitUntilAtLeastOneExists(hasText(DEVICE_DESCRIPTION), TIMEOUT_MILLIS)
+      onNodeWithText(DEVICE_DESCRIPTION).performClick()
+
+      waitUntilAtLeastOneExists(hasText("ro.debuggable=1", substring = true), TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `the system's own processes are listed under their own heading`() {
+    runComposeUiTest {
+      setExplorerContent(
+        DeviceHeapDumps(
+          fakeAdb(
+            processLines = "PID NAME\n1 init\n914 com.android.systemui\n1201 com.example\n",
+            installedPackages = "package:com.example\npackage:com.android.systemui\n"
+          )
+        )
+      )
+
+      onNodeWithText(TAKE_HEAP_DUMP).performClick()
+      waitUntilAtLeastOneExists(hasText(DEVICE_DESCRIPTION), TIMEOUT_MILLIS)
+      onNodeWithText(DEVICE_DESCRIPTION).performClick()
+      waitUntilAtLeastOneExists(hasText(PROCESS_ROW), TIMEOUT_MILLIS)
+
+      // Thirty of the system's own to the one being looked for, so they are below a line rather than
+      // mixed in with it.
+      assertThat(onAllNodesWithText(SYSTEM_APPS).fetchSemanticsNodes()).hasSize(1)
+      assertThat(onAllNodesWithText("com.android.systemui").fetchSemanticsNodes()).hasSize(1)
     }
   }
 
@@ -170,7 +225,10 @@ class TakeHeapDumpTest {
     deviceSdkInt: Int = SDK_INT,
     processLines: String = "PID NAME\n1 init\n1201 com.example\n",
     // What a dump of that device would have in it: pixels only where `-b png` is understood.
-    dumpHasPixels: Boolean = true
+    dumpHasPixels: Boolean = true,
+    // A `user` build, which is what a retail phone and a modern emulator image both are.
+    deviceIsDebuggable: Boolean = false,
+    installedPackages: String = "package:com.example\n"
   ): RecordingAdb {
     val heapDumpFile = testFolder.newFile("pulled.hprof")
       .apply { writeBitmapHeapDump(hasPixels = dumpHasPixels) }
@@ -183,10 +241,11 @@ class TakeHeapDumpTest {
           [ro.build.fingerprint]: [$FINGERPRINT]
           [ro.product.model]: [$MODEL]
           [ro.build.version.sdk]: [$deviceSdkInt]
+          [ro.debuggable]: [${if (deviceIsDebuggable) 1 else 0}]
         """.trimIndent()
         command.contains("shell ps") -> processLines
         // What separates an app's process from a native service, which reads just like one.
-        command.contains("pm list packages") -> "package:com.example\n"
+        command.contains("pm list packages") -> installedPackages
         // A size that hasn't changed since the last look is what says the process has finished writing.
         command.contains("shell stat") -> dumpBytes.size.toString()
         command.contains(" pull ") -> {
@@ -226,7 +285,9 @@ class TakeHeapDumpTest {
 
     private const val SERIAL = "emulator-5554"
     private const val DEVICE_DESCRIPTION = "$MODEL · API $SDK_INT · $SERIAL"
-    private const val PROCESS_ROW = "com.example · pid 1201"
+
+    /** A row is the name and the pid in two columns, so the name is what a test clicks. */
+    private const val PROCESS_ROW = "com.example"
 
     /** Older than `am dumpheap -b png`, which is what makes a debugger the only way to the pixels. */
     private const val OLD_SDK_INT = 30

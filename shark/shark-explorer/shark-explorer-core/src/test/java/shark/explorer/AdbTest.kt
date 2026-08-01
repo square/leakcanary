@@ -14,6 +14,7 @@ class AdbTest {
       "-s emulator-5554 shell getprop" to """
         [ro.build.fingerprint]: [google/sdk_gphone64_arm64/emu64a:16/BP22.250325.006/13207872:user/release-keys]
         [ro.build.version.sdk]: [36]
+        [ro.debuggable]: [0]
         [ro.product.model]: [sdk_gphone64_arm64]
       """.trimIndent()
     )
@@ -27,6 +28,23 @@ class AdbTest {
     assertThat(device.model).isEqualTo("sdk_gphone64_arm64")
     assertThat(device.sdkInt).isEqualTo(36)
     assertThat(device.description).isEqualTo("sdk_gphone64_arm64 · API 36 · emulator-5554")
+    // A modern emulator image is a `user` build like a retail phone, so it dumps debuggable apps only.
+    assertThat(device.dumpsAnyProcess).isFalse()
+  }
+
+  @Test fun `a userdebug build dumps any process, not only a debuggable app`() {
+    // What `am dumpheap` goes by: `ActivityManagerService.enforceDebuggable` skips its check entirely
+    // when `ro.debuggable` is 1, which is what a userdebug or eng image sets.
+    val adb = FakeAdb(
+      "devices" to "List of devices attached\nemulator-5560\tdevice\n",
+      "-s emulator-5560 shell getprop" to """
+        [ro.build.type]: [userdebug]
+        [ro.build.version.sdk]: [29]
+        [ro.debuggable]: [1]
+      """.trimIndent()
+    )
+
+    assertThat(adb.connectedDevices().single().dumpsAnyProcess).isTrue()
   }
 
   @Test fun `a device that is not ready is not asked what it is`() {
@@ -144,7 +162,8 @@ class AdbTest {
     state = "device",
     fingerprint = fingerprint,
     model = model,
-    sdkInt = sdkInt
+    sdkInt = sdkInt,
+    isDebuggableBuild = false
   )
 
   private fun origin(

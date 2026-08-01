@@ -144,10 +144,31 @@ class AndroidDevice(
   val state: String,
   val fingerprint: String?,
   val model: String?,
-  val sdkInt: Int?
+  val sdkInt: Int?,
+  /**
+   * `ro.debuggable`, which is what decides whether a process that isn't debuggable can be dumped.
+   *
+   * A `userdebug` or `eng` build sets it, and the framework then skips the check that would refuse:
+   * `ActivityManagerService.enforceDebuggable` throws `SecurityException: Process not debuggable` only
+   * where this is 0. Verified against a device of each: an API 29 `userdebug` emulator dumps
+   * `com.android.permissioncontroller`, and an API 36 `user` one refuses `com.android.systemui`.
+   *
+   * Null for a device that wasn't asked, which is one that isn't ready.
+   */
+  val isDebuggableBuild: Boolean?
 ) {
 
   val isReady: Boolean get() = state == READY_STATE
+
+  /**
+   * Whether every process of this device can be dumped, rather than only the apps built debuggable.
+   *
+   * The apps of a system image are not debuggable, and neither is a release build of one being worked
+   * on, so this is the difference between a device with two dumpable processes on it and one with all
+   * of them. Modern emulator images are `user` builds like a retail phone, so it is not the emulator
+   * question it looks like.
+   */
+  val dumpsAnyProcess: Boolean get() = isDebuggableBuild == true
 
   /**
    * Whether a heap dump taken of this device can carry the pixels of its bitmaps, which is what
@@ -201,7 +222,8 @@ internal fun Adb.connectedDevices(): List<AndroidDevice> =
       state = state,
       fingerprint = properties["ro.build.fingerprint"],
       model = properties["ro.product.model"],
-      sdkInt = properties["ro.build.version.sdk"]?.toIntOrNull()
+      sdkInt = properties["ro.build.version.sdk"]?.toIntOrNull(),
+      isDebuggableBuild = properties["ro.debuggable"]?.let { it == "1" }
     )
   }
 

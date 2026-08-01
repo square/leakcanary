@@ -62,14 +62,16 @@ class DeviceHeapDumps(
    *
    * Every app process is offered rather than only the ones that can actually be dumped, because whether
    * a process is debuggable is something only `am dumpheap` knows, and it says so clearly when it isn't.
+   * [AndroidDevice.dumpsAnyProcess] is as close as anything gets in advance, and it is about the build
+   * rather than about the app.
    */
   fun appProcesses(device: AndroidDevice): List<DeviceProcess> {
     val packages = installedPackages(device)
     return runningProcesses(device)
       .filter { it.name.substringBefore(PROCESS_NAME_SEPARATOR) in packages }
       // The app being worked on first, because it is the one being looked for and there are thirty of the
-      // others: only a debuggable app can be dumped at all, and none of the system's own is.
-      .sortedWith(compareBy({ if (it.name.isSystemApp()) 1 else 0 }, { it.name }))
+      // system's own behind it — none of which is dumpable at all unless the build is debuggable.
+      .sortedWith(compareBy({ if (it.isSystemApp) 1 else 0 }, { it.name }))
   }
 
   /** Every package installed on [device], as `pm` lists them. */
@@ -234,8 +236,9 @@ class DeviceHeapDumps(
   /**
    * What `am dumpheap` said, with the one refusal that doesn't explain itself explained.
    *
-   * A process that isn't debuggable can't be dumped at all, and what the framework answers — a
-   * `SecurityException` — reads like something went wrong rather than like the answer being no.
+   * A process that isn't debuggable can't be dumped on a build that isn't, and what the framework
+   * answers — a `SecurityException` — reads like something went wrong rather than like the answer being
+   * no. Which of the two to fix is worth saying, since either one is enough.
    */
   private fun AdbOutput.orFailToDump(
     process: DeviceProcess,
@@ -246,7 +249,8 @@ class DeviceHeapDumps(
     val message = failure.message.orEmpty()
     if (NOT_DEBUGGABLE in message) {
       throw AdbFailureException(
-        "$message. Only a debuggable app can be asked for its heap, which a release build of one isn't."
+        "$message. A heap can only be asked for from an app built debuggable, which a release build " +
+          "isn't, or on a device whose build is (`ro.debuggable=1`), which this one's isn't."
       )
     }
     throw failure
@@ -277,11 +281,6 @@ class DeviceHeapDumps(
 
     /** What `pm list packages` puts in front of each package name. */
     private const val PACKAGE_LINE_PREFIX = "package:"
-
-    /** What the packages of the system and of Google's own apps start with. */
-    private val SYSTEM_PACKAGE_PREFIXES = listOf("android.", "com.android.", "com.google.android.")
-
-    private fun String.isSystemApp(): Boolean = SYSTEM_PACKAGE_PREFIXES.any { startsWith(it) }
   }
 }
 
@@ -312,7 +311,23 @@ fun interface BitmapDebugger {
 class DeviceProcess(
   val processId: Int,
   val name: String
-)
+) {
+
+  /**
+   * Whether this is one of the system image's own processes rather than an app someone installed.
+   *
+   * By the package name, which is all `ps` gives: the system's apps and Google's are the ones under
+   * these three, and there are thirty of them running to the one being worked on. None of them is built
+   * debuggable, so on a device that isn't either they are the ones that will refuse to be dumped.
+   */
+  val isSystemApp: Boolean get() = SYSTEM_PACKAGE_PREFIXES.any { name.startsWith(it) }
+
+  private companion object {
+    /** `com.google.process.gservices` and its like are the system's too, and match none of the others. */
+    val SYSTEM_PACKAGE_PREFIXES =
+      listOf("android.", "com.android.", "com.google.android.", "com.google.process.")
+  }
+}
 
 /** The pid and name of each line of `ps -A -o PID,NAME`, skipping its header. */
 internal fun parseProcessLines(output: String): List<DeviceProcess> = output.lines()

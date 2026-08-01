@@ -272,10 +272,22 @@ it, so run it before pushing.
 
 Anything that reaches a device — taking a heap dump, fetching bitmaps — can be tried for real with an
 emulator running and `leakcanary-android-sample` installed on it
-(`ANDROID_SERIAL=emulator-5554 ./gradlew :samples:leakcanary-android-sample:installDebug`). It has to be a
-debuggable app: `am dumpheap` refuses anything else, including every app of the system image, and so does
-a JDWP connection. An emulator older than API 35 is what exercises `shark-explorer-jdwp`, since a newer
-one is asked through a heap dump instead.
+(`ANDROID_SERIAL=emulator-5554 ./gradlew :samples:leakcanary-android-sample:installDebug`). An emulator
+older than API 35 is what exercises `shark-explorer-jdwp`, since a newer one is asked through a heap dump
+instead.
+
+**Two things let a process be dumped, and either is enough**: an app built debuggable, or a device whose
+whole build is — `ro.debuggable=1`, which is what a `userdebug` or `eng` image sets and what
+`ActivityManagerService.enforceDebuggable` skips its check on. So "only a debuggable app can be dumped"
+is right for a phone and wrong for a `userdebug` emulator, where every process on the device can be
+dumped and attached to. Measured on two emulators here: an API 36 `user` image refuses
+`am dumpheap` of `com.android.systemui` with `SecurityException: Process not debuggable` and lists one
+pid under `adb jdwp`; an API 29 `userdebug` one writes 16 MB of `com.android.permissioncontroller` and
+lists twenty. `AndroidDevice.dumpsAnyProcess` is that property, read from the `getprop` the explorer
+already runs.
+
+**A modern emulator image is a `user` build**, so being an emulator is not what makes a device
+permissive — check `ro.debuggable` rather than assuming.
 
 **None of that is covered by a test**, and it can't be: a JDI client talks to a real VM or to nothing.
 Drive it from a throwaway test against a running emulator, read the numbers, and delete the test — the
