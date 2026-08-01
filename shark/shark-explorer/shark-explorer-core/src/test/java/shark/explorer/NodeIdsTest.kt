@@ -2,7 +2,8 @@ package shark.explorer
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.explorer.HeapDominatorTreemap.Companion.GC_ROOTS_NODE_ID
+import shark.explorer.HeapDominatorTreemap.Companion.ROOT_OBJECT_ID
+import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_NODE_ID
 
 class NodeIdsTest {
 
@@ -18,7 +19,9 @@ class NodeIdsTest {
   }
 
   @Test fun `a pile of objects reads as which pile it is`() {
-    assertThat(nodeIdText(GC_ROOTS_NODE_ID)).isEqualTo("everything the GC roots reach")
-    assertThat(nodeIdText(HeapDominatorTreemap.ROOT_OBJECT_ID)).isEqualTo("the whole heap dump")
+    assertThat(nodeIdText(ROOT_OBJECT_ID)).isEqualTo("the whole heap dump")
+    assertThat(nodeIdText(UNREACHABLE_NODE_ID)).isEqualTo("the uncollected garbage")
+    // A class pile is one of however many a tree hands out, so there is no name to give it but its number.
+    assertThat(nodeIdText(UNREACHABLE_NODE_ID + 1)).isEqualTo("the class pile 1")
   }
 }

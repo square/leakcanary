@@ -203,10 +203,18 @@ Moving over a rectangle describes it beside the view; a single click **goes to**
 So reading a treemap is a sweep of the mouse rather than a click per rectangle, and the one thing a click
 can mean is the one thing hovering can't do.
 
-What the pointer describes is **the chain pane only**. The details panel keeps the window's edge and stays
-on the object the map went to, however the pointer wanders — a rectangle is pointed at to decide whether
-it's worth going to, and a window where every pane followed the mouse was unreadable while the mouse was
-moving. So the pointer's answer is one floating chain over one pane, and everything else holds still.
+What the pointer describes is **the chain pane and a card beside the pointer itself**. The details panel
+stays on the object the map went to, however the pointer wanders — a rectangle is pointed at to decide
+whether it's worth going to, and a window where every pane followed the mouse was unreadable while the
+mouse was moving. So the pointer's answer is one floating chain over one pane, plus the card, and
+everything else holds still.
+
+**Which object the pointer is on is said at the pointer**, in `PointerCard`: what a rectangle is, is the
+question being asked by pointing at it, and an answer at the edge of the window is read by looking away
+from the thing it is about. `placeCard` puts it after the pointer on both axes and flips to the other side
+rather than sliding when that would leave the view, because the card is a Material `Surface` and a surface
+the pointer ends up inside takes the hover off the map — which would close the card, and start over. Hence
+also the gap, and hence nothing in the card being clickable.
 
 Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
 pointer is on. Nothing is read when the pointer leaves, and nothing on the map screen is blanked as the
@@ -242,9 +250,10 @@ the rectangles it sits inside, which is what ties the chain to the picture. On t
 longest one is 34 steps, two of them views and the rest RxJava plumbing — which is why it is cut at 20 and
 cut at the root end.
 
-It sits **between the view and the details panel**, and only on the map screen. A chain and the details are
-both tall columns, so one pane holding both would always have one of them scrolled off; the details panel
-keeps the window edge it has always had, and the chain sits against the map it explains. The paths screen
+It sits **on the far side of the view from the details panel**, and only on the map screen: panel, view,
+chain, left to right. A chain and the details are both tall columns, so one pane holding both would always
+have one of them scrolled off, and putting them either side of the map makes what was clicked and how it is
+held one answer around the thing they are about rather than the window's two outer edges. The paths screen
 draws chains of its own the full width of the window, and a list of objects wants that width more than it
 wants a chain.
 
@@ -254,17 +263,31 @@ out to it — `TreemapNavigation.zoomInto` of a node already on the path truncat
 of breadcrumbs above the view used to be the way out; it went because it said a subset of what this pane
 says, in a strip that couldn't hold a class name.
 
-**The pointer's chain floats over the clicked one**, inset a few dp with a shadow, rather than replacing it:
-the two answer different questions — what is this thing I'm looking at, and what is that thing over there —
-and a pointer wandering across the map shouldn't cost the reader the chain they were reading. Moving off the
-map puts the pane back to the clicked chain with nothing read again.
+**The pointer's chain floats over the clicked one** rather than replacing it: the two answer different
+questions — what is this thing I'm looking at, and what is that thing over there — and a pointer wandering
+across the map shouldn't cost the reader the chain they were reading. Moving off the map puts the pane back
+to the clicked chain with nothing read again.
+
+Two chains of the same shape in the same place is also the one thing here that reads as *one* chain whose
+contents changed, which is the wrong thing to think while the pointer is moving. So the floating one is
+lifted off the pane rather than merely drawn over it — its own corners, a border, a real shadow, only as
+tall as its content — **and the pane behind it is dimmed**, which is what says what it is above. It is
+labelled `UNDER THE POINTER` as well, since the pane it covers answers the same question about a different
+object.
 
 **The floating one is condensed, because the whole chain has to fit next to the map.** `PathDetail.BRIEF`
-drops the package, the "instance"/"array"/"class" kind, and the "Dominates this object" line, and keeps the
-retained size inline on the class name — `PathDetail.FULL`, the pane under it, keeps all of them. It carries
-a header of its own — simple name, full class name, id, reachability with its colour chip, retained, shallow
-— because the details panel no longer follows the pointer, and reading what a rectangle is off the far edge
-of the window while the chain explaining it sits next to the map is two places to look at once.
+drops the package, the "instance"/"array"/"class" kind, the "Dominates this object" line and the field the
+object above holds each step in, keeping the retained size inline on the class name — so it reads as a
+column of class names. `PathDetail.FULL`, the pane under it, keeps all of them. Which field holds what is
+the question a reader has once they've stopped somewhere, and the gutter's arrow already says that each step
+holds the next.
+
+**And it starts where the map does.** `RootPath.stepsBelow` cuts it at the first step below the node the
+view is rooted at that dominates the object — the rectangle the map draws the pointer's object inside of —
+and a dotted `PathCutRow` above it says the chain runs on above. How *that* rectangle is held is what going
+there would answer, and the pointer is not there yet; on a real dump it is also most of the chain's length.
+Every dominator of an object is on every path from a GC root to it, so the cut is a scan of the steps
+already read rather than a second question for the heap dump.
 
 ## Only a move is a hover
 

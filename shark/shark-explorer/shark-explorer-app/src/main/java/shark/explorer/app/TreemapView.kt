@@ -55,8 +55,8 @@ internal fun TreemapView(
   bitmapImages: Map<Long, ImageBitmap>,
   /** The rectangle the pointer is on, which is outlined more lightly than the selected one. */
   hovered: SelectedCell?,
-  /** The rectangle the pointer moved onto, or null when it moved onto none or left the view. */
-  onHover: (LayoutCell<Long>?) -> Unit,
+  /** The rectangle the pointer moved onto and where it is, or null when it moved onto none or left. */
+  onHover: (PointedAt?) -> Unit,
   /** The rectangle pressed, which is where the window goes. */
   onClick: (LayoutCell<Long>) -> Unit,
   modifier: Modifier = Modifier
@@ -84,7 +84,7 @@ internal fun TreemapView(
   // event follows: without this the panels would keep describing whatever was under it before, until the
   // mouse next moved.
   LaunchedEffect(presentation, edgeGrab) {
-    onHover(pointerOffset?.let { presentation.cellAt(it, edgeGrab) })
+    onHover(pointerOffset?.let { offset -> presentation.pointedAt(offset, edgeGrab) })
   }
   Box(modifier) {
     Canvas(
@@ -103,7 +103,7 @@ internal fun TreemapView(
                 PointerEventType.Move -> {
                   val position = event.changes.first().position
                   pointerOffset = position
-                  onHover(presentation.cellAt(position, edgeGrab))
+                  onHover(presentation.pointedAt(position, edgeGrab))
                 }
                 PointerEventType.Exit -> {
                   pointerOffset = null
@@ -165,6 +165,12 @@ private fun TreemapPresentation.cellAt(
   offset: Offset,
   edgeGrab: Double
 ): TreemapCell<Long>? = layout.cellAt(offset.toTreemapPoint(), edgeGrab)
+
+/** What the pointer is on at [offset], with the offset kept: the card following the pointer needs both. */
+private fun TreemapPresentation.pointedAt(
+  offset: Offset,
+  edgeGrab: Double
+): PointedAt? = cellAt(offset, edgeGrab)?.let { PointedAt(cell = it, offset = offset) }
 
 /** A rectangle with its label measured and its colour resolved, so that drawing does no work. */
 private class MeasuredCell(

@@ -48,7 +48,8 @@ import shark.explorer.hexObjectId
  *
  * The clicked one and never the one under the pointer: this panel is a column of everything there is to say
  * about an object, several screens tall on a real one, and having it follow the mouse across the map made it
- * unreadable. What the pointer is on gets a chain of its own beside the map — see [HoveredPathPanel].
+ * unreadable. What the pointer is on gets a card at the pointer — see [PointerCard] — and a chain of its own
+ * beside the map, see [HoveredPathPanel].
  *
  * Everything here that leads somewhere leads there by navigating, so that what this panel describes stays
  * what the window is showing: clicking a dominator or a field moves the map to that object as well.
@@ -149,13 +150,11 @@ private fun ObjectGroupDetails(
 }
 
 private fun ObjectGroupSummary.title(): String = when (kind) {
-  ObjectGroupKind.GC_ROOTS -> HeapDominatorTreemap.GC_ROOTS_LABEL
   ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
   ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
 }
 
 private fun ObjectGroupSummary.explanation(): String = when (kind) {
-  ObjectGroupKind.GC_ROOTS -> GC_ROOTS_EXPLANATION
   ObjectGroupKind.UNREACHABLE -> UNREACHABLE_EXPLANATION
   ObjectGroupKind.CLASS -> CLASS_GROUP_EXPLANATION
 }
@@ -276,7 +275,7 @@ private fun DominatorSection(
 
 private fun ObjectDominator.hint(): String = when (kind) {
   DominatorKind.OBJECT -> DOMINATOR_HINT
-  DominatorKind.ALL_GC_ROOTS -> ALL_GC_ROOTS_DOMINATOR_HINT
+  DominatorKind.WHOLE_HEAP_DUMP -> NO_OWNER_DOMINATOR_HINT
   DominatorKind.UNCOLLECTED_GARBAGE -> GARBAGE_DOMINATOR_HINT
 }
 
@@ -426,7 +425,8 @@ internal fun objectIdText(objectId: Long): String = "id $objectId · ${hexObject
 
 /**
  * Shown by the details panel until something has been clicked, which is what it describes: pointing at a
- * rectangle draws the chain holding it beside the map instead. See [HoveredPathPanel].
+ * rectangle says what it is at the pointer instead, and draws the chain holding it beside the map. See
+ * [PointerCard] and [HoveredPathPanel].
  */
 internal const val NO_SELECTION = "Click a rectangle or a sector to see what it retains."
 
@@ -441,10 +441,10 @@ internal const val DOMINATOR_HINT =
     "while exactly one dominates it."
 
 /** And what it means when there isn't one, which is what puts a rectangle flat under the root. */
-internal const val ALL_GC_ROOTS_DOMINATOR_HINT =
+internal const val NO_OWNER_DOMINATOR_HINT =
   "No single object would free this one: it's held from several places at once, on paths that meet " +
     "nowhere, so releasing any one of them would leave the others holding it. With no owner to " +
-    "attribute its bytes to, the treemap draws it at the top of the reachable heap — and the paths " +
+    "attribute its bytes to, the treemap draws it directly under the whole heap dump — and the paths " +
     "below say who those holders are."
 
 internal const val GARBAGE_DOMINATOR_HINT =
@@ -461,10 +461,6 @@ internal const val STARRED_GLYPH = "★"
 internal const val UNSTARRED_GLYPH = "☆"
 private const val STAR_HINT = "Star this object, to compare it with others later."
 private const val UNSTAR_HINT = "Remove this object from the starred list."
-
-internal const val GC_ROOTS_EXPLANATION =
-  "Not one object: everything the garbage collector reaches, so everything that is still in memory " +
-    "on purpose."
 
 internal const val UNREACHABLE_EXPLANATION =
   "Not one object: everything no GC root reaches, so garbage that hadn't been collected when the heap " +

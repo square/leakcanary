@@ -123,7 +123,7 @@ the radial view has not needed the treemap's own-weight cell.
 
 ### A negative node id is not the tree's own
 
-The tree's nodes are object ids, and the piles it invents — the two halves of the heap dump, and the class
+The tree's nodes are object ids, and the piles it invents — the uncollected garbage, and the class
 groups — need ids of their own. **`nodeId < 0` is not the test for one**, and taking it for one is a bug that
 looks like nothing: an object id is a heap address, a 32 bit dump records it in 4 bytes, and shark widens
 those by sign, so **every object above the 2 GB mark of such a dump has a negative id**. `isPileId` is a range
@@ -189,9 +189,8 @@ coloured is a scheme, picked above the view:
   contents. It needs to know which top level block a cell belongs to, which is what `parent` and
   `siblingIndex` on `CellSubject.Node` are for, resolved in one pass per presentation — cells come
   parent before child, so a parent always has its hue by the time a child is reached. "Top level" here
-  means `TOP_LEVEL_DEPTH`, the children of the two halves of the heap dump, and not the halves: the tree
-  has the GC roots and the garbage above everything, so handing hues out at the root would paint the
-  whole view in one or two of them.
+  means `ROOT_CHILD_DEPTH`, the children of the node the view is rooted at, which is the same level the
+  map names and marks off — so the blocks that are coloured apart are the blocks the reader is reading.
 - **Reachability**: one hue per strength, shaded by depth. Says the most about the collector and the
   least about structure.
 - **Slate**: blue greys only, for when the colours get in the way of the shapes.

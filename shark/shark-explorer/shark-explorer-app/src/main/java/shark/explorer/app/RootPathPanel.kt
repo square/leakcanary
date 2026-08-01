@@ -1,28 +1,23 @@
 package shark.explorer.app
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import shark.explorer.HeapDominatorTreemap
-import shark.explorer.HeapObjectSummary
 import shark.explorer.RootPath
-import shark.explorer.formatByteSize
-import shark.explorer.formatObjectCount
+import shark.explorer.stepsBelow
 
 /**
  * The shortest way a GC root reaches whatever the window is describing, drawn as a chain down the pane.
@@ -65,68 +60,48 @@ internal fun RootPathPanel(
  *
  * Floating rather than replacing it, because the two answer different questions: what is this thing I am
  * looking at, and what is that thing over there. Moving the pointer off the map puts the pane back to the
- * first without anything having to be read again.
+ * first without anything having to be read again. Two chains of the same shape in the same place is also the
+ * one thing here that can be misread as one chain, which is why this is lifted off the pane it covers rather
+ * than merely drawn over it: a border, a shadow, its own corners, and the pane behind it dimmed.
  *
- * Says what the object is at the top, since the details panel no longer follows the pointer: a rectangle is
- * pointed at to find out what it is, and reading that off a panel at the far edge of the window while the
- * chain explaining it sits next to the map is two places to look at once.
+ * **Only the part of the chain the map is showing**, from the rectangle the reader is looking at down. What
+ * holds that rectangle is what going there would answer, and the pointer is not there yet. See
+ * [shark.explorer.stepsBelow].
+ *
+ * Which object it is, is the one thing this doesn't say: that follows the pointer instead, close to the
+ * rectangle it is about. See [PointerCard].
  */
 @Composable
 internal fun HoveredPathPanel(
   selection: Selection?,
   rootPath: RootPath?,
+  /** The node the map is rooted at, which is where the chain drawn here starts. */
+  rootNodeId: Long,
   coloring: CellColoring,
   modifier: Modifier = Modifier
 ) {
+  // The cut made here rather than by the chain itself, because it is what makes this chain the brief one:
+  // the head row it leaves is the dots saying the chain runs on above.
+  val shown = rootPath?.let { it.copy(steps = it.stepsBelow(rootNodeId)) }
   Surface(
     modifier,
     color = MaterialTheme.colorScheme.surface,
+    shape = RoundedCornerShape(HOVER_PANEL_CORNER),
+    border = BorderStroke(HOVER_PANEL_BORDER_WIDTH, HOVER_PANEL_BORDER_COLOR),
     shadowElevation = HOVER_PANEL_ELEVATION
   ) {
     Column(
       Modifier.verticalScroll(rememberScrollState()).padding(10.dp),
       verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-      HoveredObjectHeader(selection, coloring)
+      // Named, because the pane under it answers the same question about a different object: which of the
+      // two chains is which is not something a reader should have to work out from what they last did.
+      Text(POINTED_AT_PATH, style = MaterialTheme.typography.labelSmall, color = MUTED_TEXT)
       // Nothing to click on: the pointer is on the map, and it leaving the map is what closes this.
-      RootPathContent(selection, rootPath, coloring, onOpen = {}, detail = PathDetail.BRIEF)
+      RootPathContent(selection, shown, coloring, onOpen = {}, detail = PathDetail.BRIEF)
     }
   }
 }
-
-/** What the pointer is on, which is what the details panel says about the object clicked. */
-@Composable
-private fun HoveredObjectHeader(
-  selection: Selection?,
-  coloring: CellColoring
-) {
-  val summary = (selection as? Selection.Object)?.summary ?: return
-  Text(summary.label, style = MaterialTheme.typography.titleSmall)
-  Text(summary.className, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
-  if (summary.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID) {
-    Text(objectIdText(summary.objectId), style = MaterialTheme.typography.bodySmall)
-  }
-  summary.headline?.let { headline ->
-    Text(headline, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-  }
-  Row(
-    horizontalArrangement = Arrangement.spacedBy(6.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
-    Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
-  }
-  // The same numbers the details panel gives a labelled row each, on two lines: this pane is over the map
-  // and only for as long as the pointer stays still, so what it costs in height is what it costs the chain.
-  Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
-  Text(summary.shallowText(), style = MaterialTheme.typography.bodySmall)
-}
-
-private fun HeapObjectSummary.retainedText(): String =
-  "Retains ${formatByteSize(retainedSize)} in ${formatObjectCount(retainedCount)}"
-
-private fun HeapObjectSummary.shallowText(): String =
-  "${formatByteSize(shallowSize)} of its own, dominates ${formatObjectCount(dominatedObjectCount)}"
 
 /** The chain, or what there is to say instead when there is none to draw. */
 @Composable
@@ -164,15 +139,20 @@ private fun RootPathTrace(
   detail: PathDetail
 ) {
   Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-    PathHeadRow(
-      label = rootPath.headLabel(),
-      reference = rootPath.steps.first().step.reference,
-      nextStrength = rootPath.steps.first().step.strength,
-      // A GC root is a record of the heap dump rather than an object of it, so there is nowhere to go.
-      nodeId = null,
-      onOpen = onOpen,
-      detail = detail
-    )
+    if (detail == PathDetail.FULL) {
+      PathHeadRow(
+        label = rootPath.headLabel(),
+        reference = rootPath.steps.first().step.reference,
+        nextStrength = rootPath.steps.first().step.strength,
+        // A GC root is a record of the heap dump rather than an object of it, so there is nowhere to go.
+        nodeId = null,
+        onOpen = onOpen
+      )
+    } else {
+      // A brief chain starts at the rectangle the map is showing, so what is above it is cut rather than
+      // named: the GC root at the top of it is several steps further up than this chain now goes.
+      PathCutRow(nextStrength = rootPath.steps.first().step.strength)
+    }
     rootPath.steps.forEachIndexed { depth, step ->
       val next = rootPath.steps.getOrNull(depth + 1)
       PathStepRow(
@@ -230,10 +210,26 @@ internal const val SEARCHING_ROOT_PATH = "Working out what holds it…"
 
 internal const val NO_ROOT_PATH = "No chain from a GC root down to this object was found."
 
+/** What the floating chain is of, since the pane under it is the same chain of the object clicked. */
+internal const val POINTED_AT_PATH = "UNDER THE POINTER"
+
 /** As wide as a class name plus what a step says about the object, and no wider: the map needs the room. */
 internal val ROOT_PATH_WIDTH = 300.dp
 
 /** How far inside the pane the floating chain sits, which is what makes it read as being over it. */
-internal val HOVER_PANEL_INSET = 6.dp
+internal val HOVER_PANEL_INSET = 8.dp
 
-private val HOVER_PANEL_ELEVATION = 8.dp
+/**
+ * How dark the pane goes behind the floating chain.
+ *
+ * The panel's own shadow says it is above something; this says what. Without it the two chains read as one
+ * pane whose contents changed, which is exactly the wrong thing to think while the pointer is moving.
+ */
+internal val HOVER_SCRIM_COLOR = Color(0x59000000)
+
+private val HOVER_PANEL_ELEVATION = 16.dp
+private val HOVER_PANEL_CORNER = 8.dp
+private val HOVER_PANEL_BORDER_WIDTH = 1.dp
+
+/** Dark enough to read as the panel's own edge against the dimmed pane behind it. */
+private val HOVER_PANEL_BORDER_COLOR = Color(0xFF9E9E9E)

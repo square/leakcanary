@@ -339,9 +339,10 @@ private fun TreemapUnderTest(
           selected = SelectedCell.of(it.subject)
           onClick(it)
         },
-        onHover = { cell ->
-          hovered = cell?.let { SelectedCell.of(it.subject) }
-          onHover(cell)
+        // Only which cell, since where the pointer is on it is the card's business rather than the view's.
+        onHover = { pointedAt ->
+          hovered = pointedAt?.let { SelectedCell.of(it.cell.subject) }
+          onHover(pointedAt?.cell)
         }
       )
     }

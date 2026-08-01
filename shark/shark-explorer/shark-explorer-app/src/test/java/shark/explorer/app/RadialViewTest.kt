@@ -235,9 +235,10 @@ private fun RadialUnderTest(
           selected = SelectedCell.of(it.subject)
           onClick(it)
         },
-        onHover = { cell ->
-          hovered = cell?.let { SelectedCell.of(it.subject) }
-          onHover(cell)
+        // Only which sector, as in [TreemapViewTest]: where the pointer is on it is the card's business.
+        onHover = { pointedAt ->
+          hovered = pointedAt?.let { SelectedCell.of(it.cell.subject) }
+          onHover(pointedAt?.cell)
         }
       )
     }

@@ -49,8 +49,8 @@ internal fun RadialView(
   selected: SelectedCell?,
   /** The sector the pointer is on, which is outlined more lightly than the selected one. */
   hovered: SelectedCell?,
-  /** The sector the pointer moved onto, or null when it moved onto none or left the view. */
-  onHover: (LayoutCell<Long>?) -> Unit,
+  /** The sector the pointer moved onto and where it is, or null when it moved onto none or left. */
+  onHover: (PointedAt?) -> Unit,
   /** The sector pressed, which is where the window goes. */
   onClick: (LayoutCell<Long>) -> Unit,
   modifier: Modifier = Modifier
@@ -65,7 +65,7 @@ internal fun RadialView(
   // As in [TreemapView]: the rings move under the pointer without a pointer event to say so.
   var pointerOffset: Offset? by remember { mutableStateOf(null) }
   LaunchedEffect(presentation) {
-    onHover(pointerOffset?.let { presentation.cellAt(it) })
+    onHover(pointerOffset?.let { offset -> presentation.pointedAt(offset) })
   }
   Box(modifier) {
     Canvas(
@@ -79,7 +79,7 @@ internal fun RadialView(
                 PointerEventType.Move -> {
                   val position = event.changes.first().position
                   pointerOffset = position
-                  onHover(presentation.cellAt(position))
+                  onHover(presentation.pointedAt(position))
                 }
                 PointerEventType.Exit -> {
                   pointerOffset = null
@@ -113,6 +113,10 @@ internal fun RadialView(
 
 private fun RadialPresentation.cellAt(offset: Offset): RadialCell<Long>? =
   layout.cellAt(offset.toTreemapPoint())
+
+/** What the pointer is on at [offset], with the offset kept. As in [TreemapView]. */
+private fun RadialPresentation.pointedAt(offset: Offset): PointedAt? =
+  cellAt(offset)?.let { PointedAt(cell = it, offset = offset) }
 
 /** A sector with its shape built, its label measured and its colour resolved. */
 private class MeasuredSector(

@@ -8,7 +8,8 @@ import shark.ReferenceLocationType
  *
  * There is always exactly one: releasing this is what would free the object, and there is no second
  * answer. When no single object holds it — several holders on paths that meet nowhere — the dominator is
- * one of the two halves of the tree rather than an object, which is what [kind] says.
+ * where the tree draws it rather than an object: the whole heap dump, or the pile of garbage. [kind] is
+ * which.
  */
 data class ObjectDominator(
   /** The node to open on the treemap, which is where the object's bytes are drawn. */
@@ -25,8 +26,11 @@ enum class DominatorKind {
   /** One object of the heap dump, which is what dominates most of them. */
   OBJECT,
 
-  /** Nothing in particular: the object is held from several places at once, or is a GC root itself. */
-  ALL_GC_ROOTS,
+  /**
+   * Nothing in particular: the object is held from several places at once, or is a GC root itself, so the
+   * tree draws it directly under the whole heap dump and that is where its bytes are attributed.
+   */
+  WHOLE_HEAP_DUMP,
 
   /** Nothing at all: no GC root reaches the object, so it's garbage waiting to be collected. */
   UNCOLLECTED_GARBAGE
@@ -64,7 +68,7 @@ data class IndependentPaths(
 /** One way an object is held: a chain of references from its dominator down to it. */
 data class IndependentPath(
   /**
-   * Which kind of GC root the chain starts at, for a path below [DominatorKind.ALL_GC_ROOTS] or
+   * Which kind of GC root the chain starts at, for a path below [DominatorKind.WHOLE_HEAP_DUMP] or
    * [DominatorKind.UNCOLLECTED_GARBAGE]. Null below an object, which is where the chain starts instead.
    */
   val gcRootLabel: String?,

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import shark.explorer.CellContent
 import shark.explorer.CellSubject
+import shark.explorer.LayoutCell
 import shark.explorer.ObjectGroupKind
 import shark.explorer.TreemapPoint
 
@@ -55,6 +56,17 @@ internal data class SelectedCell(
     }
   }
 }
+
+/**
+ * A cell the pointer moved onto, and where in the view the pointer was.
+ *
+ * The position comes along with the cell because the card naming what's under the pointer is placed by it —
+ * see [PointerCard] — and it is in the view's own coordinates, which is what that card is positioned in.
+ */
+internal data class PointedAt(
+  val cell: LayoutCell<Long>,
+  val offset: Offset
+)
 
 /** Says when a view is showing less detail than it had room for, rather than truncating silently. */
 @Composable

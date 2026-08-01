@@ -1,5 +1,6 @@
 package shark.explorer.app
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
@@ -21,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -39,6 +43,7 @@ import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
+import shark.explorer.HeapObjectSummary
 import shark.explorer.HeapSizes
 import shark.explorer.IndependentPaths
 import shark.explorer.LayoutCell
@@ -60,16 +65,17 @@ import shark.explorer.nodeIdText
 
 /**
  * One open heap dump, read through one of its screens: the dominator tree as a treemap or as rings, the
- * ways one object is held, every object as a list, the ones starred so far. The chain holding an object and
- * the details panel sit beside all of them.
+ * ways one object is held, every object as a list, the ones starred so far. The details panel and the chain
+ * holding an object sit either side of all of them.
  *
  * Every read of the heap dump goes through [session], which puts it on a thread of its own, so what's
  * drawn is state that arrives a little after whatever asked for it changed: a presentation is a view
  * already laid out and labelled somewhere else, and a selection is a summary already read.
  *
  * **A click goes to a rectangle and the pointer asks about one.** So the window is about the object clicked
- * — the details panel, the chain beside the map, the star, the paths — and what the pointer is on gets one
- * floating chain of its own, which is enough to tell whether it's worth going there. See [DescribedCell].
+ * — the details panel, the chain beside the map, the star, the paths — and what the pointer is on gets a card
+ * at the pointer and one floating chain, which is enough to tell whether it's worth going there. See
+ * [DescribedCell].
  *
  * Where the explorer is, is one [NavigationHistory] of [ExplorerScreen]s, and what the panes describe
  * follows it: a window whose panes describe something other than what it is showing was the one thing about
@@ -99,6 +105,8 @@ internal fun HeapDumpExplorer(
   var clicked: DescribedCell? by remember { mutableStateOf(null) }
   /** Where the pointer last was on the view, which is what the floating chain describes while it's there. */
   var pointerCell: DescribedCell? by remember { mutableStateOf(null) }
+  /** And where in the view it was, which is where the card naming what it's on goes. See [PointerCard]. */
+  var pointerOffset: Offset? by remember { mutableStateOf(null) }
   /** What that cell is, kept while the next one is being read so that the panes never blank out. */
   var clickedDetails: CellDetails? by remember { mutableStateOf(null) }
   /** And what the cell under the pointer is, once it has stayed on one long enough to be read. */
@@ -361,7 +369,10 @@ internal fun HeapDumpExplorer(
 
   // Only what the pointer is on, never where the explorer is: moving the mouse across the map is not a
   // move, so it leaves the back arrow alone.
-  val onHover: (LayoutCell<Long>?) -> Unit = { cell -> pointerCell = cell?.let { DescribedCell.of(it) } }
+  val onHover: (PointedAt?) -> Unit = { pointedAt ->
+    pointerCell = pointedAt?.let { DescribedCell.of(it.cell) }
+    pointerOffset = pointedAt?.offset
+  }
   /**
    * Where a click on the view goes, which is wherever was clicked.
    *
@@ -429,91 +440,9 @@ internal fun HeapDumpExplorer(
       )
     }
     Row(Modifier.weight(1f)) {
-      Column(Modifier.weight(1f).fillMaxHeight()) {
-        // Above the view and as wide as it, because that's what it controls, and only there: the list of
-        // objects is coloured by nothing and shaped like a list.
-        if (screen is ExplorerScreen.Tree) {
-          ViewControls(
-            sizes = sizes,
-            shape = shape,
-            coloring = coloring,
-            onColoringChange = { coloring = it },
-            onShapeChange = { shape = it },
-            modifier = Modifier.fillMaxWidth()
-          )
-        }
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-          when (screen) {
-            is ExplorerScreen.Tree -> TreeScreen(
-              view = view,
-              coloring = coloring,
-              selected = clicked?.cell,
-              hovered = hovered?.cell,
-              isLayingOut = isLayingOut,
-              bitmapImages = bitmapImages,
-              onHover = onHover,
-              onClick = onClick,
-              // Measured here rather than around every screen, so that leaving the map and coming back
-              // doesn't lay it out twice for a viewport that ends up the size it already was.
-              modifier = Modifier.fillMaxSize().onSizeChanged { viewportSize = it }
-            )
-            is ExplorerScreen.Paths -> PathsScreen(
-              target = describedSummary,
-              dominator = details?.dominator,
-              paths = paths,
-              coloring = coloring,
-              onOpen = onOpen,
-              modifier = Modifier.fillMaxSize()
-            )
-            is ExplorerScreen.Objects -> ObjectsScreen(
-              list = objects,
-              filter = screen.filter,
-              isListing = isListing,
-              coloring = coloring,
-              onFilterChange = { filter ->
-                // A keystroke isn't a move, so typing replaces where the explorer is: the back arrow
-                // leaves the list rather than walking back through what was typed into it.
-                history = history.replacingCurrent(screen.copy(filter = filter))
-              },
-              onOpen = onOpen,
-              modifier = Modifier.fillMaxSize()
-            )
-            is ExplorerScreen.Starred -> StarredScreen(
-              favourites = favourites,
-              onOpen = onOpen,
-              onRemove = { objectId -> favourites = favourites.filterNot { it.objectId == objectId } },
-              modifier = Modifier.fillMaxSize()
-            )
-          }
-        }
-      }
-      // Between the view and the details panel: a chain is a column of objects and so is the panel, so one
-      // pane holding both would always have one of them scrolled off. The panel keeps the window's edge,
-      // where it has been all along, and the chain sits next to the map it explains.
-      //
-      // Beside the map alone, like the controls above it: the paths screen draws chains of its own the full
-      // width of the window, and a list of objects wants that width more than it wants a chain.
-      if (screen is ExplorerScreen.Tree) {
-        Box(Modifier.width(ROOT_PATH_WIDTH).fillMaxHeight()) {
-          RootPathPanel(
-            selection = details?.selection,
-            rootPath = details?.rootPath,
-            coloring = coloring,
-            onOpen = onOpen,
-            modifier = Modifier.fillMaxSize()
-          )
-          // Over the chain for the cell clicked rather than in place of it, so that the pointer wandering
-          // across the map never costs the reader the chain they were reading.
-          if (hoveredRequest != null) {
-            HoveredPathPanel(
-              selection = hoveredCellDetails?.selection,
-              rootPath = hoveredCellDetails?.rootPath,
-              coloring = coloring,
-              modifier = Modifier.fillMaxSize().padding(HOVER_PANEL_INSET)
-            )
-          }
-        }
-      }
+      // Left of the view rather than at the far edge of the window: everything in it is about the object
+      // clicked, and so is the chain on the other side of the map, so the two of them read as one answer
+      // around the thing they are about rather than as the window's two outer edges.
       DetailsPanel(
         selection = details?.selection,
         dominator = details?.dominator,
@@ -557,6 +486,101 @@ internal fun HeapDumpExplorer(
         },
         modifier = Modifier.width(DETAILS_WIDTH).fillMaxHeight()
       )
+      Column(Modifier.weight(1f).fillMaxHeight()) {
+        // Above the view and as wide as it, because that's what it controls, and only there: the list of
+        // objects is coloured by nothing and shaped like a list.
+        if (screen is ExplorerScreen.Tree) {
+          ViewControls(
+            sizes = sizes,
+            shape = shape,
+            coloring = coloring,
+            onColoringChange = { coloring = it },
+            onShapeChange = { shape = it },
+            modifier = Modifier.fillMaxWidth()
+          )
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+          when (screen) {
+            is ExplorerScreen.Tree -> TreeScreen(
+              view = view,
+              coloring = coloring,
+              selected = clicked?.cell,
+              hovered = hovered?.cell,
+              // What the pointer is on, for the card that follows it, and where the pointer is. Read
+              // already: a card that appears empty and fills in a beat later reads as a flicker.
+              pointedSummary = (hoveredCellDetails?.selection as? Selection.Object)?.summary,
+              pointerOffset = pointerOffset,
+              viewSize = viewportSize,
+              isLayingOut = isLayingOut,
+              bitmapImages = bitmapImages,
+              onHover = onHover,
+              onClick = onClick,
+              // Measured here rather than around every screen, so that leaving the map and coming back
+              // doesn't lay it out twice for a viewport that ends up the size it already was.
+              modifier = Modifier.fillMaxSize().onSizeChanged { viewportSize = it }
+            )
+            is ExplorerScreen.Paths -> PathsScreen(
+              target = describedSummary,
+              dominator = details?.dominator,
+              paths = paths,
+              coloring = coloring,
+              onOpen = onOpen,
+              modifier = Modifier.fillMaxSize()
+            )
+            is ExplorerScreen.Objects -> ObjectsScreen(
+              list = objects,
+              filter = screen.filter,
+              isListing = isListing,
+              coloring = coloring,
+              onFilterChange = { filter ->
+                // A keystroke isn't a move, so typing replaces where the explorer is: the back arrow
+                // leaves the list rather than walking back through what was typed into it.
+                history = history.replacingCurrent(screen.copy(filter = filter))
+              },
+              onOpen = onOpen,
+              modifier = Modifier.fillMaxSize()
+            )
+            is ExplorerScreen.Starred -> StarredScreen(
+              favourites = favourites,
+              onOpen = onOpen,
+              onRemove = { objectId -> favourites = favourites.filterNot { it.objectId == objectId } },
+              modifier = Modifier.fillMaxSize()
+            )
+          }
+        }
+      }
+      // The other side of the view from the details panel: a chain is a column of objects and so is the
+      // panel, so one pane holding both would always have one of them scrolled off.
+      //
+      // Beside the map alone, like the controls above it: the paths screen draws chains of its own the full
+      // width of the window, and a list of objects wants that width more than it wants a chain.
+      if (screen is ExplorerScreen.Tree) {
+        Box(Modifier.width(ROOT_PATH_WIDTH).fillMaxHeight()) {
+          RootPathPanel(
+            selection = details?.selection,
+            rootPath = details?.rootPath,
+            coloring = coloring,
+            onOpen = onOpen,
+            modifier = Modifier.fillMaxSize()
+          )
+          // Over the chain for the cell clicked rather than in place of it, so that the pointer wandering
+          // across the map never costs the reader the chain they were reading. Dimmed underneath, because
+          // one chain of the same shape over another is otherwise read as one chain that changed.
+          if (hoveredRequest != null) {
+            Box(Modifier.fillMaxSize().background(HOVER_SCRIM_COLOR))
+            HoveredPathPanel(
+              selection = hoveredCellDetails?.selection,
+              rootPath = hoveredCellDetails?.rootPath,
+              // Where the chain it draws starts, which is the level the map is showing.
+              rootNodeId = view.navigation.current,
+              coloring = coloring,
+              // As tall as it needs and no taller, at the top of the pane: a floating panel the height of
+              // what it covers is indistinguishable from the pane itself.
+              modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().padding(HOVER_PANEL_INSET)
+            )
+          }
+        }
+      }
     }
   }
 }
@@ -591,20 +615,30 @@ private fun ScreenBar(
   }
 }
 
-/** The dominator tree, drawn as rectangles or as rings. */
+/** The dominator tree, drawn as rectangles or as rings, with a card naming what the pointer is on. */
 @Composable
 private fun TreeScreen(
   view: ViewState,
   coloring: CellColoring,
   selected: SelectedCell?,
   hovered: SelectedCell?,
+  /** What the cell under the pointer is, once it has been read, and null while it hasn't. */
+  pointedSummary: HeapObjectSummary?,
+  /** Where the pointer is in the view, which is what the card naming that cell is placed by. */
+  pointerOffset: Offset?,
+  /** How big the view is, so that the card stays inside it. */
+  viewSize: IntSize,
   isLayingOut: Boolean,
   /** The pixels read for the bitmaps of the treemap so far, by object id. */
   bitmapImages: Map<Long, ImageBitmap>,
-  onHover: (LayoutCell<Long>?) -> Unit,
+  onHover: (PointedAt?) -> Unit,
   onClick: (LayoutCell<Long>) -> Unit,
   modifier: Modifier = Modifier
 ) {
+  // Kept across cards rather than per card, so that the first frame of the next one is placed by the size of
+  // the last: measuring one and placing it are a frame apart, and a card is a card's width of text.
+  var cardSize by remember { mutableStateOf(IntSize.Zero) }
+  val cardGap = with(LocalDensity.current) { POINTER_CARD_GAP.toPx() }
   // A shape drawn into one canvas is nothing to anything that isn't looking at it, which is what this
   // says instead. It's also how a test finds where the view starts, since none of the cells is a node
   // of its own.
@@ -628,6 +662,22 @@ private fun TreeScreen(
         onHover = onHover,
         onClick = onClick,
         modifier = Modifier.fillMaxSize()
+      )
+    }
+    // Beside the pointer, over the map, because what a rectangle is, is the question being asked by pointing
+    // at it: an answer at the edge of the window is read by looking away from the rectangle it is about.
+    if (pointedSummary != null && pointerOffset != null) {
+      PointerCard(
+        summary = pointedSummary,
+        coloring = coloring,
+        modifier = Modifier
+          .onSizeChanged { cardSize = it }
+          // Placed as it is laid out rather than in a state read while composing, so that a card that has
+          // just changed size lands in one frame.
+          .offset { placeCard(pointerOffset, cardSize, viewSize, cardGap) }
+          // Until the very first card of a window has been measured there is nowhere to put it, and the
+          // pointer's own corner is the one place it must not be.
+          .alpha(if (cardSize == IntSize.Zero) 0f else 1f)
       )
     }
     if (isLayingOut) {

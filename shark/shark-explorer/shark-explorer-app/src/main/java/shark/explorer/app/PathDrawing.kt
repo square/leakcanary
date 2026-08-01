@@ -59,14 +59,15 @@ internal fun PathHeadRow(
   nextStrength: ReachabilityStrength?,
   /** The object the label names, when it is one and can therefore be opened. */
   nodeId: Long?,
-  onOpen: (Long) -> Unit,
-  detail: PathDetail = PathDetail.FULL
+  onOpen: (Long) -> Unit
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     Canvas(Modifier.width(GUTTER_WIDTH).fillMaxHeight()) {
       drawConnector(nodeColor = null, incoming = null, outgoing = nextStrength, role = PathRole.STEP)
     }
-    Column(Modifier.padding(bottom = detail.rowSpacing)) {
+    // Only ever the head of a chain that says everything: a brief one starts part way down, where there is
+    // no GC root to name. See [PathCutRow].
+    Column(Modifier.padding(bottom = PathDetail.FULL.rowSpacing)) {
       Text(
         label,
         modifier = if (nodeId != null) Modifier.clickable { onOpen(nodeId) } else Modifier,
@@ -132,8 +133,41 @@ internal fun PathStepRow(
         step.inspectorLabels.forEach { label ->
           Text(label, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
         }
+        // Which field holds the next object is a line of its own, and a chain that is only being glanced at
+        // has the arrow in the gutter saying that one holds the next: which field is the question the reader
+        // has once they've stopped on it, and a brief chain is read as a column of class names.
+        reference?.let { ReferenceLine(it) }
       }
-      reference?.let { ReferenceLine(it) }
+    }
+  }
+}
+
+/**
+ * Where a chain has been cut: a dotted line down into the step below it, and no object at the top of it.
+ *
+ * What a brief chain starts with, because it starts part way down — see [shark.explorer.stepsBelow]. The dots
+ * are it saying there is more above than it shows, in the same gutter the rest of the line runs down, and the
+ * rest of the answer is already on screen: the rectangle the map draws the first step in fills the view.
+ */
+@Composable
+internal fun PathCutRow(
+  /** How firmly the step below is held, which is what the line down into it is drawn as. */
+  nextStrength: ReachabilityStrength
+) {
+  Row(Modifier.fillMaxWidth().height(CUT_ROW_HEIGHT)) {
+    Canvas(Modifier.width(GUTTER_WIDTH).fillMaxHeight()) {
+      val centerX = size.width / 2
+      val color = connectorColor(nextStrength)
+      drawLine(
+        color = color,
+        start = Offset(centerX, 0f),
+        end = Offset(centerX, size.height),
+        strokeWidth = CONNECTOR_WIDTH.toPx(),
+        // Sparser than the dashes of a link the collector may let go of, which are the other broken line a
+        // chain draws: this one is about how much of the chain is shown rather than about how it holds.
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(CUT_DASH_ON.toPx(), CUT_DASH_OFF.toPx()))
+      )
+      drawArrowHead(Offset(centerX, size.height), color)
     }
   }
 }
@@ -151,8 +185,8 @@ internal enum class PathDetail(val rowSpacing: Dp) {
   /** What each object is, what it retains, what an inspector makes of it, and what holds the next. */
   FULL(8.dp),
 
-  /** Its class and the field the object above holds it in, with its retained size beside the class. */
-  BRIEF(2.dp)
+  /** Its class alone, with its retained size beside it, and the gutter for how it is held. */
+  BRIEF(6.dp)
 }
 
 /** What one object of a chain is to the object the chain leads to, drawn as a ring around its circle. */
@@ -346,6 +380,11 @@ private val ARROW_WIDTH = 7.dp
 private val ARROW_HEIGHT = 5.dp
 private val DASH_ON = 3.dp
 private val DASH_OFF = 3.dp
+
+/** Tall enough for the dots above a cut chain to read as a line, short enough to cost it no room. */
+private val CUT_ROW_HEIGHT = 14.dp
+private val CUT_DASH_ON = 2.dp
+private val CUT_DASH_OFF = 4.dp
 
 /** How far outside a step's own circle the ring picking it out sits. */
 private val RING_GAP = 2.5.dp

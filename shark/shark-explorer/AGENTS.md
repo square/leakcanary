@@ -274,8 +274,9 @@ numbers belong in `notes/bitmaps.md`.
 - **Each shape draws into a single `Canvas`, so there are no per-cell semantics nodes.** UI
   tests can't find cells by tag, and **not by label either** — a cell's label is painted text, so no
   assertion and no wait can reach it. Test layout and hit testing as pure functions in
-  `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on the
-  panels beside the view: the chain of objects holding what the map is on, and the details panel.
+  `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on what
+  is written outside the view: the details panel and the chain either side of it, and the card that
+  follows the pointer, whose text is real text and so can be found and its bounds read.
 - **A UI test knows the map is drawn through `waitForTheTree`**, which waits for the view's
   `contentDescription` with nothing left spinning, because the drawn map itself adds no text to the
   window. Where "the map *moved*" is the point rather than "the map is there", wait on the log line

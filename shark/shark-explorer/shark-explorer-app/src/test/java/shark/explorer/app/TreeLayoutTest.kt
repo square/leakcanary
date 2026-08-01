@@ -123,8 +123,15 @@ class TreeLayoutTest {
 
   companion object {
     /** Somewhere in the middle of the view, which is inside whatever it draws biggest. */
-    private const val CELL_X = 0.4f
-    private const val CELL_Y = 0.6f
+    /**
+     * Just off the middle of the view, which is a cell of it drawn as rectangles or as rings.
+     *
+     * Nearer the middle than a treemap would need, because the rings are as wide as the view's shorter side
+     * divided by how many of them the layout allows for: a tree three levels deep fills only the first few,
+     * and the space past those belongs to no cell to hover.
+     */
+    private const val CELL_X = 0.45f
+    private const val CELL_Y = 0.55f
 
     private const val PAYLOAD_LENGTH = 4096
 

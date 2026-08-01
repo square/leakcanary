@@ -1,6 +1,5 @@
 package shark.explorer
 
-import shark.explorer.HeapDominatorTreemap.Companion.GC_ROOTS_NODE_ID
 import shark.explorer.HeapDominatorTreemap.Companion.ROOT_OBJECT_ID
 import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_NODE_ID
 
@@ -26,7 +25,6 @@ fun hexObjectId(objectId: Long): String {
  */
 fun nodeIdText(nodeId: Long): String = when {
   nodeId == ROOT_OBJECT_ID -> "the whole heap dump"
-  nodeId == GC_ROOTS_NODE_ID -> "everything the GC roots reach"
   nodeId == UNREACHABLE_NODE_ID -> "the uncollected garbage"
   HeapDominatorTreemap.isPileId(nodeId) -> "the class pile ${nodeId - UNREACHABLE_NODE_ID}"
   else -> hexObjectId(nodeId)

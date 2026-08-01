@@ -166,19 +166,53 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `moving the pointer over a rectangle says what it is beside the map`() {
+  @Test fun `moving the pointer over a rectangle says what it is at the pointer`() {
     explorerUiTest {
       openHeapDump()
 
       hoverView(TREEMAP_X, TREEMAP_Y)
 
       // Reading the map is moving the mouse across it, so what a rectangle is arrives without a click —
-      // in the chain floating beside the map, which is the pane the pointer owns.
+      // in the card beside the pointer, which is where the reader is already looking.
       waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(objectIdText(payloadObjectId)).assertIsDisplayed()
       // And nowhere else: pointing at a rectangle is how you find out whether it's worth going to, so the
-      // panel at the far edge of the window stays on the object clicked, which here is none.
+      // panel beside the map stays on the object clicked, which here is none.
       onNodeWithText(NO_SELECTION).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `the card saying what the pointer is on moves with it`() {
+    explorerUiTest {
+      openHeapDump()
+      hoverView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText(objectIdText(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+      val before = pointerCardBounds()
+
+      // Further right along the same rectangle, which is the array covering almost the whole view.
+      hoverView(TREEMAP_X + POINTER_STEP, TREEMAP_Y)
+      waitForIdle()
+
+      // Beside the pointer wherever it goes, and never under it: the card is a surface, and a surface the
+      // pointer ends up inside takes the hover off the map, which would close the card and start over.
+      val after = pointerCardBounds()
+      assertThat(after.left).isGreaterThan(before.left)
+      assertThat(after.top).isEqualTo(before.top)
+      assertThat(after.contains(pointerAt(TREEMAP_X + POINTER_STEP, TREEMAP_Y))).isFalse()
+    }
+  }
+
+  @Test fun `the details panel is one side of the map and the chain holding an object the other`() {
+    explorerUiTest {
+      openHeapDump()
+
+      // What was clicked and how it is held read as one answer around the map, rather than as the window's
+      // two outer edges with everything else between them.
+      val view = viewBounds()
+      assertThat(onNodeWithText(NO_SELECTION).fetchSemanticsNode().boundsInRoot.right)
+        .isLessThanOrEqualTo(view.left)
+      assertThat(onNodeWithText(ROOT_PATH).fetchSemanticsNode().boundsInRoot.left)
+        .isGreaterThanOrEqualTo(view.right)
     }
   }
 
@@ -203,17 +237,20 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `the pane draws the chain from a GC root down to what the pointer is on`() {
+  @Test fun `the chain the pointer draws starts at the rectangle the map is showing`() {
     explorerUiTest {
       openHeapDump()
 
       hoverView(TREEMAP_X, TREEMAP_Y)
 
-      // The array is reached from the JNI global holding the instance that holds it, and that instance is
-      // also what dominates it: every chain from a GC root down here goes through it.
-      waitUntilAtLeastOneExists(hasText("GC root:", substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(ROOT_PATH).assertIsDisplayed()
-      onNodeWithText("Holder.payload").assertIsDisplayed()
+      // The array is held by the instance holding it, and that instance is one of the whole heap dump's own
+      // rectangles: what holds *it* is above the map, so the chain starts there rather than at the GC root
+      // reaching it. Which is the pointer's question — what is this, here — and not how the map got here.
+      // Waited for by the chain rather than by the panel around it: the panel is up as soon as the pointer
+      // lands, and what holds the rectangle takes a walk up the heap dump to work out.
+      waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(POINTED_AT_PATH).assertIsDisplayed()
+      onNodeWithText("GC root:", substring = true).assertDoesNotExist()
     }
   }
 
@@ -223,12 +260,13 @@ class ExplorerAppTest {
 
       hoverView(TREEMAP_X, TREEMAP_Y)
 
-      waitUntilAtLeastOneExists(hasText("GC root:", substring = true), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
       // A chain from a GC root down to a bitmap of a real app is a dozen objects, and four lines each is
-      // taller than any window. So the package, the kind and the label saying which steps own the object
-      // are all left to the chain of the object clicked, one pane below.
+      // taller than any window. So the package, the kind, which field holds the next object and the label
+      // saying which steps own it are all left to the chain of the object clicked, one pane below.
       onNodeWithText("com.example.Holder instance").assertDoesNotExist()
       onNodeWithText(DOMINATES_TARGET).assertDoesNotExist()
+      onNodeWithText("Holder.payload").assertDoesNotExist()
       // What each step holds stays, on the class name's own line: it's what the map is being read for.
       onNodeWithText("$HOLDER_LABEL · ", substring = true).assertIsDisplayed()
     }
@@ -343,11 +381,12 @@ class ExplorerAppTest {
 
       onNodeWithText("com.example.Wrapper instance").performClick()
 
-      // Described in the panel, and the treemap zoomed to where it's drawn, which is a step down from the
-      // root: the wrapper is held from two places, so nothing owns it either.
+      // Described in the panel, on the map where the tree draws it — which here is the top of it: the
+      // wrapper is held from two places, so nothing owns it, and what it holds is held from two places
+      // as well, so it owns nothing either. One of the whole heap dump's own rectangles, selected there
+      // rather than opened into a view with nothing in it.
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
       onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
-      waitUntilZoomedIn()
     }
   }
 
@@ -580,8 +619,10 @@ class ExplorerAppTest {
       // Laying the rings out is another read of the heap dump, so the tree comes back a beat later.
       shapeOption(ViewShape.RADIAL).assertIsSelected()
       waitForTheTree(OPEN_TIMEOUT_MILLIS)
-      // Anywhere near the middle of the view is inside one of the rings.
-      clickView(TREEMAP_X, TREEMAP_Y)
+      // Just off the middle of the view, which is inside one of the rings: the rings are as wide as the
+      // view's shorter side divided by how many of them the layout allows for, so a tree three levels deep
+      // fills only the first three of them and the space past that belongs to no cell.
+      clickView(RING_X, RING_Y)
 
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
     }
@@ -827,11 +868,26 @@ class ExplorerAppTest {
     xFraction: Float,
     yFraction: Float
   ) {
-    val view = viewBounds()
-    onRoot().performMouseInput {
-      hover(Offset(x = view.left + view.width * xFraction, y = view.top + view.height * yFraction))
-    }
+    onRoot().performMouseInput { hover(pointerAt(xFraction, yFraction)) }
   }
+
+  /** A point of the view given as a fraction of it, in the window's own coordinates. */
+  private fun ComposeUiTest.pointerAt(
+    xFraction: Float,
+    yFraction: Float
+  ): Offset {
+    val view = viewBounds()
+    return Offset(x = view.left + view.width * xFraction, y = view.top + view.height * yFraction)
+  }
+
+  /**
+   * Where the card naming what the pointer is on ended up, measured by the object id it prints.
+   *
+   * The card itself is a surface with no semantics of its own, so this is a line inside it: enough to say
+   * which way it moved and that the pointer isn't in it, since the card is at least as big as its text.
+   */
+  private fun ComposeUiTest.pointerCardBounds() =
+    onNodeWithText(objectIdText(payloadObjectId)).fetchSemanticsNode().boundsInRoot
 
   /**
    * Moves the pointer onto the band the root keeps across the top of the view for its own label, which its
@@ -879,6 +935,13 @@ class ExplorerAppTest {
     /** Somewhere in the middle of the view, which is inside whatever it draws biggest. */
     private const val TREEMAP_X = 0.4f
     private const val TREEMAP_Y = 0.6f
+
+    /** How far along the view the pointer moves to show the card following it, staying on one rectangle. */
+    private const val POINTER_STEP = 0.2f
+
+    /** Just off the middle of the view, which is in the first ring the rings are drawn out from. */
+    private const val RING_X = 0.45f
+    private const val RING_Y = 0.55f
 
     /** How far inside the left edge of the view a container's outline is pressed. Within EDGE_GRAB. */
     private const val EDGE_PRESS_INSET = 2f
