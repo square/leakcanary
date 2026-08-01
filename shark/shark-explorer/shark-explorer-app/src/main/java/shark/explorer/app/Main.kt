@@ -60,9 +60,32 @@ fun main(args: Array<String>) {
     // `--args` and a run configuration each split a quoted title differently, and a title split in two
     // reads as one on the line above.
     SharkLog.d { "Read that as $arguments" }
+    nameThisRun(arguments.titlePrefix ?: APP_NAME)
     // Heap dump paths on the command line open straight away, which is how this is usually run.
     explorerApplication(arguments)
   }
+}
+
+/**
+ * Calls this process [name] wherever the OS names the process rather than one of its windows, which on
+ * macOS is the menu bar and the app switcher.
+ *
+ * A run is one process and several windows, so the one name it gets is what the run was started for —
+ * the `--title` its windows share — rather than which heap dump is open. Without this a run is called
+ * after whatever launched it, which is the same for every explorer on screen.
+ *
+ * Called before the first window, which is not a matter of taste: AWT reads this property as it starts
+ * and registers the process under whatever it says then, so setting it once a window is up changes
+ * nothing. It is the same name `-Xdock:name` sets — that JVM argument only puts it in an environment
+ * variable AWT reads at that same moment — which is why nothing that launches this has to pass one.
+ *
+ * The macOS dock is the one place this does not reach: it names a process after the bundle it was
+ * launched from and takes no notice of either. Naming that is the `runNamed` Gradle task's job.
+ */
+private fun nameThisRun(name: String) {
+  // Read on macOS only. Windows and Linux name a process after its window, which already says this.
+  System.setProperty("apple.awt.application.name", name)
+  SharkLog.d { "This run is called \"$name\" where the OS names the process rather than a window" }
 }
 
 /** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
