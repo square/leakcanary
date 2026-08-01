@@ -47,7 +47,7 @@ tasks.withType<JavaExec>().matching { it.name == "run" }.configureEach {
 /** Shared by the Compose plugin's `run` and by `runNamed`, which launches the same classes itself. */
 val explorerMainClass = "shark.explorer.app.MainKt"
 
-/** The dock icon of a `run`, through `-Xdock:icon`, and of a `runNamed`, through its bundle. */
+/** The dock icon of both tasks, each through `-Xdock:icon`: a bundle's own icon does not survive AWT. */
 val macOsIconFile = project.file("icons/shark-explorer-icon.icns")
 
 // Launching under a name the dock shows. `run` is the one to use while working; see AGENTS.md for why
@@ -203,6 +203,10 @@ abstract class RunNamedExplorer : DefaultTask() {
    * A script rather than a launcher binary, and `exec` rather than a child process: the JVM has to end
    * up being the process macOS launched from the bundle, or it is a process of its own again and the
    * dock is back to calling it java.
+   *
+   * It passes `-Xdock:icon` even though the bundle already declares `CFBundleIconFile`, because that
+   * key only reaches LaunchServices: AWT overwrites the tile with its own Java icon as it starts, and
+   * without the flag the dock shows that instead. See AGENTS.md.
    */
   private fun launcherScript(
     args: String,
@@ -215,6 +219,7 @@ abstract class RunNamedExplorer : DefaultTask() {
       cd ${workingDirectory.get().asFile.path.shellQuoted()} || exit 1
       exec ${javaExecutable.get().shellQuoted()} \
         -Dcompose.application.configure.swing.globals=true \
+        -Xdock:icon=${iconFile.get().asFile.path.shellQuoted()} \
         -cp ${classpath.shellQuoted()} \
         ${mainClass.get()} $args >>${output.path.shellQuoted()} 2>&1
     """.trimIndent() + "\n"
