@@ -42,6 +42,7 @@ import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
 import shark.explorer.jdwp.JdwpBitmaps
+import shark.explorer.jdwp.JdwpGc
 
 fun main(args: Array<String>) {
   // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
@@ -143,8 +144,9 @@ fun ExplorerApp(
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
   deviceHeapDumps: DeviceHeapDumps = remember {
     val adb = CommandLineAdb()
-    // The debugger is what gets the pixels of a bitmap off API 26 to 34, where no heap dump has them.
-    DeviceHeapDumps(adb, JdwpBitmaps(adb))
+    // A debugger is what reaches into a process for the two things `am dumpheap` can't ask it for on an
+    // old enough device: the pixels of a bitmap below API 35, and a collection below API 27.
+    DeviceHeapDumps(adb, JdwpBitmaps(adb), JdwpGc(adb))
   }
 ) {
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }

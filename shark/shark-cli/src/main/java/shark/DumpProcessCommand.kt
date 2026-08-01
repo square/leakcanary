@@ -31,6 +31,9 @@ class DumpProcessCommand : CliktCommand(
 
     private val SPACE_PATTERN = Regex("\\s+")
 
+    /** Where `am dumpheap -g` was added, so the first Android version whose garbage can be collected. */
+    private const val MIN_GC_BEFORE_DUMP_SDK_INT = 27
+
     @Suppress("ThrowsCount")
     fun CliktCommand.dumpHeap(
       processNameParam: String,
@@ -97,13 +100,26 @@ class DumpProcessCommand : CliktCommand(
 
       val heapDumpDevicePath = "/data/local/tmp/$heapDumpFileName"
 
+      // Nothing else collects the garbage: `am dumpheap` writes whatever is in the heap, and ART's
+      // hprof dumper suspends the runtime rather than collecting, so a dump taken without this is
+      // mostly uncollected garbage. `-g` is System.gc(), System.runFinalization() and System.gc() run in
+      // the dumped process, and it arrived in Android 8.1 — an older device refuses the whole command
+      // over an unknown option rather than ignoring it, hence the check.
+      val sdkInt = runCommand(
+        workingDirectory, "adb", "-s", deviceId, "shell", "getprop", "ro.build.version.sdk"
+      ).trim().toIntOrNull() ?: 0
+      val gcArguments = if (sdkInt >= MIN_GC_BEFORE_DUMP_SDK_INT) listOf("-g") else emptyList()
+
       echo(
         "Dumping heap on $deviceId for process \"$processName\" with pid $processId to $heapDumpDevicePath"
       )
 
       runCommand(
-        workingDirectory, "adb", "-s", deviceId, "shell", "am", "dumpheap", processId,
-        heapDumpDevicePath
+        workingDirectory,
+        *(
+          listOf("adb", "-s", deviceId, "shell", "am", "dumpheap") + gcArguments +
+            listOf(processId, heapDumpDevicePath)
+          ).toTypedArray()
       )
 
       // Dump heap takes time but adb returns immediately.

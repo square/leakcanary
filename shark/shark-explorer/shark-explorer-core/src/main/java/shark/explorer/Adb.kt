@@ -177,6 +177,13 @@ class AndroidDevice(
   val canDumpBitmaps: Boolean
     get() = sdkInt != null && sdkInt >= DeviceHeapDumps.MIN_BITMAP_DUMP_SDK_INT
 
+  /**
+   * Whether the garbage of this device can be collected before its heap is dumped, which is what
+   * `am dumpheap -g` does and what Android 8.1 added. See [DeviceHeapDumps].
+   */
+  val canCollectGarbageBeforeDump: Boolean
+    get() = sdkInt != null && sdkInt >= DeviceHeapDumps.MIN_GC_BEFORE_DUMP_SDK_INT
+
   /** How well this device matches the machine a heap dump was written on. */
   fun matchTo(origin: HeapDumpOrigin): DeviceMatch = when {
     fingerprint != null && fingerprint == origin.fingerprint -> DeviceMatch.SAME_BUILD

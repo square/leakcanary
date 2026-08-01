@@ -8,38 +8,36 @@ import shark.explorer.AndroidDevice
 import shark.explorer.DeviceProcess
 
 /**
- * Covers the half of a fetch that needs no app: the port `adb` hands out, and what a connection that
+ * Covers the half of a collection that needs no app: the port `adb` hands out, and what a connection that
  * goes nowhere says.
  *
  * Everything past attaching runs in a live app and can't be faked — a JDI client talks to a real VM or to
- * nothing — so what a real one answers is in `notes/bitmaps.md` instead.
+ * nothing — so what a real one answers is in `notes/decisions.md` instead.
  */
-class JdwpBitmapsTest {
+class JdwpGcTest {
 
   @Test fun `a process that won't take a debugger is told what does`() {
     val adb = fakeAdb()
 
-    assertThatThrownBy { JdwpBitmaps(adb).fetchBitmaps(device(), process()) {} }
+    assertThatThrownBy { JdwpGc(adb).collectGarbage(device(), process()) {} }
       .isInstanceOf(AdbFailureException::class.java)
-      // The failure this actually is, nine times in ten: `adb forward` sets up a forward to any pid at
-      // all, and a process that doesn't speak JDWP only shows up as a connection nobody answers.
       .hasMessageContaining("Only a debuggable app lets a debugger in")
   }
 
-  @Test fun `the forwarded port is closed again, whatever came of the fetch`() {
+  @Test fun `the forwarded port is closed again, whatever came of the collection`() {
     val adb = fakeAdb()
 
-    runCatching { JdwpBitmaps(adb).fetchBitmaps(device(), process()) {} }
+    runCatching { JdwpGc(adb).collectGarbage(device(), process()) {} }
 
-    // A forward outlives what set it up, so one left behind is one more dead entry in `adb forward
-    // --list` for every fetch that was ever tried.
+    // An attach that failed has no session for the caller to close, so closing the forward is this
+    // side's job — a forward outlives what set it up.
     assertThat(adb.commands.last()).isEqualTo("-s emulator-5554 forward --remove tcp:$CLOSED_PORT")
   }
 
   @Test fun `an adb that answers something other than a port says what it answered`() {
     val adb = fakeAdb(forwardOutput = "cannot bind listener")
 
-    assertThatThrownBy { JdwpBitmaps(adb).fetchBitmaps(device(), process()) {} }
+    assertThatThrownBy { JdwpGc(adb).collectGarbage(device(), process()) {} }
       .isInstanceOf(AdbFailureException::class.java)
       .hasMessageContaining("answered \"cannot bind listener\"")
   }
@@ -55,10 +53,11 @@ class JdwpBitmapsTest {
   private fun device() = AndroidDevice(
     serialNumber = "emulator-5554",
     state = "device",
-    fingerprint = "google/sdk/sdk:10/QSR1/6427100:user/release-keys",
-    model = "Pixel 4",
-    sdkInt = 29,
-    isDebuggableBuild = false
+    fingerprint = "google/sdk/sdk:8.0.0/OSR1/4443079:userdebug/test-keys",
+    model = "Pixel 6",
+    // Below the API 27 `am dumpheap -g` arrived in, which is the whole reason this class exists.
+    sdkInt = 26,
+    isDebuggableBuild = true
   )
 
   private fun process() = DeviceProcess(processId = 1201, name = "com.example")
