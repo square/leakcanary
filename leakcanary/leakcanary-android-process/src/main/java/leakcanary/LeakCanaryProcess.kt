@@ -11,8 +11,8 @@ import leakcanary.internal.RemoteLeakCanaryWorkerService
 import shark.SharkLog
 
 /**
- * Used to determine whether the current process is the LeakCanary analyzer process. By depending
- * on the `leakcanary-android-process` artifact instead of the `leakcanary-android`, LeakCanary
+ * Used to determine whether the current process is the LeakCanary analyzer process. By adding the
+ * `leakcanary-android-process` artifact alongside the `leakcanary-android` artifact, LeakCanary
  * will automatically run its analysis in a separate process.
  *
  * As such, you'll need to be careful to do any custom configuration of LeakCanary in both the main

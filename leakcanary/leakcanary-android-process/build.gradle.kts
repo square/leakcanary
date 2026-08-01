@@ -22,7 +22,7 @@ android {
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
   }
-  namespace = "com.squareup.leakcanary"
+  namespace = "com.squareup.leakcanary.process"
   lint {
     checkOnly += "Interoperability"
     disable += "GoogleAppIndexingWarning"
