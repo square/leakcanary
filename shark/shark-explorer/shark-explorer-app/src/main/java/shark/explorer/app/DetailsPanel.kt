@@ -312,7 +312,8 @@ internal const val CLASS_GROUP_EXPLANATION =
     "so the root's children can be read. Click it to see them one by one."
 
 private const val GROUP_EXPLANATION =
-  "Too small or too many to draw one by one. Click what holds them to see them."
+  "Too small or too many to draw one by one. Clicking them roots the map at what holds them, where the " +
+    "biggest of them get a rectangle each."
 
 /** What the pixels of the selected bitmap are, to anything that can't look at them. */
 internal const val BITMAP_DESCRIPTION = "The pixels of the selected bitmap."

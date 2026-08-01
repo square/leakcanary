@@ -71,7 +71,11 @@ internal fun ViewControls(
         )
       }
       if (REFERENCE_STRENGTHS.none { sizes.byteCountByStrength.getValue(it) > 0L }) {
-        Text(NOTHING_WEAKER, style = MaterialTheme.typography.bodySmall)
+        // The fact on one line, the paragraph saying why on hover: this sits above the map for as long as
+        // the heap dump is open, and the reader who has read it once is looking at the map underneath.
+        Hint(NOTHING_WEAKER_HINT) {
+          Text(NOTHING_WEAKER, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+        }
       }
     }
   }
@@ -187,11 +191,14 @@ private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf
 
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
- * which would otherwise read as a bug. Common but not a rule — see the notes on reachability.
+ * which is what the legend rows reading 0 B mean and would otherwise read as a bug.
  */
 internal const val NOTHING_WEAKER =
-  "Nothing in this heap dump is reachable only through a java.lang.ref.Reference. That's common, " +
-    "because the garbage collection before a dump clears the references whose referent nothing else " +
-    "was holding — but it isn't a given: a referent a thread got out of a reference and has since let " +
-    "go of is weakly reachable again until the next collection. Unreachable is a different thing " +
-    "again: objects nothing points at, which that collection didn't get to."
+  "Nothing in this heap dump is reachable only through a java.lang.ref.Reference."
+
+/** Why that is normal, which is a paragraph, and a paragraph is more than the bar above a map can hold. */
+internal const val NOTHING_WEAKER_HINT =
+  "$NOTHING_WEAKER That's common, because the garbage collection before a dump clears the references " +
+    "whose referent nothing else was holding — but it isn't a given: a referent a thread got out of a " +
+    "reference and has since let go of is weakly reachable again until the next collection. Unreachable " +
+    "is a different thing again: objects nothing points at, which that collection didn't get to."

@@ -270,6 +270,12 @@ says, in a strip that couldn't hold a class name. **The whole heap dump is the t
 the same reason: the way back to the screen the window opens on belongs where the chain says the whole heap
 is, and a chain of the whole heap dump is that one row and nothing else.
 
+**The screen bar has a button of the same name, which is not a duplicate of that row.** The chain is drawn
+for the rectangle clicked, on the map screen only, so until something has been clicked, and from a list of
+objects, that row isn't there — and the way back to the top of the tree is the one move that has to be
+available whatever the window is showing. Hence a button beside the other screens rather than a second one
+above the map: leaving the map and going back to the top of it are the same kind of move.
+
 **The pointer's chain is drawn onto the end of the clicked one.** The rectangle under the pointer is inside
 the one the window is describing, so the chain holding it *is* this chain plus a few steps — and drawing it
 that way makes sweeping the pointer across the map read as the chain growing and shrinking, leaving the

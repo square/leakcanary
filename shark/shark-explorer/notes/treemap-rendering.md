@@ -204,6 +204,14 @@ objects rather than one — a class group, or the siblings that didn't fit — i
 strength, cool slate when that strength is `STRONG`, so it reads as "not an object" without needing a
 colour of its own. All of it is in `CellColors.kt`, the one place the colours are named.
 
+**The siblings that didn't fit are filled with dots on top of that**, `pileDots` in `CellView.kt`. That
+rectangle is often the biggest thing on the map — a class group of 54,000 strings is one rectangle with
+one of these filling almost all of it — and at that size a flat block reads as one enormous object, which
+on a real dump means a bitmap. A texture says "many small things" before the label is read, and being an
+even texture rather than a drawing of each of them keeps the pile looking like the one thing a click can
+land on. It's a repeated `ImageShader` tile rather than a circle per dot, because the whole map is redrawn
+every time the pointer moves onto another rectangle.
+
 **Grey means one thing only: a strength switched off.** The checkboxes above the view are a `CellColoring`,
 and unchecking one greys out everything held that firmly rather than hiding it — the tree is the whole heap
 dump either way, so there is no strength it makes no sense to press, and toggling one is a repaint. Greying
@@ -266,8 +274,11 @@ into **along the whole chain**, and the chain beside the map is the way back out
 from resolving it that way rather than from the cell's own `parent`: an object that dominates nothing lands
 inside what holds it with itself selected, rather than filling the view with one rectangle and nothing to
 read; and it's the same code path whatever led there, so a class name clicked in the details panel and a
-rectangle clicked on the map land in the same place. A group isn't a node of the tree, so clicking one has
-nowhere to go: it describes what it stands for and leaves the map where it is.
+rectangle clicked on the map land in the same place. A group isn't a node of the tree, so what a click on
+one is walked to is its `parent` — the rectangle it was left out of, which is where those objects are, and
+rooted there the map has the room to draw the biggest of them one by one. The panels stay on the group,
+since the group is what was clicked. **Every rectangle moves the map**, in other words, and the group used
+to be the one that didn't.
 
 Keeping all of that pure functions in `shark-explorer-core` is what makes it testable — see
 `decisions.md` for how the UI tests are structured around this.

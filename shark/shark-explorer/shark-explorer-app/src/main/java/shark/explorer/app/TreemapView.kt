@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import shark.explorer.CellContent
 import shark.explorer.CellSubject
 import shark.explorer.LayoutCell
 import shark.explorer.PresentedCell
@@ -65,16 +67,19 @@ internal fun TreemapView(
 ) {
   val textMeasurer = rememberTextMeasurer()
   val density = LocalDensity.current
+  // One tile shared by every pile on the map, since they are all filled with the same dots.
+  val dots = remember(density) { pileDots(density) }
   // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
   // the presentation changes and never on a redraw.
-  val cells = remember(presentation, coloring, bitmapImages, textMeasurer, density) {
+  val cells = remember(presentation, coloring, bitmapImages, textMeasurer, density, dots) {
     val colors = CellColors.of(coloring, presentation.cells)
     presentation.cells.map { presented ->
       presented.measure(
         colors = colors,
         textMeasurer = textMeasurer,
         density = density,
-        image = presented.imageOf(bitmapImages)
+        image = presented.imageOf(bitmapImages),
+        dots = dots
       )
     }
   }
@@ -200,6 +205,8 @@ private class MeasuredCell(
   val topLeft: Offset,
   val size: Size,
   val color: Color,
+  /** The dots filling a pile of siblings its parent had no room for, and null for every other cell. */
+  val dots: Brush?,
   val borderColor: Color,
   val outline: Stroke,
   /** Whether this rectangle is one of the current root's own children, which are the named level. */
@@ -236,7 +243,8 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
   colors: CellColors,
   textMeasurer: TextMeasurer,
   density: Density,
-  image: ImageBitmap?
+  image: ImageBitmap?,
+  dots: Brush
 ): MeasuredCell {
   val rect = cell.rect
   val labelPadding = with(density) { LABEL_PADDING.toPx() }
@@ -260,6 +268,7 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
     topLeft = topLeft,
     size = size,
     color = colors.colorOf(this),
+    dots = dots.takeIf { content is CellContent.Leftover },
     borderColor = colors.borderOf(this),
     outline = outlineOf(content),
     isRootChild = isRootChild,
@@ -309,6 +318,10 @@ private fun TextLayoutResult.asLabel(
 
 private fun DrawScope.drawFill(cell: MeasuredCell) {
   drawRect(color = cell.color, topLeft = cell.topLeft, size = cell.size)
+  // Straight after its own fill rather than in a pass of its own: a pile is where the map stops dividing,
+  // so there is never a rectangle drawn inside one for the dots to end up under.
+  val dots = cell.dots ?: return
+  drawRect(brush = dots, topLeft = cell.topLeft, size = cell.size)
 }
 
 private fun DrawScope.drawImage(cell: MeasuredCell) {

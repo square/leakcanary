@@ -171,6 +171,27 @@ class TreemapViewTest {
     }
   }
 
+  @Test fun `the rectangle standing for the siblings that did not fit is drawn as dots`() {
+    runComposeUiTest {
+      // It can be a good part of the view, and one flat block that size reads as one enormous object,
+      // which on a real heap dump means a bitmap. A texture says how many things are in there.
+      val presentation = mapTree(ROOT to (1L..500L).toList()).present()
+      setContent { TreemapUnderTest(presentation) }
+
+      val drawn = onRoot().captureToImage().toPixelMap()
+
+      // A patch of it wide enough to hold dots whichever way the pattern falls, and clear of both the
+      // dotted outline and the name written across the top. A fill on its own would be one colour.
+      val rect = presentation.groupUnder(ROOT).rect
+      val left = rect.left.toInt() + PATCH_INSET
+      val bottom = rect.bottom.toInt() - PATCH_INSET
+      val patch = (0 until PATCH_SIDE).flatMap { row ->
+        (0 until PATCH_SIDE).map { column -> drawn[left + column, bottom - row] }
+      }
+      assertThat(patch.toSet()).hasSizeGreaterThan(1)
+    }
+  }
+
   @Test fun `a bitmap's pixels are drawn on its rectangle`() {
     runComposeUiTest {
       val presentation = oneChild.present()
@@ -347,6 +368,10 @@ class TreemapViewTest {
     /** How far into a rectangle its name is, past its edge and short of the end of the shortest label. */
     private const val NAME_X = 12f
     private const val NAME_Y = 9f
+
+    /** A square of pixels a couple of dots across, taken well inside a rectangle's outline. */
+    private const val PATCH_SIDE = 16
+    private const val PATCH_INSET = 4
 
     /** A colour no cell is filled with, so that finding it is finding the image. */
     private val MAGENTA = Color(0xFFFF00FF)
