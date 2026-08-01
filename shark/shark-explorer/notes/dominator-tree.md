@@ -224,11 +224,11 @@ view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 `OwnerReferences` applies a curated list of `OwnerRule`s from `ExplorerRules`: a class whose instances
 something owns, plus the references that own them — named fields, or the virtual references a class's
 instances hand out. Three today — `android.view.View` owned by the `ViewGroup` that reads it as a child
-(see below) and by `Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by
-`ActivityThread$ActivityClientRecord.activity`. After: **every one of the 277 child views is under its
-parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains
-18 MB under the record the framework runs it from, which is the second largest rectangle under the GC
-roots.
+(see below) and by `Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by the
+`ActivityThread` that reads it out of `mActivities` (see below). After: **every one of the 277 child views
+is under its parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and
+`MainActivity` retains 18 MB under the thread that runs it, which is the second largest rectangle under
+the GC roots.
 
 **A rule is parked, not dropped, and that's the whole design.** The walk in
 `HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
@@ -298,6 +298,30 @@ Three things make it safe, and each one is a decision:
 Byte counts are untouched by all of it, which is the check that no object moved out of the graph: 83.83 MB
 strong, 2.05 MB thread local, 28 B local, 2.6 KB finalizer, 190 KB unreachable, 1,019,837 objects, before
 and after.
+
+### An `ActivityThread` points at the activities it runs: the second virtual reference
+
+`ActivityThreadReferenceReader` gives an `ActivityThread` one reference per running activity, named
+`mActivities` and marked virtual, which is what the activity `OwnerRule` claims ownership through. Same
+shape as the `ViewGroup` one above, and for the same reason: the field is an
+`ArrayMap<IBinder, ActivityClientRecord>`, so every activity of every dump is five objects down from the
+thread that runs it, and the record is the only thing a field rule could name.
+
+The rule this replaced named `ActivityThread$ActivityClientRecord.activity`, which worked and read badly.
+A record is an implementation detail of how the framework runs an activity, so a tree built on it draws
+every screen of an app under a different unnamed record instead of side by side under the one thread that
+runs them all. Measured on `leak_asynctask_o.hprof`: the live `MainActivity` retains 51,634 B either way,
+its dominator moves from `ActivityThread$ActivityClientRecord` to `ActivityThread`, and the chain down to
+it goes from `mActivities → ArrayMap, mArray → Object[], 1 → ActivityClientRecord, activity → MainActivity`
+to `mActivities → MainActivity`. The leaked `MainActivity` in that dump is untouched — 211,038 B under the
+`MainActivity$2` that leaks it — which is the fallback doing its job on a destroyed activity.
+
+**Read the `ArrayMap` the way the map reads itself**: keys at the even slots, values at the odd ones, over
+the first `mSize` pairs. Bounded by the count for the same reason `mChildrenCount` bounds the children, and
+it matters more here: an `ArrayMap` doesn't null the slots it gives up, it leaves them for the next put, so
+past the count is exactly where the record of a destroyed activity is still written down. Attributing that
+activity to the framework would hide the leak. `an activity in a slot the map doesn't count is not one the
+process is running` pins it.
 
 ## One rule set, and why the explorer can't just reuse shark's matchers
 

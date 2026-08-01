@@ -203,16 +203,22 @@ internal class ExplorerRules(
           "android.app.Dialog" to setOf("mDecor")
         )
       ),
-      // An activity belongs to the list of activities the process is running, and everything else that
-      // points at one — a context wrapper, a view, a fragment, a presenter, a callback — is something the
-      // activity brought along. Self-clearing in the same way: ActivityThread.handleDestroyActivity takes
-      // the record out of mActivities, so a destroyed activity has no owner left and falls back on
-      // whatever is leaking it, which is exactly what you want its bytes drawn under.
+      // An activity is held by the list of activities the process is running, through the virtual
+      // reference [ActivityThreadReferenceReader] reads from the ActivityThread to each of them.
+      // Everything else that points at one — a context wrapper, a view, a fragment, a presenter, a
+      // callback — is something the activity brought along.
+      //
+      // Not ActivityThread$ActivityClientRecord.activity, which is the same construct named one level
+      // lower and was this rule's first form: the record is an implementation detail of how the framework
+      // runs an activity, so a tree built on it draws every screen of an app under a different unnamed
+      // record instead of side by side under the one thread that runs them.
+      //
+      // Self-clearing either way: ActivityThread.handleDestroyActivity takes the record out of
+      // mActivities, so a destroyed activity has no owner left and falls back on whatever is leaking it,
+      // which is exactly what you want its bytes drawn under.
       OwnerRule(
         ownedClassName = ACTIVITY_CLASS_NAME,
-        ownerFieldsByClassName = mapOf(
-          "android.app.ActivityThread\$ActivityClientRecord" to setOf("activity")
-        )
+        ownerVirtualClassNames = setOf(ActivityThreadReferenceReader.ACTIVITY_THREAD_CLASS_NAME)
       )
     )
 

@@ -62,7 +62,7 @@ internal class WeakeningReference(
  * Where a structure is worth presenting the way you think about it anyway, the reference is **added**
  * rather than swapped in: [ViewChildReferenceReader] gives a `ViewGroup` a reference to each of its
  * children, and the `View[]` they really live in is still reached through `mChildren` and still a node of
- * its own.
+ * its own. [ActivityThreadReferenceReader] does the same for the activities the process is running.
  */
 internal class ReferenceStrengthReader(
   private val graph: HeapGraph,
@@ -73,6 +73,8 @@ internal class ReferenceStrengthReader(
     ActualMatchingReferenceReaderFactory(rules.weakeningReferenceMatchers).createFor(graph)
 
   private val viewChildReader = ViewChildReferenceReader(graph)
+
+  private val activityThreadReader = ActivityThreadReferenceReader(graph)
 
   /**
    * Which fields of a class hold their value without retaining it, by class object id. Cached because
@@ -92,7 +94,8 @@ internal class ReferenceStrengthReader(
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> =
     retainingReader.read(source) + classMetadataReferencesOf(source) +
-      viewChildReader.childReferencesOf(source)
+      viewChildReader.childReferencesOf(source) +
+      activityThreadReader.runningActivityReferencesOf(source)
 
   /**
    * The arrays ART hangs off a class object to hold what it embeds — its method tables in

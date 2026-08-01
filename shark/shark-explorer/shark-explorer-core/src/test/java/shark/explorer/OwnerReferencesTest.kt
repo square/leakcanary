@@ -85,13 +85,29 @@ class OwnerReferencesTest {
       val tree = explorer.tree
       val activity = tree.findByLabel("MainActivity")
 
-      // Something else holding a live activity is holding what the framework is running, so the record in
-      // ActivityThread.mActivities is where its bytes belong. Once the framework destroys it that record
-      // is gone, and then the thing still pointing at it is both its owner and its leak.
-      assertThat(tree.dominatorOf(activity.objectId)!!.label)
-        .isEqualTo("ActivityThread\$ActivityClientRecord")
+      // Something else holding a live activity is holding what the framework is running, so the thread
+      // running it is where its bytes belong. Once the framework destroys it the record is out of
+      // mActivities, and then the thing still pointing at it is both its owner and its leak.
+      //
+      // The ActivityThread, not the ActivityClientRecord the map keeps it in: the thread points at each
+      // activity itself — see [ActivityThreadReferenceReader] — so the map, its array and the record are no
+      // step on the way down to an activity, and the one step there is names the field on the thread.
+      assertThat(tree.dominatorOf(activity.objectId)!!.label).isEqualTo("ActivityThread")
       assertThat(tree.independentPathsBelowDominator(activity.objectId).paths.map { it.stepLabels() })
-        .containsExactly(listOf("activity → MainActivity"))
+        .containsExactly(listOf("mActivities → MainActivity"))
+    }
+  }
+
+  @Test fun `an activity in a slot the map doesn't count is not one the process is running`() {
+    HeapExplorer.open(viewHierarchyHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val stale = tree.findByLabel("StaleActivity")
+
+      // What the thread runs is what mSize covers, not what its map has room for. An ArrayMap leaves the
+      // slots it gives up for the next put rather than nulling them, so past the count is where the record
+      // of a destroyed activity is still written down — and calling it a running activity attributes a
+      // leaked screen to the framework, which is the opposite of what you'd want to read.
+      assertThat(tree.dominatorOf(stale.objectId)!!.label).isEqualTo("ActivityThread\$ActivityClientRecord")
     }
   }
 
@@ -105,7 +121,8 @@ class OwnerReferencesTest {
     }
   }
   /**
-   * A heap dump shaped like the view hierarchies of a running app: an activity holding its decor view, the
+   * A heap dump shaped like the view hierarchies of a running app: an `ActivityThread` running an activity
+   * through the `ArrayMap` of client records it keeps them in, the activity holding its decor view, the
    * decor view holding a child through the array a `ViewGroup` keeps its children in — plus a view in a
    * slot of that array it doesn't count — and two things pointing at views they don't hold, a
    * `ViewRootImpl` and an `InputMethodManager`, each a GC root of its own so that both are closer to a
@@ -148,15 +165,16 @@ class OwnerReferencesTest {
       )
       // The owner field is declared by android.app.Activity and the instance is a subclass of it, which is
       // how a real dump looks and what makes this cover the class hierarchy walk.
+      val activityClassId = clazz(
+        className = "android.app.Activity",
+        fields = listOf(
+          "mDecor" to ReferenceHolder::class,
+          "mDestroyed" to BooleanHolder::class
+        )
+      )
       val mainActivityClassId = clazz(
         className = "com.example.MainActivity",
-        superclassId = clazz(
-          className = "android.app.Activity",
-          fields = listOf(
-            "mDecor" to ReferenceHolder::class,
-            "mDestroyed" to BooleanHolder::class
-          )
-        )
+        superclassId = activityClassId
       )
       // Views point back at their parent, at their hierarchy's root and at their activity, so their ids
       // have to exist before the objects they point at are written.
@@ -210,9 +228,44 @@ class OwnerReferencesTest {
         objectId = detachedRootId
       )
       instance(mainActivityClassId, listOf(decor, BooleanHolder(false)), objectId = activityId)
-      // What the framework runs the activity from, and something outside it that also points at it.
-      val activityRecord = "android.app.ActivityThread\$ActivityClientRecord" instance {
-        field["activity"] = activityId
+      // What the framework runs the activity from: an ArrayMap of binder token to client record, keys at the
+      // even slots and records at the odd ones. Written out the way a real dump has it, because the
+      // reference the ownership rule waits on is the one the explorer reads through all of it.
+      //
+      // One class declaration for both records rather than the `"a.b.C" instance { }` shorthand, which
+      // declares a class per instance and would put two ActivityClientRecord classes in a dump that has one.
+      val activityRecordClassId = clazz(
+        className = "android.app.ActivityThread\$ActivityClientRecord",
+        fields = listOf("activity" to ReferenceHolder::class)
+      )
+      val binderTokenClassId = clazz(className = "android.os.BinderProxy")
+      val activityRecord = instance(activityRecordClassId, listOf(ReferenceHolder(activityId.value)))
+      // A record in a slot past mSize, holding the activity the framework has already destroyed — which is
+      // what an ArrayMap leaves behind, since it keeps the slots it gives up for the next put.
+      val staleRecord = instance(
+        activityRecordClassId,
+        listOf(
+          instance(
+            clazz(className = "com.example.StaleActivity", superclassId = activityClassId),
+            listOf(NO_REFERENCE, BooleanHolder(true))
+          )
+        )
+      )
+      val activityThread = "android.app.ActivityThread" instance {
+        field["mActivities"] = "android.util.ArrayMap" instance {
+          field["mArray"] = ReferenceHolder(
+            objectArray(
+              arrayClass("java.lang.Object"),
+              longArrayOf(
+                instance(binderTokenClassId).value,
+                activityRecord.value,
+                instance(binderTokenClassId).value,
+                staleRecord.value
+              )
+            )
+          )
+          field["mSize"] = IntHolder(1)
+        }
       }
       val leaker = "com.example.Leaker" instance { field["activity"] = activityId }
       val fallbackHandler = "com.android.internal.policy.PhoneFallbackEventHandler" instance {
@@ -222,7 +275,7 @@ class OwnerReferencesTest {
         field["mServedView"] = leaf
         field["mNextServedView"] = detachedRootId
       }
-      gcRoot(JniGlobal(id = activityRecord.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = activityThread.value, jniGlobalRefId = 0))
       gcRoot(JniGlobal(id = leaker.value, jniGlobalRefId = 1))
       gcRoot(JniGlobal(id = fallbackHandler.value, jniGlobalRefId = 2))
       gcRoot(JniGlobal(id = inputMethodManager.value, jniGlobalRefId = 3))

@@ -43,7 +43,8 @@ internal class OwnerRule(
    * Those are the references the explorer adds itself, to present a structure the way you think about it
    * instead of the way it's built, and an owner named that way is named by what it is rather than by a
    * field it holds the object in: a `ViewGroup` owns the children [ViewChildReferenceReader] reads for it,
-   * whichever slot of whichever array each one is really in.
+   * whichever slot of whichever array each one is really in, and an `ActivityThread` owns the activities
+   * [ActivityThreadReferenceReader] reads for it, whichever record of its map each one is really in.
    */
   val ownerVirtualClassNames: Set<String> = emptySet()
 )
