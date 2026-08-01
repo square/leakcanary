@@ -21,6 +21,7 @@ android {
 
   defaultConfig {
     minSdk = libs.versions.androidMinSdk.get().toInt()
+    consumerProguardFiles("consumer-proguard-rules.pro")
   }
   namespace = "com.squareup.leakcanary.process"
   lint {
