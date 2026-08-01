@@ -1,11 +1,14 @@
 import com.android.build.api.artifact.ScopedArtifact
+import com.android.build.api.artifact.SingleArtifact
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.ScopedArtifacts
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import io.gitlab.arturbosch.detekt.extensions.DetektExtension
 import java.net.URI
+import javax.xml.parsers.DocumentBuilderFactory
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.dokka.gradle.DokkaExtension
 import org.jetbrains.dokka.gradle.engine.parameters.KotlinPlatform
@@ -17,6 +20,7 @@ import org.jetbrains.kotlin.abi.tools.AbiTools
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.abi.ExperimentalAbiValidation
+import org.w3c.dom.Element
 
 buildscript {
   repositories {
@@ -180,12 +184,13 @@ configure(subprojects.filter {
   }
 }
 
-// Modules that don't ship an API meant to be consumed by others: the sample app, the LeakCanary UI
+// Modules that don't ship an API meant to be consumed by others: the sample apps, the LeakCanary UI
 // app and its internal plumbing, the Shark explorer desktop app and the heap model it renders, the
 // test fixtures for Shark, and the Shark command line tool, which is distributed as a zip attached
 // to the Github release rather than as a dependency. They are not published to Maven Central, their
 // ABI isn't tracked and they're left out of the documentation site.
 val modulesWithoutPublicApi = listOf(
+  "leakcanary-android-process-sample",
   "leakcanary-android-sample",
   "leakcanary-app",
   "leakcanary-app-aidl",
@@ -395,6 +400,172 @@ abstract class AndroidAbiUpdateTask : DefaultTask() {
     // A module that exposes no public API gets an empty dump file rather than no file at all, so
     // that gaining a public API is always a visible diff.
     actualDump.get().asFile.copyTo(referenceDump.get().asFile, overwrite = true)
+  }
+}
+
+/**
+ * Every Android component LeakCanary ships is declared in a manifest and instantiated by the system
+ * from the class name in that manifest. `RemoteLeakCanaryWorkerService`, the service the heap
+ * analysis runs in, is on top of that looked up by name twice from LeakCanary's own code:
+ * `RemoteWorkManagerHeapAnalyzer` holds its name in a string constant to decide whether the analysis
+ * can run in another process, and `LeakCanaryProcess.isInAnalyzerProcess` asks `PackageManager` for
+ * the process that service is declared to run in. None of that is a reference R8 can see, so in a
+ * minified app the only thing stopping R8 from renaming or deleting those classes is the keep rules
+ * the Android Gradle plugin generates from the merged manifest.
+ *
+ * LeakCanary used to also write those rules by hand, in `consumer-proguard-rules.pro` files, and
+ * they were deleted once it was clear AGP already generated every one of them. This holds that to
+ * be true: it reads the merged manifest of an app built from LeakCanary, and fails if any component
+ * that manifest declares came out of R8 renamed, deleted, or stripped of the no argument
+ * constructor the system calls. That last one is not hypothetical: the rules WorkManager and Room
+ * ship keep the class without the constructor, which R8 stopped treating as the same thing in full
+ * mode, and the app then dies the first time something instantiates one of theirs.
+ */
+project(":samples:leakcanary-android-process-sample") {
+  pluginManager.withPlugin("com.android.application") {
+    registerShrunkManifestComponentsCheck()
+  }
+}
+
+fun Project.registerShrunkManifestComponentsCheck() {
+  val checkTask = tasks.register<ShrunkManifestComponentsTask>("checkShrunkManifestComponents") {
+    description = "Checks that every component declared in the merged manifest came out of R8 " +
+      "under its own name, with the no argument constructor the system instantiates it with."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    report.set(layout.buildDirectory.file("reports/shrunk-manifest-components.txt"))
+    generatedKeepRules.set(layout.buildDirectory.dir("intermediates/aapt_proguard_file/release"))
+  }
+  tasks.named("check") {
+    dependsOn(checkTask)
+  }
+
+  val androidComponents = extensions.getByType<ApplicationAndroidComponentsExtension>()
+  androidComponents.onVariants(androidComponents.selector().withName("release")) { variant ->
+    checkTask.configure {
+      mergedManifest.set(variant.artifacts.get(SingleArtifact.MERGED_MANIFEST))
+      obfuscationMapping.set(variant.artifacts.get(SingleArtifact.OBFUSCATION_MAPPING_FILE))
+    }
+  }
+}
+
+@CacheableTask
+abstract class ShrunkManifestComponentsTask : DefaultTask() {
+
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.NONE)
+  abstract val mergedManifest: RegularFileProperty
+
+  @get:InputFile
+  @get:PathSensitive(PathSensitivity.NONE)
+  abstract val obfuscationMapping: RegularFileProperty
+
+  @get:OutputFile
+  abstract val report: RegularFileProperty
+
+  /** Where the Android Gradle plugin wrote the keep rules it derived from the merged manifest. */
+  @get:Internal
+  abstract val generatedKeepRules: DirectoryProperty
+
+  @TaskAction
+  fun check() {
+    val kept = keptClasses()
+    val outcomes = declaredComponents().associateWith { componentClassName ->
+      val keptClass = kept[componentClassName]
+      when {
+        keptClass == null -> "R8 deleted it"
+        keptClass.newName != componentClassName -> "R8 renamed it to ${keptClass.newName}"
+        !keptClass.hasNoArgConstructor -> "R8 removed its no argument constructor"
+        else -> KEPT
+      }
+    }
+
+    val reportFile = report.get().asFile
+    reportFile.parentFile.mkdirs()
+    reportFile.writeText(outcomes.entries.joinToString("\n") { "${it.value}: ${it.key}" })
+
+    val failures = outcomes.filterValues { it != KEPT }
+    if (failures.isNotEmpty()) {
+      throw GradleException(
+        """
+        The merged manifest declares components that the system will fail to instantiate, because
+        R8 did not leave them callable under the name the manifest gives:
+
+        ${failures.entries.joinToString("\n        ") { "${it.key}: ${it.value}" }}
+
+        The Android Gradle plugin writes `-keep class <name> { <init>(); }` for every component in
+        the merged manifest, so either the component is no longer declared there or the plugin
+        stopped generating the rule.
+
+        Rules the plugin generated: ${generatedKeepRules.get().asFile}
+        Manifest read: ${mergedManifest.get().asFile}
+        Mapping read: ${obfuscationMapping.get().asFile}
+        """.trimIndent()
+      )
+    }
+  }
+
+  /** The class behind every component the merged manifest declares. */
+  private fun declaredComponents(): List<String> {
+    val document = DocumentBuilderFactory.newInstance()
+      .newDocumentBuilder()
+      .parse(mergedManifest.get().asFile)
+    // An activity-alias has no class of its own: its android:name is just the name the alias is
+    // published under, and the class is the activity it points at.
+    val classNameAttributes = mapOf(
+      "activity" to "android:name",
+      "activity-alias" to "android:targetActivity",
+      "service" to "android:name",
+      "receiver" to "android:name",
+      "provider" to "android:name",
+    )
+    return classNameAttributes
+      .flatMap { (tagName, attributeName) ->
+        val elements = document.getElementsByTagName(tagName)
+        (0 until elements.length).mapNotNull { index ->
+          (elements.item(index) as Element)
+            .getAttribute(attributeName)
+            .takeIf { it.isNotEmpty() }
+        }
+      }
+      .distinct()
+      .sorted()
+  }
+
+  private class KeptClass(
+    val newName: String,
+    val hasNoArgConstructor: Boolean
+  )
+
+  /**
+   * What R8 did to each class it kept, read off the mapping file, keyed by the name the class had
+   * before R8 ran. R8 writes one `<original> -> <new name>:` line per class it kept, at the start of
+   * a line, then a line per member it kept, indented under it. A class it deleted entirely gets no
+   * line at all.
+   */
+  private fun keptClasses(): Map<String, KeptClass> {
+    val classes = mutableMapOf<String, KeptClass>()
+    var currentName: String? = null
+    obfuscationMapping.get().asFile.forEachLine { line ->
+      if (line.isEmpty() || line.startsWith("#")) return@forEachLine
+      if (line.first().isWhitespace()) {
+        // A member of the class the previous unindented line named. Constructors are never renamed,
+        // so the line to look for ends in `void <init>() -> <init>`, after the source line numbers
+        // R8 records in front of it.
+        val name = currentName ?: return@forEachLine
+        if (line.trimEnd().endsWith("void <init>() -> <init>")) {
+          classes[name] = KeptClass(classes.getValue(name).newName, hasNoArgConstructor = true)
+        }
+      } else {
+        val names = line.removeSuffix(":").split(" -> ")
+        currentName = names.first()
+        classes[names.first()] = KeptClass(names.last(), hasNoArgConstructor = false)
+      }
+    }
+    return classes
+  }
+
+  companion object {
+    private const val KEPT = "kept"
   }
 }
 

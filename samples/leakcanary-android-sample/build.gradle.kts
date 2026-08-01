@@ -7,7 +7,8 @@ dependencies {
   debugImplementation(projects.leakcanary.leakcanaryAppService)
   // debugImplementation(projects.leakcanary.leakcanaryAndroidStartup)
 
-  // Uncomment to use the :leakcanary process
+  // Uncomment to use the :leakcanary process. The setup is covered by
+  // :samples:leakcanary-android-process-sample, which builds it on every CI run.
   // debugImplementation(projects.leakcanary.leakcanaryAndroidProcess)
   releaseImplementation(projects.leakcanary.leakcanaryAndroidRelease)
   // Optional
