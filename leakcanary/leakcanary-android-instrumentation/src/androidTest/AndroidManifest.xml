@@ -20,5 +20,6 @@
     android:name="androidx.multidex.MultiDexApplication"
     >
     <activity android:name="leakcanary.TestActivity"/>
+    <service android:name="leakcanary.TestService"/>
   </application>
 </manifest>

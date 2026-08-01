@@ -2,13 +2,8 @@ package leakcanary
 
 import android.annotation.SuppressLint
 import android.app.Service
-import android.os.Build
 import android.os.Handler
 import android.os.IBinder
-import java.lang.ref.WeakReference
-import java.lang.reflect.InvocationTargetException
-import java.lang.reflect.Proxy
-import java.util.WeakHashMap
 import leakcanary.internal.friendly.checkMainThread
 import shark.SharkLog
 
@@ -25,12 +20,15 @@ class ServiceWatcher(private val deletableObjectReporter: DeletableObjectReporte
     reachabilityWatcher.asDeletableObjectReporter()
   )
 
-  private val servicesToBeDestroyed = WeakHashMap<IBinder, WeakReference<Service>>()
-
   private val activityThreadClass by lazy { Class.forName("android.app.ActivityThread") }
 
   private val activityThreadInstance by lazy {
     activityThreadClass.getDeclaredMethod("currentActivityThread").invoke(null)!!
+  }
+
+  private val activityThreadHandler by lazy {
+    val mHField = activityThreadClass.getDeclaredField("mH").apply { isAccessible = true }
+    mHField[activityThreadInstance] as Handler
   }
 
   private val activityThreadServices by lazy {
@@ -42,14 +40,10 @@ class ServiceWatcher(private val deletableObjectReporter: DeletableObjectReporte
   }
 
   private var uninstallActivityThreadHandlerCallback: (() -> Unit)? = null
-  private var uninstallActivityManager: (() -> Unit)? = null
 
   override fun install() {
     checkMainThread()
     check(uninstallActivityThreadHandlerCallback == null) {
-      "ServiceWatcher already installed"
-    }
-    check(uninstallActivityManager == null) {
       "ServiceWatcher already installed"
     }
     try {
@@ -61,46 +55,23 @@ class ServiceWatcher(private val deletableObjectReporter: DeletableObjectReporte
         }
         Handler.Callback { msg ->
           // https://github.com/square/leakcanary/issues/2114
-          // On some Motorola devices (Moto E5 and G6), the msg.obj returns an ActivityClientRecord
-          // instead of an IBinder. This crashes on a ClassCastException. Adding a type check
-          // here to prevent the crash.
-          if (msg.obj !is IBinder) {
-            return@Callback false
-          }
-
-          if (msg.what == STOP_SERVICE) {
-            val key = msg.obj as IBinder
-            activityThreadServices[key]?.let {
-              onServicePreDestroy(key, it)
+          // On some Motorola devices (Moto E5 and G6), msg.obj is an ActivityClientRecord instead
+          // of the IBinder token that AOSP sends, so this cast can't be assumed to be safe.
+          val token = if (msg.what == STOP_SERVICE) msg.obj as? IBinder else null
+          // ActivityThread stops holding on to the service as part of handling STOP_SERVICE, so
+          // the instance has to be read before that happens.
+          val service = token?.let { activityThreadServices[it] }
+          val handled = mCallback?.handleMessage(msg) ?: false
+          if (!handled && token != null && service != null) {
+            // Handler.dispatchMessage() calls this callback before handleMessage(), which is where
+            // ActivityThread destroys the service: it calls Service.onDestroy() and everything
+            // that follows it synchronously. A message posted from here is queued behind that
+            // work, so it runs once the service is destroyed.
+            activityThreadHandler.post {
+              onServiceDestroyed(token, service)
             }
           }
-          mCallback?.handleMessage(msg) ?: false
-        }
-      }
-      swapActivityManager { activityManagerInterface, activityManagerInstance ->
-        uninstallActivityManager = {
-          swapActivityManager { _, _ ->
-            activityManagerInstance
-          }
-        }
-        Proxy.newProxyInstance(
-          activityManagerInterface.classLoader, arrayOf(activityManagerInterface)
-        ) { _, method, args ->
-          if (METHOD_SERVICE_DONE_EXECUTING == method.name) {
-            val token = args!![0] as IBinder
-            if (servicesToBeDestroyed.containsKey(token)) {
-              onServiceDestroyed(token)
-            }
-          }
-          try {
-            if (args == null) {
-              method.invoke(activityManagerInstance)
-            } else {
-              method.invoke(activityManagerInstance, *args)
-            }
-          } catch (invocationException: InvocationTargetException) {
-            throw invocationException.targetException
-          }
+          handled
         }
       }
     } catch (ignored: Throwable) {
@@ -110,71 +81,34 @@ class ServiceWatcher(private val deletableObjectReporter: DeletableObjectReporte
 
   override fun uninstall() {
     checkMainThread()
-    uninstallActivityManager?.invoke()
     uninstallActivityThreadHandlerCallback?.invoke()
-    uninstallActivityManager = null
     uninstallActivityThreadHandlerCallback = null
   }
 
-  private fun onServicePreDestroy(
+  private fun onServiceDestroyed(
     token: IBinder,
     service: Service
   ) {
-    servicesToBeDestroyed[token] = WeakReference(service)
-  }
-
-  private fun onServiceDestroyed(token: IBinder) {
-    servicesToBeDestroyed.remove(token)?.also { serviceWeakReference ->
-      serviceWeakReference.get()?.let { service ->
-        deletableObjectReporter.expectDeletionFor(
-          service, "${service::class.java.name} received Service#onDestroy() callback"
-        )
-      }
+    if (token in activityThreadServices) {
+      // ActivityThread is still holding on to the service, so handling STOP_SERVICE did not
+      // destroy it. That shouldn't happen, and if a device ever does this then watching the
+      // service here would report it as a leak while it's still in use.
+      SharkLog.d { "STOP_SERVICE did not destroy ${service::class.java.name}, not watching it" }
+      return
     }
+    deletableObjectReporter.expectDeletionFor(
+      service, "${service::class.java.name} received Service#onDestroy() callback"
+    )
   }
 
   private fun swapActivityThreadHandlerCallback(swap: (Handler.Callback?) -> Handler.Callback?) {
-    val mHField =
-      activityThreadClass.getDeclaredField("mH").apply { isAccessible = true }
-    val mH = mHField[activityThreadInstance] as Handler
-
     val mCallbackField =
       Handler::class.java.getDeclaredField("mCallback").apply { isAccessible = true }
-    val mCallback = mCallbackField[mH] as Handler.Callback?
-    mCallbackField[mH] = swap(mCallback)
-  }
-
-  @SuppressLint("PrivateApi")
-  private fun swapActivityManager(swap: (Class<*>, Any) -> Any) {
-    val singletonClass = Class.forName("android.util.Singleton")
-    val mInstanceField =
-      singletonClass.getDeclaredField("mInstance").apply { isAccessible = true }
-
-    val singletonGetMethod = singletonClass.getDeclaredMethod("get")
-
-    val (className, fieldName) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-      "android.app.ActivityManager" to "IActivityManagerSingleton"
-    } else {
-      "android.app.ActivityManagerNative" to "gDefault"
-    }
-
-    val activityManagerClass = Class.forName(className)
-    val activityManagerSingletonField =
-      activityManagerClass.getDeclaredField(fieldName).apply { isAccessible = true }
-    val activityManagerSingletonInstance = activityManagerSingletonField[activityManagerClass]
-
-    // Calling get() instead of reading from the field directly to ensure the singleton is
-    // created.
-    val activityManagerInstance = singletonGetMethod.invoke(activityManagerSingletonInstance)
-
-    val iActivityManagerInterface = Class.forName("android.app.IActivityManager")
-    mInstanceField[activityManagerSingletonInstance] =
-      swap(iActivityManagerInterface, activityManagerInstance!!)
+    val mCallback = mCallbackField[activityThreadHandler] as Handler.Callback?
+    mCallbackField[activityThreadHandler] = swap(mCallback)
   }
 
   companion object {
     private const val STOP_SERVICE = 116
-
-    private const val METHOD_SERVICE_DONE_EXECUTING = "serviceDoneExecuting"
   }
 }
