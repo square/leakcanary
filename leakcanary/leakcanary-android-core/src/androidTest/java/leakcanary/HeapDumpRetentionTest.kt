@@ -4,7 +4,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import leakcanary.internal.LeakDirectoryProvider
 import leakcanary.internal.activity.db.HeapAnalysisTable
-import leakcanary.internal.activity.db.HeapDumpDeletionTable
+import leakcanary.internal.activity.db.HeapDumpTable
 import leakcanary.internal.activity.db.ScopedLeaksDb
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
@@ -17,8 +17,8 @@ import shark.HeapAnalysisFailure
 
 /**
  * [LeakDirectoryProvider] deletes heap dumps to keep at most `maxStoredHeapDumps` of them. A heap
- * dump whose analysis hasn't run yet has to survive that, because the analysis is queued on
- * WorkManager and can run long after the process that created the heap dump is gone.
+ * dump whose analysis hasn't run yet has to survive that, because that analysis can run long after
+ * the process that created the heap dump is gone.
  */
 internal class HeapDumpRetentionTest {
 
@@ -62,6 +62,18 @@ internal class HeapDumpRetentionTest {
 
     assertThat(oldest).doesNotExist()
     assertThat(newest).exists()
+  }
+
+  @Test fun heap_dumps_with_no_analysis_are_the_ones_waiting_for_one() {
+    val analyzed = writeHeapDump("analyzed.hprof", lastModifiedMillis = 1000)
+    markAnalyzed(analyzed)
+    val newerWaiting = writeHeapDump("newer-waiting.hprof", lastModifiedMillis = 3000)
+    val olderWaiting = writeHeapDump("older-waiting.hprof", lastModifiedMillis = 2000)
+
+    val waitingForAnalysis = LeakDirectoryProvider(context) { 7 }
+      .heapDumpFilesWaitingForAnalysis()
+
+    assertThat(waitingForAnalysis).containsExactly(olderWaiting, newerWaiting)
   }
 
   @Test fun deleting_a_heap_dump_waiting_for_analysis_records_that_it_was_waiting() {
@@ -115,24 +127,24 @@ internal class HeapDumpRetentionTest {
     assertThat(rawDeletionReason(neverDeleted)).isNull()
   }
 
-  @Test fun recorded_deletions_dont_grow_without_bound() {
-    val deletionCount = 300
+  @Test fun what_LeakCanary_records_about_heap_dumps_doesnt_grow_without_bound() {
+    val heapDumpCount = 300
     ScopedLeaksDb.writableDatabase(context) { db ->
-      repeat(deletionCount) { index ->
-        HeapDumpDeletionTable.insert(db, File(heapDumpDirectory, "$index.hprof"), "Deleted.")
+      repeat(heapDumpCount) { index ->
+        HeapDumpTable.recordDeletion(db, File(heapDumpDirectory, "$index.hprof"), "Deleted.")
       }
-      val rowCount = db.rawQuery("SELECT COUNT(*) FROM heap_dump_deletion", null).use { cursor ->
+      val rowCount = db.rawQuery("SELECT COUNT(*) FROM heap_dump", null).use { cursor ->
         cursor.moveToNext()
         cursor.getInt(0)
       }
-      assertThat(rowCount).isLessThan(deletionCount)
+      assertThat(rowCount).isLessThan(heapDumpCount)
     }
-    assertThat(rawDeletionReason(File(heapDumpDirectory, "${deletionCount - 1}.hprof"))).isNotNull()
+    assertThat(rawDeletionReason(File(heapDumpDirectory, "${heapDumpCount - 1}.hprof"))).isNotNull()
     assertThat(rawDeletionReason(File(heapDumpDirectory, "0.hprof"))).isNull()
   }
 
   private fun newHeapDumpFile(maxStoredHeapDumps: Int) {
-    LeakDirectoryProvider(context, { maxStoredHeapDumps }).newHeapDumpFile()
+    LeakDirectoryProvider(context) { maxStoredHeapDumps }.newHeapDumpFile()
   }
 
   private fun writeHeapDump(
@@ -171,6 +183,6 @@ internal class HeapDumpRetentionTest {
 
   private fun rawDeletionReason(heapDumpFile: File): String? =
     ScopedLeaksDb.readableDatabase(context) { db ->
-      HeapDumpDeletionTable.retrieveReason(db, heapDumpFile)
+      HeapDumpTable.retrieveDeletionReason(db, heapDumpFile)
     }
 }

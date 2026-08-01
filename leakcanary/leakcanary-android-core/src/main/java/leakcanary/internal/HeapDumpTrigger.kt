@@ -8,6 +8,7 @@ import android.content.res.Resources.NotFoundException
 import android.os.Handler
 import android.os.SystemClock
 import com.squareup.leakcanary.core.R
+import java.io.File
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 import leakcanary.AppWatcher
@@ -30,6 +31,7 @@ import leakcanary.internal.RetainInstanceEvent.CountChanged.DumpingDisabled
 import leakcanary.internal.RetainInstanceEvent.NoMoreObjects
 import leakcanary.internal.friendly.measureDurationMillis
 import shark.AndroidResourceIdNames
+import shark.HeapAnalysis.Companion.DUMP_DURATION_UNKNOWN
 import shark.SharkLog
 
 internal class HeapDumpTrigger(
@@ -53,6 +55,8 @@ internal class HeapDumpTrigger(
   private var lastDisplayedRetainedObjectCount = 0
 
   private var lastHeapDumpUptimeMillis = 0L
+
+  private var checkedForDroppedAnalyses = false
 
   private val scheduleDismissRetainedCountNotification = {
     dismissRetainedCountNotification()
@@ -84,6 +88,17 @@ internal class HeapDumpTrigger(
   fun onApplicationVisibilityChanged(applicationVisible: Boolean) {
     if (applicationVisible) {
       applicationInvisibleAt = -1L
+      // An analysis that was queued or running when its process died left behind a heap dump that
+      // nothing is going to read, and since LeakCanary doesn't dump the heap again while one is
+      // waiting, nothing would notice. Whether that happened is settled by the time this process
+      // starts, so this only has to run once, and running it when the app becomes visible keeps it
+      // out of app startup and out of the :leakcanary process, which has no UI to show.
+      if (!checkedForDroppedAnalyses) {
+        checkedForDroppedAnalyses = true
+        backgroundHandler.post {
+          dispatchAnalysisOfHeapDumpsWaitingForOne()
+        }
+      }
     } else {
       applicationInvisibleAt = SystemClock.uptimeMillis()
       // Scheduling for after watchDuration so that any destroyed activity has time to become
@@ -155,6 +170,28 @@ internal class HeapDumpTrigger(
       return
     }
 
+    // Dumping the heap again while an earlier heap dump is still waiting for its analysis would put
+    // two analyses of two heap dumps in flight at once, each one holding a parsed heap in memory and
+    // racing the other for CPU, and would fill up the stored heap dumps with heap dumps nothing has
+    // read yet, until the oldest one gets deleted out from under the analysis that was going to read
+    // it. So we wait, and while we wait we make sure that analysis is actually still coming.
+    val waitingForAnalysis = dispatchAnalysisOfHeapDumpsWaitingForOne()
+    if (waitingForAnalysis.isNotEmpty()) {
+      SharkLog.d {
+        "Waiting for the analysis of $waitingForAnalysis to finish before dumping the heap again"
+      }
+      val reason = application.getString(R.string.leak_canary_notification_analysis_wait)
+      onRetainInstanceListener.onEvent(DumpingDisabled(reason))
+      showRetainedCountNotification(
+        objectCount = retainedReferenceCount,
+        contentText = reason
+      )
+      scheduleRetainedObjectCheck(
+        delayMillis = WAIT_FOR_PENDING_ANALYSIS_MILLIS
+      )
+      return
+    }
+
     dismissRetainedCountNotification()
     val visibility = if (applicationVisible) "visible" else "not visible"
     dumpHeap(
@@ -162,6 +199,38 @@ internal class HeapDumpTrigger(
       retry = true,
       reason = "$retainedReferenceCount retained objects, app is $visibility"
     )
+  }
+
+  /**
+   * Dispatches the analysis of every stored heap dump that has no stored analysis, and returns those
+   * heap dumps.
+   *
+   * The analysis of a heap dump is dispatched once when the heap dump is taken and normally needs no
+   * help after that: WorkManager persists the work it was given and resumes it in the next process,
+   * and [leakcanary.BackgroundThreadHeapAnalyzer], which is what LeakCanary falls back to when
+   * WorkManager isn't in the classpath, has nothing to resume from but also nothing that can drop the
+   * analysis except the process dying. Dispatching again is how the case that's left, a process that
+   * died while its analysis was queued or running, stops being a heap dump nobody will ever read.
+   *
+   * Dispatching again costs nothing when the analysis is still coming: the analysis is enqueued under
+   * a name unique to that heap dump, so WorkManager keeps the work it already has, and an analysis
+   * that did complete is no longer waiting and so is never dispatched again.
+   */
+  private fun dispatchAnalysisOfHeapDumpsWaitingForOne(): List<File> {
+    val waitingForAnalysis = InternalLeakCanary.createLeakDirectoryProvider(application)
+      .heapDumpFilesWaitingForAnalysis()
+    waitingForAnalysis.forEach { heapDumpFile ->
+      SharkLog.d { "Dispatching analysis of heap dump $heapDumpFile, which has no analysis" }
+      InternalLeakCanary.sendEvent(
+        HeapDump(
+          uniqueId = UUID.randomUUID().toString(),
+          file = heapDumpFile,
+          durationMillis = DUMP_DURATION_UNKNOWN,
+          reason = "Heap dump was taken earlier and its analysis never completed"
+        )
+      )
+    }
+    return waitingForAnalysis
   }
 
   private fun dumpHeap(
@@ -419,5 +488,12 @@ internal class HeapDumpTrigger(
     private const val WAIT_FOR_OBJECT_THRESHOLD_MILLIS = 2_000L
     private const val DISMISS_NO_RETAINED_OBJECT_NOTIFICATION_MILLIS = 30_000L
     private const val WAIT_BETWEEN_HEAP_DUMPS_MILLIS = 60_000L
+
+    /**
+     * How long to wait before checking again on a heap dump that hasn't been analyzed yet. An
+     * analysis that finishes sooner than this only delays the next heap dump, which the minute
+     * between heap dumps was going to delay anyway.
+     */
+    private const val WAIT_FOR_PENDING_ANALYSIS_MILLIS = 60_000L
   }
 }

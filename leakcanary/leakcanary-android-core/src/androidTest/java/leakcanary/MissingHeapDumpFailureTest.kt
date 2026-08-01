@@ -6,7 +6,7 @@ import java.io.File
 import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisFailed
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.AndroidDebugHeapAnalyzer
-import leakcanary.internal.activity.db.HeapDumpDeletionTable
+import leakcanary.internal.activity.db.HeapDumpTable
 import leakcanary.internal.activity.db.ScopedLeaksDb
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
@@ -42,7 +42,7 @@ internal class MissingHeapDumpFailureTest {
   @Test fun failure_names_the_recorded_reason_LeakCanary_deleted_the_heap_dump() {
     val heapDumpFile = File(context.noBackupFilesDir, "leakcanary/deleted.hprof")
     ScopedLeaksDb.writableDatabase(context) { db ->
-      HeapDumpDeletionTable.insert(db, heapDumpFile, "A recorded reason.")
+      HeapDumpTable.recordDeletion(db, heapDumpFile, "A recorded reason.")
     }
 
     val failure = analyzeMissingHeapDump(heapDumpFile)

@@ -1,6 +1,7 @@
 package leakcanary
 
 import androidx.work.Data
+import androidx.work.ExistingWorkPolicy.KEEP
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.multiprocess.RemoteListenableWorker.ARGUMENT_CLASS_NAME
@@ -55,7 +56,9 @@ object RemoteWorkManagerHeapAnalyzer : EventListener {
         }.build()
       SharkLog.d { "Enqueuing heap analysis for ${event.file} on WorkManager remote worker" }
       WorkManager.getInstance(application)
-        .beginWith(heapAnalysisRequest)
+        .beginUniqueWork(
+          WorkManagerHeapAnalyzer.heapAnalysisWorkName(event.file), KEEP, heapAnalysisRequest
+        )
         .then(dispatchDoneEventRequest)
         .enqueue()
     }

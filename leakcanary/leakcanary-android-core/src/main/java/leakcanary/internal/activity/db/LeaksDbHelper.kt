@@ -19,7 +19,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     db.execSQL(LeakTable.create)
     db.execSQL(LeakTable.createSignatureIndex)
     db.execSQL(LeakTraceTable.create)
-    db.execSQL(HeapDumpDeletionTable.create)
+    db.execSQL(HeapDumpTable.create)
   }
 
   override fun onUpgrade(
@@ -81,7 +81,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     }
     if (oldVersion < 26) {
       db.execSQL("ALTER TABLE heap_analysis ADD COLUMN heap_dump_file_path TEXT DEFAULT NULL")
-      db.execSQL(HeapDumpDeletionTable.create)
+      db.execSQL(HeapDumpTable.create)
       // The retention cleanup now keeps heap dumps that no analysis was run on, so every analysis
       // stored before this version needs its heap dump file path filled in, or the heap dumps it
       // already analyzed would look like they're still waiting.
@@ -138,7 +138,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     db.execSQL(HeapAnalysisTable.drop)
     db.execSQL(LeakTable.drop)
     db.execSQL(LeakTraceTable.drop)
-    db.execSQL(HeapDumpDeletionTable.drop)
+    db.execSQL(HeapDumpTable.drop)
     onCreate(db)
   }
 

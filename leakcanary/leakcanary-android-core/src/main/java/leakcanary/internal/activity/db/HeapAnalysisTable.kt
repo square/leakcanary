@@ -118,6 +118,29 @@ internal object HeapAnalysisTable {
   }
 
   /**
+   * The id of the analysis of [heapDumpFile], or null if no analysis of it is stored, which means
+   * it's still waiting to be analyzed.
+   */
+  fun retrieveIdByHeapDumpFilePath(
+    db: SQLiteDatabase,
+    heapDumpFile: File
+  ): Long? {
+    return db.rawQuery(
+      """
+          SELECT
+          id
+          FROM heap_analysis
+          WHERE heap_dump_file_path=?
+          ORDER BY id DESC
+          LIMIT 1
+          """, arrayOf(heapDumpFile.absolutePath)
+    )
+      .use { cursor ->
+        if (cursor.moveToNext()) cursor.getLong(0) else null
+      }
+  }
+
+  /**
    * The absolute path of every heap dump file a stored analysis was run on. A heap dump file that
    * isn't in that set is still waiting to be analyzed, which is what the retention cleanup needs to
    * know before deleting it.
@@ -221,7 +244,7 @@ internal object HeapAnalysisTable {
     reason: String
   ) {
     if (heapDumpFile.delete()) {
-      HeapDumpDeletionTable.insert(db, heapDumpFile, reason)
+      HeapDumpTable.recordDeletion(db, heapDumpFile, reason)
     } else {
       SharkLog.d { "Could not delete heap dump file ${heapDumpFile.path}" }
     }

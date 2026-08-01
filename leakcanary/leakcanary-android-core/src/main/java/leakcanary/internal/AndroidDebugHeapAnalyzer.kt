@@ -12,7 +12,7 @@ import leakcanary.EventListener.Event.HeapDump
 import leakcanary.LeakCanary
 import leakcanary.internal.activity.LeakActivity
 import leakcanary.internal.activity.db.HeapAnalysisTable
-import leakcanary.internal.activity.db.HeapDumpDeletionTable
+import leakcanary.internal.activity.db.HeapDumpTable
 import leakcanary.internal.activity.db.LeakTable
 import leakcanary.internal.activity.db.ScopedLeaksDb
 import shark.CancelSignal
@@ -48,6 +48,10 @@ internal object AndroidDebugHeapAnalyzer {
    * returns the [EventListener.Event.HeapAnalysisDone] event for it. Callers are responsible for
    * dispatching that event.
    *
+   * Asking twice for the analysis of the same heap dump gives back the analysis that was already
+   * stored rather than running a second one, and asking again for a heap dump whose analysis has
+   * been cut short [MAX_ANALYSIS_ATTEMPTS] times stores a failure instead of trying once more.
+   *
    * Throws [CanceledException] if [cancelSignal] stops the analysis, in which case nothing is stored
    * and there's no event to dispatch: an analysis that was asked to stop has no result to show.
    */
@@ -66,8 +70,42 @@ internal object AndroidDebugHeapAnalyzer {
     val heapDumpDurationMillis = heapDumped.durationMillis
     val heapDumpReason = heapDumped.reason
 
-    val heapAnalysis = if (heapDumpFile.exists()) {
-      analyzeHeap(heapDumpFile, progressListener, cancelSignal)
+    // LeakCanary dispatches the analysis of a heap dump again when it can't tell whether the first
+    // dispatch is still alive, so this can be the 2nd time we're asked to analyze this heap dump.
+    // Finding the analysis already stored is how that duplicate stops here instead of parsing the
+    // heap dump again and storing a second copy of the same result.
+    val (analysisAlreadyDone, analysisStartCount) = ScopedLeaksDb.writableDatabase(
+      application
+    ) { db ->
+      val storedAnalysis = HeapAnalysisTable.retrieveIdByHeapDumpFilePath(db, heapDumpFile)
+        ?.let { analysisId ->
+          HeapAnalysisTable.retrieve<HeapAnalysis>(db, analysisId)?.let { heapAnalysis ->
+            analysisDoneEvent(db, heapDumped.uniqueId, analysisId, heapAnalysis)
+          }
+        }
+      if (storedAnalysis != null) {
+        storedAnalysis to 0
+      } else {
+        null to HeapDumpTable.recordAnalysisStart(db, heapDumpFile)
+      }
+    }
+    if (analysisAlreadyDone != null) {
+      SharkLog.d { "Heap dump $heapDumpFile was already analyzed, not analyzing it again" }
+      return analysisAlreadyDone
+    }
+
+    val heapAnalysis = if (analysisStartCount > MAX_ANALYSIS_ATTEMPTS) {
+      abandonedFailure(heapDumpFile)
+    } else if (heapDumpFile.exists()) {
+      try {
+        analyzeHeap(heapDumpFile, progressListener, cancelSignal)
+      } catch (canceled: CanceledException) {
+        // This analysis never got to fail, so it shouldn't count towards giving up on this heap dump.
+        ScopedLeaksDb.writableDatabase(application) { db ->
+          HeapDumpTable.recordAnalysisCanceled(db, heapDumpFile)
+        }
+        throw canceled
+      }
     } else {
       missingFileFailure(heapDumpFile)
     }
@@ -212,7 +250,7 @@ internal object AndroidDebugHeapAnalyzer {
     heapDumpFile: File
   ): HeapAnalysisFailure {
     val deletionReason = ScopedLeaksDb.readableDatabase(application) { db ->
-      HeapDumpDeletionTable.retrieveReason(db, heapDumpFile)
+      HeapDumpTable.retrieveDeletionReason(db, heapDumpFile)
     }
     val message = if (deletionReason != null) {
       "Hprof file $heapDumpFile missing. $deletionReason"
@@ -221,12 +259,44 @@ internal object AndroidDebugHeapAnalyzer {
         "directory is private to this app, so either the app's data was cleared or something " +
         "else in the app deleted the file."
     }
-    val exception = IllegalStateException(message)
-    return HeapAnalysisFailure(
-      heapDumpFile = heapDumpFile,
-      createdAtTimeMillis = System.currentTimeMillis(),
-      analysisDurationMillis = 0,
-      exception = HeapAnalysisException(exception)
+    return failure(heapDumpFile, IllegalStateException(message))
+  }
+
+  /**
+   * [MAX_ANALYSIS_ATTEMPTS] analyses of this heap dump have started and none of them ever got to
+   * store a result, which is what happens when parsing it kills the process: LeakCanary would
+   * otherwise keep retrying it forever, and never dump the heap again while it waits. Storing this
+   * failure is how it stops, and it's also what lets the retention cleanup delete that heap dump.
+   * The file is left in place so it can still be shared from the LeakCanary UI, since a heap dump
+   * that can't be analyzed is exactly the kind of thing worth attaching to a bug report.
+   */
+  private fun abandonedFailure(heapDumpFile: File): HeapAnalysisFailure {
+    SharkLog.d {
+      "Giving up on heap dump $heapDumpFile after $MAX_ANALYSIS_ATTEMPTS analysis attempts"
+    }
+    return failure(
+      heapDumpFile, IllegalStateException(
+        "LeakCanary gave up on analyzing this heap dump: $MAX_ANALYSIS_ATTEMPTS analyses of it " +
+          "started and none ever finished, which is what happens when the process is killed while " +
+          "parsing it. The heap dump file was left in place so you can still share it."
+      )
     )
   }
+
+  private fun failure(
+    heapDumpFile: File,
+    exception: Exception
+  ) = HeapAnalysisFailure(
+    heapDumpFile = heapDumpFile,
+    createdAtTimeMillis = System.currentTimeMillis(),
+    analysisDurationMillis = 0,
+    exception = HeapAnalysisException(exception)
+  )
+
+  /**
+   * How many analyses of the same heap dump may start before LeakCanary gives up on it. An analysis
+   * that runs to the end stores a result, success or failure, so reaching this means every attempt
+   * so far was cut short without one.
+   */
+  private const val MAX_ANALYSIS_ATTEMPTS = 3
 }
