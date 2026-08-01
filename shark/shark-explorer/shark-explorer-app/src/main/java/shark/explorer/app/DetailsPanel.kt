@@ -135,7 +135,8 @@ private fun ObjectGroupDetails(
   Detail("Objects", formatObjectCount(summary.objectCount))
 }
 
-private fun ObjectGroupSummary.title(): String = when (kind) {
+/** What a pile of objects is called wherever it is described: here, and on the card at the pointer. */
+internal fun ObjectGroupSummary.title(): String = when (kind) {
   ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
   ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
 }

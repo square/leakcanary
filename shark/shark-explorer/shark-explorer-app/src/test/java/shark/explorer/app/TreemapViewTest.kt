@@ -91,6 +91,33 @@ class TreemapViewTest {
     }
   }
 
+  @Test fun `clicking the name on a rectangle opens what it names rather than what is inside it`() {
+    runComposeUiTest {
+      // PARENT is one of the root's own children, so the map names it, and CHILD covers every pixel of it:
+      // the name is drawn over CHILD, and pointing at it is how a container is reached without hunting for
+      // the pixels of its edge.
+      val presentation = mapTree(ROOT to listOf(PARENT), PARENT to listOf(CHILD)).present()
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
+
+      onRoot().performMouseInput { click(presentation.nameOf(PARENT)) }
+
+      assertThat(clicked.map { it.node }).containsExactly(PARENT)
+    }
+  }
+
+  @Test fun `moving the pointer onto the name on a rectangle reports what it names`() {
+    runComposeUiTest {
+      val presentation = mapTree(ROOT to listOf(PARENT), PARENT to listOf(CHILD)).present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { TreemapUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput { hover(presentation.nameOf(PARENT)) }
+
+      assertThat(hovered.last()?.node).isEqualTo(PARENT)
+    }
+  }
+
   @Test fun `a root without children fills the view on its own`() {
     runComposeUiTest {
       val presentation = leafRoot.present()
@@ -288,6 +315,19 @@ class TreemapViewTest {
 
   private fun TreemapPresentation.centerOf(node: Long): Offset = center(nodeCellOf(node).rect)
 
+  /**
+   * A point on the plate the map draws one of the root's children's name on, which is a target of its own.
+   *
+   * In the lettering rather than at the corner of the rectangle: the first [EDGE_GRAB] of a rectangle's
+   * edge already belongs to it whatever is drawn there, so a point there would pass whether the name is a
+   * target or not. Density is 1 in a UI test, so these are pixels, and the plate is a line of
+   * [LABEL_STYLE] text with a couple of them around it.
+   */
+  private fun TreemapPresentation.nameOf(node: Long): Offset {
+    val rect = nodeCellOf(node).rect
+    return Offset(rect.left.toFloat() + NAME_X, rect.top.toFloat() + NAME_Y)
+  }
+
   private fun TreemapPresentation.centerOfGroupUnder(parent: Long): Offset =
     center(groupUnder(parent).rect)
 
@@ -303,6 +343,10 @@ class TreemapViewTest {
     private const val OTHER_PARENT = 3L
 
     private val VIEWPORT = TreemapRect(left = 0.0, top = 0.0, right = 600.0, bottom = 400.0)
+
+    /** How far into a rectangle its name is, past its edge and short of the end of the shortest label. */
+    private const val NAME_X = 12f
+    private const val NAME_Y = 9f
 
     /** A colour no cell is filled with, so that finding it is finding the image. */
     private val MAGENTA = Color(0xFFFF00FF)

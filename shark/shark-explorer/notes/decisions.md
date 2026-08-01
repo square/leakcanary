@@ -216,6 +216,12 @@ rather than sliding when that would leave the view, because the card is a Materi
 the pointer ends up inside takes the hover off the map — which would close the card, and start over. Hence
 also the gap, and hence nothing in the card being clickable.
 
+**A rectangle that isn't one object gets the card too**, and needs it most. A pile is named on the map by a
+count and a simple class name — `400 × Sibling`, `300 smaller objects` — which is all a rectangle has room
+for, so the qualified class name, or which rectangle a leftover pile was left out of, fits nowhere but here.
+The card used to be drawn for `Selection.Object` alone, which meant pointing at the one kind of cell whose
+name is incomplete answered nothing at all.
+
 Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
 pointer is on. Nothing is read when the pointer leaves, and nothing on the map screen is blanked as the
 next cell is read, so a sweep across the map doesn't flicker.

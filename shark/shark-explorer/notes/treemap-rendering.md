@@ -70,10 +70,11 @@ Two things follow, and both are behaviour rather than polish:
   (On the production dump only 4 own cells survive the 3×3 dp floor — an object's own bytes are usually a
   rounding error next to what it retains. The ones that don't survive are exactly the ones you don't need
   to see, and the one that does is a bitmap.)
-- **A container is pressed by its outline.** Its children cover every pixel of it, so `cellAt` takes an
-  `edgeGrab` — 4 dp — within which a subdivided cell wins over whatever shares that edge. Without it
-  there is no way to point at a container at all. Pointing at a *gap* in a subdivision, area left by
-  children too small to draw, still lands on the node holding it.
+- **A container is pressed by its name, or by its outline.** Its children cover every pixel of it, so
+  `cellAt` takes an `edgeGrab` — 4 dp — within which a subdivided cell wins over whatever shares that
+  edge, and the view checks the plate under a rectangle's name before that. Without either there is no
+  way to point at a container at all. Pointing at a *gap* in a subdivision, area left by children too
+  small to draw, still lands on the node holding it.
 
 And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so naming the
 levels falls to what is drawn beside the view — `RootPathPanel`, which draws the chain from the whole heap
@@ -94,6 +95,8 @@ Two things make that one level legible:
 - **The label goes over what's nested inside it**, on a translucent plate (`LABEL_PLATE_COLOR`). Text sits
   over fills, outlines and bitmaps it has no say over, so solid text on a washed out plate is readable
   against all of them while still letting what it covers show through. Drawn last, after the outlines.
+  That plate is a hit target as well as a background — see *Hit testing* below — so it is measured once,
+  into `MeasuredLabel`, and the rectangle painted and the rectangle pointed at are the same value.
 - **A child of the root is outlined heavily** (`ROOT_CHILD_BORDER_WIDTH`) and over every outline inside it,
   because the levels below cover their parent exactly: without it the boundary between two named blocks looks
   like every other edge on the map, and the map has no visible structure at the level it's named at.
@@ -242,6 +245,14 @@ own children, so `cellAt` takes an `edgeGrab`: within that distance of an edge, 
 whatever shares it, which is the line the view draws there. A gap in a subdivision still belongs to the
 node being subdivided. This is what a UI test clicks to reach a container — `clickContainerEdge` — since
 the label bands it used to press are gone.
+
+**And the name on a rectangle is a target of its own**, checked before the layout: `namedCellAt` in
+`TreemapView`, against the plates measured for drawing. A name is written over everything nested inside
+the rectangle it names, so the plate is the one piece of a subdivided rectangle still showing, and reading
+the map is reading those names — pointing at one meaning the descendant under the lettering was the view
+answering a question nobody asked. It lives in the app module rather than in `core` because only Compose
+can measure text, and the plate is clamped to the rectangle it names, so a name on a cell barely a line
+tall doesn't answer for the sibling below it. Everywhere else the innermost rectangle still wins.
 
 **A single click goes to the rectangle it landed on**, and it's handled on press rather than on tap:
 `detectTapGestures` holds `onTap` for the double click window whenever `onDoubleTap` is set, and with

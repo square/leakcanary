@@ -44,7 +44,6 @@ import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
-import shark.explorer.HeapObjectSummary
 import shark.explorer.HeapSizes
 import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
@@ -502,7 +501,7 @@ internal fun HeapDumpExplorer(
               hovered = hovered?.cell,
               // What the pointer is on, for the card that follows it, and where the pointer is. Read
               // already: a card that appears empty and fills in a beat later reads as a flicker.
-              pointedSummary = (hoveredCellDetails?.selection as? Selection.Object)?.summary,
+              pointedSelection = hoveredCellDetails?.selection,
               pointerOffset = pointerOffset,
               viewSize = viewportSize,
               isLayingOut = isLayingOut,
@@ -650,7 +649,7 @@ private fun TreeScreen(
   selected: SelectedCell?,
   hovered: SelectedCell?,
   /** What the cell under the pointer is, once it has been read, and null while it hasn't. */
-  pointedSummary: HeapObjectSummary?,
+  pointedSelection: Selection?,
   /** Where the pointer is in the view, which is what the card naming that cell is placed by. */
   pointerOffset: Offset?,
   /** How big the view is, so that the card stays inside it. */
@@ -693,9 +692,9 @@ private fun TreeScreen(
     }
     // Beside the pointer, over the map, because what a rectangle is, is the question being asked by pointing
     // at it: an answer at the edge of the window is read by looking away from the rectangle it is about.
-    if (pointedSummary != null && pointerOffset != null) {
+    if (pointedSelection != null && pointerOffset != null) {
       PointerCard(
-        summary = pointedSummary,
+        selection = pointedSelection,
         coloring = coloring,
         modifier = Modifier
           .onSizeChanged { cardSize = it }
