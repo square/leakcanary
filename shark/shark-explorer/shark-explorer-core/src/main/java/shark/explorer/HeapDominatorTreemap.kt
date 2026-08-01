@@ -63,9 +63,9 @@ import shark.ValueHolder.ShortHolder
  * a sibling of [GC_ROOTS_NODE_ID], because it has no owner in the reachable heap and its bytes are still
  * bytes.
  *
- * The negative node ids stand for a pile of objects rather than for one: the two above, and one per
- * class the children of either are gathered under. They're allocated per tree, so they mean nothing to
- * another tree of the same heap dump.
+ * Some node ids stand for a pile of objects rather than for one: the two above, and one per class the
+ * children of either are gathered under. [isPileId] is which, and they're allocated per tree, so they mean
+ * nothing to another tree of the same heap dump.
  *
  * Reads the heap dump, so not from the UI thread. See [HeapExplorer].
  */
@@ -158,7 +158,7 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /** Whether [objectId] is a node of this tree, which every object of the heap dump is. */
-  operator fun contains(objectId: Long): Boolean = if (isGroupId(objectId)) {
+  operator fun contains(objectId: Long): Boolean = if (isPileId(objectId)) {
     objectId in topLevel.groups
   } else {
     objectId in nodes
@@ -190,7 +190,7 @@ class HeapDominatorTreemap internal constructor(
   }
 
   private fun group(node: Long): NodeGroup? =
-    if (isGroupId(node)) topLevel.groups[node] else null
+    if (isPileId(node)) topLevel.groups[node] else null
 
   /**
    * Splits the root's children into the reachable heap and the uncollected garbage, and gathers each
@@ -1163,16 +1163,16 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * Hands out the ids of the class groups of one tree, counting down from [FIRST_CLASS_GROUP_ID].
+   * Hands out the ids of the class groups of one tree, counting up from [FIRST_CLASS_GROUP_ID].
    *
-   * A group is no object of the heap dump, so it needs an id of its own, and the negative range is free:
-   * object ids are heap addresses. Sequential rather than derived from the class, because the same class
+   * A group is no object of the heap dump, so it needs an id of its own, out of the range no address of one
+   * can land in — see [FIRST_PILE_ID]. Sequential rather than derived from the class, because the same class
    * can have a group on both sides of the tree.
    */
   private class GroupIds {
     private var nextId = FIRST_CLASS_GROUP_ID
 
-    fun next(): Long = nextId--
+    fun next(): Long = nextId++
   }
 
   companion object {
@@ -1185,8 +1185,17 @@ class HeapDominatorTreemap internal constructor(
     /** What the virtual root above the whole heap dump is called in the UI. */
     const val ROOT_LABEL = "Whole heap dump"
 
+    /**
+     * The first of the ids this tree hands out to a pile of objects, which count up from there.
+     *
+     * At the bottom of the range rather than just below zero, because a negative object id is a real
+     * thing: an id is a heap address, and a 32 bit heap dump records it in 4 bytes, which shark widens by
+     * sign — so every object above the 2 GB mark of such a dump has a negative id. See [isPileId].
+     */
+    private const val FIRST_PILE_ID = Long.MIN_VALUE
+
     /** Everything the GC roots reach, one of the root's two children. */
-    const val GC_ROOTS_NODE_ID = -1L
+    const val GC_ROOTS_NODE_ID = FIRST_PILE_ID
 
     const val GC_ROOTS_LABEL = "All GC roots"
 
@@ -1194,12 +1203,12 @@ class HeapDominatorTreemap internal constructor(
      * The uncollected garbage, the root's other child. Absent from a heap dump whose garbage was all
      * collected before it was written.
      */
-    const val UNREACHABLE_NODE_ID = -2L
+    const val UNREACHABLE_NODE_ID = FIRST_PILE_ID + 1
 
     const val UNREACHABLE_LABEL = "Unreachable"
 
-    /** The rest of the negative ids are the class groups. See [GroupIds]. */
-    private const val FIRST_CLASS_GROUP_ID = -3L
+    /** The ids after those two are the class groups. See [GroupIds]. */
+    private const val FIRST_CLASS_GROUP_ID = FIRST_PILE_ID + 2
 
     /**
      * Between the count and the class name on a class group's cell, so that the label can't be read as
@@ -1216,13 +1225,16 @@ class HeapDominatorTreemap internal constructor(
     private const val JAVA_LANG_CLASS = "java.lang.Class"
 
     /**
-     * Every object id in a heap dump is positive, so the sign is what tells a group of objects from one
-     * object. The root is [NULL_REFERENCE], neither.
+     * Whether [nodeId] stands for a pile of objects rather than for one object of the heap dump: the two
+     * halves of the tree, and the classes their children are gathered under.
+     *
+     * Which is a range check rather than a look at the sign, because an object id can be negative. The ids
+     * of a heap dump are addresses, 8 bytes wide or 4 widened by sign, so they run from [Int.MIN_VALUE] up,
+     * and this tree's own ids are below that. The root, [NULL_REFERENCE], is neither.
      */
-    private fun isGroupId(node: Long) = node < 0L
+    fun isPileId(nodeId: Long): Boolean = nodeId < SMALLEST_OBJECT_ID
 
-    /** How an object id reads in a log line: hex, the way a heap dump records it. */
-    private fun hexObjectId(objectId: Long): String = "0x${objectId.toString(16)}"
+    private const val SMALLEST_OBJECT_ID: Long = Int.MIN_VALUE.toLong()
 
     private const val BITMAP_CLASS_NAME = "android.graphics.Bitmap"
     private const val NULL_VALUE = "null"

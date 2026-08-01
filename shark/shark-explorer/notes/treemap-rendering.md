@@ -104,6 +104,25 @@ from the viewport, so the picture always fills the circle and depth past that ne
 take their parent's whole sweep divided by weight, and a ring band is where a node's own name fits, so
 the radial view has not needed the treemap's own-weight cell.
 
+### A negative node id is not the tree's own
+
+The tree's nodes are object ids, and the piles it invents — the two halves of the heap dump, and the class
+groups — need ids of their own. **`nodeId < 0` is not the test for one**, and taking it for one is a bug that
+looks like nothing: an object id is a heap address, a 32 bit dump records it in 4 bytes, and shark widens
+those by sign, so **every object above the 2 GB mark of such a dump has a negative id**. `isPileId` is a range
+check against `Int.MIN_VALUE` instead, and the pile ids start at `Long.MIN_VALUE`.
+
+What the sign test cost, before it was a range check: on `large-dump.hprof`, **44 of the 4,616 rectangles of
+the opening view** had `contains()` say the tree didn't hold them, so pointing at one selected nothing, the
+chain pane never filled in, and clicking one went to the root instead of into it — with no error anywhere,
+because every one of those answers is also a legitimate one. Their hex was wrong too (`0x-7deb3000`), which
+is what `NodeIds.hexObjectId` is for and what makes such an id recognisable in the log.
+
+The lesson for new code here: an id from a heap dump is an opaque 64 bit value, not a number to compare
+against zero, and only a dump with objects past 2 GB will tell you otherwise. `highAddressHeapDump()` in
+`HeapExplorerDumps` is built up there for exactly this — `dump { }` takes a `firstObjectId` so that a test
+can ask for such a dump in one argument.
+
 Two consequences worth knowing before writing a test against the layout:
 
 - **`squarify()` needs descending weights, and neither of the two synthetic cells is in weight order.**

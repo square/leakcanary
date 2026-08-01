@@ -319,14 +319,13 @@ internal fun TemporaryFolder.crowdedRootHeapDump(withJavaLangClass: Boolean = fa
   return file
 }
 
-/** The one class group of a [crowdedRootHeapDump], which is the tiles. */
-
 /** How many elements in the object array that stands for something worth retaining. */
 internal const val PAYLOAD_ELEMENT_COUNT = 1024
 
 /** The one cache the explorer knows about. What its entries read as on a rectangle is the test's own. */
 internal const val CACHE_ENTRY_CLASS_NAME = "coil3.memory.RealStrongMemoryCache\$InternalValue"
 
+/** The one class group of a [crowdedRootHeapDump], which is the tiles. */
 internal const val TILE_CLASS_NAME = "com.example.Tile"
 
 /** Past `MIN_CHILDREN_TO_GROUP_BY_CLASS` in [HeapDominatorTreemap], which is 200. */
@@ -334,3 +333,33 @@ internal const val TILE_COUNT = 205
 
 /** Enough objects between a GC root and a payload that the chain to it has to be cut. */
 internal const val CHAIN_LINK_COUNT = 25
+
+/**
+ * A heap dump whose objects sit above the 2 GB mark, which gives every one of them a negative object id.
+ *
+ * Where the large objects of a real 32 bit Android dump are: an id is 4 bytes there and shark widens those
+ * by sign, so a bitmap or a byte array up in that half of the address space is a negative id everywhere
+ * below shark's reader. Which is what the tree's own ids have to stay out of the way of.
+ */
+internal fun TemporaryFolder.highAddressHeapDump(): HighAddressHeapDump {
+  val file = newFile("high-address.hprof")
+  var payloadObjectId = 0L
+  file.dump(firstObjectId = FIRST_HIGH_ADDRESS) {
+    payloadObjectId = objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+    val holder = "com.example.Holder" instance {
+      field["payload"] = ReferenceHolder(payloadObjectId)
+    }
+    gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+  }
+  return HighAddressHeapDump(file, payloadObjectId)
+}
+
+/** A [highAddressHeapDump] and the object of it a test asks about. */
+internal class HighAddressHeapDump(
+  val file: File,
+  /** The payload array, negative the way every id of this dump is. */
+  val payloadObjectId: Long
+)
+
+/** 0x82000000 as shark reads a 4 byte id: the first address a 32 bit dump's ids come out negative at. */
+private const val FIRST_HIGH_ADDRESS = -0x7E000000L

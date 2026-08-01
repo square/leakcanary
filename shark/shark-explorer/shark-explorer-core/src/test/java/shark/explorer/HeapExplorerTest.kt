@@ -418,6 +418,29 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `an object above the 2 GB mark is described like any other`() {
+    val dump = testFolder.highAddressHeapDump()
+    HeapExplorer.open(dump.file).use { explorer ->
+      val tree = explorer.tree
+      val holder = tree.findByLabel("Holder")
+
+      // The premise: a 4 byte id that far up the address space reads back negative. Which the tree's own
+      // ids have to stay clear of, or the biggest objects of a 32 bit Android dump — its bitmaps and their
+      // pixels — are each read as a pile of objects that this tree has never heard of, and every panel
+      // asking about one is told there is nothing there.
+      assertThat(dump.payloadObjectId).isNegative()
+      assertThat(HeapDominatorTreemap.isPileId(dump.payloadObjectId)).isFalse()
+      assertThat(dump.payloadObjectId in tree).isTrue()
+      assertThat(tree.groupOrNull(dump.payloadObjectId)).isNull()
+      assertThat(tree.summarize(dump.payloadObjectId).className).isEqualTo("java.lang.Object[]")
+      assertThat(tree.rootPathTo(dump.payloadObjectId).stepLabels())
+        .containsExactly("Holder", "payload → Object[]")
+      // And zooming to it lands on what holds it, rather than back at the root.
+      assertThat(tree.pathToOpen(dump.payloadObjectId))
+        .containsExactly(tree.root, GC_ROOTS_NODE_ID, holder.objectId)
+    }
+  }
+
   @Test fun `progress is reported for each step`() {
     val steps = mutableListOf<String>()
 
@@ -518,8 +541,8 @@ class HeapExplorerTest {
       assertThat(instances.map { tree.label(it) }.distinct()).containsExactly("Tile")
       assertThat(tree.weight(group.nodeId)).isEqualTo(instances.sumOf { tree.weight(it) })
       assertThat(group.retainedSize).isEqualTo(tree.weight(group.nodeId))
-      // Zooming into a group is laying it out as a root, so the tree has to know the id the breadcrumb
-      // kept hold of.
+      // Zooming into a group is laying it out as a root, so the tree has to know the id the navigation
+      // path kept hold of.
       assertThat(group.nodeId in tree).isTrue()
     }
   }
