@@ -18,14 +18,15 @@ import shark.SharkLog
  * kept only for its images — or, on a device too old for `-b`, the same question asked of the process
  * through a [bitmapDebugger]. See [HeapBitmaps] for the reading end of all of it.
  *
- * A dump taken to be explored also asks for the garbage to be collected first, with `-g`, because
- * **nothing else collects it**: `am dumpheap` on its own writes whatever is in the heap, and ART's hprof
- * dumper suspends the runtime rather than collecting. `-g` is `System.gc()`, `System.runFinalization()`
- * and `System.gc()` run on the dumped process's main thread — `ActivityThread.handleDumpHeap` — which is
- * the same trio LeakCanary's own `GcTrigger` runs before it dumps. Without it an explorer opens on a heap
- * that is mostly garbage nobody can act on: measured on a 125 MB dump of a real app, 12.0 MB of it over
- * 208 K objects was unreachable, and the same app dumped with `-g` moments later came to 0.29 MB over
- * 10 K. See `notes/decisions.md`.
+ * A dump taken to be explored also has the garbage collected first, because **nothing else collects it**:
+ * `am dumpheap` on its own writes whatever is in the heap, and ART's hprof dumper suspends the runtime
+ * rather than collecting. Without it an explorer opens on a heap that is mostly garbage nobody can act
+ * on. Two ways of asking, the same shape as the two ways of asking for bitmaps: `am dumpheap -g` from API
+ * 27 ([MIN_GC_BEFORE_DUMP_SDK_INT]), which is `System.gc()`, `System.runFinalization()` and `System.gc()`
+ * run on the dumped process's main thread by `ActivityThread.handleDumpHeap`, and below that a
+ * [gcDebugger], which runs the same sequence in the process over JDWP. Measured on one API 29 process
+ * dumped all three ways: 18.05 MB of it unreachable with nothing collecting, 0.13 MB with `-g`, 0.80 MB
+ * with the debugger. See `notes/decisions.md`.
  *
  * The steps are separate on purpose, because each of them is a question the person at the window has to
  * answer: which connected device, and which of its processes. Every step shells out to `adb` and blocks,
@@ -38,7 +39,14 @@ class DeviceHeapDumps(
    * dumps can't carry them however they're taken. Null refuses instead, which is what a caller with no
    * debugger to offer gets. `JdwpBitmaps` in `shark-explorer-jdwp` is the one there is.
    */
-  private val bitmapDebugger: BitmapDebugger? = null
+  private val bitmapDebugger: BitmapDebugger? = null,
+  /**
+   * How the garbage of a device older than [MIN_GC_BEFORE_DUMP_SDK_INT] is collected before its heap is
+   * dumped, since such a device has no `am dumpheap -g` to ask with. Null dumps without collecting, which
+   * is a dump with garbage in it rather than no dump. `JdwpGc` in `shark-explorer-jdwp` is the one there
+   * is.
+   */
+  private val gcDebugger: GcDebugger? = null
 ) {
 
   /** Every device `adb` is connected to, each asked what it is so it can be matched to a dump. */
@@ -118,11 +126,7 @@ class DeviceHeapDumps(
     // Named after the process, because this one is kept and its name is what the window shows.
     val localFile = File.createTempFile("${process.name}-${process.processId}-", ".hprof")
     if (!device.canCollectGarbageBeforeDump) {
-      SharkLog.d {
-        "${device.description} runs API ${device.sdkInt}, which is older than " +
-          "$MIN_GC_BEFORE_DUMP_SDK_INT, so its garbage can't be collected before the dump and this one " +
-          "will have uncollected garbage in it."
-      }
+      collectGarbageWithDebugger(device, process, onProgress)
     }
     try {
       pullHeapDump(
@@ -183,6 +187,42 @@ class DeviceHeapDumps(
     } finally {
       // Unlike a dump taken to be explored, this one was only ever its images, and those are now read.
       localFile.delete()
+    }
+  }
+
+  /**
+   * Collects the garbage of [process] through the [gcDebugger], for a device with no `am dumpheap -g` to
+   * ask with.
+   *
+   * **A collection that fails doesn't fail the dump.** The dump is the expensive thing and the one that
+   * was asked for, and one with garbage in it is still a heap dump of that process — where a debugger
+   * that can't attach, on a device where nothing else can collect, would otherwise mean no dump at all.
+   * So this reports and carries on, the same way a failed bitmap fetch does.
+   *
+   * The app runs between this and the dump, for as long as detaching and one `adb` round trip take, so
+   * what comes back is a little less collected than `-g` would be. That gap is what asking from outside
+   * the process costs; the sleep this can afford in the middle and `-g` can't buys more back than it.
+   */
+  private fun collectGarbageWithDebugger(
+    device: AndroidDevice,
+    process: DeviceProcess,
+    onProgress: (String) -> Unit
+  ) {
+    if (gcDebugger == null) {
+      SharkLog.d {
+        "${device.description} runs API ${device.sdkInt}, older than $MIN_GC_BEFORE_DUMP_SDK_INT, so " +
+          "`am dumpheap -g` can't collect its garbage first, and this window was given no debugger to " +
+          "collect it with. The dump will have uncollected garbage in it."
+      }
+      return
+    }
+    try {
+      gcDebugger.collectGarbage(device, process, onProgress)
+    } catch (throwable: Throwable) {
+      SharkLog.d(throwable) {
+        "Could not collect the garbage of ${process.name} on ${device.description} before dumping its " +
+          "heap. Taking the dump anyway; it will have uncollected garbage in it."
+      }
     }
   }
 
@@ -352,6 +392,31 @@ fun interface BitmapDebugger {
     process: DeviceProcess,
     onProgress: (String) -> Unit
   ): NativeBitmapPixels
+}
+
+/**
+ * Asks a live process itself to collect its garbage, which is what it takes on the Android versions with
+ * no `am dumpheap -g` to ask with ([DeviceHeapDumps.MIN_GC_BEFORE_DUMP_SDK_INT]).
+ *
+ * Separate from [BitmapDebugger] because the two are about different Android versions and different
+ * questions — one is every device below API 27, the other every device below API 35 — even though the one
+ * implementation of each attaches the same way. An interface here and implemented in
+ * `shark-explorer-jdwp` for the same reason as that one: `com.sun.jdi` is part of a desktop JDK rather
+ * than of Android, where this module has to stay loadable.
+ */
+fun interface GcDebugger {
+
+  /**
+   * Collects, and returns once the process has finished collecting rather than once it has been asked.
+   * Whatever the process frees stays freed, so the caller can dump its heap straight afterwards.
+   *
+   * @throws AdbFailureException when the process can't be reached or asked.
+   */
+  fun collectGarbage(
+    device: AndroidDevice,
+    process: DeviceProcess,
+    onProgress: (String) -> Unit
+  )
 }
 
 /** One process running on a device. */

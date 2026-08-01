@@ -2,7 +2,6 @@ package shark.explorer.jdwp
 
 import com.sun.jdi.ArrayReference
 import com.sun.jdi.BooleanValue
-import com.sun.jdi.Bootstrap
 import com.sun.jdi.ByteValue
 import com.sun.jdi.ClassType
 import com.sun.jdi.IntegerValue
@@ -14,9 +13,6 @@ import com.sun.jdi.ThreadReference
 import com.sun.jdi.VMDisconnectedException
 import com.sun.jdi.Value
 import com.sun.jdi.VirtualMachine
-import com.sun.jdi.event.MethodEntryEvent
-import com.sun.jdi.request.EventRequest
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 import shark.SharkLog
 import shark.explorer.Adb
@@ -40,9 +36,8 @@ import shark.explorer.formatByteSize
  * JDWP, list every live `Bitmap`, invoke `compress` on each. `com.sun.jdi` is part of the JDK, so this
  * needs nothing built for a device — no JVMTI agent, no NDK, nothing pushed and attached.
  *
- * It charges the same price `am dumpheap` does, which is **the app has to be debuggable**: that is what
- * opens a JDWP connection at all. One debugger at a time, too, so an app Android Studio is attached to
- * can't be read.
+ * It charges the same price `am dumpheap` does, which is **the app has to be debuggable** — see
+ * [JdwpSession], which is everything both this and [JdwpGc] need before they can ask anything.
  *
  * What it costs the app: every thread suspended for as long as the reading takes, and the app's own
  * `Bitmap.compress` run once per bitmap on one of its threads while the rest of it waits. That is why a
@@ -60,80 +55,27 @@ class JdwpBitmaps(private val adb: Adb = CommandLineAdb()) : BitmapDebugger {
     onProgress: (String) -> Unit
   ): NativeBitmapPixels {
     onProgress("Attaching a debugger to ${process.name}")
-    val port = forwardJdwp(device, process)
-    try {
-      val virtualMachine = attach(port, device, process)
-      try {
-        return NativeBitmapPixels(
-          // What `-b` is asked for too, and for the same reason: a PNG says its own size in 24 bytes,
-          // which is what tells an image apart from one of a bitmap that has since taken its address.
-          format = EncodedImageFormat.PNG,
-          bytesByNativePointer = virtualMachine.compressBitmaps(device, process, onProgress)
-        )
-      } finally {
-        // Detaching is what resumes the app, so it has to happen whatever went wrong above: a client that
-        // walks away from a suspended process leaves it frozen.
-        virtualMachine.dispose()
-      }
-    } finally {
-      adb.run("-s", device.serialNumber, "forward", "--remove", "tcp:$port")
-    }
-  }
-
-  /**
-   * A local TCP port `adb` forwards to the JDWP connection of [process].
-   *
-   * Asks for `tcp:0`, which has `adb` pick a free port and print it, rather than picking one here and
-   * racing whatever else on the machine opens sockets. Note that a forward to a process that isn't
-   * debuggable is set up just as happily; nothing says so until something connects.
-   */
-  private fun forwardJdwp(
-    device: AndroidDevice,
-    process: DeviceProcess
-  ): Int {
-    val output = adb.run("-s", device.serialNumber, "forward", "tcp:0", "jdwp:${process.processId}")
-      .orFail("open a debugger connection to ${process.name} on ${device.description}")
-    return output.trim().toIntOrNull() ?: throw AdbFailureException(
-      "`adb forward` was asked which local port reaches ${process.name} and answered \"${output.trim()}\""
-    )
-  }
-
-  /** The process on the other end of [port], attached to as a debugger. */
-  private fun attach(
-    port: Int,
-    device: AndroidDevice,
-    process: DeviceProcess
-  ): VirtualMachine {
-    val connector = Bootstrap.virtualMachineManager().attachingConnectors()
-      .first { it.name() == SOCKET_ATTACH_CONNECTOR }
-    val arguments = connector.defaultArguments()
-    arguments.getValue("hostname").setValue(LOCALHOST)
-    arguments.getValue("port").setValue(port.toString())
-    arguments["timeout"]?.setValue(ATTACH_TIMEOUT_MILLIS.toString())
-    return try {
-      connector.attach(arguments)
-    } catch (exception: IOException) {
-      // The one failure worth wording, and the likely one: `adb forward` succeeds for any pid, and a
-      // process that won't talk JDWP only shows up as a connection that goes nowhere.
-      throw AdbFailureException(
-        "Could not attach a debugger to ${process.name} on ${device.description}: " +
-          "${exception.message}. Only a debuggable app lets a debugger in, which a release build of one " +
-          "isn't, and only one debugger at a time — so an app Android Studio is debugging is taken."
+    JdwpSession.attach(adb, device, process).use { session ->
+      return NativeBitmapPixels(
+        // What `-b` is asked for too, and for the same reason: a PNG says its own size in 24 bytes,
+        // which is what tells an image apart from one of a bitmap that has since taken its address.
+        format = EncodedImageFormat.PNG,
+        bytesByNativePointer = session.compressBitmaps(device, process, onProgress)
       )
     }
   }
 
   /** The image of every bitmap the process has, by the native pointer of the bitmap it belongs to. */
-  private fun VirtualMachine.compressBitmaps(
+  private fun JdwpSession.compressBitmaps(
     device: AndroidDevice,
     process: DeviceProcess,
     onProgress: (String) -> Unit
   ): Map<Long, ByteArray> {
-    val bitmapClass = bitmapClass(device, process)
+    val bitmapClass = virtualMachine.bitmapClass(device, process)
     onProgress("Waiting for ${process.name} to run something")
-    val thread = awaitSafePoint(device, process)
+    val thread = awaitSafePoint()
     val bitmaps = bitmapClass.drawableBitmaps()
-    val compressor = BitmapCompressor.of(this, bitmapClass, thread) ?: throw AdbFailureException(
+    val compressor = BitmapCompressor.of(virtualMachine, bitmapClass, thread) ?: throw AdbFailureException(
       "${process.name} is missing something it takes to compress a bitmap, which an Android process " +
         "shouldn't be: `Bitmap.compress`, `Bitmap.CompressFormat.PNG` or `ByteArrayOutputStream`."
     )
@@ -184,67 +126,7 @@ class JdwpBitmaps(private val adb: Adb = CommandLineAdb()) : BitmapDebugger {
       )
   }
 
-  /**
-   * A thread of the process stopped somewhere it can be made to run code, with every other thread of it
-   * stopped too.
-   *
-   * Suspending the process is not enough. ART refuses to invoke a method on a thread it stopped wherever
-   * that thread happened to be — `IncompatibleThreadStateException` — so what is needed is a thread
-   * stopped *by an event*, and the event that says least about the app is the next method entry anywhere
-   * in it. A count filter of one means exactly one ever fires, so the app is suspended once and nothing
-   * stays instrumented while its bitmaps are read.
-   *
-   * Then the app has to run something, and an app that is idle or in the background runs nothing at all.
-   * `dumpsys meminfo` is the nudge: the framework answers it by calling into the app over binder, so it
-   * runs code in there whether or not the app is on screen, and unlike anything driven through the UI it
-   * changes nothing about what the app is showing.
-   */
-  private fun VirtualMachine.awaitSafePoint(
-    device: AndroidDevice,
-    process: DeviceProcess
-  ): ThreadReference {
-    val request = eventRequestManager().createMethodEntryRequest().apply {
-      setSuspendPolicy(EventRequest.SUSPEND_ALL)
-      addCountFilter(1)
-      enable()
-    }
-    adb.run("-s", device.serialNumber, "shell", "dumpsys", "meminfo", process.processId.toString())
-    // Expired by its own count filter once it has fired, so there is nothing to disable on the way out.
-    return awaitMethodEntry() ?: run {
-      request.disable()
-      throw AdbFailureException(
-        "${process.name} on ${device.description} ran no code for $SAFE_POINT_BUDGET_SECONDS seconds, " +
-          "and a process can only be asked to compress a bitmap at a point where it was running. " +
-          "Touching the app makes it run something."
-      )
-    }
-  }
-
-  /** The thread of the first method entry event, or null if none arrives in the budget. */
-  private fun VirtualMachine.awaitMethodEntry(): ThreadReference? {
-    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(SAFE_POINT_BUDGET_SECONDS)
-    while (System.nanoTime() < deadline) {
-      val events = eventQueue().remove(EVENT_POLL_MILLIS) ?: continue
-      val entry = events.filterIsInstance<MethodEntryEvent>().firstOrNull()
-      if (entry != null) {
-        return entry.thread()
-      }
-      // Something else the process reported, e.g. a class being prepared. Nothing here asked for it, and
-      // leaving it suspended would leave the app stopped for no reason.
-      events.resume()
-    }
-    return null
-  }
-
   companion object {
-    private const val SOCKET_ATTACH_CONNECTOR = "com.sun.jdi.SocketAttach"
-    private const val LOCALHOST = "localhost"
-    private const val ATTACH_TIMEOUT_MILLIS = 10_000
-
-    /** How long the app is given to run something, which is usually the `dumpsys` round trip. */
-    private const val SAFE_POINT_BUDGET_SECONDS = 20L
-    private const val EVENT_POLL_MILLIS = 500L
-
     /**
      * How long the app is left suspended reading its bitmaps, and how many bytes of them are worth
      * reading, whichever runs out first.
@@ -414,6 +296,3 @@ private const val MAX_QUALITY = 100
 
 /** What [ReferenceType.instances] takes for "all of them". */
 private const val ALL_INSTANCES = 0L
-
-/** No `INVOKE_SINGLE_THREADED`, which is what lets the app's other threads run during a call. */
-private const val RESUME_OTHER_THREADS = 0

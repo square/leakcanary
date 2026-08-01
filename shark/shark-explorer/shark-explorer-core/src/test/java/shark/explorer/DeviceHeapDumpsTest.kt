@@ -201,16 +201,72 @@ class DeviceHeapDumpsTest {
     heapDumpFile.delete()
   }
 
-  @Test fun `a device too old to collect before dumping is dumped without collecting`() {
+  @Test fun `a device too old for the flag is collected through the debugger instead`() {
     val adb = fakeDeviceWith(dumpedImages = null)
+    var asked: String? = null
+    val gcDebugger = GcDebugger { collectedDevice, collectedProcess, onProgress ->
+      asked = "${collectedProcess.name} on ${collectedDevice.description}"
+      onProgress("Collecting the garbage of ${collectedProcess.name}")
+    }
 
     // `-g` arrived in Android 8.1, and an older device refuses the whole command over an unknown option
-    // rather than ignoring it, so a dump with garbage in it beats no dump at all.
-    val heapDumpFile = DeviceHeapDumps(adb)
-      .dumpHeap(device(sdkInt = DeviceHeapDumps.MIN_GC_BEFORE_DUMP_SDK_INT - 1), process())
+    // rather than ignoring it. The process still has `Runtime.gc()` in it though, so a debugger can ask.
+    val heapDumpFile = DeviceHeapDumps(adb, gcDebugger = gcDebugger)
+      .dumpHeap(device(sdkInt = OLD_SDK_INT), process())
 
+    assertThat(asked).isEqualTo("com.example on Pixel 9 · API $OLD_SDK_INT · emulator-5554")
+    assertThat(adb.commands.first { it.contains("am dumpheap") }).doesNotContain("-g")
+    assertThat(heapDumpFile).exists()
+    heapDumpFile.delete()
+  }
+
+  @Test fun `a device new enough for the flag is not handed to the debugger`() {
+    val adb = fakeDeviceWith(mapOf(NATIVE_POINTER to pngBytes(width = 8, height = 8)))
+    // Asking through the dump costs the app the dump it was going to take anyway, where a debugger stops
+    // every thread of it, so the debugger is the fallback and not the way. Same rule as for bitmaps.
+    val gcDebugger = GcDebugger { _, _, _ -> error("The debugger was used on a device that has `-g`") }
+
+    val heapDumpFile = DeviceHeapDumps(adb, gcDebugger = gcDebugger).dumpHeap(device(), process())
+
+    assertThat(adb.commands.first()).contains("am dumpheap -g ")
+    heapDumpFile.delete()
+  }
+
+  @Test fun `a device too old for the flag with no debugger is dumped without collecting`() {
+    val adb = fakeDeviceWith(dumpedImages = null)
+
+    val heapDumpFile = DeviceHeapDumps(adb).dumpHeap(device(sdkInt = OLD_SDK_INT), process())
+
+    // A dump with garbage in it beats no dump at all.
     assertThat(adb.commands.first()).doesNotContain("-g")
     assertThat(heapDumpFile).exists()
+    heapDumpFile.delete()
+  }
+
+  @Test fun `a collection that failed doesn't fail the dump`() {
+    val adb = fakeDeviceWith(dumpedImages = null)
+    val gcDebugger = GcDebugger { _, _, _ -> error("The debugger could not attach") }
+
+    val heapDumpFile = DeviceHeapDumps(adb, gcDebugger = gcDebugger)
+      .dumpHeap(device(sdkInt = OLD_SDK_INT), process())
+
+    // The dump is the expensive thing and the one that was asked for; a debugger that can't attach must
+    // not turn a dump with garbage in it into no dump at all.
+    assertThat(heapDumpFile).exists()
+    assertThat(adb.commands.any { it.contains("am dumpheap") }).isTrue()
+    heapDumpFile.delete()
+  }
+
+  @Test fun `the garbage is collected before the dump is asked for, not after`() {
+    val adb = fakeDeviceWith(dumpedImages = null)
+    var commandsWhenCollected = 0
+    val gcDebugger = GcDebugger { _, _, _ -> commandsWhenCollected = adb.commands.size }
+
+    val heapDumpFile = DeviceHeapDumps(adb, gcDebugger = gcDebugger)
+      .dumpHeap(device(sdkInt = OLD_SDK_INT), process())
+
+    // Collecting after the dump would collect nothing that is in it.
+    assertThat(commandsWhenCollected).isZero()
     heapDumpFile.delete()
   }
 
@@ -362,5 +418,8 @@ class DeviceHeapDumpsTest {
     private const val PS_COMMAND = "$DEVICE shell ps -A -o PID,NAME"
     private const val PACKAGES_COMMAND = "$DEVICE shell pm list packages"
     private const val NATIVE_POINTER = 0x7f4321L
+
+    /** A device with no `am dumpheap -g`, which is what a debugger is the answer for. */
+    private const val OLD_SDK_INT = DeviceHeapDumps.MIN_GC_BEFORE_DUMP_SDK_INT - 1
   }
 }

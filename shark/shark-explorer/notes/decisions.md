@@ -205,31 +205,55 @@ ART's hprof dumper below it takes a GC critical section and suspends every threa
 So a dump taken without `-g` is the live heap *plus* everything that had become garbage since the last
 collection, and the explorer draws all of it under `Unreachable`.
 
-How much that is, measured here on an API 29 `userdebug` emulator, dumping a real app's main process twice
-about a minute apart:
+How much that is, measured on an API 29 `userdebug` emulator, dumping one real app's main process the
+three ways one after another so that only the way of asking differs:
 
 | | Dump on disk | Total | Strongly reachable | Unreachable |
 | --- | --- | --- | --- | --- |
-| `am dumpheap` | 125.3 MB | 92.9 MB, 1.49 M objects | 72.11 MB | **12.02 MB, 208 733 objects** |
-| `am dumpheap -g` | 110.2 MB | 81.2 MB, 1.29 M objects | 72.15 MB | **0.29 MB, 10 467 objects** |
+| `am dumpheap` | 127 MB | 95 MB, 1.56 M objects | 72 445 536 B | **18 047 114 B, 271 167 objects** |
+| `am dumpheap -g` | 105 MB | 78 MB, 1.29 M objects | 72 462 345 B | **130 196 B, 4 240 objects** |
+| `JdwpGc` | 106 MB | 78 MB, 1.31 M objects | 72 510 903 B | **798 329 B, 26 400 objects** |
 
-The strongly reachable figure moving by 0.06% across the two is what says this is garbage rather than a
-difference in what the explorer can *see*: the same live heap, with 12 MB of uncollected objects beside it
-in one and not the other. Which also answers the other way it could have read — reference rules quietly
-dropping paths and stranding live objects — with no: what survives the collection is 0.29 MB of `Cleaner`,
+The strongly reachable figure moving by 0.09% across the three is what says this is garbage rather than a
+difference in what the explorer can *see*: the same live heap, with 18 MB of uncollected objects beside it
+in one and not the others. Which also answers the other way it could have read — reference rules quietly
+dropping paths and stranding live objects — with no: what survives a collection is `Cleaner`,
 `NativeAllocationRegistry$CleanerThunk`, `FinalizerReference` and a TLS handshake's `DerInputBuffer`s, all
-of it either genuinely pending finalization or allocated in the gap between the collection and the dump.
+of it either genuinely pending finalization or allocated after the collection.
 
-`-g` runs `System.gc()`, `System.runFinalization()`, `System.gc()` on the dumped process's main thread —
-the same trio as LeakCanary's `FinalizingInProcessGcTrigger`, minus the 100 ms that trigger sleeps in the
-middle to let the `ReferenceQueueDaemon` catch up. Nothing over `adb` can add that sleep, and the residual
-above is what it costs, so this is as clean as a dump taken from outside the process gets.
+## Two ways of collecting, the same shape as the two ways of fetching bitmaps
 
-**It is gated on API 27**, where `-g` was added: an older device answers `Error: Unknown option: -g` and
-takes no dump at all, so `AndroidDevice.canCollectGarbageBeforeDump` asks first and the log says when a
-dump is going to have garbage in it. `fetchBitmaps` deliberately doesn't pass it — that dump is read for
-the pixels of bitmaps named in a dump taken *earlier*, and collecting first is how a bitmap that is still
-in that one stops being in this one.
+**`am dumpheap -g` from API 27**, which is `System.gc()`, `System.runFinalization()`, `System.gc()` on the
+dumped process's main thread — the same sequence as LeakCanary's `FinalizingInProcessGcTrigger`, minus the
+100 ms that trigger sleeps in the middle to let the `ReferenceQueueDaemon` catch up. Nothing over `adb`
+can add that sleep. This is the way whenever the device has it, because it costs the app the dump it was
+going to take anyway.
+
+**`JdwpGc` below API 27**, where `-g` doesn't exist — an older device answers `Error: Unknown option: -g`
+and takes no dump at all, measured on an API 26 emulator, which is why
+`AndroidDevice.canCollectGarbageBeforeDump` asks before passing it. It attaches the same way `JdwpBitmaps`
+does (`JdwpSession` is what they share) and invokes `Runtime.getRuntime().gc()`, `Thread.sleep(100)`,
+`System.runFinalization()`, `Runtime.getRuntime().gc()` in the process. So it *can* afford the sleep that
+`-g` can't, and it uses `Runtime.gc()` rather than `System.gc()`, which on Android only collects every
+other call: libcore's version sets a flag and leaves the collecting to the next `runFinalization()`. The
+`-g` sequence works out because its three calls hand that flag between them; a caller picking its own
+calls has no reason to depend on that.
+
+**And it still collects less than `-g`**, by 0.67 MB in the table above, because the app runs between the
+detach and the dump — dispose the connection, take the forward down, start `am dumpheap` — where `-g`
+collects and dumps within the one call. Closing that would mean dumping from inside the session with
+`Debug.dumpHprofData`, and an app can't write anywhere the shell can then read, which is the whole reason
+`am dumpheap` hands it a file descriptor instead of a path. 95% of the way for one JDWP attach is the
+trade taken.
+
+**A collection that fails doesn't fail the dump.** Same rule as a failed bitmap fetch and for the same
+reason: the dump is the expensive thing and the one that was asked for, and one with garbage in it is
+still a heap dump — where a debugger that can't attach would otherwise mean no dump at all on the devices
+that have nothing else. The reason goes in the log.
+
+**`fetchBitmaps` deliberately collects neither way.** That dump is read for the pixels of bitmaps named in
+a dump taken *earlier*, and collecting first is how a bitmap that is still in that one stops being in this
+one.
 
 ## The pointer describes, the click goes there
 
