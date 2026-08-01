@@ -58,14 +58,12 @@
   <string name="leak_canary_notification_retained_visible">App visible, waiting until %d retained objects</string>
   <string name="leak_canary_share_with">Share with…</string>
   <string name="leak_canary_display_activity_label">Leaks</string>
-  <string name="leak_canary_storage_permission_activity_label">Storage permission</string>
+  <string name="leak_canary_permission_activity_label">Permission</string>
   <string name="leak_canary_toast_heap_dump">LeakCanary is dumping memory to investigate leaks.</string>
   <string name="leak_canary_delete">Delete</string>
   <string name="leak_canary_delete_all">Delete all</string>
   <string name="leak_canary_delete_all_leaks_title">Are you sure you want to delete all leaks?</string>
   <string name="leak_canary_permission_not_granted">Please grant requested permission, otherwise memory leak detection may not work.</string>
-  <string name="leak_canary_permission_notification_title">Leak detected, need permission</string>
-  <string name="leak_canary_permission_notification_text">Click to enable storage permission for %s.</string>
   <string name="leak_canary_shortcut_label">Leaks</string>
   <string name="leak_canary_stackoverflow_share">Share Leak On Stack Overflow</string>
   <string name="leak_canary_failure_copied">Stacktrace copied to clipboard</string>
@@ -73,12 +71,6 @@
   <string name="leak_canary_failure_clipdata_label">LeakCanary failure stacktrace</string>
   <string name="leak_canary_leak_clipdata_label">LeakCanary Leak Trace</string>
   <string name="leak_canary_leak_not_found">Leak not found</string>
-  <string name="leak_canary_options_menu_generate_hq_bitmap">Generate HQ Bitmap</string>
-  <string name="leak_canary_options_menu_permission_toast">Please grant the External Storage Permission first, see notification…</string>
-  <string name="leak_canary_generating_hq_bitmap_toast_notice">Rendering HQ Bitmap, this may take a while…</string>
-  <string name="leak_canary_generating_hq_bitmap_toast_failure_notice">Could not save HQ Bitmap</string>
-  <string name="leak_canary_share_heap_dump_bitmap_screen_title">Share Heap Dump Bitmap</string>
-  <string name="leak_canary_heap_dump_screen_title">Heap Dump %s</string>
   <string name="leak_canary_analysis_deleted_title">Analysis Deleted</string>
   <string name="leak_canary_go_to_heap_analysis">Go to Heap Analysis</string>
   <string name="leak_canary_heap_analysis_success_screen_row_time_format">Latest: %s</string>
@@ -95,7 +87,6 @@
   <string name="leak_canary_import_from_title">Import From…</string>
   <string name="leak_canary_dump_heap">Dump Heap Now</string>
   <string name="leak_canary_import_hprof_file">Import Heap Dump</string>
-  <string name="leak_canary_options_menu_render_heap_dump">Render Heap Dump</string>
   <string name="leak_canary_help_title">Tap here to learn more</string>
   <string name="leak_canary_test_class_name" translatable="false">org.junit.Test</string>
   <string name="leak_canary_tv_analysis_success">Heap Analysis performed: %1$d application leaks, %2$d library leaks. See details in Logcat</string>

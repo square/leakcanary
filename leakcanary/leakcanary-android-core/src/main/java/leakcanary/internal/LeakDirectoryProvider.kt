@@ -15,108 +15,45 @@
  */
 package leakcanary.internal
 
-import android.Manifest.permission.WRITE_EXTERNAL_STORAGE
 import android.content.Context
-import android.content.pm.PackageManager.PERMISSION_GRANTED
-import android.os.Environment
-import android.os.Environment.DIRECTORY_DOWNLOADS
-import com.squareup.leakcanary.core.R
-import leakcanary.internal.NotificationType.LEAKCANARY_LOW
 import shark.SharkLog
 import java.io.File
 import java.io.FilenameFilter
 import java.text.SimpleDateFormat
-import java.util.ArrayList
 import java.util.Date
 import java.util.Locale
 
 /**
  * Provides access to where heap dumps and analysis results will be stored.
+ *
+ * Heap dumps go to a `leakcanary` directory in [Context.getNoBackupFilesDir]. That directory
+ * behaves the same way on every Android version: it needs no permission, it isn't visible to other
+ * apps, and unlike [Context.getCacheDir] the system won't delete a heap dump that an analysis
+ * hasn't read yet when the device runs low on storage. It's also excluded from Android Auto Backup,
+ * which [Context.getFilesDir] isn't, so heap dumps never count against the user's backup quota.
  */
 internal class LeakDirectoryProvider constructor(
   context: Context,
-  private val maxStoredHeapDumps: () -> Int,
-  private val requestExternalStoragePermission: () -> Boolean
+  private val maxStoredHeapDumps: () -> Int
 ) {
   private val context: Context = context.applicationContext
 
   fun newHeapDumpFile(): File? {
     cleanupOldHeapDumps()
 
-    var storageDirectory = externalStorageDirectory()
-    if (!directoryWritableAfterMkdirs(storageDirectory)) {
-      if (!hasStoragePermission()) {
-        if (requestExternalStoragePermission()) {
-          SharkLog.d { "WRITE_EXTERNAL_STORAGE permission not granted, requesting" }
-          requestWritePermissionNotification()
-        } else {
-          SharkLog.d { "WRITE_EXTERNAL_STORAGE permission not granted, ignoring" }
-        }
-      } else {
-        val state = Environment.getExternalStorageState()
-        if (Environment.MEDIA_MOUNTED != state) {
-          SharkLog.d { "External storage not mounted, state: $state" }
-        } else {
-          SharkLog.d {
-            "Could not create heap dump directory in external storage: [${storageDirectory.absolutePath}]"
-          }
-        }
+    val heapDumpDirectory = heapDumpDirectory()
+    if (!directoryWritableAfterMkdirs(heapDumpDirectory)) {
+      SharkLog.d {
+        "Could not create heap dump directory [${heapDumpDirectory.absolutePath}]"
       }
-      // Fallback to app storage.
-      storageDirectory = appStorageDirectory()
-      if (!directoryWritableAfterMkdirs(storageDirectory)) {
-        SharkLog.d {
-          "Could not create heap dump directory in app storage: [${storageDirectory.absolutePath}]"
-        }
-        return null
-      }
+      return null
     }
 
     val fileName = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss_SSS'.hprof'", Locale.US).format(Date())
-    return File(storageDirectory, fileName)
+    return File(heapDumpDirectory, fileName)
   }
 
-  fun hasStoragePermission(): Boolean {
-    // Once true, this won't change for the life of the process so we can cache it.
-    if (writeExternalStorageGranted) {
-      return true
-    }
-    writeExternalStorageGranted =
-      context.checkSelfPermission(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED
-    return writeExternalStorageGranted
-  }
-
-  fun requestWritePermissionNotification() {
-    if (permissionNotificationDisplayed || !Notifications.canShowNotification) {
-      return
-    }
-    permissionNotificationDisplayed = true
-
-    val pendingIntent =
-      RequestPermissionActivity.createPendingIntent(context, WRITE_EXTERNAL_STORAGE)
-    val contentTitle = context.getString(
-      R.string.leak_canary_permission_notification_title
-    )
-    val packageName = context.packageName
-    val contentText =
-      context.getString(R.string.leak_canary_permission_notification_text, packageName)
-
-    Notifications.showNotification(
-      context, contentTitle, contentText, pendingIntent,
-      R.id.leak_canary_notification_write_permission, LEAKCANARY_LOW
-    )
-  }
-
-  @Suppress("DEPRECATION")
-  private fun externalStorageDirectory(): File {
-    val downloadsDirectory = Environment.getExternalStoragePublicDirectory(DIRECTORY_DOWNLOADS)
-    return File(downloadsDirectory, "leakcanary-" + context.packageName)
-  }
-
-  private fun appStorageDirectory(): File {
-    val appFilesDirectory = context.cacheDir
-    return File(appFilesDirectory, "leakcanary")
-  }
+  private fun heapDumpDirectory(): File = File(context.noBackupFilesDir, "leakcanary")
 
   private fun directoryWritableAfterMkdirs(directory: File): Boolean {
     val success = directory.mkdirs()
@@ -124,7 +61,7 @@ internal class LeakDirectoryProvider constructor(
   }
 
   private fun cleanupOldHeapDumps() {
-    val hprofFiles = listWritableFiles { _, name ->
+    val hprofFiles = listHeapDumpFiles { _, name ->
       name.endsWith(
         HPROF_SUFFIX
       )
@@ -154,28 +91,12 @@ internal class LeakDirectoryProvider constructor(
     }
   }
 
-  private fun listWritableFiles(filter: FilenameFilter): MutableList<File> {
-    val files = ArrayList<File>()
-
-    val externalStorageDirectory = externalStorageDirectory()
-    if (externalStorageDirectory.exists() && externalStorageDirectory.canWrite()) {
-      val externalFiles = externalStorageDirectory.listFiles(filter)
-      if (externalFiles != null) {
-        files.addAll(externalFiles)
-      }
-    }
-
-    val appFiles = appStorageDirectory().listFiles(filter)
-    if (appFiles != null) {
-      files.addAll(appFiles)
-    }
-    return files
+  private fun listHeapDumpFiles(filter: FilenameFilter): MutableList<File> {
+    val files = heapDumpDirectory().listFiles(filter) ?: emptyArray()
+    return files.toMutableList()
   }
 
   companion object {
-    @Volatile private var writeExternalStorageGranted: Boolean = false
-    @Volatile private var permissionNotificationDisplayed: Boolean = false
-
     private val filesDeletedTooOld = mutableListOf<String>()
     val filesDeletedRemoveLeak = mutableListOf<String>()
 

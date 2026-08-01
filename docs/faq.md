@@ -37,8 +37,22 @@ D/LeakCanary: Updated LeakCanary.config: Config(dumpHeap=false)
 
 ## Where does LeakCanary store heap dumps?
 
-The default behavior is to store heap dumps in a `leakcanary` folder under the app directory. If the app has been granted the `android.permission.WRITE_EXTERNAL_STORAGE` permission, then heap dumps will be stored
-in a `leakcanary-com.example` folder (where `com.example` is your app package name) under the `Download` folder of the external storage. If the app has not been granted the `android.permission.WRITE_EXTERNAL_STORAGE` permission but that permission is listed in `AndroidManifest.xml` then LeakCanary will show a notification that can be tapped to grant permission.
+In a `leakcanary` folder inside the app's [no backup directory](https://developer.android.com/reference/android/content/Context#getNoBackupFilesDir()),
+i.e. `/data/data/com.example/no_backup/leakcanary/` where `com.example` is your app package name.
+That directory needs no permission on any Android version, and heap dumps stored there are excluded
+from Android Auto Backup, so they never count against the user's backup quota.
+
+LeakCanary keeps the [LeakCanary.Config.maxStoredHeapDumps](/leakcanary/api/leakcanary-android-core/leakcanary-android-core/leakcanary/-leak-canary/-config/max-stored-heap-dumps/)
+most recent heap dumps, 7 by default, and deletes the older ones.
+
+To pull a heap dump off the device, either share it from the LeakCanary UI (go to a heap analysis
+screen, click the overflow menu and select *Share Heap Dump*), or read it through the app's own
+user with `run-as`, which works because LeakCanary is a `debugImplementation` dependency and the app
+is therefore debuggable:
+
+```
+adb exec-out run-as com.example cat no_backup/leakcanary/2026-07-31_22-30-41_484.hprof > dump.hprof
+```
 
 ## How can I dig beyond the leak trace?
 

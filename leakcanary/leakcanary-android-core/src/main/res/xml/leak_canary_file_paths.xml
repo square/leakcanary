@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-  <external-path name="downloads" path="Download/" />
-  <files-path name="leakcanary" path="leakcanary/" />
-  <cache-path name="leakcanary_cache" path="leakcanary/" />
-
+  <no-backup-files-path name="leakcanary" path="leakcanary/" />
 </paths>

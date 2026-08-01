@@ -24,7 +24,6 @@ import android.content.pm.ProviderInfo
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.net.Uri
-import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.os.StrictMode
 import android.provider.OpenableColumns
@@ -364,18 +363,10 @@ internal class LeakCanaryFileProvider : ContentProvider() {
 
     private const val META_DATA_FILE_PROVIDER_PATHS = "android.support.FILE_PROVIDER_PATHS"
 
-    private const val TAG_ROOT_PATH = "root-path"
-    private const val TAG_FILES_PATH = "files-path"
-    private const val TAG_CACHE_PATH = "cache-path"
-    private const val TAG_EXTERNAL = "external-path"
-    private const val TAG_EXTERNAL_FILES = "external-files-path"
-    private const val TAG_EXTERNAL_CACHE = "external-cache-path"
-    private const val TAG_EXTERNAL_MEDIA = "external-media-path"
+    private const val TAG_NO_BACKUP_FILES_PATH = "no-backup-files-path"
 
     private const val ATTR_NAME = "name"
     private const val ATTR_PATH = "path"
-
-    private val DEVICE_ROOT = File("/")
 
     private val sCache = HashMap<String, PathStrategy>()
 
@@ -479,50 +470,15 @@ internal class LeakCanaryFileProvider : ContentProvider() {
           val name = resourceParser.getAttributeValue(null, ATTR_NAME)
           val path = resourceParser.getAttributeValue(null, ATTR_PATH)
 
-          var target: File? = null
-          if (TAG_ROOT_PATH == tag) {
-            target = DEVICE_ROOT
-          } else if (TAG_FILES_PATH == tag) {
-            target = context.filesDir
-          } else if (TAG_CACHE_PATH == tag) {
-            target = context.cacheDir
-          } else if (TAG_EXTERNAL == tag) {
-            target = Environment.getExternalStorageDirectory()
-          } else if (TAG_EXTERNAL_FILES == tag) {
-            val externalFilesDirs = getExternalFilesDirs(context, null)
-            if (externalFilesDirs.isNotEmpty()) {
-              target = externalFilesDirs[0]
-            }
-          } else if (TAG_EXTERNAL_CACHE == tag) {
-            val externalCacheDirs = getExternalCacheDirs(context)
-            if (externalCacheDirs.isNotEmpty()) {
-              target = externalCacheDirs[0]
-            }
-          } else if (TAG_EXTERNAL_MEDIA == tag) {
-            val externalMediaDirs = context.externalMediaDirs
-            if (externalMediaDirs.isNotEmpty()) {
-              target = externalMediaDirs[0]
-            }
-          }
-
-          if (target != null) {
-            strat.addRoot(name, buildPath(target, path))
+          // LeakCanary only ever shares files it wrote to its own no backup directory, so that's
+          // the only root this provider knows how to resolve.
+          if (TAG_NO_BACKUP_FILES_PATH == tag) {
+            strat.addRoot(name, buildPath(context.noBackupFilesDir, path))
           }
         }
       }
 
       return strat
-    }
-
-    private fun getExternalFilesDirs(
-      context: Context,
-      type: String?
-    ): Array<File> {
-      return context.getExternalFilesDirs(type)
-    }
-
-    private fun getExternalCacheDirs(context: Context): Array<File> {
-      return context.externalCacheDirs
     }
 
     /**

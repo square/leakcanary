@@ -66,11 +66,9 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
 
   fun createLeakDirectoryProvider(context: Context): LeakDirectoryProvider {
     val appContext = context.applicationContext
-    return LeakDirectoryProvider(appContext, {
+    return LeakDirectoryProvider(appContext) {
       LeakCanary.config.maxStoredHeapDumps
-    }, {
-      LeakCanary.config.requestWriteExternalStoragePermission
-    })
+    }
   }
 
   internal enum class FormFactor {
