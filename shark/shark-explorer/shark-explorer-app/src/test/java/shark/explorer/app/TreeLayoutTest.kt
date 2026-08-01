@@ -8,16 +8,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.SemanticsNodeInteraction
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
-import androidx.compose.ui.test.v2.runComposeUiTest
-import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
@@ -26,7 +23,6 @@ import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
-import shark.explorer.HeapDominatorTreemap
 
 /**
  * How often the window lays the tree out, which is the most expensive thing it does: a layout reads the
@@ -47,7 +43,7 @@ class TreeLayoutTest {
   @get:Rule val logged = RecordedLog()
 
   @Test fun `opening a heap dump lays the tree out once`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
 
       settleTheHeapDumpThread()
@@ -62,7 +58,7 @@ class TreeLayoutTest {
    * rather than the one already drawn.
    */
   @Test fun `switching shape lays the tree out once more`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
 
       shapeOption(ViewShape.RADIAL).performClick()
@@ -78,14 +74,15 @@ class TreeLayoutTest {
    * than a race: reads queue on the heap dump's one thread in the order they were asked for, so a layout
    * queued behind the one that drew what the window is showing is in the log by the time this comes back.
    *
-   * Pressing a cell is the read to wait for, because the details panel filling in is the one that shows.
+   * Pointing at a cell is the read to wait for rather than clicking one, because a click goes to what it
+   * landed on, and going somewhere lays the tree out again — which is the very thing being counted.
    */
   private fun ComposeUiTest.settleTheHeapDumpThread() {
     val view = onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
     onRoot().performMouseInput {
-      click(Offset(view.left + view.width * CELL_X, view.top + view.height * CELL_Y))
+      hover(Offset(view.left + view.width * CELL_X, view.top + view.height * CELL_Y))
     }
-    waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
+    waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { logged.any { it.startsWith(HOVER_READ) } }
   }
 
   /** Every layout of the tree as [shape] the window has asked for, one line per read of the heap dump. */
@@ -104,10 +101,7 @@ class TreeLayoutTest {
         ExplorerApp(shown, onHeapDumpChosen = { file, _ -> shown = file })
       }
     }
-    waitUntilAtLeastOneExists(
-      hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
-      OPEN_TIMEOUT_MILLIS
-    )
+    waitForTheTree(OPEN_TIMEOUT_MILLIS)
   }
 
   /**
@@ -129,12 +123,22 @@ class TreeLayoutTest {
 
   companion object {
     /** Somewhere in the middle of the view, which is inside whatever it draws biggest. */
-    private const val CELL_X = 0.4f
-    private const val CELL_Y = 0.6f
+    /**
+     * Just off the middle of the view, which is a cell of it drawn as rectangles or as rings.
+     *
+     * Nearer the middle than a treemap would need, because the rings are as wide as the view's shorter side
+     * divided by how many of them the layout allows for: a tree three levels deep fills only the first few,
+     * and the space past those belongs to no cell to hover.
+     */
+    private const val CELL_X = 0.45f
+    private const val CELL_Y = 0.55f
 
     private const val PAYLOAD_LENGTH = 4096
 
     /** Opening a heap dump and laying the tree out both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
+
+    /** How the log says the chain holding the cell under the pointer was read. */
+    private const val HOVER_READ = "Read what holds"
   }
 }

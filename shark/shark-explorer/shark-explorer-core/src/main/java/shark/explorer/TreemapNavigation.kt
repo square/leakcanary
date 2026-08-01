@@ -17,13 +17,11 @@ data class TreemapNavigation<N>(val path: List<N>) {
   /** The node the treemap is rooted at. */
   val current: N get() = path.last()
 
-  val canZoomOut: Boolean get() = path.size > 1
-
   /**
    * Roots the treemap at [node].
    *
-   * A no op for [current], and a zoom back out when [node] is already on the path, so that clicking
-   * a breadcrumb and clicking a rectangle can both go through here.
+   * A no op for [current], and a zoom back out when [node] is already on the path, so that going to a
+   * rectangle and going back out to one of the objects holding it can both come through here.
    */
   fun zoomInto(node: N): TreemapNavigation<N> {
     val index = path.indexOf(node)
@@ -37,15 +35,12 @@ data class TreemapNavigation<N>(val path: List<N>) {
   /**
    * Roots the treemap at the last of [nodes], recording the ones on the way as path entries.
    *
-   * Zooming into a rectangle nested several levels deep should leave breadcrumbs for every node
-   * between it and the root, not jump straight to it, so the caller passes the whole chain.
+   * A rectangle nested several levels deep is reached through the nodes it's drawn inside rather than
+   * jumped to, so the caller passes the whole chain: the path is what zooming back out walks.
    */
   fun zoomInto(nodes: List<N>): TreemapNavigation<N> = nodes.fold(this) { path, node ->
     path.zoomInto(node)
   }
-
-  fun zoomOut(): TreemapNavigation<N> =
-    if (canZoomOut) TreemapNavigation(path.dropLast(1)) else this
 
   /**
    * The longest prefix of this path that [isStillThere] accepts, keeping the root whatever it says.

@@ -6,22 +6,19 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.doubleClick
-import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -33,9 +30,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilExactlyOneExists
 import java.io.File
@@ -58,6 +53,7 @@ import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.UNREACHABLE
 import shark.explorer.ReachabilityStrength.WEAK
 import shark.explorer.formatByteSize
+import shark.explorer.hexObjectId
 
 @OptIn(ExperimentalTestApi::class)
 class ExplorerAppTest {
@@ -68,11 +64,14 @@ class ExplorerAppTest {
   /** The object id of the array in [testHeapDump], recorded as the dump is written. */
   private var payloadObjectId = 0L
 
+  /** And of the instance holding it, which is what the map roots itself at once the array is clicked. */
+  private var holderObjectId = 0L
+
   /** Everything Shark logged during this test, which every test here records. See [RecordedLog]. */
   @get:Rule val logged = RecordedLog()
 
   @Test fun `nothing is open until a heap dump is chosen`() {
-    runComposeUiTest {
+    explorerUiTest {
       setExplorerContent()
 
       onNodeWithText(NO_HEAP_DUMP).assertIsDisplayed()
@@ -81,30 +80,28 @@ class ExplorerAppTest {
   }
 
   @Test fun `a heap dump passed on the command line is opened`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
 
-      onNodeWithText(HeapDominatorTreemap.ROOT_LABEL, substring = true).assertIsDisplayed()
+      onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
       onNodeWithText(NO_SELECTION).assertIsDisplayed()
+      onNodeWithText(NO_ROOT_PATH_YET).assertIsDisplayed()
     }
   }
 
   @Test fun `the chosen heap dump is opened`() {
-    runComposeUiTest {
+    explorerUiTest {
       val heapDumpFile = testHeapDump()
       setExplorerContent(chooseHeapDumpFile = { heapDumpFile })
 
       onNodeWithText(OPEN_HEAP_DUMP).performClick()
 
-      waitUntilAtLeastOneExists(
-        hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
-        OPEN_TIMEOUT_MILLIS
-      )
+      waitForTheTree(OPEN_TIMEOUT_MILLIS)
     }
   }
 
   @Test fun `a file that is not a heap dump is reported rather than crashing`() {
-    runComposeUiTest {
+    explorerUiTest {
       val notAHeapDump = testFolder.newFile("not-a-heap-dump.txt").apply { writeText("nope") }
       setExplorerContent(notAHeapDump)
 
@@ -117,7 +114,7 @@ class ExplorerAppTest {
    * the window says has to be what the log says too. Where the log goes: [shark.explorer.SessionLog].
    */
   @Test fun `a file that is not a heap dump is logged with what went wrong`() {
-    runComposeUiTest {
+    explorerUiTest {
       val notAHeapDump = testFolder.newFile("not-a-heap-dump.txt").apply { writeText("nope") }
       setExplorerContent(notAHeapDump)
 
@@ -132,7 +129,7 @@ class ExplorerAppTest {
    * and every read of it once it's open. See [HeapDumpSession.read].
    */
   @Test fun `opening a heap dump and reading it are logged`() {
-    runComposeUiTest { openHeapDump() }
+    explorerUiTest { openHeapDump() }
 
     assertThat(logged).anyMatch { it.startsWith("Opening heap dump") }
     assertThat(logged).anyMatch { it.startsWith("Indexing") }
@@ -142,8 +139,8 @@ class ExplorerAppTest {
   }
 
   @Test fun `the whole heap dump is accounted for at the top`() {
-    runComposeUiTest {
-      openHeapDump(weaklyReachablePayloadHeapDump())
+    explorerUiTest {
+      openHeapDump(testFolder.weaklyReachablePayloadHeapDump())
 
       // The status line is the whole dump, bytes and objects both, and the legend splits it by strength —
       // with a row for the garbage, so that the rows add up to it rather than to some of it.
@@ -157,11 +154,11 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `pressing a rectangle fills the details panel`() {
-    runComposeUiTest {
+  @Test fun `clicking a rectangle fills the details panel`() {
+    explorerUiTest {
       openHeapDump()
 
-      pressView(TREEMAP_X, TREEMAP_Y)
+      clickView(TREEMAP_X, TREEMAP_Y)
 
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(NO_SELECTION).assertDoesNotExist()
@@ -169,152 +166,326 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `the details panel says which instance was pressed`() {
-    runComposeUiTest {
+  @Test fun `moving the pointer over a rectangle says what it is at the pointer`() {
+    explorerUiTest {
       openHeapDump()
 
-      pressView(TREEMAP_X, TREEMAP_Y)
+      hoverView(TREEMAP_X, TREEMAP_Y)
 
-      // An object id is how you point something outside the app — a script, a bug report — at this one
-      // instance rather than at its class, so the panel prints the one it's describing.
-      waitUntilAtLeastOneExists(hasText(objectIdText(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+      // Reading the map is moving the mouse across it, so what a rectangle is arrives without a click —
+      // in the card beside the pointer, which is where the reader is already looking.
+      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(hexObjectId(payloadObjectId)).assertIsDisplayed()
+      // And nowhere else: pointing at a rectangle is how you find out whether it's worth going to, so the
+      // panel beside the map stays on the object clicked, which here is none.
+      onNodeWithText(NO_SELECTION).assertIsDisplayed()
     }
   }
 
-  @Test fun `the details panel lists the fields of what was pressed`() {
-    runComposeUiTest {
+  @Test fun `the card saying what the pointer is on moves with it`() {
+    explorerUiTest {
+      openHeapDump()
+      hoverView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText(hexObjectId(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+      val before = pointerCardBounds()
+
+      // Further right along the same rectangle, which is the array covering almost the whole view.
+      hoverView(TREEMAP_X + POINTER_STEP, TREEMAP_Y)
+      waitForIdle()
+
+      // Beside the pointer wherever it goes, and never under it: the card is a surface, and a surface the
+      // pointer ends up inside takes the hover off the map, which would close the card and start over.
+      val after = pointerCardBounds()
+      assertThat(after.left).isGreaterThan(before.left)
+      assertThat(after.top).isEqualTo(before.top)
+      assertThat(after.contains(pointerAt(TREEMAP_X + POINTER_STEP, TREEMAP_Y))).isFalse()
+    }
+  }
+
+  @Test fun `the chain holding an object is one side of the map and what it holds the other`() {
+    explorerUiTest {
       openHeapDump()
 
-      pressView(TREEMAP_X, TREEMAP_Y)
+      // Where the object came from, where it is, and what it is keeping alive, read left to right — rather
+      // than the window's two outer edges with everything else between them.
+      val view = viewBounds()
+      assertThat(onNodeWithText(NO_ROOT_PATH_YET).fetchSemanticsNode().boundsInRoot.right)
+        .isLessThanOrEqualTo(view.left)
+      assertThat(onNodeWithText(NO_SELECTION).fetchSemanticsNode().boundsInRoot.left)
+        .isGreaterThanOrEqualTo(view.right)
+    }
+  }
+
+  @Test fun `what the pointer adds to the chain drops away when it leaves the map`() {
+    explorerUiTest {
+      openHeapDump()
+      clickView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText(hexObjectId(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+      // The band the instance holding the array keeps across the top of the view for itself, which is the
+      // one other cell there is to point at once the map has gone to the array.
+      hoverRootBand()
+      waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
+
+      leaveView()
+
+      // Back to the chain of the object clicked, and without reading the heap dump again: what was clicked
+      // was never thrown away.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        onAllNodesWithText("$HOLDER_LABEL · ", substring = true).fetchSemanticsNodes().isEmpty()
+      }
+      assertThat(onAllNodesWithText(hexObjectId(payloadObjectId)).fetchSemanticsNodes()).isNotEmpty()
+    }
+  }
+
+  @Test fun `the chain the pointer adds starts at the rectangle the map is showing`() {
+    explorerUiTest {
+      openHeapDump()
+
+      hoverView(TREEMAP_X, TREEMAP_Y)
+
+      // Nothing has been clicked, so there is no chain for the pointer's to run on from: the array is held
+      // by the instance holding it, and that instance is one of the whole heap dump's own rectangles, so
+      // what holds *it* is above the map and the chain starts there rather than at the GC root reaching it.
+      // Which is the pointer's question — what is this, here — and not how the map got here.
+      waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("GC root:", substring = true).assertDoesNotExist()
+    }
+  }
+
+  @Test fun `the chain runs on into the rectangle the pointer is on`() {
+    explorerUiTest {
+      openHeapDump()
+      // The instance holding the array, so that the array drawn inside it is a rectangle to point at that
+      // the chain on screen doesn't reach yet.
+      clickContainerEdge(yFraction = 0.5f)
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
+
+      hoverView(TREEMAP_X, TREEMAP_Y)
+
+      // One chain growing rather than a second one starting: the object being described is on the chain to
+      // the rectangle under the pointer, so what the pointer adds is the steps below it and nothing else.
+      waitUntilAtLeastOneExists(hasText("Object[] · ", substring = true), OPEN_TIMEOUT_MILLIS)
+      assertThat(onAllNodesWithText("com.example.Holder").fetchSemanticsNodes()).isNotEmpty()
+      // One chain, so one row for the whole heap dump it hangs below.
+      assertThat(onAllNodesWithText(HeapDominatorTreemap.ROOT_LABEL).fetchSemanticsNodes()).hasSize(1)
+    }
+  }
+
+  @Test fun `the whole heap dump at the top of the chain is the way back out to it`() {
+    explorerUiTest {
+      openHeapDump()
+      clickView(TREEMAP_X, TREEMAP_Y)
+      waitUntilZoomedIn()
+
+      wholeHeapDumpRow().performClick()
+
+      // Back where the window opened, with nothing left of the chain: every chain hangs below the whole heap
+      // dump rather than running through it, so the whole heap dump's own chain is that one row.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        onAllNodesWithText("com.example.Holder").fetchSemanticsNodes().isEmpty()
+      }
+      wholeHeapDumpRow().assertIsDisplayed()
+    }
+  }
+
+  @Test fun `a chain too tall for its pane is scrolled to the object at the end of it`() {
+    explorerUiTest {
+      // A dozen objects at four lines each is taller than the pane, and the end of the chain is the object
+      // the window is describing: a pane scrolled to the top would be showing the least interesting of it.
+      openHeapDump(testFolder.longChainHeapDump())
+
+      clickView(TREEMAP_X, TREEMAP_Y)
+
+      // The links are numbered from the payload out, so the last of them is the one just above it.
+      waitUntilAtLeastOneExists(hasText("Link0 instance"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("Link0 instance").assertIsDisplayed()
+      onNodeWithText("Link${CHAIN_LINK_COUNT - 1} instance").assertIsNotDisplayed()
+    }
+  }
+
+  @Test fun `the chain the pointer adds is condensed to what still fits beside the map`() {
+    explorerUiTest {
+      openHeapDump()
+
+      hoverView(TREEMAP_X, TREEMAP_Y)
+
+      waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
+      // A chain from a GC root down to a bitmap of a real app is a dozen objects, and four lines each is
+      // taller than any window. So the package, the address, which field holds the next object and the label
+      // saying which steps own it are all left to the object that was clicked.
+      onNodeWithText("com.example.Holder").assertDoesNotExist()
+      onNodeWithText(hexObjectId(holderObjectId)).assertDoesNotExist()
+      onNodeWithText(DOMINATES_BELOW).assertDoesNotExist()
+      // What each step holds stays, beside its class name: it's what the map is being read for.
+      onNodeWithText("$HOLDER_LABEL · ", substring = true).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `the ways an object is held are not searched for the one merely pointed at`() {
+    explorerUiTest {
+      openHeapDump()
+
+      hoverView(TREEMAP_X, TREEMAP_Y)
+
+      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+    }
+
+    // A search that indexes the whole heap dump and then walks it several times is nothing to run as the
+    // pointer crosses the map, so it waits for a click. Read off the log, since what a search nobody
+    // asked for costs is time rather than anything the window shows.
+    assertThat(logged).noneMatch { it.startsWith("Reading the other ways") }
+  }
+
+  @Test fun `the bar above the map says which instance was clicked`() {
+    explorerUiTest {
+      openHeapDump()
+
+      clickView(TREEMAP_X, TREEMAP_Y)
+
+      // An object id is how you point something outside the app — a script, a bug report — at this one
+      // instance rather than at its class. Above the map rather than in a pane beside it: which object the
+      // window is about is as true of a list of objects, where there is no pane.
+      waitUntilAtLeastOneExists(hasText(hexObjectId(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+      val printed = onAllNodesWithText(hexObjectId(payloadObjectId)).fetchSemanticsNodes()
+      assertThat(printed.minOf { it.boundsInRoot.bottom }).isLessThanOrEqualTo(viewBounds().top)
+    }
+  }
+
+  @Test fun `the details panel lists the fields of what was clicked`() {
+    explorerUiTest {
+      openHeapDump()
+
+      clickView(TREEMAP_X, TREEMAP_Y)
 
       // The rectangle clicked is the payload array nested in the instance holding it, so its fields
       // are its elements, all null in this heap dump.
       waitUntilAtLeastOneExists(hasText("[0] = null"), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("$PAYLOAD_LENGTH elements").assertIsDisplayed()
+      // What the array is, said twice: once by the panel and once by the chain beside it, which ends at
+      // the same object.
+      assertThat(onAllNodesWithText("$PAYLOAD_LENGTH elements").fetchSemanticsNodes()).hasSize(2)
     }
   }
 
-  @Test fun `the details panel says what dominates what was pressed`() {
-    runComposeUiTest {
+  @Test fun `the chain marks what dominates the object clicked, and says it in words`() {
+    explorerUiTest {
       openHeapDump()
 
-      pressView(TREEMAP_X, TREEMAP_Y)
+      clickView(TREEMAP_X, TREEMAP_Y)
 
       // The holder is the only thing pointing at the array clicked, so it dominates it and points straight
-      // at it: one line, and nothing in between for the paths below to spell out.
-      waitUntilAtLeastOneExists(hasText(DOMINATOR), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("$HOLDER_LABEL ·", substring = true).assertIsDisplayed()
-      onNodeWithText(NO_PATHS).performScrollTo().assertIsDisplayed()
+      // at it: marked as such, with no stretch of the chain in between that could have run any other way.
+      waitUntilAtLeastOneExists(hasText(DOMINATES_BELOW), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("com.example.Holder").assertIsDisplayed()
+      assertThat(onAllNodesWithText(WAYS_FROM_HERE, substring = true).fetchSemanticsNodes()).isEmpty()
     }
   }
 
-  @Test fun `the paths screen spells out every way what was pressed is held`() {
-    runComposeUiTest {
+  @Test fun `the chain says how else the object clicked is held, and switches between those ways`() {
+    explorerUiTest {
       // The array is held by a wrapper the cache holds and by the view the tile holds, and nothing holds
-      // both: no object dominates it, which is the shape this screen was built for.
-      openHeapDump(cachedPayloadHeapDump())
-      pressView(TREEMAP_X, TREEMAP_Y)
-      waitUntilAtLeastOneExists(hasText(INDEPENDENT_PATHS), OPEN_TIMEOUT_MILLIS)
+      // both: no object dominates it, so the whole chain is a stretch that didn't have to run as it does.
+      openHeapDump(testFolder.cachedPayloadHeapDump())
 
-      showPathsButton().performScrollTo().performClick()
+      clickView(TREEMAP_X, TREEMAP_Y)
 
-      // Two chains with nothing in common in between, each from the GC root it starts at down to the
-      // array, drawn where the treemap was and named in the breadcrumbs.
-      waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
-      currentCrumb(ExplorerScreen.PATHS_CRUMB).assertIsDisplayed()
-      // Each chain starts at the kind of GC root that reaches it, which is where a leak trace starts too.
-      assertThat(onAllNodesWithText("GC root:", substring = true).fetchSemanticsNodes()).hasSize(2)
-      onNodeWithText("Cache.entry").assertIsDisplayed()
-      onNodeWithText("Wrapper.payload").assertIsDisplayed()
-      onNodeWithText("Tile.view").assertIsDisplayed()
-      onNodeWithText("View.drawable").assertIsDisplayed()
+      waitUntilAtLeastOneExists(hasText("1 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
+      // Both ways are three objects long, so which of them the chain took is the heap dump's own order.
+      val throughTheCache = onAllNodesWithText("com.example.Cache").fetchSemanticsNodes().isNotEmpty()
+
+      onNodeWithText(NEXT_WAY).performClick()
+
+      // The other way, in the same chain rather than on a screen of its own: the reader is switching one
+      // stretch of what holds this object, and everything above and below it is where it was.
+      waitUntilAtLeastOneExists(hasText("2 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(if (throughTheCache) "com.example.Tile" else "com.example.Cache").assertIsDisplayed()
+      onNodeWithText(HeapDominatorTreemap.ROOT_LABEL).assertIsDisplayed()
     }
   }
 
-  @Test fun `a path names each object by its class, package and all`() {
-    runComposeUiTest {
-      openHeapDump(cachedPayloadHeapDump())
-      pressView(TREEMAP_X, TREEMAP_Y)
-      waitUntilAtLeastOneExists(hasText(INDEPENDENT_PATHS), OPEN_TIMEOUT_MILLIS)
+  @Test fun `a chain names each object by its class, its package and its address`() {
+    explorerUiTest {
+      openHeapDump()
 
-      showPathsButton().performScrollTo().performClick()
+      clickView(TREEMAP_X, TREEMAP_Y)
 
-      // A leak trace says what each object is and how much it holds, and so does this: the package is
-      // there to be read past rather than left out, which is why it's drawn greyed.
-      waitUntilAtLeastOneExists(hasText("com.example.Wrapper instance"), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("com.example.View instance").assertIsDisplayed()
-      // The array is where both paths end, so what each chain says about it is said twice: what it is,
-      // and the size the treemap draws it at. Its element count a third time, in the panel beside them.
-      mapOf(
-        "java.lang.Object[] array" to 2,
-        "Retaining ${formatByteSize(PAYLOAD_LENGTH * 4L)} in 1 object" to 2,
-        "$PAYLOAD_LENGTH elements" to 3
-      ).forEach { (line, count) ->
-        assertThat(onAllNodesWithText(line).fetchSemanticsNodes()).describedAs(line).hasSize(count)
-      }
+      // A leak trace says what each object is and how much it holds, and so does this: the class to read,
+      // the package under it to read past, and the address to point something outside the window at it.
+      waitUntilAtLeastOneExists(hasText("com.example.Holder"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("$HOLDER_LABEL instance").assertIsDisplayed()
+      onNodeWithText(hexObjectId(holderObjectId)).assertIsDisplayed()
+      // Which field of the holder the array is reached through, the way a leak trace names it.
+      onNodeWithText("$HOLDER_LABEL.payload").assertIsDisplayed()
+      // And what each of the two retains, which is the size the treemap draws its rectangle at.
+      assertThat(onAllNodesWithText("Retaining ", substring = true).fetchSemanticsNodes()).hasSize(2)
     }
   }
 
-  @Test fun `clicking a step of a path shows that object on the map`() {
-    runComposeUiTest {
-      openHeapDump(cachedPayloadHeapDump())
-      showPaths()
+  @Test fun `clicking a step of the chain shows that object on the map`() {
+    explorerUiTest {
+      openHeapDump(testFolder.cachedPayloadHeapDump())
+      clickView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText("1 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
 
-      onNodeWithText("com.example.Wrapper instance").performClick()
+      // The middle step of whichever way round the chain runs, both of which are three objects long.
+      val middle = listOf("com.example.Wrapper", "com.example.View")
+        .first { onAllNodesWithText(it).fetchSemanticsNodes().isNotEmpty() }
+      onNodeWithText(middle).performClick()
 
-      // Described in the panel, and the treemap zoomed to where it's drawn, which is a step down from the
-      // root: the wrapper is held from two places, so nothing owns it either.
-      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
+      // Described in the panel, on the map where the tree draws it — which here is the top of it: that step
+      // is held from two places, so nothing owns it, and what it holds is held from two places as well, so
+      // it owns nothing either. One of the whole heap dump's own rectangles, selected there rather than
+      // opened into a view with nothing in it.
+      waitUntilAtLeastOneExists(hasText("= Object[]", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() > 1 }
     }
   }
 
-  @Test fun `going back returns to the screen the move was made from`() {
-    runComposeUiTest {
-      openHeapDump(cachedPayloadHeapDump())
-      showPaths()
-      onNodeWithText("com.example.Wrapper instance").performClick()
+  @Test fun `going back returns to the object the move was made from`() {
+    explorerUiTest {
+      openHeapDump()
+      clickView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText("[0] = null"), OPEN_TIMEOUT_MILLIS)
+      // Up the chain to the instance holding the array, which is a move like any other.
+      onNodeWithText("com.example.Holder").performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
 
-      // Zooming out isn't the way back from a jump sideways, let alone from one screen to another.
+      // Zooming out isn't the way back from a jump sideways.
       onNodeWithText(BACK_ARROW).performClick()
 
-      waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("[0] = null"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(FORWARD_ARROW).performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
     }
   }
 
   @Test fun `a starred object stays readable after moving on to another`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
-      pressView(TREEMAP_X, TREEMAP_Y)
+      clickView(TREEMAP_X, TREEMAP_Y)
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
 
-      onNodeWithText(UNSTARRED_GLYPH).performClick()
+      onNodeWithText(UNSTARRED_GLYPH, substring = true).performClick()
       // Moving on to the object that dominates it, which is what leaves the panel describing something else.
-      onNodeWithText("$HOLDER_LABEL ·", substring = true).performClick()
+      onNodeWithText("com.example.Holder").performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
 
       screenButton("$STARRED_GLYPH 1 starred").performClick()
 
       // Comparing two rectangles means looking at them one after the other, and a treemap has no room to
       // keep the first on screen. So the list keeps everything the panel had read about it.
-      currentCrumb(ExplorerScreen.STARRED_CRUMB).assertIsDisplayed()
       onNodeWithText("Starred objects", substring = true).assertIsDisplayed()
-      onNodeWithText(objectIdText(payloadObjectId)).assertIsDisplayed()
+      onNodeWithText(hexObjectId(payloadObjectId)).assertIsDisplayed()
       onNodeWithText("dominated by $HOLDER_LABEL", substring = true).assertIsDisplayed()
     }
   }
 
   @Test fun `clicking a field in the details panel inspects what it points at`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
-      pressView(TREEMAP_X, TREEMAP_Y)
-      // Up to the instance holding the array clicked, which is what dominates it.
-      waitUntilAtLeastOneExists(hasText(DOMINATOR), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("$HOLDER_LABEL ·", substring = true).performClick()
+      clickView(TREEMAP_X, TREEMAP_Y)
+      // Up the chain to the instance holding the array clicked, which is what dominates it.
+      waitUntilAtLeastOneExists(hasText("com.example.Holder"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("com.example.Holder").performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
 
       // And back down through the field, without touching the treemap.
@@ -324,98 +495,98 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `double clicking a rectangle adds a breadcrumb for every dominator down to it`() {
-    runComposeUiTest {
+  @Test fun `clicking a rectangle goes to it`() {
+    explorerUiTest {
       openHeapDump()
-      assertThat(breadcrumbCount()).isEqualTo(1)
 
-      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
+      clickView(TREEMAP_X, TREEMAP_Y)
 
-      // The point clicked is inside the payload array, which is inside the instance holding it, which
-      // is inside the reachable half of the dump: a crumb for each rather than a jump from the root
-      // straight to the array.
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 4 }
-      // A crumb says what the object retains as well as what it is, which is what tells it apart from
-      // the details panel naming the same object.
-      crumb("$HOLDER_LABEL ·").assertIsDisplayed()
+      // One click rather than two: reading a treemap is walking into it, and a click that only outlined a
+      // rectangle spent the obvious gesture on the thing the panels do anyway.
+      waitUntilZoomedIn()
+      // Drawing an object that dominates nothing would be a view with one rectangle in it, so the map lands
+      // on the instance holding the array clicked, with the array drawn and described inside it.
+      assertThat(onAllNodesWithText(hexObjectId(payloadObjectId)).fetchSemanticsNodes()).isNotEmpty()
     }
   }
 
-  @Test fun `clicking a breadcrumb zooms back out`() {
-    runComposeUiTest {
+  @Test fun `clicking an object of the chain beside the map goes back out to it`() {
+    explorerUiTest {
       openHeapDump()
-      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() > 1 }
+      clickView(TREEMAP_X, TREEMAP_Y)
+      waitUntilZoomedIn()
 
-      onNodeWithText(HeapDominatorTreemap.ROOT_LABEL, substring = true).performClick()
+      // Which is the only way back out: the objects the chain draws are the ones the map is nested in, so
+      // clicking one of them is a zoom back out to it.
+      onNodeWithText("com.example.Holder").performClick()
 
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 1 }
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
+      assertThat(onAllNodesWithText(hexObjectId(holderObjectId)).fetchSemanticsNodes()).isNotEmpty()
     }
   }
 
-  @Test fun `pressing the rectangle standing for the siblings that did not fit says what it stands for`() {
-    runComposeUiTest {
+  @Test fun `clicking the rectangle standing for the siblings that did not fit says what it stands for`() {
+    explorerUiTest {
       // Every sibling weighs the same, so the rectangle standing for the ones left out weighs as much
       // as all of them together: it's the largest, and a squarified treemap puts that one in the top
       // left corner.
-      openHeapDump(manySiblingsHeapDump())
+      openHeapDump(testFolder.manySiblingsHeapDump())
 
-      pressView(LEFTOVER_X, LEFTOVER_Y)
+      clickView(LEFTOVER_X, LEFTOVER_Y)
 
       waitUntilAtLeastOneExists(hasText("smaller objects", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("Held by Object[]", substring = true).assertIsDisplayed()
     }
   }
 
-  @Test fun `pressing a class group says how many objects of that class it stands for`() {
-    runComposeUiTest {
+  @Test fun `clicking a class group says how many objects of that class it stands for`() {
+    explorerUiTest {
       // Every instance is a GC root of its own, so all 400 land directly under the root: far more than
       // a view can draw one by one, which is what gathers them by class.
-      openHeapDump(crowdedRootHeapDump())
+      openHeapDump(testFolder.crowdedRootHeapDump())
 
-      pressContainerEdge(yFraction = 0.5f)
+      clickContainerEdge(yFraction = 0.5f)
 
       waitUntilAtLeastOneExists(hasText("of one class", substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(SIBLING_CLASS_NAME).assertIsDisplayed()
+      assertThat(onAllNodesWithText(SIBLING_CLASS_NAME).fetchSemanticsNodes()).isNotEmpty()
       // Says it in words as well as with the label, the slate fill and the dashed outline.
       onNodeWithText(CLASS_GROUP_EXPLANATION).assertIsDisplayed()
       onNodeWithText("Retained together").assertIsDisplayed()
     }
   }
 
-  @Test fun `zooming into a class group leaves a breadcrumb naming the class`() {
-    runComposeUiTest {
-      openHeapDump(crowdedRootHeapDump())
+  @Test fun `clicking a class group roots the map at it`() {
+    explorerUiTest {
+      openHeapDump(testFolder.crowdedRootHeapDump())
 
-      pressContainerEdge(yFraction = 0.5f, isDoubleClick = true)
+      clickContainerEdge(yFraction = 0.5f)
 
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { breadcrumbCount() == 3 }
-      onNodeWithText(
-        "$SIBLING_COUNT ${HeapDominatorTreemap.CLASS_GROUP_LABEL_SEPARATOR} Sibling",
-        substring = true
-      ).assertIsDisplayed()
+      // A class group is no object of the heap dump, but it is a node of the tree, so the map opens it the
+      // same way it opens an object: the instances gathered into it are what's drawn inside.
+      waitUntilZoomedIn()
+      assertThat(onAllNodesWithText(SIBLING_CLASS_NAME).fetchSemanticsNodes()).isNotEmpty()
     }
   }
 
   @Test fun `what only a weak reference points at is drawn as weakly reachable`() {
-    runComposeUiTest {
+    explorerUiTest {
       // The weakly retained array is by far the biggest thing in this heap dump, so it covers most of
       // the treemap and the weak reference holding it is a thin border around it.
-      openHeapDump(weaklyReachablePayloadHeapDump())
+      openHeapDump(testFolder.weaklyReachablePayloadHeapDump())
 
-      pressView(TREEMAP_X, TREEMAP_Y)
+      clickView(TREEMAP_X, TREEMAP_Y)
 
       waitUntilAtLeastOneExists(hasText(WEAK.reachabilityText), OPEN_TIMEOUT_MILLIS)
     }
   }
 
   @Test fun `uncollected garbage is a sibling of the GC roots`() {
-    runComposeUiTest {
+    explorerUiTest {
       // The garbage is most of this heap dump, so its half of the tree is the big rectangle and the
       // reachable half the small one.
-      openHeapDump(uncollectedGarbageHeapDump())
+      openHeapDump(testFolder.uncollectedGarbageHeapDump())
 
-      pressContainerEdge(yFraction = 0.5f)
+      clickContainerEdge(yFraction = 0.5f)
 
       waitUntilAtLeastOneExists(
         hasText(HeapDominatorTreemap.UNREACHABLE_LABEL),
@@ -430,25 +601,22 @@ class ExplorerAppTest {
   }
 
   @Test fun `nothing keeps uncollected garbage in memory`() {
-    runComposeUiTest {
-      openHeapDump(uncollectedGarbageHeapDump())
+    explorerUiTest {
+      openHeapDump(testFolder.uncollectedGarbageHeapDump())
 
-      pressView(TREEMAP_X, TREEMAP_Y)
+      clickView(TREEMAP_X, TREEMAP_Y)
 
-      // No GC root reaches it, so there is no object to blame for it still being here: what stands in for a
-      // dominator is the half of the tree it's drawn in, which is the garbage.
+      // No GC root reaches it, so there is no object to blame for it still being here: the chain starts at
+      // that said in as many words, where every other chain names the kind of root it starts at.
       waitUntilAtLeastOneExists(hasText(UNREACHABLE.reachabilityText), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(DOMINATOR).performScrollTo().assertIsDisplayed()
-      onNodeWithText("${HeapDominatorTreemap.UNREACHABLE_LABEL} ·", substring = true)
-        .performScrollTo()
-        .assertIsDisplayed()
+      waitUntilAtLeastOneExists(hasText(UNCOLLECTED_GARBAGE_CHAIN), OPEN_TIMEOUT_MILLIS)
     }
   }
 
   @Test fun `every strength can be greyed out, and none of it changes what is drawn`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
-      val wholeHeapDump = rootCrumb()
+      val wholeHeapDump = strengthLegend()
 
       // A checkbox is the colour scale and nothing else, so there is no strength it makes no sense to
       // press: greying the strong heap is how you find the little there is of everything else.
@@ -458,29 +626,35 @@ class ExplorerAppTest {
         strengthToggle(strength).assertIsOff()
       }
 
-      assertThat(rootCrumb()).isEqualTo(wholeHeapDump)
+      assertThat(strengthLegend()).isEqualTo(wholeHeapDump)
     }
   }
 
-  @Test fun `a cache holding an image is on none of the paths that hold it`() {
-    runComposeUiTest {
+  @Test fun `a cache holding an image is on none of the ways it is held`() {
+    explorerUiTest {
       // Here the tile showing the image holds it too, so the cache is not the answer to what keeps it
       // around: the tile dominates the pixels, and both ways it holds them are the tile's own.
-      openHeapDump(coilCachedImageHeapDump(alsoShownByATile = true))
+      openHeapDump(testFolder.coilCachedImageHeapDump(alsoShownByATile = true))
 
-      showPaths()
+      clickView(TREEMAP_X, TREEMAP_Y)
 
-      waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("Tile.view").assertIsDisplayed()
-      onNodeWithText("View.drawable").assertIsDisplayed()
-      onNodeWithText("BitmapImage.bitmap").assertIsDisplayed()
-      // The cache points at the image as squarely as the request result does, and holds nothing.
+      // The shorter way first, which is the pixels as what the tile's view draws.
+      waitUntilAtLeastOneExists(hasText("1 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("com.example.View").assertIsDisplayed()
+
+      onNodeWithText(NEXT_WAY).performClick()
+
+      // And the longer one: the same tile, holding the same pixels through the result of the request that
+      // loaded them. The cache points at the image as squarely as that result does, and is on neither way.
+      waitUntilAtLeastOneExists(hasText("2 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("coil3.request.SuccessResult").assertIsDisplayed()
+      onNodeWithText("coil3.BitmapImage").assertIsDisplayed()
       assertThat(onAllNodesWithText("InternalValue", substring = true).fetchSemanticsNodes()).isEmpty()
     }
   }
 
   @Test fun `a strength nothing is reachable at says so`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
 
       // Nothing in this heap dump is reachable only through a java.lang.ref.Reference, which reads as a
@@ -491,7 +665,7 @@ class ExplorerAppTest {
   }
 
   @Test fun `the same tree can be drawn as rings`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
       shapeOption(ViewShape.TREEMAP).assertIsSelected()
 
@@ -499,19 +673,18 @@ class ExplorerAppTest {
 
       // Laying the rings out is another read of the heap dump, so the tree comes back a beat later.
       shapeOption(ViewShape.RADIAL).assertIsSelected()
-      waitUntilAtLeastOneExists(
-        hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
-        OPEN_TIMEOUT_MILLIS
-      )
-      // Anywhere near the middle of the view is inside one of the rings.
-      pressView(TREEMAP_X, TREEMAP_Y)
+      waitForTheTree(OPEN_TIMEOUT_MILLIS)
+      // Just off the middle of the view, which is inside one of the rings: the rings are as wide as the
+      // view's shorter side divided by how many of them the layout allows for, so a tree three levels deep
+      // fills only the first three of them and the space past that belongs to no cell.
+      clickView(RING_X, RING_Y)
 
       waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
     }
   }
 
   @Test fun `the colour scheme can be switched`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
       schemeOption(CellColorScheme.DAISY).assertIsSelected()
 
@@ -519,20 +692,19 @@ class ExplorerAppTest {
 
       schemeOption(CellColorScheme.SLATE).assertIsSelected()
       schemeOption(CellColorScheme.DAISY).assertIsNotSelected()
-      onNodeWithText(HeapDominatorTreemap.ROOT_LABEL, substring = true).assertIsDisplayed()
+      onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
     }
   }
 
   @Test fun `every object of the heap dump can be listed`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
 
-      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
 
       // The view a treemap can't be: one line per object, whatever its size, with the retained size the
       // treemap draws its rectangle from.
       waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
-      currentCrumb(ExplorerScreen.OBJECTS_CRUMB).assertIsDisplayed()
       onNodeWithText("com.example.Holder instance").assertIsDisplayed()
       onNodeWithText("$PAYLOAD_LENGTH elements").assertIsDisplayed()
       // How much of the heap dump is being looked at, which is what says a search found little of it.
@@ -541,9 +713,9 @@ class ExplorerAppTest {
   }
 
   @Test fun `a few characters filter the list down to the class names holding them`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
-      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
       waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
 
       // Part of a name rather than all of it, which is how anyone types a class they half remember.
@@ -557,9 +729,9 @@ class ExplorerAppTest {
   }
 
   @Test fun `a class leads to the instances of it`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
-      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
       waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
       // The class object itself, which the list has a line of its own for.
       onNodeWithText("com.example.Holder class").performClick()
@@ -568,69 +740,59 @@ class ExplorerAppTest {
       onNodeWithText(LIST_INSTANCES).performClick()
 
       // Back on the list, filtered to the instances of that one class. Exactly it: a class whose name
-      // merely contains this one is another class, and its instances are not these.
-      waitUntilAtLeastOneExists(hasText("com.example.Holder instance"), OPEN_TIMEOUT_MILLIS)
+      // merely contains this one is another class, and its instances are not these. Waited for by the class
+      // itself going, since listing the objects again is a read of the heap dump and the list on screen is
+      // the one from before it until it comes back.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        onAllNodesWithText("com.example.Holder class").fetchSemanticsNodes().isEmpty()
+      }
+      onNodeWithText("com.example.Holder instance").assertIsDisplayed()
       onNode(hasText(EXACT_MATCH) and isToggleable()).assertIsOn()
       kindToggle(HeapObjectKind.INSTANCE).assertIsOn()
       kindToggle(HeapObjectKind.CLASS).assertIsOff()
-      assertThat(onAllNodesWithText("com.example.Holder class").fetchSemanticsNodes()).isEmpty()
     }
   }
 
   @Test fun `clicking a listed object shows it on the map and describes it`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
-      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
       waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
 
       onNodeWithText("java.lang.Object[] array").performClick()
 
       // The same place clicking its rectangle would have taken you: the map zoomed to it, and the panel
       // describing it.
-      waitUntilAtLeastOneExists(hasText(objectIdText(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(hexObjectId(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
       onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
-      // Drawing an object that dominates nothing would be an empty view, so the map lands on what holds
-      // it, with it selected inside: the last crumb is the holder and the panel is the array.
-      currentCrumb("$HOLDER_LABEL ·", substring = true).assertIsDisplayed()
+      waitUntilZoomedIn()
     }
   }
 
-  @Test fun `the panel describes whatever the breadcrumbs name`() {
-    runComposeUiTest {
+  @Test fun `the panels describe whatever the map went to`() {
+    explorerUiTest {
       openHeapDump()
-      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
+      clickView(TREEMAP_X, TREEMAP_Y)
       waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
 
-      // A crumb moves the map, so it has to move the panel with it: a window saying one thing at the top
-      // and another on the right is a window that has to be read twice.
-      crumb("$HOLDER_LABEL ·").performClick()
+      // Every move takes the panels with it: a window showing one object and describing another is a window
+      // that has to be read twice. The chain is a move like any other.
+      onNodeWithText("com.example.Holder").performClick()
 
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
-    }
-  }
-
-  @Test fun `a breadcrumb says which object it is, not only which class`() {
-    runComposeUiTest {
-      openHeapDump()
-
-      pressView(TREEMAP_X, TREEMAP_Y, isDoubleClick = true)
-
       // The id is how anything outside this window is pointed at the same object: another heap analyzer,
-      // a script, a colleague.
-      waitUntilAtLeastOneExists(
-        hasText(hexObjectId(payloadObjectId), substring = true),
-        OPEN_TIMEOUT_MILLIS
-      )
+      // a script, a colleague. Said twice, by the bar above the map and by the chain's own last step.
+      assertThat(onAllNodesWithText(hexObjectId(holderObjectId)).fetchSemanticsNodes()).hasSize(2)
     }
   }
 
   @Test fun `the colour and shape controls belong to the view they control`() {
-    runComposeUiTest {
+    explorerUiTest {
       openHeapDump()
       strengthToggle(STRONG).assertIsDisplayed()
       shapeOption(ViewShape.RADIAL).assertIsDisplayed()
 
-      screenButton(ExplorerScreen.OBJECTS_CRUMB).performClick()
+      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
 
       // A list of objects is coloured by nothing and shaped like a list, so controls for how the tree is
       // drawn have nothing to do there.
@@ -668,40 +830,29 @@ class ExplorerAppTest {
 
   private fun ComposeUiTest.openHeapDump(heapDumpFile: File = testHeapDump()) {
     setExplorerContent(heapDumpFile)
-    waitUntilAtLeastOneExists(
-      hasText(HeapDominatorTreemap.ROOT_LABEL, substring = true),
-      OPEN_TIMEOUT_MILLIS
-    )
+    waitForTheTree(OPEN_TIMEOUT_MILLIS)
   }
 
   /**
-   * A button on the row of screens an open heap dump can be read through, rather than the breadcrumb of
-   * the same name once it has been pressed: a crumb for where the explorer already is leads nowhere.
+   * Waits until the map has been laid out rooted somewhere other than the top of the tree, which is what
+   * going to an object does.
+   *
+   * Read off the log, because nothing on screen says it: the view is one canvas, and the chain beside it
+   * names the object gone to rather than the node the map settled on above it.
    */
+  private fun ComposeUiTest.waitUntilZoomedIn() {
+    waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+      logged.any { it.startsWith(TREEMAP_LAID_OUT) && WHOLE_HEAP_DUMP_NODE !in it }
+    }
+  }
+
+  /** The row every chain hangs below, which is the one thing naming the whole heap dump that leads anywhere. */
+  private fun ComposeUiTest.wholeHeapDumpRow(): SemanticsNodeInteraction =
+    onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and hasClickAction())
+
+  /** A button on the row of screens an open heap dump can be read through. */
   private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
     onNode(hasText(label) and hasClickAction())
-
-  /**
-   * The last breadcrumb, which is where the explorer is and therefore isn't a button. Told apart from a
-   * panel line naming the same screen by the chevron beside it.
-   */
-  private fun ComposeUiTest.currentCrumb(
-    label: String,
-    substring: Boolean = false
-  ): SemanticsNodeInteraction =
-    onNode(hasText(label, substring = substring) and hasAnySibling(hasText(BREADCRUMB_SEPARATOR)))
-
-  /** The panel's way to the paths, which says how many of them there are. */
-  private fun ComposeUiTest.showPathsButton(): SemanticsNodeInteraction =
-    onNode(hasText(" paths", substring = true) and hasClickAction())
-
-  /** Presses the biggest rectangle of the treemap, then goes to the paths that hold it. */
-  private fun ComposeUiTest.showPaths() {
-    pressView(TREEMAP_X, TREEMAP_Y)
-    waitUntilAtLeastOneExists(hasText(INDEPENDENT_PATHS), OPEN_TIMEOUT_MILLIS)
-    showPathsButton().performScrollTo().performClick()
-    waitUntilAtLeastOneExists(hasText("Path 1 of 2", substring = true), OPEN_TIMEOUT_MILLIS)
-  }
 
   /** The search box of the object list, the one thing in the window that takes typing. */
   private fun ComposeUiTest.searchBox(): SemanticsNodeInteraction = onNode(hasSetTextAction())
@@ -722,75 +873,95 @@ class ExplorerAppTest {
   private fun ComposeUiTest.shapeOption(shape: ViewShape): SemanticsNodeInteraction =
     onNode(hasText(shape.displayName) and isSelectable())
 
-  /** Crumbs are separated by a chevron, so there's one more crumb than there are chevrons. */
-  private fun ComposeUiTest.breadcrumbCount(): Int =
-    onAllNodesWithText(BREADCRUMB_SEPARATOR).fetchSemanticsNodes().size + 1
+  /** How the legend above the view splits the heap dump up, which is what a colour scale must not change. */
+  private fun ComposeUiTest.strengthLegend(): List<String> = ReachabilityStrength.values().map {
+    strengthToggle(it).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("")
+  }
 
   /**
-   * A breadcrumb, rather than a panel line that names the same object the same way: a crumb is a button.
-   */
-  private fun ComposeUiTest.crumb(label: String): SemanticsNodeInteraction = onNode(
-    hasText(label, substring = true) and
-      SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
-  )
-
-  /**
-   * Presses the outline of the innermost container down the left edge of the treemap, [yFraction] of
+   * Clicks the outline of the innermost container down the left edge of the treemap, [yFraction] of
    * the way down it.
    *
    * A rectangle's children cover every pixel of it, so its outline is the only part of a container
-   * there is to press — see `TreemapLayout.cellAt`. Which container that is follows from the heap dump:
-   * a squarified layout puts the largest rectangle of every level against the left edge, so pressing
+   * there is to click — see `TreemapLayout.cellAt`. Which container that is follows from the heap dump:
+   * a squarified layout puts the largest rectangle of every level against the left edge, so clicking
    * there reaches the innermost of the nested containers that all but fill the view.
    */
-  private fun ComposeUiTest.pressContainerEdge(
-    yFraction: Float,
-    isDoubleClick: Boolean = false
-  ) {
+  private fun ComposeUiTest.clickContainerEdge(yFraction: Float) {
     val view = viewBounds()
-    press(
+    clickAt(
       Offset(
         x = view.left + EDGE_PRESS_INSET,
         y = view.top + view.height * yFraction
-      ),
-      isDoubleClick
+      )
     )
   }
 
   /**
-   * Presses a point of the view, given as a fraction of it: the view is a canvas with no node per cell, so
+   * Clicks a point of the view, given as a fraction of it: the view is a canvas with no node per cell, so
    * a test drives it by coordinates. Of the view rather than of the window, because what sits above the
    * view is a row of buttons and a legend that wraps to as many lines as it takes.
    */
-  private fun ComposeUiTest.pressView(
+  private fun ComposeUiTest.clickView(
     xFraction: Float,
-    yFraction: Float,
-    isDoubleClick: Boolean = false
+    yFraction: Float
   ) {
     val view = viewBounds()
-    press(
-      Offset(x = view.left + view.width * xFraction, y = view.top + view.height * yFraction),
-      isDoubleClick
-    )
+    clickAt(Offset(x = view.left + view.width * xFraction, y = view.top + view.height * yFraction))
   }
 
-  private fun ComposeUiTest.press(
-    offset: Offset,
-    isDoubleClick: Boolean
+  private fun ComposeUiTest.clickAt(offset: Offset) {
+    onRoot().performMouseInput { click(offset) }
+  }
+
+  /** Moves the pointer onto a point of the view, given as a fraction of it, the way [clickView] clicks one. */
+  private fun ComposeUiTest.hoverView(
+    xFraction: Float,
+    yFraction: Float
   ) {
-    onRoot().performMouseInput { if (isDoubleClick) doubleClick(offset) else click(offset) }
+    onRoot().performMouseInput { hover(pointerAt(xFraction, yFraction)) }
+  }
+
+  /** A point of the view given as a fraction of it, in the window's own coordinates. */
+  private fun ComposeUiTest.pointerAt(
+    xFraction: Float,
+    yFraction: Float
+  ): Offset {
+    val view = viewBounds()
+    return Offset(x = view.left + view.width * xFraction, y = view.top + view.height * yFraction)
+  }
+
+  /**
+   * Where the card naming what the pointer is on ended up, measured by the object id it prints.
+   *
+   * The card itself is a surface with no semantics of its own, so this is a line inside it: enough to say
+   * which way it moved and that the pointer isn't in it, since the card is at least as big as its text.
+   */
+  private fun ComposeUiTest.pointerCardBounds() =
+    onNodeWithText(hexObjectId(payloadObjectId)).fetchSemanticsNode().boundsInRoot
+
+  /**
+   * Moves the pointer onto the band the root keeps across the top of the view for its own label, which its
+   * children leave uncovered. A fraction of the view would be a fraction of however tall the window is.
+   */
+  private fun ComposeUiTest.hoverRootBand() {
+    val view = viewBounds()
+    onRoot().performMouseInput {
+      hover(Offset(x = view.left + view.width / 2, y = view.top + LABEL_BAND_INSET))
+    }
+  }
+
+  /** Moves the pointer off the view, onto the panes beside it, which is what leaves nothing hovered. */
+  private fun ComposeUiTest.leaveView() {
+    val view = viewBounds()
+    onRoot().performMouseInput {
+      moveTo(Offset(x = view.right + PANE_INSET, y = view.top + PANE_INSET))
+    }
   }
 
   /** Where the tree is drawn, which is the one part of the window a click has to land in. */
   private fun ComposeUiTest.viewBounds() =
     onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
-
-  /** The first breadcrumb, which names the root of the tree and says how much it holds. */
-  private fun ComposeUiTest.rootCrumb(): String =
-    onNodeWithText(HeapDominatorTreemap.ROOT_LABEL, substring = true)
-      .fetchSemanticsNode()
-      .config[SemanticsProperties.Text]
-      .joinToString("")
 
   /**
    * A heap dump where a single instance is the only path to a large object array, so that one
@@ -805,136 +976,8 @@ class ExplorerAppTest {
         payloadObjectId = payload.value
         field["payload"] = payload
       }
+      holderObjectId = holder.value
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
-    }
-    return file
-  }
-
-  /**
-   * The same, plus a much larger array that only a `WeakReference` points at, so that the weakly
-   * reachable part of the tree is what a blind press in the middle of the treemap lands on.
-   */
-  private fun weaklyReachablePayloadHeapDump(): File {
-    val file = testFolder.newFile(WEAKLY_REACHABLE_DUMP_NAME)
-    file.dump {
-      val holder = "com.example.Holder" instance {
-        field["payload"] =
-          ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
-      }
-      val weakReference = "java.lang.ref.WeakReference" instance {
-        field["referent"] = ReferenceHolder(
-          objectArray(arrayClass("java.lang.Object"), LongArray(WEAK_PAYLOAD_LENGTH))
-        )
-      }
-      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
-      gcRoot(JniGlobal(id = weakReference.value, jniGlobalRefId = 1))
-    }
-    return file
-  }
-
-  /**
-   * A heap dump most of which is garbage: a large array nothing points at and no GC root reaches, which
-   * a collection would have taken had one run before the dump was written.
-   */
-  private fun uncollectedGarbageHeapDump(): File {
-    val file = testFolder.newFile("uncollected-garbage.hprof")
-    file.dump {
-      objectArray(arrayClass("java.lang.Object"), LongArray(GARBAGE_PAYLOAD_LENGTH))
-      val holder = "com.example.Holder" instance {
-        field["payload"] =
-          ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
-      }
-      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
-    }
-    return file
-  }
-
-  /**
-   * A heap dump shaped like the one [ReachabilityStrength.CACHE] came from, built of the real class and
-   * field names Coil's memory cache is made of, because that is what the explorer matches on. With
-   * [alsoShownByATile] a tile showing the image holds it too, so the cache isn't what keeps it around.
-   */
-  private fun coilCachedImageHeapDump(alsoShownByATile: Boolean): File {
-    val file = testFolder.newFile("coil-cached-image-$alsoShownByATile.hprof")
-    file.dump {
-      val pixels =
-        ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
-      val image = "coil3.BitmapImage" instance { field["bitmap"] = pixels }
-      val cacheEntry =
-        "coil3.memory.RealStrongMemoryCache\$InternalValue" instance { field["image"] = image }
-      val cache = "coil3.memory.RealStrongMemoryCache" instance { field["cache"] = cacheEntry }
-      gcRoot(JniGlobal(id = cache.value, jniGlobalRefId = 0))
-      if (alsoShownByATile) {
-        val tile = "com.example.Tile" instance {
-          field["view"] = "com.example.View" instance { field["drawable"] = pixels }
-          field["result"] = "coil3.request.SuccessResult" instance { field["image"] = image }
-        }
-        gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 1))
-      }
-    }
-    return file
-  }
-
-  /**
-   * A heap dump shaped like the one the paths section was built for: a cache and the view showing an
-   * image both hold it, and the view holds it twice, so the paths that hold it meet only at the root.
-   */
-  private fun cachedPayloadHeapDump(): File {
-    val file = testFolder.newFile("cached-payload.hprof")
-    file.dump {
-      val payload =
-        ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
-      val wrapper = "com.example.Wrapper" instance { field["payload"] = payload }
-      val view = "com.example.View" instance { field["drawable"] = payload }
-      val tile = "com.example.Tile" instance {
-        field["result"] = wrapper
-        field["view"] = view
-      }
-      val cache = "com.example.Cache" instance { field["entry"] = wrapper }
-      gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 0))
-      gcRoot(JniGlobal(id = cache.value, jniGlobalRefId = 1))
-    }
-    return file
-  }
-
-  /**
-   * A heap dump with more equally sized rooted instances than one node draws one by one, so that the
-   * treemap has a rectangle standing for the ones it left out.
-   */
-  private fun manySiblingsHeapDump(): File {
-    val file = testFolder.newFile("many-siblings.hprof")
-    file.dump {
-      val siblingClassId = clazz(
-        className = "com.example.Sibling",
-        fields = listOf("payload" to ReferenceHolder::class)
-      )
-      val objectArrayClassId = arrayClass("java.lang.Object")
-      val siblingIds = LongArray(SIBLING_COUNT) { _ ->
-        val payload = objectArray(objectArrayClassId, LongArray(SIBLING_PAYLOAD_LENGTH))
-        instance(siblingClassId, fields = listOf(ReferenceHolder(payload))).value
-      }
-      // Held by an array rather than each being a GC root: the root's children are gathered by class,
-      // so the crowd a leftover cell stands for has to sit under a node that isn't the root.
-      val siblings = objectArray(objectArrayClassId, siblingIds)
-      gcRoot(JniGlobal(id = siblings, jniGlobalRefId = 0))
-    }
-    return file
-  }
-
-  /** A heap dump with more objects of one class directly under the root than a view can draw. */
-  private fun crowdedRootHeapDump(): File {
-    val file = testFolder.newFile("crowded-root.hprof")
-    file.dump {
-      val siblingClassId = clazz(
-        className = "com.example.Sibling",
-        fields = listOf("payload" to ReferenceHolder::class)
-      )
-      val objectArrayClassId = arrayClass("java.lang.Object")
-      repeat(SIBLING_COUNT) { index ->
-        val payload = objectArray(objectArrayClassId, LongArray(SIBLING_PAYLOAD_LENGTH))
-        val sibling = instance(siblingClassId, fields = listOf(ReferenceHolder(payload)))
-        gcRoot(JniGlobal(id = sibling.value, jniGlobalRefId = index.toLong()))
-      }
     }
     return file
   }
@@ -944,8 +987,21 @@ class ExplorerAppTest {
     private const val TREEMAP_X = 0.4f
     private const val TREEMAP_Y = 0.6f
 
+    /** How far along the view the pointer moves to show the card following it, staying on one rectangle. */
+    private const val POINTER_STEP = 0.2f
+
+    /** Just off the middle of the view, which is in the first ring the rings are drawn out from. */
+    private const val RING_X = 0.45f
+    private const val RING_Y = 0.55f
+
     /** How far inside the left edge of the view a container's outline is pressed. Within EDGE_GRAB. */
     private const val EDGE_PRESS_INSET = 2f
+
+    /** How far down the view the root's own label band is, which is where its children start. */
+    private const val LABEL_BAND_INSET = 2f
+
+    /** How far past the edge of the view the panes beside it start. */
+    private const val PANE_INSET = 10f
 
     /**
      * Well inside the largest rectangle of the second level rather than in its label band, which is what
@@ -958,10 +1014,17 @@ class ExplorerAppTest {
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
 
+    /** How the log says a treemap was laid out, and what it calls the node at the top of the tree. */
+    private const val TREEMAP_LAID_OUT = "Read the treemap rooted at"
+    private const val WHOLE_HEAP_DUMP_NODE = "the whole heap dump"
+
     /** What `adb devices` prints when nothing is plugged in, which is every command this test needs. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }
 
     private const val HOLDER_LABEL = "Holder"
+
+    /** What a chain says it starts at when no GC root reaches the object. See `gcRootLabelOf`. */
+    private const val UNCOLLECTED_GARBAGE_CHAIN = "Uncollected garbage"
 
     /** Big enough that the row of the object list naming it is the bitmap rather than its buffer. */
     private const val BITMAP_SIDE = 64
@@ -971,16 +1034,5 @@ class ExplorerAppTest {
 
     /** What the dialog says the heap dump came from, off the `android.os.Build` written into it. */
     private const val DUMP_ORIGIN = "Google $BITMAP_DUMP_MODEL · API $BITMAP_DUMP_SDK_INT"
-    private const val PAYLOAD_LENGTH = 4096
-    private const val WEAKLY_REACHABLE_DUMP_NAME = "weakly-reachable.hprof"
-    private const val WEAK_PAYLOAD_LENGTH = 32768
-    private const val WEAK_PAYLOAD_BYTE_SIZE = WEAK_PAYLOAD_LENGTH * 4L
-    private const val GARBAGE_PAYLOAD_LENGTH = 32768
-    private const val GARBAGE_PAYLOAD_BYTE_SIZE = GARBAGE_PAYLOAD_LENGTH * 4L
-
-    /** Twice what a node draws one by one, so half the siblings end up in one rectangle. */
-    private const val SIBLING_COUNT = 400
-    private const val SIBLING_CLASS_NAME = "com.example.Sibling"
-    private const val SIBLING_PAYLOAD_LENGTH = 16
   }
 }

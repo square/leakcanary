@@ -37,10 +37,17 @@ import kotlin.reflect.KClass
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 
 class HprofWriterHelper constructor(
-  private val writer: HprofWriter
+  private val writer: HprofWriter,
+  /**
+   * The id of the first object written, which every object after it counts up from.
+   *
+   * Negative to write the ids of a 32 bit heap dump whose objects sit above the 2 GB mark: an id is 4 bytes
+   * there, and shark widens those by sign, so that is what such an address reads back as.
+   */
+  firstObjectId: Long = 1L
 ) : Closeable {
 
-  private var lastId = 0L
+  private var lastId = firstObjectId - 1L
   private val id: Long
     get() = ++lastId
 
@@ -382,8 +389,11 @@ class HprofWriterHelper constructor(
   }
 }
 
-fun File.dump(block: HprofWriterHelper.() -> Unit) {
-  HprofWriterHelper(HprofWriter.openWriterFor(this))
+fun File.dump(
+  firstObjectId: Long = 1L,
+  block: HprofWriterHelper.() -> Unit
+) {
+  HprofWriterHelper(HprofWriter.openWriterFor(this), firstObjectId)
     .use(block)
 }
 

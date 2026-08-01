@@ -10,7 +10,7 @@ class TreemapNavigationTest {
     val navigation = TreemapNavigation("root")
 
     assertThat(navigation.current).isEqualTo("root")
-    assertThat(navigation.canZoomOut).isFalse()
+    assertThat(navigation.path).containsExactly("root")
   }
 
   @Test fun `zooming in appends to the path`() {
@@ -26,7 +26,7 @@ class TreemapNavigationTest {
     assertThat(navigation.zoomInto("a")).isEqualTo(navigation)
   }
 
-  @Test fun `zooming into a path leaves a crumb for every node on the way`() {
+  @Test fun `zooming into a path records every node on the way`() {
     val navigation = TreemapNavigation("root").zoomInto(listOf("a", "b", "c"))
 
     assertThat(navigation.path).containsExactly("root", "a", "b", "c")
@@ -42,18 +42,6 @@ class TreemapNavigationTest {
     val navigation = TreemapNavigation("root").zoomInto("a").zoomInto("b").zoomInto("c")
 
     assertThat(navigation.zoomInto("a").path).containsExactly("root", "a")
-  }
-
-  @Test fun `zooming out drops the last node`() {
-    val navigation = TreemapNavigation("root").zoomInto("a").zoomInto("b")
-
-    assertThat(navigation.zoomOut().path).containsExactly("root", "a")
-  }
-
-  @Test fun `zooming out of the root changes nothing`() {
-    val navigation = TreemapNavigation("root")
-
-    assertThat(navigation.zoomOut()).isEqualTo(navigation)
   }
 
   @Test fun `a path is cut where a node is gone`() {

@@ -5,8 +5,7 @@ package shark.explorer
  * view.
  *
  * The shape is all the two views disagree on. What a cell stands for is its [subject], so labels,
- * colours, what a click selects and what a double click zooms into are one implementation rather than
- * one per view.
+ * colours and where a click goes are one implementation rather than one per view.
  */
 interface LayoutCell<out N> {
   val subject: CellSubject<N>
@@ -56,30 +55,4 @@ sealed interface CellSubject<out N> {
    * that matters, is a solid block rather than an outline around its children.
    */
   data class Own<out N>(val node: N) : CellSubject<N>
-}
-
-/**
- * The nodes from just below the laid out root down to [subject], which is what zooming into a cell
- * follows: a cell several levels deep leaves a breadcrumb for every dominator on the way rather than
- * jumping straight to it. Empty for the root.
- *
- * A group isn't a node, so the path to one ends at the node whose children it stands for: zooming
- * into a group is zooming into what holds it, which is the only way to see what's in it.
- */
-fun <N> List<CellSubject<N>>.nodePathTo(subject: CellSubject<N>): List<N> {
-  val parentByNode = HashMap<N, N?>(size)
-  forEach { if (it is CellSubject.Node) parentByNode[it.node] = it.parent }
-  val path = mutableListOf<N>()
-  var next: N? = when (subject) {
-    is CellSubject.Node -> subject.node
-    is CellSubject.Group -> subject.parent
-    // The cell for a node's own weight belongs to that node, so zooming into it zooms into the node.
-    is CellSubject.Own -> subject.node
-  }
-  // The root is the one node laid out without a parent, so the walk up ends there.
-  while (next != null) {
-    path += next
-    next = parentByNode[next]
-  }
-  return path.asReversed().drop(1)
 }

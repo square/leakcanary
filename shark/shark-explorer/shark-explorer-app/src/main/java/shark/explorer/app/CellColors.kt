@@ -156,9 +156,9 @@ internal class CellColors private constructor(
           val subject = presented.cell.subject
           if (subject is CellSubject.Node) {
             hueIndexByObjectId[subject.node] = when {
-              // Down to the children of the two halves of the heap dump: colouring by the halves
-              // themselves would give the whole view one or two hues.
-              presented.cell.depth <= TOP_LEVEL_DEPTH -> subject.siblingIndex
+              // A hue of its own for each of the blocks the map is divided into, which are the current
+              // root's own children — the same level the map names. See [ROOT_CHILD_DEPTH].
+              presented.cell.depth <= ROOT_CHILD_DEPTH -> subject.siblingIndex
               // Inherits, so that everything one block contains shares its hue.
               else -> hueIndexByObjectId[subject.parent] ?: subject.siblingIndex
             }
@@ -278,12 +278,6 @@ private const val DAISY_MAX_VALUE = 0.99f
 private const val DAISY_DEEPEST_SHADE = 8
 private val DAISY_BORDER = Color(0x66FFFFFF)
 
-/**
- * The depth of the two halves of the heap dump: the root is 0, "All GC roots" and "Unreachable" are 1, and
- * their children — the blocks worth telling apart by hue — are 2.
- */
-private const val TOP_LEVEL_DEPTH = 2
-
 private const val SLATE_HUE = 212f
 private const val SLATE_SATURATION = 0.07f
 
@@ -314,3 +308,9 @@ private val LABEL = Color(0xFF1B1B1B)
 
 /** The outline of the selected rectangle. The same in every scheme: it isn't part of the picture. */
 internal val SELECTION_COLOR = Color(0xFF0B57D0)
+
+/**
+ * And of the one under the pointer: the same hue washed out, because the two mean the same thing about a
+ * rectangle — the panels are describing it — and only one of them survives the pointer moving on.
+ */
+internal val HOVER_COLOR = Color(0x990B57D0)

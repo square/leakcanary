@@ -20,7 +20,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performMouseInput
@@ -39,8 +38,8 @@ import shark.explorer.TreemapRect
 import shark.explorer.TreemapTree
 
 /**
- * Covers the wiring between clicks on the canvas and the selection and zoom callbacks. The layout and
- * the hit testing themselves are unit tested in `shark-explorer-core`.
+ * Covers the wiring between clicks on the canvas and the callbacks reporting what was clicked or pointed
+ * at. The layout and the hit testing themselves are unit tested in `shark-explorer-core`.
  *
  * The view is given exactly [VIEWPORT] pixels, so each test can lay a tree out itself and click the
  * middle of a rectangle it knows the position of.
@@ -53,104 +52,92 @@ class TreemapViewTest {
 
   private val leafRoot = mapTree(ROOT to emptyList())
 
-  @Test fun `pressing a rectangle selects it`() {
+  @Test fun `clicking a rectangle reports it`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOf(CHILD)) }
 
-      assertThat(selected.map { it.node }).containsExactly(CHILD)
+      assertThat(clicked.map { it.node }).containsExactly(CHILD)
     }
   }
 
-  @Test fun `pressing a header selects the parent`() {
+  @Test fun `clicking a header reports the parent`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
 
       // The root keeps a header strip at the top for its own label, uncovered by its children.
       onRoot().performMouseInput { click(Offset(VIEWPORT.width.toFloat() / 2, 2f)) }
 
-      assertThat(selected.map { it.node }).containsExactly(ROOT)
+      assertThat(clicked.map { it.node }).containsExactly(ROOT)
     }
   }
 
-  @Test fun `double clicking a rectangle zooms into it`() {
+  @Test fun `clicking a nested rectangle reports the rectangle rather than what it sits in`() {
     runComposeUiTest {
-      val presentation = oneChild.present()
-      val zoomed = mutableListOf<List<Long>>()
-      setContent { TreemapUnderTest(presentation, onZoomInto = { zoomed += it }) }
-
-      onRoot().performMouseInput { doubleClick(presentation.centerOf(CHILD)) }
-
-      assertThat(zoomed).containsExactly(listOf(CHILD))
-    }
-  }
-
-  @Test fun `double clicking a nested rectangle reports every node down to it`() {
-    runComposeUiTest {
-      // Zooming has to leave a breadcrumb per dominator, so the whole chain below the current root is
-      // reported rather than only the rectangle that was clicked.
+      // The window works out what to open from the node clicked, so a click on the innermost rectangle
+      // reports that one and nothing of the chain above it.
       val presentation = mapTree(ROOT to listOf(PARENT), PARENT to listOf(CHILD)).present()
-      val zoomed = mutableListOf<List<Long>>()
-      setContent { TreemapUnderTest(presentation, onZoomInto = { zoomed += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
 
-      onRoot().performMouseInput { doubleClick(presentation.centerOf(CHILD)) }
+      onRoot().performMouseInput { click(presentation.centerOf(CHILD)) }
 
-      assertThat(zoomed).containsExactly(listOf(PARENT, CHILD))
+      assertThat(clicked.map { it.node }).containsExactly(CHILD)
     }
   }
 
   @Test fun `a root without children fills the view on its own`() {
     runComposeUiTest {
       val presentation = leafRoot.present()
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOf(ROOT)) }
 
-      assertThat(selected.map { it.node }).containsExactly(ROOT)
+      assertThat(clicked.map { it.node }).containsExactly(ROOT)
     }
   }
 
-  @Test fun `pressing the rectangle standing for the siblings that did not fit reports a group`() {
+  @Test fun `clicking the rectangle standing for the siblings that did not fit reports a group`() {
     runComposeUiTest {
       // More children than a node draws one by one, so the smallest ones end up in one rectangle.
       val presentation = mapTree(ROOT to (1L..500L).toList()).present()
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOfGroupUnder(ROOT)) }
 
-      val group = selected.single().group
+      val group = clicked.single().group
       assertThat(group.nodeCount).isEqualTo(300)
       assertThat(group.parent).isEqualTo(ROOT)
     }
   }
 
-  @Test fun `each leftover rectangle is a selection of its own`() {
+  @Test fun `each leftover rectangle is a cell of its own`() {
     runComposeUiTest {
-      // Two subdivided nodes, each with more children than it draws: pressing one of the two leftover
-      // rectangles has to select that one rather than every rectangle that looks like it.
+      // Two subdivided nodes, each with more children than it draws: clicking one of the two leftover
+      // rectangles has to report that one rather than every rectangle that looks like it.
       val presentation = mapTree(
         ROOT to listOf(PARENT, OTHER_PARENT),
         PARENT to (10L..14L).toList(),
         OTHER_PARENT to (20L..24L).toList()
       ).present(TreemapLayout(maxChildrenPerNode = 2))
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { TreemapUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(presentation.centerOfGroupUnder(PARENT)) }
 
-      val group = selected.single().group
+      val group = clicked.single().group
       assertThat(group.parent).isEqualTo(PARENT)
       assertThat(SelectedCell.of(group)).isNotEqualTo(
         SelectedCell.of(presentation.groupUnder(OTHER_PARENT).subject)
       )
-      // Nor is a node ever selected by its own leftover rectangle.
+      // Nor is a node ever named by its own leftover rectangle.
       assertThat(SelectedCell.of(group)).isNotEqualTo(
         SelectedCell.of(presentation.nodeCellOf(PARENT).subject)
       )
@@ -183,6 +170,51 @@ class TreemapViewTest {
       // The view is wider than it is tall, so the image is as tall as the view and the sides are not it.
       assertThat(drawn[VIEWPORT.width.toInt() / 2, VIEWPORT.height.toInt() / 2]).isEqualTo(MAGENTA)
       assertThat(drawn[2, VIEWPORT.height.toInt() / 2]).isNotEqualTo(MAGENTA)
+    }
+  }
+
+  @Test fun `moving the pointer onto a rectangle reports it as hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { TreemapUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput { hover(presentation.centerOf(CHILD)) }
+
+      assertThat(hovered.last()?.node).isEqualTo(CHILD)
+    }
+  }
+
+  @Test fun `moving the pointer out of the view reports nothing hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { TreemapUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput {
+        hover(presentation.centerOf(CHILD))
+        exit()
+      }
+
+      assertThat(hovered.last()).isNull()
+    }
+  }
+
+  @Test fun `laying the tree out again reports what the pointer is on now`() {
+    runComposeUiTest {
+      // Zooming, resizing and switching shape move the rectangles rather than the pointer, and no pointer
+      // event follows. Both trees are laid out in the same viewport, so the point the pointer is left on
+      // belongs to the child in one and to the root in the other.
+      var presentation by mutableStateOf(oneChild.present())
+      val onChild = presentation.centerOf(CHILD)
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { TreemapUnderTest(presentation, onHover = { hovered += it }) }
+      onRoot().performMouseInput { hover(onChild) }
+
+      presentation = leafRoot.present()
+      waitForIdle()
+
+      assertThat(hovered.last()?.node).isEqualTo(ROOT)
     }
   }
 
@@ -281,11 +313,12 @@ class TreemapViewTest {
 private fun TreemapUnderTest(
   presentation: TreemapPresentation,
   bitmapImages: Map<Long, ImageBitmap> = emptyMap(),
-  onSelect: (LayoutCell<Long>) -> Unit = {},
-  onZoomInto: (List<Long>) -> Unit = {}
+  onClick: (LayoutCell<Long>) -> Unit = {},
+  onHover: (LayoutCell<Long>?) -> Unit = {}
 ) {
   MaterialTheme {
     var selected: SelectedCell? by remember { mutableStateOf(null) }
+    var hovered: SelectedCell? by remember { mutableStateOf(null) }
     val rect = presentation.layout.cells.first().rect
     val density = LocalDensity.current
     // Sized in pixels, matching the viewport the presentation was laid out in, so that a click at a
@@ -301,11 +334,16 @@ private fun TreemapUnderTest(
         coloring = CellColoring.DEFAULT,
         selected = selected,
         bitmapImages = bitmapImages,
-        onSelect = {
+        hovered = hovered,
+        onClick = {
           selected = SelectedCell.of(it.subject)
-          onSelect(it)
+          onClick(it)
         },
-        onZoomInto = onZoomInto
+        // Only which cell, since where the pointer is on it is the card's business rather than the view's.
+        onHover = { pointedAt ->
+          hovered = pointedAt?.let { SelectedCell.of(it.cell.subject) }
+          onHover(pointedAt?.cell)
+        }
       )
     }
   }

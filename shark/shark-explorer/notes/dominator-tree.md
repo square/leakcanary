@@ -81,7 +81,7 @@ bytes over the whole dump would otherwise either miss it or count it twice. See 
 
 ## Why big objects sit flat under the root
 
-The first thing a production dump shows is a crowd of rectangles directly under the GC roots — on an
+The first thing a production dump shows is a crowd of rectangles directly under the whole heap dump — on an
 82 MB Android OOM dump, **129,423 of them retaining 74 MB**, among them 82 bitmaps worth 17.7 MB. The
 tempting explanation is JNI: something native holds them, so the root does. It's wrong, and worth not
 re-deriving.
@@ -107,6 +107,13 @@ What actually helps is showing the sharing, which is what the paths below the do
 object here has at least two of them, and they name the holders that would each have to go. See the
 section on those below.
 
+**What the GC roots reach is no level of its own.** `splitRootChildren` sorts the root's children into what
+a GC root reaches and what nothing does, and only the second becomes a rectangle: the reachable side's
+children *are* the root's children, so the top of the map is the whole heap dump wherever the reader is
+rather than a rectangle to click through before anything shows. The garbage ends up a sibling of the objects
+that are in memory on purpose, drawn where its size puts it, and only when there is any — a dump whose
+garbage was all collected grows no rectangle saying so.
+
 **The crowd is drawn one cell per class**, by `splitRootChildren` and `groupByClass`, so 129 K rectangles
 become a few hundred. Only at the top of the tree — everywhere else the children are objects a specific
 owner holds, and gathering those would hide the structure rather than reveal it — and only above
@@ -114,10 +121,11 @@ owner holds, and gathering those would hide the structure rather than reveal it 
 classes. A class with a single object in it is left ungrouped, since a group of one says less than the
 object.
 
-**Every node id below zero stands for a pile of objects rather than for one**, which makes "is this a
-group" a sign test and needs no second id space: `GC_ROOTS_NODE_ID` and `UNREACHABLE_NODE_ID` are −1 and
-−2, and `GroupIds` counts down from −3 for the class groups. Sequential rather than derived from the
-class, because the same class can have a group under either half. The cost is that every entry point
+**The pile ids are their own range, at the bottom of the id space**: `UNREACHABLE_NODE_ID` is
+`Long.MIN_VALUE` and `GroupIds` counts up from there for the class groups, so `isPileId` is a range check
+rather than a sign test — see the note on negative object ids in `treemap-rendering.md`. Sequential rather
+than derived from the class, because the same class can have a group at the top of the tree and another one
+under the garbage. The cost is that every entry point
 taking a node id has to ask `groupOrNull()` first, so `summarize()` throws with an actionable message
 instead of failing on a missing key. Class objects group under `java.lang.Class`, which every real dump
 has — 9,502 sticky class roots on the 82 MB dump — but a `dump { }` fixture doesn't, so in tests they
@@ -188,8 +196,8 @@ A view that's part of a hierarchy is held by its parent, and a dominator tree th
 scatters a window across whatever happened to be closest to a GC root. Measured on the 82 MB dump before
 the rule: all 279 attached views had rival referrers, median ~10 and up to 246, and **170 of the 277
 attached child views were dominated by something other than their parent, misplacing 18 MB**. 125 landed
-under a `CheckoutGridTile`, 44 flat under `All GC roots`. Both `DecorView`s were dominated by
-`All GC roots` and retained 4.2 KB and 3.9 KB instead of their windows. The damaging referrers were
+under a `CheckoutGridTile`, 44 flat at the top of the tree. Both `DecorView`s were dominated by the root
+itself and retained 4.2 KB and 3.9 KB instead of their windows. The damaging referrers were
 `InputMethodManager.mCurRootView` / `mServedView` / `mNextServedView`, `View$AttachInfo.mRootView`,
 `PhoneFallbackEventHandler.mView`, `RealWorkflowLifecycleOwner.view`, `ComposeToastServiceImpl.rootView`,
 view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
@@ -272,27 +280,30 @@ Byte counts are untouched by all of it, which is the check that no object moved 
 strong, 2.05 MB thread local, 28 B local, 2.6 KB finalizer, 190 KB unreachable, 1,019,837 objects, before
 and after.
 
-## What holds an object: the dominator, then the paths below it
+## What holds an object: one chain, with the dominators on it marked
 
-"What holds this" is answered in two parts, and which part answers what is the thing to keep straight.
-The panel names the first and has a button to the second, which is a screen of its own — a chain per path,
-drawn like a LeakCanary leak trace:
+"What holds this" is answered as a single chain from a GC root down to the object, `rootPathTo`, drawn
+like a LeakCanary leak trace. Which of its steps *dominate* the object is marked on it, and that marking
+is what the reader gets two different things out of:
 
-- **The dominator**, exactly one node, from `HeapDominatorTreemap.dominatorOf`. Every path from a GC root
-  goes through it, so it is what would free the object. It's a *group* rather than an object when nothing
-  in particular holds it (`DominatorKind.ALL_GC_ROOTS`) or when nothing holds it at all
-  (`UNCOLLECTED_GARBAGE`), which is what the two halves of the tree stand for.
-- **The independent paths below it**, from `independentPathsTo`: every way the object is held, with the
-  part they all share — everything above the dominator — left out.
+- **A step marked a dominator is one every way of holding the object goes through**, so it is what would
+  free it. The lowest such step is `dominatorOf`, and it is a *group* rather than an object when nothing
+  in particular holds it (`DominatorKind.WHOLE_HEAP_DUMP`, where the tree draws it directly under the root)
+  or when nothing holds it at all (`UNCOLLECTED_GARBAGE`, the one pile the top of the tree has).
+- **A stretch of unmarked steps between two marked ones is a stretch the chain didn't have to take**, since
+  a step every way went through would have been marked too. So that is exactly where "held how else?" has
+  an answer: `RootPath.detours()` finds those stretches on a chain, and
+  `independentPathsBetween(above, below)` — or `independentPathsFromRoots(below)` for a stretch hanging off
+  the head, where what is above is a set of GC roots rather than one object — finds the ways it could have
+  run. `RootPath.drawnWith` substitutes a chosen one back in, so the drawing only ever sees one flat chain.
 
 **The name for that path set is "internally vertex-disjoint paths"**, also called independent paths: two
 of them share their endpoints and nothing else. The most there can be is the *local vertex connectivity*
-of the dominator and the object, by Menger's theorem, and there are always at least two unless the
-dominator points straight at the object — a single interior vertex common to every path would separate the
-two, which would make it a dominator closer than the dominator. Not "semidominator", which Lengauer–Tarjan
-already uses for something else.
+of the two ends, by Menger's theorem, and for a stretch found this way there are always at least two — a
+single interior vertex common to every path would be a dominator, which is what the stretch being unmarked
+rules out. Not "semidominator", which Lengauer–Tarjan already uses for something else.
 
-Two caveats, which `INDEPENDENT_PATHS_HINT` states in the UI rather than leaving to be discovered:
+Two caveats, which `WAYS_HINT` states in the UI rather than leaving to be discovered:
 
 - **A maximum set isn't unique, and finding one is a max flow problem.** `PathSearch` is greedy: it walks
   the referrers up from the object, blocks the middle of each path it finds and walks again. Blocking can

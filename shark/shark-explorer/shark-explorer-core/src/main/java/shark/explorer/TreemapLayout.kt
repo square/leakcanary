@@ -93,9 +93,6 @@ class TreemapLayoutResult<N>(
       }
     }
   }
-
-  /** See [nodePathTo]. */
-  fun nodePathTo(cell: TreemapCell<N>): List<N> = cells.map { it.subject }.nodePathTo(cell.subject)
 }
 
 /**

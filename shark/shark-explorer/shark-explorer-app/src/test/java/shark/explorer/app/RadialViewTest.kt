@@ -14,7 +14,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.doubleClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performMouseInput
@@ -35,9 +34,9 @@ import shark.explorer.TreemapRect
 import shark.explorer.TreemapTree
 
 /**
- * The same wiring [TreemapViewTest] covers, for the radial view: a press selects the sector under the
- * pointer, a double click zooms in along the dominators down to it. The layout and the hit testing are
- * unit tested in `shark-explorer-core`.
+ * The same wiring [TreemapViewTest] covers, for the radial view: a click reports the sector under the
+ * pointer, which is where the window goes, and moving over one reports it as hovered. The layout and the
+ * hit testing are unit tested in `shark-explorer-core`.
  */
 @OptIn(ExperimentalTestApi::class)
 class RadialViewTest {
@@ -45,68 +44,97 @@ class RadialViewTest {
   /** A root with a single child, so the child fills the whole ring around it. */
   private val oneChild = mapTree(ROOT to listOf(CHILD))
 
-  @Test fun `pressing a sector selects it`() {
+  @Test fun `clicking a sector reports it`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { RadialUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { RadialUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(presentation.middleOf(CHILD)) }
 
-      assertThat(selected.map { it.node }).containsExactly(CHILD)
+      assertThat(clicked.map { it.node }).containsExactly(CHILD)
     }
   }
 
-  @Test fun `pressing the middle selects the root`() {
+  @Test fun `clicking the middle reports the root`() {
     runComposeUiTest {
       val presentation = oneChild.present()
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { RadialUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { RadialUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(presentation.middleOf(ROOT)) }
 
-      assertThat(selected.map { it.node }).containsExactly(ROOT)
+      assertThat(clicked.map { it.node }).containsExactly(ROOT)
     }
   }
 
-  @Test fun `double clicking a sector reports every node down to it`() {
+  @Test fun `clicking a sector of an outer ring reports that sector`() {
     runComposeUiTest {
+      // The window works out what to open from the node clicked, so a sector two rings out reports
+      // itself rather than the dominators it is drawn around.
       val presentation = mapTree(ROOT to listOf(PARENT), PARENT to listOf(CHILD)).present()
-      val zoomed = mutableListOf<List<Long>>()
-      setContent { RadialUnderTest(presentation, onZoomInto = { zoomed += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { RadialUnderTest(presentation, onClick = { clicked += it }) }
 
-      onRoot().performMouseInput { doubleClick(presentation.middleOf(CHILD)) }
+      onRoot().performMouseInput { click(presentation.middleOf(CHILD)) }
 
-      assertThat(zoomed).containsExactly(listOf(PARENT, CHILD))
+      assertThat(clicked.map { it.node }).containsExactly(CHILD)
     }
   }
 
-  @Test fun `pressing the sector standing for the siblings that did not fit reports a group`() {
+  @Test fun `clicking the sector standing for the siblings that did not fit reports a group`() {
     runComposeUiTest {
       // A ring holds far fewer sectors than a treemap holds rectangles, so this many children under
       // one node is already past what is worth drawing one by one.
       val presentation = mapTree(ROOT to (1L..50L).toList())
         .present(RadialLayout(maxChildrenPerNode = 10))
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { RadialUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { RadialUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(presentation.middleOfGroupUnder(ROOT)) }
 
-      val group = selected.single().subject as CellSubject.Group
+      val group = clicked.single().subject as CellSubject.Group
       assertThat(group.nodeCount).isEqualTo(40)
       assertThat(group.parent).isEqualTo(ROOT)
     }
   }
 
-  @Test fun `pressing outside the rings selects nothing`() {
+  @Test fun `moving the pointer onto a sector reports it as hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { RadialUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput { hover(presentation.middleOf(CHILD)) }
+
+      assertThat(hovered.last()?.node).isEqualTo(CHILD)
+    }
+  }
+
+  @Test fun `moving the pointer out of the view reports nothing hovered`() {
+    runComposeUiTest {
+      val presentation = oneChild.present()
+      val hovered = mutableListOf<LayoutCell<Long>?>()
+      setContent { RadialUnderTest(presentation, onHover = { hovered += it }) }
+
+      onRoot().performMouseInput {
+        hover(presentation.middleOf(CHILD))
+        exit()
+      }
+
+      assertThat(hovered.last()).isNull()
+    }
+  }
+
+  @Test fun `clicking outside the rings reports nothing`() {
     runComposeUiTest {
       val presentation = oneChild.present(RadialLayout(ringCount = 2))
-      val selected = mutableListOf<LayoutCell<Long>>()
-      setContent { RadialUnderTest(presentation, onSelect = { selected += it }) }
+      val clicked = mutableListOf<LayoutCell<Long>>()
+      setContent { RadialUnderTest(presentation, onClick = { clicked += it }) }
 
       onRoot().performMouseInput { click(Offset(1f, 1f)) }
 
-      assertThat(selected).isEmpty()
+      assertThat(clicked).isEmpty()
     }
   }
 
@@ -183,11 +211,12 @@ class RadialViewTest {
 @Composable
 private fun RadialUnderTest(
   presentation: RadialPresentation,
-  onSelect: (LayoutCell<Long>) -> Unit = {},
-  onZoomInto: (List<Long>) -> Unit = {}
+  onClick: (LayoutCell<Long>) -> Unit = {},
+  onHover: (LayoutCell<Long>?) -> Unit = {}
 ) {
   MaterialTheme {
     var selected: SelectedCell? by remember { mutableStateOf(null) }
+    var hovered: SelectedCell? by remember { mutableStateOf(null) }
     val density = LocalDensity.current
     // Sized in pixels, matching the viewport the presentation was laid out in, so that a click at a
     // sector's coordinates lands on that sector.
@@ -201,11 +230,16 @@ private fun RadialUnderTest(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
         selected = selected,
-        onSelect = {
+        hovered = hovered,
+        onClick = {
           selected = SelectedCell.of(it.subject)
-          onSelect(it)
+          onClick(it)
         },
-        onZoomInto = onZoomInto
+        // Only which sector, as in [TreemapViewTest]: where the pointer is on it is the card's business.
+        onHover = { pointedAt ->
+          hovered = pointedAt?.let { SelectedCell.of(it.cell.subject) }
+          onHover(pointedAt?.cell)
+        }
       )
     }
   }

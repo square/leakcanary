@@ -75,6 +75,29 @@ reads the object it stands for. Resizing the window therefore queues behind what
 is doing. One thread is also a choice rather than a constraint — the graph would take a pool — so if
 layout ever becomes the bottleneck, that's where to look.
 
+## A read stops when nobody is waiting for it any more
+
+One thread means a queue, and a UI asks questions it stops wanting: a window being dragged asks for a
+layout per size it passes through, a pointer crossing a treemap asks about rectangles it has already left.
+Every one of those that runs to its end is time the answer the user is waiting for spends queued.
+
+Shark cancels its own work — `CancelSignal`, asked on every record read and at the long stretches of an
+analysis — so the explorer doesn't have to find cancellation points of its own. `HeapDumpSession` opens
+the heap dump with one signal for the life of it, and that signal reports the read currently in flight as
+unwanted as soon as the coroutine that asked for it is no longer active. Which coroutine that is comes
+from `withContext`, so cancelling a `LaunchedEffect` is all a caller does. A read given up on while it was
+still queued never starts: the dispatcher drops a cancelled coroutine rather than running it.
+
+Two consequences worth knowing:
+
+- **Cancellation lands where the read reads.** A stretch that computes without reading finishes first. So
+  the point of `HOVER_SETTLE_MILLIS` isn't gone — not starting a read still beats stopping one.
+- **A read has to be safe to abandon half way.** Which today's are: the indexes built on first use are
+  `by lazy`, whose initializers build a whole object before assigning it and don't cache a failure, so a
+  cancelled build is retried rather than half kept. The walks reuse their arrays across calls by stamping
+  entries with a generation per walk, so a walk that stopped mid-way leaves nothing to clear. Anything new
+  that mutates state a later read depends on has to hold to that.
+
 ## One dominator tree, covering the whole heap dump
 
 There is exactly one tree per open heap dump, built once, and it holds every object of the dump —
@@ -174,6 +197,159 @@ extra, so a debugger that can't attach leaves the dump opening normally, with th
 fetch still on offer from the window — which is where it would report the same failure again, in front of
 someone who just asked for it. Losing the expensive thing over the cheap one would be the wrong way round.
 
+## The pointer describes, the click goes there
+
+Moving over a rectangle describes it beside the view; a single click **goes to** it, rooting the map there.
+So reading a treemap is a sweep of the mouse rather than a click per rectangle, and the one thing a click
+can mean is the one thing hovering can't do.
+
+What the pointer describes is **a card beside the pointer itself, plus a few more steps on the end of the
+chain pane**. The details panel stays on the object the map went to, however the pointer wanders — a
+rectangle is pointed at to decide whether it's worth going to, and a window where every pane followed the
+mouse was unreadable while the mouse was moving. So the pointer's answer is the card and the end of one
+chain, and everything else holds still.
+
+**Which object the pointer is on is said at the pointer**, in `PointerCard`: what a rectangle is, is the
+question being asked by pointing at it, and an answer at the edge of the window is read by looking away
+from the thing it is about. `placeCard` puts it after the pointer on both axes and flips to the other side
+rather than sliding when that would leave the view, because the card is a Material `Surface` and a surface
+the pointer ends up inside takes the hover off the map — which would close the card, and start over. Hence
+also the gap, and hence nothing in the card being clickable.
+
+Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
+pointer is on. Nothing is read when the pointer leaves, and nothing on the map screen is blanked as the
+next cell is read, so a sweep across the map doesn't flicker.
+
+Clicking selecting in place was the first version, with a double click to go anywhere. It went because the
+double click was the only way through the map and nothing said so, while the single click's own answer — the
+panels — is what a hover now gives for free.
+
+What made this affordable, on the 38 MB dump in the repo, over all 4,572 rectangles of the opening view:
+
+- `ReferrerIndex` — the pass that reads which object points at which, 399 ms — is **warmed up as soon as
+  the first view is laid out**, rather than by the first question about a path. Without that the first
+  hover pays for it, which is exactly the moment the app has to feel instant.
+- Describing one object, which is a summary, its dominator and the chain from a GC root: **median 0 ms, p90
+  10 ms, worst 105 ms.** The chain alone is at most 20 ms of that.
+- A hover waits `HOVER_SETTLE_MILLIS` (100 ms) before reading anything, so a pointer crossing forty
+  rectangles asks about the one it stops on rather than about all forty. Reads *can* be called off (see
+  above), which caps what the thirty-nine cost, but not starting them is still cheaper than stopping them.
+- `independentPathsBetween` and `independentPathsFromRoots` — every way an object is held, which is the
+  expensive question — are **only asked for the object clicked**, once its chain has come back, and the
+  answer is drawn into that chain. The pointer has nowhere to put a question that expensive.
+
+## The chain from a GC root is a pane, not a popover
+
+Hovering used to draw the tree's containers as a grey popover following the pointer. What it said was a
+list of what the treemap already draws, in a shape that couldn't hold more, and it covered the picture.
+
+Instead the chain is drawn the way a leak trace is (`PathDrawing.kt`): the shortest way a GC root reaches
+the object, one row per object, with the steps that dominate it marked. Shortest in steps, so it's the
+plainest way the object is held; the marked steps are the rectangles it sits inside, which is what ties the
+chain to the picture. On the production dump the longest one is 34 steps, two of them views and the rest
+RxJava plumbing — which is why it is cut at 20 and cut at the root end.
+
+It sits **on the far side of the view from the details panel**, and only on the map screen: chain, view,
+details, left to right — where the object came from, where it is, what it is keeping alive. A chain and the
+details are both tall columns, so one pane holding both would always have one of them scrolled off, and
+putting them either side of the map makes what was clicked and how it is held one answer around the thing
+they are about rather than the window's two outer edges. Neither pane is drawn on the other screens: a list
+of objects wants the width of the window more than it wants either of them.
+
+**Every object of the chain is clickable, and that's how you get back out.** The ringed steps are the
+rectangles the map is drawn inside, in the order it zoomed through them, so a click on one is a zoom back
+out to it — `TreemapNavigation.zoomInto` of a node already on the path truncates rather than appends. A row
+of breadcrumbs above the view used to be the way out; it went because it said a subset of what this pane
+says, in a strip that couldn't hold a class name. **The whole heap dump is the top row of every chain**, for
+the same reason: the way back to the screen the window opens on belongs where the chain says the whole heap
+is, and a chain of the whole heap dump is that one row and nothing else.
+
+**The pointer's chain is drawn onto the end of the clicked one.** The rectangle under the pointer is inside
+the one the window is describing, so the chain holding it *is* this chain plus a few steps — and drawing it
+that way makes sweeping the pointer across the map read as the chain growing and shrinking, leaving the
+reader the part they were already reading. `RootPath.stepsAfter` is the difference: the steps below the
+object being described, or null when the pointer is on something that chain doesn't reach, which a click on
+an object that dominates nothing leaves the map able to do. Then `RootPath.stepsBelow` cuts the pointer's
+own chain at the rectangle the map is showing instead, with a dotted `PathCutRow` above it saying so — how
+*that* rectangle is held is what going there would answer, and the pointer is not there yet.
+
+It was a floating panel over the pane before this, lifted with a shadow and a border and labelled
+`UNDER THE POINTER`, precisely so that it wouldn't read as one chain whose contents changed. Which is the
+right worry for two chains that answer different questions and the wrong shape for two that answer the same
+one: what holds this, from the whole heap dump down.
+
+**What the pointer adds is condensed, because the whole of it has to fit beside the map.**
+`PathDetail.BRIEF` drops the package, the address, the "instance"/"array"/"class" kind, the `Dominates ↓`
+line and the field the object above holds each step in, keeping the retained size inline on the class name —
+so it reads as a column of class names. `PathDetail.FULL`, the part of the chain that was clicked, keeps all
+of them. Which field holds what is the question a reader has once they've stopped somewhere, and the
+gutter's arrow already says that each step holds the next.
+
+**The pane is scrolled to the bottom of the chain**, every time the chain grows, which is also every
+rectangle the pointer moves onto. The end of it is the object the window is describing and the steps just
+above it are how it is held; a pane scrolled to the top of a chain a dozen objects long is showing the least
+interesting of it.
+
+## A stretch of a chain that could have run some other way
+
+Every path from a GC root to an object goes through every one of its dominators, so a run of steps *between*
+two dominators is a run the chain didn't have to take: if it had, those steps would dominate the object too
+and be marked. That is exactly where "held how else?" has an answer, and where the reader can be shown one
+— `RootPathDetour`, and `RootPath.detours()` which cuts a chain into them.
+
+So the answer is drawn **inline, under the step the stretch hangs below**: `N of M ways from here`, with an
+arrow either side that switches which of them the chain runs through. `RootPath.drawnWith` does the
+substitution in core rather than in the drawing, so that what is on screen is always one flat list of steps
+— a chain drawn from its own steps plus a set of replacements is a chain whose rows and whose connecting
+lines are worked out separately, and they have to agree.
+
+This replaced a screen of its own, reached from a "N paths from the dominator" button in the details panel,
+which drew every way an object is held side by side the full width of the window. Two problems with that:
+it answered the question somewhere other than where the question is asked — the chain — and it made every
+way its own chain from a GC root, most of which is the part they all share. A stretch is the part in doubt.
+
+Each stretch is searched separately, `independentPathsBetween` for one below an object and
+`independentPathsFromRoots` for one running off the top of a chain, where what holds it is a GC root rather
+than an object. Both are asked once per click, after the chain arrives, because the chain is what says where
+the stretches are.
+
+## Which object it is, said the same way everywhere
+
+Four surfaces name an object: a step of a chain, the card at the pointer, the bar above the map, a row of the
+starred list. All four use `ObjectIdentity` — the class, then the class in full greyed under it, then its
+address — because they are all answering the same question, and a reader who has learnt to skip the grey
+lines on one should not have to learn where they are again on the next. The package on its own line is also
+what keeps a row from wrapping in a pane 300 dp wide.
+
+**Which object it is lives above the map, not in the details panel.** It is a different question from the
+rest of that panel — which object, as against what that object holds — and it's the one line worth having on
+the screens that have no panel. So the panel names no object of its own: it starts with the star and the
+numbers.
+
+**An address is printed as hex, everywhere.** A decimal object id matches nothing: `hexObjectId` is what
+`shark-cli`, a leak trace and every other tool print, so it is what can be pasted between them.
+
+**Nothing is coloured to say it leads somewhere.** Half the places the window names an object are nothing to
+click, and colouring the other half meant the same line looking like two different things; `clickableRow`
+says it with the hand cursor instead, which is where a reader looks for it.
+
+## Only a move is a hover
+
+A view reacts to `PointerEventType.Move` and ignores the `Enter` that comes with a pointer arriving. When a
+view is composed under a pointer that hasn't moved — clicking a row of a list, which puts the map where the
+row was — Compose sends it an enter carrying the pointer's position, and describing what that lands on
+answers a rectangle nobody pointed at instead of the object just clicked.
+
+Measured rather than assumed, and the measurement is worth keeping: in a Compose UI test, injecting one
+`moveTo` produces an enter and nothing else, a second one produces a move, and `previousPosition` equals
+`position` on every injected event — so `positionChangedIgnoreConsumed()` is false even for a real move and
+cannot be what tells the two apart. Which is also why hovering in a test is two moves: see `hover()` in
+`ExplorerUiTest.kt`.
+
+Zooming, resizing and switching shape move the rectangles rather than the pointer, and no pointer event
+follows at all, so each view remembers where the pointer is and works out what it is on again whenever it
+is laid out anew.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real
@@ -181,17 +357,28 @@ gain over the Android app's treemap, which can only be exercised on a device.
 
 Because the treemap renders into one `Canvas`, UI tests cannot address individual rectangles. The
 split that follows: layout, the adaptive-depth budget and hit testing are pure functions in `core`
-with thorough unit tests; UI tests cover the wiring by clicking coordinates and asserting on the
-details panel and breadcrumbs.
+with thorough unit tests; UI tests cover the wiring by clicking coordinates and asserting on the panes
+either side of the view — the chain of objects holding what the map is on, and the details panel.
+
+**A clickable identity block is one semantics node**, since `Modifier.clickable` merges its descendants, so
+`onNodeWithText("com.example.Holder")` finds a whole step of a chain by any one of its three lines while the
+same text in the bar above the map is a node of its own. Which is why several assertions here count nodes
+rather than fetching one: the same object named in two places is two matches, and that is the window being
+consistent rather than a test being loose.
+
+**A cell's label is painted text, so it is nothing a test can see either**, which shapes even the waits:
+`waitForTheTree` waits for the view with nothing left spinning, and a test that needs the map to have
+*moved* waits on the log line a layout writes, since a map rooted somewhere else looks the same to
+`onNode`.
 
 A coordinate has to be worked out from what the window is actually showing, not written down as a
 fraction of it. The view carries a `contentDescription` — `VIEW_DESCRIPTION`, which is also what a
 screen reader gets for a canvas — and `ExplorerAppTest.viewBounds` reads its bounds, so every click is
-a fraction of the view rather than of the window. `pressBand` presses the label band of the nth
-rectangle down the left edge, where a squarified layout puts the largest one of each level; a band is
-`HEADER_HEIGHT` tall. Window fractions were what the first version used, and every one of them missed
-by a few pixels as soon as anything above the view changed height — which the button row and the view
-controls both did.
+a fraction of the view rather than of the window. Only the root keeps a label band, so `hoverRootBand`
+is a fixed inset from the top of the view rather than a fraction of it, and `clickContainerEdge` clicks
+the left edge, where a squarified layout puts the largest rectangle of every level. Window fractions
+were what the first version used, and every one of them missed by a few pixels as soon as anything above
+the view changed height — which the button row and the view controls both did.
 
 Rendering rects as individual composables would give per-rect semantics and free hit testing, but at
 a few thousand visible nodes the cost isn't worth it. Revisit if the node budget ends up much lower.

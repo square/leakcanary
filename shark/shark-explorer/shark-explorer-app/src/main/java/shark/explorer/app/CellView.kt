@@ -9,15 +9,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import shark.explorer.CellContent
 import shark.explorer.CellSubject
+import shark.explorer.LayoutCell
 import shark.explorer.ObjectGroupKind
 import shark.explorer.TreemapPoint
 
@@ -57,33 +58,15 @@ internal data class SelectedCell(
 }
 
 /**
- * Names the containers the pointer is inside, outermost first.
+ * A cell the pointer moved onto, and where in the view the pointer was.
  *
- * Nesting costs a rectangle one pixel of edge and no label, so this is where the names of the objects
- * on the way down are read: a chain 30 deep is one line here and 30 header strips otherwise, which is
- * the whole viewport.
+ * The position comes along with the cell because the card naming what's under the pointer is placed by it —
+ * see [PointerCard] — and it is in the view's own coordinates, which is what that card is positioned in.
  */
-@Composable
-internal fun BoxScope.HoveredChain(chain: String?) {
-  if (chain == null) {
-    return
-  }
-  Surface(
-    Modifier.align(Alignment.BottomStart).padding(8.dp),
-    color = MaterialTheme.colorScheme.surfaceVariant
-  ) {
-    Text(
-      chain,
-      Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-      style = MaterialTheme.typography.labelSmall,
-      maxLines = 2,
-      overflow = TextOverflow.Ellipsis
-    )
-  }
-}
-
-/** How the [HoveredChain] separates one container from the one it holds. */
-internal const val CHAIN_SEPARATOR = " › "
+internal data class PointedAt(
+  val cell: LayoutCell<Long>,
+  val offset: Offset
+)
 
 /** Says when a view is showing less detail than it had room for, rather than truncating silently. */
 @Composable
@@ -148,6 +131,33 @@ internal val MIN_LABEL_WIDTH = 24.dp
 internal val MIN_LABEL_HEIGHT = 13.dp
 internal const val BORDER_WIDTH = 1f
 internal const val SELECTION_WIDTH = 3f
+
+/**
+ * How deep the children of the node the view is rooted at are, which are the ones the map names and marks
+ * off from each other. The root itself fills the viewport, so its own outline is the view's edge.
+ */
+internal const val ROOT_CHILD_DEPTH = 1
+
+/** Heavier than a selection's outline, because it says what the whole map is divided into. */
+internal const val ROOT_CHILD_BORDER_WIDTH = 4f
+
+/** Near black rather than the fill's own border colour, so that the division reads at a glance. */
+internal val ROOT_CHILD_BORDER_COLOR = Color(0xFF1A1A1A)
+
+/**
+ * What a name on the map is drawn on: light enough to read solid text against, see through enough to leave
+ * the rectangles and bitmaps under it visible.
+ */
+internal val LABEL_PLATE_COLOR = Color(0xB8FFFFFF)
+
+internal const val LABEL_PLATE_PADDING = 2f
+
+/**
+ * Thinner than the selection's outline, because the pointer is already saying where it is: this only has
+ * to say which rectangle the panels beside the view are describing, and a second heavy outline following
+ * the mouse around reads as a second selection.
+ */
+internal const val HOVER_WIDTH = 2f
 internal const val PILE_BORDER_WIDTH = 2f
 internal val CLASS_GROUP_DASH_INTERVALS = floatArrayOf(5f, 4f)
 internal val LEFTOVER_DOT_INTERVALS = floatArrayOf(2f, 3f)

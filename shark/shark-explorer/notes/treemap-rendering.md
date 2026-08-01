@@ -11,9 +11,8 @@ draws). Drawn by `TreemapView` and `RadialView` in `shark-explorer-app`.
 A cell is a `LayoutCell`: a `CellSubject` — one node, or the children a node didn't draw — plus a
 depth, a weight and whatever geometry its layout adds. `TreemapCell` adds a rectangle, `RadialCell` an
 annular sector. Everything downstream of the geometry works off `CellSubject` alone: labels, colours,
-what a click selects, what a double click zooms into. That split is what keeps the second shape from
-being a second copy of all of it, and it's why adding a third would mean one new layout plus one new
-`Canvas`, nothing else.
+where a click goes. That split is what keeps the second shape from being a second copy of all of it, and
+it's why adding a third would mean one new layout plus one new `Canvas`, nothing else.
 
 The two layouts make the same decisions — largest cell subdivided first, children too small to see
 grouped, a cell budget, truncation counted — differing only in what "too small" measures. A treemap
@@ -76,9 +75,30 @@ Two things follow, and both are behaviour rather than polish:
   there is no way to point at a container at all. Pointing at a *gap* in a subdivision, area left by
   children too small to draw, still lands on the node holding it.
 
-And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so only cells
-with nothing drawn inside them are labelled, and naming the levels is the view's job — `TreemapView`
-shows the chain of containers under the pointer as one line at the bottom of the view.
+And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so naming the
+levels falls to what is drawn beside the view — `RootPathPanel`, which draws the chain from the whole heap
+dump down to the object clicked, runs it on to the object under the pointer, and marks the steps that
+dominate it. Those marked steps are the containers the rectangle sits inside, so the same pane answers both
+"what is this" and "where in the picture am I".
+See `decisions.md`.
+
+### One level is named, and its boundaries are the heavy lines
+
+Only the **current root's own children** — `ROOT_CHILD_DEPTH`, depth 1 of the presentation — carry a label,
+and every one of them with the room for it does, contents and bitmaps included. Labelling every leaf instead
+is what made a real dump's map unreadable: a hundred class names across half a dozen levels, each naming
+something the level below it covers, and none of them the level being read.
+
+Two things make that one level legible:
+
+- **The label goes over what's nested inside it**, on a translucent plate (`LABEL_PLATE_COLOR`). Text sits
+  over fills, outlines and bitmaps it has no say over, so solid text on a washed out plate is readable
+  against all of them while still letting what it covers show through. Drawn last, after the outlines.
+- **A child of the root is outlined heavily** (`ROOT_CHILD_BORDER_WIDTH`) and over every outline inside it,
+  because the levels below cover their parent exactly: without it the boundary between two named blocks looks
+  like every other edge on the map, and the map has no visible structure at the level it's named at.
+
+Which also means a bitmap at that depth is named over its own picture, and one below it isn't named at all.
 
 ### The children that don't fit become one rectangle, they aren't dropped
 
@@ -102,6 +122,25 @@ from the viewport, so the picture always fills the circle and depth past that ne
 take their parent's whole sweep divided by weight, and a ring band is where a node's own name fits, so
 the radial view has not needed the treemap's own-weight cell.
 
+### A negative node id is not the tree's own
+
+The tree's nodes are object ids, and the piles it invents — the uncollected garbage, and the class
+groups — need ids of their own. **`nodeId < 0` is not the test for one**, and taking it for one is a bug that
+looks like nothing: an object id is a heap address, a 32 bit dump records it in 4 bytes, and shark widens
+those by sign, so **every object above the 2 GB mark of such a dump has a negative id**. `isPileId` is a range
+check against `Int.MIN_VALUE` instead, and the pile ids start at `Long.MIN_VALUE`.
+
+What the sign test cost, before it was a range check: on `large-dump.hprof`, **44 of the 4,616 rectangles of
+the opening view** had `contains()` say the tree didn't hold them, so pointing at one selected nothing, the
+chain pane never filled in, and clicking one went to the root instead of into it — with no error anywhere,
+because every one of those answers is also a legitimate one. Their hex was wrong too (`0x-7deb3000`), which
+is what `NodeIds.hexObjectId` is for and what makes such an id recognisable in the log.
+
+The lesson for new code here: an id from a heap dump is an opaque 64 bit value, not a number to compare
+against zero, and only a dump with objects past 2 GB will tell you otherwise. `highAddressHeapDump()` in
+`HeapExplorerDumps` is built up there for exactly this — `dump { }` takes a `firstObjectId` so that a test
+can ask for such a dump in one argument.
+
 Two consequences worth knowing before writing a test against the layout:
 
 - **`squarify()` needs descending weights, and neither of the two synthetic cells is in weight order.**
@@ -117,10 +156,10 @@ Nodes that had children but weren't subdivided at all are still counted in
 `TreemapLayoutResult.truncatedNodeCount`, and the UI says so, so a treemap showing less detail than it
 had room for is visible rather than silent.
 
-Double clicking a node re-roots the treemap at it and re-runs the same layout against the full
-viewport, so zooming is how deeper detail is reached. Breadcrumbs walk back up. A single press only
-selects, and it's handled on press rather than on tap: `detectTapGestures` delays `onTap` by the
-double click window when `onDoubleTap` is set, which makes selection feel stuck.
+Clicking a node re-roots the treemap at it and re-runs the same layout against the full viewport, so
+zooming is how deeper detail is reached, and the chain beside the map is how you get back out. See
+"Hit testing" below for what a click resolves through, and `decisions.md` for why a click goes somewhere
+rather than selecting in place.
 
 ## Two bugs from the deleted Android treemap, for the record
 
@@ -151,9 +190,8 @@ coloured is a scheme, picked above the view:
   contents. It needs to know which top level block a cell belongs to, which is what `parent` and
   `siblingIndex` on `CellSubject.Node` are for, resolved in one pass per presentation — cells come
   parent before child, so a parent always has its hue by the time a child is reached. "Top level" here
-  means `TOP_LEVEL_DEPTH`, the children of the two halves of the heap dump, and not the halves: the tree
-  has the GC roots and the garbage above everything, so handing hues out at the root would paint the
-  whole view in one or two of them.
+  means `ROOT_CHILD_DEPTH`, the children of the node the view is rooted at, which is the same level the
+  map names and marks off — so the blocks that are coloured apart are the blocks the reader is reading.
 - **Reachability**: one hue per strength, shaded by depth. Says the most about the collector and the
   least about structure.
 - **Slate**: blue greys only, for when the colours get in the way of the shapes.
@@ -184,14 +222,14 @@ is therefore: every fill, every image, every outline and label, then the selecti
 nothing to do with the bitmap's, and an icon squashed into it isn't recognisable. So `imageBounds`
 centres the biggest fit and the rest of the rectangle stays its fill colour.
 
-**A cell with an image gets no label**, since text over a picture reads as neither. The chain at the
-bottom of the view already names what the pointer is on, which is where a bitmap's class and size are
-read.
+**A bitmap is labelled only if it's at the named depth**, like every other rectangle, and then over its own
+picture on the translucent plate. Text straight over a picture read as neither, which is what the plate is
+for; below that depth the chain beside the map is where a bitmap's class and size are read.
 
 Two wiring details that are easy to get wrong: images are asked for per presentation, only for
 rectangles at least `MIN_BITMAP_DRAW_SIZE` (8 dp) each way — below that an image is a smear of one
 colour and it would still cost a heap dump read and a decode — and `bitmapImages` is a key of the
-`remember` that measures the cells, because a label depends on whether there's an image.
+`remember` that measures the cells, since a cell arriving with pixels is a cell to draw differently.
 
 ## Hit testing
 
@@ -202,14 +240,23 @@ geometry — deepest rectangle containing the point for a treemap, ring and angl
 **Except that the deepest rectangle is not always the answer.** A subdivided rectangle is covered by its
 own children, so `cellAt` takes an `edgeGrab`: within that distance of an edge, a container wins over
 whatever shares it, which is the line the view draws there. A gap in a subdivision still belongs to the
-node being subdivided. This is what a UI test presses to reach a container — `pressContainerEdge` — since
+node being subdivided. This is what a UI test clicks to reach a container — `clickContainerEdge` — since
 the label bands it used to press are gone.
 
-The chain of dominators down to a cell comes from `nodePathTo`, which walks the `parent` on each
-`CellSubject.Node` up to the root. A press selects the cell under the pointer; a double click zooms in
-**along the whole chain**, so a cell five levels down leaves a breadcrumb per dominator rather than a
-jump straight to it. A group isn't a node, so the path to one ends at the node whose children it stands
-for: double clicking a group zooms into what holds it, which is the only way to see what's in it.
+**A single click goes to the rectangle it landed on**, and it's handled on press rather than on tap:
+`detectTapGestures` holds `onTap` for the double click window whenever `onDoubleTap` is set, and with
+nothing waiting for a second click there is nothing to wait for. So the whole map is one click deep, which
+is what replaced a double click nothing announced.
+
+Where the map ends up is not resolved from the cell, though: a click goes through the same walk as a click
+on a line of a panel or a row of a list — `HeapDominatorTreemap.pathToOpen`, which walks the tree rather than
+the layout, and hands back the chain of nodes from the root down. So a rectangle five levels down is zoomed
+into **along the whole chain**, and the chain beside the map is the way back out of it. Two things follow
+from resolving it that way rather than from the cell's own `parent`: an object that dominates nothing lands
+inside what holds it with itself selected, rather than filling the view with one rectangle and nothing to
+read; and it's the same code path whatever led there, so a class name clicked in the details panel and a
+rectangle clicked on the map land in the same place. A group isn't a node of the tree, so clicking one has
+nowhere to go: it describes what it stands for and leaves the map where it is.
 
 Keeping all of that pure functions in `shark-explorer-core` is what makes it testable — see
 `decisions.md` for how the UI tests are structured around this.

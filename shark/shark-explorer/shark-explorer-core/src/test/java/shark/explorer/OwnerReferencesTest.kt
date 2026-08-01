@@ -29,15 +29,15 @@ class OwnerReferencesTest {
       // are one step from a GC root while the activity is two. Counting those as ways of holding a view is
       // what scatters a window's hierarchy across whatever happens to be closest to a root.
       assertThat(tree.dominatorOf(decor.objectId)!!.label).isEqualTo("MainActivity")
-      assertThat(tree.independentPathsTo(decor.objectId).paths.map { it.stepLabels() })
+      assertThat(tree.independentPathsBelowDominator(decor.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("mDecor → DecorView"))
       // Its parent, not the View[] the parent keeps it in: the parent points at each of its children
       // itself — see [ViewChildReferenceReader] — so the array is no step on the way down to a view, and
       // the one step there is names the child's index on the parent's own class.
       assertThat(tree.dominatorOf(leaf.objectId)!!.label).isEqualTo("DecorView")
-      assertThat(tree.independentPathsTo(leaf.objectId).paths.map { it.stepLabels() })
+      assertThat(tree.independentPathsBelowDominator(leaf.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("0 → LeafView"))
-      val leafReference = tree.independentPathsTo(leaf.objectId)
+      val leafReference = tree.independentPathsBelowDominator(leaf.objectId)
         .paths
         .single()
         .steps
@@ -73,7 +73,7 @@ class OwnerReferencesTest {
       // view read as garbage and hidden it.
       assertThat(detached.strength).isEqualTo(STRONG)
       assertThat(tree.dominatorOf(detached.objectId)!!.label).isEqualTo("InputMethodManager")
-      assertThat(tree.independentPathsTo(detached.objectId).paths.map { it.stepLabels() })
+      assertThat(tree.independentPathsBelowDominator(detached.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("mNextServedView → DetachedRoot"))
       // And the hierarchy under it still nests inside it, because its own children do have a parent.
       assertThat(tree.dominatorOf(detachedChild.objectId)!!.label).isEqualTo("DetachedRoot")
@@ -90,7 +90,7 @@ class OwnerReferencesTest {
       // is gone, and then the thing still pointing at it is both its owner and its leak.
       assertThat(tree.dominatorOf(activity.objectId)!!.label)
         .isEqualTo("ActivityThread\$ActivityClientRecord")
-      assertThat(tree.independentPathsTo(activity.objectId).paths.map { it.stepLabels() })
+      assertThat(tree.independentPathsBelowDominator(activity.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("activity → MainActivity"))
     }
   }

@@ -44,11 +44,27 @@ laid out, labelled view is a `TreemapPresentation` or a `RadialPresentation`, an
 The one thing that isn't thread safe is a `Sequence` a `HeapGraph` hands out — iterating one reads
 through it — so a thread reading `graph.objects` needs its own rather than a shared one.
 
-**A read that has been submitted can't be called off.** Cancelling the coroutine that asked for it, which
-is what a `LaunchedEffect` being relaunched does, only stops anything from waiting for the answer: the
-block is already queued on that one thread and runs to the end, since nothing inside a layout or a
-summary is a cancellation point. So dragging a window edge pays in full for every size it passes through,
-and the read that draws the size it lands on waits behind all of them.
+**Cancelling the coroutine that asked for a read stops the read**, which is what a `LaunchedEffect`
+being relaunched does. Shark does the stopping, not us: the heap dump is opened with a `CancelSignal`
+asking whether the read in flight is still wanted, and it's asked on every record read, so the work
+gives up shortly after the question is withdrawn and comes back as a `CancellationException`. A read
+given up on while it was still queued never starts at all. So dragging a window edge costs the size it
+lands on and a little of each size it passed through, rather than all of them in full.
+
+Two things follow. **A read is only cancellable at the granularity of what it reads** — a stretch that
+computes without reading, like a layout over an already-labelled tree, stops when it next reads — so the
+`HOVER_SETTLE_MILLIS` half of this, not starting work that isn't wanted yet, still earns its keep.
+And **anything a read mutates has to survive being abandoned half way**: today's reads are safe because
+the built-on-first-use indexes are `by lazy` initializers that build a whole object before assigning it
+(a cancelled build is simply retried, since `lazy` doesn't cache a failure), and the walks reuse arrays
+stamped with a generation per walk rather than cleared at the end.
+
+**The pointer asks questions on that thread too**, because moving over a rectangle describes it. Which is
+why nothing is read until the pointer has been still for `HOVER_SETTLE_MILLIS`, and why what a hover asks
+for is capped and index-backed: a chain from a GC root is one walk over `ReferrerIndex` with at most 20
+steps read out, and the search for every way an object is held runs for the object clicked and no other.
+A new question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md`
+has the numbers on the biggest dump in the repo.
 
 ## Every run writes a log file
 
@@ -270,10 +286,27 @@ numbers belong in `notes/bitmaps.md`.
 - **UI tests are headless JVM tests**, not instrumentation tests. They live in `src/test/` and use
   `androidx.compose.ui.test.v2.runComposeUiTest`. Import from the **`.v2` package** — the non-v2
   `runComposeUiTest` is deprecated.
+- **A test of the whole window runs at the size a window opens at**, which is what `explorerUiTest` is
+  for. The default test window is smaller, and there the panes beside the view squeeze the controls above
+  it to zero width, so a test would be pressing a window nobody has.
+- **Hovering takes two moves.** A view describes what the pointer *moved* onto and ignores the enter that
+  comes with a pointer arriving, so a single injected `moveTo` reports nothing hovered. `hover()` in
+  `ExplorerUiTest.kt` moves twice; `notes/decisions.md` says why the views read events that way.
 - **Each shape draws into a single `Canvas`, so there are no per-cell semantics nodes.** UI
-  tests can't find cells by tag. Test layout and hit testing as pure functions in
-  `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on
-  the details panel and breadcrumbs.
+  tests can't find cells by tag, and **not by label either** — a cell's label is painted text, so no
+  assertion and no wait can reach it. Test layout and hit testing as pure functions in
+  `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on what
+  is written outside the view: the chain pane and the details panel either side of it, and the card that
+  follows the pointer, whose text is real text and so can be found and its bounds read.
+- **A clickable block naming an object is one semantics node**, because `Modifier.clickable` merges its
+  descendants, so a step of the chain is found by any one of the three lines it prints. The same object is
+  usually named in more than one place at once — a step of the chain, the bar above the map, the details
+  panel — so an assertion about it either counts `onAllNodesWithText` matches or picks the one it means
+  with `hasClickAction()`. `onNodeWithText` failing with "found 2" is that, not a duplicated composable.
+- **A UI test knows the map is drawn through `waitForTheTree`**, which waits for the view's
+  `contentDescription` with nothing left spinning, because the drawn map itself adds no text to the
+  window. Where "the map *moved*" is the point rather than "the map is there", wait on the log line
+  every layout writes instead — `ExplorerAppTest.waitUntilZoomedIn`.
 - **A headless test can write a PNG of what Skia drew**, which is how an agent gets to look at this
   UI at all: `onRoot().captureToImage().toAwtImage()` and `ImageIO.write`, after a
   `performMouseInput`, renders the hover highlight and the path bar the same as a real window does.
