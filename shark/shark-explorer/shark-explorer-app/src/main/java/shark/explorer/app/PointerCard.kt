@@ -158,11 +158,11 @@ internal const val PILE_OF_OBJECTS = "Not one object. Click it to reach the obje
 /**
  * The other kind of pile: what a rectangle's subdivision had no room for. It is no node of the tree, so
  * there is nothing to go into and the promise [PILE_OF_OBJECTS] makes would be a lie here. What a click
- * does instead is root the map at the rectangle they were left out of, which is where they have the room
- * to be drawn — the biggest of them, at least.
+ * does instead is root the map at the rectangle they were left out of, which is where there is the room
+ * to draw them one by one. See `TreemapLayout.maxRootChildren`.
  */
 internal const val LEFTOVER_OBJECTS =
-  "Not one object. Click it for what holds them, where the biggest of them are drawn."
+  "Not one object. Click it for what holds them, where there is room to draw them one by one."
 
 /**
  * Where a card of [cardSize] goes for a pointer at [pointer] in a view of [viewSize]: below and to the right

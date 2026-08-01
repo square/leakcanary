@@ -120,6 +120,15 @@ rectangle, not a tree node: it can't be subdivided or zoomed into, and clicking 
 objects it stands for. Same dump, same viewport, after the change: 1,190 cells, 28 groups, 7 levels
 deep, nothing truncated.
 
+**`maxChildrenPerNode` doesn't apply to the node the viewport is rooted at**, which gets
+`maxRootChildren` — half the cell budget — instead. A count that doesn't move when the room does makes
+zooming pointless, and the pile is the one thing zooming exists for: the `LongSparseArray[]` of drawable
+caches in `compose_leak.hprof` has 668 children, so it drew 200 and a pile of 468 whether it was a
+sliver of the whole-heap-dump map or the whole viewport, and clicking that pile landed on the picture it
+was clicked from. Rooted there it now draws 516 of them and a pile of 103, the ones still under the area
+floor. The whole-heap-dump map is unchanged — 1,726 cells, 93 rectangles at the top level — because at
+that root the area floor bites long before 200 does.
+
 A radial layout has one more bound: **rings**. Eight around the centre disk, the width of each derived
 from the viewport, so the picture always fills the circle and depth past that needs a zoom. Sectors
 take their parent's whole sweep divided by weight, and a ring band is where a node's own name fits, so

@@ -136,7 +136,8 @@ class RadialLayoutTest {
     val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
     val tree = NodeTree(Node("root", children = children))
 
-    val result = RadialLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
+    val result = RadialLayout<Node>(maxChildrenPerNode = 10, maxRootChildren = 10)
+      .layout(tree, viewport)
 
     assertThat(result.names).hasSize(11) // The root and its 10 largest children.
     val group = result.groups.single()
@@ -149,7 +150,8 @@ class RadialLayoutTest {
     val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
     val tree = NodeTree(Node("root", children = children))
 
-    val result = RadialLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
+    val result = RadialLayout<Node>(maxChildrenPerNode = 10, maxRootChildren = 10)
+      .layout(tree, viewport)
 
     val ring = result.cells.filter { it.depth == 1 }
     assertThat(ring.sumOf { it.arc.sweepAngle }).isCloseTo(RadialArc.FULL_CIRCLE, offset(1e-9))

@@ -52,6 +52,14 @@ class TreemapViewTest {
 
   private val leafRoot = mapTree(ROOT to emptyList())
 
+  /**
+   * One rectangle filling the view, holding more children than it has room to draw one by one.
+   *
+   * Under a rectangle and not under the root, because the node the view is rooted at draws as many
+   * children as it can fit: a pile is what a rectangle inside the view leaves out.
+   */
+  private val manyChildren = mapTree(ROOT to listOf(PARENT), PARENT to (1000L..1499L).toList())
+
   @Test fun `clicking a rectangle reports it`() {
     runComposeUiTest {
       val presentation = oneChild.present()
@@ -132,16 +140,17 @@ class TreemapViewTest {
 
   @Test fun `clicking the rectangle standing for the siblings that did not fit reports a group`() {
     runComposeUiTest {
-      // More children than a node draws one by one, so the smallest ones end up in one rectangle.
-      val presentation = mapTree(ROOT to (1L..500L).toList()).present()
+      // More children than a rectangle draws one by one, so the smallest ones end up in one of their
+      // own. Under a rectangle rather than under the whole view, which draws all it has room for.
+      val presentation = manyChildren.present()
       val clicked = mutableListOf<LayoutCell<Long>>()
       setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }
 
-      onRoot().performMouseInput { click(presentation.centerOfGroupUnder(ROOT)) }
+      onRoot().performMouseInput { click(presentation.centerOfGroupUnder(PARENT)) }
 
       val group = clicked.single().group
       assertThat(group.nodeCount).isEqualTo(300)
-      assertThat(group.parent).isEqualTo(ROOT)
+      assertThat(group.parent).isEqualTo(PARENT)
     }
   }
 
@@ -175,14 +184,14 @@ class TreemapViewTest {
     runComposeUiTest {
       // It can be a good part of the view, and one flat block that size reads as one enormous object,
       // which on a real heap dump means a bitmap. A texture says how many things are in there.
-      val presentation = mapTree(ROOT to (1L..500L).toList()).present()
+      val presentation = manyChildren.present()
       setContent { TreemapUnderTest(presentation) }
 
       val drawn = onRoot().captureToImage().toPixelMap()
 
       // A patch of it wide enough to hold dots whichever way the pattern falls, and clear of both the
       // dotted outline and the name written across the top. A fill on its own would be one colour.
-      val rect = presentation.groupUnder(ROOT).rect
+      val rect = presentation.groupUnder(PARENT).rect
       val left = rect.left.toInt() + PATCH_INSET
       val bottom = rect.bottom.toInt() - PATCH_INSET
       val patch = (0 until PATCH_SIDE).flatMap { row ->

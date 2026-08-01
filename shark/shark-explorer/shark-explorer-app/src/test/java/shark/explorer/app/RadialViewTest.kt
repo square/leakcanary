@@ -85,17 +85,18 @@ class RadialViewTest {
   @Test fun `clicking the sector standing for the siblings that did not fit reports a group`() {
     runComposeUiTest {
       // A ring holds far fewer sectors than a treemap holds rectangles, so this many children under
-      // one node is already past what is worth drawing one by one.
-      val presentation = mapTree(ROOT to (1L..50L).toList())
+      // one node is already past what is worth drawing one by one. Under a sector rather than under
+      // the node in the middle, which draws as many children as the first ring has room for.
+      val presentation = mapTree(ROOT to listOf(PARENT), PARENT to (1000L..1049L).toList())
         .present(RadialLayout(maxChildrenPerNode = 10))
       val clicked = mutableListOf<LayoutCell<Long>>()
       setContent { RadialUnderTest(presentation, onClick = { clicked += it }) }
 
-      onRoot().performMouseInput { click(presentation.middleOfGroupUnder(ROOT)) }
+      onRoot().performMouseInput { click(presentation.middleOfGroupUnder(PARENT)) }
 
       val group = clicked.single().subject as CellSubject.Group
       assertThat(group.nodeCount).isEqualTo(40)
-      assertThat(group.parent).isEqualTo(ROOT)
+      assertThat(group.parent).isEqualTo(PARENT)
     }
   }
 

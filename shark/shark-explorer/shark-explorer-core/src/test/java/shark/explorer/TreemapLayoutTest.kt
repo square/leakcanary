@@ -229,7 +229,8 @@ class TreemapLayoutTest {
     val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
     val tree = NodeTree(Node("root", children = children))
 
-    val result = TreemapLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
+    val result = TreemapLayout<Node>(maxChildrenPerNode = 10, maxRootChildren = 10)
+      .layout(tree, viewport)
 
     assertThat(result.groups.single().groupParent.name).isEqualTo("root")
   }
@@ -354,11 +355,40 @@ class TreemapLayoutTest {
     assertThat(result.cells.size).isLessThanOrEqualTo(5000)
   }
 
+  @Test fun `zooming into the node holding a group draws the children it stood for`() {
+    // The pile a rectangle's siblings are gathered into is what zooming into that rectangle is for, so
+    // the node the viewport is rooted at draws as many children as it has room for rather than as many
+    // as fit in a rectangle. Clicking a pile used to land on the same pile, one level in.
+    val wide = Node("wide", children = List(50) { index -> Node("child$index", ownWeight = 100L - index) })
+    val tree = NodeTree(Node("root", children = listOf(wide)))
+    val layout = TreemapLayout<Node>(maxChildrenPerNode = 10)
+
+    val nested = layout.layout(tree, viewport)
+    val zoomed = layout.layout(tree, viewport, root = wide)
+
+    assertThat(nested.groups.single().nodeCount).isEqualTo(40)
+    assertThat(zoomed.groups).isEmpty()
+    assertThat(zoomed.names).hasSize(51) // The wide node and all 50 of its children.
+  }
+
+  @Test fun `the node the viewport is rooted at still stops short of the cell budget`() {
+    // Room for every one of them at a 3x3 square, so nothing but the budget stands in the way.
+    val children = List(5_000) { index -> Node("child$index", ownWeight = 100L) }
+    val tree = NodeTree(Node("root", children = children))
+
+    val result = TreemapLayout<Node>(maxCells = 400).layout(tree, viewport)
+
+    // Half the budget on one level at the most, so there is room left to draw inside what it drew.
+    assertThat(result.names).hasSize(201)
+    assertThat(result.groups.single().nodeCount).isEqualTo(4_800)
+  }
+
   @Test fun `children past the per node limit are grouped into one rectangle`() {
     val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
     val tree = NodeTree(Node("root", children = children))
 
-    val result = TreemapLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
+    val result = TreemapLayout<Node>(maxChildrenPerNode = 10, maxRootChildren = 10)
+      .layout(tree, viewport)
 
     assertThat(result.names).hasSize(11) // The root and its 10 largest children.
     val group = result.groups.single()
@@ -388,7 +418,8 @@ class TreemapLayoutTest {
     val children = List(50) { index -> Node("child$index", ownWeight = 100L - index) }
     val tree = NodeTree(Node("root", children = children))
 
-    val result = TreemapLayout<Node>(maxChildrenPerNode = 10).layout(tree, viewport)
+    val result = TreemapLayout<Node>(maxChildrenPerNode = 10, maxRootChildren = 10)
+      .layout(tree, viewport)
 
     val covered = result.cells.drop(1).sumOf { it.rect.area }
     assertThat(covered).isCloseTo(viewport.area, offset(1.0))
