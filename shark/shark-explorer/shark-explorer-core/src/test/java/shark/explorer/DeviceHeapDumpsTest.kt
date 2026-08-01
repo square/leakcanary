@@ -207,7 +207,9 @@ class DeviceHeapDumpsTest {
     assertThatThrownBy { DeviceHeapDumps(adb).dumpHeap(device(), process()) }
       .isInstanceOf(AdbFailureException::class.java)
       .hasMessageContaining("Process not debuggable: com.example")
-      .hasMessageContaining("Only a debuggable app")
+      // Both ways past it, since either one is enough and the app is only one of them.
+      .hasMessageContaining("an app built debuggable")
+      .hasMessageContaining("ro.debuggable=1")
       // The twelve frames under it say nothing anyone at a window can act on.
       .hasMessageNotContaining("at com.android.server")
   }
@@ -299,7 +301,8 @@ class DeviceHeapDumpsTest {
     state = "device",
     fingerprint = "google/tokay/tokay:16/BP31.250610.004/13698546:user/release-keys",
     model = "Pixel 9",
-    sdkInt = sdkInt
+    sdkInt = sdkInt,
+    isDebuggableBuild = false
   )
 
   private fun process() = DeviceProcess(processId = 1201, name = "com.example")

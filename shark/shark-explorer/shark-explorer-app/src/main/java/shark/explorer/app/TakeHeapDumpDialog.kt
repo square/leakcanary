@@ -2,10 +2,12 @@ package shark.explorer.app
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -13,6 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -112,8 +115,10 @@ internal fun TakeHeapDumpDialog(
     onDismissRequest = onDismiss,
     title = { Text(TAKE_HEAP_DUMP_TITLE) },
     text = {
+      // No scroll around the whole of this: each step scrolls its own list, so that what says where you
+      // are and what you are deciding stays put while thirty processes go past under it.
       Column(
-        Modifier.heightIn(max = DIALOG_MAX_HEIGHT).verticalScroll(rememberScrollState()),
+        Modifier.heightIn(max = DIALOG_MAX_HEIGHT),
         verticalArrangement = Arrangement.spacedBy(8.dp)
       ) {
         Text(TAKE_HEAP_DUMP_EXPLANATION, style = MaterialTheme.typography.bodySmall)
@@ -124,9 +129,11 @@ internal fun TakeHeapDumpDialog(
           is DumpStep.Working -> Waiting(currentStep.message)
           DumpStep.Devices -> Devices(
             devices = devices,
-            onPick = { device -> requestedDevice = device }
+            onPick = { device -> requestedDevice = device },
+            modifier = Modifier.weight(1f, fill = false)
           )
           is DumpStep.Processes -> Processes(
+            device = currentStep.device,
             processes = currentStep.processes,
             // Only worth offering where the dump can't carry the pixels itself: where it can, it does.
             offersBitmaps = !currentStep.device.canDumpBitmaps,
@@ -140,7 +147,8 @@ internal fun TakeHeapDumpDialog(
                 fetchesBitmaps = fetchesBitmaps && !currentStep.device.canDumpBitmaps
               )
             },
-            onBack = { step = DumpStep.Devices }
+            onBack = { step = DumpStep.Devices },
+            modifier = Modifier.weight(1f, fill = false)
           )
           is DumpStep.Failed -> Text(
             currentStep.message,
@@ -158,57 +166,106 @@ internal fun TakeHeapDumpDialog(
   )
 }
 
-/** One button per device, saying what a dump of it would and wouldn't have in it. */
+/** One row per device, and nothing else: which one it is, is the only question this screen asks. */
 @Composable
 private fun Devices(
   devices: List<AndroidDevice>,
-  onPick: (AndroidDevice) -> Unit
+  onPick: (AndroidDevice) -> Unit,
+  modifier: Modifier = Modifier
 ) {
   if (devices.isEmpty()) {
     Text(NO_DEVICES, style = MaterialTheme.typography.bodyMedium)
     return
   }
-  devices.forEach { device ->
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-      TextButton(onClick = { onPick(device) }) {
-        Text(device.description)
-      }
-      Text(device.bitmapExplanation, style = MaterialTheme.typography.bodySmall)
+  Question(PICK_A_DEVICE)
+  Column(modifier.verticalScroll(rememberScrollState())) {
+    devices.forEach { device ->
+      PickerRow(name = device.description, onClick = { onPick(device) })
     }
   }
 }
 
 /**
- * One button per app process of the device picked, plus the way back to the device list.
+ * One row per app process of the device picked, under everything there is to decide before picking one.
  *
  * Picking a process starts the dump, so anything to decide about it has to be decided here — which is
- * why the bitmap checkbox is above the buttons rather than on a screen of its own.
+ * why the bitmap checkbox is above the list rather than on a screen of its own. The header is outside
+ * the scroll for the same reason: it says what will happen when a row is clicked, and a device runs
+ * enough processes to scroll it off.
+ *
+ * The system's own apps go under their own heading rather than in with the rest, because there are
+ * thirty of them to the one being looked for and on most devices none of them can be dumped at all.
  */
 @Composable
 private fun Processes(
+  device: AndroidDevice,
   processes: List<DeviceProcess>,
   offersBitmaps: Boolean,
   fetchesBitmaps: Boolean,
   onFetchesBitmapsChange: (Boolean) -> Unit,
   onPick: (DeviceProcess) -> Unit,
-  onBack: () -> Unit
+  onBack: () -> Unit,
+  modifier: Modifier = Modifier
 ) {
-  if (processes.isEmpty()) {
-    Text(NO_APP_PROCESSES, style = MaterialTheme.typography.bodyMedium)
-  } else {
-    Text(PICK_A_PROCESS, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-    if (offersBitmaps) {
-      FetchBitmapsCheckbox(checked = fetchesBitmaps, onCheckedChange = onFetchesBitmapsChange)
+  Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = ROW_INSET)) {
+      Text(BACK_TO_DEVICES, style = MaterialTheme.typography.bodySmall)
     }
-    processes.forEach { process ->
-      TextButton(onClick = { onPick(process) }) {
-        Text("${process.name} · pid ${process.processId}")
+    if (processes.isEmpty()) {
+      Text(NO_APP_PROCESSES, style = MaterialTheme.typography.bodyMedium)
+      return@Column
+    }
+    Question(PICK_A_PROCESS, device.dumpableProcesses)
+    if (offersBitmaps) {
+      FetchBitmapsCheckbox(
+        device = device,
+        checked = fetchesBitmaps,
+        onCheckedChange = onFetchesBitmapsChange
+      )
+    }
+    HorizontalDivider()
+    val (appProcesses, systemProcesses) = processes.partition { !it.isSystemApp }
+    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
+      appProcesses.forEach { process -> ProcessRow(process, onPick) }
+      if (systemProcesses.isNotEmpty()) {
+        SectionHeader(SYSTEM_APPS)
+        systemProcesses.forEach { process -> ProcessRow(process, onPick) }
       }
     }
   }
-  HorizontalDivider()
-  TextButton(onClick = onBack) {
-    Text(BACK_TO_DEVICES)
+}
+
+@Composable
+private fun ProcessRow(
+  process: DeviceProcess,
+  onPick: (DeviceProcess) -> Unit
+) {
+  PickerRow(
+    name = process.name,
+    detail = "pid ${process.processId}",
+    onClick = { onPick(process) }
+  )
+}
+
+/** What this screen is asking, and whatever has to be known to answer it. */
+@Composable
+private fun Question(
+  question: String,
+  note: String? = null
+) {
+  Text(
+    question,
+    Modifier.padding(start = ROW_INSET),
+    style = MaterialTheme.typography.bodyMedium,
+    fontWeight = FontWeight.Bold
+  )
+  if (note != null) {
+    Text(
+      note,
+      Modifier.padding(start = ROW_INSET),
+      style = MaterialTheme.typography.bodySmall,
+      color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
   }
 }
 
@@ -216,26 +273,42 @@ private fun Processes(
  * The offer to have the process compress its bitmaps for a debugger straight after the dump, for a
  * device whose dump can't carry them.
  *
- * It says what it costs, because it's minutes of a suspended app for a large one and there's no way to
- * tell from here how many bitmaps a process holds.
+ * On a surface of its own, because it is the one thing on this screen that isn't a process: left as
+ * plain rows it reads as another list item, and the list is what a click is about to land on.
+ *
+ * It says why it is being offered and what it costs, because it's minutes of a suspended app for a
+ * large one and there's no way to tell from here how many bitmaps a process holds.
  */
 @Composable
 private fun FetchBitmapsCheckbox(
+  device: AndroidDevice,
   checked: Boolean,
   onCheckedChange: (Boolean) -> Unit
 ) {
-  Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-    Row(
-      Modifier.fillMaxWidth()
-        .toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange),
-      verticalAlignment = Alignment.CenterVertically
+  Surface(
+    Modifier.fillMaxWidth(),
+    shape = MaterialTheme.shapes.small,
+    color = MaterialTheme.colorScheme.surfaceVariant
+  ) {
+    Column(
+      Modifier.toggleable(value = checked, role = Role.Checkbox, onValueChange = onCheckedChange)
+        .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
-      // Null, so the row is the one thing a click lands on: a box that handles its own clicks and a
-      // label that doesn't is two targets for one answer.
-      Checkbox(checked = checked, onCheckedChange = null)
-      Text(FETCH_BITMAPS_WITH_DUMP, style = MaterialTheme.typography.bodyMedium)
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        // Null, so the block is the one thing a click lands on: a box that handles its own clicks and
+        // a label that doesn't is two targets for one answer.
+        Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.size(20.dp))
+        Text(FETCH_BITMAPS_WITH_DUMP, style = MaterialTheme.typography.bodyMedium)
+      }
+      Text(
+        device.fetchBitmapsExplanation,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+      )
     }
-    Text(FETCH_BITMAPS_WITH_DUMP_EXPLANATION, style = MaterialTheme.typography.bodySmall)
   }
 }
 
@@ -293,25 +366,39 @@ private suspend fun DeviceHeapDumps.fetchedPixelsOrNull(
  */
 private fun DeviceHeapDumps.readyDevices(): List<AndroidDevice> = connectedDevices().filter { it.isReady }
 
-/** Whether a dump of this device will have the pixels of its bitmaps in it, which is most of the point. */
-private val AndroidDevice.bitmapExplanation: String
-  get() = if (canDumpBitmaps) {
-    "The dump will include the pixels of its bitmaps."
-  } else {
-    "API $sdkInt can't put the pixels of a bitmap in a heap dump, so the dump will have none — they " +
-      "have to be fetched off the process, either with the dump or once it's open."
+/**
+ * Which of this device's processes `am dumpheap` will actually agree to dump.
+ *
+ * Two things let it through and either is enough: an app built debuggable, or a device whose whole
+ * build is (`ro.debuggable=1`, which is what a `userdebug` or `eng` image sets). So "only a debuggable
+ * app can be dumped" is the answer for a retail phone and for a modern emulator image, and the wrong
+ * answer for the `userdebug` one someone reached for precisely so they could dump anything.
+ */
+private val AndroidDevice.dumpableProcesses: String
+  get() = when (isDebuggableBuild) {
+    true -> "This build is debuggable (ro.debuggable=1), so any of these can be dumped, the system's own included."
+    false -> "This build is not debuggable (ro.debuggable=0), so only an app built debuggable can be " +
+      "dumped: a release build and every app of the system will refuse."
+    null -> "An app built debuggable can be dumped, and so can anything at all on a device whose build " +
+      "is debuggable. This one didn't say which it is."
+  }
+
+/** Why the fetch is on offer at all, which is the device's Android version, and what it costs. */
+private val AndroidDevice.fetchBitmapsExplanation: String
+  get() {
+    val version = sdkInt?.let { "API $it" } ?: "This device's Android version"
+    return "$version can't put the pixels of a bitmap in a heap dump, so this one will have none. " +
+      "Fetching them attaches a debugger and has the app compress every bitmap, suspended throughout: " +
+      "seconds of fixed cost, plus a fraction of a second per bitmap."
   }
 
 internal const val TAKE_HEAP_DUMP = "Take heap dump…"
 internal const val TAKE_HEAP_DUMP_TITLE = "Take a heap dump off a device"
 internal const val TAKE_HEAP_DUMP_EXPLANATION =
-  "Dumping a heap freezes the app for a moment and pulls tens of megabytes over adb. Only a debuggable " +
-    "app can be dumped."
+  "Dumping a heap freezes the app for a moment and pulls tens of megabytes over adb."
+internal const val PICK_A_DEVICE = "Which device?"
 internal const val PICK_A_PROCESS = "Which process?"
 internal const val FETCH_BITMAPS_WITH_DUMP = "Fetch the pixels of its bitmaps too"
-internal const val FETCH_BITMAPS_WITH_DUMP_EXPLANATION =
-  "Slow: a debugger attaches to the app and has it compress every bitmap, a few seconds of fixed cost " +
-    "plus a fraction of a second per bitmap, and the app is suspended for all of it. The same fetch is " +
-    "offered once the dump is open, so tick this when there's time to get everything in one go."
 internal const val NO_APP_PROCESSES = "No app is running on this device."
+internal const val SYSTEM_APPS = "System apps"
 internal const val BACK_TO_DEVICES = "← Other devices"

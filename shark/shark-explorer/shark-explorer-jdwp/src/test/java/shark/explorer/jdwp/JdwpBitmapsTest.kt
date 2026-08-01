@@ -59,7 +59,8 @@ class JdwpBitmapsTest {
     state = "device",
     fingerprint = "google/sdk/sdk:10/QSR1/6427100:user/release-keys",
     model = "Pixel 4",
-    sdkInt = 29
+    sdkInt = 29,
+    isDebuggableBuild = false
   )
 
   private fun process() = DeviceProcess(processId = 1201, name = "com.example")
