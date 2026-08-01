@@ -113,6 +113,14 @@ one line from the build script and the flag is gone from the run's JVM arguments
 icon is back. So `java.awt.Taskbar` has nothing to add here. `Window(icon = …)` does, but only for the
 Windows and Linux title bar — macOS ignores it.
 
+**`-Xdock:icon` is what puts the icon on the tile, and a bundle around the JVM is not a substitute.**
+AWT sets the dock tile from that flag as it starts, and when the flag is absent it sets the tile to
+the Java icon — over whatever the bundle asked for. So `runNamed` passes the flag too, even though its
+generated bundle declares `CFBundleIconFile`. `CFBundleIconFile` is not ignored, it is just overwritten:
+`NSRunningApplication.icon` for a `runNamed` process without the flag hands back the shark, because
+that is the LaunchServices record, while the tile on screen is Duke. **Which is the trap** — every API
+an agent can read says the icon is right, and only a picture of the dock says otherwise.
+
 ## What macOS calls the run, as against what it calls a window
 
 A run is one process and many windows, so the OS gets one name for all of them, and `main` sets it from
@@ -195,8 +203,21 @@ what the dock says is to ask the person in front of it. It is granted per respon
 agent, whichever app launched the session — in System Settings → Privacy & Security → Accessibility.
 Screen Recording is separate, and without it a screenshot of another process comes back as wallpaper.
 
-An icon can be checked without either: `NSWorkspace.iconForFile` on a bundle hands back what macOS
-resolved for it, and writing that to a PNG is a picture an agent can open.
+**A tile's icon, though, only a screenshot of the dock will tell you.** `NSWorkspace.iconForFile` on a
+bundle and `NSRunningApplication.icon` on a pid both hand back a PNG an agent can open, but both read
+the LaunchServices record rather than the tile, so both are wrong the moment AWT overwrites it — see
+the `-Xdock:icon` section. With Screen Recording granted, this is the picture that settles it:
+
+```bash
+# The dock has no window while it is hidden, so a capture of where AX says the tile is comes back blank.
+# Post mouse moves down to the bottom edge — one warp isn't enough, it takes an approach and a dwell —
+# then ask AX for the tile again: a y that has moved up by the dock's height means it is on screen.
+osascript -e 'tell application "System Events" to tell process "Dock" \
+  to get {position, size} of (first UI element of list 1 whose name is "<the run>")'
+screencapture -x -R <x>,<y>,<w>,<h> tile.png
+```
+
+Put the cursor back where it was afterwards, since it is someone's cursor.
 
 ## Build and test
 
