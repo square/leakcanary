@@ -44,7 +44,11 @@ internal fun installLogging(): Closeable {
 private fun logEnvironment(sessionLog: SessionLog?) {
   val runtime = Runtime.getRuntime()
   SharkLog.d {
-    "Shark Explorer starting" + if (sessionLog == null) "" else ", logging to ${sessionLog.file}"
+    // Which version, because a report is about a build rather than about the app in general, and because
+    // this is the only line that says so: the update check names it only when it found a manifest to
+    // compare against, so a run that couldn't reach GitHub would otherwise name no version at all.
+    "Shark Explorer ${SharkExplorerVersion.current} starting" +
+      if (sessionLog == null) "" else ", logging to ${sessionLog.file}"
   }
   SharkLog.d {
     "Java ${System.getProperty("java.version")} (${System.getProperty("java.vm.name")}) on " +

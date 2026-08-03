@@ -21,6 +21,18 @@ kotlin {
   compilerOptions.jvmTarget = JVM_17
 }
 
+/**
+ * The app's own version, from `SHARK_EXPLORER_VERSION` rather than the repo wide `VERSION_NAME`: the
+ * explorer is released on its own tags, and jpackage would reject `VERSION_NAME` anyway. See
+ * `gradle.properties`.
+ */
+val explorerVersion = property("SHARK_EXPLORER_VERSION").toString()
+
+// Overrides the repo wide version the root build script sets from VERSION_NAME, so that the jar inside a
+// packaged app is named after the app's version rather than after LeakCanary's. Same reasoning the root
+// script gives for shark-cli, whose zip is named after the version too.
+version = explorerVersion
+
 dependencies {
   implementation(projects.shark.sharkExplorer.sharkExplorerCore)
   // Reads the bitmaps of a live process off the Android versions whose heap dumps can't carry them.
@@ -42,6 +54,23 @@ dependencies {
 // matching by name rather than tasks.named().
 tasks.withType<JavaExec>().matching { it.name == "run" }.configureEach {
   workingDir = rootProject.projectDir
+}
+
+/**
+ * Writes the version onto the classpath, which is how [shark.explorer.app.SharkExplorerVersion] reads it.
+ *
+ * A generated resource rather than a jar manifest attribute, because `run` and the tests put class
+ * directories on the classpath rather than the jar, so `Package.getImplementationVersion()` is null for
+ * every way this app is launched while being worked on — and the update check would then only be
+ * exercisable from a packaged build.
+ */
+val writeVersionResource by tasks.registering(WriteProperties::class) {
+  destinationFile = layout.buildDirectory.file("generated/version/shark-explorer-version.properties")
+  property("version", explorerVersion)
+}
+
+sourceSets.main {
+  resources.srcDir(writeVersionResource.map { it.destinationFile.get().asFile.parentFile })
 }
 
 /** Shared by the Compose plugin's `run` and by `runNamed`, which launches the same classes itself. */
@@ -73,7 +102,10 @@ compose.desktop {
     nativeDistributions {
       targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
       packageName = "Shark Explorer"
-      packageVersion = "1.0.0"
+      // Each format validates this against rules of its own, and `gradle.properties` records which ones
+      // and what they leave possible. `3.0-alpha-10` satisfies none of them, which is the whole reason
+      // this app has a version line of its own.
+      packageVersion = explorerVersion
 
       // Each platform takes a different container, all three rendered from the one SVG by
       // icons/render-icons.sh.
@@ -83,6 +115,10 @@ compose.desktop {
       // it the process shows the default Java icon.
       macOS {
         iconFile.set(macOsIconFile)
+        // Set here rather than left to default, which is the main class's package. Notarization history
+        // and the Managed Software Center entry are both keyed on this, so it has to be a name Square
+        // owns, and changing it after the first release is a migration for everyone who installed one.
+        bundleID = "com.squareup.leakcanary.shark-explorer"
       }
       windows {
         iconFile.set(project.file("icons/shark-explorer-icon.ico"))
