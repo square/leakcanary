@@ -16,3 +16,8 @@ public final class leakcanary/GcTrigger$Companion {
 	public final fun getDefault ()Lleakcanary/FinalizingInProcessGcTrigger;
 }
 
+public final class leakcanary/GcTrigger$Default : leakcanary/GcTrigger {
+	public static final field INSTANCE Lleakcanary/GcTrigger$Default;
+	public fun runGc ()V
+}
+
