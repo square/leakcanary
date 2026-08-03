@@ -240,9 +240,9 @@ jobs:
           NOTES: |
             Shark Explorer ${{ needs.version.outputs.version }}, an alpha release.
 
-            A desktop app that opens an Android heap dump and shows what is holding its memory, as a
-            navigable treemap. Download the build for your platform below, open it, and drag the app to
-            Applications.
+            What it is and how to read it: https://square.github.io/leakcanary/shark-explorer/
+
+            Download the build for your platform below, open it, and drag the app to Applications.
 
             | Platform | Download | Signed |
             | --- | --- | --- |

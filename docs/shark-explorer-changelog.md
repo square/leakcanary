@@ -1,8 +1,8 @@
 # Shark Explorer Change Log
 
-Shark Explorer is a desktop app released on its own schedule, so it has its own change log. The
-[LeakCanary change log](changelog.md) covers the libraries and never mentions this app. See
-[Releasing Shark Explorer](releasing-shark-explorer.md) for how a version gets cut.
+[Shark Explorer](shark-explorer.md) is a desktop app released on its own schedule, so it has its own
+change log. The [LeakCanary change log](changelog.md) covers the libraries and never mentions this app.
+See [Releasing Shark Explorer](releasing-shark-explorer.md) for how a version gets cut.
 
 Each entry starts with a marker for the kind of change it is, the same markers the LeakCanary change log
 uses, without the one for a newly recognized library leak:
