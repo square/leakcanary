@@ -10,6 +10,10 @@ the repository.
 | Version in | `VERSION_NAME` | `SHARK_EXPLORER_VERSION` |
 | Goes to | Maven Central | a GitHub release |
 | Workflow | `publish-release.yml` | `release-shark-explorer.yml` |
+| Change log | [changelog.md](changelog.md) | [shark-explorer-changelog.md](shark-explorer-changelog.md) |
+
+Two release schedules means two change logs. **Shark Explorer changes never go in the LeakCanary change
+log**, and the reverse: a reader of either one is asking about one release line.
 
 ## The version can't say "alpha", so the release does
 
@@ -30,7 +34,15 @@ Set the version, tag it, and let CI do the rest. The workflow refuses to run if 
 printf "Version being released (e.g. 1.0.1): " && read NEW_VERSION
 git checkout main && git pull && \
 git checkout -b shark_explorer_$NEW_VERSION && \
-sed -i '' "s/SHARK_EXPLORER_VERSION=.*/SHARK_EXPLORER_VERSION=$NEW_VERSION/" gradle.properties && \
+sed -i '' "s/SHARK_EXPLORER_VERSION=.*/SHARK_EXPLORER_VERSION=$NEW_VERSION/" gradle.properties
+```
+
+Rename the `## Unreleased` heading in
+[`docs/shark-explorer-changelog.md`](shark-explorer-changelog.md) to `## Version $NEW_VERSION (<date>)`,
+check it lists everything that landed since the last one, and commit:
+
+```bash
+"${EDITOR:-vi}" docs/shark-explorer-changelog.md && \
 git commit -am "Release Shark Explorer $NEW_VERSION"
 ```
 
@@ -62,6 +74,18 @@ gh workflow run promote-shark-explorer.yml -f version=$NEW_VERSION
 
 So install the release and open a heap dump with it before running that. A release that turns out to be
 broken is then one nobody was told about, rather than one that has to be withdrawn.
+
+The release notes link to the change log page, which is only live once the site is deployed:
+
+```bash
+rm -rf docs/api && ./gradlew siteDokka && mkdocs gh-deploy
+```
+
+Two things this shares with [releasing LeakCanary](releasing.md), for the same reasons. `siteDokka` is
+not optional even though nothing about an explorer release touches the API reference: `docs/api` is
+generated and git ignored, so `gh-deploy` without it publishes a site whose API pages 404. And this
+deploys **the whole site from your checkout**, so run it from `main` rather than from a branch carrying
+unrelated documentation work.
 
 Two things about that mechanism that look like accidents and aren't:
 

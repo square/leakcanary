@@ -224,6 +224,8 @@ jobs:
 
             The macOS builds are signed and notarized by Block. The Windows and Linux builds are not
             signed, so their installers will warn.
+
+            What changed: https://square.github.io/leakcanary/shark-explorer-changelog/
         run: |
           set -euo pipefail
           gh release create "$GITHUB_REF_NAME" \
