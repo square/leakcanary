@@ -38,6 +38,21 @@ class RadialPresentation(
 }
 
 /**
+ * The same tree as a [TreemapPresentation], laid out as a stack of rows instead. Produced by
+ * [HeapDominatorTreemap.presentStack].
+ */
+class StackPresentation(
+  /** Kept for hit testing, which is [StackLayoutResult.cellAt], and for how tall the stack came out. */
+  val layout: StackLayoutResult<Long>,
+  /** In the same order as [StackLayoutResult.cells]. */
+  val cells: List<PresentedCell<StackCell<Long>>>
+) {
+
+  /** See [TreemapLayoutResult.truncatedNodeCount]. */
+  val truncatedNodeCount: Int get() = layout.truncatedNodeCount
+}
+
+/**
  * One cell of a presentation: a laid out cell of some shape, plus what the heap dump had to be read
  * for. Generic in the shape so that a view keeps hold of the geometry it draws, while everything that
  * only needs [LayoutCell] works for either.

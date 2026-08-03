@@ -55,6 +55,8 @@ import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
 import shark.explorer.RootPath
 import shark.explorer.RootPathWay
+import shark.explorer.StackLayout
+import shark.explorer.StackPresentation
 import shark.explorer.TreemapLayout
 import shark.explorer.TreemapNavigation
 import shark.explorer.TreemapPresentation
@@ -66,8 +68,8 @@ import shark.explorer.nodeIdText
 import shark.explorer.waysOf
 
 /**
- * One open heap dump, read through one of its screens: the dominator tree as a treemap or as rings, every
- * object as a list, the ones starred so far.
+ * One open heap dump, read through one of its screens: the dominator tree as a treemap, as rings or as a
+ * stack of rows, every object as a list, the ones starred so far.
  *
  * The map is the screen with panes: the chain holding an object on one side of it and what that object holds
  * on the other, with which object it is in the bar above them both. Every other screen is the width of the
@@ -161,6 +163,7 @@ internal fun HeapDumpExplorer(
 
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
+  val stackLayout = rememberStackLayout()
   // In pixels, like everything a layout is measured in, so that how small is too small for an image to be
   // worth drawing is the same size on every display. See MIN_BITMAP_DRAW_SIZE.
   val minBitmapDrawSize = with(LocalDensity.current) { MIN_BITMAP_DRAW_SIZE.toPx() }
@@ -174,7 +177,8 @@ internal fun HeapDumpExplorer(
       viewportSize = size,
       shape = shape,
       treemapLayout = treemapLayout,
-      radialLayout = radialLayout
+      radialLayout = radialLayout,
+      stackLayout = stackLayout
     )
   }
 
@@ -208,6 +212,9 @@ internal fun HeapDumpExplorer(
           )
           ViewShape.RADIAL -> ViewPresentation.Radial(
             tree.presentRadial(viewRequest.radialLayout, viewRequest.viewport, reachablePath.current)
+          )
+          ViewShape.STACK -> ViewPresentation.Stack(
+            tree.presentStack(viewRequest.stackLayout, viewRequest.viewport, reachablePath.current)
           )
         }
       )
@@ -644,7 +651,7 @@ private fun ScreenBar(
   }
 }
 
-/** The dominator tree, drawn as rectangles or as rings, with a card naming what the pointer is on. */
+/** The dominator tree, drawn as one of the [ViewShape]s, with a card naming what the pointer is on. */
 @Composable
 private fun TreeScreen(
   view: ViewState,
@@ -684,6 +691,15 @@ private fun TreeScreen(
         modifier = Modifier.fillMaxSize()
       )
       is ViewPresentation.Radial -> RadialView(
+        presentation = presentation.presentation,
+        coloring = coloring,
+        selected = selected,
+        hovered = hovered,
+        onHover = onHover,
+        onClick = onClick,
+        modifier = Modifier.fillMaxSize()
+      )
+      is ViewPresentation.Stack -> StackView(
         presentation = presentation.presentation,
         coloring = coloring,
         selected = selected,
@@ -763,6 +779,21 @@ private fun rememberRadialLayout(): RadialLayout<Long> {
   }
 }
 
+/** And the stack layout, whose row height is a line of text and so is scaled like the rest of them. */
+@Composable
+private fun rememberStackLayout(): StackLayout<Long> {
+  val density = LocalDensity.current
+  return remember(density) {
+    with(density) {
+      StackLayout(
+        rowHeight = STACK_ROW_HEIGHT.toPx().toDouble(),
+        minSubdivideWidth = MIN_SUBDIVIDE_STACK_WIDTH.toPx().toDouble(),
+        minDrawWidth = MIN_DRAW_STACK_WIDTH.toPx().toDouble()
+      )
+    }
+  }
+}
+
 /**
  * Everything one view of the tree follows from, which is therefore everything that lays it out again:
  * where the map is, how big the view is, which shape it's drawn as, and the thresholds that shape is laid
@@ -780,7 +811,8 @@ private data class ViewRequest(
   val viewportSize: IntSize,
   val shape: ViewShape,
   val treemapLayout: TreemapLayout<Long>,
-  val radialLayout: RadialLayout<Long>
+  val radialLayout: RadialLayout<Long>,
+  val stackLayout: StackLayout<Long>
 ) {
   val viewport: TreemapRect
     get() = TreemapRect(
@@ -817,6 +849,8 @@ internal sealed interface ViewPresentation {
   data class Treemap(val presentation: TreemapPresentation) : ViewPresentation
 
   data class Radial(val presentation: RadialPresentation) : ViewPresentation
+
+  data class Stack(val presentation: StackPresentation) : ViewPresentation
 }
 
 /** What a laid out view amounts to, for the log: one that drew nothing at all says so here. */
@@ -825,6 +859,10 @@ private fun ViewPresentation.description(): String = when (this) {
     "${presentation.cells.size} rectangles, ${presentation.truncatedNodeCount} nodes not expanded"
   is ViewPresentation.Radial ->
     "${presentation.cells.size} sectors, ${presentation.truncatedNodeCount} nodes not expanded"
+  // How deep it came out as well, since that is what a stack has instead of a shape that fits the view.
+  is ViewPresentation.Stack ->
+    "${presentation.cells.size} blocks in ${presentation.layout.rowCount} rows, " +
+      "${presentation.truncatedNodeCount} nodes not expanded"
 }
 
 /**
@@ -990,6 +1028,11 @@ internal const val FORWARD_ARROW = "→"
 /** What the button that goes back to the live process offers, before it says how many bitmaps. */
 internal const val FETCH_BITMAPS = "Fetch the pixels of"
 
-/** What the tree looks like to anything that can't look at it, a screen reader or a test. */
+/**
+ * What the tree looks like to anything that can't look at it, a screen reader or a test.
+ *
+ * The same for every [ViewShape], because it says what is drawn rather than how: only one of the three
+ * draws a cell inside the one that holds it.
+ */
 internal const val VIEW_DESCRIPTION =
-  "The dominator tree of the heap dump: every cell is an object, drawn inside the one that holds it."
+  "The dominator tree of the heap dump: every cell is an object, as big as what it retains."

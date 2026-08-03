@@ -1045,6 +1045,16 @@ class HeapDominatorTreemap internal constructor(
     return RadialPresentation(layout = result, cells = result.cells.map { it.presented() })
   }
 
+  /** The same again, laid out as a stack of rows, one row per level of domination. */
+  fun presentStack(
+    layout: StackLayout<Long>,
+    viewport: TreemapRect,
+    root: Long = this.root
+  ): StackPresentation {
+    val result = layout.layout(this, viewport, root)
+    return StackPresentation(layout = result, cells = result.cells.map { it.presented() })
+  }
+
   private fun <C : LayoutCell<Long>> C.presented(): PresentedCell<C> = when (val subject = subject) {
     is CellSubject.Node -> group(subject.node)?.let { group ->
       PresentedCell(

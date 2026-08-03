@@ -688,6 +688,22 @@ class ExplorerAppTest {
     }
   }
 
+  @Test fun `the same tree can be drawn as a stack`() {
+    explorerUiTest {
+      openHeapDump()
+      shapeOption(ViewShape.TREEMAP).assertIsSelected()
+
+      shapeOption(ViewShape.STACK).performClick()
+
+      // Laying the stack out is another read of the heap dump, so the tree comes back a beat later.
+      shapeOption(ViewShape.STACK).assertIsSelected()
+      waitForTheTree(OPEN_TIMEOUT_MILLIS)
+      clickAt(stackRow(STACK_ROW))
+
+      waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
   @Test fun `the colour scheme can be switched`() {
     explorerUiTest {
       openHeapDump()
@@ -1007,6 +1023,9 @@ class ExplorerAppTest {
     /** Just off the middle of the view, which is in the first ring the rings are drawn out from. */
     private const val RING_X = 0.45f
     private const val RING_Y = 0.55f
+
+    /** A row of the stack below the top one, so that it is an object of the dump rather than the dump. */
+    private const val STACK_ROW = 1
 
     /** How far inside the left edge of the view a container's outline is pressed. Within EDGE_GRAB. */
     private const val EDGE_PRESS_INSET = 2f
