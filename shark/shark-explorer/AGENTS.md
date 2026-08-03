@@ -193,6 +193,17 @@ tiles.
 - **Relaunching a title while a window of that title is open** is the one thing to avoid: the bundle is
   rewritten in place, and that window is reading it.
 
+**And a Gradle build of any kind kills every explorer window already open.** `run` and `runNamed` both
+put the module jars on the classpath rather than a copy of them, and a JVM reads a jar's index once and
+then trusts it, so recompiling under a live window makes every class that window hasn't happened to load
+yet disappear. What that looks like is the window dying on the next pointer move with
+`NoClassDefFoundError: shark/explorer/TreemapPoint`, a `ClassNotFoundException` under it, and a stack
+trace through code nobody has touched — the class is in the source and in the jar, which is exactly what
+makes it read like a real bug in whatever was being worked on. Measured: a window launched at 16:42, a
+`shark-explorer-core:check` rewriting that jar at 16:46, and the first hover after it gone. So **launch
+the window you are handing over last**, after everything that builds — and when one dies this way, check
+the jar's mtime against the process start before believing the stack trace.
+
 [dock-bug]: https://bugs.openjdk.org/browse/JDK-8173753
 
 ## Reading these names without being able to see the screen
