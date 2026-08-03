@@ -1023,37 +1023,16 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * Lays this tree out into [viewport] rooted at [root], and reads a label and a strength for every
-   * rectangle: everything the UI needs to draw a treemap without touching the heap dump itself.
+   * Reads a label and a strength for every one of [cells]: everything the UI needs to draw a laid out
+   * shape of this tree without touching the heap dump itself.
+   *
+   * What shape they are is no business of this, which is why there is one of these rather than one per
+   * shape — a `TreemapCell`, a `RadialCell` and a `StackCell` are all a [CellSubject] with geometry, and
+   * a name is read off the subject. Pairing a layout with this is [TreemapPresentation.of] and its two
+   * siblings, so a fourth shape needs nothing here.
    */
-  fun present(
-    layout: TreemapLayout<Long>,
-    viewport: TreemapRect,
-    root: Long = this.root
-  ): TreemapPresentation {
-    val result = layout.layout(this, viewport, root)
-    return TreemapPresentation(layout = result, cells = result.cells.map { it.presented() })
-  }
-
-  /** The same, laid out as rings around a centre rather than as rectangles. */
-  fun presentRadial(
-    layout: RadialLayout<Long>,
-    viewport: TreemapRect,
-    root: Long = this.root
-  ): RadialPresentation {
-    val result = layout.layout(this, viewport, root)
-    return RadialPresentation(layout = result, cells = result.cells.map { it.presented() })
-  }
-
-  /** The same again, laid out as a stack of rows, one row per level of domination. */
-  fun presentStack(
-    layout: StackLayout<Long>,
-    viewport: TreemapRect,
-    root: Long = this.root
-  ): StackPresentation {
-    val result = layout.layout(this, viewport, root)
-    return StackPresentation(layout = result, cells = result.cells.map { it.presented() })
-  }
+  fun <C : LayoutCell<Long>> present(cells: List<C>): List<PresentedCell<C>> =
+    cells.map { it.presented() }
 
   private fun <C : LayoutCell<Long>> C.presented(): PresentedCell<C> = when (val subject = subject) {
     is CellSubject.Node -> group(subject.node)?.let { group ->

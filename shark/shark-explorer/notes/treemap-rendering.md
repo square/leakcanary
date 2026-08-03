@@ -3,9 +3,18 @@
 Implemented in `shark-explorer-core`: `Squarify.kt` (row layout), `TreemapLayout.kt` (adaptive depth
 and hit testing), `RadialLayout.kt` (the same, as rings), `StackLayout.kt` (the same, as a row per
 level), `TreemapRect.kt`, `LayoutCell.kt` (what the three layouts have in common),
-`HeapDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and `present()` / `presentRadial()` /
-`presentStack()`, which turn a layout into the labelled, coloured presentation the UI draws). Drawn by
-`TreemapView`, `RadialView` and `StackView` in `shark-explorer-app`.
+`HeapDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and `present()`, which labels and
+colours the cells a layout produced), `TreemapPresentation.kt` (a presentation per shape, each with an
+`of()` pairing a layout with that). Drawn by `TreemapView`, `RadialView` and `StackView` in
+`shark-explorer-app`.
+
+**`of()` is a presentation's own, not a method per shape on `HeapDominatorTreemap`.** It used to be the
+other way round, and adding a third shape is what moved it: that class is a 1,200 line heap dump reader
+which detekt allows 50 functions, and `presentStack` was the fiftieth. Rather than split it somewhere
+arbitrary, the per-shape method came out of it — which is also the better line, since which shapes exist
+is no business of a heap dump reader. `present(cells)` is all that stayed behind: it reads a name and a
+strength off a `CellSubject`, and every shape's cells are those. **So a fourth shape needs nothing in
+`HeapDominatorTreemap` at all.**
 
 ## Three shapes, one cut of the tree
 
@@ -14,8 +23,9 @@ depth, a weight and whatever geometry its layout adds. `TreemapCell` adds a rect
 annular sector, `StackCell` a rectangle again, on a row. Everything downstream of the geometry works off
 `CellSubject` alone: labels, colours, where a click goes. That split is what keeps a second shape from
 being a second copy of all of it, and the third shape is what confirmed the price: `StackLayout` plus
-`StackView`, one new `Canvas`, and three lines elsewhere — a `ViewShape`, a `ViewPresentation` and a
-`presentStack()`. Nothing about colouring, labelling, selection, hit resolution or navigation moved.
+`StackView`, one new `Canvas`, and three small things beside them — a `ViewShape`, a `ViewPresentation`
+and a `StackPresentation` with its `of()`. Nothing about colouring, labelling, selection, hit resolution
+or navigation moved.
 
 The three layouts make the same decisions — largest cell subdivided first, children too small to see
 grouped, a cell budget, truncation counted — differing only in what "too small" measures. A treemap

@@ -2,7 +2,7 @@ package shark.explorer
 
 /**
  * A treemap laid out and labelled, holding everything needed to draw it and nothing that needs the
- * heap dump. Produced by [HeapDominatorTreemap.present], off the UI thread.
+ * heap dump. Produced by [of], off the UI thread.
  */
 class TreemapPresentation(
   /** Kept for hit testing, which is [TreemapLayoutResult.cellAt]. */
@@ -19,13 +19,27 @@ class TreemapPresentation(
       layout = TreemapLayoutResult(emptyList(), truncatedNodeCount = 0),
       cells = emptyList()
     )
+
+    /**
+     * Lays [tree] out into [viewport] rooted at [root] and reads what it takes to draw the result.
+     *
+     * Here rather than in [HeapDominatorTreemap] — as is every shape's — because which shapes there are
+     * is not something a heap dump reader should have to know: it labels cells, and pairing that with a
+     * layout is this side of the line. See [HeapDominatorTreemap.present].
+     */
+    fun of(
+      tree: HeapDominatorTreemap,
+      layout: TreemapLayout<Long>,
+      viewport: TreemapRect,
+      root: Long = tree.root
+    ): TreemapPresentation {
+      val result = layout.layout(tree, viewport, root)
+      return TreemapPresentation(layout = result, cells = tree.present(result.cells))
+    }
   }
 }
 
-/**
- * The same tree as a [TreemapPresentation], laid out as rings instead. Produced by
- * [HeapDominatorTreemap.presentRadial].
- */
+/** The same tree as a [TreemapPresentation], laid out as rings instead. */
 class RadialPresentation(
   /** Kept for hit testing, which is [RadialLayoutResult.cellAt]. */
   val layout: RadialLayoutResult<Long>,
@@ -35,12 +49,22 @@ class RadialPresentation(
 
   /** See [TreemapLayoutResult.truncatedNodeCount]. */
   val truncatedNodeCount: Int get() = layout.truncatedNodeCount
+
+  companion object {
+    /** See [TreemapPresentation.of]. */
+    fun of(
+      tree: HeapDominatorTreemap,
+      layout: RadialLayout<Long>,
+      viewport: TreemapRect,
+      root: Long = tree.root
+    ): RadialPresentation {
+      val result = layout.layout(tree, viewport, root)
+      return RadialPresentation(layout = result, cells = tree.present(result.cells))
+    }
+  }
 }
 
-/**
- * The same tree as a [TreemapPresentation], laid out as a stack of rows instead. Produced by
- * [HeapDominatorTreemap.presentStack].
- */
+/** The same tree as a [TreemapPresentation], laid out as a stack of rows instead. */
 class StackPresentation(
   /** Kept for hit testing, which is [StackLayoutResult.cellAt], and for how tall the stack came out. */
   val layout: StackLayoutResult<Long>,
@@ -50,6 +74,19 @@ class StackPresentation(
 
   /** See [TreemapLayoutResult.truncatedNodeCount]. */
   val truncatedNodeCount: Int get() = layout.truncatedNodeCount
+
+  companion object {
+    /** See [TreemapPresentation.of]. */
+    fun of(
+      tree: HeapDominatorTreemap,
+      layout: StackLayout<Long>,
+      viewport: TreemapRect,
+      root: Long = tree.root
+    ): StackPresentation {
+      val result = layout.layout(tree, viewport, root)
+      return StackPresentation(layout = result, cells = tree.present(result.cells))
+    }
+  }
 }
 
 /**

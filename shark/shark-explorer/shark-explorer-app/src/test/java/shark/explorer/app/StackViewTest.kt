@@ -229,7 +229,7 @@ class StackViewTest {
       if (node < length) listOf(node + 1) else emptyList()
   }
 
-  /** What [shark.explorer.HeapDominatorTreemap.presentStack] does, for a tree that isn't a heap dump. */
+  /** What [shark.explorer.StackPresentation.of] does, for a tree that isn't a heap dump. */
   private fun TreemapTree<Long>.present(
     layout: StackLayout<Long> = StackLayout()
   ): StackPresentation {

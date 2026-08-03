@@ -208,13 +208,28 @@ internal fun HeapDumpExplorer(
         navigation = reachablePath,
         presentation = when (viewRequest.shape) {
           ViewShape.TREEMAP -> ViewPresentation.Treemap(
-            tree.present(viewRequest.treemapLayout, viewRequest.viewport, reachablePath.current)
+            TreemapPresentation.of(
+              tree,
+              viewRequest.treemapLayout,
+              viewRequest.viewport,
+              reachablePath.current
+            )
           )
           ViewShape.RADIAL -> ViewPresentation.Radial(
-            tree.presentRadial(viewRequest.radialLayout, viewRequest.viewport, reachablePath.current)
+            RadialPresentation.of(
+              tree,
+              viewRequest.radialLayout,
+              viewRequest.viewport,
+              reachablePath.current
+            )
           )
           ViewShape.STACK -> ViewPresentation.Stack(
-            tree.presentStack(viewRequest.stackLayout, viewRequest.viewport, reachablePath.current)
+            StackPresentation.of(
+              tree,
+              viewRequest.stackLayout,
+              viewRequest.viewport,
+              reachablePath.current
+            )
           )
         }
       )

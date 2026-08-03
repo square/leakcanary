@@ -307,7 +307,7 @@ class TreemapViewTest {
     }
   }
 
-  /** What [shark.explorer.HeapDominatorTreemap.present] does, for a tree that isn't a heap dump. */
+  /** What [shark.explorer.TreemapPresentation.of] does, for a tree that isn't a heap dump. */
   private fun TreemapTree<Long>.present(
     layout: TreemapLayout<Long> = TreemapLayout()
   ): TreemapPresentation {
