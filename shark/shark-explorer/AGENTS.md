@@ -361,6 +361,13 @@ numbers belong in `notes/bitmaps.md`.
 - **A click is a fraction of the view, never of the window.** `ExplorerAppTest.viewBounds` measures the
   view by its `contentDescription`, and every press helper is relative to that. Window fractions break
   the moment anything above the view changes height, which is a change to the top bar away.
+- **A test about `java.lang.ref` strengths needs a dump of a real JVM, taken without collecting first.**
+  `JvmReferenceStrengthTest` writes one with `HotSpotDiagnosticMXBean.dumpHeap(path, live = false)`,
+  because the collection a heap dump normally begins with clears a weak referent nothing else holds and,
+  since JDK 9, a phantom one — so the strengths the test is about would be missing from a dump taken the
+  usual way. That leaves it fragile in a way its KDoc explains: anything allocated between its
+  `System.gc()` and the dump can trigger a collection that clears the lot. It doesn't replace the
+  `dump { }` cases either, ART's reference classes and the lists it keeps them on not being HotSpot's.
 - Build test heap dumps with the `hprofFile.dump { }` DSL from `shark-hprof-test` rather than
   checking in binary fixtures or hand-writing hprof bytes. A dump with bitmaps in it is `BitmapDumps.kt`
   in `shark-explorer-core`'s tests — the `"a.b.C" instance { }` shorthand declares a class per instance,

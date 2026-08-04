@@ -5,6 +5,23 @@ package shark.explorer
 internal fun HeapDominatorTreemap.findByLabel(label: String): HeapObjectSummary =
   allSummaries().single { it.label == label }
 
+/**
+ * The instances of one class, by simple name, found the way the window's object list finds them: through
+ * the index. Which is what the tests of a dump of a real JVM have to use, [allSummaries] reading every
+ * object of the dump out of the heap dump file.
+ */
+internal fun HeapDominatorTreemap.instancesOf(simpleClassName: String): List<ObjectListEntry> =
+  listObjects(
+    ObjectListFilter(
+      query = simpleClassName,
+      isExactMatch = true,
+      kinds = setOf(HeapObjectKind.INSTANCE)
+    )
+  ).entries
+
+internal fun HeapDominatorTreemap.onlyInstanceOf(simpleClassName: String): ObjectListEntry =
+  instancesOf(simpleClassName).single()
+
 /** Every object of the tree, walked past the groups, which stand for objects rather than being one. */
 internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
   val summaries = mutableListOf<HeapObjectSummary>()
