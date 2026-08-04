@@ -106,11 +106,12 @@ compose.desktop {
 
     nativeDistributions {
       targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-      // One word, and not by preference: this is the name of the .app, so it is the name of the zip
-      // Block's signing service is asked to sign, and a space in it makes that request fail. See
-      // docs/releasing-shark-explorer.md. squareup/tf-mobuild-workers#1365 fixes it; when that has
-      // shipped this becomes "Shark Explorer", which is a change to the app's visible name and so a
-      // change worth making deliberately rather than the moment it's unblocked.
+      // One word, and not by preference: this is the name of the `.app`, so it is the name of the zip
+      // Block's signing service is handed, and a space in it makes the reply that service sends back
+      // fail. squareup/tf-mobuild-workers#1365 fixes that and has merged, but the lambda is still
+      // serving the previously deployed copy, so a tagged build with a space in this name still fails —
+      // measured, not assumed. This becomes "Shark Explorer" once that rollout has applied, and one
+      // tagged build is what tells you it has. See docs/releasing-shark-explorer.md.
       packageName = "SharkExplorer"
       // Each format validates this against rules of its own, and `gradle.properties` records which ones
       // and what they leave possible. `3.0-alpha-10` satisfies none of them, which is the whole reason
