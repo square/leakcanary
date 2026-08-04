@@ -460,21 +460,32 @@ dump: `DemoRootWithGatekeepersWorkflowProvider`, object index 31516 against 3126
 two ten-step chains is identical. Bucket order isn't stable across two dumps of one app either, so neither
 answer is the right one — but a walk up cannot see a walk down's order, and the only way to break it the
 same way is to walk down: one prioritized BFS from the GC roots at open time, filling a parent-per-object
-array that every chain is then read out of. That would be identical to a leak trace by construction, it is
-one int per object against `ReferrerIndex`'s two per reference, and it makes a chain a pointer chase rather
-than a search — but it is a different data structure, not a tie-break, and `ReferrerIndex` still has to
-exist for "every way this is held".
+array that every chain is then read out of. Every tie would then break the way a leak trace breaks it, since
+it would be the same walk in the same direction; a chain becomes a pointer chase up the array rather than a
+search per hover; and it is one int per object, against `ReferrerIndex`'s two per reference. What it isn't
+is a tie-break: it is a second traversal at open time, reading objects in BFS order where building the index
+is a sequential scan of the dump, and `ReferrerIndex` still has to exist for "every way this is held".
 
-`unloaded_classes-stripped.hprof` — one leak against LeakCanary's two, for two reasons that stack. The
-first is **an owner rule**: `InternalLeakCanary.resumedActivity → HomeActivity` is weakened, because an
-`Activity` is owned by the `ActivityThread$ActivityClientRecord` that holds it, so the explorer can't walk
-LeakCanary's ten-step prefix and takes an eleven-step one from a static `MediaStateMachine` instead. The
-second is that **LeakCanary's phase 1 treats a leaking object as a leaf**: its path to the `BrowserFragment`
-goes round the leaking `CoordinatorLayout` through `BrowserToolbarView.interactor`, where every chain here
-runs through it, and a suspect stretch stops at the first leaking object — so the fragment hashes to the
-same signature as the layout and joins its group. Which is why the fold rule is not what closes this one:
-under either rule those two objects share a signature. Fixing it would mean the leak list finding paths by
-rules the rest of the window doesn't use, which is the one thing this screen is not allowed to do.
+`unloaded_classes-stripped.hprof` — one leak against LeakCanary's two, for two reasons that stack, and
+**neither of them is dominance**: `BrowserToolbarView` dominates both the leaking `CoordinatorLayout` and
+the leaking `BrowserFragment`, the layout dominates nothing, and the fold rule keeps all four objects.
+
+The first reason is **an owner rule**. `InternalLeakCanary.resumedActivity → HomeActivity` is weakened,
+because an `Activity` is owned by the `ActivityThread$ActivityClientRecord` that holds it, so the explorer
+can't walk LeakCanary's ten-step prefix and takes an eleven-step one from a static `MediaStateMachine`
+instead. That alone makes every signature on this dump differ, whatever else is fixed.
+
+The second is **another tie, broken by a rule rather than by an order**. Below `BrowserToolbarView` there
+are two four-step ways to the fragment: `container → CoordinatorLayout → SparseArray → Object[] →` it, and
+`interactor → BrowserInteractor → DefaultBrowserToolbarController → lambda →` it. The explorer takes the
+first, so the fragment's chain runs through a leaking object, and a suspect stretch stops at the first
+leaking object — so the fragment hashes to the layout's signature and joins its group, one group where
+LeakCanary has two. LeakCanary can't take that way at all, because **its phase 1 treats a leaking object as
+a leaf**. The rule that would break this tie the same way and stay one mechanism for every chain in the
+window is a third tier in [RootPathSearch]'s queue — put off a reference into an object that shouldn't be
+in memory, the way a stack frame is put off — since a path through a dead object explains what holds an
+object about as well as a running method does. It would want the leaking object ids before the first chain
+is drawn, which today are found on demand when the Leaks screen is opened.
 
 **Where the two used to differ, and what closed it** — four rounds, in the order they were found:
 
