@@ -21,12 +21,23 @@ per open heap dump, built once, holding every object of the dump.
 **Which reference matchers go in matters, and it isn't "none".** The matchers do two unrelated jobs,
 and only one of them belongs here:
 
-- `JdkReferenceMatchers.REFERENCES` is where **reference strength** lives. `WeakReference.referent`,
-  `SoftReference.referent`, `PhantomReference.referent`, `KeyedWeakReference.referent` and the
-  `Finalizer` / `FinalizerReference` / `Cleaner` list links are `IgnoredReferenceMatcher`s and nothing
-  else marks them. Follow them and a weak reference looks like it retains its referent, and the
-  finalizer list looks like one long chain of objects retaining each other. Retained size stops
-  meaning anything. **Required.**
+- **Reference strength** is `ReferenceStrengthReader.WEAKENING_REFERENCE_MATCHERS`, one
+  `IgnoredReferenceMatcher` per field of `WEAKENING_FIELDS_BY_CLASS_NAME` and nothing else, read off the
+  same map that gives those fields their strength: the `referent` and `zombie` of the five reference
+  classes, plus the cache and thread local fields. Follow one of those and a weak reference looks like it
+  retains its referent, and retained size stops meaning anything. **Required.** A field pattern matches on
+  any class of an object's hierarchy, so a `KeyedWeakReference` is covered by the `WeakReference` entry and
+  needs none of its own.
+- **Deliberately not `JdkReferenceMatchers.REFERENCES`**, which is that list plus the `prev`, `next` and
+  `element` links of the lists a runtime keeps its `Finalizer`s, `FinalizerReference`s and `Cleaner`s on,
+  ignored there so that a leak trace can't run through the queue of objects waiting to be finalized.
+  Those links retain what they point at, and on Android they are the only thing that does: the list hangs
+  off one static field, the head through that static and every entry after it through the one before. So
+  ignoring them left everything past the head of the list reading as uncollected garbage, and with it
+  every object waiting to be finalized or cleaned — on `large-dump.hprof`, 4773 of its 4774
+  `FinalizerReference`s and 3392 of its 3553 `Cleaner`s, a fifth of everything the explorer called
+  garbage. Pinned by two `HeapReachabilityTest` cases that build such a list and by
+  `JvmReferenceStrengthTest`, which dumps a real JVM that has one.
 - `AndroidReferenceMatchers` mostly suppresses noise so a leak trace stays readable. Those are real
   strong references, so ignoring them here would hide memory that really is retained. **Left out.**
   This is why `ActualMatchingReferenceReaderFactory` and not `AndroidReferenceReaderFactory`: the
@@ -50,9 +61,16 @@ the whole heap dump and they only pick which strengths are drawn in colour. See 
 
 **`SOFT`, `WEAK` and `PHANTOM` often come out at 0 bytes — but don't treat that as a rule.** The
 collection that precedes a dump clears a `Reference` whose referent nothing else was holding, so on
-many dumps there's nothing left at those strengths. Measured on `compose_leak.hprof`: 12 MB strong,
-exactly 0 B soft/weak/finalizer/phantom, 3 MB uncollected garbage. On a 287 MB production dump: 262 MB
-strong, 7 MB uncollected garbage, and 5 finalizer reachable objects totalling 1.1 KB.
+many dumps there's nothing left at those strengths. Measured on `compose_leak.hprof`: 15.8 MB strong over
+243,672 objects, 8 B weak over one, exactly 0 B soft, finalizer and phantom, 418 KB uncollected garbage
+over 15,320 objects. On a 287 MB production dump: 262 MB strong, 7 MB uncollected garbage, and 5 finalizer
+reachable objects totalling 1.1 KB — measured before the list links above were followed, so its finalizer
+count would be higher today.
+
+**And a dump where none of them is 0 looks like this.** `leak_asynctask_o.hprof`, same repo, 9.0 MB strong
+over 120,601 objects: 164 KB phantom over 1,266, 405 B finalizer over 17, 366 B thread local over 14,
+140 B soft over 5, 97 B weak over 7, and 255 KB garbage over 7,847. Worth having a dump like that to hand,
+because every one of those strengths reading 0 is also what a broken strength computation looks like.
 
 **A dump can and does contain objects that are only weakly reachable**, and not as uncollected
 garbage: a referent a thread pulled out of a reference, used, and has since let go of is weakly
@@ -406,8 +424,14 @@ arrays, 10.7 MB, 88% of what was left. `ReferenceStrengthReader.classMetadataRef
 as static field references of the class holding them.
 
 Together the garbage went from **117,997 objects / 12.0 MB to 6,029 / 190 KB**, the same order as YourKit's
-1,863. What's left is reference queue plumbing — 2,403 `Cleaner`, 2,401 `CleanerThunk`, 763
+1,863. What was left was reference queue plumbing — 2,403 `Cleaner`, 2,401 `CleanerThunk`, 763
 `FinalizerReference`, 40 `NativeAllocationRegistry` — plus a small tail.
+
+**Most of that plumbing was a third cause, found later**: it was garbage only because the list links its
+runtime holds it by were ignored, see the matchers section above. That dump isn't in the repo, so measured
+on `large-dump.hprof` instead — garbage from **38,219 objects / 1,020,454 B to 26,466 / 631,761 B**, and
+`FINALIZER` from nothing to 72 objects / 9,353 B. On `leak_asynctask_o.hprof`, garbage from 10,771 objects
+to 7,847 and `PHANTOM` from nothing to 1,266 objects / 163,917 B.
 
 The String `value` arrays are *not* part of this, though they look like they should be: the unreachable
 value arrays matched the unreachable Strings one for one, 19,278 each, so folding had been accounting for

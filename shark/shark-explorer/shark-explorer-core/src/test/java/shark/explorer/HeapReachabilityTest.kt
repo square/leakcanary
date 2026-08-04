@@ -55,6 +55,61 @@ class HeapReachabilityTest {
     assertThat(strength).isEqualTo(FINALIZER)
   }
 
+  @Test fun `an object the finalizer list is the only holder of is finalizer reachable`() {
+    val file = testFolder.newFile("finalizer-list.hprof")
+    var payloadObjectId = 0L
+    file.dump {
+      // ART puts a FinalizerReference on the list FinalizerReference.head starts for every object whose
+      // class overrides finalize(), and that list is the only thing holding it: the head through the
+      // static, every entry after it through the one before. So an entry that isn't the head is only
+      // reachable through `next`, and an object waiting to be finalized only through that entry.
+      val headId = reserveObjectId()
+      val classes = referenceClasses(finalizerListHead = headId)
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      payloadObjectId = payload.value
+      val second = finalizerReference(classes, referent = payload)
+      finalizerReference(classes, next = second, objectId = headId)
+      gcRoot(StickyClass(id = classes.finalizerId))
+    }
+
+    HeapExplorer.open(file).use { explorer ->
+      val tree = explorer.tree
+
+      assertThat(tree.strengthOf(payloadObjectId)).isEqualTo(FINALIZER)
+      assertThat(tree.dominatorOf(payloadObjectId)!!.label).isEqualTo("FinalizerReference")
+      assertThat(explorer.sizes.unreachableByteCount).isZero()
+    }
+  }
+
+  @Test fun `an object the cleaner list is the only holder of is phantom reachable`() {
+    val file = testFolder.newFile("cleaner-list.hprof")
+    var payloadObjectId = 0L
+    file.dump {
+      // Same list, one class down: a Cleaner is a PhantomReference, so what only a Cleaner holds is
+      // phantom reachable rather than waiting to be finalized.
+      val firstId = reserveObjectId()
+      val classes = referenceClasses()
+      val cleanerClassId = cleanerClass(classes, firstCleaner = firstId)
+      val payload = ReferenceHolder(
+        objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      )
+      payloadObjectId = payload.value
+      val second = cleaner(cleanerClassId, referent = payload)
+      cleaner(cleanerClassId, next = second, objectId = firstId)
+      gcRoot(StickyClass(id = cleanerClassId))
+    }
+
+    HeapExplorer.open(file).use { explorer ->
+      val tree = explorer.tree
+
+      assertThat(tree.strengthOf(payloadObjectId)).isEqualTo(PHANTOM)
+      assertThat(tree.dominatorOf(payloadObjectId)!!.label).isEqualTo("Cleaner")
+      assertThat(explorer.sizes.unreachableByteCount).isZero()
+    }
+  }
+
   @Test fun `a strong reference wins over a weak one`() {
     val strength = strengthOfPayload { classes, payload ->
       "com.example.Holder" instance {
