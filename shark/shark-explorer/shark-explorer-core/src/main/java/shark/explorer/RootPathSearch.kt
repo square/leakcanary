@@ -15,9 +15,16 @@ import androidx.collection.IntSet
  * A path through a stack frame says an object was in use when the dump was taken, which is nothing to fix
  * and often one step from anywhere.
  *
+ * **An object that shouldn't be in memory is put off for the same reason**, which is [leakingIndexes]: a
+ * chain that runs through one says this object is held by a leak, and while there is another way to it
+ * that isn't, that other way is what holds it once the leak is fixed. It is also what LeakCanary does,
+ * where it reads as a different rule — its phase 1 stops at a leaking object rather than deprioritizing
+ * one, so the way round is the only path it can find at all.
+ *
  * So a path with none of those in it wins over a shorter one that has one, and once a walk is past one
  * there is no going back to the cheap kind: a chain is only as readable as its worst step. Among paths of
- * the same kind, the shortest.
+ * the same kind, the shortest. Which means a chain still runs through a leak when every way to the object
+ * does — an object a leak dominates is held by that leak, and saying so is the whole answer.
  *
  * Object indexes rather than ids throughout, because that is what a [ReferrerIndex] walks in and what the
  * arrays here are indexed by. See [HeapDominatorTreemap.rootPathTo], which reads the objects out.
@@ -30,7 +37,12 @@ import androidx.collection.IntSet
 internal class RootPathSearch(
   private val referrerIndex: ReferrerIndex,
   /** The objects a path can start at: the GC roots the tree was built from, and the garbage's own tops. */
-  private val treeRootIndexes: IntSet
+  private val treeRootIndexes: IntSet,
+  /**
+   * Which objects shouldn't be in memory, by object index. An array rather than a set of the few of them
+   * there are, because it is read once per referrer of every object a walk reaches.
+   */
+  private val leakingIndexes: BooleanArray
 ) {
 
   /** Which object each visited object was reached from, one step closer to the target. */
@@ -86,7 +98,9 @@ internal class RootPathSearch(
         return pathFrom(current, targetIndex)
       }
       referrerIndex.forEachReferrer(current) { referrer, isLowPriority ->
-        val putOff = walkingLast || isLowPriority
+        // A step onto an object that shouldn't be in memory is a step this path is worse for, the same as a
+        // low priority reference: every object above the target is a referrer of something on the way up.
+        val putOff = walkingLast || isLowPriority || leakingIndexes[referrer]
         val seen = seenByWalk[referrer]
         // Not seen at all, or seen only through a reference worth putting off and this one isn't.
         if (seen != walkCount && (seen != -walkCount || !putOff)) {

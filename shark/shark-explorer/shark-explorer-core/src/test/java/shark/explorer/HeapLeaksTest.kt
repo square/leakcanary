@@ -159,19 +159,36 @@ class HeapLeaksTest {
     }
   }
 
-  @Test fun `a leak held another way as well is listed even though a leak is on its chain`() {
+  @Test fun `a leak held another way as well is a leak of its own, held that other way`() {
     val heapDump = testFolder.leakAlsoHeldAnotherWayHeapDump()
     HeapExplorer.open(heapDump.file).use { explorer ->
       val tree = explorer.tree
-      val leaking = tree.findLeaks().objectsOf(APPLICATION)
 
-      // The chain drawn for the window runs through the activity, since that is the shortest way to it, and
-      // folding it under the activity would claim that letting go of the activity takes the window with it.
-      // It wouldn't: something that isn't leaking holds the window too, the long way round.
+      // Something that isn't leaking holds the window, one step further round than the destroyed activity
+      // does. So letting go of the activity leaves the window where it is, and the chain says the thing
+      // that would still be holding it rather than the shortest thing that is.
       assertThat(tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step.objectId })
-        .contains(heapDump.activityObjectId)
-      assertThat(leaking.map { it.objectId })
+        .doesNotContain(heapDump.activityObjectId)
+      assertThat(tree.findLeaks().objectsOf(APPLICATION).map { it.objectId })
         .containsExactlyInAnyOrder(heapDump.activityObjectId, heapDump.windowObjectId)
+      // And two leaks rather than one, which is what listing them separately is for: they are two things to
+      // fix, and grouping goes by the chain, so a chain through the activity would have made them one.
+      assertThat(tree.findLeaks().sectionOf(APPLICATION).groups).hasSize(2)
+    }
+  }
+
+  @Test fun `a leak every way to it runs through a leak is still a leak of its own`() {
+    val heapDump = testFolder.leakTwoLeaksHoldHeapDump()
+    HeapExplorer.open(heapDump.file).use { explorer ->
+      val tree = explorer.tree
+
+      // Two destroyed activities hold this window, so there is no way to it that avoids a leak and the chain
+      // runs through the nearer of the two. That is a chain through a leak that doesn't dominate what it
+      // leads to, and the window stays listed: letting go of that activity leaves the other one holding it.
+      assertThat(tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step.objectId })
+        .contains(heapDump.nearerActivityObjectId)
+      assertThat(tree.findLeaks().objectsOf(APPLICATION).map { it.objectId })
+        .contains(heapDump.windowObjectId)
     }
   }
 

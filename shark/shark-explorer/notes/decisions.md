@@ -436,8 +436,13 @@ object goes through that leak. It also makes the list a property of the heap dum
 which of several equally good chains the path finder picked — the reason to prefer it even where the two
 rules agree. Measured over the ten real dumps here: same leaks, same signatures, five more objects listed
 (`compose_leak` 6 rather than 3, `unloaded_classes-stripped` 4 rather than 2), all inside groups that were
-already there. `HeapLeaksTest` has the heap dump the two rules disagree about — a window a destroyed
-activity holds, and something that isn't leaking holds the long way round.
+already there.
+
+The two rules now disagree only where **every** way to an object runs through a leak, since a chain
+otherwise takes the way round (the third tier below). `HeapLeaksTest` has that heap dump: a window two
+destroyed activities hold, whose chain runs through the nearer one, which doesn't dominate it — letting go
+of that activity leaves the other one holding the window, so it is a leak of its own and the chain rule
+would have dropped it.
 
 **The leaks are checked against LeakCanary's own analysis of the same heap dump, by signature.**
 `HeapAnalyzer` with `FilteringLeakingObjectFinder(appLeakingObjectFilters)` and
@@ -466,28 +471,22 @@ search per hover; and it is one int per object, against `ReferrerIndex`'s two pe
 is a tie-break: it is a second traversal at open time, reading objects in BFS order where building the index
 is a sequential scan of the dump, and `ReferrerIndex` still has to exist for "every way this is held".
 
-`unloaded_classes-stripped.hprof` — one leak against LeakCanary's two, for two reasons that stack, and
-**neither of them is dominance**: `BrowserToolbarView` dominates both the leaking `CoordinatorLayout` and
-the leaking `BrowserFragment`, the layout dominates nothing, and the fold rule keeps all four objects.
+`unloaded_classes-stripped.hprof` — two leaks, the same count as LeakCanary, and two signatures that differ
+by their prefix. What is left is **an owner rule**: `InternalLeakCanary.resumedActivity → HomeActivity` is
+weakened, because an `Activity` is owned by the `ActivityThread$ActivityClientRecord` that holds it, so the
+explorer can't walk LeakCanary's ten-step prefix and takes an eleven-step one from a static
+`MediaStateMachine` instead. That alone makes every signature on this dump differ, whatever else is fixed.
 
-The first reason is **an owner rule**. `InternalLeakCanary.resumedActivity → HomeActivity` is weakened,
-because an `Activity` is owned by the `ActivityThread$ActivityClientRecord` that holds it, so the explorer
-can't walk LeakCanary's ten-step prefix and takes an eleven-step one from a static `MediaStateMachine`
-instead. That alone makes every signature on this dump differ, whatever else is fixed.
+Dominance was never the reason here — `BrowserToolbarView` dominates both the leaking `CoordinatorLayout`
+and the leaking `BrowserFragment`, and the layout dominates nothing. This dump used to come out as **one**
+group, from a tie broken by a rule rather than by an order. Below `BrowserToolbarView` there are two
+four-step ways to the fragment: `container → CoordinatorLayout → SparseArray → Object[] →` it, and
+`interactor → BrowserInteractor → DefaultBrowserToolbarController → lambda →` it. The explorer took the
+first, so the fragment's chain ran through a leaking object, and a suspect stretch stops at the first
+leaking object — so the fragment hashed to the layout's signature and joined its group. LeakCanary can't
+take that way at all, because **its phase 1 treats a leaking object as a leaf**.
 
-The second is **another tie, broken by a rule rather than by an order**. Below `BrowserToolbarView` there
-are two four-step ways to the fragment: `container → CoordinatorLayout → SparseArray → Object[] →` it, and
-`interactor → BrowserInteractor → DefaultBrowserToolbarController → lambda →` it. The explorer takes the
-first, so the fragment's chain runs through a leaking object, and a suspect stretch stops at the first
-leaking object — so the fragment hashes to the layout's signature and joins its group, one group where
-LeakCanary has two. LeakCanary can't take that way at all, because **its phase 1 treats a leaking object as
-a leaf**. The rule that would break this tie the same way and stay one mechanism for every chain in the
-window is a third tier in [RootPathSearch]'s queue — put off a reference into an object that shouldn't be
-in memory, the way a stack frame is put off — since a path through a dead object explains what holds an
-object about as well as a running method does. It would want the leaking object ids before the first chain
-is drawn, which today are found on demand when the Leaks screen is opened.
-
-**Where the two used to differ, and what closed it** — four rounds, in the order they were found:
+**Where the two used to differ, and what closed it** — five rounds, in the order they were found:
 
 - The suspect stretch ran past the first leaking object, and kept array indices, and named a reference by
   the class declaring the field rather than the class of the object. Three ways of grouping too finely.
@@ -505,6 +504,18 @@ is drawn, which today are found on demand when the Leaks screen is opened.
   stack frame, a known library leak and the arrays ART hangs off a class exactly as
   `PrioritizingShortestPathFinder` does, read in the other direction, and `ReferrerIndex` carries
   `Reference.isLowPriority` in the top bit of each edge to answer it.
+- **A reference into an object that shouldn't be in memory wasn't put off**, so a chain took it where there
+  was a way round, and the object it led to hashed to the signature of the leak on the way. That is the
+  third tier in `RootPathSearch`'s queue, on the same two queues as a stack frame and for the same reason:
+  a path through a dead object explains what holds an object about as well as a running method does. Where
+  every way is a leak the chain still runs through one, which is a leak dominating what it holds and is the
+  whole answer. It reads as a different rule in LeakCanary — its phase 1 makes a leaking object a leaf, so
+  the way round is the only path it can find at all — and breaks the same ties the same way.
+
+  **It costs the pass that finds those objects, moved earlier**: they are needed before the first chain
+  rather than when the Leaks screen is opened, which on the 38 MB dump is 296 ms once, paid by the first
+  chain (963 ms against 627 ms) and by nothing after it. Two thousand chains take 1381 ms with the tier and
+  1348 ms without, which is noise — the extra tier is one array read per referrer.
 
 **Shark's library leak matchers are added to the reference reader the tree is built from**
 (`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would

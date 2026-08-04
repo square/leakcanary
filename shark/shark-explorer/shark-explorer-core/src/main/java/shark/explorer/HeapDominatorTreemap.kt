@@ -116,12 +116,23 @@ class HeapDominatorTreemap internal constructor(
   private val bitmaps = HeapBitmaps(graph)
 
   /**
-   * The walk up to the roots the tree was built from, kept between questions: it works over three arrays
+   * The walk up to the roots the tree was built from, kept between questions: it works over four arrays
    * the size of the heap dump, and the pointer moving across a treemap asks for one path per rectangle it
    * crosses. Built on first use, like the index it walks.
+   *
+   * Which is when the pass that finds the objects that shouldn't be in memory happens, since a chain avoids
+   * them. So the first chain of a heap dump pays for that pass as well as for the index, and the leaks
+   * screen is free of it if a chain was drawn first.
    */
   private val rootPathSearch: RootPathSearch by lazy {
-    RootPathSearch(referrerIndex, treeRootIndexes)
+    val leakingIndexes = BooleanArray(referrerIndex.objectCount)
+    leakingCandidateIds.forEach { objectId ->
+      val index = referrerIndex.indexOf(objectId)
+      if (index != ReferrerIndex.NOT_AN_OBJECT) {
+        leakingIndexes[index] = true
+      }
+    }
+    RootPathSearch(referrerIndex, treeRootIndexes, leakingIndexes)
   }
 
   /**
@@ -779,10 +790,25 @@ class HeapDominatorTreemap internal constructor(
     return false
   }
 
+  /** What LeakCanary's watcher was left holding, read once: which of them are leaks takes a chain. */
+  private val watchers: Map<Long, WatchedObject> by lazy { WatchedObjects.readFrom(graph) }
+
+  /**
+   * The objects that shouldn't be in memory, before anything is known about how they are held.
+   *
+   * Its own pass because both the leaks screen and every chain drawn in the window want it, and it costs a
+   * read of every instance of the heap dump — see [leakingObjectIds] and [rootPathSearch].
+   */
+  private val leakingCandidateIds: List<Long> by lazy {
+    val startNanos = System.nanoTime()
+    val ids = leakingObjectIds(watchers)
+    SharkLog.d { "Found ${ids.size} objects that shouldn't be here in ${millisSince(startNanos)} ms" }
+    ids
+  }
+
   private fun computeLeaks(): HeapLeaks {
     val startNanos = System.nanoTime()
-    val watchers = WatchedObjects.readFrom(graph)
-    val candidateIds = leakingObjectIds(watchers)
+    val candidateIds = leakingCandidateIds
     // Largest first, and capped: the walk up to the GC roots per object is what this costs, and a heap
     // dump with thousands of leaking objects has a handful of leaks with thousands of instances each.
     val found = candidateIds

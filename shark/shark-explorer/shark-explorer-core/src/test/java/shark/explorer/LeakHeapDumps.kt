@@ -105,11 +105,11 @@ internal fun TemporaryFolder.nestedLeaksHeapDump(): NestedLeaksHeapDump {
 }
 
 /**
- * The same two leaks, and a second way to the window that doesn't go through the activity — longer, so the
- * chain drawn for the window still runs through the activity, and the activity no longer dominates it.
+ * The same two leaks, and a second way to the window that doesn't go through the activity, one step longer.
  *
- * Which is the heap dump the two rules a fold could use disagree about: letting go of the activity here
- * leaves the window exactly where it is, so it is a leak of its own however the chain for it reads.
+ * Letting go of the activity here leaves the window exactly where it is, so the window is a leak of its own
+ * and the chain for it is the way round rather than the shorter way through the activity — which is the
+ * heap dump that says a chain avoids an object that shouldn't be in memory even at the cost of a step.
  */
 internal fun TemporaryFolder.leakAlsoHeldAnotherWayHeapDump(): NestedLeaksHeapDump {
   val file = newFile("leak-also-held-another-way.hprof")
@@ -137,8 +137,8 @@ internal fun TemporaryFolder.leakAlsoHeldAnotherWayHeapDump(): NestedLeaksHeapDu
       fields = listOf(activity)
     )
     gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
-    // One step longer than the way through the activity, so the chain drawn for the window is still that
-    // one: a way round of the same length would be picked between on a tie and prove nothing.
+    // One step longer than the way through the activity, so that a chain taking it is a chain that gave up
+    // a step for it: a way round of the same length would be picked between on a tie and prove nothing.
     val nearer = instance(
       clazz(className = "com.example.Nearer", fields = listOf("window" to ReferenceHolder::class)),
       fields = listOf(window)
@@ -157,6 +157,65 @@ internal fun TemporaryFolder.leakAlsoHeldAnotherWayHeapDump(): NestedLeaksHeapDu
   }
   return NestedLeaksHeapDump(file, activityObjectId, windowObjectId)
 }
+
+/**
+ * A destroyed window that two destroyed activities hold, one of them a step further from its GC root.
+ *
+ * So there is no way to the window that avoids an object that shouldn't be in memory, and the chain for it
+ * runs through the nearer activity, which doesn't dominate it — letting go of that activity leaves the
+ * window held by the other one. Which is what says the fold has to be about dominating rather than about
+ * what the chain runs through: all three are leaks, and a rule about the chain would drop the window on the
+ * strength of an activity that fixing wouldn't take it with.
+ */
+internal fun TemporaryFolder.leakTwoLeaksHoldHeapDump(): TwoLeaksHoldHeapDump {
+  val file = newFile("leak-two-leaks-hold.hprof")
+  var nearerActivityObjectId = 0L
+  var windowObjectId = 0L
+  file.dump {
+    androidBuild(sdkInt = RECENT_SDK_INT)
+    val windowClassId = clazz(
+      className = WINDOW_CLASS_NAME,
+      superclassId = clazz(
+        className = "android.view.Window",
+        fields = listOf("mDestroyed" to BooleanHolder::class)
+      )
+    )
+    val activityClassId = clazz(
+      className = ACTIVITY_CLASS_NAME,
+      superclassId = clazz(
+        className = "android.app.Activity",
+        fields = listOf("mDestroyed" to BooleanHolder::class, "mWindow" to ReferenceHolder::class)
+      )
+    )
+    val window = instance(windowClassId, fields = listOf(BooleanHolder(true)))
+    val nearerActivity = instance(activityClassId, fields = listOf(BooleanHolder(true), window))
+    val holderClassId = clazz(
+      className = HOLDER_CLASS_NAME,
+      fields = listOf("activity" to ReferenceHolder::class)
+    )
+    val nearerHolder = instance(holderClassId, fields = listOf(nearerActivity))
+    gcRoot(JniGlobal(id = nearerHolder.value, jniGlobalRefId = 0))
+    val furtherActivity = instance(activityClassId, fields = listOf(BooleanHolder(true), window))
+    val furtherHolder = instance(holderClassId, fields = listOf(furtherActivity))
+    val furthest = instance(
+      clazz(className = "com.example.Further", fields = listOf("holder" to ReferenceHolder::class)),
+      fields = listOf(furtherHolder)
+    )
+    gcRoot(JniGlobal(id = furthest.value, jniGlobalRefId = 1))
+    nearerActivityObjectId = nearerActivity.value
+    windowObjectId = window.value
+  }
+  return TwoLeaksHoldHeapDump(file, nearerActivityObjectId, windowObjectId)
+}
+
+/** A [leakTwoLeaksHoldHeapDump] and the two of its three leaking objects the assertions are about. */
+internal class TwoLeaksHoldHeapDump(
+  val file: File,
+  /** The one of the two activities whose GC root is nearer, which is the way the chain goes. */
+  val nearerActivityObjectId: Long,
+  /** The window both of them hold, and neither dominates. */
+  val windowObjectId: Long
+)
 
 /** A [nestedLeaksHeapDump] and the two leaking objects of it, since which one is listed is the question. */
 internal class NestedLeaksHeapDump(
