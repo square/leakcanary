@@ -130,52 +130,59 @@ up each new GitHub release daily.
 Note that Munki compares versions using `CFBundleShortVersionString`, which is `SHARK_EXPLORER_VERSION` —
 another reason that field can't be pinned to something the releases don't move.
 
-## What a first signing run found, and what is still open
+## What the first signing runs found
 
-Both were measured against the real service on 2026-08-04, from a tag whose release was forced to draft
-and then deleted. Neither is fixable here — both are `#mdx-ios` asks, and each is one function.
+Measured against the real service on 2026-08-04, from tags whose releases were forced to draft and then
+deleted. Three separate faults, and they hid each other: Apple refused the app, the service reported the
+refusal as success, and a space in the app's name broke the reply that would have said so.
 
-* **Apple refused this app, and the service reported success.** The DMG came back signed by
-  `Developer ID Application: Block, Inc. (EYF346PHUG)` with the hardened runtime on, all four
-  entitlements present, every one of its Mach-O files carrying a secure timestamp and its nested
-  `Contents/runtime` bundle sealed — and Apple had no notarization record of it, still none eight hours
-  later: `xcrun stapler staple` answers *"CloudKit query failed due to Record not found"*. That app does
-  not launch. It hangs in `dyld` with no output and no session log, where the same bundle re-signed ad
-  hoc with the same entitlements starts in two seconds. So the app-not-launching failure this page used
-  to warn about is real, and it is not the entitlements.
+### Apple refuses the app over a dylib no signer can see
 
-    It is not the service being broken either. Its own canary — a small `.app` through the same pipeline
-    — comes back notarized and stapled, and `spctl` calls it `source=Notarized Developer ID` where ours
-    says `source=Developer ID`. So Apple objected to *this bundle*, and nothing reachable from here says
-    what to: `notarize()` in `apple-codesign/lib/notarize.sh` (`squareup/mdx-ios-codesign-helper`) reads
-    `xcrun notarytool submit --wait`'s exit status rather than the `status` field of the JSON it asked
-    for, so a refusal logs "Notarization complete" — and it discards that JSON, which is where the
-    submission id was. Without the id, Apple's reason is only recoverable from `notarytool history`.
-    Both halves are fixed in squareup/mdx-ios-codesign-helper#20, merged the same day.
+Fixed here, by `shark-explorer-app/build.gradle.kts`, which deletes them from the app image. Worth
+knowing anyway, because nothing about the failure points at the cause.
 
-    A run after that merge failed, which is the fix working rather than a new problem: builds 1620 and
-    1621 spent nine minutes on a real submission and came back `failed`, where before they returned
-    "Notarization complete" and an artifact that would not launch. So the refusal is reproducible and
-    the pipeline now stops on it. **What it stops with is only legible in Buildkite, though.** The
-    lambda collapses any failed build into `Poll request failed with status 400` and `"error":
-    "Request failed"`, so the `notarytool log` output #20 added never reaches the GitHub Actions log —
-    reading it means opening the build at `buildkite.com/runway/mdx-ios-codesign-helper`, which is
-    Block-internal. Expect a signing failure here to need someone with that access.
+`skiko-awt-runtime-macos-arm64` ships both architectures' dylibs. Compose extracts the one it is
+packaging for into the app directory, where `-Dskiko.library.path=$APPDIR` makes it the copy that loads,
+and leaves the other architecture's dylib inside the jar. Nothing loads that one, and nothing signing the
+bundle reaches it either: a signer walks files, and this is an entry in a zip. **Apple's notary service
+opens jars.** So it refused the whole app over
+`skiko-awt-runtime-macos-arm64-*.jar/libskiko-macos-x64.dylib` — *"The binary is not signed with a valid
+Developer ID certificate"* — while every one of the 32 files a signer can see was signed correctly, each
+with a secure timestamp, and the nested `Contents/runtime` bundle was sealed.
 
-* **A space in the app's name breaks the reply, not the signing.** The service signed `Shark
-  Explorer.app` correctly — the Buildkite job passed and uploaded the signed zip — and then the lambda
-  failed working out where it had put it: `bad URI(is not URI?): "s3://…/Shark Explorer.app.zip"`, five
-  minutes in, after a mac worker had done all the work. `destination_url` in
-  `global/lambdas/codesign_helper.rb` (`squareup/tf-mobuild-workers`) parses that S3 URL with Ruby's
-  `URI()` to insert `-signed` before the extension, and a space is not a legal URI character.
-  squareup/tf-mobuild-workers#1365 fixes it, and needs a terraform apply after it merges, because the
-  lambda is Ruby that terraform packages.
+Which is why no local check finds this. `codesign --verify --deep --strict` passes on the returned DMG,
+`spctl --assess` accepts it, and all four entitlements are there. What it costs is the whole app: one
+Apple has no notarization record of does not launch, and it does not fail either. It hangs in `dyld` with
+no output and no session log, where the same bundle re-signed ad hoc starts in two seconds. So a signed
+DMG that opens into a hang means notarization, not entitlements.
 
-    **So `packageName` is `SharkExplorer` until then**, which is why the app is called that rather than
-    what this page calls it. Changing it back is one line in
-    `shark-explorer-app/build.gradle.kts` — but it renames the `.app` for everyone who installed one, so
-    it belongs in a release of its own rather than in the first commit after that lambda ships. Under
-    that name a run does reach notarization, so this is a workaround that holds and not a guess.
+### A refusal came back as success
 
-Until both are resolved there is no releasable macOS build, and the notarization check in the workflow
-fails the release rather than shipping one.
+`notarize()` in `apple-codesign/lib/notarize.sh` (`squareup/mdx-ios-codesign-helper`) read
+`xcrun notarytool submit --wait`'s exit status rather than the `status` field of the JSON it asked for, so
+a refusal logged "Notarization complete" and the pipeline handed back a signed, un-notarized DMG. It also
+discarded that JSON, which is where the submission id was — and the id is the only handle on Apple's
+reason, since the artifact carries no trace of it. Both halves are fixed in
+squareup/mdx-ios-codesign-helper#20. A run after that merge failed where the same bundle had previously
+"passed", which is that fix working.
+
+**A signing failure's reason is legible only in Buildkite.** The lambda collapses any failed build into
+`Poll request failed with status 400`, so the `notarytool log` output that PR added never reaches the
+GitHub Actions log. Reading it means opening the build at `buildkite.com/runway/mdx-ios-codesign-helper`,
+which is Block-internal, so expect to need someone with that access.
+
+### A space in the app's name breaks the reply, not the signing
+
+Still open, and the reason `packageName` is one word. The service signed `Shark Explorer.app` correctly —
+the Buildkite job passed and uploaded the signed zip — and then the lambda failed working out where it
+had put it: `bad URI(is not URI?): "s3://…/Shark Explorer.app.zip"`, five minutes in, after a mac worker
+had done all the work. `destination_url` in `global/lambdas/codesign_helper.rb`
+(`squareup/tf-mobuild-workers`) parses that S3 URL with Ruby's `URI()` to insert `-signed` before the
+extension, and a space is not a legal URI character. squareup/tf-mobuild-workers#1365 fixes it, and needs
+a terraform apply after it merges, because the lambda is Ruby that terraform packages.
+
+**So `packageName` is `SharkExplorer` until then**, which is why the app is called that rather than what
+this page calls it. Under that name a run does reach notarization, so this is a workaround that holds and
+not a guess. Changing it back is one line in `shark-explorer-app/build.gradle.kts` — but it renames the
+`.app` for everyone who installed one, so it belongs in a release of its own rather than in the first
+commit after that lambda ships.

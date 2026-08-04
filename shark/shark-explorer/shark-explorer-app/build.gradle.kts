@@ -1,3 +1,8 @@
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import org.gradle.api.tasks.options.Option
 import org.gradle.process.ExecOperations
@@ -136,6 +141,75 @@ compose.desktop {
       // What `shark-explorer-jdwp` attaches to a live app with. jlink leaves out every module it
       // doesn't detect a use of, and it detects no use of one reached through `Bootstrap`.
       modules("jdk.jdi")
+    }
+  }
+}
+
+/*
+ * Deletes the dylibs left inside the packaged app's own jars, which is what makes a macOS build
+ * notarizable.
+ *
+ * `skiko-awt-runtime-macos-arm64` ships both architectures' dylibs, 21 and 22 MB. Compose extracts the one
+ * it is packaging for into the app directory — where the launcher's `-Dskiko.library.path=$APPDIR` makes
+ * it the copy that loads — and leaves the other architecture's dylib inside the jar. Nothing loads that
+ * one. Nothing signing the bundle reaches it either: a signer walks files, and this is an entry in a zip.
+ *
+ * Apple's notary service does open jars, so it is the one Mach-O in the bundle that arrives unsigned, and
+ * one is enough. It refused this app over
+ * `skiko-awt-runtime-macos-arm64-*.jar/libskiko-macos-x64.dylib` — "The binary is not signed with a valid
+ * Developer ID certificate" — while every file a signer can see was signed correctly, which is why no
+ * local check found it. See docs/releasing-shark-explorer.md.
+ *
+ * Done to the app image and not to the jar this module resolves, because `run` and the tests load skiko
+ * out of that jar, and the image is the first point where only one architecture is still in play. Every
+ * package format is rendered from this image, so stripping it here covers the DMG.
+ */
+// Matched by name rather than with tasks.named(), because the Compose plugin registers this one late too.
+tasks.matching { it.name == "createDistributable" }.configureEach {
+  // Read at configuration time: a task action reaching back into the project is what the configuration
+  // cache forbids, and this needs nothing else from it.
+  val appImage = layout.buildDirectory.dir("compose/binaries/main/app").get().asFile
+  doLast {
+    appImage.walkTopDown().filter { it.isFile && it.extension == "jar" }.forEach { jar ->
+      // The `.sha256` beside each one goes too: skiko checks the hash of the copy it loads, which is the
+      // extracted one, and a hash of a file that is gone is not worth carrying.
+      val bundledDylibs = ZipFile(jar).use { zip ->
+        zip.entries().asSequence()
+          .map { it.name }
+          .filter { it.endsWith(".dylib") || it.endsWith(".dylib.sha256") }
+          .toSet()
+      }
+      if (bundledDylibs.isEmpty()) return@forEach
+
+      // The extracted copy, which has to be there for deleting the rest to be safe. `$APPDIR` is this
+      // directory, so beside the jar is the only place it counts as extracted to.
+      val extracted = jar.parentFile.walk().maxDepth(1).filter { it.extension == "dylib" }.toList()
+      if (extracted.isEmpty()) {
+        throw GradleException(
+          "${jar.name} holds ${bundledDylibs.joinToString()} and no dylib sits beside it, so these " +
+            "are the only copies and deleting them would leave nothing to load. Compose extracting " +
+            "the packaged architecture's dylib into the app directory is what makes this safe, and it " +
+            "has stopped doing that. Check what createDistributable produces before touching this."
+        )
+      }
+
+      val stripped = File(jar.parentFile, "${jar.name}.stripped")
+      ZipFile(jar).use { zip ->
+        ZipOutputStream(stripped.outputStream().buffered()).use { out ->
+          // In the order they were in, so the manifest stays the first entry.
+          zip.entries().asSequence().filter { it.name !in bundledDylibs }.forEach { entry ->
+            out.putNextEntry(ZipEntry(entry.name))
+            zip.getInputStream(entry).use { it.copyTo(out) }
+            out.closeEntry()
+          }
+        }
+      }
+      val freed = jar.length() - stripped.length()
+      Files.move(stripped.toPath(), jar.toPath(), REPLACE_EXISTING)
+      logger.lifecycle(
+        "Stripped ${bundledDylibs.joinToString()} out of ${jar.name}, ${freed / 1024 / 1024} MB, " +
+          "leaving ${extracted.joinToString { it.name }} to load."
+      )
     }
   }
 }
