@@ -32,6 +32,17 @@ data class HeapSizes(
   val totalObjectCount: Int
 ) {
 
+  /**
+   * Bytes held by the objects nothing is going to let go of on its own, i.e. what [STRONG] holds.
+   *
+   * What a retained size is shown as a share of, being the memory that stays taken until something
+   * drops a reference. A share of it can pass 100%, though nothing here has come close: a strongly held
+   * object can dominate objects that are only weakly held, and those bytes count towards its retained
+   * size and not towards this.
+   */
+  val stronglyReachableByteCount: Long
+    get() = byteCountByStrength.getValue(STRONG)
+
   /** Bytes held by every object a GC root reaches, however weakly. */
   val reachableByteCount: Long
     get() = byteCountByStrength.entries.sumOf { (strength, byteCount) ->
