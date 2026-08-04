@@ -1,8 +1,11 @@
 package leakcanary
 
+import androidx.work.ExistingWorkPolicy
+import androidx.work.ExistingWorkPolicy.KEEP
 import androidx.work.OneTimeWorkRequest
 import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import java.io.File
 import leakcanary.EventListener.Event
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.HeapAnalyzerWorker
@@ -47,6 +50,15 @@ object WorkManagerHeapAnalyzer : EventListener {
     }
   }
 
+  /**
+   * The name the analysis of [heapDumpFile] is enqueued under, so that asking for it a 2nd time
+   * doesn't queue a 2nd analysis of the same heap dump. LeakCanary asks again for any heap dump it
+   * has no analysis for, which is the only way to tell that an analysis was dropped along with the
+   * process it was queued in, and with [ExistingWorkPolicy.KEEP] that costs nothing when the analysis
+   * WorkManager has is still coming.
+   */
+  internal fun heapAnalysisWorkName(heapDumpFile: File) = "heap-analysis-${heapDumpFile.name}"
+
   override fun onEvent(event: Event) {
     if (event is HeapDump) {
       val heapAnalysisRequest = OneTimeWorkRequest.Builder(HeapAnalyzerWorker::class.java).apply {
@@ -55,7 +67,8 @@ object WorkManagerHeapAnalyzer : EventListener {
       }.build()
       SharkLog.d { "Enqueuing heap analysis for ${event.file} on WorkManager remote worker" }
       val application = InternalLeakCanary.application
-      WorkManager.getInstance(application).enqueue(heapAnalysisRequest)
+      WorkManager.getInstance(application)
+        .enqueueUniqueWork(heapAnalysisWorkName(event.file), KEEP, heapAnalysisRequest)
     }
   }
 }

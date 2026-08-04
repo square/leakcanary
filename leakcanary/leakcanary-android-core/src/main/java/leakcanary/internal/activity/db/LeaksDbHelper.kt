@@ -19,6 +19,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     db.execSQL(LeakTable.create)
     db.execSQL(LeakTable.createSignatureIndex)
     db.execSQL(LeakTraceTable.create)
+    db.execSQL(HeapDumpTable.create)
   }
 
   override fun onUpgrade(
@@ -78,6 +79,31 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
         }
       }
     }
+    if (oldVersion < 26) {
+      db.execSQL("ALTER TABLE heap_analysis ADD COLUMN heap_dump_file_path TEXT DEFAULT NULL")
+      db.execSQL(HeapDumpTable.create)
+      // The retention cleanup now keeps heap dumps that no analysis was run on, so every analysis
+      // stored before this version needs its heap dump file path filled in, or the heap dumps it
+      // already analyzed would look like they're still waiting.
+      val idToHeapDumpFilePath = db.rawQuery("SELECT id, object FROM heap_analysis", null)
+        .use { cursor ->
+          val paths = mutableListOf<Pair<Long, String>>()
+          while (cursor.moveToNext()) {
+            val analysis = Serializables.fromByteArray<HeapAnalysis>(cursor.getBlob(1))
+            if (analysis != null) {
+              paths += cursor.getLong(0) to analysis.heapDumpFile.absolutePath
+            }
+          }
+          paths
+        }
+      db.inTransaction {
+        idToHeapDumpFilePath.forEach { (id, heapDumpFilePath) ->
+          val values = ContentValues()
+          values.put("heap_dump_file_path", heapDumpFilePath)
+          db.update("heap_analysis", values, "id=$id", null)
+        }
+      }
+    }
   }
 
   private fun List<LeakTrace>.fixNullReferenceOwningClassName(): List<LeakTrace> {
@@ -112,11 +138,12 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
     db.execSQL(HeapAnalysisTable.drop)
     db.execSQL(LeakTable.drop)
     db.execSQL(LeakTraceTable.drop)
+    db.execSQL(HeapDumpTable.drop)
     onCreate(db)
   }
 
   companion object {
-    internal const val VERSION = 25
+    internal const val VERSION = 26
     internal const val DATABASE_NAME = "leaks.db"
   }
 }
