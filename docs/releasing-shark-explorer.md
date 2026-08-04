@@ -158,8 +158,14 @@ and then deleted. Neither is fixable here — both are `#mdx-ios` asks, and each
   failed working out where it had put it: `bad URI(is not URI?): "s3://…/Shark Explorer.app.zip"`, five
   minutes in, after a mac worker had done all the work. `destination_url` in
   `global/lambdas/codesign_helper.rb` (`squareup/tf-mobuild-workers`) parses that S3 URL with Ruby's
-  `URI()` to insert `-signed` before the extension, and a space is not a legal URI character. Renaming
-  the package to `SharkExplorer` is what got a signature back.
+  `URI()` to insert `-signed` before the extension, and a space is not a legal URI character.
+  squareup/tf-mobuild-workers#1365 fixes it, and needs a terraform apply after it merges, because the
+  lambda is Ruby that terraform packages.
+
+    **So `packageName` is `SharkExplorer` until then**, which is why the app is called that rather than
+    what this page calls it. Changing it back is one line in
+    `shark-explorer-app/build.gradle.kts` — but it renames the `.app` for everyone who installed one, so
+    it belongs in a release of its own rather than in the first commit after that lambda ships.
 
 Until both are resolved there is no releasable macOS build, and the notarization check in the workflow
 fails the release rather than shipping one.

@@ -101,7 +101,12 @@ compose.desktop {
 
     nativeDistributions {
       targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-      packageName = "Shark Explorer"
+      // One word, and not by preference: this is the name of the .app, so it is the name of the zip
+      // Block's signing service is asked to sign, and a space in it makes that request fail. See
+      // docs/releasing-shark-explorer.md. squareup/tf-mobuild-workers#1365 fixes it; when that has
+      // shipped this becomes "Shark Explorer", which is a change to the app's visible name and so a
+      // change worth making deliberately rather than the moment it's unblocked.
+      packageName = "SharkExplorer"
       // Each format validates this against rules of its own, and `gradle.properties` records which ones
       // and what they leave possible. `3.0-alpha-10` satisfies none of them, which is the whole reason
       // this app has a version line of its own.

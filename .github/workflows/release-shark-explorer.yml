@@ -88,7 +88,8 @@ jobs:
         id: unsigned
         run: |
           set -euo pipefail
-          # jpackage names it after packageName, so the path has a space in it.
+          # Found rather than named: jpackage names it after packageName and the version, and the DMG
+          # this uploads is named below instead, after the architecture the runner built it for.
           dmg="$(find shark/shark-explorer/shark-explorer-app/build/compose/binaries/main/dmg -name '*.dmg' -print -quit)"
           test -n "$dmg"
           echo "path=$dmg" >> "$GITHUB_OUTPUT"
@@ -136,7 +137,7 @@ jobs:
           hdiutil detach "$mount_point"
 
       # Renamed here rather than in the build script: the architecture is a property of the runner that
-      # built it, not of the project, and jpackage puts a space in the name it chooses.
+      # built it rather than of the project, so jpackage has no way to put it in the name.
       - name: Name the DMG after its version and architecture
         id: named
         env:
@@ -240,8 +241,8 @@ jobs:
             Shark Explorer ${{ needs.version.outputs.version }}, an alpha release.
 
             A desktop app that opens an Android heap dump and shows what is holding its memory, as a
-            navigable treemap. Download the build for your platform below, open it, and drag Shark
-            Explorer to Applications.
+            navigable treemap. Download the build for your platform below, open it, and drag the app to
+            Applications.
 
             | Platform | Download | Signed |
             | --- | --- | --- |

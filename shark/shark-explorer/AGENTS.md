@@ -203,9 +203,9 @@ variable AWT reads at that same moment: a run given `-Xdock:name=X` and a run th
 time. So the run task passes no name and an IDE run configuration needs none either, and
 `java.awt.Taskbar` is no help — its API is icon, badge, menu and progress, and no name.
 
-**A packaged app ignores the property and keeps its bundle's name.** `Shark Explorer.app` launched with
-`--title="Packaged with a title"` logs that title and is still called `Shark Explorer` by macOS, because
-jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
+**A packaged app ignores the property and keeps its bundle's name.** The `.app` launched with
+`--title="Packaged with a title"` logs that title and is still called whatever `packageName` made the
+bundle, because jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
 bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it until
 something names it.
 
