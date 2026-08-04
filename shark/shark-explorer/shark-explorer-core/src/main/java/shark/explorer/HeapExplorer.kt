@@ -69,9 +69,13 @@ class HeapExplorer private constructor(
         )
       }
       try {
-        val strengthReader = ReferenceStrengthReader(graph)
+        // Everything the explorer knows that the heap dump doesn't say itself, in one place and read by
+        // both halves of the edge set: which references don't retain, and which ones are the one way an
+        // object is held.
+        val rules = ExplorerRules.DEFAULT
+        val strengthReader = ReferenceStrengthReader(graph, rules)
         val ownerReferences = steps.run("Working out what owns what") {
-          OwnerReferences.computeFor(graph)
+          OwnerReferences.computeFor(graph, rules)
         }
         val reachability = steps.run("Working out what's reachable") {
           HeapReachability.computeFor(

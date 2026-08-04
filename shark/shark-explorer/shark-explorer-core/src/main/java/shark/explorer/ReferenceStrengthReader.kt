@@ -11,19 +11,9 @@ import shark.Reference
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.INSTANCE_FIELD
 import shark.ReferenceLocationType.STATIC_FIELD
-import shark.ReferenceMatcher
-import shark.ReferenceMatcher.Companion.ALWAYS
-import shark.ReferencePattern.Companion.instanceField
 import shark.ReferenceReader
 import shark.ValueHolder
-import shark.ignored
-import shark.explorer.ReachabilityStrength.CACHE
-import shark.explorer.ReachabilityStrength.FINALIZER
-import shark.explorer.ReachabilityStrength.PHANTOM
-import shark.explorer.ReachabilityStrength.SOFT
 import shark.explorer.ReachabilityStrength.STRONG
-import shark.explorer.ReachabilityStrength.THREAD_LOCAL
-import shark.explorer.ReachabilityStrength.WEAK
 
 /**
  * A reference that doesn't keep its target alive, and the [ReachabilityStrength] a path through it
@@ -57,9 +47,10 @@ internal class WeakeningReference(
  * entries with.
  *
  * Reference strength lives entirely in Shark's ignored reference matchers, and those only say what
- * not to follow, never why. So this reads both halves: a matched [ReferenceReader] for everything
- * that retains, and the fields listed in [WEAKENING_FIELDS_BY_CLASS_NAME] for everything that doesn't,
- * with the strength coming from which class declares them.
+ * not to follow, never why. So this reads both halves out of one list: a matched [ReferenceReader] built
+ * from [ExplorerRules.weakeningReferenceMatchers] for everything that retains, and
+ * [ExplorerRules.strengthByFieldNameByClassName] for everything that doesn't, with the strength coming from
+ * which class declares the field.
  *
  * Deliberately uses the plain field and array readers rather than
  * [shark.AndroidReferenceReaderFactory]: the Android readers present data structures the way you
@@ -71,14 +62,19 @@ internal class WeakeningReference(
  * Where a structure is worth presenting the way you think about it anyway, the reference is **added**
  * rather than swapped in: [ViewChildReferenceReader] gives a `ViewGroup` a reference to each of its
  * children, and the `View[]` they really live in is still reached through `mChildren` and still a node of
- * its own.
+ * its own. [ActivityThreadReferenceReader] does the same for the activities the process is running.
  */
-internal class ReferenceStrengthReader(private val graph: HeapGraph) {
+internal class ReferenceStrengthReader(
+  private val graph: HeapGraph,
+  private val rules: ExplorerRules
+) {
 
   private val retainingReader: ReferenceReader<HeapObject> =
-    ActualMatchingReferenceReaderFactory(WEAKENING_REFERENCE_MATCHERS).createFor(graph)
+    ActualMatchingReferenceReaderFactory(rules.weakeningReferenceMatchers).createFor(graph)
 
   private val viewChildReader = ViewChildReferenceReader(graph)
+
+  private val activityThreadReader = ActivityThreadReferenceReader(graph)
 
   /**
    * Which fields of a class hold their value without retaining it, by class object id. Cached because
@@ -98,7 +94,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> =
     retainingReader.read(source) + classMetadataReferencesOf(source) +
-      viewChildReader.childReferencesOf(source)
+      viewChildReader.childReferencesOf(source) +
+      activityThreadReader.runningActivityReferencesOf(source)
 
   /**
    * The arrays ART hangs off a class object to hold what it embeds — its method tables in
@@ -153,8 +150,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /**
    * The references from [source] that don't keep their target alive: a `java.lang.ref.Reference`'s
    * `referent`, the `zombie` a `FinalizerReference` holds an object in while it's being finalized, a
-   * thread's own storage, and the entries of a cache from [CACHE_FIELDS_BY_CLASS_NAME]. Empty for anything
-   * else, which is nearly every object of a heap dump.
+   * thread's own storage, and the entries of a cache — every [WeakeningFieldRule] of [ExplorerRules], that
+   * is. Empty for anything else, which is nearly every object of a heap dump.
    */
   fun weakeningReferencesOf(source: HeapObject): List<WeakeningReference> {
     if (source !is HeapInstance) {
@@ -188,7 +185,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
         .toList()
         .asReversed()
         .fold(emptyMap<String, ReachabilityStrength>()) { inherited, heapClass ->
-          WEAKENING_FIELDS_BY_CLASS_NAME[heapClass.name]?.let { inherited + it } ?: inherited
+          rules.strengthByFieldNameByClassName[heapClass.name]?.let { inherited + it } ?: inherited
         }
       if (strengthByFieldName.isEmpty()) NOTHING_WEAKENING else WeakeningFields(strengthByFieldName)
     }
@@ -220,91 +217,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
       "java.lang.Double[]"
     )
 
-    /** The fields a `java.lang.ref.Reference` holds its referent in. */
-    private val REFERENT_FIELD_NAMES = setOf("referent", "zombie")
-
-    /**
-     * The `java.lang.ref.Reference` subclasses whose referent isn't retained, most derived first.
-     *
-     * `FinalizerReference` is Android's, `FinalReference` is the JVM's — `java.lang.ref.Finalizer`
-     * extends it, and it's package private so nothing else can.
-     */
-    private val STRENGTH_BY_REFERENCE_CLASS_NAME = mapOf(
-      "java.lang.ref.FinalizerReference" to FINALIZER,
-      "java.lang.ref.FinalReference" to FINALIZER,
-      "java.lang.ref.PhantomReference" to PHANTOM,
-      "java.lang.ref.WeakReference" to WEAK,
-      "java.lang.ref.SoftReference" to SOFT
-    )
-
-    /**
-     * The fields a cache holds its entries in, which the explorer treats as [CACHE] rather than as
-     * retaining, so that an object a cache and something else both hold is attributed to the something
-     * else. See [CACHE] for why this is a list rather than something read off the heap dump.
-     *
-     * Curated, and deliberately short. An entry belongs here once two things are true of the class: it
-     * is a cache that evicts on its own, and its entries are worth blaming their owner for rather than
-     * it. Add one only against a heap dump that has it — the fields are matched by name, so a wrong
-     * guess doesn't fail, it silently does nothing. Which is also what happens to a dump obfuscated
-     * without a mapping applied.
-     *
-     * Cutting as low as the value a cache entry wraps, rather than at the cache itself, is what keeps
-     * the cache's own bookkeeping — the map, the entries, the sizes — where it belongs: strongly held by
-     * the cache, and its bytes attributed to it.
-     */
-    private val CACHE_FIELDS_BY_CLASS_NAME = mapOf(
-      // Coil 3's memory cache: a bounded LRU of decoded images, halved on TRIM_MEMORY_RUNNING_LOW and
-      // cleared on TRIM_MEMORY_BACKGROUND by AndroidSystemCallbacks.
-      "coil3.memory.RealStrongMemoryCache\$InternalValue" to setOf("image")
-    )
-
-    /**
-     * Where a thread keeps what it put in a `ThreadLocal`, held for as long as the thread lives.
-     *
-     * `ThreadLocalMap.Entry` is a `WeakReference` to the `ThreadLocal` itself, so its `referent` is
-     * already weakened above; what's added here is the value, which the map holds strongly. Attributing
-     * it to the thread is what the tree does otherwise, and a thread of an app's pool retaining
-     * everything anything ever left in a thread local of it is a picture of the pool rather than of the
-     * app.
-     */
-    private val THREAD_LOCAL_FIELDS_BY_CLASS_NAME = mapOf(
-      "java.lang.ThreadLocal\$ThreadLocalMap\$Entry" to setOf("value")
-    )
-
-    /** Every class whose fields don't all retain, and what each holds its values with. */
-    private val WEAKENING_FIELDS_BY_CLASS_NAME: Map<String, Map<String, ReachabilityStrength>> =
-      STRENGTH_BY_REFERENCE_CLASS_NAME.mapValues { (_, strength) ->
-        REFERENT_FIELD_NAMES.associateWith { strength }
-      } + CACHE_FIELDS_BY_CLASS_NAME.mapValues { (_, fieldNames) ->
-        fieldNames.associateWith { CACHE }
-      } + THREAD_LOCAL_FIELDS_BY_CLASS_NAME.mapValues { (_, fieldNames) ->
-        fieldNames.associateWith { THREAD_LOCAL }
-      }
-
     /** For the classes that retain everything they point at, cached like the rest. */
     private val NOTHING_WEAKENING = WeakeningFields(emptyMap())
-
-    /**
-     * The matchers that stop the retaining reader from following a reference that doesn't retain: every
-     * field of [WEAKENING_FIELDS_BY_CLASS_NAME] and nothing else, read off the same map that gives them
-     * their strength, so that the two halves of this class can't disagree about a reference.
-     *
-     * **Deliberately not [shark.JdkReferenceMatchers.REFERENCES]**, which is a leak trace's list rather
-     * than an explorer's. Besides the referents, it drops the `prev`, `next` and `element` links of the
-     * lists a runtime keeps its `FinalizerReference`s, `Finalizer`s and `Cleaner`s on, so that a leak trace
-     * can't run through the queue of objects waiting to be finalized. Those links retain what they point
-     * at, and on Android they are the only thing that does: the list hangs off one static field, so
-     * dropping them left every entry but the head of it reading as uncollected garbage, and with them
-     * every object waiting to be finalized or cleaned. Measured on `large-dump.hprof`: 4773 of its 4774
-     * `FinalizerReference`s and 3392 of its 3553 `Cleaner`s, a fifth of everything the explorer called
-     * garbage.
-     */
-    val WEAKENING_REFERENCE_MATCHERS: List<ReferenceMatcher> =
-      WEAKENING_FIELDS_BY_CLASS_NAME.flatMap { (className, strengthByFieldName) ->
-        strengthByFieldName.keys.map {
-          instanceField(className, it).ignored(patternApplies = ALWAYS)
-        }
-      }
   }
 }
 

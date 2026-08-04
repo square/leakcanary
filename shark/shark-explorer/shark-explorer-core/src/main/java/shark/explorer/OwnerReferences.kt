@@ -26,6 +26,8 @@ import shark.Reference
  * isn't held by whatever holds the window, so if its parent isn't reachable, no owner reaches the child
  * and [OwnerReferences] falls back on the rivals by itself. The state the rule seems to need is already
  * expressed by which references exist.
+ *
+ * The rules the explorer applies are [ExplorerRules.ownerRules].
  */
 internal class OwnerRule(
   /** The class whose instances something owns, subclasses included. */
@@ -41,7 +43,8 @@ internal class OwnerRule(
    * Those are the references the explorer adds itself, to present a structure the way you think about it
    * instead of the way it's built, and an owner named that way is named by what it is rather than by a
    * field it holds the object in: a `ViewGroup` owns the children [ViewChildReferenceReader] reads for it,
-   * whichever slot of whichever array each one is really in.
+   * whichever slot of whichever array each one is really in, and an `ActivityThread` owns the activities
+   * [ActivityThreadReferenceReader] reads for it, whichever record of its map each one is really in.
    */
   val ownerVirtualClassNames: Set<String> = emptySet()
 )
@@ -173,78 +176,30 @@ internal class OwnerReferences private constructor(
 
   companion object {
 
-    private const val VIEW_CLASS_NAME = "android.view.View"
-
-    private const val ACTIVITY_CLASS_NAME = "android.app.Activity"
-
-    /**
-     * The constructs the explorer knows about. Curated: each one is a claim that a reference is *the* way
-     * an object is held, and getting that wrong moves bytes to the wrong place in the tree.
-     */
-    private val RULES = listOf(
-      // A view of a hierarchy is held by its parent, through the virtual reference
-      // [ViewChildReferenceReader] reads from a ViewGroup to each of its children.
-      //
-      // Not through the View[] the framework really keeps them in, which is what this rule used to say.
-      // An array owns by its type or not at all — there is nothing on it to say whose children it holds —
-      // so a rule about View[] also hands ownership to an app's own array of views it merely points at,
-      // and it leaves a hierarchy hanging off an unnamed array at every level of the tree.
-      OwnerRule(
-        ownedClassName = VIEW_CLASS_NAME,
-        ownerVirtualClassNames = setOf(ViewChildReferenceReader.VIEW_GROUP_CLASS_NAME)
-      ),
-      // The root view of a hierarchy has no parent to own it, and belongs to whatever the hierarchy is
-      // for. Attributing a window's views to the Activity or Dialog they're for is the whole point:
-      // otherwise they land under the WindowManagerGlobal that holds every window of the process, which
-      // tells you nothing about which screen is expensive.
-      //
-      // The framework nulls Activity.mDecor when it destroys the activity, and that is the whole of
-      // "unless the activity is destroyed": a rule needs no state check when the field is already gone.
-      //
-      // Not PhoneWindow.mDecor, which also holds the decor view and is set whether the activity is
-      // destroyed or not. Two owner references are two ways of owning, so the decor view ends up
-      // dominated by whatever dominates both, and on a real app dump that's the top of the tree: a jank
-      // monitor held the window from a GC root of its own, which cost the activity all 18 MB of its
-      // hierarchy. One owner per construct, and it should be the one you'd want to read the bytes under.
-      OwnerRule(
-        ownedClassName = VIEW_CLASS_NAME,
-        ownerFieldsByClassName = mapOf(
-          ACTIVITY_CLASS_NAME to setOf("mDecor"),
-          "android.app.Dialog" to setOf("mDecor")
-        )
-      ),
-      // An activity belongs to the list of activities the process is running, and everything else that
-      // points at one — a context wrapper, a view, a fragment, a presenter, a callback — is something the
-      // activity brought along. Self-clearing in the same way: ActivityThread.handleDestroyActivity takes
-      // the record out of mActivities, so a destroyed activity has no owner left and falls back on
-      // whatever is leaking it, which is exactly what you want its bytes drawn under.
-      OwnerRule(
-        ownedClassName = ACTIVITY_CLASS_NAME,
-        ownerFieldsByClassName = mapOf(
-          "android.app.ActivityThread\$ActivityClientRecord" to setOf("activity")
-        )
-      )
-    )
-
     private val OWNS_NOTHING = Ownership(emptySet(), false)
 
     /**
-     * Applies [RULES] to [graph], which takes one pass over its classes and one over its instances.
+     * Applies [ExplorerRules.ownerRules] to [graph], which takes one pass over its classes and one over its
+     * instances.
      *
      * The pass over the instances is what buys a hash lookup per reference later on, instead of a class
      * hierarchy walk: reading which objects are owned up front costs one index scan, and a heap dump has
      * millions of references but only thousands of views.
      */
-    fun computeFor(graph: HeapGraph): OwnerReferences {
+    fun computeFor(
+      graph: HeapGraph,
+      rules: ExplorerRules
+    ): OwnerReferences {
+      val ownerRules = rules.ownerRules
       val ownedClassIds = MutableLongSet()
-      RULES.mapTo(mutableSetOf()) { it.ownedClassName }.forEach { className ->
+      ownerRules.mapTo(mutableSetOf()) { it.ownedClassName }.forEach { className ->
         graph.findClassByName(className)?.let { ownedClassIds += it.objectId }
       }
       return OwnerReferences(
         graph = graph,
         ownedObjectIds = ownedObjectIdsOf(graph, ownedClassIds),
-        ownerFieldsByClassName = ownerFieldsByClassName(),
-        ownerVirtualClassNames = RULES.flatMapTo(mutableSetOf()) { it.ownerVirtualClassNames }
+        ownerFieldsByClassName = ownerFieldsByClassName(ownerRules),
+        ownerVirtualClassNames = ownerRules.flatMapTo(mutableSetOf()) { it.ownerVirtualClassNames }
       )
     }
 
@@ -276,10 +231,10 @@ internal class OwnerReferences private constructor(
       return ownedObjectIds
     }
 
-    /** [RULES]' owner fields merged, so that two rules on the same class both hold. */
-    private fun ownerFieldsByClassName(): Map<String, Set<String>> {
+    /** The rules' owner fields merged, so that two rules on the same class both hold. */
+    private fun ownerFieldsByClassName(ownerRules: List<OwnerRule>): Map<String, Set<String>> {
       val merged = mutableMapOf<String, Set<String>>()
-      RULES.forEach { rule ->
+      ownerRules.forEach { rule ->
         rule.ownerFieldsByClassName.forEach { (className, fieldNames) ->
           merged[className] = merged[className].orEmpty() + fieldNames
         }
