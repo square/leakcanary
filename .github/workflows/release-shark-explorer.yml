@@ -110,13 +110,14 @@ jobs:
 
       # Says what was actually produced rather than trusting that it was signed.
       #
-      # `stapler validate` failing is fatal, because an app the signing service signed but did not
+      # `stapler validate` failing is fatal, because an app the signing service signed but Apple did not
       # notarize does not launch: measured on macOS 26.5, it hangs in dyld with no output and no log file
-      # rather than being refused. `stapler` is also the only one of these that catches it — `codesign`
-      # is happy, and `spctl --assess` answers "accepted, source=Developer ID" for a build Apple has no
-      # notarization record of, because nothing here carries the quarantine attribute that makes
-      # Gatekeeper insist on one. So this is the check standing between a green release and a DMG that
-      # opens into a hang.
+      # rather than being refused. `stapler` is also the only one of these that fails on it — `codesign`
+      # is happy, and `spctl --assess` still answers "accepted" for a build Apple has no notarization
+      # record of, because nothing here carries the quarantine attribute that makes Gatekeeper insist on
+      # a ticket. Its `source=` line is the tell, though: `Notarized Developer ID` against a plain
+      # `Developer ID`, which is why this prints it. So this is the check standing between a green
+      # release and a DMG that opens into a hang.
       - name: Verify the signature and the notarization
         env:
           SIGNED_DMG: ${{ steps.codesign.outputs.signed-dmg-path }}
@@ -128,7 +129,7 @@ jobs:
           codesign -dvv "$app" 2>&1 | grep -E 'Authority|TeamIdentifier|flags'
           spctl --assess --type execute --verbose=4 "$app" || echo "::warning::Gatekeeper did not accept the app"
           if ! xcrun stapler validate "$app"; then
-            echo "::error::No notarization ticket is stapled to the app, so it will not launch. The signing service signed it without notarizing it."
+            echo "::error::No notarization ticket is stapled to the app, so it will not launch. It came back signed, and Apple has no notarization record of it."
             hdiutil detach "$mount_point"
             exit 1
           fi

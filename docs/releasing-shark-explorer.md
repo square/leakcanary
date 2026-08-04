@@ -135,19 +135,23 @@ another reason that field can't be pinned to something the releases don't move.
 Both were measured against the real service on 2026-08-04, from a tag whose release was forced to draft
 and then deleted. Neither is fixable here — both are `#mdx-ios` asks, and each is one function.
 
-* **The signing service signs without notarizing, and reports success.** The DMG came back signed by
+* **Apple refused this app, and the service reported success.** The DMG came back signed by
   `Developer ID Application: Block, Inc. (EYF346PHUG)` with the hardened runtime on, all four
-  entitlements present, and each of its 32 Mach-O files carrying a secure timestamp — and Apple had no
-  notarization record of it, still none eight hours later: `xcrun stapler staple` answers *"CloudKit
-  query failed due to Record not found"*. That app does not launch. It hangs in `dyld` with no output
-  and no session log, where the same bundle re-signed ad hoc with the same entitlements starts in two
-  seconds. So the app-not-launching failure this page used to warn about is real, and it is not the
-  entitlements.
+  entitlements present, every one of its Mach-O files carrying a secure timestamp and its nested
+  `Contents/runtime` bundle sealed — and Apple had no notarization record of it, still none eight hours
+  later: `xcrun stapler staple` answers *"CloudKit query failed due to Record not found"*. That app does
+  not launch. It hangs in `dyld` with no output and no session log, where the same bundle re-signed ad
+  hoc with the same entitlements starts in two seconds. So the app-not-launching failure this page used
+  to warn about is real, and it is not the entitlements.
 
-    `notarize()` in `apple-codesign/lib/notarize.sh` (`squareup/mdx-ios-codesign-helper`) treats `xcrun
-    notarytool submit --wait` exiting 0 as the verdict and never reads the `status` field out of the JSON
-    it asked for, so a submission Apple refused still logs "Notarization complete". Stapling then fails,
-    which is the only remaining signal, and that is a warning that deliberately doesn't fail the build.
+    It is not the service being broken either. Its own canary — a small `.app` through the same pipeline
+    — comes back notarized and stapled, and `spctl` calls it `source=Notarized Developer ID` where ours
+    says `source=Developer ID`. So Apple objected to *this bundle*, and nothing reachable from here says
+    what to: `notarize()` in `apple-codesign/lib/notarize.sh` (`squareup/mdx-ios-codesign-helper`) reads
+    `xcrun notarytool submit --wait`'s exit status rather than the `status` field of the JSON it asked
+    for, so a refusal logs "Notarization complete" — and it discards that JSON, which is where the
+    submission id was. Without the id, Apple's reason is only recoverable from `notarytool history`.
+    Both halves are fixed in squareup/mdx-ios-codesign-helper#20, so the next run says why.
 
 * **A space in the app's name breaks the reply, not the signing.** The service signed `Shark
   Explorer.app` correctly — the Buildkite job passed and uploaded the signed zip — and then the lambda
@@ -157,5 +161,5 @@ and then deleted. Neither is fixable here — both are `#mdx-ios` asks, and each
   `URI()` to insert `-signed` before the extension, and a space is not a legal URI character. Renaming
   the package to `SharkExplorer` is what got a signature back.
 
-Until both are fixed there is no releasable macOS build, and the notarization check in the workflow
+Until both are resolved there is no releasable macOS build, and the notarization check in the workflow
 fails the release rather than shipping one.
