@@ -236,7 +236,7 @@ class RealLeakTracerFactory constructor(
         val labels = leakingObject.labels.toMutableSet()
         subLeakedObjectIds.forEach { subLeakedObjectId ->
           val className = recordClassName(graph.findObjectById(subLeakedObjectId))
-          labels += "Also retains leaking object $subLeakedObjectId ($className)"
+          labels += "Also retains leaking object ${subLeakedObjectId.asObjectIdString()} ($className)"
         }
         leakTraceObjects[leakingNodeIndex] = leakingObject.copy(labels = labels)
       }

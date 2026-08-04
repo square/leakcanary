@@ -520,7 +520,7 @@ class InteractiveCommand : CliktCommand(
           else -> heapObject.instances
         }.count()
         val plural = if (instanceCount != 1) "s" else ""
-        "$CLASS ${heapObject.name}@${heapObject.objectId} (${instanceCount} instance$plural)"
+        "$CLASS ${heapObject.name}@${heapObject.objectId.asObjectIdString()} (${instanceCount} instance$plural)"
       }
       is HeapInstance -> {
         val asJavaString = heapObject.readAsJavaString()
@@ -530,16 +530,16 @@ class InteractiveCommand : CliktCommand(
             " \"${asJavaString}\""
           } else ""
 
-        "$INSTANCE ${heapObject.instanceClassSimpleName}@${heapObject.objectId}$value"
+        "$INSTANCE ${heapObject.instanceClassSimpleName}@${heapObject.objectId.asObjectIdString()}$value"
       }
       is HeapObjectArray -> {
         val className = heapObject.arrayClassSimpleName.removeSuffix("[]")
-        "$ARRAY $className[${heapObject.readElements().count()}]@${heapObject.objectId}"
+        "$ARRAY $className[${heapObject.readElements().count()}]@${heapObject.objectId.asObjectIdString()}"
       }
       is HeapPrimitiveArray -> {
         val record = heapObject.readRecord()
         val primitiveName = heapObject.primitiveType.name.lowercase(Locale.US)
-        "$ARRAY $primitiveName[${record.size}]@${heapObject.objectId}"
+        "$ARRAY $primitiveName[${record.size}]@${heapObject.objectId.asObjectIdString()}"
       }
     }
   }
