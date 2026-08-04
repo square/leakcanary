@@ -108,9 +108,15 @@ jobs:
           entitlements-plist-path: shark/shark-explorer/shark-explorer-app/entitlements.plist
           artifact-name: shark-explorer-${{ needs.version.outputs.version }}-${{ matrix.arch }}-${{ github.run_id }}
 
-      # Says what was actually produced rather than trusting that it was signed. An app that is signed but
-      # whose notarization ticket was never stapled still warns on a machine that is offline, and the only
-      # way to know which of those we shipped is to ask here.
+      # Says what was actually produced rather than trusting that it was signed.
+      #
+      # `stapler validate` failing is fatal, because an app the signing service signed but did not
+      # notarize does not launch: measured on macOS 26.5, it hangs in dyld with no output and no log file
+      # rather than being refused. `stapler` is also the only one of these that catches it — `codesign`
+      # is happy, and `spctl --assess` answers "accepted, source=Developer ID" for a build Apple has no
+      # notarization record of, because nothing here carries the quarantine attribute that makes
+      # Gatekeeper insist on one. So this is the check standing between a green release and a DMG that
+      # opens into a hang.
       - name: Verify the signature and the notarization
         env:
           SIGNED_DMG: ${{ steps.codesign.outputs.signed-dmg-path }}
@@ -120,9 +126,12 @@ jobs:
           app="$(find "$mount_point" -maxdepth 1 -name '*.app' -print -quit)"
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign -dvv "$app" 2>&1 | grep -E 'Authority|TeamIdentifier|flags'
-          # Not fatal: a missing ticket is worth seeing in the log without holding up a release over it.
-          xcrun stapler validate "$app" || echo "::warning::Notarization ticket is not stapled to the app"
           spctl --assess --type execute --verbose=4 "$app" || echo "::warning::Gatekeeper did not accept the app"
+          if ! xcrun stapler validate "$app"; then
+            echo "::error::No notarization ticket is stapled to the app, so it will not launch. The signing service signed it without notarizing it."
+            hdiutil detach "$mount_point"
+            exit 1
+          fi
           hdiutil detach "$mount_point"
 
       # Renamed here rather than in the build script: the architecture is a property of the runner that
@@ -149,6 +158,12 @@ jobs:
   # because the build script already targets them and an unsigned build beats no build.
   other-platforms:
     needs: version
+    # Windows runners default to pwsh, where `./gradlew` does nothing at all and the step still reports
+    # success — so the MSI never got built and the first sign of it was a later step not finding the file.
+    # Git bash is on the image, and it runs the same script the Linux runner does.
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:

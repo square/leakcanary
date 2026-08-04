@@ -129,3 +129,22 @@ up each new GitHub release daily.
 
 Note that Munki compares versions using `CFBundleShortVersionString`, which is `SHARK_EXPLORER_VERSION` —
 another reason that field can't be pinned to something the releases don't move.
+
+## What a first signing run found, and what is still open
+
+Both were measured against the real service on 2026-08-04, from a tag whose release was forced to draft
+and then deleted.
+
+* **The signing service signs without notarizing.** The DMG came back signed by `Developer ID
+  Application: Block, Inc. (EYF346PHUG)` with the hardened runtime on and all four entitlements
+  present — and Apple had no notarization record of it: `xcrun stapler staple` answered *"CloudKit query
+  failed due to Record not found"*. That app does not launch. It hangs in `dyld` with no output and no
+  session log, where the same bundle re-signed ad hoc with the same entitlements starts in two seconds.
+  So the app-not-launching failure this page used to warn about is real, and it is not the entitlements.
+* **The service cannot sign an app whose name has a space in it.** The lambda builds an S3 URI from the
+  bundle name and parses it, so `Shark Explorer.app.zip` fails with `bad URI(is not URI?)`. Renaming the
+  package to `SharkExplorer` is what got a signature at all. Whether the app keeps that name or Block
+  escapes the URI is open.
+
+Neither is fixable here, so both are `#mdx-ios` asks. Until they are fixed there is no releasable macOS
+build, and the notarization check in the workflow fails the release rather than shipping one.
