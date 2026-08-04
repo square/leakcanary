@@ -2,7 +2,9 @@ package shark.explorer
 
 import java.io.File
 import org.junit.rules.TemporaryFolder
+import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.ThreadObject
 import shark.HprofWriterHelper
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
@@ -144,6 +146,75 @@ internal fun TemporaryFolder.leaksInOneArrayHeapDump(): File {
   return file
 }
 
+/**
+ * A heap dump where a destroyed activity is in a `java.util.ArrayList`, built of the fields the real class
+ * has, since that is what Shark recognizes a list by.
+ *
+ * The point of it is the `Object[]` the list keeps its elements in: reading the reference the way it is
+ * really stored puts two objects between the list and what it holds, and reading it the way you think
+ * about the list gives `ArrayList[x]` — which is the difference between naming the same leak as LeakCanary
+ * names it and naming it something else. See [DataStructureReferenceReader].
+ */
+internal fun TemporaryFolder.leakInAListHeapDump(): File {
+  val file = newFile("leak-in-a-list.hprof")
+  file.dump {
+    androidBuild(sdkInt = RECENT_SDK_INT)
+    val activity = instance(activityClass(), fields = listOf(BooleanHolder(true)))
+    // Twelve slots with one element in them, like a list an app grew and took things out of: what is past
+    // the size is not what the list holds, and it is the size that says so.
+    val elementData = objectArray(
+      arrayClass("java.lang.Object"),
+      LongArray(LIST_CAPACITY).also { it[0] = activity.value }
+    )
+    val list = instance(
+      clazz(
+        className = "java.util.ArrayList",
+        fields = listOf("elementData" to ReferenceHolder::class, "size" to IntHolder::class)
+      ),
+      fields = listOf(ReferenceHolder(elementData), IntHolder(1))
+    )
+    val holder = instance(
+      clazz(className = HOLDER_CLASS_NAME, fields = listOf("list" to ReferenceHolder::class)),
+      fields = listOf(list)
+    )
+    gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
+/**
+ * A heap dump where a destroyed activity is both on a thread's stack and in a field, one step from the
+ * thread and two from anything else.
+ *
+ * A running method's frame is the shortest way to nearly anything an app is doing, and it is no answer to
+ * "what is leaking this": the object is there because a method is running. So the field is the chain to
+ * show, though it is the longer one, which is what [RootPathSearch] puts off a stack frame for.
+ */
+internal fun TemporaryFolder.leakOnAStackAndInAFieldHeapDump(): File {
+  val file = newFile("leak-on-a-stack.hprof")
+  file.dump {
+    androidBuild(sdkInt = RECENT_SDK_INT)
+    val thread = instance(
+      clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class)),
+      fields = listOf(string("main"))
+    )
+    gcRoot(ThreadObject(id = thread.value, threadSerialNumber = 42, stackTraceSerialNumber = 0))
+    val activity = instance(activityClass(), fields = listOf(BooleanHolder(true)))
+    // A local variable of a method running on that thread, which is what a Java frame GC root is.
+    gcRoot(JavaFrame(id = activity.value, threadSerialNumber = 42, frameNumber = 0))
+    val holder = instance(
+      clazz(className = HOLDER_CLASS_NAME, fields = listOf("activity" to ReferenceHolder::class)),
+      fields = listOf(activity)
+    )
+    val owner = instance(
+      clazz(className = "com.example.Owner", fields = listOf("holder" to ReferenceHolder::class)),
+      fields = listOf(holder)
+    )
+    gcRoot(JniGlobal(id = owner.value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
 /** A heap dump where the only destroyed activity is one nothing points at any more. */
 internal fun TemporaryFolder.collectedActivityHeapDump(): File {
   val file = newFile("collected-activity.hprof")
@@ -214,6 +285,15 @@ internal const val HOLDER_SIMPLE_CLASS_NAME = "Holder"
 
 /** The field of [leaksInOneArrayHeapDump] that holds the array, which is what its leak is named after. */
 internal const val LEAK_ARRAY_FIELD_NAME = "leaks"
+
+/** How many slots the list of [leakInAListHeapDump] has, of which it uses one. */
+private const val LIST_CAPACITY = 12
+
+/**
+ * An Android version recent enough that none of Shark's known library leaks is one of these dumps, so that
+ * what a chain through them is named after is the app's own references. See [androidBuild].
+ */
+private const val RECENT_SDK_INT = 34
 
 /** The app framework's own `android.view.Window`, which is the class the window inspector looks for. */
 internal const val WINDOW_CLASS_NAME = "com.android.internal.policy.PhoneWindow"

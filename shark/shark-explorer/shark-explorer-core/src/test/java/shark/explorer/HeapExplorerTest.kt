@@ -363,6 +363,22 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `a chain goes the long way round rather than through a stack frame`() {
+    HeapExplorer.open(testFolder.onAStackAndInAFieldHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val path = tree.rootPathTo(payload.objectId)
+
+      // A local variable of a running method is one step from the payload and two fields are three, and the
+      // shorter one is no answer to what holds it: the object is there because a method is running. Which
+      // is the rule LeakCanary's own path finder follows, so that a chain here is the chain a leak trace
+      // shows for the same object.
+      assertThat(path.stepLabels())
+        .containsExactly("Owner", "holder → Holder", "payload → Object[]")
+    }
+  }
+
   @Test fun `a chain too long to read leaves out the steps nearest the gc root`() {
     HeapExplorer.open(testFolder.longChainHeapDump()).use { explorer ->
       val tree = explorer.tree

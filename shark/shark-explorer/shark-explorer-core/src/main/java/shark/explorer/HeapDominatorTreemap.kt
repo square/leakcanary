@@ -704,6 +704,20 @@ class HeapDominatorTreemap internal constructor(
     )
   }
 
+  /**
+   * Every step of [pathObjectIds], read out of the heap dump, where [rootPathAlong] reads the last
+   * [MAX_ROOT_PATH_STEPS] of them. For the questions a leak asks of a chain, which are about all of it.
+   */
+  private fun stepsAlong(pathObjectIds: List<Long>): List<PathStep> =
+    pathObjectIds.mapIndexed { index, stepObjectId ->
+      if (index == 0) {
+        // The GC root's own object, which no field of the heap dump points at.
+        step(stepObjectId, reference = null)
+      } else {
+        stepTo(stepObjectId, referrerId = pathObjectIds[index - 1])
+      }
+    }.withLeakStatuses()
+
   /** The objects that dominate [objectId], which every path from a GC root down to it goes through. */
   private fun dominatorIdsOf(objectId: Long): Set<Long> {
     val dominatorIds = mutableSetOf<Long>()
@@ -825,8 +839,10 @@ class HeapDominatorTreemap internal constructor(
     } else {
       rootPathObjectIdsTo(objectId)
     }
-    val path = rootPathAlong(pathObjectIds)
-    val steps = path.steps.map { it.step }
+    // The whole chain rather than the part of it a pane draws, since a leak is named and grouped by the
+    // stretch of it between the last object still needed and the first that shouldn't be there, and
+    // cutting the top off a chain moves that stretch.
+    val steps = stepsAlong(pathObjectIds)
     val target = steps.lastOrNull()
     // The last step of the chain is this object, already read while the chain was. Only a leak with no
     // chain to read it off is read here, which is why this is read on demand.
@@ -850,7 +866,9 @@ class HeapDominatorTreemap internal constructor(
     if (steps.isEmpty()) {
       return FoundLeak(
         kind = LeakKind.UNREACHABLE,
-        groupKey = leakingObject.className,
+        // Its class, since there is no chain to hash and nothing else to tell two of these apart. LeakCanary
+        // has no signature to match here: it reports what a GC root reaches, and this is what none does.
+        signature = leakingObject.className.sha1Hex(),
         title = simpleClassName,
         subtitle = UNREACHABLE_LEAK_SUBTITLE,
         leakingObject = leakingObject,
@@ -858,30 +876,31 @@ class HeapDominatorTreemap internal constructor(
       )
     }
     // The first one on the way down, so a chain through two known leaks is named after the one nearest
-    // the root, which is the one holding the other. More things land here than LeakCanary would put in
-    // this section: its shortest path finder goes through a known leaking reference only when there is no
-    // other way to the object, and this chain is simply the shortest one there is.
+    // the root, which is the one holding the other. A chain goes through a known leaking reference only
+    // when there is no other way to the object, which is LeakCanary's rule and is what puts the same
+    // leaks in this section as it puts in its own library leak list. See [RootPathSearch].
     val libraryLeak = steps.firstNotNullOfOrNull { it.reference?.libraryLeak }
     if (libraryLeak != null) {
       return FoundLeak(
         kind = LeakKind.LIBRARY,
-        groupKey = libraryLeak.pattern,
+        // Which is what `shark.LibraryLeak.signature` hashes, so a library leak of a LeakCanary report and
+        // one of this list are the same string when they are the same known leak.
+        signature = libraryLeak.pattern.sha1Hex(),
         title = libraryLeak.pattern,
         subtitle = libraryLeak.description.ifEmpty { null },
         leakingObject = leakingObject,
         heldThroughIds = heldThroughIds
       )
     }
-    val suspectSubpath = suspectSubpath(steps)
     return FoundLeak(
       kind = LeakKind.APPLICATION,
-      // The suspect stretch of the chain and nothing else, which is the rule LeakCanary groups leaks by:
-      // two objects reached through the same one are two instances of one leak, whatever their classes
-      // and however far below it they are.
-      groupKey = suspectSubpath.joinToString(" → ").ifEmpty { leakingObject.className },
+      // Which is the rule LeakCanary groups leaks by, run by LeakCanary's own code over this chain: two
+      // objects reached through the same suspect stretch of references are two instances of one leak,
+      // whatever their classes and however far below it they are.
+      signature = steps.leakSignature(),
       // The reference that shouldn't be holding, which is the leak itself rather than one of the objects
       // it left behind. Those are the rows under it, and each says what it is.
-      title = suspectSubpath.firstOrNull() ?: simpleClassName,
+      title = suspectSubpath(steps).firstOrNull() ?: simpleClassName,
       subtitle = leakingObject.leakingReason,
       leakingObject = leakingObject,
       heldThroughIds = heldThroughIds
@@ -890,17 +909,19 @@ class HeapDominatorTreemap internal constructor(
 
   /**
    * The suspect stretch of a chain, as `Class.field` per reference: how the last object known to still be
-   * needed reaches the first one that shouldn't be there.
+   * needed reaches the first one that shouldn't be there. What a leak is named after, since the first of
+   * them is the reference that shouldn't be holding.
    *
-   * What everything leaking for one reason has in common, and so what says two of them are one leak. The
-   * references below the first leaking object are left out because they are what the leak is holding rather
-   * than why: a leaked activity holds its window, its view tree and its bitmaps, and those are the same
-   * leak whether you land on the activity or on a bitmap eight references under it. The references above the
-   * last one known to be needed are left out for the other reason — they are the app working as intended.
+   * What everything leaking for one reason has in common. The references below the first leaking object are
+   * left out because they are what the leak is holding rather than why: a leaked activity holds its window,
+   * its view tree and its bitmaps, and those are the same leak whether you land on the activity or on a
+   * bitmap eight references under it. The references above the last one known to be needed are left out for
+   * the other reason — they are the app working as intended.
    *
-   * The same rule as `LeakTrace.suspectReferenceSubpath`, array indices erased like its
-   * `referenceGenericName`: two entries of one array are one leak, and which slot an object landed in
-   * changes from one heap dump to the next.
+   * The same stretch [leakSignature] hashes, spelled the way the chain pane spells a step rather than the
+   * way `LeakTrace.signature` spells one: by the class that declares the field, so that the name of a leak
+   * is a string that is also on the chain drawn for it. Which is why the name is no substitute for the
+   * signature and the two are both on the row.
    */
   private fun suspectSubpath(steps: List<PathStep>): List<String> {
     val lastNotLeaking = steps.indexOfLast { it.leakStatus == LeakStatus.NOT_LEAKING }
@@ -927,8 +948,8 @@ class HeapDominatorTreemap internal constructor(
   /** One leaking object and which leak it is an instance of, before the instances are gathered. */
   private class FoundLeak(
     val kind: LeakKind,
-    /** What makes two objects instances of the same leak. */
-    val groupKey: String,
+    /** What makes two objects instances of the same leak. See [LeakGroup.signature]. */
+    val signature: String,
     val title: String,
     val subtitle: String?,
     val leakingObject: LeakingObject,
@@ -961,10 +982,10 @@ class HeapDominatorTreemap internal constructor(
 
   /** The leaks a list of leaking objects amounts to, largest first, and their objects largest first. */
   private fun List<FoundLeak>.groups(): List<LeakGroup> =
-    groupBy { it.groupKey }
-      .map { (groupKey, found) ->
+    groupBy { it.signature }
+      .map { (signature, found) ->
         LeakGroup(
-          id = groupKey,
+          signature = signature,
           title = found.first().title,
           // From whichever object was recognized first, since a leak is one thing however many objects
           // of it there are: they are all leaking for the same reason, which is what grouped them.
@@ -1205,7 +1226,7 @@ class HeapDominatorTreemap internal constructor(
           return pathFrom(current)
         }
         val isLastStep = current == targetIndex
-        referrerIndex.forEachReferrer(current) { referrer ->
+        referrerIndex.forEachReferrer(current) { referrer, _ ->
           // Not through the target: a walk that goes round through the object it started at would report
           // the object as holding itself.
           val isAvailable = !blocked[referrer] &&

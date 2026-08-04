@@ -74,9 +74,9 @@ internal class WeakeningReference(
  * unreachable byte count are exact.
  *
  * Where a structure is worth presenting the way you think about it anyway, the reference is **added**
- * rather than swapped in: [ViewChildReferenceReader] gives a `ViewGroup` a reference to each of its
- * children, and the `View[]` they really live in is still reached through `mChildren` and still a node of
- * its own.
+ * rather than swapped in: [DataStructureReferenceReader] gives a collection a reference to each entry and
+ * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children, and the table and the
+ * `View[]` they really live in are still reached through their fields and still nodes of their own.
  */
 internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
@@ -85,6 +85,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
       .createFor(graph)
 
   private val viewChildReader = ViewChildReferenceReader(graph)
+
+  private val dataStructureReader = DataStructureReferenceReader(graph)
 
   /**
    * Which fields of a class hold their value without retaining it, by class object id. Cached because
@@ -104,7 +106,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> =
     retainingReader.read(source) + classMetadataReferencesOf(source) +
-      viewChildReader.childReferencesOf(source)
+      viewChildReader.childReferencesOf(source) + dataStructureReader.entryReferencesOf(source)
 
   /**
    * The arrays ART hangs off a class object to hold what it embeds — its method tables in
@@ -206,10 +208,10 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
     /**
      * Shark's list of the references known to leak in code an app doesn't control, which **names the
      * references it matches without changing which of them are followed**: a
-     * [LibraryLeakReferenceMatcher] sets [Reference.isLowPriority] and
-     * [LazyDetails.matchedLibraryLeak] and nothing else, and nothing here reads the first — it is for the
-     * shortest path finder, which the explorer doesn't use. So the tree is the same tree with the known
-     * leaks of it named, and a chain through one can say so.
+     * [LibraryLeakReferenceMatcher] sets [Reference.isLowPriority] and [LazyDetails.matchedLibraryLeak] and
+     * nothing else. So the tree is the same tree with the known leaks of it named, and a chain through one
+     * can say so. The first of those two is why a chain goes through one only when there is no other way to
+     * the object, the same as in a leak trace — see [RootPathSearch].
      *
      * Only the library leak matchers of that list. The ignored ones beside them would drop references,
      * and every object of the heap dump has to stay a node of the tree exactly once — see the class

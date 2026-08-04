@@ -389,7 +389,8 @@ The `Leaks` screen finds the objects that shouldn't be in memory the two ways Sh
 `KeyedWeakReference`s LeakCanary left behind (`WatchedObjects`), and a pass over every instance with
 `AndroidObjectInspectors.appLeakingObjectFilters` — and then answers everything else about them **with the
 same code the rest of the window uses**: `HeapDominatorTreemap.rootPathTo`, the function that draws the
-chain beside the map. Nothing here goes through `RealLeakTracerFactory` or the shortest path finder.
+chain beside the map. No path here comes from `RealLeakTracerFactory` or the shortest path finder — though
+what a leak is *called* does, since the chain is handed to a `LeakTrace` to be hashed, see below.
 
 Two reasons, and the second is the one that decided it.
 
@@ -400,26 +401,29 @@ Two reasons, and the second is the one that decided it.
   when `strengthOf` says so, a library leak when one of the path's own references carries a
   `LibraryLeakPattern`, the app's own otherwise — and clicking the row shows that path.
 
-It follows that this classifies a few more leaks as library ones than LeakCanary would: its shortest path
-finder deprioritizes a known-leaking reference and goes through one only when there is no other way to the
-object, and this chain is simply the shortest one there is. Which is the price of one path everywhere, paid
-knowingly.
+**A leak is a reference, not a class**, and what groups the app's own leaks is the signature LeakCanary
+prints under one — `LeakTrace.signature`, a SHA-1 of the suspect stretch of the chain, from the last object
+known to still be needed down to the first one that shouldn't be there. Three things it deliberately leaves
+out. **The class of what leaked**, because two objects reached through one bad reference are one thing to
+fix whatever they are. **Everything below the first leaking object**, because that is what the leak is
+*holding* rather than why — an activity and a bitmap eight references under it are the same leak. **Which
+slot of an array an object landed in**, because that changes between two dumps of the same app and a leak
+has to be the same leak in both.
 
-**A leak is a reference, not a class**, and that is what groups the app's own leaks: the suspect stretch of
-the chain, from the last object known to still be needed down to the first one that shouldn't be there, and
-nothing else. `suspectSubpath` is `LeakTrace.suspectReferenceSubpath`'s rule, down to erasing array indices
-the way `referenceGenericName` does. Three things are deliberately left out of it. **The class of what
-leaked**, because two objects reached through one bad reference are one thing to fix whatever they are.
-**Everything below the first leaking object**, because that is what the leak is *holding* rather than why —
-an activity and a bitmap eight references under it are the same leak. **Which slot of an array an object
-landed in**, because that changes between two dumps of the same app and a leak has to be the same leak in
-both. The row is named after the first reference of that stretch, like LeakCanary's `shortDescription`;
-library leaks are grouped by the pattern they were recognized by instead. Fifty leaked rows of one list are
-one thing to fix, so a group is one row until it is unfolded — one object or fifty, since a row that led
-somewhere when it held one and unfolded when it held two would be two rows that look the same and do
-different things. `LeakGroup.signature` is a SHA-1 of what grouped it, which is what makes a leak something
-to write in a bug report; it is not the number LeakCanary prints, which hashes the leak trace its own path
-finder found.
+It is computed by handing the chain to Shark rather than by applying that rule again here (`LeakSignature`
+builds the `LeakTrace` the chain amounts to and reads its hash), because a signature is only worth printing
+if it is the same string as the one in a LeakCanary report of the same leak, and the rule for which
+references count is subtle enough that writing it twice means finding out later that the two differ. That
+was not a guess: this screen grouped by a rule of its own first, and it took four rounds of comparing
+against LeakCanary to find every way the two differed. Library leaks are hashed the way `LibraryLeak` hashes
+one, off the pattern they were recognized by. What the row is *named* after is still spelled here — the
+first reference of the suspect stretch, `Holder.activity`, by the class declaring the field so that the name
+is a string that is also on the chain drawn for it, where the signature uses the class of the object. Which
+is why the name is no substitute for the signature and both are on the row.
+
+Fifty leaked rows of one list are one thing to fix, so a group is one row until it is unfolded — one object
+or fifty, since a row that led somewhere when it held one and unfolded when it held two would be two rows
+that look the same and do different things.
 
 **A leak whose chain runs through another leak is dropped from the list** (`foldedIntoWhatHoldsThem`). A
 leaked activity holds a leaked window which holds a leaked view tree, and every one of those is an object an
@@ -430,28 +434,49 @@ as leaking, and opening one draws a chain that runs through the leak it went und
 (`rootPathObjectIdsTo`) rather than the twenty steps of it that get drawn, since a leak held by another one
 is held by it however far above it that one is.
 
-**The number of leaks is checked against LeakCanary's own analysis of the same heap dump.** `HeapAnalyzer`
-with `FilteringLeakingObjectFinder(appLeakingObjectFilters)` and `AndroidObjectInspectors.appDefaults` —
-the "every leak in the dump" analysis `shark-cli analyze` runs, not the retained-since-the-last-dump one —
-finds the same number of application leaks as this screen on all ten real Android dumps in this repo. That
-is the check worth running after touching any of this, and it is what the three rules above were settled
-by: before them `compose_leak.hprof` came out as 5 leaks against LeakCanary's 2, and `large-dump.hprof` as 3
-against 2.
+**The leaks are checked against LeakCanary's own analysis of the same heap dump, by signature.**
+`HeapAnalyzer` with `FilteringLeakingObjectFinder(appLeakingObjectFilters)` and
+`AndroidObjectInspectors.appDefaults` — the "every leak in the dump" analysis `shark-cli analyze` runs, not
+the retained-since-the-last-dump one — against this screen. `LeakSignatureTest` is that check on synthetic
+dumps, one per difference that used to break it; the sweep over the ten real Android dumps in this repo is
+worth re-running by hand after touching any of this, and it stands at **8 of the 10 dumps agreeing exactly,
+12 of the 15 leaks**. It is what found everything on this page: the counts alone matched three rounds before
+the signatures did, because two chains can be different and the same length.
 
-**The counts agree; which objects sit under which leak needn't**, because the two find different paths, and
-that is the price of one path everywhere rather than a bug. LeakCanary lists 23 objects under
-`Recomposer.compositionInvalidations` in `compose_leak.hprof` where this lists 2, the other 21 being held
-through one of those two on the explorer's own chains. And `leak_asynctask_o.hprof` is
-`AsyncTask.SERIAL_EXECUTOR` there and `Thread.<local variable>` here: both reach the same object, and
-LeakCanary's prioritizing path finder passes over a running method's frame in favour of a static field,
-while this takes the shortest chain there is.
+**Two differences are left, and both are about which objects get a chain of their own rather than about the
+chains.** `compose_leak.hprof` has two objects in one `HashSet` holding the same provider through a
+same-named field, so the two walks come out of the set at different entries — a tie between two paths of the
+same length that neither tool has a reason to break the same way. And `unloaded_classes-stripped.hprof`
+comes out as one leak against LeakCanary's two, because **LeakCanary's phase 1 treats a leaking object as a
+leaf**: its paths never cross another leak, so it finds both objects separately, where the shortest chain to
+the second one here runs through the first and folds under it. Fixing that would mean the leak list finding
+paths by rules the rest of the window doesn't use, which is the one thing this screen is not allowed to do.
+
+**Where the two used to differ, and what closed it** — four rounds, in the order they were found:
+
+- The suspect stretch ran past the first leaking object, and kept array indices, and named a reference by
+  the class declaring the field rather than the class of the object. Three ways of grouping too finely.
+- The fold looked at the twenty drawn steps of a chain rather than all of it, so a leak held by another one
+  far above it stayed on the list.
+- **Collections were read the way they are built.** `ArrayList.elementData → Object[] → [3]` where a leak
+  trace says `ArrayList[x]`, and worse for a `HashMap`. `DataStructureReferenceReader` adds Shark's own
+  readers for the dozen structures it knows, the way `ViewChildReferenceReader` adds a `ViewGroup`'s
+  children: additively, so the table stays a node of the tree, and the dominator tree takes it back out of
+  the middle. Costs about 11% of the time it takes to open a dump — 1.72 s against 1.55 s on the 38 MB one
+  — for reading a collection's contents twice, which is what `ChainingInstanceReferenceReader` pays too.
+- **The path search had no low priority queue.** It took `Thread.<local variable>` where LeakCanary took
+  `AsyncTask.SERIAL_EXECUTOR`, which is a truthful answer to "what holds this" and a useless one — an object
+  is on a stack because a method is running, and there is nothing to fix. `RootPathSearch` now puts off a
+  stack frame, a known library leak and the arrays ART hangs off a class exactly as
+  `PrioritizingShortestPathFinder` does, read in the other direction, and `ReferrerIndex` carries
+  `Reference.isLowPriority` in the top bit of each edge to answer it.
 
 **Shark's library leak matchers are added to the reference reader the tree is built from**
 (`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would
 drop references, and every object has to stay a node of the tree exactly once. A `LibraryLeakReferenceMatcher`
-sets `Reference.isLowPriority` and `LazyDetails.matchedLibraryLeak` and nothing else, and nothing in the
-explorer reads the first (it is for the shortest path finder), so the tree is the same tree with the known
-leaks of it named.
+sets `Reference.isLowPriority` and `LazyDetails.matchedLibraryLeak` and nothing else, so the tree is the
+same tree with the known leaks of it named, and the first of the two is what keeps a chain off a known
+leaking reference while there is another way to the object.
 
 **A leaking object's status is on every path, not only on the ones that turn out to be leaks.** Every step
 of every chain carries a `LeakStatus`, worked out by `leakStatusesOf` from what the inspectors said about

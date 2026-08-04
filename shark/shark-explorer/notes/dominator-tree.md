@@ -33,9 +33,10 @@ and only one of them belongs here:
   latter also installs `FlatteningPartitionedInstanceReferenceReader`, which surfaces a map's or
   list's internals as direct children of the collection and marks them leaf objects. Good for a leak
   trace, wrong here — a treemap needs every object to be a node exactly once, and the array a
-  `HashMap` actually holds has to be a node of its own or its bytes land nowhere. Where presenting a
-  structure that way is worth it anyway, the explorer *adds* the reference instead of swapping it in —
-  one reader does, for a `ViewGroup`'s children, and the array is still a node.
+  `HashMap` actually holds has to be a node of its own or its bytes land nowhere. The explorer *adds*
+  those readers instead of swapping them in, so a collection points straight at what it holds and its
+  table is still a node: `DataStructureReferenceReader` for the structures Shark knows, and
+  `ViewChildReferenceReader` for a `ViewGroup`'s children.
 
 **The strength that decides whether a weakening edge is followed is the target's, not the reference's.**
 A `WeakReference` whose referent is also held strongly is the common case, and following that edge adds a
@@ -250,11 +251,19 @@ path, while owning is a property of the last reference alone. It's a separate bi
 gated in the same place — `WeakeningAwareReferenceReader`, which the dominator tree, the referrer index
 and the path search all read through, so all three see one edge set.
 
-### A `ViewGroup` points at its children: the one virtual reference the explorer adds
+### A `ViewGroup` points at its children, and a collection at what it holds
 
-`ViewChildReferenceReader` gives a `ViewGroup` one reference per child, named by index and marked virtual,
-which is what the view `OwnerRule` claims ownership through. It reads `mChildren` bounded by
-`mChildrenCount`, in the shape Shark gives the collections it flattens.
+Two readers add virtual references. `DataStructureReferenceReader` is Shark's own dozen, for the
+`java.util` and framework structures it knows how to read — a leak through a `HashMap` reads `HashMap[x]`
+rather than through its table, its node array and its entry, which is what makes a chain here the chain a
+LeakCanary report shows (see `decisions.md`). All of them but
+`AndroidReferenceReaders.ANIMATOR_WEAK_REF_SUCKS`, which reads an `ObjectAnimator`'s target through the
+`WeakReference` holding it and presents it as a plain field: a useful guess in a leak trace, and here it
+would make a weakly held object read as strongly held, which is the one thing the tree can't say.
+
+`ViewChildReferenceReader` is the explorer's own, and gives a `ViewGroup` one reference per child, named by
+index and marked virtual, which is what the view `OwnerRule` claims ownership through. It reads `mChildren`
+bounded by `mChildrenCount`, in the shape Shark gives the collections it flattens.
 
 The framework stores children in a `View[]` it grows in chunks, so without this every parent to child link
 in a heap dump goes through an array, and the array is the only thing a rule can point at. Measured on the

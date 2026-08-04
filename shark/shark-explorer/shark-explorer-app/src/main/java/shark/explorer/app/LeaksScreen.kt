@@ -288,7 +288,7 @@ private fun WatcherRow(
 }
 
 /** Which section a group is in as well as which group it is: two sections can hold the same title. */
-private fun LeakKind.groupKey(group: LeakGroup): String = "$name ${group.id}"
+private fun LeakKind.groupKey(group: LeakGroup): String = "$name ${group.signature}"
 
 /** How many leaks and how many objects, which is what says a leak is one thing and not fifty. */
 private fun LeakSection.summary(): String = when {
@@ -349,9 +349,8 @@ internal const val SIGNATURE = "Signature:"
 internal const val SIGNATURE_HINT =
   "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +
     "— unlike the addresses under it, which are of this one. So it is what to write in a bug report, and " +
-    "what to compare two dumps by. LeakCanary prints a signature of its own under every leak it reports " +
-    "and it is a different number: it hashes the leak trace its own path finder found, and this hashes " +
-    "the chain the explorer draws for the same object."
+    "what to compare two dumps by. It is also the signature LeakCanary prints under this leak when it " +
+    "reports it, so a report and this list can be lined up hash by hash."
 
 internal const val FOLDED_ARROW = "▸"
 internal const val EXPANDED_ARROW = "▾"

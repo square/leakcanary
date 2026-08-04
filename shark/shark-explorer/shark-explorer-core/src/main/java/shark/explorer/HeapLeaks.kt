@@ -85,10 +85,16 @@ data class LeakSection(
  */
 data class LeakGroup(
   /**
-   * What makes two objects instances of the same leak, and so what tells one leak from another: two
-   * groups can have the same [title] and never the same id.
+   * What makes two objects instances of the same leak, and so what tells one leak from another: two groups
+   * can have the same [title] and never the same signature.
+   *
+   * **The same string LeakCanary prints under this leak**, which is what makes a leak something to write
+   * down: the same leak found in two heap dumps of the same app has the same one, however different the two
+   * dumps are and whatever the addresses of the objects in them, and a report of a dump and this list of it
+   * line up hash by hash. A SHA-1 of the suspect stretch of the chain for an app's own leak, of the pattern
+   * for a library one — `shark.Leak.signature`, computed by Shark's own code, see `LeakSignature.kt`.
    */
-  val id: String,
+  val signature: String,
   /** What the leak is: the class of the objects leaking, or the reference a library leak is known by. */
   val title: String,
   /** Why they are leaking, or what is known about the library leak. Null when there is nothing to add. */
@@ -99,22 +105,14 @@ data class LeakGroup(
 
   /** Bytes the objects of this leak retain together, which is what the leak is costing. */
   val retainedSize: Long get() = objects.sumOf { it.retainedSize }
-
-  /**
-   * A SHA-1 of [id], which is what makes a leak something to write down: the same leak found in two heap
-   * dumps of the same app has the same one, however different the two dumps are and whatever the addresses
-   * of the objects in them.
-   *
-   * The same idea as the signature LeakCanary prints under a leak, and not the same number: that one hashes
-   * the references of the leak trace its own path finder found, and this hashes the chain the explorer
-   * draws. Two answers to two questions — see `notes/decisions.md` — so a report and this list line up leak
-   * by leak and not hash by hash.
-   */
-  val signature: String get() = id.sha1Hex()
 }
 
-/** Hex, lowercase, the way every tool that prints a SHA-1 prints one. */
-private fun String.sha1Hex(): String =
+/**
+ * Hex, lowercase, the way every tool that prints a SHA-1 prints one — and the way
+ * `shark.internal.createSHA1Hash` does, which is what [LeakGroup.signature] has to agree with and can't
+ * call, since it's internal to Shark.
+ */
+internal fun String.sha1Hex(): String =
   MessageDigest.getInstance("SHA-1").digest(toByteArray(Charsets.UTF_8))
     .joinToString(separator = "") { byte -> "%02x".format(byte) }
 
