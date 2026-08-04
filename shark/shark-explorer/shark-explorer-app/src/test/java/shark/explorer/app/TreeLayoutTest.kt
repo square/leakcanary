@@ -83,6 +83,23 @@ class TreeLayoutTest {
   }
 
   /**
+   * And the graph, which is the same rule from the other side: it is arranged from what the reader has
+   * expanded rather than read from the tree, so switching to it lays the tree out no further. What it
+   * does read is the object it is rooted at and what that references, which is not a view.
+   */
+  @Test fun `switching to the graph lays the tree out no further`() {
+    explorerUiTest {
+      openHeapDump()
+
+      shapeOption(ViewShape.GRAPH).performClick()
+      settleTheHeapDumpThread(ViewShape.GRAPH)
+    }
+
+    assertThat(treeLayoutsOf(ViewShape.GRAPH)).isEmpty()
+    assertThat(treeLayoutsOf(ViewShape.TREEMAP)).hasSize(1)
+  }
+
+  /**
    * Waits for a heap dump read that isn't a layout, which is what makes counting the layouts sound rather
    * than a race: reads queue on the heap dump's one thread in the order they were asked for, so a layout
    * queued behind the one that drew what the window is showing is in the log by the time this comes back.
@@ -101,6 +118,9 @@ class TreeLayoutTest {
         Offset(view.left + view.width * CELL_X, view.top + view.height * CELL_Y)
       }
       ViewShape.STACK -> stackRow(CELL_ROW, CELL_X)
+      // The circle the graph opens on: the middle of the view is empty until something has been
+      // expanded, and this shape starts with one circle.
+      ViewShape.GRAPH -> graphRootCircle()
     }
     onRoot().performMouseInput { hover(cell) }
     waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { logged.any { it.startsWith(HOVER_READ) } }

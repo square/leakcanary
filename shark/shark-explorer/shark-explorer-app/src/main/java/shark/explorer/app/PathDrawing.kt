@@ -18,26 +18,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import shark.ReferenceLocationType
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.PathReference
@@ -55,10 +44,9 @@ import shark.explorer.hexObjectId
  * draws is drawn by this — see [RootPathPanel] — so that two chains of the same heap dump never read
  * differently.
  *
- * Each object's circle carries the letter of its kind, in that kind's colour, so that a column of them says
- * what it is a column of before any of the names are read: `I` for an instance, `C` for a class. How firmly
- * a link holds is the line rather than the circle — colour and dashes — which is what leaves the circle free
- * to say what the object is.
+ * What a circle, a line and an arrow head look like is [PathStyle], which the graph draws its objects with
+ * too. What this file owns is the column: a row per object, the gutter down the left of it, and the
+ * reference tied to that line under each row.
  */
 
 /**
@@ -295,6 +283,26 @@ internal fun PathCutRow(
 }
 
 /**
+ * What one object is to the object a drawing is about, drawn as a ring around its circle by
+ * [drawObjectCircle]. Named after the chain because that is where it was first said, and read by
+ * everything that draws an object: the graph gives its circles a role from the same three.
+ */
+internal enum class PathRole {
+
+  /** An object on the way rather than the reason: no ring. */
+  STEP,
+
+  /**
+   * An object that dominates what hangs below it: every path from a GC root to those objects goes
+   * through it, so releasing it is what would free them.
+   */
+  DOMINATOR,
+
+  /** The object the window is describing, which the panels beside the view are about. */
+  TARGET
+}
+
+/**
  * How much a chain says about each of its objects.
  *
  * A chain from a GC root down to a bitmap of a real app runs through a dozen objects and can be cut at
@@ -309,22 +317,6 @@ internal enum class PathDetail(val rowSpacing: Dp) {
 
   /** Its class alone, with its retained size beside it, and the gutter for how it is held. */
   BRIEF(6.dp)
-}
-
-/** What one object of a chain is to the object the chain leads to, drawn as a ring around its circle. */
-internal enum class PathRole {
-
-  /** An object the chain runs through, on the way rather than the reason. */
-  STEP,
-
-  /**
-   * An object that dominates the one the chain leads to: every path from a GC root goes through it, so
-   * releasing it is what would free the object.
-   */
-  DOMINATOR,
-
-  /** The object the chain leads to, which is the last of its steps. */
-  TARGET
 }
 
 /**
@@ -389,20 +381,10 @@ private fun BriefStepLine(step: PathStep) {
 private fun ReferenceLine(reference: PathReference) {
   Text(
     buildAnnotatedString {
+      // Which class the field is read on as well as its name, because the row above names the object's
+      // own class and an inherited field is declared on another one.
       withStyle(MUTED_SPAN) { append(reference.ownerPrefix()) }
-      withStyle(
-        SpanStyle(
-          textDecoration = TextDecoration.Underline,
-          // Italic for a static field, which belongs to the class rather than to the instance above.
-          fontStyle = if (reference.locationType == ReferenceLocationType.STATIC_FIELD) {
-            FontStyle.Italic
-          } else {
-            FontStyle.Normal
-          }
-        )
-      ) {
-        append(reference.displayName())
-      }
+      append(referenceName(reference))
     },
     style = MaterialTheme.typography.bodySmall
   )
@@ -417,26 +399,13 @@ private fun ReferenceLine(reference: PathReference) {
 internal fun Modifier.clickableRow(onClick: () -> Unit): Modifier =
   pointerHoverIcon(PointerIcon.Hand).clickable(onClick = onClick)
 
-/** The class the field is read on, with no dot before an array index: `Tile.view`, `Object[][3]`. */
-private fun PathReference.ownerPrefix(): String =
-  if (locationType == ReferenceLocationType.ARRAY_ENTRY) ownerClassName else "$ownerClassName."
-
-private fun PathReference.displayName(): String = when (locationType) {
-  ReferenceLocationType.ARRAY_ENTRY -> "[$name]"
-  ReferenceLocationType.LOCAL -> LOCAL_VARIABLE
-  ReferenceLocationType.INSTANCE_FIELD, ReferenceLocationType.STATIC_FIELD -> name
-}
-
 /**
- * The line running through the objects of a chain: this one's circle with the letter of its kind in it, and
- * half a line to each of its neighbours, which the neighbour draws the other half of.
+ * The line running through the objects of a chain: this one's circle, and half a line to each of its
+ * neighbours, which the neighbour draws the other half of.
  *
  * A link no stronger than a `java.lang.ref.Reference` or a cache is dashed and takes that strength's
- * colour, which is how a path that only holds until memory runs short reads as one.
- *
- * A null [kind] draws the circle hollow and empty, for a row that stands above the objects of a chain rather
- * than being one of them. A [role] other than [PathRole.STEP] rings it, which is how the objects that own
- * the one at the end of the chain are picked out of the ones merely on the way.
+ * colour, which is how a path that only holds until memory runs short reads as one. The circle itself is
+ * [drawObjectCircle], which is also what the graph draws its objects with.
  */
 @Composable
 private fun NodeGutter(
@@ -474,84 +443,18 @@ private fun NodeGutter(
         drawArrowHead(Offset(centerX, size.height), connectorColor(outgoing))
       }
     }
-    val center = Offset(centerX, centerY)
-    if (kind != null) {
-      drawCircle(color = kind.badgeColor, radius = radius, center = center)
-      drawBadgeLetter(measurer, kind, center)
-    }
-    drawCircle(
-      color = if (kind == null) CONNECTOR_COLOR else kind.badgeColor,
+    drawObjectCircle(
+      center = Offset(centerX, centerY),
+      kind = kind,
+      role = role,
       radius = radius,
-      center = center,
-      style = Stroke(width = strokeWidth)
+      measurer = measurer
     )
-    val ringColor = when (role) {
-      PathRole.STEP -> null
-      PathRole.DOMINATOR -> DOMINATOR_COLOR
-      PathRole.TARGET -> SELECTION_COLOR
-    }
-    if (ringColor != null) {
-      drawCircle(
-        color = ringColor,
-        radius = radius + RING_GAP.toPx(),
-        center = center,
-        style = Stroke(width = RING_WIDTH.toPx())
-      )
-    }
   }
 }
-
-/** The letter of a kind, in the middle of its circle: what the object is, before its name is read. */
-private fun DrawScope.drawBadgeLetter(
-  measurer: TextMeasurer,
-  kind: HeapObjectKind,
-  center: Offset
-) {
-  val letter = measurer.measure(
-    text = kind.badgeLetter,
-    style = TextStyle(
-      color = BADGE_LETTER_COLOR,
-      fontSize = BADGE_LETTER_SIZE,
-      fontWeight = FontWeight.Bold
-    )
-  )
-  drawText(
-    textLayoutResult = letter,
-    topLeft = Offset(center.x - letter.size.width / 2f, center.y - letter.size.height / 2f)
-  )
-}
-
-/** Says which way the line runs, at the bottom of it, where the next object is. */
-private fun DrawScope.drawArrowHead(
-  tip: Offset,
-  color: Color
-) {
-  val halfWidth = ARROW_WIDTH.toPx() / 2
-  val height = ARROW_HEIGHT.toPx()
-  val head = Path().apply {
-    moveTo(tip.x, tip.y)
-    lineTo(tip.x - halfWidth, tip.y - height)
-    lineTo(tip.x + halfWidth, tip.y - height)
-    close()
-  }
-  drawPath(head, color)
-}
-
-private fun connectorColor(strength: ReachabilityStrength): Color =
-  if (strength == ReachabilityStrength.STRONG) CONNECTOR_COLOR else WEAK_CONNECTOR_COLOR
-
-private fun DrawScope.dashOrNull(strength: ReachabilityStrength): PathEffect? =
-  if (strength == ReachabilityStrength.STRONG) {
-    null
-  } else {
-    PathEffect.dashPathEffect(floatArrayOf(DASH_ON.toPx(), DASH_OFF.toPx()))
-  }
 
 /** What a step that dominates the object at the end of the chain says about itself. */
 internal const val DOMINATES_BELOW = "Dominates ↓"
-
-/** How a leak trace names the reference a running method holds, which has no field to name. */
-private const val LOCAL_VARIABLE = "<local variable>"
 
 /** Wide enough for the line, its arrow head and a ring to sit clear of the text beside it. */
 private val GUTTER_WIDTH = 26.dp
@@ -559,75 +462,15 @@ private val GUTTER_WIDTH = 26.dp
 /** Where down a row the object's circle sits, which is the middle of its first line of text. */
 private val NODE_CENTER_Y = 11.dp
 
-/** Big enough for a letter to be read in, which is what makes the circle say what the object is. */
-private val NODE_RADIUS = 8.dp
-
 /** And where down a reference's own row the bracket tying it to the line sits, which is its first line. */
 private val REFERENCE_TIE_Y = 9.dp
-
-private val CONNECTOR_WIDTH = 1.5.dp
-private val ARROW_WIDTH = 7.dp
-private val ARROW_HEIGHT = 5.dp
-private val DASH_ON = 3.dp
-private val DASH_OFF = 3.dp
 
 /** Tall enough for the dots above a cut chain to read as a line, short enough to cost it no room. */
 private val CUT_ROW_HEIGHT = 14.dp
 private val CUT_DASH_ON = 2.dp
 private val CUT_DASH_OFF = 4.dp
 
-/** How far outside a step's own circle the ring picking it out sits. */
-private val RING_GAP = 2.5.dp
-private val RING_WIDTH = 1.5.dp
-
-private val BADGE_LETTER_SIZE = 10.sp
-
-/** On every kind's colour, all of which are dark enough to read white out of. */
-private val BADGE_LETTER_COLOR = Color.White
-
 /** What the object the panel is describing is drawn behind, which is the end of the chain. */
 private val TARGET_BACKGROUND = Color(0x1A2196F3)
 private val TARGET_SHAPE = RoundedCornerShape(4.dp)
 private val TARGET_PADDING = 4.dp
-
-/** The purple LeakCanary draws a leak trace in, which this is the same shape as. */
-private val CONNECTOR_COLOR = Color(0xFF7E57C2)
-
-/** And what a link the garbage collector may let go of is drawn in, dashed. */
-private val WEAK_CONNECTOR_COLOR = Color(0xFFB0453A)
-
-/**
- * What an object that owns the one at the end of a chain is ringed and labelled in. Its own hue, because
- * the two colours already in a chain mean how firmly a link holds, and this says nothing about that.
- */
-internal val DOMINATOR_COLOR = Color(0xFF00796B)
-
-/** For the parts of a line that say what an object is rather than which one it is. */
-internal val MUTED_TEXT = Color(0xFF6E6E6E)
-
-/** The same, for the part of a line that is one text: greyed, and unbolded where the line is bold. */
-private val MUTED_SPAN = SpanStyle(color = MUTED_TEXT, fontWeight = FontWeight.Normal)
-
-/** The letter drawn in an object's circle, which is what kind of object it is. */
-private val HeapObjectKind.badgeLetter: String
-  get() = when (this) {
-    HeapObjectKind.CLASS -> "C"
-    HeapObjectKind.INSTANCE -> "I"
-    HeapObjectKind.OBJECT_ARRAY -> "A"
-    HeapObjectKind.PRIMITIVE_ARRAY -> "P"
-  }
-
-/**
- * And the colour of that circle: one per kind, so that a chain of instances and a chain that runs through
- * an array read differently at a glance.
- *
- * Every one of them dark enough for the white letter inside it, and none of them a colour a chain already
- * uses: the purple of the line, the red of a link that may be let go of, the teal of a dominator.
- */
-private val HeapObjectKind.badgeColor: Color
-  get() = when (this) {
-    HeapObjectKind.CLASS -> Color(0xFFEF6C00)
-    HeapObjectKind.INSTANCE -> Color(0xFF3949AB)
-    HeapObjectKind.OBJECT_ARRAY -> Color(0xFF00838F)
-    HeapObjectKind.PRIMITIVE_ARRAY -> Color(0xFF558B2F)
-  }

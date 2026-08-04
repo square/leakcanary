@@ -302,6 +302,27 @@ What made this affordable, on the 38 MB dump in the repo, over all 4,572 rectang
   expensive question — are **only asked for the object clicked**, once its chain has come back, and the
   answer is drawn into that chain. The pointer has nowhere to put a question that expensive.
 
+## On the graph, a click expands rather than goes there
+
+The graph is the one shape where a click doesn't move the window. It draws the heap dump's references
+outwards from where the view is rooted, and the whole of what it says is what has been expanded, so a
+click that re-rooted it would throw that away every time — the reader would be building the picture and
+losing it in the same gesture. Pressing a circle opens it, pressing it again closes it, and pressing the
+cell counting what didn't fit reveals another page (`ObjectGraph.pressing`).
+
+Which leaves the panels as the way to go somewhere from here: a click still describes what it landed on,
+so the chain, the details panel and the bar above the view all follow the circle pressed, and going to it
+is a click on the name there. That is the same route every other screen uses, so nothing new to learn —
+and it keeps "go there" and "show me more" as two different gestures rather than a click and a
+double click on the same circle.
+
+**Arranging the graph is done in composition, not on the heap dump's thread.** Everything drawn was read
+into `ObjectGraph` already, a circle at a time, so laying it out reads nothing and is a pure function of
+state the window holds. Putting it on that thread — where the other three shapes' layouts belong, since
+they read the heap dump for every label — cost a spinner flash on every click and three misleading "read
+the graph rooted at" lines per shape switch. `ViewRequest` refuses to be built for this shape and the
+layout `when` errors on it, so there is one way for it to be arranged rather than two.
+
 ## The chain from a GC root is a pane, not a popover
 
 Hovering used to draw the tree's containers as a grey popover following the pointer. What it said was a

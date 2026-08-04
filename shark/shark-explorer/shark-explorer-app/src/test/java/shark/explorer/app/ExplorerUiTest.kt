@@ -65,6 +65,24 @@ internal fun ComposeUiTest.stackRow(
 }
 
 /**
+ * The middle of the circle the graph opens on, which is against the left edge half way down, in the
+ * window's coordinates.
+ *
+ * In pixels rather than in a fraction of the view for the same reason [stackRow] is: this shape is laid
+ * out from its root outwards rather than fitted to the view, so the middle of the view is empty until
+ * something has been expanded. Well inside the circle rather than on its centre, since a circle and the
+ * name beside it are one target and the column hanging off it starts a good deal further right.
+ */
+@OptIn(ExperimentalTestApi::class)
+internal fun ComposeUiTest.graphRootCircle(): Offset {
+  val view = onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
+  return Offset(x = view.left + GRAPH_ROOT_CIRCLE_X, y = view.top + view.height / 2)
+}
+
+/** How far into that circle a click lands: past the circle itself and into the name beside it. */
+private const val GRAPH_ROOT_CIRCLE_X = 100f
+
+/**
  * Moves the pointer onto [offset] the way a mouse gets anywhere: from a pixel away.
  *
  * The first move a view is sent is an enter rather than a move, and the views only describe what the

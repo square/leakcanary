@@ -42,6 +42,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
 import shark.AndroidObjectInspectors
+import shark.Reference
 import shark.SharkLog
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
@@ -72,8 +73,9 @@ import shark.ValueHolder.ShortHolder
 // Everything the UI asks about one heap dump: the tree, what a cell of it says, and how an object is held.
 // One class because every answer reads the same graph, reachability, ownership and referrer index, so
 // splitting it means threading all four into a second class that calls back into this one. Worth doing,
-// and worth doing on its own rather than inside a change that adds one more answer.
-@Suppress("LargeClass")
+// and worth doing on its own rather than inside a change that adds one more answer — which is also why the
+// function count is suppressed rather than paid down by splitting somewhere arbitrary.
+@Suppress("LargeClass", "TooManyFunctions")
 class HeapDominatorTreemap internal constructor(
   private val graph: HeapGraph,
   private val reachability: HeapReachability,
@@ -530,6 +532,143 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
+   * One node as [ObjectGraph] draws it — a circle with a name beside it — or null for a node this
+   * tree doesn't have.
+   *
+   * Cheap enough to call for the two dozen objects an expansion draws at once, unlike [summarize]:
+   * what it costs is reading the object, its strength and how many references it holds, and none of
+   * Shark's object inspectors.
+   */
+  fun graphObject(nodeId: Long): GraphObject? {
+    val group = group(nodeId)
+    if (group != null) {
+      return GraphObject(
+        objectId = nodeId,
+        className = group.label(),
+        // Drawn hollow: a pile of objects is no object of the heap dump and has no kind.
+        kind = null,
+        strength = group.strength,
+        retainedSize = group.retainedSize,
+        retainedCount = group.objectCount,
+        referenceCount = group.childIds.size
+      )
+    }
+    if (nodeId == root) {
+      return GraphObject(
+        objectId = root,
+        className = ROOT_LABEL,
+        kind = null,
+        strength = ReachabilityStrength.STRONG,
+        retainedSize = weight(root),
+        retainedCount = nodeOf(root).retainedCount,
+        referenceCount = children(root).size
+      )
+    }
+    if (nodeId !in nodes) {
+      SharkLog.d { "Nothing to draw for ${nodeIdText(nodeId)}: it is no node of the tree" }
+      return null
+    }
+    val node = nodeOf(nodeId)
+    val heapObject = graph.findObjectById(nodeId)
+    return GraphObject(
+      objectId = nodeId,
+      className = heapObject.className(),
+      kind = heapObject.kind(),
+      strength = strengthOf(nodeId),
+      retainedSize = node.retainedSize,
+      retainedCount = node.retainedCount,
+      referenceCount = pathReferenceReader.read(heapObject).count()
+    )
+  }
+
+  /**
+   * What [nodeId] points at, as [ObjectGraph] draws it: at most [limit] arrows, heaviest first, with
+   * what each of them points at.
+   *
+   * **The references the dominator tree was built by following**, so that the picture and the sizes
+   * on it are one answer: a reference the tree ignored would draw a way of holding an object that the
+   * tree says isn't why it's in memory. Which is also why an object the tree has no node for — a
+   * string's characters, folded into the string by the size calculator — is left out rather than drawn
+   * as a circle nothing can be asked about.
+   *
+   * One arrow per object pointed at, named after the first field that points at it: two circles joined
+   * by four lines say four times over what one line already says.
+   *
+   * **A node standing for many objects hands out the tree's own children instead** — the whole heap
+   * dump, the uncollected garbage, a class the top of the tree gathers its instances under. There is no
+   * field to name on those arrows, and they are dominator edges by definition, since being drawn there
+   * is what the tree attributing an object's bytes there means. So the graph opens on the whole heap
+   * dump the way every other shape does, and the references start one click in.
+   */
+  fun referencesFrom(
+    nodeId: Long,
+    limit: Int = ObjectGraph.REFERENCES_PER_PAGE
+  ): ObjectReferences {
+    val isPile = nodeId == root || isPileId(nodeId)
+    val found: List<Pair<Long, Reference?>> = when {
+      isPile -> children(nodeId).map { it to null }
+      nodeId !in nodes -> {
+        SharkLog.d { "Nothing to draw below ${nodeIdText(nodeId)}: it is no node of the tree" }
+        emptyList()
+      }
+      else -> referencesOf(nodeId)
+    }
+    // Heaviest first, which is what a reader following bytes down a picture is looking for, and what
+    // makes the arrows a node has no room for the ones worth leaving out.
+    val sorted = found.sortedByDescending { (targetId, _) -> weight(targetId) }
+    val drawn = sorted.take(limit)
+    return ObjectReferences(
+      fromObjectId = nodeId,
+      references = drawn.map { (targetId, reference) ->
+        GraphReference(
+          fromObjectId = nodeId,
+          toObjectId = targetId,
+          reference = reference?.pathReferenceFrom(nodeId),
+          isDominator = isPile || dominatorTree.immediateDominatorOf(targetId) == nodeId
+        )
+      },
+      objects = drawn.mapNotNull { (targetId, _) -> graphObject(targetId) },
+      hiddenCount = sorted.size - drawn.size
+    )
+  }
+
+  /**
+   * The references [objectId] holds that the graph can draw: one per object pointed at, and only
+   * objects this tree has a node for.
+   *
+   * Nothing is resolved here — naming a reference reads the class that declares the field — because an
+   * object array of a real app holds thousands of these and only the heaviest
+   * [ObjectGraph.REFERENCES_PER_PAGE] of them are ever drawn.
+   */
+  private fun referencesOf(objectId: Long): List<Pair<Long, Reference?>> {
+    var foldedCount = 0
+    val references = pathReferenceReader.read(graph.findObjectById(objectId))
+      .filter { reference ->
+        val targetId = reference.valueObjectId
+        // An object holding itself is a fact about one circle, and an arrow from a circle to itself
+        // draws nothing: what it is is said in the details panel, under its own fields.
+        when {
+          targetId == objectId -> false
+          targetId in nodes -> true
+          else -> {
+            foldedCount++
+            false
+          }
+        }
+      }
+      .distinctBy { it.valueObjectId }
+      .map { it.valueObjectId to it }
+      .toList()
+    if (foldedCount > 0) {
+      SharkLog.d {
+        "Left $foldedCount of ${hexObjectId(objectId)}'s references out of the graph: the tree has no " +
+          "node for what they point at"
+      }
+    }
+    return references
+  }
+
+  /**
    * Every way [toObjectId] is held below [fromObjectId], spelled out field by field. See
    * [IndependentPaths] for what "independent" means and what this search does and doesn't guarantee.
    *
@@ -790,11 +929,9 @@ class HeapDominatorTreemap internal constructor(
     objectId: Long,
     referrerId: Long
   ): PathStep {
-    val details = pathReferenceReader.read(graph.findObjectById(referrerId))
+    val found = pathReferenceReader.read(graph.findObjectById(referrerId))
       .firstOrNull { it.valueObjectId == objectId }
-      ?.lazyDetailsResolver
-      ?.resolve()
-    if (details == null) {
+    if (found == null) {
       // The walk found this step through the referrer index, which was built with this same reader, so a
       // step with no reference to name means the two disagree about the same pair of objects. Shows as a
       // step naming the object and not how it's held.
@@ -803,19 +940,25 @@ class HeapDominatorTreemap internal constructor(
           "was found through one"
       }
     }
-    return step(
-      objectId = objectId,
-      reference = details?.let { resolved ->
-        PathReference(
-          name = resolved.name,
-          // The class that declares the field rather than the referrer's own class, which is what tells a
-          // field inherited from a base class apart from one the subclass added.
-          ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
-            ?.let { (it as? HeapClass)?.simpleName }
-            ?: label(referrerId),
-          locationType = resolved.locationType
-        )
-      }
+    return step(objectId = objectId, reference = found?.pathReferenceFrom(referrerId))
+  }
+
+  /**
+   * How the object holding this reference names it: the field, on the class that declares it.
+   *
+   * One definition, because a chain and the graph both write it beside the arrow they draw, and two
+   * objects that name the same field differently is the window contradicting itself.
+   */
+  private fun Reference.pathReferenceFrom(referrerId: Long): PathReference {
+    val resolved = lazyDetailsResolver.resolve()
+    return PathReference(
+      name = resolved.name,
+      // The class that declares the field rather than the referrer's own class, which is what tells a
+      // field inherited from a base class apart from one the subclass added.
+      ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
+        ?.let { (it as? HeapClass)?.simpleName }
+        ?: label(referrerId),
+      locationType = resolved.locationType
     )
   }
 

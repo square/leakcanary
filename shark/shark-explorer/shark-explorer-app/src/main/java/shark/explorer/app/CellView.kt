@@ -52,7 +52,17 @@ internal enum class ViewShape(val displayName: String) {
    * doesn't spend area on nesting, so the deep end of a chain is drawn and named at full size — and
    * therefore the one shape taller than the window, which is why it scrolls.
    */
-  STACK("Stack")
+  STACK("Stack"),
+
+  /**
+   * Circles joined by arrows, expanded a click at a time from the node the view is rooted at: the one
+   * shape that draws the heap dump's own references rather than the tree over them, so the one that can
+   * say *which* field holds an object and whether anything else does.
+   *
+   * Nothing is divided between anything here, so how much is drawn is entirely what was clicked, and the
+   * view pans and zooms instead of fitting the window. See [shark.explorer.GraphLayout].
+   */
+  GRAPH("Graph")
 }
 
 /**
@@ -190,6 +200,18 @@ internal val STACK_ROW_HEIGHT = 18.dp
  */
 internal val MIN_SUBDIVIDE_STACK_WIDTH = 6.dp
 internal val MIN_DRAW_STACK_WIDTH = 2.dp
+
+/**
+ * How far apart the columns of the graph are: a name's width, the arrow between two circles, and room
+ * on it for the field the reference is held in.
+ */
+internal val GRAPH_COLUMN_WIDTH = 220.dp
+
+/** And how much room one circle gets down the picture: two lines of text, with air around them. */
+internal val GRAPH_ROW_HEIGHT = 44.dp
+
+/** How wide the name beside a circle is, which is the rest of what a click on a node hits. */
+internal val GRAPH_LABEL_WIDTH = 170.dp
 
 internal val LABEL_PADDING = 3.dp
 internal val MIN_LABEL_WIDTH = 24.dp

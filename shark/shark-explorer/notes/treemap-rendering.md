@@ -2,11 +2,11 @@
 
 Implemented in `shark-explorer-core`: `Squarify.kt` (row layout), `TreemapLayout.kt` (adaptive depth
 and hit testing), `RadialLayout.kt` (the same, as rings), `StackLayout.kt` (the same, as a row per
-level), `TreemapRect.kt`, `LayoutCell.kt` (what the three layouts have in common),
-`HeapDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and `present()`, which labels and
-colours the cells a layout produced), `TreemapPresentation.kt` (a presentation per shape, each with an
-`of()` pairing a layout with that). Drawn by `TreemapView`, `RadialView` and `StackView` in
-`shark-explorer-app`.
+level), `TreemapRect.kt`, `LayoutCell.kt` (what the layouts have in common), `HeapDominatorTreemap.kt`
+(the dominator tree as a `TreemapTree`, and `present()`, which labels and colours the cells a layout
+produced), `TreemapPresentation.kt` (a presentation per shape, each with an `of()` pairing a layout
+with that), plus `ObjectGraph.kt` and `GraphLayout.kt` for the fourth shape, which is expanded rather
+than cut. Drawn by `TreemapView`, `RadialView`, `StackView` and `GraphView` in `shark-explorer-app`.
 
 **`of()` is a presentation's own, not a method per shape on `HeapDominatorTreemap`.** It used to be the
 other way round, and adding a third shape is what moved it: that class is a 1,200 line heap dump reader
@@ -17,6 +17,9 @@ strength off a `CellSubject`, and every shape's cells are those. **So a fourth s
 `HeapDominatorTreemap` at all.**
 
 ## Three shapes, one cut of the tree
+
+(Four shapes now; the fourth is not a cut of the tree and has its own section below. Everything here is
+about the three that are.)
 
 A cell is a `LayoutCell`: a `CellSubject` — one node, or the children a node didn't draw — plus a
 depth, a weight and whatever geometry its layout adds. `TreemapCell` adds a rectangle, `RadialCell` an
@@ -68,6 +71,51 @@ Three consequences of that, each of them a decision:
 It skips one thing the treemap does: **a row doesn't draw its bitmap**. A row is a line of text tall,
 and a bitmap fitted into 18 dp is a smear — the picture is the treemap's contribution, and asking for it
 here would cost a heap dump read and a decode per row for nothing.
+
+## The graph: the heap dump's own references, a click at a time
+
+The other three shapes divide an area between the nodes of the dominator tree. The graph divides
+nothing: circles joined by arrows, expanded outwards from the node the view is rooted at, the way Xcode's
+memory graph is read. Which makes it **the one shape that draws the heap dump's own references**, so the
+only one that can say *which field* holds an object, and whether anything else does.
+
+That difference is what shapes everything about it:
+
+- **What is drawn is state, not a cut.** `ObjectGraph` is which circles have been expanded and what each
+  of them references, immutable and grown a click at a time; `GraphLayout` arranges it into columns and
+  rows. A treemap is a function of the tree and the viewport, so it is laid out again on every resize; a
+  graph is a function of what the reader asked for, so **resizing it doesn't change it** and the reader
+  pans and zooms instead of the picture fitting the window.
+- **It reads the heap dump a circle at a time**, in `referencesFrom` — expanding one object is one read
+  of what that object points at, kept for as long as the window is open. Collapsing keeps it, so opening
+  a circle again reads nothing (`GraphViewTest` asserts exactly that). Nothing else about the shape
+  touches the heap dump.
+- **The root is an object, and the whole heap dump is not one.** Rooted at the top of the tree there is
+  no object to read references off, so `referencesFrom` answers for that node with the tree's own
+  children — `reference = null`, `isDominator = true` — which draws as unnamed arrows to what the GC
+  roots hold. One code path, not a mode: every other node answers the same call with real references.
+- **Fan-out is paged, not truncated.** A node with 4,000 references is 4,000 circles nobody can read, so
+  a page is the `REFERENCES_PER_PAGE` (24) heaviest and the rest become one `CellSubject.Group` cell
+  that reveals another page when pressed — the same subject the other three shapes use for the children
+  they didn't draw, so labels, colours and selection needed nothing new.
+- **Expanding never moves what is already on screen.** `GraphLayout` normalizes the root's centre to
+  (0, 0) and lays every column out from there, so a circle expanded at the bottom of the picture adds
+  rows below without sliding the row the reader is looking at.
+- **An object is drawn once**, at the shallowest depth it was reached by; a second arrow to it crosses
+  the picture rather than duplicating the circle. Which is what makes a cycle finite, and what makes
+  "two things hold this" visible at all.
+
+**Dominators are ringed, and the ring is the same one the chain draws.** `dominatorTree.immediateDominatorOf`
+is asked per arrow, so an arrow says both *how* an object is reached and *whether that is the reason it is
+alive* — the pair of questions this whole app is about, on one picture.
+
+**The style is shared with the chain pane, in `PathStyle.kt`.** A circle, its badge letter, its ring, the
+connector colours, the dash for a weak reference and the arrow head are one set of functions, used both by
+`PathDrawing` (a column of circles joined top to bottom) and by `GraphView` (circles joined left to right).
+They are the same picture in two arrangements, and two drawings of the same heap dump that don't match are
+two things a reader has to learn instead of one. What each keeps for itself is its arrangement: row height,
+where the gutter runs, what a click does. `drawArrowHead` takes a direction because of this — the chain's
+arrows point down, the graph's point right, and it is the same arrow.
 
 ## Depth is area-driven, not a fixed level
 

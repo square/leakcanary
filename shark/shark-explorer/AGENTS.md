@@ -1,8 +1,9 @@
 # Shark Explorer — agent guide
 
 A desktop app that renders a heap dump's dominator tree as a navigable treemap, as rings around a
-centre, or as a stack of rows the way a profiler draws a call tree. The long term goal is a YourKit-style
-heap explorer; these are the first surfaces.
+centre, or as a stack of rows the way a profiler draws a call tree — and the heap dump's own references
+as a graph of circles and arrows expanded a click at a time. The long term goal is a YourKit-style heap
+explorer; these are the first surfaces.
 
 This file is scoped to `shark/shark-explorer/`. It only records things an agent would get wrong by
 reading the source alone — everything else is in the code. Keep it that way.
@@ -41,6 +42,10 @@ dump. Doing any of that in a composable freezes the window.
 What follows for the UI: a composable never holds a tree, only what was already computed from one. A
 laid out, labelled view is a `TreemapPresentation` or a `RadialPresentation`, and a selection is a
 `HeapObjectSummary`; both arrive a little after whatever asked for them changed.
+
+**The graph shape is the exception, deliberately**: what it draws was read into an `ObjectGraph` a
+circle at a time already, so arranging it reads nothing and happens in composition — see
+`notes/decisions.md`. A `ViewRequest` is never made for it, and building one throws.
 
 The one thing that isn't thread safe is a `Sequence` a `HeapGraph` hands out — iterating one reads
 through it — so a thread reading `graph.objects` needs its own rather than a shared one.
@@ -380,8 +385,8 @@ Design decisions and findings, kept current as the work proceeds:
 
 - `notes/decisions.md` — stack and structure decisions, with rationale
 - `notes/dominator-tree.md` — dominator algorithm findings, memory/perf numbers
-- `notes/treemap-rendering.md` — adaptive depth model, the two shapes, bugs in the existing Android
-  treemap
+- `notes/treemap-rendering.md` — adaptive depth model, the shapes and what each is for, bugs in the
+  existing Android treemap
 - `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and the two ways
   the ones that don't are fetched off the device
 

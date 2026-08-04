@@ -42,6 +42,9 @@ import shark.explorer.BitmapCounts
 import shark.explorer.CellSubject
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
+import shark.explorer.GraphLayout
+import shark.explorer.GraphLayoutResult
+import shark.explorer.GraphNodeCell
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
@@ -49,6 +52,7 @@ import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
 import shark.explorer.NavigationHistory
 import shark.explorer.ObjectDominator
+import shark.explorer.ObjectGraph
 import shark.explorer.ObjectList
 import shark.explorer.ObjectListFilter
 import shark.explorer.RadialLayout
@@ -65,6 +69,7 @@ import shark.explorer.detours
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
 import shark.explorer.nodeIdText
+import shark.explorer.pressing
 import shark.explorer.waysOf
 
 /**
@@ -138,6 +143,13 @@ internal fun HeapDumpExplorer(
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
   /** A move something led to, until the path the treemap has its destination under is worked out. */
   var nodeToOpen: NodeToOpen? by remember { mutableStateOf(null) }
+  /**
+   * How much of the heap dump's own object graph the reader has expanded, which is the one shape that
+   * is drawn a click at a time rather than laid out to fit. Empty until the graph is opened.
+   */
+  var graph by remember { mutableStateOf(ObjectGraph.EMPTY) }
+  /** Whether the object the graph is being rooted at is still being read, which is a spinner. */
+  var isRootingGraph by remember { mutableStateOf(false) }
 
   /**
    * Points the panels at a node, which is what walking the history does. Each screen says which node that
@@ -164,23 +176,31 @@ internal fun HeapDumpExplorer(
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
   val stackLayout = rememberStackLayout()
+  val graphLayout = rememberGraphLayout()
   // In pixels, like everything a layout is measured in, so that how small is too small for an image to be
   // worth drawing is the same size on every display. See MIN_BITMAP_DRAW_SIZE.
   val minBitmapDrawSize = with(LocalDensity.current) { MIN_BITMAP_DRAW_SIZE.toPx() }
 
   // Everything one laid out view follows from, as one value: a view is asked for, and the one that comes
-  // back is the answer to it. Null until the view has been measured, which is the one state there is
-  // nothing to lay out for.
-  val viewRequest = viewportSize.takeIf { it != IntSize.Zero }?.let { size ->
-    ViewRequest(
-      navigation = navigation,
-      viewportSize = size,
-      shape = shape,
-      treemapLayout = treemapLayout,
-      radialLayout = radialLayout,
-      stackLayout = stackLayout
-    )
-  }
+  // back is the answer to it. Null where there is nothing to lay out: before the view has been measured,
+  // and for the graph, which is arranged from what the reader expanded rather than read from the tree.
+  val viewRequest = viewportSize
+    .takeIf { it != IntSize.Zero && shape != ViewShape.GRAPH }
+    ?.let { size ->
+      ViewRequest(
+        navigation = navigation,
+        viewportSize = size,
+        shape = shape,
+        treemapLayout = treemapLayout,
+        radialLayout = radialLayout,
+        stackLayout = stackLayout
+      )
+    }
+
+  // Which is the graph, arranged here rather than on the heap dump's thread: what to draw was read a
+  // circle at a time into [graph] already, so arranging it reads nothing at all and is a pure function
+  // of state this window is holding. Which is also what makes expanding a circle instant.
+  val graphPresentation = remember(graph, graphLayout) { ViewPresentation.Graph(graphLayout.layout(graph)) }
 
   // Resizing, zooming and switching shape all lay the tree out again, which reads the heap dump for
   // every visible label. All of it ends up here, on the heap dump's thread. Keyed on the request rather
@@ -188,8 +208,16 @@ internal fun HeapDumpExplorer(
   // ready by the time a screen is left for it.
   LaunchedEffect(session, viewRequest) {
     if (viewRequest == null) {
-      // Which is what a window showing a spinner and nothing else has been waiting for all along.
-      SharkLog.d { "Not laying the tree out yet: the view has no size" }
+      // Either a window showing a spinner and nothing else, which has been waiting for this all along,
+      // or the graph, which is drawn from what has been expanded rather than laid out from the tree.
+      SharkLog.d {
+        val why = if (shape == ViewShape.GRAPH) {
+          "the graph is drawn from what has been expanded"
+        } else {
+          "the view has no size"
+        }
+        "Not laying the tree out: $why"
+      }
       return@LaunchedEffect
     }
     isLayingOut = true
@@ -231,6 +259,7 @@ internal fun HeapDumpExplorer(
               reachablePath.current
             )
           )
+          ViewShape.GRAPH -> error(GRAPH_IS_NOT_LAID_OUT)
         }
       )
     }
@@ -243,6 +272,46 @@ internal fun HeapDumpExplorer(
       history = history.replacingCurrent(history.current.withTreeNavigation(view.navigation))
     }
     isLayingOut = false
+  }
+
+  // The graph is rooted at wherever the window is, so a move re-roots it and everything expanded under
+  // the object left behind is dropped. Not keyed on the graph itself, which is what expanding changes:
+  // only a move, or opening this shape for the first time, starts a picture over.
+  LaunchedEffect(session, shape, navigation.current) {
+    // An empty graph is rooted nowhere, whatever its root id says, so it is always started: the id it
+    // carries is the whole heap dump's, which is also where the window opens.
+    if (shape != ViewShape.GRAPH || (!graph.isEmpty && graph.rootObjectId == navigation.current)) {
+      return@LaunchedEffect
+    }
+    isRootingGraph = true
+    // Named for the object rather than for the shape, because this is not a view being laid out: the
+    // log tells the two apart, and so does the test counting how often the tree is laid out.
+    val root = session.read("the circle the graph opens on, ${nodeIdText(navigation.current)}") {
+      it.tree.graphObject(navigation.current)
+    }
+    // Null is a node the tree doesn't have, which [HeapDominatorTreemap.graphObject] has already said
+    // so about: the view stays empty until the window is moved somewhere it can draw.
+    graph = if (root == null) ObjectGraph.EMPTY else ObjectGraph.rootedAt(root)
+    isRootingGraph = false
+  }
+
+  // And what that came out as. The other shapes say so from the read that laid them out; this one is
+  // arranged in the window, so without this a picture that came out empty or huge says so nowhere.
+  LaunchedEffect(shape, graphPresentation) {
+    if (shape == ViewShape.GRAPH) {
+      SharkLog.d { "Drew ${graphPresentation.description()}" }
+    }
+  }
+
+  // What each expanded circle references, one read at a time: a click draws the circle straight away
+  // and this fills in what hangs off it. Keyed on the graph, so folding one answer in is what asks the
+  // next question, until there is nothing left unread.
+  LaunchedEffect(session, graph) {
+    val pending = graph.pendingObjectId ?: return@LaunchedEffect
+    val references = session.read("what ${nodeIdText(pending)} references") { explorer ->
+      explorer.tree.referencesFrom(pending, graph.referenceLimitOf(pending))
+    }
+    graph = graph.withReferences(references)
   }
 
   // How many bitmaps there are is a pass over the instances of one class, so it's read once. Fetching
@@ -425,6 +494,20 @@ internal fun HeapDumpExplorer(
       NodeToOpen.of(SelectedCell.of(subject).objectId)
     }
   }
+  /**
+   * And where a click on a circle of the graph goes, which is nowhere: it draws what that object
+   * references, or takes them off the picture again.
+   *
+   * The one shape a click doesn't move the window for. Everything else fits the window, so the only way
+   * to see more of the tree is to be shown somewhere else; here the picture itself grows, and moving the
+   * window would throw away everything the reader has expanded. What a circle *is* is still the panels'
+   * job, so a click describes it as well — and the panels are how the graph is re-rooted, since a name
+   * there leads to the object the way it does on every other screen.
+   */
+  val onExpand: (GraphNodeCell) -> Unit = { cell ->
+    clicked = DescribedCell.of(cell)
+    graph = graph.pressing(cell)
+  }
   /** Shows a node on the map with it selected, and describes it, which is the object detail view. */
   val onOpen: (Long) -> Unit = { nodeId -> nodeToOpen = NodeToOpen.of(nodeId) }
   val onGoTo: (ExplorerScreen) -> Unit = { destination -> history = history.goTo(destination) }
@@ -513,7 +596,9 @@ internal fun HeapDumpExplorer(
         Box(Modifier.weight(1f).fillMaxWidth()) {
           when (screen) {
             is ExplorerScreen.Tree -> TreeScreen(
-              view = view,
+              // What the shape picker is on, which for the graph is state this window arranged rather
+              // than a view that was laid out.
+              presentation = if (shape == ViewShape.GRAPH) graphPresentation else view.presentation,
               coloring = coloring,
               selected = clicked?.cell,
               hovered = hovered?.cell,
@@ -522,10 +607,13 @@ internal fun HeapDumpExplorer(
               pointedSelection = hoveredCellDetails?.selection,
               pointerOffset = pointerOffset,
               viewSize = viewportSize,
-              isLayingOut = isLayingOut,
+              // Rooting the graph is a read of its own, and the one read the view has nothing at all
+              // to draw during: an empty picture with no spinner over it reads as a broken shape.
+              isLayingOut = isLayingOut || isRootingGraph,
               bitmapImages = bitmapImages,
               onHover = onHover,
               onClick = onClick,
+              onExpand = onExpand,
               // Measured here rather than around every screen, so that leaving the map and coming back
               // doesn't lay it out twice for a viewport that ends up the size it already was.
               modifier = Modifier.fillMaxSize().onSizeChanged { viewportSize = it }
@@ -669,7 +757,7 @@ private fun ScreenBar(
 /** The dominator tree, drawn as one of the [ViewShape]s, with a card naming what the pointer is on. */
 @Composable
 private fun TreeScreen(
-  view: ViewState,
+  presentation: ViewPresentation,
   coloring: CellColoring,
   selected: SelectedCell?,
   hovered: SelectedCell?,
@@ -684,6 +772,8 @@ private fun TreeScreen(
   bitmapImages: Map<Long, ImageBitmap>,
   onHover: (PointedAt?) -> Unit,
   onClick: (LayoutCell<Long>) -> Unit,
+  /** What a click on the graph does instead of moving the window, which is expand or collapse. */
+  onExpand: (GraphNodeCell) -> Unit,
   modifier: Modifier = Modifier
 ) {
   // Kept across cards rather than per card, so that the first frame of the next one is placed by the size of
@@ -694,7 +784,7 @@ private fun TreeScreen(
   // says instead. It's also how a test finds where the view starts, since none of the cells is a node
   // of its own.
   Box(modifier.semantics { contentDescription = VIEW_DESCRIPTION }) {
-    when (val presentation = view.presentation) {
+    when (presentation) {
       is ViewPresentation.Treemap -> TreemapView(
         presentation = presentation.presentation,
         coloring = coloring,
@@ -721,6 +811,16 @@ private fun TreeScreen(
         hovered = hovered,
         onHover = onHover,
         onClick = onClick,
+        modifier = Modifier.fillMaxSize()
+      )
+      // Coloured by nothing the picker above it offers: a circle says what kind of object it is and a
+      // line how firmly it is held, which is the chain's scheme rather than the map's.
+      is ViewPresentation.Graph -> GraphView(
+        layout = presentation.layout,
+        selected = selected,
+        hovered = hovered,
+        onHover = onHover,
+        onClick = onExpand,
         modifier = Modifier.fillMaxSize()
       )
     }
@@ -810,6 +910,25 @@ private fun rememberStackLayout(): StackLayout<Long> {
 }
 
 /**
+ * And the graph layout, scaled the same way. Its circle is the same size as a chain's, since the two
+ * are the same drawing: see [PathStyle].
+ */
+@Composable
+private fun rememberGraphLayout(): GraphLayout {
+  val density = LocalDensity.current
+  return remember(density) {
+    with(density) {
+      GraphLayout(
+        columnWidth = GRAPH_COLUMN_WIDTH.toPx().toDouble(),
+        rowHeight = GRAPH_ROW_HEIGHT.toPx().toDouble(),
+        nodeRadius = NODE_RADIUS.toPx().toDouble(),
+        labelWidth = GRAPH_LABEL_WIDTH.toPx().toDouble()
+      )
+    }
+  }
+}
+
+/**
  * Everything one view of the tree follows from, which is therefore everything that lays it out again:
  * where the map is, how big the view is, which shape it's drawn as, and the thresholds that shape is laid
  * out to. A [ViewState] is the answer to one of these.
@@ -829,6 +948,11 @@ private data class ViewRequest(
   val radialLayout: RadialLayout<Long>,
   val stackLayout: StackLayout<Long>
 ) {
+
+  init {
+    check(shape != ViewShape.GRAPH) { GRAPH_IS_NOT_LAID_OUT }
+  }
+
   val viewport: TreemapRect
     get() = TreemapRect(
       left = 0.0,
@@ -866,6 +990,8 @@ internal sealed interface ViewPresentation {
   data class Radial(val presentation: RadialPresentation) : ViewPresentation
 
   data class Stack(val presentation: StackPresentation) : ViewPresentation
+
+  data class Graph(val layout: GraphLayoutResult) : ViewPresentation
 }
 
 /** What a laid out view amounts to, for the log: one that drew nothing at all says so here. */
@@ -878,6 +1004,10 @@ private fun ViewPresentation.description(): String = when (this) {
   is ViewPresentation.Stack ->
     "${presentation.cells.size} blocks in ${presentation.layout.rowCount} rows, " +
       "${presentation.truncatedNodeCount} nodes not expanded"
+  // How wide it came out as well, since that is how far the reader has expanded it.
+  is ViewPresentation.Graph ->
+    "${layout.nodes.size} circles and ${layout.edges.size} arrows, " +
+      "${layout.nodes.maxOfOrNull { it.depth + 1 } ?: 0} columns"
 }
 
 /**
@@ -1023,6 +1153,14 @@ private fun SelectionRequest.description(): String = when (this) {
   is SelectionRequest.Object -> "what ${nodeIdText(objectId)} is"
   is SelectionRequest.Group -> "what the $nodeCount objects under ${nodeIdText(parentObjectId)} are"
 }
+
+/**
+ * Why the shape the reader expands is the one shape a [ViewRequest] is never made for: nothing about it
+ * comes off the heap dump's thread, so asking for it as a view is a mistake rather than a slow path.
+ */
+private const val GRAPH_IS_NOT_LAID_OUT =
+  "The graph is arranged from the object graph the reader has expanded rather than laid out from the " +
+    "tree, so it is never asked for as a view. See graphPresentation in HeapDumpExplorer."
 
 private const val ROOT_NODE = HeapDominatorTreemap.ROOT_OBJECT_ID
 
