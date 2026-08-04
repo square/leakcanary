@@ -171,22 +171,23 @@ squareup/mdx-ios-codesign-helper#20. A run after that merge failed where the sam
 GitHub Actions log. Reading it means opening the build at `buildkite.com/runway/mdx-ios-codesign-helper`,
 which is Block-internal, so expect to need someone with that access.
 
-### A space in the app's name breaks the reply, not the signing
+### A space in the app's name broke the reply, not the signing
 
-Open, and the reason `packageName` is one word. The service signed `Shark Explorer.app` correctly — the
-Buildkite job passed and uploaded the signed zip — and then the lambda failed working out where it had put
-it: `bad URI(is not URI?): "s3://…/Shark Explorer.app.zip"`, after a mac worker had done all the work.
-`destination_url` in `global/lambdas/codesign_helper.rb` parses that S3 URL with Ruby's `URI()` to insert
-`-signed` before the extension, and a space is not a legal URI character.
-squareup/tf-mobuild-workers#1365 fixes it and has merged.
+The service signed `Shark Explorer.app` correctly — the Buildkite job passed and uploaded the signed zip —
+and then the lambda failed working out where it had put it: `bad URI(is not URI?): "s3://…/Shark
+Explorer.app.zip"`, after a mac worker had done all the work. `destination_url` in
+`global/lambdas/codesign_helper.rb` parses that S3 URL with Ruby's `URI()` to insert `-signed` before the
+extension, and a space is not a legal URI character. squareup/tf-mobuild-workers#1365 fixed it, so the name
+has a space in it again.
 
-**Merging it is not the same as shipping it**, unlike the `notarize.sh` fix above, and this is the trap to
-know about: Buildkite reads its scripts out of a git checkout at build time, so that one went live on
-merge, whereas this lambda is Ruby that terraform packages and keeps serving the deployed zip until the
-`mobuild-workers-rollout` CodePipeline applies. Every check on the pull request is a *plan*. A tagged
-build after the merge still failed with the same `bad URI`, so **the rollout is what to wait for, not the
-merge** — and that build is also the test, since the app's name reaches the service as an S3 key. Put the
-space back, tag, and read the codesign step.
+**Merging that was not the same as shipping it**, unlike the `notarize.sh` fix above, and that is the part
+worth remembering: Buildkite reads its scripts out of a git checkout at build time, so the other fix went
+live on merge, whereas this lambda is Ruby that terraform packages and kept serving the deployed zip
+afterwards. Every check on the pull request is a *plan*. A tagged build after the merge failed with the
+same `bad URI`, and what actually shipped it was the `mobuild-workers-rollout` CodePipeline: staging
+applies itself, production stops at an approval in the AWS console that only the
+`mobuild-workers-human-role` group can give. So for anything in that repository, **the rollout is what to
+wait for, not the merge**, and it needs someone in that group.
 
 ### Where that leaves it
 
@@ -197,5 +198,4 @@ rather than publishing anything that cannot.
 
 That was carried through to what someone downloading it gets: the DMG off a release, marked with the
 `com.apple.quarantine` attribute a browser download applies — which is what makes Gatekeeper insist on a
-ticket at all — is accepted, and the app opens a heap dump. So macOS is releasable, under the one-word
-name.
+ticket at all — is accepted, and the app opens a heap dump. So macOS is releasable.
