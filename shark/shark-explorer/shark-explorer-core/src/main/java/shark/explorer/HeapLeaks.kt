@@ -1,5 +1,7 @@
 package shark.explorer
 
+import java.security.MessageDigest
+
 /**
  * Every object of a heap dump that shouldn't be there, gathered into the leaks they are instances of. See
  * [HeapDominatorTreemap.findLeaks].
@@ -97,7 +99,24 @@ data class LeakGroup(
 
   /** Bytes the objects of this leak retain together, which is what the leak is costing. */
   val retainedSize: Long get() = objects.sumOf { it.retainedSize }
+
+  /**
+   * A SHA-1 of [id], which is what makes a leak something to write down: the same leak found in two heap
+   * dumps of the same app has the same one, however different the two dumps are and whatever the addresses
+   * of the objects in them.
+   *
+   * The same idea as the signature LeakCanary prints under a leak, and not the same number: that one hashes
+   * the references of the leak trace its own path finder found, and this hashes the chain the explorer
+   * draws. Two answers to two questions — see `notes/decisions.md` — so a report and this list line up leak
+   * by leak and not hash by hash.
+   */
+  val signature: String get() = id.sha1Hex()
 }
+
+/** Hex, lowercase, the way every tool that prints a SHA-1 prints one. */
+private fun String.sha1Hex(): String =
+  MessageDigest.getInstance("SHA-1").digest(toByteArray(Charsets.UTF_8))
+    .joinToString(separator = "") { byte -> "%02x".format(byte) }
 
 /** One object that shouldn't be in memory. See [LeakGroup]. */
 data class LeakingObject(

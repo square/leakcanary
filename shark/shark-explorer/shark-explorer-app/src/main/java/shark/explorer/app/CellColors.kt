@@ -64,10 +64,27 @@ internal data class CellColoring(
    */
   val showsLeaks: Boolean = false
 ) {
+
+  /**
+   * Turning the leaks on greys every strength, and turning a strength back on turns the leaks off: the two
+   * colour the same rectangles, and a red shade over a map of pastels reads as one more pastel. Grey
+   * underneath is what leaves the few objects that shouldn't be there as the only colour on screen.
+   */
+  fun withLeaks(showsLeaks: Boolean): CellColoring = CellColoring(
+    scheme = scheme,
+    coloredStrengths = if (showsLeaks) emptySet() else ALL_STRENGTHS,
+    showsLeaks = showsLeaks
+  )
+
+  fun withStrengths(strengths: Set<ReachabilityStrength>): CellColoring =
+    CellColoring(scheme = scheme, coloredStrengths = strengths, showsLeaks = false)
+
   companion object {
+    private val ALL_STRENGTHS = ReachabilityStrength.values().toSet()
+
     val DEFAULT = CellColoring(
       scheme = CellColorScheme.DAISY,
-      coloredStrengths = ReachabilityStrength.values().toSet()
+      coloredStrengths = ALL_STRENGTHS
     )
   }
 }
@@ -240,7 +257,21 @@ private const val LEAK_HUE = 0f
 /** Enough to read as red over a map of pastels, and not so much that a nested leak vanishes into it. */
 private const val LEAK_SATURATION = 0.40f
 
-/** The swatch shown next to a strength's checkbox, and in the details panel. */
+/**
+ * How firmly an object is held, wherever the window names one object rather than draws the heap: a step of
+ * a chain, a row of a list, the panel and the card beside the map.
+ *
+ * Off the strength alone, unlike [legendColor]. The boxes above a view are ways of reading that view's
+ * picture — greying the strong heap is what makes the little there is of everything else jump out — and a
+ * line naming one object is not that picture. Greying it there would say something about the object.
+ */
+internal fun objectStrengthColor(strength: ReachabilityStrength): Color = when (strength) {
+  STRONG -> shaded(STRONG.hue, SHADED_SATURATION, depth = 1)
+  UNREACHABLE -> shaded(UNREACHABLE.hue, UNREACHABLE_SATURATION, depth = 1)
+  else -> strengthColor(strength)
+}
+
+/** The swatch shown next to a strength's checkbox above a view, greyed when that strength is switched off. */
 internal fun legendColor(
   coloring: CellColoring,
   strength: ReachabilityStrength

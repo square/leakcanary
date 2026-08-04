@@ -116,6 +116,41 @@ class HeapLeaksTest {
     }
   }
 
+  @Test fun `a leak the chain of another leak runs through is listed under that one`() {
+    val heapDump = testFolder.nestedLeaksHeapDump()
+    HeapExplorer.open(heapDump.file).use { explorer ->
+      val leaking = explorer.tree.findLeaks().objectsOf(APPLICATION)
+
+      // Both the activity and the window it holds are objects that shouldn't be in memory, and there is one
+      // thing to fix: let go of the activity and the window goes with it.
+      assertThat(leaking.map { it.objectId }).containsExactly(heapDump.activityObjectId)
+    }
+  }
+
+  @Test fun `the leak it was listed under is the one whose chain runs through it`() {
+    val heapDump = testFolder.nestedLeaksHeapDump()
+    HeapExplorer.open(heapDump.file).use { explorer ->
+      val tree = explorer.tree
+
+      // Nothing is lost by leaving it off the list: the chain drawn for the leak that stayed runs through
+      // it and says it is leaking, which is that chain being read as a leak trace.
+      val steps = tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step }
+      assertThat(steps.map { it.objectId }).contains(heapDump.activityObjectId)
+      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.LEAKING)
+    }
+  }
+
+  @Test fun `two leaks of one kind have two signatures, and one leak has one`() {
+    HeapExplorer.open(testFolder.destroyedActivitiesHeapDump()).use { explorer ->
+      val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // A hash of what makes it that leak, so the two activities of one leak are one signature, and it says
+      // nothing about which heap dump this is: 40 characters of hex and no address among them.
+      assertThat(group.signature).matches("[0-9a-f]{40}")
+      assertThat(group.objects).hasSize(2)
+    }
+  }
+
   @Test fun `a heap dump with nothing wrong in it has all three sections and no leak`() {
     testFolder.openTestHeapDump().use { explorer ->
       val leaks = explorer.tree.findLeaks()

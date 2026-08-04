@@ -527,7 +527,6 @@ internal fun HeapDumpExplorer(
           ways = detourWays,
           chosenWays = chosenWays,
           onChooseWay = { detour, way -> chosenWays = chosenWays + (detour to way) },
-          coloring = coloring,
           onOpen = onOpen,
           modifier = Modifier.width(ROOT_PATH_WIDTH).fillMaxHeight()
         )
@@ -572,7 +571,6 @@ internal fun HeapDumpExplorer(
               list = objects,
               filter = screen.filter,
               isListing = isListing,
-              coloring = coloring,
               onFilterChange = { filter ->
                 // A keystroke isn't a move, so typing replaces where the explorer is: the back arrow
                 // leaves the list rather than walking back through what was typed into it.
@@ -584,7 +582,6 @@ internal fun HeapDumpExplorer(
             is ExplorerScreen.Leaks -> LeaksScreen(
               leaks = leaks ?: HeapLeaks.NONE,
               isFindingLeaks = isFindingLeaks,
-              coloring = coloring,
               expandedGroups = screen.expandedGroups,
               // Unfolding a leak isn't a move, so it replaces where the explorer is: the back arrow
               // leaves the leaks rather than folding them up one at a time.
@@ -617,7 +614,6 @@ internal fun HeapDumpExplorer(
           selection = details?.selection,
           bitmap = describedBitmap,
           isStarred = favourites.any { it.objectId == describedSummary?.objectId },
-          coloring = coloring,
           onOpen = onOpen,
           onListInstances = { className ->
             onGoTo(
@@ -800,7 +796,6 @@ private fun TreeScreen(
     if (pointedSelection != null && pointerOffset != null) {
       PointerCard(
         selection = pointedSelection,
-        coloring = coloring,
         modifier = Modifier
           .onSizeChanged { cardSize = it }
           // Placed as it is laid out rather than in a state read while composing, so that a card that has

@@ -68,7 +68,6 @@ internal fun RootPathPanel(
   /** Which of them is drawn, for the stretches the reader has switched. */
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -122,7 +121,6 @@ internal fun RootPathPanel(
           ways = ways,
           chosenWays = chosenWays,
           onChooseWay = onChooseWay,
-          coloring = coloring,
           onOpen = onOpen
         )
       } else {
@@ -131,10 +129,10 @@ internal fun RootPathPanel(
         }
       }
       if (tail != null) {
-        HoveredTail(steps = tail, isCut = false, coloring = coloring)
+        HoveredTail(steps = tail, isCut = false)
       } else if (cutTail != null) {
         // Nothing above it on screen is what holds it, so the end of it is the object being described here.
-        HoveredTail(steps = cutTail, isCut = true, coloring = coloring)
+        HoveredTail(steps = cutTail, isCut = true)
       }
     }
   }
@@ -166,7 +164,6 @@ private fun RootPathTrace(
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit
 ) {
   val steps = drawn.path.steps
@@ -184,7 +181,6 @@ private fun RootPathTrace(
         // How this step points at the next one, which is what the next step was reached through.
         reference = next?.step?.reference,
         nextStrength = next?.step?.strength,
-        coloring = coloring,
         onOpen = onOpen,
         role = when {
           // The object the details panel is about, whatever the pointer has added below it.
@@ -209,8 +205,7 @@ private fun RootPathTrace(
 private fun HoveredTail(
   steps: List<RootPathStep>,
   /** Whether it runs on from the chain above or starts somewhere else, which the dots say. */
-  isCut: Boolean,
-  coloring: CellColoring
+  isCut: Boolean
 ) {
   Column(Modifier.fillMaxWidth()) {
     if (isCut) {
@@ -224,7 +219,6 @@ private fun HoveredTail(
         step = step.step,
         reference = next?.step?.reference,
         nextStrength = next?.step?.strength,
-        coloring = coloring,
         // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
         onOpen = {},
         role = when {

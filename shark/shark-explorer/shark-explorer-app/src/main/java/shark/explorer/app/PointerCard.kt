@@ -45,7 +45,6 @@ import shark.explorer.formatObjectCount
 @Composable
 internal fun PointerCard(
   selection: Selection,
-  coloring: CellColoring,
   modifier: Modifier = Modifier
 ) {
   Surface(
@@ -59,8 +58,8 @@ internal fun PointerCard(
       verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
       when (selection) {
-        is Selection.Object -> ObjectLines(selection.summary, coloring)
-        is Selection.ObjectGroup -> ObjectGroupLines(selection.summary, coloring)
+        is Selection.Object -> ObjectLines(selection.summary)
+        is Selection.ObjectGroup -> ObjectGroupLines(selection.summary)
         is Selection.Group -> GroupLines(selection)
       }
     }
@@ -68,10 +67,7 @@ internal fun PointerCard(
 }
 
 @Composable
-private fun ObjectLines(
-  summary: HeapObjectSummary,
-  coloring: CellColoring
-) {
+private fun ObjectLines(summary: HeapObjectSummary) {
   // The same three lines a step of a chain names an object with, so that the card and the chain beside
   // the map read as one answer rather than as two ways of saying which object this is.
   ObjectIdentity(
@@ -82,7 +78,7 @@ private fun ObjectLines(
   summary.headline?.let { headline ->
     Text(headline, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
   }
-  StrengthLine(summary.strength, coloring)
+  StrengthLine(summary.strength)
   // The same numbers the details panel gives a labelled row each, on two lines: a card that follows the
   // pointer has to be read at a glance, and it covers the map for as long as it's up.
   Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
@@ -96,13 +92,10 @@ private fun ObjectLines(
  * and no more, and which `Bitmap` that is, is the whole question a pile of them raises.
  */
 @Composable
-private fun ObjectGroupLines(
-  summary: ObjectGroupSummary,
-  coloring: CellColoring
-) {
+private fun ObjectGroupLines(summary: ObjectGroupSummary) {
   Text(summary.title(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-  StrengthLine(summary.strength, coloring)
+  StrengthLine(summary.strength)
   Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
   Text(PILE_OF_OBJECTS, style = MaterialTheme.typography.bodySmall)
 }
@@ -124,15 +117,12 @@ private fun GroupLines(selection: Selection.Group) {
 
 /** How firmly what the pointer is on is held, beside the colour the map drew it in. */
 @Composable
-private fun StrengthLine(
-  strength: ReachabilityStrength,
-  coloring: CellColoring
-) {
+private fun StrengthLine(strength: ReachabilityStrength) {
   Row(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(strength)))
     Text(strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
 }

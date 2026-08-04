@@ -62,6 +62,55 @@ internal fun TemporaryFolder.destroyedActivitiesHeapDump(): File {
   return file
 }
 
+/**
+ * A heap dump where a destroyed activity holds a destroyed window: two objects that shouldn't be in memory,
+ * and one of them only still there because the other is.
+ *
+ * Which is what a real leak looks like — a destroyed activity holds its window, which holds its view tree,
+ * and every one of those is an object an inspector recognizes — and so what the list has to fold into one
+ * thing to fix.
+ */
+internal fun TemporaryFolder.nestedLeaksHeapDump(): NestedLeaksHeapDump {
+  val file = newFile("nested-leaks.hprof")
+  var activityObjectId = 0L
+  var windowObjectId = 0L
+  file.dump {
+    val windowClassId = clazz(
+      className = WINDOW_CLASS_NAME,
+      superclassId = clazz(
+        className = "android.view.Window",
+        fields = listOf("mDestroyed" to BooleanHolder::class)
+      )
+    )
+    val activityClassId = clazz(
+      className = ACTIVITY_CLASS_NAME,
+      superclassId = clazz(
+        className = "android.app.Activity",
+        fields = listOf("mDestroyed" to BooleanHolder::class, "mWindow" to ReferenceHolder::class)
+      )
+    )
+    val window = instance(windowClassId, fields = listOf(BooleanHolder(true)))
+    val activity = instance(activityClassId, fields = listOf(BooleanHolder(true), window))
+    val holder = instance(
+      clazz(className = HOLDER_CLASS_NAME, fields = listOf("activity" to ReferenceHolder::class)),
+      fields = listOf(activity)
+    )
+    gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+    activityObjectId = activity.value
+    windowObjectId = window.value
+  }
+  return NestedLeaksHeapDump(file, activityObjectId, windowObjectId)
+}
+
+/** A [nestedLeaksHeapDump] and the two leaking objects of it, since which one is listed is the question. */
+internal class NestedLeaksHeapDump(
+  val file: File,
+  /** The one nearer the GC roots, which is the leak to fix. */
+  val activityObjectId: Long,
+  /** And the one it holds, which is on the chain drawn for the activity. */
+  val windowObjectId: Long
+)
+
 /** A heap dump where the only destroyed activity is one nothing points at any more. */
 internal fun TemporaryFolder.collectedActivityHeapDump(): File {
   val file = newFile("collected-activity.hprof")
@@ -126,6 +175,9 @@ internal const val WATCHED_CLASS_NAME = "com.example.LeakingPresenter"
 internal const val ACTIVITY_CLASS_NAME = "com.example.MainActivity"
 
 internal const val HOLDER_CLASS_NAME = "com.example.Holder"
+
+/** The app framework's own `android.view.Window`, which is the class the window inspector looks for. */
+internal const val WINDOW_CLASS_NAME = "com.android.internal.policy.PhoneWindow"
 
 /** The pool `AndroidReferenceMatchers.TEXT_LINE__SCACHED` is about. */
 internal const val TEXT_LINE_CLASS_NAME = "android.text.TextLine"

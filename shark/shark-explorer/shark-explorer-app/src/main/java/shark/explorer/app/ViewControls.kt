@@ -55,8 +55,8 @@ internal fun ViewControls(
         coloring = coloring,
         leakCount = leakCount,
         isFindingLeaks = isFindingLeaks,
-        onColoredStrengthsChange = { onColoringChange(coloring.copy(coloredStrengths = it)) },
-        onShowLeaksChange = { onColoringChange(coloring.copy(showsLeaks = it)) }
+        onColoredStrengthsChange = { onColoringChange(coloring.withStrengths(it)) },
+        onShowLeaksChange = { onColoringChange(coloring.withLeaks(it)) }
       )
       Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -170,7 +170,8 @@ private fun StrengthLegend(
     }
     // Last, and after the strengths rather than among them, because it is not one of them: a strength is
     // how the collector holds an object, and this is whether the object should be there at all. Ticking it
-    // is what sends the explorer looking for the leaks, so the row says so while that runs.
+    // is what sends the explorer looking for the leaks, so the row says so while that runs — and it unticks
+    // every strength, see [CellColoring.withLeaks].
     Hint(LEAKING_HINT) {
       LegendRow(
         isChecked = coloring.showsLeaks,
@@ -238,9 +239,10 @@ internal const val FINDING_LEAKS = "Leaking: looking…"
 
 internal const val LEAKING_HINT =
   "Shade the objects that shouldn't be in memory, and everything they hold with them — anything a " +
-    "leaking object dominates is only still there because it is. There is no colour for the objects " +
-    "that are meant to be alive: a treemap draws what retains what, and most of a heap dump is objects " +
-    "nothing knows either way about. The chain beside the map says which is which, object by object."
+    "leaking object dominates is only still there because it is. Greys the rest of the map, so that the " +
+    "shade is the only colour on it. There is no colour for the objects that are meant to be alive: a " +
+    "treemap draws what retains what, and most of a heap dump is objects nothing knows either way about. " +
+    "The chain beside the map says which is which, object by object."
 
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,

@@ -54,7 +54,6 @@ internal fun ObjectsScreen(
   list: ObjectList,
   filter: ObjectListFilter,
   isListing: Boolean,
-  coloring: CellColoring,
   onFilterChange: (ObjectListFilter) -> Unit,
   onOpen: (Long) -> Unit,
   modifier: Modifier = Modifier
@@ -76,7 +75,7 @@ internal fun ObjectsScreen(
       HorizontalDivider()
       LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
         items(list.entries, key = { it.objectId }) { entry ->
-          ObjectRow(entry, coloring, onOpen)
+          ObjectRow(entry, onOpen)
         }
       }
     }
@@ -189,7 +188,6 @@ private fun HeaderCell(
 @Composable
 private fun ObjectRow(
   entry: ObjectListEntry,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit
 ) {
   Row(
@@ -199,7 +197,7 @@ private fun ObjectRow(
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, entry.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(entry.strength)))
     Column(Modifier.weight(1f)) {
       Text(
         entry.classNameText(),

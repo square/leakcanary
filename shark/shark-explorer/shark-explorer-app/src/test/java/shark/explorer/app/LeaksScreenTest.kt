@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -23,6 +24,7 @@ import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.LeakKind
+import shark.explorer.ReachabilityStrength
 import shark.explorer.hexObjectId
 
 /**
@@ -62,32 +64,35 @@ class LeaksScreenTest {
       openLeaks()
 
       // Two destroyed activities, held the same way, so one leak: the row says how many and shows none of
-      // them until the triangle beside it is pressed.
+      // them until it is pressed.
       onNodeWithText("2 objects").assertIsDisplayed()
       assertThat(nodesNaming(heapDump.activityObjectIds[0])).isEmpty()
 
-      onNode(hasText(FOLDED_ARROW) and hasClickAction()).performClick()
+      unfold(LEAKING_ACTIVITY_CLASS_NAME, heapDump.activityObjectIds[0])
 
-      waitUntilAtLeastOneExists(namesObject(heapDump.activityObjectIds[0]), OPEN_TIMEOUT_MILLIS)
       assertThat(nodesNaming(heapDump.activityObjectIds[1])).isNotEmpty()
     }
   }
 
-  @Test fun `a leak with one object in it shows that object without being unfolded`() {
+  @Test fun `a leak with one object in it folds like every other leak`() {
     explorerUiTest {
       openLeaks()
 
-      // Nothing to fold: a triangle that unfolds a single row would be a row that reads as more than it is.
-      assertThat(nodesNaming(heapDump.watchedObjectId)).isNotEmpty()
+      // A row that led somewhere when it held one object and unfolded when it held two would be two rows
+      // that look the same and do different things.
       onNodeWithText("1 object").assertIsDisplayed()
+      assertThat(nodesNaming(heapDump.watchedObjectId)).isEmpty()
+
+      unfold(LEAKING_PRESENTER_CLASS_NAME, heapDump.watchedObjectId)
     }
   }
 
-  @Test fun `clicking a leak goes to an object of it on the map`() {
+  @Test fun `clicking an object of a leak goes to it on the map`() {
     explorerUiTest {
       openLeaks()
+      unfold(LEAKING_PRESENTER_CLASS_NAME, heapDump.watchedObjectId)
 
-      onNodeWithText(LEAKING_PRESENTER_CLASS_NAME.simpleName()).performClick()
+      onNode(namesObject(heapDump.watchedObjectId) and hasClickAction()).performClick()
 
       // Which is the whole point of the list: it names objects, and an object is something the explorer
       // already knows how to show.
@@ -96,9 +101,24 @@ class LeaksScreenTest {
     }
   }
 
+  @Test fun `every leak is named by a hash of how it is held`() {
+    explorerUiTest {
+      openLeaks()
+
+      // The addresses under a leak are of this heap dump and this is the same in the next one, which is
+      // what makes a leak something to write in a bug report.
+      val signatures = onAllNodesWithText(SIGNATURE, substring = true).fetchSemanticsNodes()
+        .flatMap { node -> node.config[SemanticsProperties.Text].map { it.text } }
+        .filter { it.startsWith(SIGNATURE) }
+      assertThat(signatures).hasSize(LEAK_COUNT)
+      assertThat(signatures).allSatisfy { assertThat(it).matches("\\Q$SIGNATURE\\E [0-9a-f]{40}") }
+    }
+  }
+
   @Test fun `what the app told LeakCanary about an object is on the row, and leads to the record`() {
     explorerUiTest {
       openLeaks()
+      unfold(LEAKING_PRESENTER_CLASS_NAME, heapDump.watchedObjectId)
 
       onNodeWithText(WATCHED, substring = true).performClick()
 
@@ -118,6 +138,21 @@ class LeaksScreenTest {
       // Ticking it is what sends the explorer looking, so the row says how many it found once it has.
       waitUntilAtLeastOneExists(hasText("$LEAKING $LEAKING_OBJECT_COUNT"), OPEN_TIMEOUT_MILLIS)
       leakToggle().assertIsOn()
+    }
+  }
+
+  @Test fun `shading the leaks and colouring the map by strength are one choice`() {
+    explorerUiTest {
+      openHeapDump()
+      strengthToggle().assertIsOn()
+
+      leakToggle().performClick()
+
+      // Grey underneath is what leaves the few objects that shouldn't be there as the only colour on the
+      // map, so ticking this unticks the strengths — and ticking a strength back on unticks this.
+      strengthToggle().assertIsOff()
+      strengthToggle().performClick()
+      leakToggle().assertIsOff()
     }
   }
 
@@ -187,6 +222,15 @@ class LeaksScreenTest {
     }
   }
 
+  /** Presses a leak's row, which unfolds it, and waits for the objects it holds. */
+  private fun ComposeUiTest.unfold(
+    className: String,
+    firstObjectId: Long
+  ) {
+    onNodeWithText(className.simpleName()).performClick()
+    waitUntilAtLeastOneExists(namesObject(firstObjectId), OPEN_TIMEOUT_MILLIS)
+  }
+
   /** Everything on screen naming [objectId], which is how a list of objects says which ones they are. */
   private fun ComposeUiTest.nodesNaming(objectId: Long) =
     onAllNodesWithText(hexObjectId(objectId), substring = true).fetchSemanticsNodes()
@@ -201,11 +245,18 @@ class LeaksScreenTest {
   private fun ComposeUiTest.leakToggle(): SemanticsNodeInteraction =
     onNode(hasText(LEAKING, substring = true) and isToggleable())
 
+  /** And one of the boxes beside it that colour the map by how firmly an object is held. */
+  private fun ComposeUiTest.strengthToggle(): SemanticsNodeInteraction =
+    onNode(hasText(ReachabilityStrength.STRONG.displayName, substring = true) and isToggleable())
+
   private fun String.simpleName() = substringAfterLast('.')
 
   companion object {
     /** The two destroyed activities and the watched object of [leakyHeapDump]. */
     private const val LEAKING_OBJECT_COUNT = 3
+
+    /** Which are two leaks: the activities leak the same way, so they are one row with both in it. */
+    private const val LEAK_COUNT = 2
 
     /** What the row about a watched object starts with, past the glyph in front of it. */
     private const val WATCHED = "Watched · key"

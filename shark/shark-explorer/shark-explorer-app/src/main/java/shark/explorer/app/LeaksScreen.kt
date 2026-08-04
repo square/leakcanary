@@ -4,10 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -49,7 +53,6 @@ import shark.explorer.hexObjectId
 internal fun LeaksScreen(
   leaks: HeapLeaks,
   isFindingLeaks: Boolean,
-  coloring: CellColoring,
   expandedGroups: Set<String>,
   onToggleGroup: (String) -> Unit,
   onOpen: (Long) -> Unit,
@@ -78,20 +81,24 @@ internal fun LeaksScreen(
           }
           section.groups.forEach { group ->
             val groupKey = section.kind.groupKey(group)
+            val isExpanded = groupKey in expandedGroups
             // Folded rows are one item each, so that a leak with five hundred instances costs the list
             // one row until someone asks to see them.
             item(key = groupKey) {
               GroupRow(
                 group = group,
-                isExpanded = groupKey in expandedGroups,
-                onToggle = { onToggleGroup(groupKey) },
-                onOpen = onOpen
+                isExpanded = isExpanded,
+                onToggle = { onToggleGroup(groupKey) }
               )
             }
-            if (group.objects.size == 1 || groupKey in expandedGroups) {
-              group.objects.forEach { leakingObject ->
+            if (isExpanded) {
+              group.objects.forEachIndexed { index, leakingObject ->
                 item(key = "$groupKey ${leakingObject.objectId}") {
-                  LeakingObjectRow(leakingObject, coloring, onOpen)
+                  LeakingObjectRow(
+                    leakingObject = leakingObject,
+                    isLast = index == group.objects.lastIndex,
+                    onOpen = onOpen
+                  )
                 }
               }
             }
@@ -125,36 +132,29 @@ private fun SectionHeader(section: LeakSection) {
 /**
  * One leak: what it is, how many objects of the heap dump are instances of it, and what they hold.
  *
- * The row itself leads to the first of them, which is the largest, because that is what someone reading a
- * list of leaks wants next; the triangle beside it is what opens the rest, and is only there when there is
- * a rest.
+ * Pressing it anywhere unfolds it into those objects, whether there are fifty of them or one. A row that
+ * led somewhere when it held one object and unfolded when it held two would be two rows that look the
+ * same and do different things — and the objects of a leak are what lead somewhere, one each.
  */
 @Composable
 private fun GroupRow(
   group: LeakGroup,
   isExpanded: Boolean,
-  onToggle: () -> Unit,
-  onOpen: (Long) -> Unit
+  onToggle: () -> Unit
 ) {
   Row(
-    Modifier.fillMaxWidth().padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+    Modifier.fillMaxWidth().clickableRow(onToggle)
+      .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    if (group.objects.size > 1) {
-      Text(
-        if (isExpanded) EXPANDED_ARROW else FOLDED_ARROW,
-        Modifier.width(TOGGLE_WIDTH).clickableRow(onToggle),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center
-      )
-    } else {
-      Spacer(Modifier.width(TOGGLE_WIDTH))
-    }
-    Column(
-      Modifier.weight(1f).clickableRow { onOpen(group.objects.first().objectId) },
-      verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
+    Text(
+      if (isExpanded) EXPANDED_ARROW else FOLDED_ARROW,
+      Modifier.width(TOGGLE_WIDTH),
+      style = MaterialTheme.typography.bodyMedium,
+      textAlign = TextAlign.Center
+    )
+    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
       Text(
         group.title,
         style = MaterialTheme.typography.bodyMedium,
@@ -168,6 +168,17 @@ private fun GroupRow(
           style = MaterialTheme.typography.bodySmall,
           color = MUTED_TEXT,
           maxLines = MAX_SUBTITLE_LINES,
+          overflow = TextOverflow.Ellipsis
+        )
+      }
+      // What makes a leak something to write down: the addresses in this list are of one heap dump, and
+      // this is the same for the same leak in the next one. See [LeakGroup.signature].
+      Hint(SIGNATURE_HINT) {
+        Text(
+          "$SIGNATURE ${group.signature}",
+          style = MaterialTheme.typography.bodySmall,
+          color = MUTED_TEXT,
+          maxLines = 1,
           overflow = TextOverflow.Ellipsis
         )
       }
@@ -186,47 +197,63 @@ private fun GroupRow(
   }
 }
 
-/** One leaking object: which one it is, what it holds, and what LeakCanary was told about it. */
+/**
+ * One leaking object: which one it is, what it holds, and what LeakCanary was told about it.
+ *
+ * Inside the unfolded leak rather than under it, which is a shade behind the objects and a rule down the
+ * left of them: a list of leaks whose rows are one indent apart reads as a list of leaks either way, and
+ * which of these rows is the leak and which is an instance of it is the one thing it has to say.
+ */
 @Composable
 private fun LeakingObjectRow(
   leakingObject: LeakingObject,
-  coloring: CellColoring,
+  /** Whether it closes the leak it is in, which is where the rule down the objects stops. */
+  isLast: Boolean,
   onOpen: (Long) -> Unit
 ) {
-  Column(Modifier.fillMaxWidth().padding(start = INSTANCE_INSET, end = 12.dp, bottom = 4.dp)) {
-    Row(
-      Modifier.fillMaxWidth().clickableRow { onOpen(leakingObject.objectId) }
-        .padding(vertical = 2.dp),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, leakingObject.strength)))
-      Column(Modifier.weight(1f)) {
-        Text(
-          leakingObject.identityText(),
-          style = MaterialTheme.typography.bodySmall,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
-        )
-        leakingObject.headline?.let { headline ->
+  Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(INSTANCE_BACKGROUND)) {
+    Spacer(Modifier.width(INSTANCE_INSET))
+    Box(
+      Modifier.width(INSTANCE_RULE_WIDTH)
+        .fillMaxHeight()
+        .padding(bottom = if (isLast) INSTANCE_RULE_TAIL else 0.dp)
+        .background(INSTANCE_RULE_COLOR)
+    )
+    Column(Modifier.weight(1f).padding(start = 8.dp, end = 12.dp, bottom = 4.dp)) {
+      Row(
+        Modifier.fillMaxWidth().clickableRow { onOpen(leakingObject.objectId) }
+          .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(leakingObject.strength)))
+        Column(Modifier.weight(1f)) {
           Text(
-            headline,
+            leakingObject.identityText(),
             style = MaterialTheme.typography.bodySmall,
-            color = MUTED_TEXT,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
           )
+          leakingObject.headline?.let { headline ->
+            Text(
+              headline,
+              style = MaterialTheme.typography.bodySmall,
+              color = MUTED_TEXT,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis
+            )
+          }
         }
+        Text(
+          formatByteSize(leakingObject.retainedSize),
+          Modifier.width(SIZE_COLUMN_WIDTH),
+          style = MaterialTheme.typography.bodySmall,
+          textAlign = TextAlign.End
+        )
       }
-      Text(
-        formatByteSize(leakingObject.retainedSize),
-        Modifier.width(SIZE_COLUMN_WIDTH),
-        style = MaterialTheme.typography.bodySmall,
-        textAlign = TextAlign.End
-      )
-    }
-    leakingObject.watcher?.let { watcher ->
-      WatcherRow(watcher, onOpen)
+      leakingObject.watcher?.let { watcher ->
+        WatcherRow(watcher, onOpen)
+      }
     }
   }
 }
@@ -316,14 +343,34 @@ private const val OBJECTS = "objects"
 /** What the line about the watcher starts with, so it reads as the watcher's line and not the object's. */
 private const val WATCHED_GLYPH = "◉"
 
+/** What the hash of a leak is called on the row, since a bare 40 characters of hex names nothing. */
+internal const val SIGNATURE = "Signature:"
+
+internal const val SIGNATURE_HINT =
+  "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +
+    "— unlike the addresses under it, which are of this one. So it is what to write in a bug report, and " +
+    "what to compare two dumps by. LeakCanary prints a signature of its own under every leak it reports " +
+    "and it is a different number: it hashes the leak trace its own path finder found, and this hashes " +
+    "the chain the explorer draws for the same object."
+
 internal const val FOLDED_ARROW = "▸"
 internal const val EXPANDED_ARROW = "▾"
 
-/** Wide enough for the triangle, and the same width when there is none, so the titles line up. */
+/** Wide enough for the triangle, which every row has: every leak unfolds, one object or fifty. */
 private val TOGGLE_WIDTH = 16.dp
 
 /** Enough that the objects of a leak read as being inside it rather than as more leaks. */
 private val INSTANCE_INSET = 28.dp
+
+/** The shade behind them, faint enough to leave the rows on it readable and the leak rows the brighter. */
+private val INSTANCE_BACKGROUND = Color(0x0D000000)
+
+/** And the rule down their left, which is what ties them to the leak above rather than to each other. */
+private val INSTANCE_RULE_COLOR = Color(0x33000000)
+private val INSTANCE_RULE_WIDTH = 2.dp
+
+/** How far short of the bottom the rule stops on the last object, which is where the leak ends. */
+private val INSTANCE_RULE_TAIL = 6.dp
 
 /** Wide enough for a size in gigabytes, so that the numbers line up down the column. */
 private val SIZE_COLUMN_WIDTH = 72.dp

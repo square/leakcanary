@@ -756,6 +756,7 @@ class HeapDominatorTreemap internal constructor(
       .sortedByDescending { nodes[it]?.retainedSize ?: 0L }
       .take(MAX_LEAKING_OBJECTS)
       .map { objectId -> foundLeak(objectId, watchers[objectId]) }
+      .foldedIntoWhatHoldsThem()
     if (candidateIds.size > MAX_LEAKING_OBJECTS) {
       SharkLog.d {
         "Only the largest $MAX_LEAKING_OBJECTS of the ${candidateIds.size} leaking objects are listed"
@@ -818,13 +819,18 @@ class HeapDominatorTreemap internal constructor(
       watcher = watcher
     )
     val simpleClassName = leakingObject.className.substringAfterLast('.')
+    // Everything above this object on the chain, which is what says whether another leak holds it. Off the
+    // chain that will be drawn rather than off a walk of its own, so a leak folded into another is one the
+    // chain of that other leak really does run through, cut and all.
+    val heldThroughIds = steps.dropLast(1).map { it.objectId }
     if (steps.isEmpty()) {
       return FoundLeak(
         kind = LeakKind.UNREACHABLE,
         groupKey = leakingObject.className,
         title = simpleClassName,
         subtitle = UNREACHABLE_LEAK_SUBTITLE,
-        leakingObject = leakingObject
+        leakingObject = leakingObject,
+        heldThroughIds = heldThroughIds
       )
     }
     // The first one on the way down, so a chain through two known leaks is named after the one nearest
@@ -838,7 +844,8 @@ class HeapDominatorTreemap internal constructor(
         groupKey = libraryLeak.pattern,
         title = libraryLeak.pattern,
         subtitle = libraryLeak.description.ifEmpty { null },
-        leakingObject = leakingObject
+        leakingObject = leakingObject,
+        heldThroughIds = heldThroughIds
       )
     }
     return FoundLeak(
@@ -849,7 +856,8 @@ class HeapDominatorTreemap internal constructor(
       groupKey = "$simpleClassName ${suspectSubpath(steps)}",
       title = simpleClassName,
       subtitle = leakingObject.leakingReason,
-      leakingObject = leakingObject
+      leakingObject = leakingObject,
+      heldThroughIds = heldThroughIds
     )
   }
 
@@ -868,8 +876,32 @@ class HeapDominatorTreemap internal constructor(
     val groupKey: String,
     val title: String,
     val subtitle: String?,
-    val leakingObject: LeakingObject
+    val leakingObject: LeakingObject,
+    /** The objects the chain runs through on the way to this one, which is every step above it. */
+    val heldThroughIds: List<Long>
   )
+
+  /**
+   * Leaks whose chain runs through another leak, dropped from the list.
+   *
+   * A leaked activity holds a leaked window which holds a leaked view, and each of the three is an object
+   * that shouldn't be in memory — but there is one thing to fix, and it is the one nearest the GC roots:
+   * let go of the activity and the other two go with it. Which is what LeakCanary does with the paths it
+   * finds, by the same rule and for the same reason.
+   *
+   * Nothing is lost by it. The chain drawn for the leak that stays runs through the ones that went, and
+   * says of each of them that it is leaking and why — which is the chain being read as a leak trace.
+   */
+  private fun List<FoundLeak>.foldedIntoWhatHoldsThem(): List<FoundLeak> {
+    val leakingIds = mapTo(mutableSetOf()) { it.leakingObject.objectId }
+    val kept = filter { found -> found.heldThroughIds.none { it in leakingIds } }
+    if (kept.size < size) {
+      SharkLog.d {
+        "${size - kept.size} of the $size leaking objects are held by another one, and are listed under it"
+      }
+    }
+    return kept
+  }
 
   /** The leaks a list of leaking objects amounts to, largest first, and their objects largest first. */
   private fun List<FoundLeak>.groups(): List<LeakGroup> =

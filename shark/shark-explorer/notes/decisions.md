@@ -408,7 +408,18 @@ knowingly.
 **Leaks are grouped the way LeakCanary groups them**: the app's own by the references between the last
 object known to be needed and the leaking one — the stretch of the chain the leak is in — and library ones
 by the pattern they were recognized by. Fifty leaked rows of one list are one thing to fix, so a group is
-one row until it is unfolded.
+one row until it is unfolded — one object or fifty, since a row that led somewhere when it held one and
+unfolded when it held two would be two rows that look the same and do different things. `LeakGroup.signature`
+is a SHA-1 of what grouped it, which is what makes a leak something to write in a bug report; it is not the
+number LeakCanary prints, which hashes the leak trace its own path finder found.
+
+**A leak whose chain runs through another leak is dropped from the list** (`foldedIntoWhatHoldsThem`). A
+leaked activity holds a leaked window which holds a leaked view tree, and every one of those is an object an
+inspector recognizes: what LeakCanary's `deduplicateShortestPaths` keeps is the path nearest the roots, and
+so does this. It is most of the list — on the dumps in this repo, 26 leaking objects come out as 1 leak and
+14 collected ones, 31 as 6, and 48 as 3 — and nothing is lost by it, because the chain drawn for the leak
+that stays runs through the ones that went and says of each that it is leaking. Off the steps of that chain
+rather than a walk of its own, so a leak is only folded into one whose drawn chain really does reach it.
 
 **Shark's library leak matchers are added to the reference reader the tree is built from**
 (`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would
@@ -422,6 +433,14 @@ of every chain carries a `LeakStatus`, worked out by `leakStatusesOf` from what 
 the objects above and below it — Shark's own rule, minus the one that forces the last object of a leak
 trace to be leaking, because a path here ends wherever the reader clicked. Green behind an object meant to
 be alive, red behind one meant to be gone, and the reason in words underneath.
+
+**The boxes above a view colour that view and nothing else.** A swatch beside an object — a step of a chain,
+a row of a list, the details panel, the card at the pointer — is `objectStrengthColor`, off the strength
+alone, while `legendColor` greys what the boxes have switched off. Greying a strength is a way of reading the
+picture the view draws, and a line naming one object is not that picture: greyed there it would read as
+saying something about the object. And `Leaking` unticks every strength, `withLeaks` / `withStrengths` being
+the one place that is decided — a red shade over a map of pastels is one more pastel, and grey underneath is
+what leaves the few objects that shouldn't be there as the only colour on screen.
 
 **The treemap shades leaks without laying anything out again.** "Anything dominated by a dead node is dead"
 is the whole rule, and cells arrive parent before child, so `CellColors.of` propagates it in one pass over

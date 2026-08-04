@@ -122,7 +122,6 @@ internal fun PathStepRow(
   /** How this step points at the next one, which is what that step was reached through. */
   reference: PathReference?,
   nextStrength: ReachabilityStrength?,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit,
   role: PathRole = PathRole.STEP,
   detail: PathDetail = PathDetail.FULL,
@@ -184,7 +183,7 @@ internal fun PathStepRow(
       Text(
         step.strength.reachabilityText,
         style = MaterialTheme.typography.bodySmall,
-        color = legendColor(coloring, step.strength)
+        color = objectStrengthColor(step.strength)
       )
     }
     if (detail == PathDetail.FULL) {
