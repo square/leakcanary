@@ -133,18 +133,29 @@ another reason that field can't be pinned to something the releases don't move.
 ## What a first signing run found, and what is still open
 
 Both were measured against the real service on 2026-08-04, from a tag whose release was forced to draft
-and then deleted.
+and then deleted. Neither is fixable here — both are `#mdx-ios` asks, and each is one function.
 
-* **The signing service signs without notarizing.** The DMG came back signed by `Developer ID
-  Application: Block, Inc. (EYF346PHUG)` with the hardened runtime on and all four entitlements
-  present — and Apple had no notarization record of it: `xcrun stapler staple` answered *"CloudKit query
-  failed due to Record not found"*. That app does not launch. It hangs in `dyld` with no output and no
-  session log, where the same bundle re-signed ad hoc with the same entitlements starts in two seconds.
-  So the app-not-launching failure this page used to warn about is real, and it is not the entitlements.
-* **The service cannot sign an app whose name has a space in it.** The lambda builds an S3 URI from the
-  bundle name and parses it, so `Shark Explorer.app.zip` fails with `bad URI(is not URI?)`. Renaming the
-  package to `SharkExplorer` is what got a signature at all. Whether the app keeps that name or Block
-  escapes the URI is open.
+* **The signing service signs without notarizing, and reports success.** The DMG came back signed by
+  `Developer ID Application: Block, Inc. (EYF346PHUG)` with the hardened runtime on, all four
+  entitlements present, and each of its 32 Mach-O files carrying a secure timestamp — and Apple had no
+  notarization record of it, still none eight hours later: `xcrun stapler staple` answers *"CloudKit
+  query failed due to Record not found"*. That app does not launch. It hangs in `dyld` with no output
+  and no session log, where the same bundle re-signed ad hoc with the same entitlements starts in two
+  seconds. So the app-not-launching failure this page used to warn about is real, and it is not the
+  entitlements.
 
-Neither is fixable here, so both are `#mdx-ios` asks. Until they are fixed there is no releasable macOS
-build, and the notarization check in the workflow fails the release rather than shipping one.
+    `notarize()` in `apple-codesign/lib/notarize.sh` (`squareup/mdx-ios-codesign-helper`) treats `xcrun
+    notarytool submit --wait` exiting 0 as the verdict and never reads the `status` field out of the JSON
+    it asked for, so a submission Apple refused still logs "Notarization complete". Stapling then fails,
+    which is the only remaining signal, and that is a warning that deliberately doesn't fail the build.
+
+* **A space in the app's name breaks the reply, not the signing.** The service signed `Shark
+  Explorer.app` correctly — the Buildkite job passed and uploaded the signed zip — and then the lambda
+  failed working out where it had put it: `bad URI(is not URI?): "s3://…/Shark Explorer.app.zip"`, five
+  minutes in, after a mac worker had done all the work. `destination_url` in
+  `global/lambdas/codesign_helper.rb` (`squareup/tf-mobuild-workers`) parses that S3 URL with Ruby's
+  `URI()` to insert `-signed` before the extension, and a space is not a legal URI character. Renaming
+  the package to `SharkExplorer` is what got a signature back.
+
+Until both are fixed there is no releasable macOS build, and the notarization check in the workflow
+fails the release rather than shipping one.
