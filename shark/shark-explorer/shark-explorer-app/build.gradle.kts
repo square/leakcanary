@@ -138,9 +138,16 @@ compose.desktop {
         iconFile.set(project.file("src/main/resources/shark-explorer-icon.png"))
       }
 
-      // What `shark-explorer-jdwp` attaches to a live app with. jlink leaves out every module it
-      // doesn't detect a use of, and it detects no use of one reached through `Bootstrap`.
-      modules("jdk.jdi")
+      // The JDK modules jlink puts in the packaged runtime, which are only the ones listed here: the
+      // plugin detects nothing by itself. `suggestRuntimeModules` is where this list came from and the
+      // task to re-run when the dependencies change.
+      //
+      // A module missing here is a `NoClassDefFoundError` that only a packaged build hits, because `run`
+      // has the whole JDK on hand — which is how `java.net.http` went missing for as long as it did. The
+      // update check is the only thing that fetches anything, so a packaged app logged "Could not fetch
+      // …/latest.properties" once at startup and then never mentioned a new version again. `jdk.jdi` is
+      // what `shark-explorer-jdwp` attaches to a live app with.
+      modules("java.instrument", "java.net.http", "jdk.jdi", "jdk.unsupported")
     }
   }
 }
