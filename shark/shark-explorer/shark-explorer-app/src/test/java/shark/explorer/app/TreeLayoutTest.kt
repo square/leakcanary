@@ -83,6 +83,22 @@ class TreeLayoutTest {
   }
 
   /**
+   * And the classes view, which is the other of the heap dump's two trees: laying it out reads that tree for
+   * the first time, so a second layout of it would be a second pass over every object of the dump.
+   */
+  @Test fun `switching to the classes view lays the tree out once more`() {
+    explorerUiTest {
+      openHeapDump()
+
+      shapeOption(ViewShape.CLASSES).performClick()
+      settleTheHeapDumpThread(ViewShape.CLASSES)
+    }
+
+    assertThat(treeLayoutsOf(ViewShape.CLASSES)).hasSize(1)
+    assertThat(treeLayoutsOf(ViewShape.TREEMAP)).hasSize(1)
+  }
+
+  /**
    * Waits for a heap dump read that isn't a layout, which is what makes counting the layouts sound rather
    * than a race: reads queue on the heap dump's one thread in the order they were asked for, so a layout
    * queued behind the one that drew what the window is showing is in the log by the time this comes back.
@@ -101,9 +117,13 @@ class TreeLayoutTest {
         Offset(view.left + view.width * CELL_X, view.top + view.height * CELL_Y)
       }
       ViewShape.STACK -> stackRow(CELL_ROW, CELL_X)
+      // Whose rows are counted from the bottom of the view rather than from the top of it.
+      ViewShape.CLASSES -> classesRow(CELL_ROW, CELL_X)
     }
     onRoot().performMouseInput { hover(cell) }
-    waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { logged.any { it.startsWith(HOVER_READ) } }
+    // A row of the classes view has no one chain holding it, so what is read for one is the row itself.
+    val read = if (shape == ViewShape.CLASSES) ROW_READ else HOVER_READ
+    waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { logged.any { it.startsWith(read) } }
   }
 
   /** Every layout of the tree as [shape] the window has asked for, one line per read of the heap dump. */
@@ -164,5 +184,8 @@ class TreeLayoutTest {
 
     /** How the log says the chain holding the cell under the pointer was read. */
     private const val HOVER_READ = "Read what holds"
+
+    /** And how it says a row of the classes view was, which is all there is to read for one. */
+    private const val ROW_READ = "Read what the class row"
   }
 }

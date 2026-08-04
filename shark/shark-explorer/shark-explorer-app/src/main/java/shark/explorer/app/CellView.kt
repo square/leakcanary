@@ -29,11 +29,14 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.roundToInt
 import shark.explorer.CellContent
 import shark.explorer.CellSubject
+import shark.explorer.HeapDominatorTreemap
 import shark.explorer.LayoutCell
 import shark.explorer.ObjectGroupKind
+import shark.explorer.ReverseDominatorTree
+import shark.explorer.ReverseNodeKind
 import shark.explorer.TreemapPoint
 
-/** Which shape the dominator tree is drawn as. Pick one above the view. */
+/** Which shape a heap dump's domination is drawn as. Pick one above the view. */
 internal enum class ViewShape(val displayName: String) {
 
   /** Nested rectangles: area is retained size, nesting is domination. */
@@ -52,7 +55,27 @@ internal enum class ViewShape(val displayName: String) {
    * doesn't spend area on nesting, so the deep end of a chain is drawn and named at full size — and
    * therefore the one shape taller than the window, which is why it scrolls.
    */
-  STACK("Stack")
+  STACK("Stack"),
+
+  /**
+   * The same stack of rows the other way up, of the other of the heap dump's two trees: every object of
+   * the dump on the row of its class along the bottom, and what dominates them stacked above, class by
+   * class. See [shark.explorer.ReverseDominatorTree].
+   *
+   * So a row here is a pile of objects rather than one object, and reading up a column answers "what
+   * holds all the `byte[]`, and what holds that" — which [STACK] can only answer one object at a time.
+   */
+  CLASSES("Classes");
+
+  /**
+   * Whether this shape draws [nodeId] at all, which is what a shape being switched leaves behind.
+   *
+   * The heap dump's two trees share their root and no other node — see [shark.explorer.HeapTree] — so a
+   * path zoomed into one of them is nothing to the other, and which shape is drawn is what says which of
+   * the two a node is expected to be in.
+   */
+  fun draws(nodeId: Long): Boolean = nodeId == HeapDominatorTreemap.ROOT_OBJECT_ID ||
+    ReverseDominatorTree.isReverseNode(nodeId) == (this == CLASSES)
 }
 
 /**
@@ -108,15 +131,23 @@ internal fun BoxScope.NotExpandedBadge(nodeCount: Int) {
 internal fun Offset.toTreemapPoint() = TreemapPoint(x.toDouble(), y.toDouble())
 
 /**
- * How a cell is outlined: dashed for every instance of one class, dotted for the siblings that didn't
- * fit, solid for an object and for the two halves of the heap dump.
+ * How a cell is outlined: dashed for every instance of one class and for the objects nothing in
+ * particular holds, dotted for the siblings that didn't fit, solid for an object, for the two halves of
+ * the heap dump and for a row of the classes view.
  *
- * A pile of objects shouldn't have the same edge as one object, in either shape. Along with the washed
+ * A pile of objects drawn among objects shouldn't have the same edge as one object. Along with the washed
  * out fill and the label, it's the third thing saying this cell isn't something you can inspect the
- * fields of.
+ * fields of. Every cell of the classes view is a pile, so there a dashed edge would mark nothing out and
+ * make the rows hard to tell apart: see [CellContent.ObjectRow].
  */
 internal fun outlineOf(content: CellContent): Stroke = when {
   content is CellContent.ObjectGroup && content.kind == ObjectGroupKind.CLASS -> Stroke(
+    width = PILE_BORDER_WIDTH,
+    pathEffect = PathEffect.dashPathEffect(CLASS_GROUP_DASH_INTERVALS)
+  )
+  // The one row of that view that isn't objects gathered by something: they have nothing in common but
+  // that nothing in particular holds them, so the edge says so the way a pile's does.
+  content is CellContent.ObjectRow && content.kind == ReverseNodeKind.NO_OWNER -> Stroke(
     width = PILE_BORDER_WIDTH,
     pathEffect = PathEffect.dashPathEffect(CLASS_GROUP_DASH_INTERVALS)
   )

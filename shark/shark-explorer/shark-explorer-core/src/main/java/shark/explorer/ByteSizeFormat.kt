@@ -32,10 +32,14 @@ fun formatByteSize(byteCount: Long): String {
  * both would leave the eye nothing exact to hold on to. Always [Locale.US], for the same reason
  * [formatByteSize] is.
  */
-fun formatObjectCount(objectCount: Int): String {
-  val count = String.format(Locale.US, "%,d", objectCount)
-  return if (objectCount == 1) "$count object" else "$count objects"
-}
+fun formatObjectCount(objectCount: Int): String = "${formatCount(objectCount)} " +
+  if (objectCount == 1) "object" else "objects"
+
+/**
+ * The same count with nothing after it, e.g. `807,231`, for where saying what is being counted is somebody
+ * else's job: a cell label reading `807,231 × byte[]` has already said it.
+ */
+internal fun formatCount(count: Int): String = String.format(Locale.US, "%,d", count)
 
 private const val UNIT = 1024
 private val UNITS = listOf("KB", "MB", "GB", "TB")

@@ -30,15 +30,18 @@ class StackLayoutResult<N>(
   val rowCount: Int,
   /** How tall one row is, in the pixels the viewport was measured in. */
   val rowHeight: Double,
-  /** See [TreemapLayoutResult.truncatedNodeCount]. */
-  val truncatedNodeCount: Int
-) {
-
   /**
    * How tall everything laid out is, which is what a view of it has to scroll through: a stack is as
    * deep as the tree it drew, and that is regularly deeper than a viewport.
+   *
+   * [rowCount] rows' worth, and never less than the viewport when [rowsGoUp]. See [StackLayout].
    */
-  val contentHeight: Double get() = rowCount * rowHeight
+  val contentHeight: Double,
+  /** Whether the rows go up from the node the stack is rooted at rather than down. See [StackLayout]. */
+  val rowsGoUp: Boolean,
+  /** See [TreemapLayoutResult.truncatedNodeCount]. */
+  val truncatedNodeCount: Int
+) {
 
   /** The block [point] falls in, or null where the stack has none: past its last row, or in a notch. */
   fun cellAt(point: TreemapPoint): StackCell<N>? = cells.firstOrNull { point in it.rect }
@@ -68,6 +71,9 @@ class StackLayoutResult<N>(
  * up to. What the parent holds on its own is the width left over at the right end of the row, drawn as
  * a [CellSubject.Own] block, so a bitmap reads as a wide block with almost nothing under it and every
  * row of the stack can be compared with every other.
+ *
+ * [rowsGoUp] draws the same stack the other way up, which is what a tree read from the classes up is
+ * drawn as: see [ReverseDominatorTree].
  */
 class StackLayout<N>(
   /** How tall one row is. A row holds a line of text and nothing else, so this is a text height. */
@@ -88,7 +94,18 @@ class StackLayout<N>(
   private val maxCells: Int = 5000,
   private val maxChildrenPerNode: Int = 200,
   /** And how many for the node the stack is rooted at, which has the whole width. See [TreemapLayout]. */
-  private val maxRootChildren: Int = maxCells / 2
+  private val maxRootChildren: Int = maxCells / 2,
+  /**
+   * Which way the levels go from the node the stack is rooted at: down the view for a tree read from the
+   * roots down, up it for one read from the classes up.
+   *
+   * Which makes the two readings of a heap dump's domination look like the mirror images they are, and
+   * puts the row everything is a share of — the whole heap dump — along the edge a reader starts at. The
+   * only thing it changes is where a row is drawn, so it is done to the finished rows: a row's place is
+   * its depth counted from the far end of the stack, and how far away that is isn't known until the last
+   * row has been placed.
+   */
+  private val rowsGoUp: Boolean = false
 ) {
 
   fun layout(
@@ -105,7 +122,7 @@ class StackLayout<N>(
     )
     val cells = mutableListOf(rootCell)
     if (viewport.width <= 0.0 || rowHeight <= 0.0) {
-      return StackLayoutResult(cells, rowCount = 1, rowHeight = rowHeight, truncatedNodeCount = 0)
+      return result(cells, viewport, rowCount = 1, truncatedNodeCount = 0)
     }
 
     // Widest first, so that the budget is spent where a row has the room to be read. Ties broken by
@@ -202,10 +219,43 @@ class StackLayout<N>(
       }
     }
 
-    return StackLayoutResult(
+    return result(
       cells = cells,
+      viewport = viewport,
       rowCount = cells.maxOf { it.depth } + 1,
+      truncatedNodeCount = truncatedNodeCount
+    )
+  }
+
+  /**
+   * The stack as laid out, with every row flipped when [rowsGoUp]: depth 0 along the bottom edge of what
+   * there is to scroll through, and the deepest row at the top of it.
+   *
+   * Which is as tall as the rows come to, and **never less than the viewport when the rows go up**,
+   * because the bottom row is then the one a view opens on: a stack of six rows in a window with room for
+   * forty has to hang off the bottom of it, and a view scrolls what it is given from the top.
+   */
+  private fun result(
+    cells: List<StackCell<N>>,
+    viewport: TreemapRect,
+    rowCount: Int,
+    truncatedNodeCount: Int
+  ): StackLayoutResult<N> {
+    val stackHeight = rowCount * rowHeight
+    val contentHeight = if (rowsGoUp) maxOf(stackHeight, viewport.height) else stackHeight
+    return StackLayoutResult(
+      cells = if (!rowsGoUp) {
+        cells
+      } else {
+        cells.map { cell ->
+          val top = viewport.top + contentHeight - (cell.depth + 1) * rowHeight
+          cell.copy(rect = cell.rect.copy(top = top, bottom = top + rowHeight))
+        }
+      },
+      rowCount = rowCount,
       rowHeight = rowHeight,
+      contentHeight = contentHeight,
+      rowsGoUp = rowsGoUp,
       truncatedNodeCount = truncatedNodeCount
     )
   }

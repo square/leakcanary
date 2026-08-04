@@ -1,7 +1,8 @@
 # Shark Explorer — agent guide
 
 A desktop app that renders a heap dump's dominator tree as a navigable treemap, as rings around a
-centre, or as a stack of rows the way a profiler draws a call tree. The long term goal is a YourKit-style
+centre, or as a stack of rows the way a profiler draws a call tree — and that same domination read from
+the classes up, which is the stack of rows the other way round. The long term goal is a YourKit-style
 heap explorer; these are the first surfaces.
 
 This file is scoped to `shark/shark-explorer/`. It only records things an agent would get wrong by
@@ -30,6 +31,20 @@ under-attributed. Don't build on it.
 `shark.HeapDominatorTree` is the exact one, which is what `HeapExplorer` uses. See
 `notes/dominator-tree.md` for its memory profile and for the reference reader behaviour that makes a
 treemap read strangely until you know about it.
+
+## One heap dump, two trees, one shared root
+
+`HeapExplorer.tree` is that domination read from the roots down, and `tree.reverseTree` is the same
+domination read from the classes up, for the classes view — built on first use, because it costs a pass
+over every object of the dump. Both implement `HeapTree`, which is what a layout and a presentation take.
+
+**The whole heap dump is a node of both, with the same id**, so that a path zoomed into either tree
+starts at the same place. Every other node is told apart by its id alone
+(`ReverseDominatorTree.isReverseNode`), and **that one shared node is the trap**: what a clicked cell is
+cannot be worked out from its id, so `selectionOf` in `HeapDumpExplorer.kt` takes the shape being drawn.
+Asking one tree about the other's node is what a `require` there reports; asking the reverse tree for a
+node it doesn't have costs a full pass over the heap dump first. `notes/treemap-rendering.md` has the
+rest of it.
 
 ## The heap dump is read off the UI thread
 

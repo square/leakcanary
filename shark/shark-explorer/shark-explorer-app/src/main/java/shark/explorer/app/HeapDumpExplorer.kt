@@ -43,8 +43,10 @@ import shark.explorer.CellSubject
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
+import shark.explorer.HeapExplorer
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
+import shark.explorer.HeapTree
 import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
 import shark.explorer.NavigationHistory
@@ -53,6 +55,7 @@ import shark.explorer.ObjectList
 import shark.explorer.ObjectListFilter
 import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
+import shark.explorer.ReverseDominatorTree
 import shark.explorer.RootPath
 import shark.explorer.RootPathWay
 import shark.explorer.StackLayout
@@ -164,6 +167,9 @@ internal fun HeapDumpExplorer(
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
   val stackLayout = rememberStackLayout()
+  // The same layout the other way up, which is what the classes view is: its rows grow from the whole heap
+  // dump along the bottom rather than down from it. See [StackLayout].
+  val classesLayout = rememberStackLayout(rowsGoUp = true)
   // In pixels, like everything a layout is measured in, so that how small is too small for an image to be
   // worth drawing is the same size on every display. See MIN_BITMAP_DRAW_SIZE.
   val minBitmapDrawSize = with(LocalDensity.current) { MIN_BITMAP_DRAW_SIZE.toPx() }
@@ -173,12 +179,17 @@ internal fun HeapDumpExplorer(
   // nothing to lay out for.
   val viewRequest = viewportSize.takeIf { it != IntSize.Zero }?.let { size ->
     ViewRequest(
-      navigation = navigation,
+      // The whole heap dump when the shape being switched to draws the other of the heap dump's two trees,
+      // which is the one node they share. Substituted in the request rather than in the history, so that
+      // the path into the tree being left is still there to come back to: what the effect below replaces
+      // the history with, it only replaces when the request is what the window is already showing.
+      navigation = navigation.takeIf { shape.draws(it.current) } ?: TreemapNavigation(ROOT_NODE),
       viewportSize = size,
       shape = shape,
       treemapLayout = treemapLayout,
       radialLayout = radialLayout,
-      stackLayout = stackLayout
+      stackLayout = stackLayout,
+      classesLayout = classesLayout
     )
   }
 
@@ -194,7 +205,7 @@ internal fun HeapDumpExplorer(
     }
     isLayingOut = true
     view = session.read(viewRequest.description()) { explorer ->
-      val tree = explorer.tree
+      val tree = explorer.treeOf(viewRequest.shape)
       val requested = viewRequest.navigation
       // An object zoomed into may no longer be dominated by the one above it on the path.
       val reachablePath = requested.retainingWhere { it in tree }
@@ -227,6 +238,14 @@ internal fun HeapDumpExplorer(
             StackPresentation.of(
               tree,
               viewRequest.stackLayout,
+              viewRequest.viewport,
+              reachablePath.current
+            )
+          )
+          ViewShape.CLASSES -> ViewPresentation.Stack(
+            StackPresentation.of(
+              tree,
+              viewRequest.classesLayout,
               viewRequest.viewport,
               reachablePath.current
             )
@@ -283,14 +302,16 @@ internal fun HeapDumpExplorer(
   }
 
   // Reading what a cell stands for is a heap dump read too, so the panels fill in a beat after the click.
-  // Keyed on the request, so that nothing else clears them.
+  // Keyed on the request, so that nothing else clears them — the shape included, though the cell is read as
+  // whatever the view it was clicked in draws: switching shape leaves the panels on what they were saying,
+  // and re-reading a cell of the view being left would be asking one tree about the other tree's node.
   LaunchedEffect(session, clicked?.request) {
     val clickedRequest = clicked?.request
     if (clickedRequest == null) {
       clickedDetails = null
       return@LaunchedEffect
     }
-    session.describing(clickedRequest) { clickedDetails = it }
+    session.describing(clickedRequest, shape) { clickedDetails = it }
   }
 
   // The same for the cell under the pointer, once it has stayed on one long enough to be looking at it.
@@ -303,7 +324,7 @@ internal fun HeapDumpExplorer(
       return@LaunchedEffect
     }
     delay(HOVER_SETTLE_MILLIS)
-    session.describing(hoveredRequest) { hoveredDetails = it }
+    session.describing(hoveredRequest, shape) { hoveredDetails = it }
   }
 
   // The panel shows the bitmap it describes as big as the panel is wide, so its pixels are read again at
@@ -382,13 +403,13 @@ internal fun HeapDumpExplorer(
     isListing = false
   }
 
-  // Where the treemap draws a node takes walking up its dominators, so showing what a panel line or a row
+  // Where the view draws a node takes walking up its dominators, so showing what a panel line or a row
   // of a list leads to is a heap dump read as well.
   LaunchedEffect(session, nodeToOpen) {
     val move = nodeToOpen ?: return@LaunchedEffect
     val openNodeId = move.nodeId
     val path = session.read("where the map draws ${nodeIdText(openNodeId)}") { explorer ->
-      explorer.tree.pathToOpen(openNodeId)
+      explorer.treeOf(openNodeId).pathToOpen(openNodeId)
     }
     if (openNodeId != ROOT_NODE && path == listOf(ROOT_NODE)) {
       // Clicking a field or a row led to an object the tree has no node for, so the map has nowhere to
@@ -622,10 +643,13 @@ private fun DescribedObject(selection: Selection?) {
       selection.summary.className ?: HeapDominatorTreemap.UNREACHABLE_LABEL,
       style = MaterialTheme.typography.bodyMedium
     )
-    is Selection.Group -> Text(
-      "${selection.nodeCount} smaller objects",
+    // The class the row gathers, which is what it is about, and what it says of itself for the rows that
+    // gather no class: the whole heap dump, and the two ways a column stops.
+    is Selection.Row -> Text(
+      selection.summary.className ?: selection.summary.label,
       style = MaterialTheme.typography.bodyMedium
     )
+    is Selection.Group -> Text(selection.title(), style = MaterialTheme.typography.bodyMedium)
   }
 }
 
@@ -794,16 +818,23 @@ private fun rememberRadialLayout(): RadialLayout<Long> {
   }
 }
 
-/** And the stack layout, whose row height is a line of text and so is scaled like the rest of them. */
+/**
+ * And the stack layout, whose row height is a line of text and so is scaled like the rest of them.
+ *
+ * One of these per direction rather than one asked which way to go per layout, because which way a stack
+ * grows is as much a part of how a shape is laid out as its thresholds are: [ViewShape.STACK] and
+ * [ViewShape.CLASSES] are two shapes, and a view is laid out again when the shape changes.
+ */
 @Composable
-private fun rememberStackLayout(): StackLayout<Long> {
+private fun rememberStackLayout(rowsGoUp: Boolean = false): StackLayout<Long> {
   val density = LocalDensity.current
-  return remember(density) {
+  return remember(density, rowsGoUp) {
     with(density) {
       StackLayout(
         rowHeight = STACK_ROW_HEIGHT.toPx().toDouble(),
         minSubdivideWidth = MIN_SUBDIVIDE_STACK_WIDTH.toPx().toDouble(),
-        minDrawWidth = MIN_DRAW_STACK_WIDTH.toPx().toDouble()
+        minDrawWidth = MIN_DRAW_STACK_WIDTH.toPx().toDouble(),
+        rowsGoUp = rowsGoUp
       )
     }
   }
@@ -827,7 +858,9 @@ private data class ViewRequest(
   val shape: ViewShape,
   val treemapLayout: TreemapLayout<Long>,
   val radialLayout: RadialLayout<Long>,
-  val stackLayout: StackLayout<Long>
+  val stackLayout: StackLayout<Long>,
+  /** The stack laid out the other way up, which is the classes view. See [StackLayout]. */
+  val classesLayout: StackLayout<Long>
 ) {
   val viewport: TreemapRect
     get() = TreemapRect(
@@ -947,38 +980,18 @@ private class CellDetails(
  */
 private suspend fun HeapDumpSession.describing(
   request: SelectionRequest,
+  shape: ViewShape,
   onDetails: (CellDetails) -> Unit
 ) {
-  val cellDetails = read(request.description()) { explorer ->
-    val tree = explorer.tree
-    val selection = when (request) {
-      is SelectionRequest.Object -> {
-        val group = tree.groupOrNull(request.objectId)
-        when {
-          group != null -> Selection.ObjectGroup(group)
-          request.objectId in tree -> Selection.Object(tree.summarize(request.objectId))
-          // Which is why the panel goes back to saying nothing is selected.
-          else -> {
-            SharkLog.d {
-              "Nothing to describe for ${nodeIdText(request.objectId)}: it is no node of the tree"
-            }
-            null
-          }
-        }
-      }
-      is SelectionRequest.Group -> Selection.Group(
-        nodeCount = request.nodeCount,
-        byteCount = request.byteCount,
-        parentLabel = tree.label(request.parentObjectId)
-      )
-    }
+  val cellDetails = read(request.description(shape)) { explorer ->
+    val selection = explorer.selectionOf(request, shape)
     // The tree already knows what dominates what, so this is a read of one label rather than a search,
     // and it belongs in the same read: two of them means the panel showing a dominator a beat late.
     val objectId = (selection as? Selection.Object)?.summary?.objectId
     CellDetails(
       request = request,
       selection = selection,
-      dominator = objectId?.let { tree.dominatorOf(it) },
+      dominator = objectId?.let { explorer.tree.dominatorOf(it) },
       rootPath = null
     )
   }
@@ -996,6 +1009,68 @@ private suspend fun HeapDumpSession.describing(
     )
   )
 }
+
+/**
+ * What one cell of the view [shape] draws is: a row of the classes view, or an object of the tree read from
+ * the roots down and the two kinds of pile that view has.
+ *
+ * The shape rather than the node says which, because the node can't: the whole heap dump is the row across
+ * the bottom of one view and the root of the other, being the one node both of the heap dump's trees have.
+ * See [HeapTree].
+ *
+ * Null for a cell whose node has left the tree, which is what a click on a field or a list row can reach —
+ * and why the panel goes back to saying nothing is selected.
+ */
+private fun HeapExplorer.selectionOf(
+  request: SelectionRequest,
+  shape: ViewShape
+): Selection? {
+  val rows = if (shape == ViewShape.CLASSES) tree.reverseTree else null
+  return when (request) {
+    is SelectionRequest.Object -> if (rows != null) {
+      if (request.objectId in rows) {
+        Selection.Row(rows.summarize(request.objectId))
+      } else {
+        SharkLog.d {
+          "Nothing to describe for ${nodeIdText(request.objectId)}: it is no row of the classes view"
+        }
+        null
+      }
+    } else {
+      val group = tree.groupOrNull(request.objectId)
+      when {
+        group != null -> Selection.ObjectGroup(group)
+        request.objectId in tree -> Selection.Object(tree.summarize(request.objectId))
+        else -> {
+          SharkLog.d {
+            "Nothing to describe for ${nodeIdText(request.objectId)}: it is no node of the tree"
+          }
+          null
+        }
+      }
+    }
+    is SelectionRequest.Group -> Selection.Group(
+      isRows = rows != null,
+      nodeCount = request.nodeCount,
+      byteCount = request.byteCount,
+      parentLabel = (rows ?: tree).label(request.parentObjectId)
+    )
+  }
+}
+
+/**
+ * Which of the heap dump's two trees a node belongs to, which its own id says. See [HeapTree].
+ *
+ * The other tree is built on first use and costs a pass over every object of the heap dump, so it is only
+ * ever asked for a node that is one of its own. The whole heap dump belongs to both, and both answer the
+ * same for it, so which of them is asked about it doesn't matter here — unlike in [selectionOf].
+ */
+private fun HeapExplorer.treeOf(nodeId: Long): HeapTree =
+  if (ReverseDominatorTree.isReverseNode(nodeId)) tree.reverseTree else tree
+
+/** And which of them a shape draws, which is what one view is laid out from. */
+private fun HeapExplorer.treeOf(shape: ViewShape): HeapTree =
+  if (shape == ViewShape.CLASSES) tree.reverseTree else tree
 
 /** A cell the panels have been asked about, before the heap dump has been read for it. */
 private sealed interface SelectionRequest {
@@ -1019,9 +1094,15 @@ private sealed interface SelectionRequest {
 }
 
 /** What the panel is being filled in for, for the log. See [HeapDumpSession.read]. */
-private fun SelectionRequest.description(): String = when (this) {
+private fun SelectionRequest.description(shape: ViewShape): String = when (this) {
   is SelectionRequest.Object -> "what ${nodeIdText(objectId)} is"
-  is SelectionRequest.Group -> "what the $nodeCount objects under ${nodeIdText(parentObjectId)} are"
+  // The classes view is made of rows and every other view of objects, and which of the two a line of the
+  // log is about is the difference between a pile of a hundred bitmaps and a hundred classes of them.
+  is SelectionRequest.Group -> if (shape == ViewShape.CLASSES) {
+    "what the $nodeCount rows above ${nodeIdText(parentObjectId)} are"
+  } else {
+    "what the $nodeCount objects under ${nodeIdText(parentObjectId)} are"
+  }
 }
 
 private const val ROOT_NODE = HeapDominatorTreemap.ROOT_OBJECT_ID
@@ -1044,10 +1125,11 @@ internal const val FORWARD_ARROW = "→"
 internal const val FETCH_BITMAPS = "Fetch the pixels of"
 
 /**
- * What the tree looks like to anything that can't look at it, a screen reader or a test.
+ * What the view looks like to anything that can't look at it, a screen reader or a test.
  *
- * The same for every [ViewShape], because it says what is drawn rather than how: only one of the three
- * draws a cell inside the one that holds it.
+ * The same for every [ViewShape], because it says what is drawn rather than how: only one of the four
+ * draws a cell inside the one that holds it, and only one of them draws piles of objects rather than
+ * objects — so what they have in common is domination, and a cell being as big as its share of the heap.
  */
 internal const val VIEW_DESCRIPTION =
-  "The dominator tree of the heap dump: every cell is an object, as big as what it retains."
+  "What retains what in the heap dump: every cell is as big as its share of the heap."

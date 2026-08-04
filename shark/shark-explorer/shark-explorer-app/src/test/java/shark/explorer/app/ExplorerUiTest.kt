@@ -65,6 +65,22 @@ internal fun ComposeUiTest.stackRow(
 }
 
 /**
+ * The middle of a row of the classes view, counting from the one across the *bottom*: that view's rows grow
+ * up from the whole heap dump, which is where it is rooted and the end it opens on. See [stackRow].
+ */
+@OptIn(ExperimentalTestApi::class)
+internal fun ComposeUiTest.classesRow(
+  row: Int,
+  xFraction: Float = 0.5f
+): Offset {
+  val view = onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
+  return Offset(
+    x = view.left + view.width * xFraction,
+    y = view.bottom - STACK_ROW_HEIGHT.value * (row + 0.5f)
+  )
+}
+
+/**
  * Moves the pointer onto [offset] the way a mouse gets anywhere: from a pixel away.
  *
  * The first move a view is sent is an enter rather than a move, and the views only describe what the

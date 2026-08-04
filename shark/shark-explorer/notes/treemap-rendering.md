@@ -2,21 +2,23 @@
 
 Implemented in `shark-explorer-core`: `Squarify.kt` (row layout), `TreemapLayout.kt` (adaptive depth
 and hit testing), `RadialLayout.kt` (the same, as rings), `StackLayout.kt` (the same, as a row per
-level), `TreemapRect.kt`, `LayoutCell.kt` (what the three layouts have in common),
-`HeapDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and `present()`, which labels and
-colours the cells a layout produced), `TreemapPresentation.kt` (a presentation per shape, each with an
-`of()` pairing a layout with that). Drawn by `TreemapView`, `RadialView` and `StackView` in
-`shark-explorer-app`.
+level, either way up), `TreemapRect.kt`, `LayoutCell.kt` (what the three layouts have in common),
+`HeapTree.kt` (what a layout can be built from: the two readings of the heap dump both implement it),
+`HeapDominatorTreemap.kt` (the dominator tree as a `HeapTree`, and `present()`, which labels and
+colours the cells a layout produced), `ReverseDominatorTree.kt` (the same domination read from the
+classes up), `TreemapPresentation.kt` (a presentation per shape, each with an `of()` pairing a layout
+with a tree). Drawn by `TreemapView`, `RadialView` and `StackView` in `shark-explorer-app`.
 
 **`of()` is a presentation's own, not a method per shape on `HeapDominatorTreemap`.** It used to be the
 other way round, and adding a third shape is what moved it: that class is a 1,200 line heap dump reader
 which detekt allows 50 functions, and `presentStack` was the fiftieth. Rather than split it somewhere
 arbitrary, the per-shape method came out of it — which is also the better line, since which shapes exist
 is no business of a heap dump reader. `present(cells)` is all that stayed behind: it reads a name and a
-strength off a `CellSubject`, and every shape's cells are those. **So a fourth shape needs nothing in
-`HeapDominatorTreemap` at all.**
+strength off a `CellSubject`, and every shape's cells are those. **Which is what let the fourth view be
+a second tree rather than a second reader**: `of()` takes a `HeapTree`, so a view of the classes is the
+stack layout over `ReverseDominatorTree`, and nothing in `HeapDominatorTreemap` knows about it.
 
-## Three shapes, one cut of the tree
+## Four views, three shapes, two readings
 
 A cell is a `LayoutCell`: a `CellSubject` — one node, or the children a node didn't draw — plus a
 depth, a weight and whatever geometry its layout adds. `TreemapCell` adds a rectangle, `RadialCell` an
@@ -26,6 +28,11 @@ being a second copy of all of it, and the third shape is what confirmed the pric
 `StackView`, one new `Canvas`, and three small things beside them — a `ViewShape`, a `ViewPresentation`
 and a `StackPresentation` with its `of()`. Nothing about colouring, labelling, selection, hit resolution
 or navigation moved.
+
+The fourth view is cheaper still, because it is a *reading* rather than a shape: the classes view is
+`StackLayout` with `rowsGoUp`, over the other tree. What it cost was one `HeapTree` implementation, one
+`Boolean` in the layout, `reverseScrolling` in the view, and the panels learning to describe a row — no
+new canvas, no new layout, no new hit testing.
 
 The three layouts make the same decisions — largest cell subdivided first, children too small to see
 grouped, a cell budget, truncation counted — differing only in what "too small" measures. A treemap
@@ -68,6 +75,53 @@ Three consequences of that, each of them a decision:
 It skips one thing the treemap does: **a row doesn't draw its bitmap**. A row is a line of text tall,
 and a bitmap fitted into 18 dp is a smear — the picture is the treemap's contribution, and asking for it
 here would cost a heap dump read and a decode per row for nothing.
+
+## The classes view: the same stack, read from the leaves
+
+`ReverseDominatorTree` is the heap dump's domination read the other way: every object on the row of its
+class, and above each row the classes of the objects dominating it. Drawn by `StackLayout(rowsGoUp =
+true)`, so the whole heap dump is the row across the bottom and a column grows up from it — an icicle
+chart the way a profiler draws a *reverse* call tree. What a column says is "these bytes are `byte[]`,
+held by `Bitmap`, held by `ImageView`", and how wide it is says how much of the heap's `byte[]` bytes
+that accounts for.
+
+Three things about it are not obvious from the other view:
+
+- **A row is weighed by the objects at the bottom of its column, in their own bytes.** Retained size is
+  the wrong weight here and not by a little: it would count an object's bytes again on every row above
+  it, so the rows would add up to several times the heap and "a fifth of the dump" would mean nothing.
+  Shallow bytes add up to the dump exactly once, which is why the reverse root weighs exactly what the
+  dominator tree's root weighs (asserted in `ReverseDominatorTreeTest`) and why a row's children cover
+  it to the byte.
+- **Every cell of it is a pile of objects, including the root.** Which is why a row is *not* drawn like
+  the treemap's class piles: washing out every cell and dashing every edge would spend the whole picture
+  saying something no cell of it contradicts, and lose the hues that make a column readable. The count
+  in the label (`1,204 × byte[]`) is what says "pile" instead. The two rows that stop a column keep
+  their own look: `Nothing in particular` is slate and dashed, uncollected garbage stays purple.
+- **It is built as it is read, and bounded to one entry per object of the heap dump.** The class rows
+  cost one pass over every object; a row above one costs one dominator read per object that row gathers.
+  Expanding a row hands its entries to the rows above it and drops its own, so however many levels are
+  open, the live entries stand for disjoint sets of the objects at the bottom of the columns.
+
+Two decisions in the wiring, both to keep it a view rather than a screen:
+
+- **The two trees share the root node id**, so a path zoomed into either of them starts at the same
+  place, and switching shape substitutes the root *in the view request* rather than in the history —
+  which is what leaves the path into the tree being left there to come back to. Every other node is told
+  apart by its id: `ReverseDominatorTree.isReverseNode` is a range check at the far end of the range
+  `HeapDominatorTreemap` takes its pile ids from.
+- **What a cell is, is read off the view it was clicked in, not off its node.** Because of that shared
+  root: the whole heap dump is a row of this view and the root of the other, and a pile of siblings that
+  didn't fit is named after the cell they were left out of, which on a dump with more classes than one
+  row can draw is that very node. So `selectionOf` takes the shape. The one thing it must *not* do is
+  re-read the selection when the shape changes, which would be asking one tree about the other's node —
+  hence the effect keyed on the request alone.
+
+Going up is done to the finished layout rather than threaded through it: `StackLayout` places every row
+from the top as usual and flips it once `rowCount` is known, because a row's distance from the *bottom*
+isn't known until the last row has been placed. `contentHeight` is clamped to the viewport when growing
+up, so the root row sits on the bottom edge of the view rather than of the rows, and `StackView` scrolls
+it with `reverseScrolling` so that `scrollTo(0)` still means "where it opens".
 
 ## Depth is area-driven, not a fixed level
 
@@ -196,7 +250,9 @@ The tree's nodes are object ids, and the piles it invents — the uncollected ga
 groups — need ids of their own. **`nodeId < 0` is not the test for one**, and taking it for one is a bug that
 looks like nothing: an object id is a heap address, a 32 bit dump records it in 4 bytes, and shark widens
 those by sign, so **every object above the 2 GB mark of such a dump has a negative id**. `isPileId` is a range
-check against `Int.MIN_VALUE` instead, and the pile ids start at `Long.MIN_VALUE`.
+check against `Int.MIN_VALUE` instead, and the pile ids start at `Long.MIN_VALUE`. The classes view's rows
+are ids of their own out of that same range, counting *down* from just below `Int.MIN_VALUE`, so
+`isReverseNode` is the same kind of range check and the two halves of the range can't collide.
 
 What the sign test cost, before it was a range check: on `large-dump.hprof`, **44 of the 4,616 rectangles of
 the opening view** had `contains()` say the tree didn't hold them, so pointing at one selected nothing, the

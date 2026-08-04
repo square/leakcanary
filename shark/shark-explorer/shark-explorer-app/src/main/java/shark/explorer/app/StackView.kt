@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -57,6 +58,12 @@ import shark.explorer.formatByteSize
  * Every block that has the width for it carries its own name and size, which the treemap can't do — a
  * rectangle there is covered by its children, and naming every level of it was unreadable. Here a level
  * is a row of its own, so there is nothing to cover and nothing to leave out.
+ *
+ * **A stack laid out the other way up scrolls the other way round**, which is the classes view: its rows
+ * grow up from the row across the bottom, so that is the end a view of it opens on and the end a window
+ * being resized keeps. Compose does that with [verticalScroll]'s `reverseScrolling`, which places the
+ * content by its end and leaves the scroll counting from there — hence [offsetInto], which is what the
+ * pointer's coordinates and the blocks are apart whichever way the rows go.
  */
 @Composable
 internal fun StackView(
@@ -82,8 +89,9 @@ internal fun StackView(
     presentation.cells.map { it.measure(colors, textMeasurer, density, dots) }
   }
   val scrollState = rememberScrollState()
-  // A move re-roots the stack, and the new one starts at its own top: the row someone had scrolled down
-  // to belonged to the tree they have just left. Resizing keeps the scroll, since the tree is the same.
+  // A move re-roots the stack, and the new one starts where it is rooted: the row someone had scrolled
+  // away to belonged to the tree they have just left. Zero is that end whichever way the rows go, since a
+  // stack growing up is scrolled from its bottom. Resizing keeps the scroll, since the tree is the same.
   LaunchedEffect(presentation.rootNode) {
     scrollState.scrollTo(0)
   }
@@ -93,10 +101,14 @@ internal fun StackView(
   // Scrolling moves the blocks under a pointer that hasn't moved, and so does being laid out again, and
   // neither sends a pointer event: without this the panes would keep describing the row that was there.
   LaunchedEffect(presentation, blocks, scrollState.value) {
-    onHover(pointerOffset?.let { presentation.pointedAt(it, scrollState.value) })
+    val offset = scrollState.offsetInto(presentation)
+    onHover(pointerOffset?.let { presentation.pointedAt(it, offset) })
   }
   Box(modifier) {
-    Box(Modifier.fillMaxSize().verticalScroll(scrollState)) {
+    Box(
+      Modifier.fillMaxSize()
+        .verticalScroll(scrollState, reverseScrolling = presentation.layout.rowsGoUp)
+    ) {
       Canvas(
         Modifier.fillMaxWidth()
           // As tall as the stack came out, which is what there is to scroll through. The layout works in
@@ -113,9 +125,10 @@ internal fun StackView(
                   PointerEventType.Move -> {
                     // The scroll is read here rather than keyed on, so that scrolling doesn't restart
                     // the gesture loop, and it is read live so that a wheel between two moves counts.
-                    val offset = event.changes.first().position.inTheView(scrollState.value)
+                    val scroll = scrollState.offsetInto(presentation)
+                    val offset = event.changes.first().position.inTheView(scroll)
                     pointerOffset = offset
-                    onHover(presentation.pointedAt(offset, scrollState.value))
+                    onHover(presentation.pointedAt(offset, scroll))
                   }
                   PointerEventType.Exit -> {
                     pointerOffset = null
@@ -128,8 +141,8 @@ internal fun StackView(
           .pointerInput(presentation, blocks) {
             detectTapGestures(
               onPress = { offset ->
-                presentation.cellAt(offset.inTheView(scrollState.value), scrollState.value)
-                  ?.let(onClick)
+                val scroll = scrollState.offsetInto(presentation)
+                presentation.cellAt(offset.inTheView(scroll), scroll)?.let(onClick)
               }
             )
           }
@@ -163,11 +176,13 @@ internal fun StackView(
       }
     }
     // The one shape that has more than it can show, so the one that needs saying so: nothing else in
-    // this window scrolls without a pane around it to make that obvious.
+    // this window scrolls without a pane around it to make that obvious. Laid out the other way up, so
+    // that the thumb is at the end of the bar the rows the view opens on are at.
     if (scrollState.maxValue > 0) {
       VerticalScrollbar(
         rememberScrollbarAdapter(scrollState),
-        Modifier.align(Alignment.CenterEnd).fillMaxHeight()
+        Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+        reverseLayout = presentation.layout.rowsGoUp
       )
     }
     NotExpandedBadge(presentation.truncatedNodeCount)
@@ -176,6 +191,17 @@ internal fun StackView(
 
 /** Where the pointer is in the view, given where it is on the stack: the stack scrolls, the view doesn't. */
 private fun Offset.inTheView(scroll: Int): Offset = Offset(x, y - scroll)
+
+/**
+ * How far down the stack the top of the view is, which is what everything the pointer reports has to be
+ * shifted by.
+ *
+ * The scroll's own value for rows going down, and counted the other way for rows going up, because
+ * `reverseScrolling` leaves zero meaning the end of the content rather than the start of it: the blocks
+ * are laid out from the top of what there is to scroll, so this is the one place that difference lives.
+ */
+private fun ScrollState.offsetInto(presentation: StackPresentation): Int =
+  if (presentation.layout.rowsGoUp) maxValue - value else value
 
 private fun StackPresentation.cellAt(
   /** In the view, which is [scroll] pixels down the stack. */

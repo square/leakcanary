@@ -80,6 +80,40 @@ Both are why `ReferenceStrengthReader.foldedObjectIdsOf` exists: **whatever Shar
 tracked explicitly**, because the object is in no walk and in no tree, and anything counting objects or
 bytes over the whole dump would otherwise either miss it or count it twice. See the reachability section.
 
+## The same domination, read from the classes up
+
+`ReverseDominatorTree` reads the one tree the other way: every object on the row of its class, and above
+each row the classes of the objects dominating it. It needs no second dominator computation — only
+`immediateDominatorOf`, one object at a time, plus `nodes` for shallow sizes and to know which objects
+were folded. So it costs nothing until the classes view is opened, and the numbers say what opening it
+costs. Measured on `large-dump.hprof` (39 MB, 387,971 objects), which takes 2.4 s to open:
+
+| | |
+| --- | --- |
+| Gathering every object onto its class row — one pass over `graph.objects` | 0.20 s, 8,679 rows |
+| The level above the widest row — one `immediateDominatorOf` per object it gathers | 0.01 s, 44 rows |
+
+**The pass is over `graph.objects` and not over `nodes`**, because an object's class comes off the index
+it's read from, and looking it up per object again is what made the first version of this take minutes.
+The objects with no node are the folded ones, whose bytes are counted in the object holding them:
+311,601 of the dump's 387,971 objects have a node, and those are what the rows hold.
+
+**A row's weight is the shallow bytes of the objects at the bottom of its column.** Which is what makes
+the reverse root weigh exactly what the dominator tree's root does — 30,764,843 bytes on that dump,
+asserted in `ReverseDominatorTreeTest`. Note that this is *not* `HeapSizes.totalByteCount` (30,753,181
+there): that one is the strength legend's arithmetic over the reachability walks, and the 11 KB between
+them is not something to make a test assert.
+
+What it holds between reads is **at most one entry per object of the heap dump**, however many levels are
+open, because expanding a row hands its entries to the rows above it and drops its own — the live entries
+therefore stand for disjoint sets of the objects at the bottom of the columns.
+
+And what it is for, on that dump, in one column: `16,730 × byte[]` is 10.5 MB, a third of the heap; above
+it `151 × Bitmap` accounts for 8.1 MB of those bytes and `14,874 × Class` for 2.2 MB; above the bitmaps,
+two `LinkedHashMap$LinkedHashMapEntry`, one `LinkedHashMap` and one `LruCache`, each holding 3.9 MB of
+them. Six rows of one column, in the picture the view opens on, with no chain walked and nothing clicked —
+where the treemap has that same fact spread over 151 rectangles in different corners of itself.
+
 ## Why big objects sit flat under the root
 
 The first thing a production dump shows is a crowd of rectangles directly under the whole heap dump — on an

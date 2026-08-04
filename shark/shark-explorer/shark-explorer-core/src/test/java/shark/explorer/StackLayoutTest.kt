@@ -284,6 +284,59 @@ class StackLayoutTest {
     assertThat(second.cells).isEqualTo(first.cells)
   }
 
+  @Test fun `going up, the root is the row across the bottom`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("a", 10), Node("b", 5))))
+
+    val result = StackLayout<Node>(rowHeight = 20.0, rowsGoUp = true).layout(tree, viewport)
+
+    // Sitting on the bottom edge of the viewport rather than of the two rows it drew: a stack growing up
+    // has to be as tall as what it is drawn in, or the rows would start in the middle of the view and the
+    // reader would be scrolling to reach the one thing that is always there.
+    assertThat(result.contentHeight).isEqualTo(viewport.height)
+    assertThat(result.cellOf("root").rect).isEqualTo(TreemapRect(0.0, 780.0, 1000.0, 800.0))
+    assertThat(result.cellOf("a").rect.top).isEqualTo(760.0)
+  }
+
+  @Test fun `going up, a stack taller than the viewport starts at its own bottom`() {
+    val tree = NodeTree(chain(60))
+
+    val result = StackLayout<Node>(rowHeight = 20.0, rowsGoUp = true).layout(tree, viewport)
+
+    // Past the viewport's height, so there is nothing to fill and the rows are the whole of it: what the
+    // view scrolls through, with the row it opens on at the very bottom. See [StackLayoutResult.rowsGoUp].
+    assertThat(result.contentHeight).isEqualTo(result.rowCount * 20.0)
+    assertThat(result.cellOf("chain.0").rect.bottom).isEqualTo(result.contentHeight)
+  }
+
+  @Test fun `going up changes nothing but where a row is`() {
+    val tree = NodeTree(uniformTree("root", depth = 3, breadth = 2, leafWeight = 1_000_000))
+    val down = StackLayout<Node>(rowHeight = 20.0).layout(tree, viewport)
+
+    val up = StackLayout<Node>(rowHeight = 20.0, rowsGoUp = true).layout(tree, viewport)
+
+    // The same cells in the same order at the same width: which way the rows go is done to the finished
+    // layout, so a block being where a reader can read it is decided once for both.
+    assertThat(up.names).isEqualTo(down.names)
+    assertThat(up.cells.map { it.rect.left to it.rect.right })
+      .isEqualTo(down.cells.map { it.rect.left to it.rect.right })
+    // And every row as far from the bottom of the content as it was from the top.
+    up.cells.zip(down.cells).forEach { (upCell, downCell) ->
+      assertThat(up.contentHeight - upCell.rect.bottom).isEqualTo(downCell.rect.top)
+    }
+  }
+
+  @Test fun `going up, hit testing finds the block a point falls in`() {
+    val tree = NodeTree(Node("root", children = listOf(Node("a", 30), Node("b", 10))))
+
+    val result = StackLayout<Node>(rowHeight = 20.0, rowsGoUp = true).layout(tree, viewport)
+
+    assertThat(result.cellAt(TreemapPoint(500.0, 790.0))).isEqualTo(result.cellOf("root"))
+    assertThat(result.cellAt(TreemapPoint(500.0, 770.0))).isEqualTo(result.cellOf("a"))
+    assertThat(result.cellAt(TreemapPoint(800.0, 770.0))).isEqualTo(result.cellOf("b"))
+    // Above the rows is the empty part of a viewport the stack didn't fill, which is no block of it.
+    assertThat(result.cellAt(TreemapPoint(500.0, 700.0))).isNull()
+  }
+
   @Test fun `laying out a subtree puts it across the top`() {
     val tree = NodeTree(uniformTree("root", depth = 3, breadth = 2, leafWeight = 1_000_000))
     val subtree = tree.root.children.first()

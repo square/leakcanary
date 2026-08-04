@@ -16,6 +16,7 @@ import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.THREAD_LOCAL
 import shark.explorer.ReachabilityStrength.UNREACHABLE
 import shark.explorer.ReachabilityStrength.WEAK
+import shark.explorer.ReverseNodeKind
 
 /**
  * How the rectangles are coloured. Pick one above the view.
@@ -78,10 +79,16 @@ internal class CellColors private constructor(
   val label: Color get() = LABEL
 
   /** Dark enough on a pile of objects for the dashes of [outlineOf] to read as dashes. */
-  fun borderOf(presented: PresentedCell<*>): Color = when (presented.content) {
-    is CellContent.Object -> if (coloring.scheme == DAISY_SCHEME) DAISY_BORDER else BORDER
+  fun borderOf(presented: PresentedCell<*>): Color = when (val content = presented.content) {
+    is CellContent.Object -> objectBorder
+    // A row of the classes view is drawn like an object, borders included — bar the one row that reads as
+    // a pile there too, whose edge is dashed. See [colorOf].
+    is CellContent.ObjectRow ->
+      if (content.kind == ReverseNodeKind.NO_OWNER) PILE_BORDER else objectBorder
     else -> PILE_BORDER
   }
+
+  private val objectBorder: Color get() = if (coloring.scheme == DAISY_SCHEME) DAISY_BORDER else BORDER
 
   fun colorOf(presented: PresentedCell<*>): Color {
     val depth = presented.cell.depth
@@ -94,6 +101,15 @@ internal class CellColors private constructor(
       // is neither of those things.
       is CellContent.Leftover -> pileColor(strength, depth)
       is CellContent.ObjectGroup -> if (content.kind == ObjectGroupKind.CLASS) {
+        pileColor(strength, depth)
+      } else {
+        objectColor(strength, depth, hueIndexOf(presented))
+      }
+      // A row of the classes view is a pile as well, and coloured like an object all the same: every cell
+      // there is a pile, so the slate would be the whole picture and a column would be one flat block. Its
+      // hue is what makes a column read as one thing, the way nesting does in a treemap.
+      is CellContent.ObjectRow -> if (content.kind == ReverseNodeKind.NO_OWNER) {
+        // Except the row that is objects with nothing in common, which is the one that reads as a pile.
         pileColor(strength, depth)
       } else {
         objectColor(strength, depth, hueIndexOf(presented))

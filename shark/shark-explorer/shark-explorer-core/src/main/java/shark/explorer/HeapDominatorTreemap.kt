@@ -67,6 +67,8 @@ import shark.ValueHolder.ShortHolder
  * or the garbage's children are gathered under. [isPileId] is which, and they're allocated per tree, so
  * they mean nothing to another tree of the same heap dump.
  *
+ * [reverseTree] is the same domination read the other way round, from the classes up.
+ *
  * Reads the heap dump, so not from the UI thread. See [HeapExplorer].
  */
 // Everything the UI asks about one heap dump: the tree, what a cell of it says, and how an object is held.
@@ -83,7 +85,7 @@ class HeapDominatorTreemap internal constructor(
   private val gcRootProvider: GcRootProvider,
   private val dominatorTree: HeapDominatorTree,
   private val nodes: Map<Long, DominatorNode>
-) : TreemapTree<Long> {
+) : HeapTree {
 
   override val root: Long get() = NULL_REFERENCE
 
@@ -93,6 +95,21 @@ class HeapDominatorTreemap internal constructor(
    * dump has six figures worth of them.
    */
   private val topLevel: TopLevel by lazy { splitRootChildren() }
+
+  /** The classes objects are gathered under, shared with [reverseTree] so a class is looked up once. */
+  private val groupingClasses = GroupingClasses(graph)
+
+  /**
+   * The same domination read from the classes up rather than from the roots down, which is the other
+   * question a dominator tree answers: not what this object retains, but what dominates every `byte[]` of
+   * the dump.
+   *
+   * Built on first use, off the same nodes this tree draws, so that the two agree to the byte and the reader
+   * who never asks pays nothing. See [ReverseDominatorTree].
+   */
+  val reverseTree: ReverseDominatorTree by lazy {
+    ReverseDominatorTree(graph, reachability, dominatorTree, nodes, groupingClasses)
+  }
 
   /**
    * The references this tree was built by following, which is what a path up to a GC root has to follow
@@ -157,11 +174,11 @@ class HeapDominatorTreemap internal constructor(
     "$nodeId is no node of this tree, which has ${nodes.size} of them. Ask contains() first."
   }
 
-  /** Whether [objectId] is a node of this tree, which every object of the heap dump is. */
-  operator fun contains(objectId: Long): Boolean = if (isPileId(objectId)) {
-    objectId in topLevel.groups
+  /** Whether [nodeId] is a node of this tree, which every object of the heap dump is. */
+  override operator fun contains(nodeId: Long): Boolean = if (isPileId(nodeId)) {
+    nodeId in topLevel.groups
   } else {
-    objectId in nodes
+    nodeId in nodes
   }
 
   /**
@@ -303,40 +320,6 @@ class HeapDominatorTreemap internal constructor(
     return ids
   }
 
-  /**
-   * The class an object is grouped under, or null for one that isn't grouped: a class object, unless the
-   * dump has `java.lang.Class` for them all to gather under, which every Android heap dump does.
-   */
-  private fun HeapObject.groupingClassId(): Long? = when (this) {
-    is HeapInstance -> instanceClassId
-    is HeapObjectArray -> arrayClassId
-    // Not [HeapPrimitiveArray.arrayClass], which goes through findClassByName every time it's asked.
-    is HeapPrimitiveArray -> classIdOf(arrayClassName)
-    is HeapClass -> classIdOf(JAVA_LANG_CLASS)
-  }
-
-  /**
-   * The id of a class by name, looked up once per name and remembered whether it was found or not:
-   * [HeapGraph.findClassByName] performs two linear scans over every string of the heap dump, and asking
-   * it per object of a production dump — once for every class object, once for every `byte[]` — took the
-   * best part of a minute.
-   */
-  private fun classIdOf(className: String): Long? {
-    if (className in classIdByName) {
-      return classIdByName[className]
-    }
-    val classId = graph.findClassByName(className)?.objectId
-    if (classId == null) {
-      // Which leaves every object of that class as a rectangle of its own under the root rather than
-      // gathered with its siblings, so it's worth a line saying so.
-      SharkLog.d { "No class named $className in the heap dump, so nothing groups by it" }
-    }
-    classIdByName[className] = classId
-    return classId
-  }
-
-  private val classIdByName = mutableMapOf<String, Long?>()
-
   /** How strongly the garbage collector holds on to [node], or to what a group of objects holds. */
   fun strengthOf(node: Long): ReachabilityStrength = when {
     node == root -> ReachabilityStrength.STRONG
@@ -348,7 +331,7 @@ class HeapDominatorTreemap internal constructor(
    *
    * Cheap enough to call for every visible rectangle, unlike [summarize].
    */
-  fun label(node: Long): String {
+  override fun label(node: Long): String {
     if (node == root) {
       return ROOT_LABEL
     }
@@ -697,7 +680,7 @@ class HeapDominatorTreemap internal constructor(
    * Stops at the last node that has children: zooming into an object that dominates nothing would draw an
    * empty view, so the caller ends up looking at what holds it, with it selected inside.
    */
-  fun pathToOpen(node: Long): List<Long> {
+  override fun pathToOpen(node: Long): List<Long> {
     if (node == root) {
       return listOf(root)
     }
@@ -1022,16 +1005,7 @@ class HeapDominatorTreemap internal constructor(
     return (target as? HeapInstance)?.readAsJavaString()?.let { "\"$it\"" } ?: label(objectId)
   }
 
-  /**
-   * Reads a label and a strength for every one of [cells]: everything the UI needs to draw a laid out
-   * shape of this tree without touching the heap dump itself.
-   *
-   * What shape they are is no business of this, which is why there is one of these rather than one per
-   * shape — a `TreemapCell`, a `RadialCell` and a `StackCell` are all a [CellSubject] with geometry, and
-   * a name is read off the subject. Pairing a layout with this is [TreemapPresentation.of] and its two
-   * siblings, so a fourth shape needs nothing here.
-   */
-  fun <C : LayoutCell<Long>> present(cells: List<C>): List<PresentedCell<C>> =
+  override fun <C : LayoutCell<Long>> present(cells: List<C>): List<PresentedCell<C>> =
     cells.map { it.presented() }
 
   private fun <C : LayoutCell<Long>> C.presented(): PresentedCell<C> = when (val subject = subject) {
@@ -1155,7 +1129,7 @@ class HeapDominatorTreemap internal constructor(
     ) {
       childIds += heapObject.objectId
       this.retainedSize += retainedSize
-      val classId = heapObject.groupingClassId()
+      val classId = groupingClasses.classIdOf(heapObject)
       if (classId == null) {
         ungroupedIds += heapObject.objectId
       } else {
@@ -1218,8 +1192,6 @@ class HeapDominatorTreemap internal constructor(
      * all fit on screen, and a level of classes to click through would be in the way.
      */
     const val MIN_CHILDREN_TO_GROUP_BY_CLASS = 200
-
-    private const val JAVA_LANG_CLASS = "java.lang.Class"
 
     /**
      * Whether [nodeId] stands for a pile of objects rather than for one object of the heap dump: the two

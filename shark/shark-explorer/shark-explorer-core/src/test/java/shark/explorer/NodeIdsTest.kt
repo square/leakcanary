@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.explorer.HeapDominatorTreemap.Companion.ROOT_OBJECT_ID
 import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_NODE_ID
+import shark.explorer.ReverseDominatorTree.Companion.FIRST_REVERSE_NODE_ID
 
 class NodeIdsTest {
 
@@ -23,5 +24,12 @@ class NodeIdsTest {
     assertThat(nodeIdText(UNREACHABLE_NODE_ID)).isEqualTo("the uncollected garbage")
     // A class pile is one of however many a tree hands out, so there is no name to give it but its number.
     assertThat(nodeIdText(UNREACHABLE_NODE_ID + 1)).isEqualTo("the class pile 1")
+  }
+
+  @Test fun `a row of the classes view reads as which row it is`() {
+    // Counted up from the first row a tree read from the classes up hands out, whose own ids count down:
+    // a message about the third row it made should say three rather than a nine digit negative number.
+    assertThat(nodeIdText(FIRST_REVERSE_NODE_ID)).isEqualTo("the class row 0")
+    assertThat(nodeIdText(FIRST_REVERSE_NODE_ID - 2)).isEqualTo("the class row 2")
   }
 }

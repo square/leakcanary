@@ -34,6 +34,8 @@ import shark.explorer.HeapObjectKind
 import shark.explorer.HeapObjectSummary
 import shark.explorer.ObjectGroupKind
 import shark.explorer.ObjectGroupSummary
+import shark.explorer.ReverseNodeKind
+import shark.explorer.ReverseNodeSummary
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
 
@@ -71,17 +73,15 @@ internal fun DetailsPanel(
       when (selection) {
         null -> Text(NO_SELECTION, style = MaterialTheme.typography.bodyMedium)
         is Selection.Group -> {
+          Text(selection.title(), style = MaterialTheme.typography.titleMedium)
           Text(
-            "${selection.nodeCount} smaller objects",
-            style = MaterialTheme.typography.titleMedium
-          )
-          Text(
-            "Held by ${selection.parentLabel}. $GROUP_EXPLANATION",
+            "Held by ${selection.parentLabel}. ${selection.explanation()}",
             style = MaterialTheme.typography.bodySmall
           )
-          Detail("Retained", formatByteSize(selection.byteCount))
+          Detail(selection.byteCountName, formatByteSize(selection.byteCount))
         }
         is Selection.ObjectGroup -> ObjectGroupDetails(selection.summary, coloring)
+        is Selection.Row -> RowDetails(selection.summary, coloring, onOpen)
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
           bitmap = bitmap,
@@ -104,13 +104,41 @@ internal sealed interface Selection {
   /** A cell standing for many objects was clicked, so there's no one object to describe. */
   data class ObjectGroup(val summary: ObjectGroupSummary) : Selection
 
+  /** One row of the classes view, which stands for many objects as well. See [ReverseNodeSummary]. */
+  data class Row(val summary: ReverseNodeSummary) : Selection
+
   /** A [CellSubject.Group] was clicked, so there's no one object to describe. */
   data class Group(
+    /**
+     * Whether they are rows of the classes view rather than objects, which everything said about them
+     * turns on. Read off the view they were clicked in rather than off the cell they were left out of:
+     * that cell is the whole heap dump when a dump has more classes than one row can draw, and the whole
+     * heap dump is a node of both of the heap dump's trees.
+     */
+    val isRows: Boolean,
     val nodeCount: Int,
     val byteCount: Long,
     val parentLabel: String
   ) : Selection
 }
+
+/** What a pile of siblings that didn't fit is called wherever it is described. */
+internal fun Selection.Group.title(): String = if (isRows) {
+  "$nodeCount smaller ${if (nodeCount == 1) "row" else "rows"}"
+} else {
+  "$nodeCount smaller objects"
+}
+
+/** And what a click on it does, which is not the same in a view whose cells are rows. */
+internal fun Selection.Group.explanation(): String =
+  if (isRows) ROW_GROUP_EXPLANATION else GROUP_EXPLANATION
+
+/**
+ * What the bytes of a pile of them are: bytes retained by objects, and bytes accounted for by rows —
+ * a row is as wide as what the objects at the bottom of its column take up, not as what it retains.
+ */
+internal val Selection.Group.byteCountName: String
+  get() = if (isRows) ACCOUNTS_FOR else RETAINED
 
 /**
  * A cell standing for many objects: half of the heap dump, or every instance of one class under the
@@ -132,7 +160,51 @@ private fun ObjectGroupDetails(
     Text(summary.explanation(), style = MaterialTheme.typography.bodySmall)
   }
   Detail("Retained together", formatByteSize(summary.retainedSize))
-  Detail("Objects", formatObjectCount(summary.objectCount))
+  Detail(OBJECTS, formatObjectCount(summary.objectCount))
+}
+
+/**
+ * One row of the classes view: what it gathers, how much of the heap that comes to, and the column it is
+ * part of — every row of which leads back to itself, so this is also the way down a column.
+ *
+ * No chain up to a GC root beside it, unlike an object: a row is a pile of objects held as many ways as it
+ * has objects in it. See [RootPathPanel].
+ */
+@Composable
+private fun RowDetails(
+  summary: ReverseNodeSummary,
+  coloring: CellColoring,
+  onOpen: (Long) -> Unit
+) {
+  Text(summary.label, style = MaterialTheme.typography.titleMedium)
+  summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+  Row(
+    horizontalArrangement = Arrangement.spacedBy(6.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
+    Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
+  }
+  Text(summary.explanation(), style = MaterialTheme.typography.bodySmall)
+  Detail(ACCOUNTS_FOR, formatByteSize(summary.byteCount))
+  Detail(OBJECTS, formatObjectCount(summary.objectCount))
+  if (summary.column.isEmpty()) {
+    return
+  }
+  // Which is the question this view is for: these bytes are held by this, which is held by that. Nearest
+  // first, so the list reads the way the rows under it do on screen, going down.
+  Text(COLUMN_BELOW, style = MaterialTheme.typography.labelSmall)
+  summary.column.forEach { step ->
+    Inspectable(step.label, step.nodeId, onOpen)
+  }
+}
+
+/** What kind of row it is, in as many words: two of the four are where a column stops. */
+private fun ReverseNodeSummary.explanation(): String = when (kind) {
+  ReverseNodeKind.WHOLE_HEAP_DUMP -> WHOLE_HEAP_DUMP_ROW_EXPLANATION
+  ReverseNodeKind.CLASS -> CLASS_ROW_EXPLANATION
+  ReverseNodeKind.NO_OWNER -> NO_OWNER_ROW_EXPLANATION
+  ReverseNodeKind.UNCOLLECTED_GARBAGE -> GARBAGE_ROW_EXPLANATION
 }
 
 /** What a pile of objects is called wherever it is described: here, and on the card at the pointer. */
@@ -176,7 +248,7 @@ private fun ObjectDetails(
     Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
     Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
-  Detail("Retained", formatByteSize(summary.retainedSize))
+  Detail(RETAINED, formatByteSize(summary.retainedSize))
   Detail("Retained objects", summary.retainedCount.toString())
   Detail("Shallow", formatByteSize(summary.shallowSize))
   Detail("Dominates", "${summary.dominatedObjectCount} objects")
@@ -314,6 +386,38 @@ internal const val CLASS_GROUP_EXPLANATION =
 private const val GROUP_EXPLANATION =
   "Too small or too many to draw one by one in the rectangle they belong to. Clicking them roots the " +
     "map at what holds them, which gives it the whole view to draw them in."
+
+/** The same pile in the classes view, where what didn't fit along a row is rows rather than objects. */
+private const val ROW_GROUP_EXPLANATION =
+  "Too narrow or too many to draw one by one on the row above the one they belong to. Clicking them " +
+    "roots the view at that row, which gives them the whole width."
+
+/** What the row across the bottom of the classes view is. */
+internal const val WHOLE_HEAP_DUMP_ROW_EXPLANATION =
+  "Every object of the heap dump counted in its own bytes, which is what the rows above are shares of."
+
+internal const val CLASS_ROW_EXPLANATION =
+  "Not one object: the objects of this class that dominate what the row below stands for, as wide as " +
+    "the bytes of it they account for. The row above splits those bytes by what dominates these."
+
+/** Where a column stops. See [shark.explorer.ReverseNodeKind.NO_OWNER]. */
+internal const val NO_OWNER_ROW_EXPLANATION =
+  "Where the column stops: nothing in particular dominates these objects. Each of them is held from " +
+    "more than one place, so no single object of the heap dump would free it."
+
+/** And the other way it stops, which is the garbage getting there first. */
+internal const val GARBAGE_ROW_EXPLANATION =
+  "Where the column stops: what dominates these objects is uncollected garbage, so nothing a GC root " +
+    "reaches holds them. The next collection would take all of it."
+
+/** The rows a row stands on, listed under it: the column read downwards. */
+internal const val COLUMN_BELOW = "Held by, going down"
+
+/** What a row's width is, which is not what it retains: see [shark.explorer.ReverseNodeSummary]. */
+internal const val ACCOUNTS_FOR = "Accounts for"
+
+internal const val RETAINED = "Retained"
+private const val OBJECTS = "Objects"
 
 /** What the pixels of the selected bitmap are, to anything that can't look at them. */
 internal const val BITMAP_DESCRIPTION = "The pixels of the selected bitmap."

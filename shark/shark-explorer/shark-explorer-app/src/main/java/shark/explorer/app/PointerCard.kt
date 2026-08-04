@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import shark.explorer.HeapObjectSummary
 import shark.explorer.ObjectGroupSummary
 import shark.explorer.ReachabilityStrength
+import shark.explorer.ReverseNodeSummary
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
 
@@ -61,6 +62,7 @@ internal fun PointerCard(
       when (selection) {
         is Selection.Object -> ObjectLines(selection.summary, coloring)
         is Selection.ObjectGroup -> ObjectGroupLines(selection.summary, coloring)
+        is Selection.Row -> RowLines(selection.summary, coloring)
         is Selection.Group -> GroupLines(selection)
       }
     }
@@ -107,19 +109,44 @@ private fun ObjectGroupLines(
   Text(PILE_OF_OBJECTS, style = MaterialTheme.typography.bodySmall)
 }
 
+/**
+ * One row of the classes view, which is the pile a reader points at most: the row is named by a count and
+ * a simple class name, and which class that is, is the whole question it raises.
+ *
+ * How much of the heap it accounts for rather than what it retains, which is what its width is: see
+ * [shark.explorer.ReverseNodeSummary.byteCount].
+ */
+@Composable
+private fun RowLines(
+  summary: ReverseNodeSummary,
+  coloring: CellColoring
+) {
+  Text(summary.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+  summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+  StrengthLine(summary.strength, coloring)
+  Text(summary.accountsForText(), style = MaterialTheme.typography.bodySmall)
+  Text(ROW_OF_OBJECTS, style = MaterialTheme.typography.bodySmall)
+}
+
 /** The children of a rectangle that its subdivision had no room for. See [shark.explorer.CellSubject.Group]. */
 @Composable
 private fun GroupLines(selection: Selection.Group) {
   Text(
-    "${selection.nodeCount} smaller objects",
+    selection.title(),
     style = MaterialTheme.typography.bodyMedium,
     fontWeight = FontWeight.Bold
   )
-  // Which rectangle they were left out of, since they have nothing else in common: that is the object to
-  // go to if any of them is worth finding.
+  // Which cell they were left out of, since they have nothing else in common: that is where to go if any
+  // of them is worth finding.
   Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
-  Text("Retains ${formatByteSize(selection.byteCount)}", style = MaterialTheme.typography.bodySmall)
-  Text(LEFTOVER_OBJECTS, style = MaterialTheme.typography.bodySmall)
+  Text(
+    "${selection.byteCountName} ${formatByteSize(selection.byteCount)}",
+    style = MaterialTheme.typography.bodySmall
+  )
+  Text(
+    if (selection.isRows) LEFTOVER_ROWS else LEFTOVER_OBJECTS,
+    style = MaterialTheme.typography.bodySmall
+  )
 }
 
 /** How firmly what the pointer is on is held, beside the colour the map drew it in. */
@@ -146,6 +173,9 @@ private fun HeapObjectSummary.shallowText(): String =
 private fun ObjectGroupSummary.retainedText(): String =
   "Retains ${formatByteSize(retainedSize)} in ${formatObjectCount(objectCount)}"
 
+/** How much of the heap a row is as wide as, which is not what the objects on it retain. */
+private fun ReverseNodeSummary.accountsForText(): String = "$ACCOUNTS_FOR ${formatByteSize(byteCount)}"
+
 /**
  * What a pile of objects has to say for itself in one line, because a rectangle full of them looks exactly
  * like one object until something says otherwise. The details panel spells out which kind of pile it is.
@@ -156,6 +186,13 @@ private fun ObjectGroupSummary.retainedText(): String =
 internal const val PILE_OF_OBJECTS = "Not one object. Click it to reach the objects it stands for."
 
 /**
+ * The same for a row of the classes view, where clicking leads to the rows above rather than to objects:
+ * the objects a row gathers are of one class, and every class is a row of that view already.
+ */
+internal const val ROW_OF_OBJECTS =
+  "Not one object. Click it to give what dominates these the whole width."
+
+/**
  * The other kind of pile: what a rectangle's subdivision had no room for. It is no node of the tree, so
  * there is nothing to go into and the promise [PILE_OF_OBJECTS] makes would be a lie here. What a click
  * does instead is root the map at the rectangle they were left out of, which is where there is the room
@@ -163,6 +200,14 @@ internal const val PILE_OF_OBJECTS = "Not one object. Click it to reach the obje
  */
 internal const val LEFTOVER_OBJECTS =
   "Not one object. Click it for what holds them, where there is room to draw them one by one."
+
+/**
+ * And the classes left off a row of the classes view, where a click leads the other way: the row they
+ * belong to is above the one they were left out of, so what gives them the width is rooting the view at
+ * the row below them. See [DetailsPanel]'s `ROW_GROUP_EXPLANATION`.
+ */
+internal const val LEFTOVER_ROWS =
+  "Not one class. Click it to root the view at the row below, where there is room to draw them one by one."
 
 /**
  * Where a card of [cardSize] goes for a pointer at [pointer] in a view of [viewSize]: below and to the right

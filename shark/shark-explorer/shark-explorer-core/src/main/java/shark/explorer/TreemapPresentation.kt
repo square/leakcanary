@@ -23,12 +23,12 @@ class TreemapPresentation(
     /**
      * Lays [tree] out into [viewport] rooted at [root] and reads what it takes to draw the result.
      *
-     * Here rather than in [HeapDominatorTreemap] — as is every shape's — because which shapes there are
-     * is not something a heap dump reader should have to know: it labels cells, and pairing that with a
-     * layout is this side of the line. See [HeapDominatorTreemap.present].
+     * Here rather than in [HeapTree] — as is every shape's — because which shapes there are is not
+     * something a heap dump reader should have to know: it labels cells, and pairing that with a layout
+     * is this side of the line. See [HeapTree.present].
      */
     fun of(
-      tree: HeapDominatorTreemap,
+      tree: HeapTree,
       layout: TreemapLayout<Long>,
       viewport: TreemapRect,
       root: Long = tree.root
@@ -53,7 +53,7 @@ class RadialPresentation(
   companion object {
     /** See [TreemapPresentation.of]. */
     fun of(
-      tree: HeapDominatorTreemap,
+      tree: HeapTree,
       layout: RadialLayout<Long>,
       viewport: TreemapRect,
       root: Long = tree.root
@@ -78,7 +78,7 @@ class StackPresentation(
   companion object {
     /** See [TreemapPresentation.of]. */
     fun of(
-      tree: HeapDominatorTreemap,
+      tree: HeapTree,
       layout: StackLayout<Long>,
       viewport: TreemapRect,
       root: Long = tree.root
@@ -104,12 +104,13 @@ class PresentedCell<out C : LayoutCell<Long>>(
   val strength: ReachabilityStrength get() = when (val content = content) {
     is CellContent.Object -> content.strength
     is CellContent.ObjectGroup -> content.strength
+    is CellContent.ObjectRow -> content.strength
     is CellContent.Leftover -> content.strength
   }
 }
 
 /**
- * What a presented cell stands for, which is what decides how it's drawn: two of the three aren't an
+ * What a presented cell stands for, which is what decides how it's drawn: three of the four aren't an
  * object of the heap dump, and a view that drew them like one would be lying about the heap.
  */
 sealed interface CellContent {
@@ -132,6 +133,23 @@ sealed interface CellContent {
   data class ObjectGroup(
     val kind: ObjectGroupKind,
     /** How firmly the objects in it are held, which they all are the same way. */
+    val strength: ReachabilityStrength,
+    val objectCount: Int
+  ) : CellContent
+
+  /**
+   * One row of the tree read from the classes up: see [ReverseDominatorTree].
+   *
+   * A pile of objects too, but not one drawn among objects — **every** cell of that tree is one of these,
+   * so what marks a pile out in a treemap says nothing here. Which is why it isn't an [ObjectGroup]: a
+   * view that washed all of them out and dashed all of their edges would spend the whole picture saying
+   * something no cell of it contradicts, and lose the colours that make a column readable. The count each
+   * row is named by is what says it instead.
+   */
+  data class ObjectRow(
+    /** Which kind of row, which is what a view draws a column's two ways of stopping differently by. */
+    val kind: ReverseNodeKind,
+    /** How firmly the objects it gathers are held: the strength most of its bytes are at. */
     val strength: ReachabilityStrength,
     val objectCount: Int
   ) : CellContent

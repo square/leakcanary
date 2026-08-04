@@ -17,15 +17,17 @@ fun hexObjectId(objectId: Long): String {
 }
 
 /**
- * How a node of a [HeapDominatorTreemap] reads in a message: the address of an object, or which pile of
- * objects it is.
+ * How a node of either of a heap dump's two trees reads in a message: the address of an object, which pile of
+ * objects it is, or which row of the tree read from the classes up.
  *
- * A pile is no object of the heap dump, so it has no address to name it by. See
- * [HeapDominatorTreemap.isPileId].
+ * Neither a pile nor a row is an object of the heap dump, so neither has an address to name it by. See
+ * [HeapDominatorTreemap.isPileId] and [ReverseDominatorTree.isReverseNode].
  */
 fun nodeIdText(nodeId: Long): String = when {
   nodeId == ROOT_OBJECT_ID -> "the whole heap dump"
   nodeId == UNREACHABLE_NODE_ID -> "the uncollected garbage"
+  ReverseDominatorTree.isReverseNode(nodeId) ->
+    "the class row ${ReverseDominatorTree.FIRST_REVERSE_NODE_ID - nodeId}"
   HeapDominatorTreemap.isPileId(nodeId) -> "the class pile ${nodeId - UNREACHABLE_NODE_ID}"
   else -> hexObjectId(nodeId)
 }
