@@ -199,3 +199,9 @@ rather than publishing anything that cannot.
 That was carried through to what someone downloading it gets: the DMG off a release, marked with the
 `com.apple.quarantine` attribute a browser download applies — which is what makes Gatekeeper insist on a
 ticket at all — is accepted, and the app opens a heap dump. So macOS is releasable.
+
+One thing to know before repeating that check, because it looks exactly like the notarization hang above:
+**a quarantined app's first launch waits for the screen to be unlocked**, with no output, no log file and no
+CPU. The same bundle, the same command and the same quarantine attribute took over five minutes and
+produced nothing against a locked screen, and four seconds unlocked. Gatekeeper wants a human on that first
+launch, so verify a release at the keyboard.
