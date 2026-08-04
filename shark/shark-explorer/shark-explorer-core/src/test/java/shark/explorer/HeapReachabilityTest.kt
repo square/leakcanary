@@ -132,6 +132,10 @@ class HeapReachabilityTest {
 
       assertThat(sizes.reachableByteCount + sizes.unreachableByteCount)
         .isEqualTo(sizes.totalByteCount)
+      // What a retained size is shown as a share of: everything the GC roots reach, less what only a
+      // soft or a weak reference points at, since a collection that needs the room can take those.
+      assertThat(sizes.stronglyReachableByteCount)
+        .isEqualTo(sizes.reachableByteCount - (64L + 128L) * ID_BYTE_SIZE)
       assertThat(sizes.byteCountByStrength.getValue(SOFT)).isEqualTo(64L * ID_BYTE_SIZE)
       assertThat(sizes.byteCountByStrength.getValue(WEAK)).isEqualTo(128L * ID_BYTE_SIZE)
       assertThat(sizes.unreachableByteCount).isEqualTo(32L * ID_BYTE_SIZE)

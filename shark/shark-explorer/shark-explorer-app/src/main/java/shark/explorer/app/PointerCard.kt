@@ -25,6 +25,7 @@ import shark.explorer.HeapObjectSummary
 import shark.explorer.ObjectGroupSummary
 import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
+import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.formatObjectCount
 
 /**
@@ -45,6 +46,8 @@ import shark.explorer.formatObjectCount
 @Composable
 internal fun PointerCard(
   selection: Selection,
+  /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
+  stronglyReachableByteCount: Long,
   coloring: CellColoring,
   modifier: Modifier = Modifier
 ) {
@@ -59,9 +62,9 @@ internal fun PointerCard(
       verticalArrangement = Arrangement.spacedBy(1.dp)
     ) {
       when (selection) {
-        is Selection.Object -> ObjectLines(selection.summary, coloring)
-        is Selection.ObjectGroup -> ObjectGroupLines(selection.summary, coloring)
-        is Selection.Group -> GroupLines(selection)
+        is Selection.Object -> ObjectLines(selection.summary, stronglyReachableByteCount, coloring)
+        is Selection.ObjectGroup -> ObjectGroupLines(selection.summary, stronglyReachableByteCount, coloring)
+        is Selection.Group -> GroupLines(selection, stronglyReachableByteCount)
       }
     }
   }
@@ -70,6 +73,7 @@ internal fun PointerCard(
 @Composable
 private fun ObjectLines(
   summary: HeapObjectSummary,
+  stronglyReachableByteCount: Long,
   coloring: CellColoring
 ) {
   // The same three lines a step of a chain names an object with, so that the card and the chain beside
@@ -85,7 +89,7 @@ private fun ObjectLines(
   StrengthLine(summary.strength, coloring)
   // The same numbers the details panel gives a labelled row each, on two lines: a card that follows the
   // pointer has to be read at a glance, and it covers the map for as long as it's up.
-  Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
+  Text(summary.retainedText(stronglyReachableByteCount), style = MaterialTheme.typography.bodySmall)
   Text(summary.shallowText(), style = MaterialTheme.typography.bodySmall)
 }
 
@@ -98,18 +102,22 @@ private fun ObjectLines(
 @Composable
 private fun ObjectGroupLines(
   summary: ObjectGroupSummary,
+  stronglyReachableByteCount: Long,
   coloring: CellColoring
 ) {
   Text(summary.title(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
   StrengthLine(summary.strength, coloring)
-  Text(summary.retainedText(), style = MaterialTheme.typography.bodySmall)
+  Text(summary.retainedText(stronglyReachableByteCount), style = MaterialTheme.typography.bodySmall)
   Text(PILE_OF_OBJECTS, style = MaterialTheme.typography.bodySmall)
 }
 
 /** The children of a rectangle that its subdivision had no room for. See [shark.explorer.CellSubject.Group]. */
 @Composable
-private fun GroupLines(selection: Selection.Group) {
+private fun GroupLines(
+  selection: Selection.Group,
+  stronglyReachableByteCount: Long
+) {
   Text(
     "${selection.nodeCount} smaller objects",
     style = MaterialTheme.typography.bodyMedium,
@@ -118,7 +126,10 @@ private fun GroupLines(selection: Selection.Group) {
   // Which rectangle they were left out of, since they have nothing else in common: that is the object to
   // go to if any of them is worth finding.
   Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
-  Text("Retains ${formatByteSize(selection.byteCount)}", style = MaterialTheme.typography.bodySmall)
+  Text(
+    "Retains ${formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount)}",
+    style = MaterialTheme.typography.bodySmall
+  )
   Text(LEFTOVER_OBJECTS, style = MaterialTheme.typography.bodySmall)
 }
 
@@ -137,14 +148,16 @@ private fun StrengthLine(
   }
 }
 
-private fun HeapObjectSummary.retainedText(): String =
-  "Retains ${formatByteSize(retainedSize)} in ${formatObjectCount(retainedCount)}"
+private fun HeapObjectSummary.retainedText(stronglyReachableByteCount: Long): String =
+  "Retains ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} in " +
+    formatObjectCount(retainedCount)
 
 private fun HeapObjectSummary.shallowText(): String =
   "${formatByteSize(shallowSize)} of its own, dominates ${formatObjectCount(dominatedObjectCount)}"
 
-private fun ObjectGroupSummary.retainedText(): String =
-  "Retains ${formatByteSize(retainedSize)} in ${formatObjectCount(objectCount)}"
+private fun ObjectGroupSummary.retainedText(stronglyReachableByteCount: Long): String =
+  "Retains ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} in " +
+    formatObjectCount(objectCount)
 
 /**
  * What a pile of objects has to say for itself in one line, because a rectangle full of them looks exactly

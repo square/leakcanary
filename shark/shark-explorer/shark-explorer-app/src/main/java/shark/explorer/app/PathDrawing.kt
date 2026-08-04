@@ -43,7 +43,7 @@ import shark.explorer.HeapObjectKind
 import shark.explorer.PathReference
 import shark.explorer.PathStep
 import shark.explorer.ReachabilityStrength
-import shark.explorer.formatByteSize
+import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
 
@@ -121,6 +121,8 @@ internal fun PathStepRow(
   /** How this step points at the next one, which is what that step was reached through. */
   reference: PathReference?,
   nextStrength: ReachabilityStrength?,
+  /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
+  stronglyReachableByteCount: Long,
   coloring: CellColoring,
   onOpen: (Long) -> Unit,
   role: PathRole = PathRole.STEP,
@@ -155,7 +157,7 @@ internal fun PathStepRow(
         onOpen = if (step.isInspectable) ({ onOpen(step.objectId) }) else null
       )
     } else {
-      BriefStepLine(step)
+      BriefStepLine(step, stronglyReachableByteCount)
     }
     if (role == PathRole.DOMINATOR && detail == PathDetail.FULL) {
       // In words as well as with the ring: a chain from a GC root runs through a dozen objects, and which
@@ -172,7 +174,8 @@ internal fun PathStepRow(
       step.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
       if (step.retainedCount > 0) {
         Text(
-          "Retaining ${formatByteSize(step.retainedSize)} in " + formatObjectCount(step.retainedCount),
+          "Retaining ${formatByteSizeOfTotal(step.retainedSize, stronglyReachableByteCount)} in " +
+            formatObjectCount(step.retainedCount),
           style = MaterialTheme.typography.bodySmall
         )
       }
@@ -369,14 +372,19 @@ internal fun ObjectIdentity(
 
 /** What a step of a chain that is only being glanced at says: its class, and how much of the heap it holds. */
 @Composable
-private fun BriefStepLine(step: PathStep) {
+private fun BriefStepLine(
+  step: PathStep,
+  stronglyReachableByteCount: Long
+) {
   Text(
     buildAnnotatedString {
       append(step.className.substringAfterLast('.'))
       if (step.retainedCount > 0) {
         // Beside the class name rather than under it, which is the one place a brief chain has room for how
         // much of the heap a step holds — and that is what the map is being read for.
-        withStyle(MUTED_SPAN) { append(" · ${formatByteSize(step.retainedSize)}") }
+        withStyle(MUTED_SPAN) {
+          append(" · ${formatByteSizeOfTotal(step.retainedSize, stronglyReachableByteCount)}")
+        }
       }
     },
     style = MaterialTheme.typography.bodyMedium,
