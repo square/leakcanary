@@ -71,8 +71,19 @@ import shark.internal.invalidObjectIdErrorMessage
  *   under: it's surfaced as a label on that object's leak trace rather than as a leak of its
  *   own. Leaking objects found in neither phase are unreachable.
  *
+ * - **Leaking objects that another leaking object also retains**: phase 1 found these, so they
+ *   have a path of their own that goes through no leaking object, and phase 2 can still reach
+ *   them through the subgraph of another leaking object. That's reported on the leak trace of the
+ *   object that is retained, which is the end that benefits from knowing: the path it reaches
+ *   through is deliberately not the one reported, since it would disappear if that other leak
+ *   were fixed, whereas the reported path survives every other fix. Nothing is reported on the
+ *   leak trace of the object doing the retaining, which can retain any number of others and has
+ *   its own path to explain. Like retained sizes, the relationship is attributed to the leaking
+ *   object that reached it first.
+ *
  * Phase 2 is skipped entirely when there are no retained sizes to compute and no missing
- * leaking objects to find.
+ * leaking objects to find, in which case leaking objects that another leaking object also
+ * retains aren't reported either.
  */
 class PrioritizingShortestPathFinder private constructor(
   private val graph: HeapGraph,
@@ -238,6 +249,8 @@ class PrioritizingShortestPathFinder private constructor(
       pathsToLeakingObjects = shortestPathsToLeakingObjects.map { it.toReferencePathNode() },
       retainedSizes = phase2.retainedSizes,
       subLeakedObjectsByLeakedObject = phase2.subLeakedObjectsByLeakedObject,
+      alsoRetainingLeakingObjectsByLeakedObject =
+        phase2.alsoRetainingLeakingObjectsByLeakedObject,
     )
   }
 
@@ -308,9 +321,14 @@ class PrioritizingShortestPathFinder private constructor(
     var subLeakedObjectsByLeakedObject: LongObjectMap<LongArray> = emptyLongObjectMap()
       private set
 
+    var alsoRetainingLeakingObjectsByLeakedObject: LongObjectMap<LongArray> = emptyLongObjectMap()
+      private set
+
     /**
      * Leaking objects that phase 1 didn't find: they're either only reachable through another
-     * leaking object, or not reachable at all.
+     * leaking object, or not reachable at all. Never mutated, because it's also what tells a
+     * leaking object that has a leak trace of its own from one that doesn't: a leaking object
+     * missing from phase 1 is one this phase reports as a sub leaked object.
      */
     private val missingLeakingObjectIds = LongScatterSet().apply {
       leakingObjectIds.elementSequence().forEach { objectId ->
@@ -319,6 +337,16 @@ class PrioritizingShortestPathFinder private constructor(
         }
       }
     }
+
+    /** How many of [missingLeakingObjectIds] this phase has yet to find. */
+    private var missingLeakingObjectCount = missingLeakingObjectIds.size()
+
+    /**
+     * These two only ever hold an entry for a leaking object that retains another leaking object,
+     * which is rare, so they start empty and stay empty in the common case.
+     */
+    private val subLeakedObjects = MutableLongObjectMap<MutableLongList>(0)
+    private val alsoRetainingLeakingObjects = MutableLongObjectMap<MutableLongList>(0)
 
     private val bfsQueue = LongDeque()
 
@@ -329,7 +357,7 @@ class PrioritizingShortestPathFinder private constructor(
     private var retainedCount = 0
 
     fun run() {
-      if (objectSizeCalculator == null && missingLeakingObjectIds.size() == 0) {
+      if (objectSizeCalculator == null && missingLeakingObjectCount == 0) {
         // Nothing to size and nothing left to find.
         return
       }
@@ -338,11 +366,8 @@ class PrioritizingShortestPathFinder private constructor(
       } else {
         null
       }
-      // Only ever holds an entry for a leaking object nested under another leaking object, which
-      // is rare, so this starts empty and stays empty in the common case.
-      val subLeakedObjects = MutableLongObjectMap<MutableLongList>(0)
 
-      for (index in 0 until foundLeakingObjectIds.size) {
+      exploringLeakingObjects@ for (index in 0 until foundLeakingObjectIds.size) {
         val leakingObjectId = foundLeakingObjectIds[index]
         retainedSize = 0L
         retainedCount = 0
@@ -352,11 +377,12 @@ class PrioritizingShortestPathFinder private constructor(
         bfsQueue += leakingObjectId
 
         while (bfsQueue.isNotEmpty()) {
-          visitReferences(bfsQueue.poll(), leakingObjectId, subLeakedObjects)
-          if (objectSizeCalculator == null && missingLeakingObjectIds.size() == 0) {
-            // Found the last missing leaking object and we don't need retained sizes.
-            publishSubLeakedObjects(subLeakedObjects)
-            return
+          visitReferences(bfsQueue.poll(), leakingObjectId)
+          if (objectSizeCalculator == null && missingLeakingObjectCount == 0) {
+            // Found the last missing leaking object and we don't need retained sizes. There is no
+            // size left to publish for the leaking objects we stop short of exploring: sizes is
+            // always null when we get here.
+            break@exploringLeakingObjects
           }
         }
         sizes?.put(
@@ -367,25 +393,40 @@ class PrioritizingShortestPathFinder private constructor(
           )
         )
       }
-      publishSubLeakedObjects(subLeakedObjects)
+      subLeakedObjectsByLeakedObject = subLeakedObjects.toResultMap()
+      alsoRetainingLeakingObjectsByLeakedObject = alsoRetainingLeakingObjects.toResultMap()
     }
 
-    private fun publishSubLeakedObjects(subLeakedObjects: MutableLongObjectMap<MutableLongList>) {
-      if (subLeakedObjects.isEmpty()) {
-        return
+    private fun MutableLongObjectMap<MutableLongList>.toResultMap(): LongObjectMap<LongArray> {
+      if (isEmpty()) {
+        return emptyLongObjectMap()
       }
-      subLeakedObjectsByLeakedObject =
-        MutableLongObjectMap<LongArray>(subLeakedObjects.size).apply {
-          subLeakedObjects.forEach { leakingObjectId, subLeakedObjectIds ->
-            put(leakingObjectId, LongArray(subLeakedObjectIds.size) { subLeakedObjectIds[it] })
-          }
+      return MutableLongObjectMap<LongArray>(size).apply {
+        this@toResultMap.forEach { leakingObjectId, objectIds ->
+          put(leakingObjectId, LongArray(objectIds.size) { objectIds[it] })
         }
+      }
+    }
+
+    /**
+     * Records that [relatedLeakingObjectId] is to be reported on the leak trace of
+     * [leakedObjectId], which is why the key isn't always the leaking object being explored.
+     */
+    private fun MutableLongObjectMap<MutableLongList>.record(
+      leakedObjectId: Long,
+      relatedLeakingObjectId: Long
+    ) {
+      val objectIds = getOrPut(leakedObjectId) { MutableLongList(1) }
+      // The same pair can come up more than once, when several references of the subgraph point
+      // to that other leaking object. These lists only ever hold a handful of entries.
+      if (relatedLeakingObjectId !in objectIds) {
+        objectIds += relatedLeakingObjectId
+      }
     }
 
     private fun visitReferences(
       objectId: Long,
-      leakingObjectId: Long,
-      subLeakedObjects: MutableLongObjectMap<MutableLongList>
+      leakingObjectId: Long
     ) {
       val heapObject = try {
         graph.findObjectById(objectId)
@@ -399,20 +440,40 @@ class PrioritizingShortestPathFinder private constructor(
       }
       objectReferenceReader.read(heapObject).forEach { reference ->
         val referenceObjectId = reference.valueObjectId
-        if (missingLeakingObjectIds.remove(referenceObjectId)) {
-          // A leaking object that's only reachable through leaking objects. Reported as a label
-          // on the leak trace of the leaking object we reached it from.
-          subLeakedObjects.getOrPut(leakingObjectId) { MutableLongList(1) } += referenceObjectId
+        // A reference back to the leaking object being explored isn't a reference to another
+        // leak: it's already in the visited set, so the check below takes care of it.
+        val referenceIsLeaking = referenceObjectId != leakingObjectId &&
+          leakingObjectIds.contains(referenceObjectId)
+
+        if (referenceIsLeaking && !missingLeakingObjectIds.contains(referenceObjectId)) {
+          // A leaking object phase 1 found, so it has a leak trace of its own, reached here
+          // through objects that only this leaking object keeps alive. Recorded against that
+          // object, since that's the leak trace it's reported on. Phase 1 put it in the visited
+          // set, so the check below would return anyway: nothing of it is retained here, it stays
+          // reachable without this leaking object.
+          alsoRetainingLeakingObjects.record(referenceObjectId, leakingObjectId)
+          return@forEach
         }
+
         if (!visitedSet.add(referenceObjectId)) {
           // Either in R₀, or already attributed to a leaking object explored before this one.
           return@forEach
         }
+
+        if (referenceIsLeaking) {
+          // Missing from phase 1 and not in the visited set until now: a leaking object only
+          // reachable through leaking objects, reached for the first time. Reported as a label on
+          // the leak trace of the leaking object we reached it from, rather than getting one of
+          // its own.
+          subLeakedObjects.record(leakingObjectId, referenceObjectId)
+          missingLeakingObjectCount--
+        }
+
         accumulate(referenceObjectId)
         // A leaf object has no references left to explore, its references were all surfaced by
         // the reference reader already. Leaking objects are never treated as leaves, we need to
         // explore their subgraph to find nested leaking objects.
-        if (!reference.isLeafObject || referenceObjectId in leakingObjectIds) {
+        if (!reference.isLeafObject || referenceIsLeaking) {
           bfsQueue += referenceObjectId
         }
       }
