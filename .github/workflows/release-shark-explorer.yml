@@ -71,6 +71,12 @@ jobs:
           java-version: 17
           distribution: 'zulu'
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          # An Actions cache is writable from any branch of the repository and restorable by a tag build,
+          # so on a workflow whose output people download — and, on macOS, download signed as Block — a
+          # cache entry is an untrusted input. A release runs a few times a year, so caching buys nothing
+          # worth that. https://docs.zizmor.sh/audits/#cache-poisoning
+          cache-disabled: true
 
       # Not packageReleaseDmg, which runs the artifact through R8. Shark's object inspectors read fields
       # by name, so minification is a change that needs testing on its own rather than one to take on
@@ -163,6 +169,12 @@ jobs:
           java-version: 17
           distribution: 'zulu'
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          # An Actions cache is writable from any branch of the repository and restorable by a tag build,
+          # so on a workflow whose output people download — and, on macOS, download signed as Block — a
+          # cache entry is an untrusted input. A release runs a few times a year, so caching buys nothing
+          # worth that. https://docs.zizmor.sh/audits/#cache-poisoning
+          cache-disabled: true
 
       - name: Build the installer
         run: ./gradlew ${{ env.EXPLORER_MODULE }}:${{ matrix.task }} --stacktrace
