@@ -311,6 +311,7 @@ private fun StackUnderTest(
       StackView(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
+        shading = LeakShading.NONE,
         selected = selected,
         hovered = hovered,
         onClick = {

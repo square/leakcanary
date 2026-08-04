@@ -46,6 +46,8 @@ import shark.explorer.RadialPresentation
 internal fun RadialView(
   presentation: RadialPresentation,
   coloring: CellColoring,
+  /** Which of the objects drawn are leaking, for the colouring that shades them. */
+  shading: LeakShading,
   selected: SelectedCell?,
   /** The sector the pointer is on, which is outlined more lightly than the selected one. */
   hovered: SelectedCell?,
@@ -58,8 +60,8 @@ internal fun RadialView(
   val textMeasurer = rememberTextMeasurer()
   val density = LocalDensity.current
   val center = presentation.layout.center.let { Offset(it.x.toFloat(), it.y.toFloat()) }
-  val sectors = remember(presentation, coloring, textMeasurer, density) {
-    val colors = CellColors.of(coloring, presentation.cells)
+  val sectors = remember(presentation, coloring, shading, textMeasurer, density) {
+    val colors = CellColors.of(coloring, presentation.cells, shading)
     presentation.cells.map { it.measure(center, colors, textMeasurer, density) }
   }
   // As in [TreemapView]: the rings move under the pointer without a pointer event to say so.

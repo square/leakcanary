@@ -383,6 +383,57 @@ Each stretch is searched separately, `independentPathsBetween` for one below an 
 than an object. Both are asked once per click, after the chain arrives, because the chain is what says where
 the stretches are.
 
+## The leaks are the explorer's own paths, not a leak trace
+
+The `Leaks` screen finds the objects that shouldn't be in memory the two ways Shark finds them — the
+`KeyedWeakReference`s LeakCanary left behind (`WatchedObjects`), and a pass over every instance with
+`AndroidObjectInspectors.appLeakingObjectFilters` — and then answers everything else about them **with the
+same code the rest of the window uses**: `HeapDominatorTreemap.rootPathTo`, the function that draws the
+chain beside the map. Nothing here goes through `RealLeakTracerFactory` or the shortest path finder.
+
+Two reasons, and the second is the one that decided it.
+
+- A `LeakTraceObject` carries no object id, and a row you can't click is a dead end. Everything on this
+  screen is an object to open.
+- **A list that ranked leaks by one path and then showed another when a row is clicked is two answers to
+  one question.** So the path is found once: which section a leak is in comes off that path — unreachable
+  when `strengthOf` says so, a library leak when one of the path's own references carries a
+  `LibraryLeakPattern`, the app's own otherwise — and clicking the row shows that path.
+
+It follows that this classifies a few more leaks as library ones than LeakCanary would: its shortest path
+finder deprioritizes a known-leaking reference and goes through one only when there is no other way to the
+object, and this chain is simply the shortest one there is. Which is the price of one path everywhere, paid
+knowingly.
+
+**Leaks are grouped the way LeakCanary groups them**: the app's own by the references between the last
+object known to be needed and the leaking one — the stretch of the chain the leak is in — and library ones
+by the pattern they were recognized by. Fifty leaked rows of one list are one thing to fix, so a group is
+one row until it is unfolded.
+
+**Shark's library leak matchers are added to the reference reader the tree is built from**
+(`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would
+drop references, and every object has to stay a node of the tree exactly once. A `LibraryLeakReferenceMatcher`
+sets `Reference.isLowPriority` and `LazyDetails.matchedLibraryLeak` and nothing else, and nothing in the
+explorer reads the first (it is for the shortest path finder), so the tree is the same tree with the known
+leaks of it named.
+
+**A leaking object's status is on every path, not only on the ones that turn out to be leaks.** Every step
+of every chain carries a `LeakStatus`, worked out by `leakStatusesOf` from what the inspectors said about
+the objects above and below it — Shark's own rule, minus the one that forces the last object of a leak
+trace to be leaking, because a path here ends wherever the reader clicked. Green behind an object meant to
+be alive, red behind one meant to be gone, and the reason in words underneath.
+
+**The treemap shades leaks without laying anything out again.** "Anything dominated by a dead node is dead"
+is the whole rule, and cells arrive parent before child, so `CellColors.of` propagates it in one pass over
+the cells it was already given. The one thing that pass can't know is whether the node the view is *rooted*
+at is itself below a leak, which is one small read — `isBelowLeakingObject` — per view. There is no colour
+for the objects that are meant to be alive: a treemap draws what retains what, and most of a heap dump is
+objects nothing knows either way about. The chain says which is which, object by object.
+
+Finding the leaks is a pass over every instance plus a walk up to the GC roots per object found, so it runs
+once per heap dump, behind a screen someone asked for, and is capped at the largest
+`MAX_LEAKING_OBJECTS` objects with a log line when it truncates.
+
 ## Which object it is, said the same way everywhere
 
 Four surfaces name an object: a step of a chain, the card at the pointer, the bar above the map, a row of the

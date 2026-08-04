@@ -410,6 +410,7 @@ private fun TreemapUnderTest(
       TreemapView(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
+        shading = LeakShading.NONE,
         selected = selected,
         bitmapImages = bitmapImages,
         hovered = hovered,

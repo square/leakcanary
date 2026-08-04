@@ -54,6 +54,8 @@ import shark.explorer.TreemapPresentation
 internal fun TreemapView(
   presentation: TreemapPresentation,
   coloring: CellColoring,
+  /** Which of the objects drawn are leaking, for the colouring that shades them. */
+  shading: LeakShading,
   selected: SelectedCell?,
   /** The pixels read for the bitmaps of this presentation so far, by object id. */
   bitmapImages: Map<Long, ImageBitmap>,
@@ -71,8 +73,8 @@ internal fun TreemapView(
   val dots = remember(density) { pileDots(density) }
   // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
   // the presentation changes and never on a redraw.
-  val cells = remember(presentation, coloring, bitmapImages, textMeasurer, density, dots) {
-    val colors = CellColors.of(coloring, presentation.cells)
+  val cells = remember(presentation, coloring, shading, bitmapImages, textMeasurer, density, dots) {
+    val colors = CellColors.of(coloring, presentation.cells, shading)
     presentation.cells.map { presented ->
       presented.measure(
         colors = colors,

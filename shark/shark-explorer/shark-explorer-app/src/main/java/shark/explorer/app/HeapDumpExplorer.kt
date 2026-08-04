@@ -43,6 +43,7 @@ import shark.explorer.CellSubject
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
+import shark.explorer.HeapLeaks
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
 import shark.explorer.LayoutCell
@@ -127,6 +128,11 @@ internal fun HeapDumpExplorer(
   var chosenWays by remember { mutableStateOf(emptyMap<Int, Int>()) }
   var objects by remember { mutableStateOf(ObjectList.EMPTY) }
   var isListing by remember { mutableStateOf(false) }
+  /** Every leaking object of the heap dump, once something has asked for them. Null until then. */
+  var leaks: HeapLeaks? by remember { mutableStateOf(null) }
+  var isFindingLeaks by remember { mutableStateOf(false) }
+  /** Whether the map is rooted inside a leak, which makes everything it draws leaking too. */
+  var isRootLeaking by remember { mutableStateOf(false) }
   /** How many bitmaps this heap dump has and how many of them can be drawn, which fetching changes. */
   var bitmapCounts by remember { mutableStateOf(BitmapCounts.NONE) }
   /** The bitmaps decoded so far, by object id. Only grows: a decoded image stays valid. */
@@ -382,6 +388,32 @@ internal fun HeapDumpExplorer(
     isListing = false
   }
 
+  // Finding the leaks is a pass over every instance of the heap dump and a walk up to the GC roots per
+  // object found, so it waits until something asks: the screen listing them, or the checkbox that shades
+  // them on the map. Once found they're kept, so the two share the wait and neither pays it twice.
+  val needsLeaks = screen is ExplorerScreen.Leaks || coloring.showsLeaks
+  LaunchedEffect(session, needsLeaks) {
+    if (!needsLeaks || leaks != null) {
+      return@LaunchedEffect
+    }
+    isFindingLeaks = true
+    leaks = session.read("the leaking objects of ${session.heapDumpFile.name}") { explorer ->
+      explorer.tree.findLeaks()
+    }
+    isFindingLeaks = false
+  }
+
+  // Whether the map is rooted inside a leak, which the cells themselves can't say: a rectangle is drawn
+  // inside the one that dominates it, so a view rooted below a leaking object has every rectangle of it
+  // leaking and not one of them in the list. A walk up the dominators, so it follows where the map is.
+  val leakingObjectIds = remember(leaks) { leaks?.leakingObjectIds ?: emptySet() }
+  LaunchedEffect(session, view.navigation.current, leaks) {
+    val rootNode = view.navigation.current
+    isRootLeaking = leaks != null && session.read("whether ${nodeIdText(rootNode)} is below a leak") {
+      it.tree.isBelowLeakingObject(rootNode)
+    }
+  }
+
   // Where the treemap draws a node takes walking up its dominators, so showing what a panel line or a row
   // of a list leads to is a heap dump read as well.
   LaunchedEffect(session, nodeToOpen) {
@@ -455,6 +487,9 @@ internal fun HeapDumpExplorer(
       onListObjects = {
         onGoTo(ExplorerScreen.Objects(navigation, ObjectListFilter(), screen.describedNode))
       },
+      onShowLeaks = {
+        onGoTo(ExplorerScreen.Leaks(navigation, describedNode = screen.describedNode))
+      },
       onShowStarred = { onGoTo(ExplorerScreen.Starred(navigation, screen.describedNode)) },
       onFetchBitmaps = { showsBitmapsFromDevice = true }
     )
@@ -505,6 +540,8 @@ internal fun HeapDumpExplorer(
             sizes = sizes,
             shape = shape,
             coloring = coloring,
+            leakCount = leaks?.objectCount,
+            isFindingLeaks = isFindingLeaks,
             onColoringChange = { coloring = it },
             onShapeChange = { shape = it },
             modifier = Modifier.fillMaxWidth()
@@ -515,6 +552,7 @@ internal fun HeapDumpExplorer(
             is ExplorerScreen.Tree -> TreeScreen(
               view = view,
               coloring = coloring,
+              shading = LeakShading(leakingObjectIds, isRootLeaking),
               selected = clicked?.cell,
               hovered = hovered?.cell,
               // What the pointer is on, for the card that follows it, and where the pointer is. Read
@@ -539,6 +577,28 @@ internal fun HeapDumpExplorer(
                 // A keystroke isn't a move, so typing replaces where the explorer is: the back arrow
                 // leaves the list rather than walking back through what was typed into it.
                 history = history.replacingCurrent(screen.copy(filter = filter))
+              },
+              onOpen = onOpen,
+              modifier = Modifier.fillMaxSize()
+            )
+            is ExplorerScreen.Leaks -> LeaksScreen(
+              leaks = leaks ?: HeapLeaks.NONE,
+              isFindingLeaks = isFindingLeaks,
+              coloring = coloring,
+              expandedGroups = screen.expandedGroups,
+              // Unfolding a leak isn't a move, so it replaces where the explorer is: the back arrow
+              // leaves the leaks rather than folding them up one at a time.
+              onToggleGroup = { groupKey ->
+                val expanded = screen.expandedGroups
+                history = history.replacingCurrent(
+                  screen.copy(
+                    expandedGroups = if (groupKey in expanded) {
+                      expanded - groupKey
+                    } else {
+                      expanded + groupKey
+                    }
+                  )
+                )
               },
               onOpen = onOpen,
               modifier = Modifier.fillMaxSize()
@@ -636,6 +696,7 @@ private fun ScreenBar(
   bitmapCounts: BitmapCounts,
   onShowWholeHeapDump: () -> Unit,
   onListObjects: () -> Unit,
+  onShowLeaks: () -> Unit,
   onShowStarred: () -> Unit,
   onFetchBitmaps: () -> Unit
 ) {
@@ -652,6 +713,11 @@ private fun ScreenBar(
     }
     TextButton(onClick = onListObjects) {
       Text(ExplorerScreen.OBJECTS_LABEL)
+    }
+    // Beside the list of every object, because it is the same list with the answer already found in it:
+    // the objects that shouldn't be there, gathered into the leaks they are instances of.
+    TextButton(onClick = onShowLeaks) {
+      Text(ExplorerScreen.LEAKS_LABEL)
     }
     TextButton(onClick = onShowStarred, enabled = starredCount > 0) {
       Text("$STARRED_GLYPH $starredCount starred")
@@ -671,6 +737,8 @@ private fun ScreenBar(
 private fun TreeScreen(
   view: ViewState,
   coloring: CellColoring,
+  /** Which of the objects drawn are leaking, for the colouring that shades them. */
+  shading: LeakShading,
   selected: SelectedCell?,
   hovered: SelectedCell?,
   /** What the cell under the pointer is, once it has been read, and null while it hasn't. */
@@ -698,6 +766,7 @@ private fun TreeScreen(
       is ViewPresentation.Treemap -> TreemapView(
         presentation = presentation.presentation,
         coloring = coloring,
+        shading = shading,
         selected = selected,
         bitmapImages = bitmapImages,
         hovered = hovered,
@@ -708,6 +777,7 @@ private fun TreeScreen(
       is ViewPresentation.Radial -> RadialView(
         presentation = presentation.presentation,
         coloring = coloring,
+        shading = shading,
         selected = selected,
         hovered = hovered,
         onHover = onHover,
@@ -717,6 +787,7 @@ private fun TreeScreen(
       is ViewPresentation.Stack -> StackView(
         presentation = presentation.presentation,
         coloring = coloring,
+        shading = shading,
         selected = selected,
         hovered = hovered,
         onHover = onHover,

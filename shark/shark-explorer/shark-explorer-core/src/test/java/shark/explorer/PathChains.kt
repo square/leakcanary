@@ -28,6 +28,8 @@ internal fun pathStep(objectId: Long): PathStep = PathStep(
   retainedSize = 0L,
   retainedCount = 0,
   inspectorLabels = emptyList(),
+  leakStatus = LeakStatus.UNKNOWN,
+  leakStatusReason = null,
   reference = null,
   isInspectable = true
 )

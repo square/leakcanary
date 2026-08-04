@@ -149,7 +149,9 @@ private class OpenSteps(private val onProgress: (String) -> Unit) {
   }
 }
 
-private fun millisSince(startNanos: Long): Long = NANOSECONDS.toMillis(System.nanoTime() - startNanos)
+/** How long a step took, for the lines that say so. */
+internal fun millisSince(startNanos: Long): Long =
+  NANOSECONDS.toMillis(System.nanoTime() - startNanos)
 
 /**
  * Where the dominator tree hangs the heap dump off: the GC roots that explain why what they point at is

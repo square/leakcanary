@@ -62,6 +62,8 @@ import shark.explorer.formatByteSize
 internal fun StackView(
   presentation: StackPresentation,
   coloring: CellColoring,
+  /** Which of the objects drawn are leaking, for the colouring that shades them. */
+  shading: LeakShading,
   selected: SelectedCell?,
   /** The block the pointer is on, which is outlined more lightly than the selected one. */
   hovered: SelectedCell?,
@@ -77,8 +79,8 @@ internal fun StackView(
   // As in [TreemapView]: measuring the names is the one part of drawing that isn't cheap, so it happens
   // when the presentation changes and never on a redraw. There are more of them here than on a treemap,
   // since every row is named rather than one level of them.
-  val blocks = remember(presentation, coloring, textMeasurer, density, dots) {
-    val colors = CellColors.of(coloring, presentation.cells)
+  val blocks = remember(presentation, coloring, shading, textMeasurer, density, dots) {
+    val colors = CellColors.of(coloring, presentation.cells, shading)
     presentation.cells.map { it.measure(colors, textMeasurer, density, dots) }
   }
   val scrollState = rememberScrollState()

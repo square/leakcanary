@@ -52,13 +52,41 @@ internal enum class CellColorScheme(val displayName: String) {
  */
 internal data class CellColoring(
   val scheme: CellColorScheme,
-  val coloredStrengths: Set<ReachabilityStrength>
+  val coloredStrengths: Set<ReachabilityStrength>,
+  /**
+   * Whether the objects that shouldn't be in memory are shaded red, and everything they hold with them.
+   *
+   * An overlay rather than a scheme of its own: a leak is a few objects out of millions, so there is
+   * nothing to see in a picture that is only about leaking, and every other question about a rectangle —
+   * how big, how nested, how firmly held — is still worth an answer while looking for one.
+   *
+   * Off until asked for, because it costs the pass over the heap dump that finds the leaks.
+   */
+  val showsLeaks: Boolean = false
 ) {
   companion object {
     val DEFAULT = CellColoring(
       scheme = CellColorScheme.DAISY,
       coloredStrengths = ReachabilityStrength.values().toSet()
     )
+  }
+}
+
+/**
+ * Which objects of a heap dump shouldn't be in memory, as a view needs it to shade them.
+ *
+ * The ids alone don't cover a view that has been zoomed into a leak: everything drawn there is leaking and
+ * none of it is in the list, because the object that is, is above the view. So the answer to that comes
+ * with them, worked out by walking up the dominators of the node the view is rooted at.
+ */
+internal data class LeakShading(
+  val objectIds: Set<Long>,
+  /** Whether a leaking object dominates the node the view is rooted at. */
+  val isRootLeaking: Boolean
+) {
+  companion object {
+    /** Nothing found yet, which is every view until the leaks are asked for. */
+    val NONE = LeakShading(objectIds = emptySet(), isRootLeaking = false)
   }
 }
 
@@ -72,7 +100,9 @@ internal data class CellColoring(
  */
 internal class CellColors private constructor(
   private val coloring: CellColoring,
-  private val hueIndexByObjectId: Map<Long, Int>
+  private val hueIndexByObjectId: Map<Long, Int>,
+  /** Which cells are drawn as leaking, by object id, when [CellColoring.showsLeaks] is on. */
+  private val leakingObjectIds: Set<Long>
 ) {
 
   val label: Color get() = LABEL
@@ -86,6 +116,9 @@ internal class CellColors private constructor(
   fun colorOf(presented: PresentedCell<*>): Color {
     val depth = presented.cell.depth
     val strength = presented.strength
+    if (isLeaking(presented)) {
+      return leakColor(depth)
+    }
     if (strength !in coloring.coloredStrengths) {
       return mutedColor(depth)
     }
@@ -141,35 +174,71 @@ internal class CellColors private constructor(
   fun mutedColor(depth: Int): Color =
     Color.hsv(hue = 0f, saturation = 0f, value = MAX_VALUE - (depth % SHADE_STEPS) * VALUE_STEP)
 
+  /** And what an object that shouldn't be in memory looks like: red, shaded by depth like the rest. */
+  fun leakColor(depth: Int): Color = shaded(LEAK_HUE, LEAK_SATURATION, depth)
+
+  private fun isLeaking(presented: PresentedCell<*>): Boolean =
+    coloring.showsLeaks && when (val subject = presented.cell.subject) {
+      is CellSubject.Node -> subject.node in leakingObjectIds
+      // An object's own bytes are that object, and the siblings a rectangle had no room for are inside it,
+      // so both are whatever the rectangle holding them is.
+      is CellSubject.Own -> subject.node in leakingObjectIds
+      is CellSubject.Group -> subject.parent in leakingObjectIds
+    }
+
   companion object {
     private val DAISY_SCHEME = CellColorScheme.DAISY
 
     fun of(
       coloring: CellColoring,
-      cells: List<PresentedCell<*>>
+      cells: List<PresentedCell<*>>,
+      shading: LeakShading = LeakShading.NONE
     ): CellColors {
-      val hueIndexByObjectId = if (coloring.scheme != DAISY_SCHEME) {
-        emptyMap()
-      } else {
-        val hueIndexByObjectId = mutableMapOf<Long, Int>()
+      val leakingObjectIds = shading.objectIds
+      val isRootLeaking = shading.isRootLeaking
+      val needsHues = coloring.scheme == DAISY_SCHEME
+      val needsLeaks = coloring.showsLeaks && (leakingObjectIds.isNotEmpty() || isRootLeaking)
+      val hueIndexByObjectId = mutableMapOf<Long, Int>()
+      // Everything a leaking object dominates is leaking too: it is only still in memory because that
+      // object is. Which is a pass down the cells rather than a question asked of the heap dump, because
+      // they arrive parent before child — the same order the hues are inherited in.
+      val leaking = mutableSetOf<Long>()
+      if (needsHues || needsLeaks) {
         cells.forEach { presented ->
           val subject = presented.cell.subject
           if (subject is CellSubject.Node) {
-            hueIndexByObjectId[subject.node] = when {
-              // A hue of its own for each of the blocks the map is divided into, which are the current
-              // root's own children — the same level the map names. See [ROOT_CHILD_DEPTH].
-              presented.cell.depth <= ROOT_CHILD_DEPTH -> subject.siblingIndex
-              // Inherits, so that everything one block contains shares its hue.
-              else -> hueIndexByObjectId[subject.parent] ?: subject.siblingIndex
+            if (needsHues) {
+              hueIndexByObjectId[subject.node] = when {
+                // A hue of its own for each of the blocks the map is divided into, which are the current
+                // root's own children — the same level the map names. See [ROOT_CHILD_DEPTH].
+                presented.cell.depth <= ROOT_CHILD_DEPTH -> subject.siblingIndex
+                // Inherits, so that everything one block contains shares its hue.
+                else -> hueIndexByObjectId[subject.parent] ?: subject.siblingIndex
+              }
+            }
+            val parent = subject.parent
+            val isInherited = if (parent == null) isRootLeaking else parent in leaking
+            if (needsLeaks && (subject.node in leakingObjectIds || isInherited)) {
+              leaking += subject.node
             }
           }
         }
-        hueIndexByObjectId
       }
-      return CellColors(coloring, hueIndexByObjectId)
+      return CellColors(coloring, hueIndexByObjectId, leaking)
     }
   }
 }
+
+/**
+ * The red an object that shouldn't be in memory is shaded. Its own hue, unshared with any strength: a leak
+ * is not a way of being reachable, it is what being reachable is costing.
+ */
+internal val LEAK_COLOR = Color.hsv(hue = LEAK_HUE, saturation = LEAK_SATURATION, value = MAX_VALUE)
+
+private const val LEAK_HUE = 0f
+
+/** Enough to read as red over a map of pastels, and not so much that a nested leak vanishes into it. */
+private const val LEAK_SATURATION = 0.40f
 
 /** The swatch shown next to a strength's checkbox, and in the details panel. */
 internal fun legendColor(

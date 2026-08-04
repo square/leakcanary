@@ -1,0 +1,155 @@
+package shark.explorer
+
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import shark.explorer.LeakKind.APPLICATION
+import shark.explorer.LeakKind.LIBRARY
+import shark.explorer.LeakKind.UNREACHABLE
+
+class HeapLeaksTest {
+
+  @get:Rule
+  var testFolder = TemporaryFolder()
+
+  @Test fun `an object the app said should be gone is a leak`() {
+    HeapExplorer.open(testFolder.watchedLeakHeapDump()).use { explorer ->
+      val leaks = explorer.tree.findLeaks()
+
+      val leaking = leaks.objectsOf(APPLICATION).single()
+      assertThat(leaking.className).isEqualTo(WATCHED_CLASS_NAME)
+    }
+  }
+
+  @Test fun `a watched object comes with what the watcher wrote down about it`() {
+    HeapExplorer.open(testFolder.watchedLeakHeapDump()).use { explorer ->
+      val watcher = explorer.tree.findLeaks().objectsOf(APPLICATION).single().watcher!!
+
+      // The durations the DSL writes: watched 25 seconds before the dump, retained for the last 10 of them.
+      assertThat(watcher.key).isNotEmpty()
+      assertThat(watcher.description).isEqualTo("its lifecycle has ended")
+      assertThat(watcher.watchDurationMillis).isEqualTo(25_000L)
+      assertThat(watcher.retainedDurationMillis).isEqualTo(10_000L)
+      assertThat(watcher.isRetained).isTrue()
+    }
+  }
+
+  @Test fun `the weak reference a watched object came from is an object of the tree`() {
+    HeapExplorer.open(testFolder.watchedLeakHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val watcher = tree.findLeaks().objectsOf(APPLICATION).single().watcher!!
+
+      // Which is what makes the row about it clickable: it opens like any other object.
+      assertThat(tree.summarize(watcher.weakReferenceObjectId).className)
+        .isEqualTo("leakcanary.KeyedWeakReference")
+    }
+  }
+
+  @Test fun `an object the inspectors recognize is a leak with nothing watching it`() {
+    HeapExplorer.open(testFolder.destroyedActivitiesHeapDump()).use { explorer ->
+      val leaking = explorer.tree.findLeaks().objectsOf(APPLICATION).first()
+
+      assertThat(leaking.className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaking.watcher).isNull()
+      assertThat(leaking.leakingReason).contains("mDestroyed")
+    }
+  }
+
+  @Test fun `objects leaking the same way are one leak with both of them in it`() {
+    HeapExplorer.open(testFolder.destroyedActivitiesHeapDump()).use { explorer ->
+      val leaks = explorer.tree.findLeaks()
+
+      // The third activity of that dump is not destroyed, so it is not one of these.
+      val group = leaks.sectionOf(APPLICATION).groups.single()
+      assertThat(group.title).isEqualTo("MainActivity")
+      assertThat(group.objects).hasSize(2)
+      assertThat(leaks.objectCount).isEqualTo(2)
+    }
+  }
+
+  @Test fun `a leak nothing reaches any more is listed as already collected`() {
+    HeapExplorer.open(testFolder.collectedActivityHeapDump()).use { explorer ->
+      val leaks = explorer.tree.findLeaks()
+
+      val leaking = leaks.objectsOf(UNREACHABLE).single()
+      assertThat(leaking.className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaking.strength).isEqualTo(ReachabilityStrength.UNREACHABLE)
+      assertThat(leaks.objectsOf(APPLICATION)).isEmpty()
+    }
+  }
+
+  @Test fun `a leak held by a reference Shark knows is somebody else's`() {
+    HeapExplorer.open(testFolder.libraryLeakHeapDump()).use { explorer ->
+      val leaks = explorer.tree.findLeaks()
+
+      val group = leaks.sectionOf(LIBRARY).groups.single()
+      assertThat(group.title).contains(TEXT_LINE_CLASS_NAME, TEXT_LINE_CACHE_FIELD_NAME)
+      assertThat(group.subtitle).contains("TextLine.sCached is a pool")
+      assertThat(group.objects.single().className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaks.objectsOf(APPLICATION)).isEmpty()
+    }
+  }
+
+  @Test fun `a leak is classified by the very chain the explorer draws for it`() {
+    HeapExplorer.open(testFolder.libraryLeakHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val leaking = tree.findLeaks().objectsOf(LIBRARY).single()
+
+      // A list that sorted leaks by one path and then showed another when a row is clicked would be two
+      // answers to one question, so the known reference is matched on the steps of this path and no other.
+      val steps = tree.rootPathTo(leaking.objectId).steps.map { it.step }
+      assertThat(steps.last().objectId).isEqualTo(leaking.objectId)
+      assertThat(steps.mapNotNull { it.reference?.libraryLeak?.pattern })
+        .anySatisfy { assertThat(it).contains(TEXT_LINE_CACHE_FIELD_NAME) }
+    }
+  }
+
+  @Test fun `a chain says which of its objects shouldn't be there, whatever it was built for`() {
+    HeapExplorer.open(testFolder.destroyedActivitiesHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val leaking = tree.findLeaks().objectsOf(APPLICATION).first()
+
+      val steps = tree.rootPathTo(leaking.objectId).steps.map { it.step }
+      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.LEAKING)
+      assertThat(steps.last().leakStatusReason).contains("mDestroyed")
+    }
+  }
+
+  @Test fun `a heap dump with nothing wrong in it has all three sections and no leak`() {
+    testFolder.openTestHeapDump().use { explorer ->
+      val leaks = explorer.tree.findLeaks()
+
+      // All three of them, so that the screen says which kinds of leak were looked for and not found.
+      assertThat(leaks.sections.map { it.kind }).containsExactly(APPLICATION, LIBRARY, UNREACHABLE)
+      assertThat(leaks.objectCount).isZero()
+      assertThat(leaks.leakingObjectIds).isEmpty()
+    }
+  }
+
+  @Test fun `what a leaking object holds is leaking with it`() {
+    HeapExplorer.open(testFolder.watchedLeakHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val leaking = tree.findLeaks().objectsOf(APPLICATION).single()
+      val payload = tree.children(leaking.objectId).single()
+
+      // What the treemap shades by: the payload is only still in memory because the leak is.
+      assertThat(tree.isBelowLeakingObject(payload)).isTrue()
+      assertThat(tree.isBelowLeakingObject(leaking.objectId)).isFalse()
+      assertThat(tree.isBelowLeakingObject(tree.findByLabel("Holder").objectId)).isFalse()
+    }
+  }
+
+  @Test fun `nothing is below a leak in a heap dump that has none`() {
+    testFolder.openTestHeapDump().use { explorer ->
+      val tree = explorer.tree
+
+      assertThat(tree.findByLabel("Object[]").objectId).matches { !tree.isBelowLeakingObject(it) }
+    }
+  }
+}
+
+private fun HeapLeaks.sectionOf(kind: LeakKind): LeakSection = sections.single { it.kind == kind }
+
+private fun HeapLeaks.objectsOf(kind: LeakKind): List<LeakingObject> =
+  sectionOf(kind).groups.flatMap { it.objects }

@@ -230,6 +230,7 @@ private fun RadialUnderTest(
       RadialView(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
+        shading = LeakShading.NONE,
         selected = selected,
         hovered = hovered,
         onClick = {

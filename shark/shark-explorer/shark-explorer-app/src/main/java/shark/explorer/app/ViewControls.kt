@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import shark.explorer.HeapSizes
@@ -37,6 +38,9 @@ internal fun ViewControls(
   sizes: HeapSizes,
   shape: ViewShape,
   coloring: CellColoring,
+  /** How many objects of the heap dump are leaking, once they have been found. Null until then. */
+  leakCount: Int?,
+  isFindingLeaks: Boolean,
   onColoringChange: (CellColoring) -> Unit,
   onShapeChange: (ViewShape) -> Unit,
   modifier: Modifier = Modifier
@@ -49,7 +53,10 @@ internal fun ViewControls(
       StrengthLegend(
         sizes = sizes,
         coloring = coloring,
-        onColoredStrengthsChange = { onColoringChange(coloring.copy(coloredStrengths = it)) }
+        leakCount = leakCount,
+        isFindingLeaks = isFindingLeaks,
+        onColoredStrengthsChange = { onColoringChange(coloring.copy(coloredStrengths = it)) },
+        onShowLeaksChange = { onColoringChange(coloring.copy(showsLeaks = it)) }
       )
       Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -130,7 +137,10 @@ private fun <T> OptionPicker(
 private fun StrengthLegend(
   sizes: HeapSizes,
   coloring: CellColoring,
-  onColoredStrengthsChange: (Set<ReachabilityStrength>) -> Unit
+  leakCount: Int?,
+  isFindingLeaks: Boolean,
+  onColoredStrengthsChange: (Set<ReachabilityStrength>) -> Unit,
+  onShowLeaksChange: (Boolean) -> Unit
 ) {
   FlowRow(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -143,29 +153,60 @@ private fun StrengthLegend(
     )
     ReachabilityStrength.values().forEach { strength ->
       val checked = strength in coloring.coloredStrengths
-      Row(
-        // The whole thing is one toggle, label included, so clicking the name works too.
-        Modifier.toggleable(
-          value = checked,
-          role = Role.Checkbox,
-          onValueChange = { isChecked ->
-            onColoredStrengthsChange(
-              if (isChecked) {
-                coloring.coloredStrengths + strength
-              } else {
-                coloring.coloredStrengths - strength
-              }
-            )
-          }
-        ).padding(end = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        Checkbox(checked = checked, onCheckedChange = null)
-        Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, strength)))
-        Text(strength.legendText(sizes), style = MaterialTheme.typography.bodySmall)
-      }
+      LegendRow(
+        isChecked = checked,
+        onCheckedChange = { isChecked ->
+          onColoredStrengthsChange(
+            if (isChecked) {
+              coloring.coloredStrengths + strength
+            } else {
+              coloring.coloredStrengths - strength
+            }
+          )
+        },
+        swatch = legendColor(coloring, strength),
+        label = strength.legendText(sizes)
+      )
     }
+    // Last, and after the strengths rather than among them, because it is not one of them: a strength is
+    // how the collector holds an object, and this is whether the object should be there at all. Ticking it
+    // is what sends the explorer looking for the leaks, so the row says so while that runs.
+    Hint(LEAKING_HINT) {
+      LegendRow(
+        isChecked = coloring.showsLeaks,
+        onCheckedChange = onShowLeaksChange,
+        swatch = LEAK_COLOR,
+        label = when {
+          isFindingLeaks -> FINDING_LEAKS
+          leakCount != null -> "$LEAKING $leakCount"
+          else -> LEAKING
+        }
+      )
+    }
+  }
+}
+
+/** A checkbox, the colour it turns on, and what that colour means. */
+@Composable
+private fun LegendRow(
+  isChecked: Boolean,
+  onCheckedChange: (Boolean) -> Unit,
+  swatch: Color,
+  label: String
+) {
+  Row(
+    // The whole thing is one toggle, label included, so clicking the name works too.
+    Modifier.toggleable(
+      value = isChecked,
+      role = Role.Checkbox,
+      onValueChange = onCheckedChange
+    ).padding(end = 8.dp),
+    horizontalArrangement = Arrangement.spacedBy(2.dp),
+    verticalAlignment = Alignment.CenterVertically
+  ) {
+    Checkbox(checked = isChecked, onCheckedChange = null)
+    Box(Modifier.size(SWATCH_SIZE).background(swatch))
+    Text(label, style = MaterialTheme.typography.bodySmall)
   }
 }
 
@@ -188,6 +229,18 @@ private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf
   ReachabilityStrength.LOCAL,
   ReachabilityStrength.UNREACHABLE
 )
+
+/** What the checkbox that shades the objects that shouldn't be in memory says, before their count. */
+internal const val LEAKING = "Leaking"
+
+/** And while the pass over the heap dump that finds them runs, which is what ticking it starts. */
+internal const val FINDING_LEAKS = "Leaking: looking…"
+
+internal const val LEAKING_HINT =
+  "Shade the objects that shouldn't be in memory, and everything they hold with them — anything a " +
+    "leaking object dominates is only still there because it is. There is no colour for the objects " +
+    "that are meant to be alive: a treemap draws what retains what, and most of a heap dump is objects " +
+    "nothing knows either way about. The chain beside the map says which is which, object by object."
 
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
