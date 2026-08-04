@@ -8,6 +8,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.MouseInjectionScope
 import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
 
 /**
@@ -41,6 +42,26 @@ internal fun ComposeUiTest.waitForTheTree(timeoutMillis: Long) {
         .fetchSemanticsNodes()
         .isEmpty()
   }
+}
+
+/**
+ * The middle of a row of the stack, counting from the one across the top, in the window's coordinates.
+ *
+ * In rows rather than in a fraction of the view, because rows are what the stack is laid out in: they are
+ * [STACK_ROW_HEIGHT] tall from the top of the view however deep the tree is, so a point given as a
+ * fraction of a view six hundred pixels tall is past the last row of a shallow tree. Density is 1 in a UI
+ * test, so a dp of row height is a pixel of view — see [explorerUiTest].
+ */
+@OptIn(ExperimentalTestApi::class)
+internal fun ComposeUiTest.stackRow(
+  row: Int,
+  xFraction: Float = 0.5f
+): Offset {
+  val view = onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
+  return Offset(
+    x = view.left + view.width * xFraction,
+    y = view.top + STACK_ROW_HEIGHT.value * (row + 0.5f)
+  )
 }
 
 /**

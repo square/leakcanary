@@ -91,7 +91,7 @@ class HeapExplorerTest {
     HeapExplorer.open(testFolder.pixelBitmapHeapDump()).use { explorer ->
       val tree = explorer.tree
       val bitmap = tree.findByLabel("Bitmap")
-      val presented = tree.present(TreemapLayout(), VIEWPORT)
+      val presented = TreemapPresentation.of(tree, TreemapLayout(), VIEWPORT)
         .cells
         .single { (it.cell.subject as? CellSubject.Node)?.node == bitmap.objectId }
 
@@ -550,7 +550,7 @@ class HeapExplorerTest {
     HeapExplorer.open(testFolder.crowdedRootHeapDump()).use { explorer ->
       val tree = explorer.tree
       val group = tree.classGroup().nodeId
-      val presented = tree.present(TreemapLayout(), VIEWPORT)
+      val presented = TreemapPresentation.of(tree, TreemapLayout(), VIEWPORT)
         .cells
         .single { (it.cell.subject as? CellSubject.Node)?.node == group }
 

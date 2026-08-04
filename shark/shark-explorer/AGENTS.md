@@ -1,7 +1,8 @@
 # Shark Explorer — agent guide
 
-A desktop app that renders a heap dump's dominator tree as a navigable treemap, or as rings around a
-centre. The long term goal is a YourKit-style heap explorer; these are the first surfaces.
+A desktop app that renders a heap dump's dominator tree as a navigable treemap, as rings around a
+centre, or as a stack of rows the way a profiler draws a call tree. The long term goal is a YourKit-style
+heap explorer; these are the first surfaces.
 
 This file is scoped to `shark/shark-explorer/`. It only records things an agent would get wrong by
 reading the source alone — everything else is in the code. Keep it that way.
@@ -192,6 +193,17 @@ tiles.
 - **Relaunching a title while a window of that title is open** is the one thing to avoid: the bundle is
   rewritten in place, and that window is reading it.
 
+**And a Gradle build of any kind kills every explorer window already open.** `run` and `runNamed` both
+put the module jars on the classpath rather than a copy of them, and a JVM reads a jar's index once and
+then trusts it, so recompiling under a live window makes every class that window hasn't happened to load
+yet disappear. What that looks like is the window dying on the next pointer move with
+`NoClassDefFoundError: shark/explorer/TreemapPoint`, a `ClassNotFoundException` under it, and a stack
+trace through code nobody has touched — the class is in the source and in the jar, which is exactly what
+makes it read like a real bug in whatever was being worked on. Measured: a window launched at 16:42, a
+`shark-explorer-core:check` rewriting that jar at 16:46, and the first hover after it gone. So **launch
+the window you are handing over last**, after everything that builds — and when one dies this way, check
+the jar's mtime against the process start before believing the stack trace.
+
 [dock-bug]: https://bugs.openjdk.org/browse/JDK-8173753
 
 ## Reading these names without being able to see the screen
@@ -304,6 +316,13 @@ numbers belong in `notes/bitmaps.md`.
 - **Hovering takes two moves.** A view describes what the pointer *moved* onto and ignores the enter that
   comes with a pointer arriving, so a single injected `moveTo` reports nothing hovered. `hover()` in
   `ExplorerUiTest.kt` moves twice; `notes/decisions.md` says why the views read events that way.
+- **An injected scroll only lands after a `waitForIdle()`.** `performMouseInput { scroll(n) }` on the
+  stack does scroll it, but the offset is still 0 in the same breath, because the scroll is animated and
+  the frame hasn't run — so reading it, or the callback it fires, right after the injection says nothing
+  happened. Which reads exactly like a wheel a headless test can't deliver, and cost an afternoon of
+  looking for one. **How far one notch scrolls is the platform's**, ten pixels with no AWT wheel event
+  behind the pointer event to say otherwise, so a test scrolls by notches and reads the pixels back off
+  `SemanticsProperties.VerticalScrollAxisRange` rather than asserting a number of its own.
 - **Each shape draws into a single `Canvas`, so there are no per-cell semantics nodes.** UI
   tests can't find cells by tag, and **not by label either** — a cell's label is painted text, so no
   assertion and no wait can reach it. Test layout and hit testing as pure functions in

@@ -1,26 +1,73 @@
 # Rendering the dominator tree
 
 Implemented in `shark-explorer-core`: `Squarify.kt` (row layout), `TreemapLayout.kt` (adaptive depth
-and hit testing), `RadialLayout.kt` (the same, as rings), `TreemapRect.kt`, `LayoutCell.kt` (what the
-two layouts have in common), `HeapDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and
-`present()` / `presentRadial()`, which turn a layout into the labelled, coloured presentation the UI
-draws). Drawn by `TreemapView` and `RadialView` in `shark-explorer-app`.
+and hit testing), `RadialLayout.kt` (the same, as rings), `StackLayout.kt` (the same, as a row per
+level), `TreemapRect.kt`, `LayoutCell.kt` (what the three layouts have in common),
+`HeapDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and `present()`, which labels and
+colours the cells a layout produced), `TreemapPresentation.kt` (a presentation per shape, each with an
+`of()` pairing a layout with that). Drawn by `TreemapView`, `RadialView` and `StackView` in
+`shark-explorer-app`.
 
-## Two shapes, one cut of the tree
+**`of()` is a presentation's own, not a method per shape on `HeapDominatorTreemap`.** It used to be the
+other way round, and adding a third shape is what moved it: that class is a 1,200 line heap dump reader
+which detekt allows 50 functions, and `presentStack` was the fiftieth. Rather than split it somewhere
+arbitrary, the per-shape method came out of it — which is also the better line, since which shapes exist
+is no business of a heap dump reader. `present(cells)` is all that stayed behind: it reads a name and a
+strength off a `CellSubject`, and every shape's cells are those. **So a fourth shape needs nothing in
+`HeapDominatorTreemap` at all.**
+
+## Three shapes, one cut of the tree
 
 A cell is a `LayoutCell`: a `CellSubject` — one node, or the children a node didn't draw — plus a
 depth, a weight and whatever geometry its layout adds. `TreemapCell` adds a rectangle, `RadialCell` an
-annular sector. Everything downstream of the geometry works off `CellSubject` alone: labels, colours,
-where a click goes. That split is what keeps the second shape from being a second copy of all of it, and
-it's why adding a third would mean one new layout plus one new `Canvas`, nothing else.
+annular sector, `StackCell` a rectangle again, on a row. Everything downstream of the geometry works off
+`CellSubject` alone: labels, colours, where a click goes. That split is what keeps a second shape from
+being a second copy of all of it, and the third shape is what confirmed the price: `StackLayout` plus
+`StackView`, one new `Canvas`, and three small things beside them — a `ViewShape`, a `ViewPresentation`
+and a `StackPresentation` with its `of()`. Nothing about colouring, labelling, selection, hit resolution
+or navigation moved.
 
-The two layouts make the same decisions — largest cell subdivided first, children too small to see
+The three layouts make the same decisions — largest cell subdivided first, children too small to see
 grouped, a cell budget, truncation counted — differing only in what "too small" measures. A treemap
 compares areas; the radial view compares arc lengths along the middle of a ring, because a sector of
-the same sweep is bigger the further out it sits. A ring holds far less than a rectangle does: 50
-equally sized children under one node is already past what a ring can show one by one, where a treemap
-draws a couple of hundred. So the radial view groups sooner and is the better read of the *shape* of
-the tree, while the treemap is the better read of sizes.
+the same sweep is bigger the further out it sits; the stack compares widths, since a row's height is
+fixed. A ring holds far less than a rectangle does: 50 equally sized children under one node is already
+past what a ring can show one by one, where a treemap draws a couple of hundred. So the radial view
+groups sooner and is the better read of the *shape* of the tree, while the treemap is the better read of
+sizes.
+
+## The stack: depth is a row, not an area
+
+Profilers draw a call tree as an icicle chart — a row per level, roots at the top, a block's width its
+share of the whole — and a dominator tree reads the same way, with "who retains this" in place of "who
+called this". `StackLayout` is that chart.
+
+What it buys over the other two is that **a level costs no width**. A treemap and a ring both pay area
+for nesting, so the deep end of a chain is a sliver; a stack gives every level a full row, so the last
+object in a 22-level chain is drawn as wide as its share of the heap deserves and — this is the part
+that matters — **named**, at every depth, along with its size. The treemap can only name one level
+(see below) because a subdivided rectangle is covered by its children. A row is covered by the row
+below it, not by its own contents, so there is nothing in the way of a label.
+
+Three consequences of that, each of them a decision:
+
+- **Children are sized against the parent's own weight, and the remainder is a `CellSubject.Own`
+  block** at the right end of the row — the same reason the treemap has one, for the same effect: a
+  block is its share of the whole heap at every depth rather than of its siblings. It also means no
+  pixel of a row belongs to nothing, so hit testing has no gaps to explain.
+- **The stack has to bound its rows** (`maxRows`, 64). The cell budget doesn't bound it: a chain of
+  single dominators never narrows, so every level of it clears the subdivide floor and 5,000 cells is a
+  5,000-row canvas. The other two shapes are bounded by their own geometry — a ring's arc, a
+  rectangle's area — and needed no such number.
+- **It is the one shape taller than the window, so it scrolls.** Which puts the pointer and the blocks
+  a scroll offset apart: `StackView` keeps the pointer where the pointer is, in the view's coordinates,
+  and adds the scroll only when asking the layout what is under it. The hover has to be worked out again
+  when the offset changes, too, since scrolling under a still pointer moves a different block under it
+  without any pointer event to say so.
+
+It skips one thing the treemap does: **a row doesn't draw its bitmap**. A row is a line of text tall,
+and a bitmap fitted into 18 dp is a smear — the picture is the treemap's contribution, and asking for it
+here would cost a heap dump read and a decode per row for nothing.
 
 ## Depth is area-driven, not a fixed level
 
@@ -103,6 +150,10 @@ Two things make that one level legible:
 
 Which also means a bitmap at that depth is named over its own picture, and one below it isn't named at all.
 
+All of which is the treemap's problem and the radial view's, and **not the stack's**: a row is covered by
+the row below it rather than by its own contents, so every row wide enough is named and given its size,
+whatever depth it is at. See "The stack" above.
+
 ### The children that don't fit become one rectangle, they aren't dropped
 
 All-or-nothing subdivision — a node is either fully laid out or shown as a bare rectangle — was the
@@ -133,6 +184,11 @@ A radial layout has one more bound: **rings**. Eight around the centre disk, the
 from the viewport, so the picture always fills the circle and depth past that needs a zoom. Sectors
 take their parent's whole sweep divided by weight, and a ring band is where a node's own name fits, so
 the radial view has not needed the treemap's own-weight cell.
+
+The stack's own bound is **rows**, `maxRows`, and its floors are lower than the treemap's — 6 dp to
+subdivide, 2 dp to draw, against 12 dp and 3 dp. A level of a stack costs no width, so subdividing a
+narrow block still buys a full row of detail, where in a picture that pays area for nesting it buys a
+sliver of a sliver.
 
 ### A negative node id is not the tree's own
 
@@ -255,7 +311,8 @@ colour and it would still cost a heap dump read and a decode — and `bitmapImag
 
 Cells are drawn into a single `Canvas`, so Compose has no per-cell node to hit test or to expose to
 tests. Hit testing is therefore explicit: keep the laid out cells and resolve a click against their
-geometry — deepest rectangle containing the point for a treemap, ring and angle for the radial view.
+geometry — deepest rectangle containing the point for a treemap, ring and angle for the radial view,
+row and the block along it for the stack.
 
 **Except that the deepest rectangle is not always the answer.** A subdivided rectangle is covered by its
 own children, so `cellAt` takes an `edgeGrab`: within that distance of an edge, a container wins over

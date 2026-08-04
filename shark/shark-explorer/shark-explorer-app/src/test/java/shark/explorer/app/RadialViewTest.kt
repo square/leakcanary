@@ -157,7 +157,7 @@ class RadialViewTest {
     }
   }
 
-  /** What [shark.explorer.HeapDominatorTreemap.presentRadial] does, for a tree that isn't a heap dump. */
+  /** What [shark.explorer.RadialPresentation.of] does, for a tree that isn't a heap dump. */
   private fun TreemapTree<Long>.present(
     layout: RadialLayout<Long> = RadialLayout()
   ): RadialPresentation {
