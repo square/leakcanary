@@ -405,21 +405,46 @@ finder deprioritizes a known-leaking reference and goes through one only when th
 object, and this chain is simply the shortest one there is. Which is the price of one path everywhere, paid
 knowingly.
 
-**Leaks are grouped the way LeakCanary groups them**: the app's own by the references between the last
-object known to be needed and the leaking one — the stretch of the chain the leak is in — and library ones
-by the pattern they were recognized by. Fifty leaked rows of one list are one thing to fix, so a group is
-one row until it is unfolded — one object or fifty, since a row that led somewhere when it held one and
-unfolded when it held two would be two rows that look the same and do different things. `LeakGroup.signature`
-is a SHA-1 of what grouped it, which is what makes a leak something to write in a bug report; it is not the
-number LeakCanary prints, which hashes the leak trace its own path finder found.
+**A leak is a reference, not a class**, and that is what groups the app's own leaks: the suspect stretch of
+the chain, from the last object known to still be needed down to the first one that shouldn't be there, and
+nothing else. `suspectSubpath` is `LeakTrace.suspectReferenceSubpath`'s rule, down to erasing array indices
+the way `referenceGenericName` does. Three things are deliberately left out of it. **The class of what
+leaked**, because two objects reached through one bad reference are one thing to fix whatever they are.
+**Everything below the first leaking object**, because that is what the leak is *holding* rather than why —
+an activity and a bitmap eight references under it are the same leak. **Which slot of an array an object
+landed in**, because that changes between two dumps of the same app and a leak has to be the same leak in
+both. The row is named after the first reference of that stretch, like LeakCanary's `shortDescription`;
+library leaks are grouped by the pattern they were recognized by instead. Fifty leaked rows of one list are
+one thing to fix, so a group is one row until it is unfolded — one object or fifty, since a row that led
+somewhere when it held one and unfolded when it held two would be two rows that look the same and do
+different things. `LeakGroup.signature` is a SHA-1 of what grouped it, which is what makes a leak something
+to write in a bug report; it is not the number LeakCanary prints, which hashes the leak trace its own path
+finder found.
 
 **A leak whose chain runs through another leak is dropped from the list** (`foldedIntoWhatHoldsThem`). A
 leaked activity holds a leaked window which holds a leaked view tree, and every one of those is an object an
 inspector recognizes: what LeakCanary's `deduplicateShortestPaths` keeps is the path nearest the roots, and
 so does this. It is most of the list — on the dumps in this repo, 26 leaking objects come out as 1 leak and
-14 collected ones, 31 as 6, and 48 as 3 — and nothing is lost by it, because the chain drawn for the leak
-that stays runs through the ones that went and says of each that it is leaking. Off the steps of that chain
-rather than a walk of its own, so a leak is only folded into one whose drawn chain really does reach it.
+14 collected ones, 31 as 4, and 48 as 3 — and nothing is lost by it: they are all still on the map, shaded
+as leaking, and opening one draws a chain that runs through the leak it went under. Off the whole chain
+(`rootPathObjectIdsTo`) rather than the twenty steps of it that get drawn, since a leak held by another one
+is held by it however far above it that one is.
+
+**The number of leaks is checked against LeakCanary's own analysis of the same heap dump.** `HeapAnalyzer`
+with `FilteringLeakingObjectFinder(appLeakingObjectFilters)` and `AndroidObjectInspectors.appDefaults` —
+the "every leak in the dump" analysis `shark-cli analyze` runs, not the retained-since-the-last-dump one —
+finds the same number of application leaks as this screen on all ten real Android dumps in this repo. That
+is the check worth running after touching any of this, and it is what the three rules above were settled
+by: before them `compose_leak.hprof` came out as 5 leaks against LeakCanary's 2, and `large-dump.hprof` as 3
+against 2.
+
+**The counts agree; which objects sit under which leak needn't**, because the two find different paths, and
+that is the price of one path everywhere rather than a bug. LeakCanary lists 23 objects under
+`Recomposer.compositionInvalidations` in `compose_leak.hprof` where this lists 2, the other 21 being held
+through one of those two on the explorer's own chains. And `leak_asynctask_o.hprof` is
+`AsyncTask.SERIAL_EXECUTOR` there and `Thread.<local variable>` here: both reach the same object, and
+LeakCanary's prioritizing path finder passes over a running method's frame in favour of a static field,
+while this takes the shortest chain there is.
 
 **Shark's library leak matchers are added to the reference reader the tree is built from**
 (`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would

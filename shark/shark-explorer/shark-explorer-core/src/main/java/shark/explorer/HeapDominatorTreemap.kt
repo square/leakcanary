@@ -42,6 +42,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
 import shark.AndroidObjectInspectors
+import shark.ReferenceLocationType
 import shark.SharkLog
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
@@ -638,9 +639,19 @@ class HeapDominatorTreemap internal constructor(
    * walk over as much of the graph as it takes to reach a root, and only the steps that end up shown are
    * read out of the heap dump. At most [MAX_ROOT_PATH_STEPS] of them.
    */
-  fun rootPathTo(objectId: Long): RootPath {
+  fun rootPathTo(objectId: Long): RootPath = rootPathAlong(rootPathObjectIdsTo(objectId))
+
+  /**
+   * That same chain as object ids, the whole of it, from the GC rooted object down to [objectId]. Empty
+   * when nothing the tree was built from reaches it.
+   *
+   * The walk is what finding a chain costs, and reading a step out of the heap dump is what showing one
+   * does, so the walk is separate: a question about the whole chain that ids alone answer — whether another
+   * leak is above this object on it — is asked here rather than of the steps that ended up drawn.
+   */
+  private fun rootPathObjectIdsTo(objectId: Long): List<Long> {
     if (objectId == root || objectId !in nodes) {
-      return RootPath.NONE
+      return emptyList()
     }
     val targetIndex = referrerIndex.indexOf(objectId)
     if (targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
@@ -649,7 +660,7 @@ class HeapDominatorTreemap internal constructor(
       SharkLog.d {
         "No path to ${hexObjectId(objectId)}: it is a node of the tree and no object of the heap dump"
       }
-      return RootPath.NONE
+      return emptyList()
     }
     val found = rootPathSearch.findPath(targetIndex)
     if (found == null) {
@@ -659,15 +670,23 @@ class HeapDominatorTreemap internal constructor(
       SharkLog.d {
         "No path from a GC root down to ${hexObjectId(objectId)}, though the tree hangs it off one"
       }
+      return emptyList()
+    }
+    return found.map { referrerIndex.objectIdAt(it) }
+  }
+
+  /** The steps of [pathObjectIds] worth drawing, read out of the heap dump. See [rootPathTo]. */
+  private fun rootPathAlong(pathObjectIds: List<Long>): RootPath {
+    if (pathObjectIds.isEmpty()) {
       return RootPath.NONE
     }
     // Kept from the object up, like an independent path: what holds it directly is what a reader is
     // after, and the plumbing between a GC root and an app's own objects rarely is.
-    val hiddenStepCount = (found.size - MAX_ROOT_PATH_STEPS).coerceAtLeast(0)
+    val hiddenStepCount = (pathObjectIds.size - MAX_ROOT_PATH_STEPS).coerceAtLeast(0)
     // One before the first shown step, when there is one: it names the field that step is held in.
     val fromIndex = (hiddenStepCount - 1).coerceAtLeast(0)
-    val objectIds = (fromIndex until found.size).map { referrerIndex.objectIdAt(found[it]) }
-    val dominatorIds = dominatorIdsOf(objectId)
+    val objectIds = pathObjectIds.subList(fromIndex, pathObjectIds.size)
+    val dominatorIds = dominatorIdsOf(pathObjectIds.last())
     val steps = objectIds.mapIndexedNotNull { index, stepObjectId ->
       when {
         index > 0 -> stepTo(stepObjectId, referrerId = objectIds[index - 1])
@@ -678,7 +697,7 @@ class HeapDominatorTreemap internal constructor(
       }
     }
     return RootPath(
-      gcRootLabel = gcRootLabelOf(referrerIndex.objectIdAt(found.first())),
+      gcRootLabel = gcRootLabelOf(pathObjectIds.first()),
       steps = steps.withLeakStatuses()
         .map { RootPathStep(it, isDominator = it.objectId in dominatorIds) },
       hiddenStepCount = hiddenStepCount
@@ -801,7 +820,12 @@ class HeapDominatorTreemap internal constructor(
     val strength = strengthOf(objectId)
     // Nothing holds it, so there is no chain to read and nothing to group by but its class: it is a leak
     // that has already been collected, or that the collection before the dump was written got to.
-    val path = if (strength == ReachabilityStrength.UNREACHABLE) RootPath.NONE else rootPathTo(objectId)
+    val pathObjectIds = if (strength == ReachabilityStrength.UNREACHABLE) {
+      emptyList()
+    } else {
+      rootPathObjectIdsTo(objectId)
+    }
+    val path = rootPathAlong(pathObjectIds)
     val steps = path.steps.map { it.step }
     val target = steps.lastOrNull()
     // The last step of the chain is this object, already read while the chain was. Only a leak with no
@@ -819,10 +843,10 @@ class HeapDominatorTreemap internal constructor(
       watcher = watcher
     )
     val simpleClassName = leakingObject.className.substringAfterLast('.')
-    // Everything above this object on the chain, which is what says whether another leak holds it. Off the
-    // chain that will be drawn rather than off a walk of its own, so a leak folded into another is one the
-    // chain of that other leak really does run through, cut and all.
-    val heldThroughIds = steps.dropLast(1).map { it.objectId }
+    // Everything above this object on the chain, which is what says whether another leak holds it. The
+    // whole chain and not the drawn part of it, since a leak held by another one is held by it however far
+    // above the object that one is.
+    val heldThroughIds = pathObjectIds.dropLast(1)
     if (steps.isEmpty()) {
       return FoundLeak(
         kind = LeakKind.UNREACHABLE,
@@ -848,25 +872,56 @@ class HeapDominatorTreemap internal constructor(
         heldThroughIds = heldThroughIds
       )
     }
+    val suspectSubpath = suspectSubpath(steps)
     return FoundLeak(
       kind = LeakKind.APPLICATION,
-      // The references between the last object that is known to be needed and this one, which is the
-      // stretch of the chain the leak is in: two objects leaking the same way have the same one, and it
-      // is what LeakCanary groups leaks by too.
-      groupKey = "$simpleClassName ${suspectSubpath(steps)}",
-      title = simpleClassName,
+      // The suspect stretch of the chain and nothing else, which is the rule LeakCanary groups leaks by:
+      // two objects reached through the same one are two instances of one leak, whatever their classes
+      // and however far below it they are.
+      groupKey = suspectSubpath.joinToString(" → ").ifEmpty { leakingObject.className },
+      // The reference that shouldn't be holding, which is the leak itself rather than one of the objects
+      // it left behind. Those are the rows under it, and each says what it is.
+      title = suspectSubpath.firstOrNull() ?: simpleClassName,
       subtitle = leakingObject.leakingReason,
       leakingObject = leakingObject,
       heldThroughIds = heldThroughIds
     )
   }
 
-  /** How the last object known to be needed reaches the leaking one, as `Class.field` per step. */
-  private fun suspectSubpath(steps: List<PathStep>): String {
+  /**
+   * The suspect stretch of a chain, as `Class.field` per reference: how the last object known to still be
+   * needed reaches the first one that shouldn't be there.
+   *
+   * What everything leaking for one reason has in common, and so what says two of them are one leak. The
+   * references below the first leaking object are left out because they are what the leak is holding rather
+   * than why: a leaked activity holds its window, its view tree and its bitmaps, and those are the same
+   * leak whether you land on the activity or on a bitmap eight references under it. The references above the
+   * last one known to be needed are left out for the other reason — they are the app working as intended.
+   *
+   * The same rule as `LeakTrace.suspectReferenceSubpath`, array indices erased like its
+   * `referenceGenericName`: two entries of one array are one leak, and which slot an object landed in
+   * changes from one heap dump to the next.
+   */
+  private fun suspectSubpath(steps: List<PathStep>): List<String> {
     val lastNotLeaking = steps.indexOfLast { it.leakStatus == LeakStatus.NOT_LEAKING }
-    return steps.drop(lastNotLeaking + 1)
-      .mapNotNull { it.reference }
-      .joinToString(" → ") { "${it.ownerClassName}.${it.name}" }
+    val firstLeaking = steps.indexOfFirst { it.leakStatus == LeakStatus.LEAKING }
+      .let { if (it == -1) steps.lastIndex else it }
+    return (lastNotLeaking + 1..firstLeaking)
+      .mapNotNull { steps[it].reference }
+      .map { it.genericLabel() }
+  }
+
+  /**
+   * A reference spelled the way the chain pane spells it — `Tile.view`, `Object[][x]` — with an array index
+   * erased, since which slot an object is in is no part of what makes a leak that leak.
+   *
+   * Spelled that way because a leak is named after one of these, and the name is only worth anything if it
+   * is the same string as the step someone then goes looking for on the chain.
+   */
+  private fun PathReference.genericLabel(): String = when (locationType) {
+    ReferenceLocationType.ARRAY_ENTRY -> "$ownerClassName[x]"
+    ReferenceLocationType.LOCAL -> "$ownerClassName.$LOCAL_VARIABLE"
+    ReferenceLocationType.INSTANCE_FIELD, ReferenceLocationType.STATIC_FIELD -> "$ownerClassName.$name"
   }
 
   /** One leaking object and which leak it is an instance of, before the instances are gathered. */
@@ -889,8 +944,9 @@ class HeapDominatorTreemap internal constructor(
    * let go of the activity and the other two go with it. Which is what LeakCanary does with the paths it
    * finds, by the same rule and for the same reason.
    *
-   * Nothing is lost by it. The chain drawn for the leak that stays runs through the ones that went, and
-   * says of each of them that it is leaking and why — which is the chain being read as a leak trace.
+   * Nothing is lost by it. Every one of them is still on the map, shaded as leaking like everything else a
+   * leak holds, and the chain drawn for one of them runs through the leak it was folded into and says that
+   * one is leaking and why — which is the chain being read as a leak trace.
    */
   private fun List<FoundLeak>.foldedIntoWhatHoldsThem(): List<FoundLeak> {
     val leakingIds = mapTo(mutableSetOf()) { it.leakingObject.objectId }
@@ -1526,6 +1582,13 @@ class HeapDominatorTreemap internal constructor(
      * are the ones anyone reads.
      */
     private const val MAX_LEAKING_OBJECTS = 500
+
+    /**
+     * What a reference from a running method is called, since it has no name of its own. The same words
+     * the chain pane uses, duplicated rather than shared: a leak named after a reference has to be named
+     * the way the chain spells it, and that is a string, not a module's API.
+     */
+    private const val LOCAL_VARIABLE = "<local variable>"
 
     /** What the unreachable section says instead of a reason, since being gone is the whole of it. */
     private const val UNREACHABLE_LEAK_SUBTITLE =

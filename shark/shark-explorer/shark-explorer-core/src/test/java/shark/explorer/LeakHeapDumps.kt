@@ -111,6 +111,39 @@ internal class NestedLeaksHeapDump(
   val windowObjectId: Long
 )
 
+/**
+ * A heap dump where one field holds a whole array of objects that shouldn't be there: two destroyed
+ * activities and a destroyed window, one per slot.
+ *
+ * Three objects, one thing to fix, and so one leak — which the two rules that say so are for. The slot an
+ * object landed in is no part of what makes it that leak, since it changes from one heap dump of an app to
+ * the next; neither is its class, since what a leak is, is the reference that shouldn't be holding.
+ */
+internal fun TemporaryFolder.leaksInOneArrayHeapDump(): File {
+  val file = newFile("leaks-in-one-array.hprof")
+  file.dump {
+    val activityClassId = activityClass()
+    val windowClassId = clazz(
+      className = WINDOW_CLASS_NAME,
+      superclassId = clazz(
+        className = "android.view.Window",
+        fields = listOf("mDestroyed" to BooleanHolder::class)
+      )
+    )
+    val leaks = objectArray(
+      instance(activityClassId, fields = listOf(BooleanHolder(true))),
+      instance(activityClassId, fields = listOf(BooleanHolder(true))),
+      instance(windowClassId, fields = listOf(BooleanHolder(true)))
+    )
+    val holder = instance(
+      clazz(className = HOLDER_CLASS_NAME, fields = listOf(LEAK_ARRAY_FIELD_NAME to ReferenceHolder::class)),
+      fields = listOf(leaks)
+    )
+    gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
 /** A heap dump where the only destroyed activity is one nothing points at any more. */
 internal fun TemporaryFolder.collectedActivityHeapDump(): File {
   val file = newFile("collected-activity.hprof")
@@ -175,6 +208,12 @@ internal const val WATCHED_CLASS_NAME = "com.example.LeakingPresenter"
 internal const val ACTIVITY_CLASS_NAME = "com.example.MainActivity"
 
 internal const val HOLDER_CLASS_NAME = "com.example.Holder"
+
+/** How a chain names the class a field is read on, which is how a leak named after that field is spelled. */
+internal const val HOLDER_SIMPLE_CLASS_NAME = "Holder"
+
+/** The field of [leaksInOneArrayHeapDump] that holds the array, which is what its leak is named after. */
+internal const val LEAK_ARRAY_FIELD_NAME = "leaks"
 
 /** The app framework's own `android.view.Window`, which is the class the window inspector looks for. */
 internal const val WINDOW_CLASS_NAME = "com.android.internal.policy.PhoneWindow"

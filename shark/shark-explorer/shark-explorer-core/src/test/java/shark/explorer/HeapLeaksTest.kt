@@ -62,9 +62,41 @@ class HeapLeaksTest {
 
       // The third activity of that dump is not destroyed, so it is not one of these.
       val group = leaks.sectionOf(APPLICATION).groups.single()
-      assertThat(group.title).isEqualTo("MainActivity")
       assertThat(group.objects).hasSize(2)
       assertThat(leaks.objectCount).isEqualTo(2)
+    }
+  }
+
+  @Test fun `a leak is named after the reference that shouldn't be holding`() {
+    HeapExplorer.open(testFolder.destroyedActivitiesHeapDump()).use { explorer ->
+      val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // Which is the leak itself. The two activities under it are what it left behind, and each of those
+      // rows says what it is, so the row above them is free to say why they are still there.
+      assertThat(group.title).isEqualTo("Holder.activity")
+    }
+  }
+
+  @Test fun `objects in two slots of one array are instances of one leak`() {
+    HeapExplorer.open(testFolder.leaksInOneArrayHeapDump()).use { explorer ->
+      val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // Which slot an object landed in changes from one heap dump of an app to the next, so a leak that
+      // was named after one would be a different leak in every dump. LeakCanary erases them for the same
+      // reason, and this is what makes its report and this list line up.
+      assertThat(group.title).isEqualTo("$HOLDER_SIMPLE_CLASS_NAME.$LEAK_ARRAY_FIELD_NAME")
+      assertThat(group.objects.filter { it.className == ACTIVITY_CLASS_NAME }).hasSize(2)
+    }
+  }
+
+  @Test fun `objects of two classes held the same way are instances of one leak`() {
+    HeapExplorer.open(testFolder.leaksInOneArrayHeapDump()).use { explorer ->
+      val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // A leak is the reference that shouldn't be holding rather than the class of what it holds: letting
+      // go of that array is the one thing to do, and it is not two things because a window is in it too.
+      assertThat(group.objects.map { it.className })
+        .containsExactlyInAnyOrder(ACTIVITY_CLASS_NAME, ACTIVITY_CLASS_NAME, WINDOW_CLASS_NAME)
     }
   }
 

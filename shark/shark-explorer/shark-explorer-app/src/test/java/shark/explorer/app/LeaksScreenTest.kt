@@ -54,8 +54,8 @@ class LeaksScreenTest {
       LeakKind.values().forEach { kind ->
         onNodeWithText("${kind.title} ·", substring = true).assertIsDisplayed()
       }
-      onNodeWithText(LEAKING_PRESENTER_CLASS_NAME.simpleName()).assertIsDisplayed()
-      onNodeWithText(LEAKING_ACTIVITY_CLASS_NAME.simpleName()).assertIsDisplayed()
+      onNodeWithText(PRESENTER_LEAK_NAME).assertIsDisplayed()
+      onNodeWithText(ACTIVITY_LEAK_NAME).assertIsDisplayed()
     }
   }
 
@@ -68,7 +68,7 @@ class LeaksScreenTest {
       onNodeWithText("2 objects").assertIsDisplayed()
       assertThat(nodesNaming(heapDump.activityObjectIds[0])).isEmpty()
 
-      unfold(LEAKING_ACTIVITY_CLASS_NAME, heapDump.activityObjectIds[0])
+      unfold(ACTIVITY_LEAK_NAME, heapDump.activityObjectIds[0])
 
       assertThat(nodesNaming(heapDump.activityObjectIds[1])).isNotEmpty()
     }
@@ -83,14 +83,14 @@ class LeaksScreenTest {
       onNodeWithText("1 object").assertIsDisplayed()
       assertThat(nodesNaming(heapDump.watchedObjectId)).isEmpty()
 
-      unfold(LEAKING_PRESENTER_CLASS_NAME, heapDump.watchedObjectId)
+      unfold(PRESENTER_LEAK_NAME, heapDump.watchedObjectId)
     }
   }
 
   @Test fun `clicking an object of a leak goes to it on the map`() {
     explorerUiTest {
       openLeaks()
-      unfold(LEAKING_PRESENTER_CLASS_NAME, heapDump.watchedObjectId)
+      unfold(PRESENTER_LEAK_NAME, heapDump.watchedObjectId)
 
       onNode(namesObject(heapDump.watchedObjectId) and hasClickAction()).performClick()
 
@@ -118,7 +118,7 @@ class LeaksScreenTest {
   @Test fun `what the app told LeakCanary about an object is on the row, and leads to the record`() {
     explorerUiTest {
       openLeaks()
-      unfold(LEAKING_PRESENTER_CLASS_NAME, heapDump.watchedObjectId)
+      unfold(PRESENTER_LEAK_NAME, heapDump.watchedObjectId)
 
       onNodeWithText(WATCHED, substring = true).performClick()
 
@@ -224,10 +224,10 @@ class LeaksScreenTest {
 
   /** Presses a leak's row, which unfolds it, and waits for the objects it holds. */
   private fun ComposeUiTest.unfold(
-    className: String,
+    leakName: String,
     firstObjectId: Long
   ) {
-    onNodeWithText(className.simpleName()).performClick()
+    onNodeWithText(leakName).performClick()
     waitUntilAtLeastOneExists(namesObject(firstObjectId), OPEN_TIMEOUT_MILLIS)
   }
 
@@ -248,8 +248,6 @@ class LeaksScreenTest {
   /** And one of the boxes beside it that colour the map by how firmly an object is held. */
   private fun ComposeUiTest.strengthToggle(): SemanticsNodeInteraction =
     onNode(hasText(ReachabilityStrength.STRONG.displayName, substring = true) and isToggleable())
-
-  private fun String.simpleName() = substringAfterLast('.')
 
   companion object {
     /** The two destroyed activities and the watched object of [leakyHeapDump]. */

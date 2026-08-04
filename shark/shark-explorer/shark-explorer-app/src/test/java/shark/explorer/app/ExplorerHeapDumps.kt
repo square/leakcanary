@@ -223,6 +223,15 @@ internal const val LEAKING_ACTIVITY_CLASS_NAME = "com.example.MainActivity"
 
 internal const val LEAKING_PRESENTER_CLASS_NAME = "com.example.LeakingPresenter"
 
+/**
+ * What the list calls the leak the two destroyed activities are instances of: the reference that shouldn't
+ * be holding them, which is what a leak is, rather than the class of what it holds.
+ */
+internal const val ACTIVITY_LEAK_NAME = "Holder.activity"
+
+/** And what it calls the leak the watched object is the one instance of. */
+internal const val PRESENTER_LEAK_NAME = "Presenters.presenter"
+
 /** A heap dump with more objects of one class directly under the root than a view can draw. */
 internal fun TemporaryFolder.crowdedRootHeapDump(): File {
   val file = newFile("crowded-root.hprof")
