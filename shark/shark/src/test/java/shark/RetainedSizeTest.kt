@@ -279,6 +279,35 @@ class RetainedSizeTest {
     assertThat(retainedByClassName).isEqualTo(mapOf("Leaking1" to 16, "Leaking2" to 4))
   }
 
+  @Test fun `leaking object with a path of its own is not retained by the leaking object that also retains it`() {
+    hprofFile.dump {
+      val child = "Child" watchedInstance {
+        field["answer"] = string("42")
+      }
+      "GcRoot" clazz {
+        staticField["shortestPath"] = "Parent" watchedInstance {
+          field["child"] = child
+        }
+        staticField["otherPath"] = "Holder" instance {
+          field["child"] = child
+        }
+      }
+    }
+
+    val retainedInstances = retainedInstances()
+    require(retainedInstances.size == 2)
+
+    // Child stays reachable through Holder when Parent goes away, so Parent doesn't retain it and
+    // is credited with nothing but its own reference to it. Which is also why Child has a leak
+    // trace of its own rather than being reported as a label on Parent's.
+    //   Parent: 4 byte reference                  =  4 bytes
+    //   Child:  4 byte reference + 12 byte string = 16 bytes
+    val retainedByClassName = retainedInstances.associate { leak ->
+      leak.leakTraces.single().leakingObject.className to leak.totalRetainedHeapByteSize!!
+    }
+    assertThat(retainedByClassName).isEqualTo(mapOf("Parent" to 4, "Child" to 16))
+  }
+
   @Test fun `an object the leaking object shares with a shorter path is not retained by it`() {
     hprofFile.dump {
       val answer = string("42")
