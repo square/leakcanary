@@ -859,10 +859,6 @@ class HeapDominatorTreemap internal constructor(
       watcher = watcher
     )
     val simpleClassName = leakingObject.className.substringAfterLast('.')
-    // Everything above this object on the chain, which is what says whether another leak holds it. The
-    // whole chain and not the drawn part of it, since a leak held by another one is held by it however far
-    // above the object that one is.
-    val heldThroughIds = pathObjectIds.dropLast(1)
     if (steps.isEmpty()) {
       return FoundLeak(
         kind = LeakKind.UNREACHABLE,
@@ -871,8 +867,7 @@ class HeapDominatorTreemap internal constructor(
         signature = leakingObject.className.sha1Hex(),
         title = simpleClassName,
         subtitle = UNREACHABLE_LEAK_SUBTITLE,
-        leakingObject = leakingObject,
-        heldThroughIds = heldThroughIds
+        leakingObject = leakingObject
       )
     }
     // The first one on the way down, so a chain through two known leaks is named after the one nearest
@@ -888,8 +883,7 @@ class HeapDominatorTreemap internal constructor(
         signature = libraryLeak.pattern.sha1Hex(),
         title = libraryLeak.pattern,
         subtitle = libraryLeak.description.ifEmpty { null },
-        leakingObject = leakingObject,
-        heldThroughIds = heldThroughIds
+        leakingObject = leakingObject
       )
     }
     return FoundLeak(
@@ -902,8 +896,7 @@ class HeapDominatorTreemap internal constructor(
       // it left behind. Those are the rows under it, and each says what it is.
       title = suspectSubpath(steps).firstOrNull() ?: simpleClassName,
       subtitle = leakingObject.leakingReason,
-      leakingObject = leakingObject,
-      heldThroughIds = heldThroughIds
+      leakingObject = leakingObject
     )
   }
 
@@ -952,29 +945,35 @@ class HeapDominatorTreemap internal constructor(
     val signature: String,
     val title: String,
     val subtitle: String?,
-    val leakingObject: LeakingObject,
-    /** The objects the chain runs through on the way to this one, which is every step above it. */
-    val heldThroughIds: List<Long>
+    val leakingObject: LeakingObject
   )
 
   /**
-   * Leaks whose chain runs through another leak, dropped from the list.
+   * Leaks another leak dominates, dropped from the list.
    *
    * A leaked activity holds a leaked window which holds a leaked view, and each of the three is an object
    * that shouldn't be in memory — but there is one thing to fix, and it is the one nearest the GC roots:
-   * let go of the activity and the other two go with it. Which is what LeakCanary does with the paths it
-   * finds, by the same rule and for the same reason.
+   * let go of the activity and the other two go with it.
    *
-   * Nothing is lost by it. Every one of them is still on the map, shaded as leaking like everything else a
-   * leak holds, and the chain drawn for one of them runs through the leak it was folded into and says that
+   * **Dominates, rather than "is on the chain drawn for it".** The claim being made about a folded row is
+   * that fixing the leak above it fixes it too, and that is only true when every way to it goes through
+   * that leak, which is what dominating is. An object a leak holds *one* of the ways to is an object that
+   * would still be there once that leak is gone, so it is a leak of its own and belongs on the list. Which
+   * also makes the list stable: whether one leak is under another is a property of the heap dump rather
+   * than of which of several equally good chains [rootPathTo] happened to pick.
+   *
+   * Nothing is lost by folding. Every one of them is still on the map, shaded as leaking like everything
+   * else a leak holds, and the chain drawn for one runs through the leak it was folded into and says that
    * one is leaking and why — which is the chain being read as a leak trace.
    */
   private fun List<FoundLeak>.foldedIntoWhatHoldsThem(): List<FoundLeak> {
     val leakingIds = mapTo(mutableSetOf()) { it.leakingObject.objectId }
-    val kept = filter { found -> found.heldThroughIds.none { it in leakingIds } }
+    val kept = filter { found ->
+      dominatorIdsOf(found.leakingObject.objectId).none { it in leakingIds }
+    }
     if (kept.size < size) {
       SharkLog.d {
-        "${size - kept.size} of the $size leaking objects are held by another one, and are listed under it"
+        "${size - kept.size} of the $size leaking objects are dominated by another one, listed under it"
       }
     }
     return kept

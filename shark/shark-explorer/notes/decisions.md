@@ -425,14 +425,19 @@ Fifty leaked rows of one list are one thing to fix, so a group is one row until 
 or fifty, since a row that led somewhere when it held one and unfolded when it held two would be two rows
 that look the same and do different things.
 
-**A leak whose chain runs through another leak is dropped from the list** (`foldedIntoWhatHoldsThem`). A
-leaked activity holds a leaked window which holds a leaked view tree, and every one of those is an object an
-inspector recognizes: what LeakCanary's `deduplicateShortestPaths` keeps is the path nearest the roots, and
-so does this. It is most of the list — on the dumps in this repo, 26 leaking objects come out as 1 leak and
-14 collected ones, 31 as 4, and 48 as 3 — and nothing is lost by it: they are all still on the map, shaded
-as leaking, and opening one draws a chain that runs through the leak it went under. Off the whole chain
-(`rootPathObjectIdsTo`) rather than the twenty steps of it that get drawn, since a leak held by another one
-is held by it however far above it that one is.
+**A leak another leak dominates is dropped from the list** (`foldedIntoWhatHoldsThem`). A leaked activity
+holds a leaked window which holds a leaked view tree, and every one of those is an object an inspector
+recognizes, and there is one thing to fix. Nothing is lost by it: they are all still on the map, shaded as
+leaking, and opening one draws a chain that runs through the leak it went under.
+
+**Dominates, rather than "is on the chain drawn for it"**, which is what this used to ask. The claim a fold
+makes is that fixing the leak above takes this one with it, and that is only true when every way to the
+object goes through that leak. It also makes the list a property of the heap dump instead of a property of
+which of several equally good chains the path finder picked — the reason to prefer it even where the two
+rules agree. Measured over the ten real dumps here: same leaks, same signatures, five more objects listed
+(`compose_leak` 6 rather than 3, `unloaded_classes-stripped` 4 rather than 2), all inside groups that were
+already there. `HeapLeaksTest` has the heap dump the two rules disagree about — a window a destroyed
+activity holds, and something that isn't leaking holds the long way round.
 
 **The leaks are checked against LeakCanary's own analysis of the same heap dump, by signature.**
 `HeapAnalyzer` with `FilteringLeakingObjectFinder(appLeakingObjectFilters)` and
@@ -443,14 +448,33 @@ worth re-running by hand after touching any of this, and it stands at **8 of the
 12 of the 15 leaks**. It is what found everything on this page: the counts alone matched three rounds before
 the signatures did, because two chains can be different and the same length.
 
-**Two differences are left, and both are about which objects get a chain of their own rather than about the
-chains.** `compose_leak.hprof` has two objects in one `HashSet` holding the same provider through a
-same-named field, so the two walks come out of the set at different entries — a tie between two paths of the
-same length that neither tool has a reason to break the same way. And `unloaded_classes-stripped.hprof`
-comes out as one leak against LeakCanary's two, because **LeakCanary's phase 1 treats a leaking object as a
-leaf**: its paths never cross another leak, so it finds both objects separately, where the shortest chain to
-the second one here runs through the first and folds under it. Fixing that would mean the leak list finding
-paths by rules the rest of the window doesn't use, which is the one thing this screen is not allowed to do.
+**Two dumps still differ, and neither is a tie-break nobody can explain.**
+
+`compose_leak.hprof` — six objects hold `DefaultMainActivityScopeProvider`, two of them entries of the same
+`MortarScope.tearDowns` `HashSet`, and the two tools take different ones. Both are deterministic and the
+orders are unrelated. **LeakCanary walks down**, so when it dequeues the set it enqueues the entries in the
+order Shark's `HashSet` reader reads the table, and the first of them claims the provider: that is
+`ActivityDelegateNotifier`, third in the table. **The explorer walks up**, and `ReferrerIndex` yields the
+referrers of an object most recently indexed first, so of the two it reaches the one further down the heap
+dump: `DemoRootWithGatekeepersWorkflowProvider`, object index 31516 against 31263. Everything else about the
+two ten-step chains is identical. Bucket order isn't stable across two dumps of one app either, so neither
+answer is the right one — but a walk up cannot see a walk down's order, and the only way to break it the
+same way is to walk down: one prioritized BFS from the GC roots at open time, filling a parent-per-object
+array that every chain is then read out of. That would be identical to a leak trace by construction, it is
+one int per object against `ReferrerIndex`'s two per reference, and it makes a chain a pointer chase rather
+than a search — but it is a different data structure, not a tie-break, and `ReferrerIndex` still has to
+exist for "every way this is held".
+
+`unloaded_classes-stripped.hprof` — one leak against LeakCanary's two, for two reasons that stack. The
+first is **an owner rule**: `InternalLeakCanary.resumedActivity → HomeActivity` is weakened, because an
+`Activity` is owned by the `ActivityThread$ActivityClientRecord` that holds it, so the explorer can't walk
+LeakCanary's ten-step prefix and takes an eleven-step one from a static `MediaStateMachine` instead. The
+second is that **LeakCanary's phase 1 treats a leaking object as a leaf**: its path to the `BrowserFragment`
+goes round the leaking `CoordinatorLayout` through `BrowserToolbarView.interactor`, where every chain here
+runs through it, and a suspect stretch stops at the first leaking object — so the fragment hashes to the
+same signature as the layout and joins its group. Which is why the fold rule is not what closes this one:
+under either rule those two objects share a signature. Fixing it would mean the leak list finding paths by
+rules the rest of the window doesn't use, which is the one thing this screen is not allowed to do.
 
 **Where the two used to differ, and what closed it** — four rounds, in the order they were found:
 

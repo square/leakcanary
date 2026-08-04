@@ -159,6 +159,22 @@ class HeapLeaksTest {
     }
   }
 
+  @Test fun `a leak held another way as well is listed even though a leak is on its chain`() {
+    val heapDump = testFolder.leakAlsoHeldAnotherWayHeapDump()
+    HeapExplorer.open(heapDump.file).use { explorer ->
+      val tree = explorer.tree
+      val leaking = tree.findLeaks().objectsOf(APPLICATION)
+
+      // The chain drawn for the window runs through the activity, since that is the shortest way to it, and
+      // folding it under the activity would claim that letting go of the activity takes the window with it.
+      // It wouldn't: something that isn't leaking holds the window too, the long way round.
+      assertThat(tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step.objectId })
+        .contains(heapDump.activityObjectId)
+      assertThat(leaking.map { it.objectId })
+        .containsExactlyInAnyOrder(heapDump.activityObjectId, heapDump.windowObjectId)
+    }
+  }
+
   @Test fun `the leak it was listed under is the one whose chain runs through it`() {
     val heapDump = testFolder.nestedLeaksHeapDump()
     HeapExplorer.open(heapDump.file).use { explorer ->
