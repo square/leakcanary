@@ -151,7 +151,16 @@ and then deleted. Neither is fixable here — both are `#mdx-ios` asks, and each
     `xcrun notarytool submit --wait`'s exit status rather than the `status` field of the JSON it asked
     for, so a refusal logs "Notarization complete" — and it discards that JSON, which is where the
     submission id was. Without the id, Apple's reason is only recoverable from `notarytool history`.
-    Both halves are fixed in squareup/mdx-ios-codesign-helper#20, so the next run says why.
+    Both halves are fixed in squareup/mdx-ios-codesign-helper#20, merged the same day.
+
+    A run after that merge failed, which is the fix working rather than a new problem: builds 1620 and
+    1621 spent nine minutes on a real submission and came back `failed`, where before they returned
+    "Notarization complete" and an artifact that would not launch. So the refusal is reproducible and
+    the pipeline now stops on it. **What it stops with is only legible in Buildkite, though.** The
+    lambda collapses any failed build into `Poll request failed with status 400` and `"error":
+    "Request failed"`, so the `notarytool log` output #20 added never reaches the GitHub Actions log —
+    reading it means opening the build at `buildkite.com/runway/mdx-ios-codesign-helper`, which is
+    Block-internal. Expect a signing failure here to need someone with that access.
 
 * **A space in the app's name breaks the reply, not the signing.** The service signed `Shark
   Explorer.app` correctly — the Buildkite job passed and uploaded the signed zip — and then the lambda
@@ -165,7 +174,8 @@ and then deleted. Neither is fixable here — both are `#mdx-ios` asks, and each
     **So `packageName` is `SharkExplorer` until then**, which is why the app is called that rather than
     what this page calls it. Changing it back is one line in
     `shark-explorer-app/build.gradle.kts` — but it renames the `.app` for everyone who installed one, so
-    it belongs in a release of its own rather than in the first commit after that lambda ships.
+    it belongs in a release of its own rather than in the first commit after that lambda ships. Under
+    that name a run does reach notarization, so this is a workaround that holds and not a guess.
 
 Until both are resolved there is no releasable macOS build, and the notarization check in the workflow
 fails the release rather than shipping one.
