@@ -95,6 +95,7 @@ nav:
     - 'Overview': shark.md
     - 'Shark API': api/shark/index.md
   - 'Shark Explorer':
+    - 'Overview': shark-explorer.md
     - 'Change Log': shark-explorer-changelog.md
   - 'LeakCanary API': api/index.md
   - 'Change Log': changelog.md
