@@ -123,14 +123,19 @@ internal class CachedMapValues(private val graph: HeapGraph) {
       .firstOrNull { it.name == mapFieldName }
       ?.valueAsInstance
       ?: return
-    val table = map.readFields().firstOrNull { it.name == TABLE_FIELD_NAME }?.valueAsObjectArray
-    if (table == null) {
+    val tableField = map.readFields().firstOrNull { it.name == TABLE_FIELD_NAME }
+    if (tableField == null) {
       SharkLog.d {
         "${cache.instanceClassSimpleName} keeps its entries in ${map.instanceClassSimpleName}, which " +
           "has no $TABLE_FIELD_NAME to read them from, so nothing of it reads as cached"
       }
       return
     }
+    // A map allocates its table on the first put, so a null one is a cache holding nothing rather than a
+    // shape this can't read, and says nothing worth a line: an idle app's dump is full of them — every
+    // `android.util.LruCache` of `compose-nopng.hprof` is an empty `LinkedHashMap`. Saying that couldn't
+    // be read would report five defects where there are none.
+    val table = tableField.valueAsObjectArray ?: return
     // A heap dump is a file, and a file can say anything: a bucket chain that loops would otherwise be
     // read until it ran out of memory.
     val entryIds = MutableLongSet()
@@ -186,13 +191,17 @@ internal class CachedMapValues(private val graph: HeapGraph) {
      * class of its own. Add an entry only against a heap dump that has the cache in it.
      */
     private val CACHE_MAP_FIELDS_BY_CLASS_NAME = mapOf(
-      // The framework's own LRU, size bounded and evicting on every put. Also what an app reaches for to
-      // cache its own bitmaps, which is where this was measured: two of them held 3.9 MB of the largest
-      // bitmaps of a real dump.
+      // The framework's own LRU, size bounded and evicting on every put, and what an app reaches for to
+      // cache its own bitmaps. In here for the app's own caches rather than for a measurement of its
+      // own: every one of the fourteen instances of it in `large-dump.hprof` is the framework's or a
+      // library's — nine SQLite prepared statement caches, a job cache, a typeface cache, two empty ones
+      // — so what it moves on that dump is bookkeeping and not pixels. The bitmaps that dump does hold
+      // in a cache are Picasso's below, which is a class of its own and no subclass of this.
       "android.util.LruCache" to "map",
       // Picasso's memory cache of decoded bitmaps, evicted over the maximum size and on `onTrimMemory`.
-      // `large-dump.hprof` has one holding the two biggest bitmaps of the dump, 3.9 MB, which sat at the
-      // top of the tree because nothing else holds them and a cache was all there was to blame.
+      // `large-dump.hprof` has one holding four bitmaps, a 760×1262 and three 126×126. Two of them are
+      // held by nothing else and move, 3,899,984 B, which sat at the top of the tree because a cache was
+      // all there was to blame; the other two stay strong under what shows them.
       "com.squareup.picasso.LruCache" to "map",
       // Glide's, which `LruResourceCache` is: the decoded resources of images nothing is displaying any
       // more, evicted over the maximum size and on `onTrimMemory`. What is displaying one holds it

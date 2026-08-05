@@ -227,8 +227,13 @@ at each value as well as through the node holding it. Dropping only the node's l
 held by the map, which is the cache holding it after all — the weakening then changes nothing and the only
 symptom is a byte count that didn't move.
 
-Measured on `large-dump.hprof`: 3.9 MB, the two biggest bitmaps of the dump, move out of `STRONG` and read
-as the Picasso cache they sit in, 13% of everything that dump held strongly.
+Measured on `large-dump.hprof`: 3.9 MB moves out of `STRONG` and reads as the Picasso cache it sits in,
+13% of everything that dump held strongly. That cache holds four bitmaps — a 760×1262 and three 126×126,
+4,026,992 B of pixels between them — and **two of them move**, 3,899,984 B: the big one and one of the
+small ones, which nothing else holds. The other two stay `STRONG` under what shows them, which is the rule
+working rather than a gap in it. Nothing moves for `android.util.LruCache` on that dump: all fourteen
+instances of it there are the framework's or a library's own, holding prepared statements and typefaces
+rather than images.
 
 ## An owner beats a bystander: the `OwnerReferences` rule
 
