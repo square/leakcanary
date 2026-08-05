@@ -42,6 +42,11 @@ Java 8 have to be able to use the artifacts.
 ./gradlew siteDokka                   # regenerate docs/api
 ```
 
+`docs/api/` — the `siteDokka` output — is git ignored, not committed. The release process
+regenerates it just before publishing the site (see `docs/releasing.md`), so a public API change
+means updating the ABI dump and nothing else. If you do run `siteDokka`, don't edit what it writes;
+fix the KDoc in the source.
+
 Instrumentation tests need a device or emulator and only cover `leakcanary-android`,
 `leakcanary-android-core`, `leakcanary-android-instrumentation` and `leakcanary-android-test`. CI
 runs them on one emulator per major Android release, from the minSdk to the newest API level with a
@@ -66,9 +71,6 @@ pair is what Kotlin's own ABI validation documentation calls these tasks, but he
 from KGP and therefore exist *only on the JVM modules* — they silently skip every Android library
 module, which is most of the published ones. A green `updateLegacyAbi` means less than half the repo
 was covered.
-
-**`docs/api/` is generated.** It's Dokka output committed to the repo, produced by
-`./gradlew siteDokka`. Never hand-edit those files; fix the KDoc in the source instead.
 
 **Some dependency versions are deliberately old.** The `compileOnly` AndroidX versions in
 `gradle/libs.versions.toml` are pinned to the *lowest* version LeakCanary supports, so that apps
