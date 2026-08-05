@@ -187,7 +187,8 @@ them apart, so it hands the bytes to the root — which is what `ReachabilityStr
 
 The fix for the above is to stop treating a cache's reference as retaining. `CACHE` ranks between
 `STRONG` and `SOFT`, and `ReferenceStrengthReader.CACHE_FIELDS_BY_CLASS_NAME` is the curated list of
-fields it applies to — one entry today, `coil3.memory.RealStrongMemoryCache$InternalValue.image`.
+fields it applies to — one entry today, `coil3.memory.RealStrongMemoryCache$InternalValue.image`. That
+list is half of it; the caches whose values no class name can name are the subsection below.
 
 The mechanics fall out of the weak reference machinery that was already there, because the rule the
 explorer wants is exactly the rule for a weak reference: **the target's strength decides**. A weakening
@@ -209,6 +210,25 @@ Two things to know before adding an entry to that list:
 - **Cut as low as the value a cache entry wraps**, not at the cache itself. Cutting at
   `InternalValue.image` leaves the map, the entries and the size bookkeeping strongly held by the cache,
   where they belong, and moves only the images.
+
+### A cache that wraps its values in nothing: `CachedMapValues`
+
+The caches an app is most likely to have are the ones a class name can't describe. `android.util.LruCache`,
+Picasso's and Glide's all keep what they cache in a `java.util.HashMap`, so the only thing between the
+cache and the value is a `HashMap$Node`, a class every map in the dump shares: weakening its `value` by
+class name would weaken every map there is, and weakening the cache's map field would take the table, the
+entries and the keys down with it. So which entries are a cache's is read off the heap dump instead —
+`CachedMapValues` walks the map of each cache listed in it and remembers what its entries point at, one
+pass over the classes and one over the instances, 30 to 45 ms on `large-dump.hprof`.
+
+**Two references to drop per value, not one**, and this is the part that breaks silently:
+`DataStructureReferenceReader` reads a map as the entries you put in it, so a cache's map points straight
+at each value as well as through the node holding it. Dropping only the node's leaves the value strongly
+held by the map, which is the cache holding it after all — the weakening then changes nothing and the only
+symptom is a byte count that didn't move.
+
+Measured on `large-dump.hprof`: 3.9 MB, the two biggest bitmaps of the dump, move out of `STRONG` and read
+as the Picasso cache they sit in, 13% of everything that dump held strongly.
 
 ## An owner beats a bystander: the `OwnerReferences` rule
 

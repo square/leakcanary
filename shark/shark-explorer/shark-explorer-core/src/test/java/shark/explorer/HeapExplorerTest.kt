@@ -271,6 +271,58 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `a value nothing but a cache with a map of them holds is reachable at the cache strength`() {
+    HeapExplorer.open(testFolder.mapCachedPayloadsHeapDump(alsoHeldByATile = false)).use { explorer ->
+      // One payload per cache and not a byte more: the framework's LruCache, and Glide's as the subclass
+      // an app really has.
+      assertThat(explorer.sizes.byteCountByStrength.getValue(CACHE)).isEqualTo(2 * PAYLOAD_BYTE_SIZE)
+
+      val tree = explorer.tree
+      listOf("LruCache", "LruResourceCache").forEach { cacheLabel ->
+        val below = tree.descendantsOf(tree.findByLabel(cacheLabel).objectId)
+        // Everything between the cache and what it caches is the cache's own bookkeeping, and stays held
+        // strongly by it: the map, the array of buckets, both entries of the chain and their keys. Cutting
+        // at the value an entry holds rather than at the map is what leaves them there.
+        assertThat(below.filter { it.strength == STRONG }.map { it.label })
+          .describedAs(cacheLabel)
+          .contains("LinkedHashMap", "HashMap\$Node[]", "LinkedHashMap\$Entry")
+        // And the one thing below it that isn't bookkeeping is the payload, which nothing else holds.
+        assertThat(below.filter { it.strength == CACHE }.map { it.label })
+          .describedAs(cacheLabel)
+          .containsExactly("Object[]")
+        // Held that one way and no other: a map is read as the entries you put in it, so it points at the
+        // payload itself as well as through the entry, and both of those references have to be the cache's
+        // rather than one of them keeping the payload strongly held.
+        val cached = below.single { it.strength == CACHE }
+        assertThat(tree.independentPathsBelowDominator(cached.objectId).paths.map { it.stepLabels() })
+          .describedAs(cacheLabel)
+          .containsExactly(listOf("value → Object[]"))
+      }
+    }
+  }
+
+  @Test fun `a reference from a cache with a map of them is not a way of holding what it caches`() {
+    HeapExplorer.open(testFolder.mapCachedPayloadsHeapDump(alsoHeldByATile = true)).use { explorer ->
+      val tree = explorer.tree
+      val cached = tree.descendantsOf(tree.findByLabel("Tile").objectId).single()
+
+      // A cache entry points at the payload as squarely as the tile does, and the panel still shows the
+      // reference as one of the entry's fields. What it isn't is a reason the payload is in memory, so the
+      // payload is the tile's, and held as firmly as the tile is.
+      assertThat(cached.strength).isEqualTo(STRONG)
+      assertThat(tree.independentPathsBelowDominator(cached.objectId).paths.map { it.stepLabels() })
+        .containsExactly(listOf("resource → Object[]"))
+      assertThat(tree.descendantsOf(tree.findByLabel("LruResourceCache").objectId).map { it.label })
+        .describedAs("what the cache is left retaining")
+        .doesNotContain("Object[]")
+      assertThat(
+        tree.allSummaries()
+          .filter { it.label == "LinkedHashMap\$Entry" }
+          .flatMap { entry -> entry.fields.map { "${it.name} = ${it.value}" } }
+      ).contains("value = Object[]")
+    }
+  }
+
   @Test fun `what only holds an object until the runtime is done with it is on no path`() {
     HeapExplorer.open(testFolder.lastResortHoldersHeapDump()).use { explorer ->
       val tree = explorer.tree
