@@ -250,13 +250,14 @@ itself and retained 4.2 KB and 3.9 KB instead of their windows. The damaging ref
 view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 
 `OwnerReferences` applies a curated list of `OwnerRule`s, each one a class taking the graph and answering
-which of an owner's references own what they point at — `ownerRulesFor` in `OwnerRules.kt`. Seven today: a
-`View` owned by the `ViewGroup` that reads it as a child (see below), a decor view owned by `Activity.mDecor`
-or `Dialog.mDecor`, an `Activity` owned by the `ActivityThread` that reads it as one it's running (see below
-too), the three Compose ones in the section on Compose below, and a dependency injection singleton owned by
-the provider caching it (see `notes/dependency-injection.md`). After: **every one of the 277 child views is
-under its parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity`
-retains 18 MB under the thread running it, which is the second largest rectangle under the GC roots.
+which of an owner's references own what they point at — `ownerRulesFor` in `OwnerRules.kt`. Eight today: a
+`View` owned by the `ViewGroup` that reads it as a child (see below), a decor view owned by the `mDecor` of
+the window it is the decor of, that window owned by the `Activity` or `Dialog` it is the window of, an
+`Activity` owned by the `ActivityThread` that reads it as one it's running (see below too), the three
+Compose ones in the section on Compose below, and a dependency injection singleton owned by the provider
+caching it (see `notes/dependency-injection.md`). After: **every one of the 277 child views is under its
+parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains
+18 MB under the thread running it, which is the second largest rectangle under the GC roots.
 
 **Which objects are owned is derived from those references rather than declared beside them**, and that
 distinction is load-bearing rather than tidiness. The rules used to name a class whose instances were owned —
@@ -271,6 +272,45 @@ all the way to the root. Derived, an object nothing owns is simply not owned: `P
 decor view the ordinary way, each view below it is still owned by its parent, and that `PhoneWindow` retains
 1.68 MB. Across the eight real dumps in the repo the change moved 0 to 53 objects of 34 K to 340 K, all of
 them windows and views, with the object set and every total byte count identical.
+
+**The screen a hierarchy belongs to is reached through its window, not straight from the activity.** Which is
+the other half of that `Activity.mDecor` measurement: the field is null on a live activity because
+`ActivityThread.handleResumeActivity` is the only place that writes it and does so under
+`if (r.window == null && !a.mFinished && willBeVisible)` — once per `ActivityClientRecord`, not once per
+`Activity`, so a screen recreated on a configuration change is visible, resumed and has a null `mDecor` for
+the rest of its life. `PhoneWindow.mDecor` has no such gap: every decor view in the seven real dumps here has
+exactly one referrer through it (1 of 1 in `compose_leak.hprof`, 3 of 3 in `leak_asynctask_m.hprof`, and so on).
+
+It is a decor view and not a root view, though — most root views have no window at all. 14 of the 15 in
+`compose_leak.hprof`, 9 of the 10 in `leak_asynctask_m.hprof` and 22 of the 23 in `gcroot_unknown_object.hprof`
+are `Toast` views, `PopupWindow.mContentView`, `TextView$MagnifierView`s, `Toolbar.mNavButtonView` image
+buttons and fragment roots, each held the ordinary way by whatever made it.
+
+**So the window needs a rule of its own, or moving the decor view one step down loses the screen.** A window
+has 6 to 9 referrers in these dumps, most of them its own inner classes and its decor's, and the external ones
+— `WindowManagerImpl.mParentWindow`, `ActivityThread$ActivityClientRecord.window`, `DecorView.mWindow` reached
+from a `ViewRootImpl` — put 6 of the 16 windows at the top of the tree. With only the decor rule that costs
+more than it used to, because the hierarchy now hangs off the window and floats with it:
+`gcroot_unknown_object.hprof`'s `PhoneWindow` went from 14 KB at the root to 3.09 MB there, and
+`large-dump.hprof`'s from 12 KB to 2.14 MB. With `Activity.mWindow` and `Dialog.mWindow` owning it, every
+decor view in every dump is under its window and every window of a screen that is up is under its screen.
+
+**That rule is the one whose owning reference outlives the construct it is about.** `Activity.mWindow` is set
+in `attach` and never cleared and `Dialog.mWindow` is final, so a destroyed activity and a dismissed dialog
+both go on pointing at a window they have nothing left to do with. Owning it regardless takes the window of a
+leaked screen away from whatever else is holding it: `HeapLeaksTest` went from two leaks to one, hiding the
+reference that would still have been there after the activity was fixed.
+
+So the rule owns through `mWindow` and asks whether the screen is up of *another* reference, one the framework
+does drop — the same self-clearing signal the other rules own by, borrowed from beside the one this rule owns
+through. A dialog is dropped from its own `mDecor`, which `show` sets and `dismiss` nulls; an activity is
+dropped from `ActivityThread.mActivities`, which `handleDestroyActivity` removes the record from and which the
+activity rule already owns activities by. Measured: reading the map rather than `Activity.mDestroyed` gives
+byte-identical trees and leak lists on all eight real dumps, `mActivities.size` matching the count of
+non-destroyed activities in every one of them. They fail in opposite directions, which is the reason to
+prefer the map — an `mDestroyed` a dump doesn't have reads as a screen that is up and keeps ownership, an
+`mActivities` this can't read reads as a thread running nothing and gives ownership up, which is the fallback
+every other rule already has.
 
 Deriving costs a record read per possible owner where declaring cost none: **4 ms to 26 ms** against 12 ms to
 32 ms, of the 1.5 s it takes to open these dumps. It buys the hot path back — asking whether a reference is a
@@ -291,19 +331,26 @@ rule the 82 MB dump comes out at exactly the same numbers as before — 80 MB st
 missing when you read `OwnerRules.kt`. "The parent owns an *attached* view" needs no attachment test, because a
 detached hierarchy isn't held by whatever holds the window: if the parent isn't reachable, no owner
 reference reaches the child and the fallback handles it. "Unless the activity is destroyed" needs no
-`mDestroyed` test either — `ActivityThread.handleDestroyActivity` sets `mDecor = null` and takes the
-`ActivityClientRecord` out of `mActivities`, so the framework has already removed both references the
-rules are about. The state a rule seems to need is expressed by which references exist, and a leaked
-destroyed activity therefore falls back on whatever is leaking it — which is the one thing you'd want to
-read its bytes under.
+`mDestroyed` test either — `ActivityThread.handleDestroyActivity` takes the `ActivityClientRecord` out of
+`mActivities`, so the framework has already removed the reference that rule is about. The state a rule seems
+to need is expressed by which references exist, and a leaked destroyed activity therefore falls back on
+whatever is leaking it — which is the one thing you'd want to read its bytes under.
+
+Which is the test to apply to a new rule: **ask which reference the framework drops, and own by that one or
+read it.** `ActivityWindowRule` is the case where the two are not the same reference — a record in a map is
+no owner worth putting between a thread and a screen, see the reader below — so it owns through one and reads
+the other. What no rule does is read a *field* saying what was true when the dump was taken: a boolean has no
+fallback, since a dump that doesn't carry it reads as the state that keeps ownership, and it says nothing
+about what is still pointing at what, which is the only thing parking can act on.
 
 Two things to know before adding a rule:
 
 - **One owner per construct.** Two owner references are two ways of owning, so the object ends up
-  dominated by whatever dominates both. `PhoneWindow.mDecor` was in the list at first and cost the
-  activity all 18 MB of its hierarchy: a `JankStatsMonitor` held the window from a GC root of its own, so
-  the decor view's dominator became the top of the tree. Pick the one reference you'd want to read the
-  bytes under.
+  dominated by whatever dominates both. `PhoneWindow.mDecor` and `Activity.mDecor` were both in the list at
+  first and cost the activity all 18 MB of its hierarchy: a `JankStatsMonitor` held the window from a GC root
+  of its own, so the decor view's dominator became the top of the tree. Pick the one reference you'd want to
+  read the bytes under — here the window's, with the window owned in turn, which is a chain of single owners
+  rather than two owners of one object.
 - **An owner has to be nameable.** A rule names a field on a class, or a class whose virtual references
   own. An *array* can only be named by its type, which is what the first version of the view rule did —
   every `android.view.View[]` element owned what it pointed at — and a type says nothing about whose
