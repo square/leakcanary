@@ -517,6 +517,7 @@ internal fun HeapDumpExplorer(
           hoveredSelection = hoveredCellDetails?.selection,
           hoveredRootPath = hoveredCellDetails?.rootPath,
           rootNodeId = view.navigation.current,
+          stronglyReachableByteCount = sizes.stronglyReachableByteCount,
           ways = detourWays,
           chosenWays = chosenWays,
           onChooseWay = { detour, way -> chosenWays = chosenWays + (detour to way) },
@@ -543,6 +544,7 @@ internal fun HeapDumpExplorer(
           when (screen) {
             is ExplorerScreen.Tree -> TreeScreen(
               view = view,
+              stronglyReachableByteCount = sizes.stronglyReachableByteCount,
               coloring = coloring,
               shading = LeakShading(leakingObjectIds, isRootLeaking),
               selected = clicked?.cell,
@@ -562,6 +564,7 @@ internal fun HeapDumpExplorer(
             )
             is ExplorerScreen.Objects -> ObjectsScreen(
               list = objects,
+              stronglyReachableByteCount = sizes.stronglyReachableByteCount,
               filter = screen.filter,
               isListing = isListing,
               onFilterChange = { filter ->
@@ -595,6 +598,7 @@ internal fun HeapDumpExplorer(
             )
             is ExplorerScreen.Starred -> StarredScreen(
               favourites = favourites,
+              stronglyReachableByteCount = sizes.stronglyReachableByteCount,
               onOpen = onOpen,
               onRemove = { objectId -> favourites = favourites.filterNot { it.objectId == objectId } },
               modifier = Modifier.fillMaxSize()
@@ -605,6 +609,7 @@ internal fun HeapDumpExplorer(
       if (screen is ExplorerScreen.Tree) {
         DetailsPanel(
           selection = details?.selection,
+          stronglyReachableByteCount = sizes.stronglyReachableByteCount,
           bitmap = describedBitmap,
           isStarred = favourites.any { it.objectId == describedSummary?.objectId },
           onOpen = onOpen,
@@ -725,6 +730,8 @@ private fun ScreenBar(
 @Composable
 private fun TreeScreen(
   view: ViewState,
+  /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
+  stronglyReachableByteCount: Long,
   coloring: CellColoring,
   /** Which of the objects drawn are leaking, for the colouring that shades them. */
   shading: LeakShading,
@@ -789,6 +796,7 @@ private fun TreeScreen(
     if (pointedSelection != null && pointerOffset != null) {
       PointerCard(
         selection = pointedSelection,
+        stronglyReachableByteCount = stronglyReachableByteCount,
         modifier = Modifier
           .onSizeChanged { cardSize = it }
           // Placed as it is laid out rather than in a state read while composing, so that a card that has

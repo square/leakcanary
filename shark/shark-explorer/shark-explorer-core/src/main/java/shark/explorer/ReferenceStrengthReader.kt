@@ -1,7 +1,6 @@
 package shark.explorer
 
 import androidx.collection.MutableLongObjectMap
-import java.util.EnumSet
 import shark.ActualMatchingReferenceReaderFactory
 import shark.AndroidReferenceMatchers
 import shark.HeapGraph
@@ -9,7 +8,6 @@ import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
-import shark.JdkReferenceMatchers
 import shark.LibraryLeakReferenceMatcher
 import shark.Reference
 import shark.Reference.LazyDetails
@@ -74,9 +72,11 @@ internal class WeakeningReference(
  * unreachable byte count are exact.
  *
  * Where a structure is worth presenting the way you think about it anyway, the reference is **added**
- * rather than swapped in: [DataStructureReferenceReader] gives a collection a reference to each entry and
- * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children, and the table and the
- * `View[]` they really live in are still reached through their fields and still nodes of their own.
+ * rather than swapped in: [DataStructureReferenceReader] gives a collection a reference to each entry,
+ * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children and
+ * [RunningActivityReferenceReader] gives an `ActivityThread` one to each activity the app is running — and
+ * the table, the `View[]` and the `ArrayMap` they really live in are still reached through their fields and
+ * still nodes of their own.
  */
 internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
@@ -87,6 +87,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   private val viewChildReader = ViewChildReferenceReader(graph)
 
   private val dataStructureReader = DataStructureReferenceReader(graph)
+
+  private val runningActivityReader = RunningActivityReferenceReader(graph)
 
   /**
    * Which fields of a class hold their value without retaining it, by class object id. Cached because
@@ -106,7 +108,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> =
     retainingReader.read(source) + classMetadataReferencesOf(source) +
-      viewChildReader.childReferencesOf(source) + dataStructureReader.entryReferencesOf(source)
+      viewChildReader.childReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
+      runningActivityReader.activityReferencesOf(source)
 
   /**
    * The arrays ART hangs off a class object to hold what it embeds — its method tables in
@@ -341,22 +344,26 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
     private val NOTHING_WEAKENING = WeakeningFields(emptyMap())
 
     /**
-     * The matchers that stop the retaining reader from following a reference that doesn't retain.
+     * The matchers that stop the retaining reader from following a reference that doesn't retain: every
+     * field of [WEAKENING_FIELDS_BY_CLASS_NAME] and nothing else, read off the same map that gives them
+     * their strength, so that the two halves of this class can't disagree about a reference.
      *
-     * [JdkReferenceMatchers.REFERENCES] covers weak, soft and phantom referents and the finalizer
-     * list links. The two added here are the ones it misses because LeakCanary doesn't need them:
-     * a JVM `FinalReference`'s referent, and the `zombie` an Android `FinalizerReference` moves its
-     * referent into while `finalize()` runs. Then every field of the curated lists, from the same map that
-     * gives them their strength, so that the two halves of this class can't disagree about a reference.
+     * **Deliberately not [shark.JdkReferenceMatchers.REFERENCES]**, which is a leak trace's list rather
+     * than an explorer's. Besides the referents, it drops the `prev`, `next` and `element` links of the
+     * lists a runtime keeps its `FinalizerReference`s, `Finalizer`s and `Cleaner`s on, so that a leak trace
+     * can't run through the queue of objects waiting to be finalized. Those links retain what they point
+     * at, and on Android they are the only thing that does: the list hangs off one static field, so
+     * dropping them left every entry but the head of it reading as uncollected garbage, and with them
+     * every object waiting to be finalized or cleaned. Measured on `large-dump.hprof`: 4773 of its 4774
+     * `FinalizerReference`s and 3392 of its 3553 `Cleaner`s, a fifth of everything the explorer called
+     * garbage.
      */
     val WEAKENING_REFERENCE_MATCHERS: List<ReferenceMatcher> =
-      ReferenceMatcher.fromListBuilders(EnumSet.of(JdkReferenceMatchers.REFERENCES)) + listOf(
-        instanceField("java.lang.ref.FinalReference", "referent").ignored(patternApplies = ALWAYS),
-        instanceField("java.lang.ref.FinalizerReference", "zombie").ignored(patternApplies = ALWAYS)
-      ) + (CACHE_FIELDS_BY_CLASS_NAME + THREAD_LOCAL_FIELDS_BY_CLASS_NAME)
-        .flatMap { (className, fieldNames) ->
-          fieldNames.map { instanceField(className, it).ignored(patternApplies = ALWAYS) }
+      WEAKENING_FIELDS_BY_CLASS_NAME.flatMap { (className, strengthByFieldName) ->
+        strengthByFieldName.keys.map {
+          instanceField(className, it).ignored(patternApplies = ALWAYS)
         }
+      }
   }
 }
 

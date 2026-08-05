@@ -9,11 +9,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
@@ -198,6 +200,9 @@ class LeaksScreenTest {
       // Reached through the list of every object rather than through the leaks, because that is the point:
       // whatever a chain was built for, the inspectors have run over the objects on it.
       screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
+      // Filtered down to it rather than scrolled to it: the activities of this dump retain the least of
+      // anything in it, so they are the last rows of a list that is longer than the window.
+      onNode(hasSetTextAction()).performTextInput(LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.'))
       val listed = "$LEAKING_ACTIVITY_CLASS_NAME instance"
       waitUntilAtLeastOneExists(hasText(listed), OPEN_TIMEOUT_MILLIS)
 

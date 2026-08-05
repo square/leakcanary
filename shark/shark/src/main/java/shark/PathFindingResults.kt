@@ -28,4 +28,17 @@ class PathFindingResults(
    * leak trace of the leaking object they're keyed by.
    */
   val subLeakedObjectsByLeakedObject: LongObjectMap<LongArray>,
+  /**
+   * Leaking object id to the ids of the leaking objects that also retain it. Unlike
+   * [subLeakedObjectsByLeakedObject], the key has a [pathsToLeakingObjects] entry of its own,
+   * because it's also reachable without going through any leaking object. That's the path
+   * reported, since it's the one that survives fixing those other leaks, and this map is what
+   * lets its leak trace mention them.
+   *
+   * A leaking object reached from several leaking objects is only recorded against one of them,
+   * and only when the [ShortestPathFinder] traverses the subgraphs retained by leaking objects at
+   * all, which it skips when there are no retained sizes to compute and no leaking object left to
+   * find.
+   */
+  val alsoRetainingLeakingObjectsByLeakedObject: LongObjectMap<LongArray>,
 )

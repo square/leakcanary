@@ -727,7 +727,8 @@ public final class shark/OpenJdkReferenceReaderFactory : shark/ReferenceReader$F
 }
 
 public final class shark/PathFindingResults {
-	public fun <init> (Ljava/util/List;Landroidx/collection/LongObjectMap;Landroidx/collection/LongObjectMap;)V
+	public fun <init> (Ljava/util/List;Landroidx/collection/LongObjectMap;Landroidx/collection/LongObjectMap;Landroidx/collection/LongObjectMap;)V
+	public final fun getAlsoRetainingLeakingObjectsByLeakedObject ()Landroidx/collection/LongObjectMap;
 	public final fun getPathsToLeakingObjects ()Ljava/util/List;
 	public final fun getRetainedSizes ()Landroidx/collection/LongObjectMap;
 	public final fun getSubLeakedObjectsByLeakedObject ()Landroidx/collection/LongObjectMap;

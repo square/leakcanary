@@ -12,6 +12,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +34,8 @@ import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.io.File
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.CommandLineAdb
 import shark.explorer.DeviceHeapDumps
@@ -93,6 +96,12 @@ private fun nameThisRun(name: String) {
 /** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
 private fun explorerApplication(arguments: ExplorerArguments) = application {
   val windows = remember { explorerWindows(arguments) }
+  val updateNotice = remember { UpdateNotice() }
+  // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
+  // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
+  LaunchedEffect(updateNotice) {
+    withContext(Dispatchers.IO) { UpdateCheck().check() }?.let { updateNotice.offer(it) }
+  }
   windows.forEach { window ->
     // Keyed on the window, so that closing one doesn't hand its size and position to the next one along.
     key(window) {
@@ -120,7 +129,8 @@ private fun explorerApplication(arguments: ExplorerArguments) = application {
             bitmapPixels = window.bitmapPixels,
             onHeapDumpChosen = { file, fetchedPixels ->
               windows.openHeapDump(window, file, fetchedPixels)
-            }
+            },
+            updateNotice = updateNotice
           )
         }
       }
@@ -128,8 +138,10 @@ private fun explorerApplication(arguments: ExplorerArguments) = application {
   }
 }
 
+// Internal, like the rest of this app: nothing outside the module composes it, the module is published
+// nowhere, and it takes internal types.
 @Composable
-fun ExplorerApp(
+internal fun ExplorerApp(
   /** The one heap dump this window shows, null until one has been chosen for it. */
   heapDumpFile: File?,
   /**
@@ -139,6 +151,11 @@ fun ExplorerApp(
   bitmapPixels: NativeBitmapPixels? = null,
   /** Where a heap dump chosen from the bar goes, which is a window: see [openHeapDump]. */
   onHeapDumpChosen: (File, NativeBitmapPixels?) -> Unit,
+  /**
+   * Whether a newer release has been found, shared with every other window of this run. Empty by default so
+   * that a test only gets the bar when it is what the test is about.
+   */
+  updateNotice: UpdateNotice = remember { UpdateNotice() },
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
@@ -200,6 +217,9 @@ fun ExplorerApp(
   }
 
   Column(Modifier.fillMaxSize()) {
+    // Above the heap dump bar, because it is about the app rather than about what is open in it, and
+    // because a bar that pushes the map down is one nobody can miss and nobody has to act on.
+    UpdateBar(updateNotice)
     HeapDumpBar(
       state = currentState,
       onOpenClick = {
@@ -262,6 +282,35 @@ private sealed interface HeapDumpState {
     /** Fetched off the device along with the dump, for a device whose dump can't carry them. */
     val bitmapPixels: NativeBitmapPixels?
   ) : HeapDumpState
+}
+
+/**
+ * Says that a newer release exists, and nothing more: a link to it and a way to stop being told.
+ *
+ * Deliberately not a dialog. Someone opens this app to look at a heap dump, and a modal in front of that
+ * to announce a version number would be in the way of the reason they launched it.
+ */
+@Composable
+private fun UpdateBar(updateNotice: UpdateNotice) {
+  val update = updateNotice.availableUpdate ?: return
+  Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
+    Row(
+      Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Text(
+        updateAvailableText(update.version, SharkExplorerVersion.current),
+        style = MaterialTheme.typography.bodyMedium
+      )
+      TextButton(onClick = { openInBrowser(update.releaseUrl) }) {
+        Text(DOWNLOAD_UPDATE)
+      }
+      TextButton(onClick = { updateNotice.dismiss() }) {
+        Text(DISMISS_UPDATE)
+      }
+    }
+  }
 }
 
 /** Which heap dump is open, and how to open another. Everything else belongs to whatever is showing it. */
@@ -365,3 +414,12 @@ private val CASCADE_STEP = 28.dp
 
 internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
+
+/** A function rather than a constant because the versions are in the middle of it, and a test wants all of it. */
+internal fun updateAvailableText(
+  version: String,
+  currentVersion: String
+) = "Shark Explorer $version is available. This run is $currentVersion."
+
+internal const val DOWNLOAD_UPDATE = "Download"
+internal const val DISMISS_UPDATE = "Not now"
