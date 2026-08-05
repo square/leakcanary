@@ -213,16 +213,22 @@ internal class OwnerReferences private constructor(
           "android.app.Dialog" to setOf("mDecor")
         )
       ),
-      // An activity belongs to the list of activities the process is running, and everything else that
-      // points at one — a context wrapper, a view, a fragment, a presenter, a callback — is something the
-      // activity brought along. Self-clearing in the same way: ActivityThread.handleDestroyActivity takes
-      // the record out of mActivities, so a destroyed activity has no owner left and falls back on
-      // whatever is leaking it, which is exactly what you want its bytes drawn under.
+      // An activity belongs to the thread running it, through the virtual reference
+      // [RunningActivityReferenceReader] reads from an ActivityThread to each activity in mActivities.
+      // Everything else that points at one — a context wrapper, a view, a fragment, a presenter, a
+      // callback — is something the activity brought along. Self-clearing in the same way:
+      // ActivityThread.handleDestroyActivity takes the record out of mActivities, so a destroyed activity
+      // has no owner left and falls back on whatever is leaking it, which is exactly what you want its
+      // bytes drawn under.
+      //
+      // Not ActivityClientRecord.activity, which is what this rule used to say. A record is a slot of the
+      // ArrayMap the thread keeps its activities in, and naming the slot leaves the map, its Object[] and
+      // the record itself between the thread and every activity, so the chain from a GC root down to a
+      // screen spends three of its steps on a map's bookkeeping and the thread's own rectangle is a pile of
+      // records rather than a row of screens to compare.
       OwnerRule(
         ownedClassName = ACTIVITY_CLASS_NAME,
-        ownerFieldsByClassName = mapOf(
-          "android.app.ActivityThread\$ActivityClientRecord" to setOf("activity")
-        )
+        ownerVirtualClassNames = setOf(RunningActivityReferenceReader.ACTIVITY_THREAD_CLASS_NAME)
       )
     )
 

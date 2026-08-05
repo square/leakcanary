@@ -224,11 +224,10 @@ view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 `OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus the
 references that own them — named fields, or the virtual references a class's instances hand out. Three
 today — `android.view.View` owned by the `ViewGroup` that reads it as a child (see below) and by
-`Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by
-`ActivityThread$ActivityClientRecord.activity`. After: **every one of the 277 child views is under its
-parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains
-18 MB under the record the framework runs it from, which is the second largest rectangle under the GC
-roots.
+`Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by the `ActivityThread` that reads
+it as one it's running (see below too). After: **every one of the 277 child views is under its parent**,
+the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains 18 MB under
+the thread running it, which is the second largest rectangle under the GC roots.
 
 **A rule is parked, not dropped, and that's the whole design.** The walk in
 `HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
@@ -261,14 +260,26 @@ Two things to know before adding a rule:
   own. An *array* can only be named by its type, which is what the first version of the view rule did —
   every `android.view.View[]` element owned what it pointed at — and a type says nothing about whose
   children the array holds, so an app's own `View[]` of views it merely points at claimed them too. Hence
-  the reader below.
+  the readers below.
+- **Name the thing that holds it, not the slot it's in.** `ActivityClientRecord.activity` is perfectly
+  nameable and was the activity rule for a while, and it still put a map's `ArrayMap`, `Object[]` and
+  record between the thread running a screen and the screen. Nameable is the floor, not the bar: ask what
+  you would say holds the object out loud, and if that isn't the reference, the reader has one to add.
 
 Ownership is **not** a `ReachabilityStrength` and can't be: strength is a min over the references of a
 path, while owning is a property of the last reference alone. It's a separate binary verdict per object,
 gated in the same place — `WeakeningAwareReferenceReader`, which the dominator tree, the referrer index
 and the path search all read through, so all three see one edge set.
 
-### A `ViewGroup` points at its children: the one virtual reference the explorer adds
+### The two virtual references the explorer adds
+
+A rule can only claim ownership through something nameable, and the framework's own structure often has
+nothing to name — so the reader below each rule adds the reference the rule is about, and the dominator
+tree is what then collapses the levels the real structure went through. Both are **additive**, both are
+read from `ReferenceStrengthReader.retainingReferencesOf`, and both are bounded by the count the framework
+keeps rather than by the capacity of the array behind it.
+
+#### A `ViewGroup` points at its children
 
 `ViewChildReferenceReader` gives a `ViewGroup` one reference per child, named by index and marked virtual,
 which is what the view `OwnerRule` claims ownership through. It reads `mChildren` bounded by
@@ -298,6 +309,44 @@ Three things make it safe, and each one is a decision:
 Byte counts are untouched by all of it, which is the check that no object moved out of the graph: 83.83 MB
 strong, 2.05 MB thread local, 28 B local, 2.6 KB finalizer, 190 KB unreachable, 1,019,837 objects, before
 and after.
+
+#### An `ActivityThread` points at the activities it's running
+
+`RunningActivityReferenceReader` gives the `ActivityThread` one reference per activity, named `activities`
+and marked virtual, which is what the activity `OwnerRule` claims ownership through. It reads the values of
+`mActivities` — an `ArrayMap` from an activity's token to its `ActivityClientRecord`, so a key at every even
+slot of `mArray` and a record at the odd one after it — bounded by `mSize`, and takes each record's
+`activity`.
+
+The rule used to name `ActivityClientRecord.activity` instead, which is a slot of that map rather than the
+thing running the activity, and it left the map, its `Object[]` and the record between the thread and every
+screen. Measured on `large-dump.hprof`, which is running two activities:
+
+| | Before | After |
+| --- | --- | --- |
+| `MainActivity` dominator | `ActivityClientRecord` | `ActivityThread` |
+| GC root chain to `MainActivity` | 6 steps | **3 steps** |
+| Record holding `MainActivity` retains | 2,125,170 B | **381 B** |
+| Record holding `PaymentActivity` retains | 14,552 B | **361 B** |
+| `mActivities` `ArrayMap` retains | 2,139,795 B | **815 B** |
+
+The two activities' own retained sizes don't move — 2,124,789 B and 11,995 B either way — because a record
+retained little beyond the activity in it. What moves is where those bytes are drawn: two screens side by
+side under the thread, instead of two piles of map bookkeeping. Chains into an activity's internals get a
+step shorter too, and a better first step: the shortest way to the `Bundle`s under `MainActivity` used to
+run through a *leaked* `SquareActivity.foot → ArrayList → Object[]`, since that was fewer steps than the map.
+
+Byte counts are again identical before and after, which is the check that no object left the graph:
+30,090,032 B strong, 28,302 B thread local, 1,444 B soft, 261 B weak, 9,353 B finalizer, 631,761 B
+unreachable, 387,971 objects. Opening the dump costs at most 2% more — median of five steady state opens
+2.02 s with the reader against 1.98 s without, ranges overlapping — which is the fourth sequence
+concatenation `retainingReferencesOf` now does per object, since the reader itself is one class id
+comparison for everything that isn't the activity thread.
+
+`mActivities` has been an `ArrayMap` since Lollipop, seven releases before the oldest one LeakCanary
+supports, so the `HashMap` it was before that is deliberately not read: a dump that doesn't have the
+`ArrayMap` shape logs a line and reads as a thread running nothing, which leaves its activities held by
+whatever points at them.
 
 ## What holds an object: one chain, with the dominators on it marked
 
