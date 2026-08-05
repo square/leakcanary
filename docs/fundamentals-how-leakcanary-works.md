@@ -64,10 +64,10 @@ For each retained object, LeakCanary finds the path of references that prevents 
 ![done](images/building-leak-traces-notification.png)
 **Figure 4.** LeakCanary computes the leak trace for each retained object.
 
-When the analysis is done, LeakCanary displays a **notification** with a summary, and also prints the result in **Logcat**. Notice below how the **4 retained objects** are grouped as **2 distinct leaks**. LeakCanary creates a **signature for each leak trace**, and groups together leaks that have the same signature, ie leaks that are caused by the same bug.
+When the analysis is done, LeakCanary displays a **notification** with a summary, and also prints the result in **Logcat**. Notice below how the **4 retained objects** are grouped as **2 distinct leaks**. LeakCanary creates a **leak fingerprint for each leak trace**, and groups together leaks that have the same leak fingerprint, ie leaks that are caused by the same bug.
 
 ![done](images/analysis-done.png)
-**Figure 5.** The 4 leak traces turned into 2 distinct leak signatures.
+**Figure 5.** The 4 leak traces turned into 2 distinct leak fingerprints.
 
 
 ```
@@ -76,8 +76,8 @@ HEAP ANALYSIS RESULT
 ====================================
 2 APPLICATION LEAKS
 
-Displaying only 1 leak trace out of 2 with the same signature
-Signature: ce9dee3a1feb859fd3b3a9ff51e3ddfd8efbc6
+Displaying only 1 leak trace out of 2 with the same leak fingerprint
+Leak fingerprint: ce9dee3a1feb859fd3b3a9ff51e3ddfd8efbc6
 ┬───
 │ GC Root: Local variable in native code
 │
@@ -89,19 +89,19 @@ Tapping the notification starts an activity that provides more details. Come bac
 ![toast](images/launcher.png)
 **Figure 6.** LeakCanary adds a launcher icon for each app it's installed in.
 
-Each row corresponds to a **group of leaks with the same signature**. LeakCanary  marks a row as <span style="border-radius: 20px; background: #ffd24c; padding-left: 8px; padding-right: 8px; padding-top: 2px; padding-bottom: 2px; color: #141c1f;">New</span> the first time the app triggers a leak with that signature.
+Each row corresponds to a **group of leaks with the same leak fingerprint**. LeakCanary  marks a row as <span style="border-radius: 20px; background: #ffd24c; padding-left: 8px; padding-right: 8px; padding-top: 2px; padding-bottom: 2px; color: #141c1f;">New</span> the first time the app triggers a leak with that leak fingerprint.
 
 ![toast](images/heap-dump.png)
-**Figure 7.** The 4 leaks grouped into 2 rows, one for each distinct leak signature.
+**Figure 7.** The 4 leaks grouped into 2 rows, one for each distinct leak fingerprint.
 
 Tap on a leak to open up a screen with the leak trace. You can toggle between retained objects and their leak trace via a drop down.
 
 ![toast](images/leak-screen.png)
-**Figure 8.** A screen showing 3 leaks grouped by their common leak signature.
+**Figure 8.** A screen showing 3 leaks grouped by their common leak fingerprint.
 
-The **leak signature** is the **hash of the concatenation of each <span style="color: #9976a8;">reference</span> suspected to cause the leak**, ie each reference **<span style="text-decoration: underline; text-decoration-color: red; text-decoration-style: wavy; color: #9976a8;">displayed with a red underline</span>**:
+The **leak fingerprint** is the **hash of the concatenation of each <span style="color: #9976a8;">reference</span> suspected to cause the leak**, ie each reference **<span style="text-decoration: underline; text-decoration-color: red; text-decoration-style: wavy; color: #9976a8;">displayed with a red underline</span>**:
 
-![toast](images/signature.png)
+![toast](images/leak-fingerprint.png)
 **Figure 9.** A leak trace with 3 suspect references.
 
 These same suspicious references are underlined with `~~~` when the leak trace is shared as text:
@@ -126,15 +126,15 @@ These same suspicious references are underlined with `~~~` when the leak trace i
 ...
 ```
 
-In the example above, the signature of the leak would be computed as:
+In the example above, the leak fingerprint would be computed as:
 
 ```kotlin
-val leakSignature = sha1Hash(
+val leakFingerprint = sha1Hash(
     "com.example.leakcanary.LeakingSingleton.leakedView" +
     "java.util.ArrayList.elementData" +
     "java.lang.Object[].[x]"
 )
-println(leakSignature)
+println(leakFingerprint)
 // dbfa277d7e5624792e8b60bc950cd164190a11aa
 ```
 

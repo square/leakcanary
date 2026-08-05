@@ -220,13 +220,13 @@ class HeapLeaksTest {
     }
   }
 
-  @Test fun `two leaks of one kind have two signatures, and one leak has one`() {
+  @Test fun `two leaks of one kind have two leak fingerprints, and one leak has one`() {
     HeapExplorer.open(testFolder.destroyedActivitiesHeapDump()).use { explorer ->
       val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups.single()
 
-      // A hash of what makes it that leak, so the two activities of one leak are one signature, and it says
+      // A hash of what makes it that leak, so the two activities of one leak are one fingerprint, and it says
       // nothing about which heap dump this is: 40 characters of hex and no address among them.
-      assertThat(group.signature).matches("[0-9a-f]{40}")
+      assertThat(group.leakFingerprint).matches("[0-9a-f]{40}")
       assertThat(group.objects).hasSize(2)
     }
   }

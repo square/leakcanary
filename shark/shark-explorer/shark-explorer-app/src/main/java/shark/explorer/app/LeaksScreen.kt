@@ -197,10 +197,10 @@ private fun GroupRow(group: LeakGroup) {
           )
         }
         // What makes a leak something to write down: the addresses in this list are of one heap dump, and
-        // this is the same for the same leak in the next one. See [LeakGroup.signature].
-        Hint(SIGNATURE_HINT) {
+        // this is the same for the same leak in the next one. See [LeakGroup.leakFingerprint].
+        Hint(LEAK_FINGERPRINT_HINT) {
           Text(
-            "$SIGNATURE ${group.signature}",
+            "$LEAK_FINGERPRINT ${group.leakFingerprint}",
             style = MaterialTheme.typography.bodySmall,
             color = MUTED_TEXT,
             maxLines = 1,
@@ -399,7 +399,7 @@ private fun WatcherRow(
 }
 
 /** Which section a group is in as well as which group it is: two sections can hold the same title. */
-private fun LeakKind.groupKey(group: LeakGroup): String = "$name ${group.signature}"
+private fun LeakKind.groupKey(group: LeakGroup): String = "$name ${group.leakFingerprint}"
 
 /** How many leaks and how many objects, which is what says a leak is one thing and not fifty. */
 private fun LeakSection.summary(): String = when {
@@ -487,7 +487,7 @@ private const val MORE_KEY = "more"
 private const val WATCHED_GLYPH = "◉"
 
 /** What the hash of a leak is called on the row, since a bare 40 characters of hex names nothing. */
-internal const val SIGNATURE = "Signature:"
+internal const val LEAK_FINGERPRINT = "Leak fingerprint:"
 
 internal const val NAME_HINT =
   "The references this leak is: the first is the one that shouldn't be holding any more, which is what " +
@@ -496,11 +496,11 @@ internal const val NAME_HINT =
     "first is the app working as intended and everything below the last is what the leak is holding, so " +
     "neither is part of what makes this leak this leak."
 
-internal const val SIGNATURE_HINT =
+internal const val LEAK_FINGERPRINT_HINT =
   "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +
     "— unlike the addresses under it, which are of this one. So it is what to write in a bug report, and " +
-    "what to compare two dumps by. It is also the signature LeakCanary prints under this leak when it " +
-    "reports it, so a report and this list can be lined up hash by hash."
+    "what to compare two dumps by. It is also the leak fingerprint LeakCanary prints under this leak when " +
+    "it reports it, so a report and this list can be lined up hash by hash."
 
 /** Between the two ends of a leak, pointing the way the chain runs: down, away from the GC roots. */
 internal const val STRETCH_ARROW = "→"

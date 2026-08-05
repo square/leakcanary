@@ -892,8 +892,9 @@ class HeapDominatorTreemap internal constructor(
       return FoundLeak(
         kind = LeakKind.UNREACHABLE,
         // Its class, since there is no chain to hash and nothing else to tell two of these apart. LeakCanary
-        // has no signature to match here: it reports what a GC root reaches, and this is what none does.
-        signature = leakingObject.className.sha1Hex(),
+        // has no leak fingerprint to match here: it reports what a GC root reaches, and this is what none
+        // does.
+        leakFingerprint = leakingObject.className.sha1Hex(),
         title = simpleClassName,
         suspectPath = emptyList(),
         subtitle = UNREACHABLE_LEAK_SUBTITLE,
@@ -912,9 +913,9 @@ class HeapDominatorTreemap internal constructor(
     if (libraryLeak != null) {
       return FoundLeak(
         kind = LeakKind.LIBRARY,
-        // Which is what `shark.LibraryLeak.signature` hashes, so a library leak of a LeakCanary report and
-        // one of this list are the same string when they are the same known leak.
-        signature = libraryLeak.pattern.sha1Hex(),
+        // Which is what `shark.LibraryLeak.leakFingerprint` hashes, so a library leak of a LeakCanary report
+        // and one of this list are the same string when they are the same known leak.
+        leakFingerprint = libraryLeak.pattern.sha1Hex(),
         title = libraryLeak.pattern,
         // Named by the pattern that recognized it, so there is nothing for the references to add.
         suspectPath = emptyList(),
@@ -928,7 +929,7 @@ class HeapDominatorTreemap internal constructor(
       // Which is the rule LeakCanary groups leaks by, run by LeakCanary's own code over this chain: two
       // objects reached through the same suspect stretch of references are two instances of one leak,
       // whatever their classes and however far below it they are.
-      signature = steps.leakSignature(),
+      leakFingerprint = steps.leakFingerprint(),
       // The reference that shouldn't be holding, which is the leak itself rather than one of the objects
       // it left behind. Those are the rows under it, and each says what it is.
       title = suspectSubpath.firstOrNull() ?: simpleClassName,
@@ -952,10 +953,10 @@ class HeapDominatorTreemap internal constructor(
    * bitmap eight references under it. The references above the last one known to be needed are left out for
    * the other reason — they are the app working as intended.
    *
-   * The same stretch [leakSignature] hashes, spelled the way the chain pane spells a step rather than the
-   * way `LeakTrace.signature` spells one: by the class that declares the field, so that the name of a leak
-   * is a string that is also on the chain drawn for it. Which is why the name is no substitute for the
-   * signature and the two are both on the row.
+   * The same stretch [leakFingerprint] hashes, spelled the way the chain pane spells a step rather than
+   * the way `LeakTrace.leakFingerprint` spells one: by the class that declares the field, so that the name
+   * of a leak is a string that is also on the chain drawn for it. Which is why the name is no substitute
+   * for the leak fingerprint and the two are both on the row.
    */
   private fun suspectSubpath(steps: List<PathStep>): List<String> {
     val lastNotLeaking = steps.indexOfLast { it.leakStatus == LeakStatus.NOT_LEAKING }
@@ -982,8 +983,8 @@ class HeapDominatorTreemap internal constructor(
   /** One leaking object and which leak it is an instance of, before the instances are gathered. */
   private class FoundLeak(
     val kind: LeakKind,
-    /** What makes two objects instances of the same leak. See [LeakGroup.signature]. */
-    val signature: String,
+    /** What makes two objects instances of the same leak. See [LeakGroup.leakFingerprint]. */
+    val leakFingerprint: String,
     val title: String,
     /** The references the leak is. See [LeakGroup.suspectPath]. */
     val suspectPath: List<String>,
@@ -1028,10 +1029,10 @@ class HeapDominatorTreemap internal constructor(
 
   /** The leaks a list of leaking objects amounts to, largest first, and their objects largest first. */
   private fun List<FoundLeak>.groups(): List<LeakGroup> =
-    groupBy { it.signature }
-      .map { (signature, found) ->
+    groupBy { it.leakFingerprint }
+      .map { (leakFingerprint, found) ->
         LeakGroup(
-          signature = signature,
+          leakFingerprint = leakFingerprint,
           title = found.first().title,
           suspectPath = found.first().suspectPath,
           // From whichever object was recognized first, since a leak is one thing however many objects

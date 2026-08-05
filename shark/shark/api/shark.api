@@ -62,9 +62,9 @@ public final class shark/ApplicationLeak : shark/Leak {
 	public final fun copy (Ljava/util/List;)Lshark/ApplicationLeak;
 	public static synthetic fun copy$default (Lshark/ApplicationLeak;Ljava/util/List;ILjava/lang/Object;)Lshark/ApplicationLeak;
 	public fun equals (Ljava/lang/Object;)Z
+	public fun getLeakFingerprint ()Ljava/lang/String;
 	public fun getLeakTraces ()Ljava/util/List;
 	public fun getShortDescription ()Ljava/lang/String;
-	public fun getSignature ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }
@@ -379,9 +379,9 @@ public final class shark/KeyedWeakReferenceFinder : shark/LeakingObjectFinder {
 
 public abstract class shark/Leak : java/io/Serializable {
 	public static final field Companion Lshark/Leak$Companion;
+	public abstract fun getLeakFingerprint ()Ljava/lang/String;
 	public abstract fun getLeakTraces ()Ljava/util/List;
 	public abstract fun getShortDescription ()Ljava/lang/String;
-	public abstract fun getSignature ()Ljava/lang/String;
 	public final fun getTotalRetainedHeapByteSize ()Ljava/lang/Integer;
 	public final fun getTotalRetainedObjectCount ()Ljava/lang/Integer;
 	public fun toString ()Ljava/lang/String;
@@ -400,11 +400,11 @@ public final class shark/LeakTrace : java/io/Serializable {
 	public static synthetic fun copy$default (Lshark/LeakTrace;Lshark/LeakTrace$GcRootType;Ljava/util/List;Lshark/LeakTraceObject;ILjava/lang/Object;)Lshark/LeakTrace;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getGcRootType ()Lshark/LeakTrace$GcRootType;
+	public final fun getLeakFingerprint ()Ljava/lang/String;
 	public final fun getLeakingObject ()Lshark/LeakTraceObject;
 	public final fun getReferencePath ()Ljava/util/List;
 	public final fun getRetainedHeapByteSize ()Ljava/lang/Integer;
 	public final fun getRetainedObjectCount ()Ljava/lang/Integer;
-	public final fun getSignature ()Ljava/lang/String;
 	public final fun getSuspectReferenceSubpath ()Lkotlin/sequences/Sequence;
 	public fun hashCode ()I
 	public final fun referencePathElementIsSuspect (I)Z
@@ -561,10 +561,10 @@ public final class shark/LibraryLeak : shark/Leak {
 	public static synthetic fun copy$default (Lshark/LibraryLeak;Ljava/util/List;Lshark/ReferencePattern;Ljava/lang/String;ILjava/lang/Object;)Lshark/LibraryLeak;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getDescription ()Ljava/lang/String;
+	public fun getLeakFingerprint ()Ljava/lang/String;
 	public fun getLeakTraces ()Ljava/util/List;
 	public final fun getPattern ()Lshark/ReferencePattern;
 	public fun getShortDescription ()Ljava/lang/String;
-	public fun getSignature ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

@@ -34,7 +34,7 @@ import shark.LibraryLeak
 import shark.SharkLog
 
 internal class LeakScreen(
-  private val leakSignature: String,
+  private val leakFingerprint: String,
   private val selectedHeapAnalysisId: Long? = null
 ) : Screen() {
   override fun createView(container: ViewGroup) =
@@ -42,7 +42,7 @@ internal class LeakScreen(
       .apply {
         activity.title = resources.getString(R.string.leak_canary_loading_title)
         executeOnDb {
-          val leak = LeakTable.retrieveLeakBySignature(db, leakSignature)
+          val leak = LeakTable.retrieveLeakByFingerprint(db, leakFingerprint)
 
           if (leak == null) {
             updateUi {
@@ -68,7 +68,7 @@ internal class LeakScreen(
                 activity.title = "Selected heap analysis deleted"
               }
             }
-            LeakTable.markAsRead(db, leakSignature)
+            LeakTable.markAsRead(db, leakFingerprint)
           }
         }
       }
@@ -187,7 +187,7 @@ internal class LeakScreen(
     heapAnalysisId: Long,
     leakTraceIndex: Int
   ) {
-    val selectedLeak = analysis.allLeaks.first { it.signature == leakSignature }
+    val selectedLeak = analysis.allLeaks.first { it.leakFingerprint == leakFingerprint }
     val leakTrace = selectedLeak.leakTraces[leakTraceIndex]
 
     val listView = findViewById<ListView>(R.id.leak_canary_list)

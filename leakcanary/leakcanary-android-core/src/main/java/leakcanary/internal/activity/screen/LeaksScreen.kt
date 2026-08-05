@@ -69,7 +69,7 @@ internal class LeaksScreen : Screen() {
       }
 
     listView.setOnItemClickListener { _, _, position, _ ->
-      goTo(LeakScreen(projections[position].signature))
+      goTo(LeakScreen(projections[position].leakFingerprint))
     }
     restoreViewStateFromTag()
   }

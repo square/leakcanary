@@ -130,11 +130,13 @@ class LeaksScreenTest {
 
       // The addresses under a leak are of this heap dump and this is the same in the next one, which is
       // what makes a leak something to write in a bug report.
-      val signatures = onAllNodesWithText(SIGNATURE, substring = true).fetchSemanticsNodes()
+      val leakFingerprints = onAllNodesWithText(LEAK_FINGERPRINT, substring = true).fetchSemanticsNodes()
         .flatMap { node -> node.config[SemanticsProperties.Text].map { it.text } }
-        .filter { it.startsWith(SIGNATURE) }
-      assertThat(signatures).hasSize(LEAK_COUNT)
-      assertThat(signatures).allSatisfy { assertThat(it).matches("\\Q$SIGNATURE\\E [0-9a-f]{40}") }
+        .filter { it.startsWith(LEAK_FINGERPRINT) }
+      assertThat(leakFingerprints).hasSize(LEAK_COUNT)
+      assertThat(leakFingerprints).allSatisfy {
+        assertThat(it).matches("\\Q$LEAK_FINGERPRINT\\E [0-9a-f]{40}")
+      }
     }
   }
 
@@ -331,7 +333,7 @@ class LeaksScreenTest {
     )
 
     private fun leakGroup(suspectPath: List<String>) = LeakGroup(
-      signature = suspectPath.first().sha1OfNothing(),
+      leakFingerprint = suspectPath.first().sha1OfNothing(),
       title = suspectPath.first(),
       suspectPath = suspectPath,
       subtitle = null,
@@ -350,7 +352,7 @@ class LeaksScreenTest {
       )
     )
 
-    /** Any forty characters of hex: what the row does with a signature is show it. */
+    /** Any forty characters of hex: what the row does with a leak fingerprint is show it. */
     private fun String.sha1OfNothing() = "%040x".format(hashCode().toLong() and 0xffffffffL)
   }
 }

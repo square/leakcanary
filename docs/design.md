@@ -188,7 +188,7 @@ reference a developer would have written.
 
 That readability decision has a second payoff. A trace that doesn't spell out the internals of the
 runtime's collections doesn't change when those internals change, so the same bug keeps the same
-signature across runtimes and versions, and stays grouped with itself.
+leak fingerprint across runtimes and versions, and stays grouped with itself.
 
 None of this is LeakCanary's invention. Showing a collection by its API rather than its internals is
 an old idea, long offered by debuggers and heap analyzers. What LeakCanary borrowed is the sharper

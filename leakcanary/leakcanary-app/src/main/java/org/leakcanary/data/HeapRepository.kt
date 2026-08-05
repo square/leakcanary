@@ -6,7 +6,7 @@ import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOne
 import com.squareup.leakcanary.app.db.Database
 import dev.leakcanary.sqldelight.App
-import dev.leakcanary.sqldelight.RetrieveLeakBySignature
+import dev.leakcanary.sqldelight.RetrieveLeakByFingerprint
 import dev.leakcanary.sqldelight.SelectAllByApp
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -54,7 +54,7 @@ class HeapRepository @Inject constructor(
             val heapAnalysisId = db.heapAnalysisQueries.lastInsertRowId().executeAsOne()
             heapAnalysis.allLeaks.forEach { leak ->
               db.leakQueries.insert(
-                signature = leak.signature,
+                fingerprint = leak.leakFingerprint,
                 short_description = leak.shortDescription,
                 is_library_leak = if(leak is LibraryLeak) 1 else 0
               )
@@ -63,7 +63,7 @@ class HeapRepository @Inject constructor(
                   class_simple_name = leakTrace.leakingObject.classSimpleName,
                   leak_trace_index = index.toLong(),
                   heap_analysis_id = heapAnalysisId,
-                  leak_signature = leak.signature
+                  leak_fingerprint = leak.leakFingerprint
                 )
               }
             }
@@ -76,7 +76,7 @@ class HeapRepository @Inject constructor(
     }
   }
 
-  suspend fun markAsRead(signature: String) {
+  suspend fun markAsRead(leakFingerprint: String) {
     withContext(databaseDispatchers.forWrites) {
       // Custom impl to avoid triggering listeners.
       sqlDriver.execute(
@@ -84,11 +84,11 @@ class HeapRepository @Inject constructor(
         sql = """
     |UPDATE leak
     |SET is_read = 1
-    |WHERE signature = ?
+    |WHERE fingerprint = ?
     """.trimMargin(),
         parameters = 1,
         binders = {
-          bindString(0, signature)
+          bindString(0, leakFingerprint)
         }
       )
     }
@@ -111,11 +111,11 @@ class HeapRepository @Inject constructor(
   fun getLeakReadStatuses(heapAnalysisId: Long): Flow<Map<String, Boolean>> {
     return db.leakQueries.retrieveLeakReadStatuses(heapAnalysisId).asFlow()
       .mapToList(databaseDispatchers.forReads)
-      .map { it.associate { (signature, isRead) -> signature to (isRead == 1L) } }
+      .map { it.associate { (leakFingerprint, isRead) -> leakFingerprint to (isRead == 1L) } }
   }
 
-  fun getLeak(leakSignature: String): Flow<List<RetrieveLeakBySignature>> {
-    return db.leakTraceQueries.retrieveLeakBySignature(leakSignature)
+  fun getLeak(leakFingerprint: String): Flow<List<RetrieveLeakByFingerprint>> {
+    return db.leakTraceQueries.retrieveLeakByFingerprint(leakFingerprint)
       .asFlow()
       .mapToList(databaseDispatchers.forReads)
   }

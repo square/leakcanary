@@ -38,7 +38,7 @@ public final class leakcanary/EventListener$Event$HeapAnalysisDone$HeapAnalysisF
 
 public final class leakcanary/EventListener$Event$HeapAnalysisDone$HeapAnalysisSucceeded : leakcanary/EventListener$Event$HeapAnalysisDone {
 	public fun <init> (Ljava/lang/String;JLshark/HeapAnalysisSuccess;Ljava/util/Set;Landroid/content/Intent;)V
-	public final fun getUnreadLeakSignatures ()Ljava/util/Set;
+	public final fun getUnreadLeakFingerprints ()Ljava/util/Set;
 }
 
 public final class leakcanary/EventListener$Event$HeapAnalysisProgress : leakcanary/EventListener$Event {
