@@ -449,24 +449,25 @@ Fifty leaked rows of one list are one thing to fix, so a group is one row until 
 or fifty, since a row that led somewhere when it held one and unfolded when it held two would be two rows
 that look the same and do different things.
 
-**A leak another leak dominates is dropped from the list** (`foldedIntoWhatHoldsThem`). A leaked activity
-holds a leaked window which holds a leaked view tree, and every one of those is an object an inspector
-recognizes, and there is one thing to fix. Nothing is lost by it: they are all still on the map, shaded as
-leaking, and opening one draws a chain that runs through the leak it went under.
+**A leak that can only be reached through another leak is dropped from the list**
+(`foldedIntoWhatHoldsThem`). A leaked activity holds a leaked window which holds a leaked view tree, and
+every one of those is an object an inspector recognizes, and there is one thing to fix. Nothing is lost by
+it: they are all still on the map, shaded as leaking, and opening one draws a chain that runs through the
+leak it went under.
 
-**Dominates, rather than "is on the chain drawn for it"**, which is what this used to ask. The claim a fold
-makes is that fixing the leak above takes this one with it, and that is only true when every way to the
-object goes through that leak. It also makes the list a property of the heap dump instead of a property of
-which of several equally good chains the path finder picked — the reason to prefer it even where the two
-rules agree. Measured over the ten real dumps here: same leaks, same signatures, five more objects listed
-(`compose_leak` 6 rather than 3, `unloaded_classes-stripped` 4 rather than 2), all inside groups that were
-already there.
+**Only reached through, rather than "some other leak dominates it"**, which is what this used to ask. A
+leak is a reference that shouldn't be there, not an object. An object held two ways, each of them through a
+different leak, has no leaking dominator and survived that rule as a leak of its own — but both of the
+references holding it are already on the list, fixing them takes it with them, and there is nothing about
+it to add. `HeapLeaksTest` has that heap dump: a window two destroyed activities hold, which neither of
+them dominates, since letting go of one leaves the other holding it.
 
-The two rules now disagree only where **every** way to an object runs through a leak, since a chain
-otherwise takes the way round (the third tier below). `HeapLeaksTest` has that heap dump: a window two
-destroyed activities hold, whose chain runs through the nearer one, which doesn't dominate it — letting go
-of that activity leaves the other one holding the window, so it is a leak of its own and the chain rule
-would have dropped it.
+It costs no second walk. `rootPathSearch` puts a leaking referrer in its last-resort queue (the third tier
+below), so the chain it comes back with runs through another leak only when every chain does — the question
+is answered by the chain the row already leads to. Which also makes a folded leak one whose own chain says,
+on it, which leak holds it and why. Measured over the ten real dumps here, the two rules are
+indistinguishable: same leaks, same signatures, same object counts on all ten. It is the tier that made
+them agree — before it, the chain rule listed three objects on `compose_leak` where dominance listed six.
 
 **The leaks are checked against LeakCanary's own analysis of the same heap dump, by signature.**
 `HeapAnalyzer` with `FilteringLeakingObjectFinder(appLeakingObjectFilters)` and
@@ -501,9 +502,9 @@ weakened, because an `Activity` is owned by the `ActivityThread$ActivityClientRe
 explorer can't walk LeakCanary's ten-step prefix and takes an eleven-step one from a static
 `MediaStateMachine` instead. That alone makes every signature on this dump differ, whatever else is fixed.
 
-Dominance was never the reason here — `BrowserToolbarView` dominates both the leaking `CoordinatorLayout`
-and the leaking `BrowserFragment`, and the layout dominates nothing. This dump used to come out as **one**
-group, from a tie broken by a rule rather than by an order. Below `BrowserToolbarView` there are two
+The fold was never the reason here — `BrowserToolbarView` is above both the leaking `CoordinatorLayout` and
+the leaking `BrowserFragment`, and the layout is above nothing. This dump used to come out as **one** group,
+from a tie broken by a rule rather than by an order. Below `BrowserToolbarView` there are two
 four-step ways to the fragment: `container → CoordinatorLayout → SparseArray → Object[] →` it, and
 `interactor → BrowserInteractor → DefaultBrowserToolbarController → lambda →` it. The explorer took the
 first, so the fragment's chain ran through a leaking object, and a suspect stretch stops at the first
@@ -532,9 +533,9 @@ take that way at all, because **its phase 1 treats a leaking object as a leaf**.
   was a way round, and the object it led to hashed to the signature of the leak on the way. That is the
   third tier in `RootPathSearch`'s queue, on the same two queues as a stack frame and for the same reason:
   a path through a dead object explains what holds an object about as well as a running method does. Where
-  every way is a leak the chain still runs through one, which is a leak dominating what it holds and is the
-  whole answer. It reads as a different rule in LeakCanary — its phase 1 makes a leaking object a leaf, so
-  the way round is the only path it can find at all — and breaks the same ties the same way.
+  every way is a leak the chain still runs through one, which is what the fold above then drops. It reads as
+  a different rule in LeakCanary — its phase 1 makes a leaking object a leaf, so the way round is the only
+  path it can find at all — and breaks the same ties the same way.
 
   **It costs the pass that finds those objects, moved earlier**: they are needed before the first chain
   rather than when the Leaks screen is opened, which on the 38 MB dump is 296 ms once, paid by the first

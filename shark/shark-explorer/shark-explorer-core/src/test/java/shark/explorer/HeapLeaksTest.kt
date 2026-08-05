@@ -190,18 +190,20 @@ class HeapLeaksTest {
     }
   }
 
-  @Test fun `a leak every way to it runs through a leak is still a leak of its own`() {
+  @Test fun `a leak every way to it runs through a leak is left off the list`() {
     val heapDump = testFolder.leakTwoLeaksHoldHeapDump()
     HeapExplorer.open(heapDump.file).use { explorer ->
       val tree = explorer.tree
 
       // Two destroyed activities hold this window, so there is no way to it that avoids a leak and the chain
-      // runs through the nearer of the two. That is a chain through a leak that doesn't dominate what it
-      // leads to, and the window stays listed: letting go of that activity leaves the other one holding it.
+      // runs through the nearer of the two — which doesn't dominate it, since letting go of that one leaves
+      // the other one holding it. Neither of them does, and it still goes: the two references that shouldn't
+      // be there are both on the list, and fixing both takes the window with them.
       assertThat(tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step.objectId })
         .contains(heapDump.nearerActivityObjectId)
       assertThat(tree.findLeaks().objectsOf(APPLICATION).map { it.objectId })
-        .contains(heapDump.windowObjectId)
+        .doesNotContain(heapDump.windowObjectId)
+        .contains(heapDump.nearerActivityObjectId)
     }
   }
 

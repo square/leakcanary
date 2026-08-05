@@ -161,11 +161,11 @@ internal fun TemporaryFolder.leakAlsoHeldAnotherWayHeapDump(): NestedLeaksHeapDu
 /**
  * A destroyed window that two destroyed activities hold, one of them a step further from its GC root.
  *
- * So there is no way to the window that avoids an object that shouldn't be in memory, and the chain for it
- * runs through the nearer activity, which doesn't dominate it — letting go of that activity leaves the
- * window held by the other one. Which is what says the fold has to be about dominating rather than about
- * what the chain runs through: all three are leaks, and a rule about the chain would drop the window on the
- * strength of an activity that fixing wouldn't take it with.
+ * So there is no way to the window that avoids an object that shouldn't be in memory, and no one leaking
+ * object it is behind either: neither activity dominates it, since letting go of one leaves it held by the
+ * other. Which is what tells the two fold rules apart. A leak is a reference that shouldn't be there rather
+ * than an object, and here there are two of those and the window is behind both: fix them and the window
+ * goes with them, so there is nothing about it to write on a list that already says both.
  */
 internal fun TemporaryFolder.leakTwoLeaksHoldHeapDump(): TwoLeaksHoldHeapDump {
   val file = newFile("leak-two-leaks-hold.hprof")
@@ -213,7 +213,7 @@ internal class TwoLeaksHoldHeapDump(
   val file: File,
   /** The one of the two activities whose GC root is nearer, which is the way the chain goes. */
   val nearerActivityObjectId: Long,
-  /** The window both of them hold, and neither dominates. */
+  /** The window both of them hold, which neither dominates and neither leaves reachable. */
   val windowObjectId: Long
 )
 
