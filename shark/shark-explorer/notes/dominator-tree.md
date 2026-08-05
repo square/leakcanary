@@ -249,14 +249,33 @@ itself and retained 4.2 KB and 3.9 KB instead of their windows. The damaging ref
 `PhoneFallbackEventHandler.mView`, `RealWorkflowLifecycleOwner.view`, `ComposeToastServiceImpl.rootView`,
 view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 
-`OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus the
-references that own them — named fields, or the virtual references a class's instances hand out. Six
-today — `android.view.View` owned by the `ViewGroup` that reads it as a child (see below) and by
-`Activity.mDecor` or `Dialog.mDecor`, `android.app.Activity` owned by the `ActivityThread` that reads it
-as one it's running (see below too), and the three Compose ones in the section on Compose below. After: **every one of
-the 277 child views is under its parent**, the dialog's `DecorView` is dominated by the
-`PartialModalDialog`, and `MainActivity` retains 18 MB under the thread running it, which is the second
-largest rectangle under the GC roots.
+`OwnerReferences` applies a curated list of `OwnerRule`s, each one a class taking the graph and answering
+which of an owner's references own what they point at — `ownerRulesFor` in `OwnerRules.kt`. Seven today: a
+`View` owned by the `ViewGroup` that reads it as a child (see below), a decor view owned by `Activity.mDecor`
+or `Dialog.mDecor`, an `Activity` owned by the `ActivityThread` that reads it as one it's running (see below
+too), the three Compose ones in the section on Compose below, and a dependency injection singleton owned by
+the provider caching it (see `notes/dependency-injection.md`). After: **every one of the 277 child views is
+under its parent**, the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity`
+retains 18 MB under the thread running it, which is the second largest rectangle under the GC roots.
+
+**Which objects are owned is derived from those references rather than declared beside them**, and that
+distinction is load-bearing rather than tidiness. The rules used to name a class whose instances were owned —
+"every `View`" — and separately name the references that own one. So a view no owner pointed at was still
+owned, which made it held as a last resort, which made *every* rival into it count. `Activity.mDecor` is
+null on a live activity more often than not (measured null for the only activity of `compose_leak.hprof`,
+two of the three in `leak_asynctask_m.hprof`, one of the two in `gcroot_unknown_object.hprof` and two of the
+four in `large-dump.hprof` — what holds a decor view is the window), so that is the ordinary case, and a
+whole window's hierarchy was drawn as a flat pile: on `large-dump.hprof` a `PhoneWindow` retained 20 KB with
+1.6 MB of its own views hanging off the activity beside it, and in a synthetic dump the decor view floated
+all the way to the root. Derived, an object nothing owns is simply not owned: `PhoneWindow.mDecor` holds the
+decor view the ordinary way, each view below it is still owned by its parent, and that `PhoneWindow` retains
+1.68 MB. Across the eight real dumps in the repo the change moved 0 to 53 objects of 34 K to 340 K, all of
+them windows and views, with the object set and every total byte count identical.
+
+Deriving costs a record read per possible owner where declaring cost none: **4 ms to 26 ms** against 12 ms to
+32 ms, of the 1.5 s it takes to open these dumps. It buys the hot path back — asking whether a reference is a
+rival is one hash lookup rather than resolving the reference's name — and it makes a rule two members instead
+of a schema, so a rule can't be paired with the wrong owned objects.
 
 **A rule is parked, not dropped, and that's the whole design.** The walk in
 `HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
@@ -269,7 +288,7 @@ rule the 82 MB dump comes out at exactly the same numbers as before — 80 MB st
 28 B local, 2.6 KB finalizer, 186 KB unreachable.
 
 **Parking is also why a rule needs no check on the state of the object**, which is the thing that looks
-missing when you read `RULES`. "The parent owns an *attached* view" needs no attachment test, because a
+missing when you read `OwnerRules.kt`. "The parent owns an *attached* view" needs no attachment test, because a
 detached hierarchy isn't held by whatever holds the window: if the parent isn't reachable, no owner
 reference reaches the child and the fallback handles it. "Unless the activity is destroyed" needs no
 `mDestroyed` test either — `ActivityThread.handleDestroyActivity` sets `mDecor = null` and takes the

@@ -462,9 +462,8 @@ internal class WeakeningAwareReferenceReader(
 
   override fun read(source: HeapObject): Sequence<Reference> {
     val pathStrength = reachability.strengthOf(source)
-    val ownership = ownerReferences.ownershipOf(source)
     val retaining = strengthReader.retainingReferencesOf(source)
-      .filter { ownerReferences.isHeldThrough(ownership, it) }
+      .filter { ownerReferences.isHeldThrough(source.objectId, it) }
       .let { references ->
         // Nothing to weigh when the path here is strong, which it is for nearly every object of a dump.
         if (pathStrength == STRONG) {
