@@ -79,6 +79,11 @@ internal class WeakeningReference(
  * [RunningActivityReferenceReader] gives an `ActivityThread` one to each activity the app is running — and
  * the table, the `View[]` and the `ArrayMap` they really live in are still reached through their fields and
  * still nodes of their own.
+ *
+ * [SlotTableReferenceReader] is the one exception, and only for the references *out of* one array per
+ * Compose composition: adding there would push what a composable remembers further up the tree rather
+ * than down to it, for the reason its KDoc gives. Every object it moves a reference to is still reached
+ * exactly once, and the array is still a node of its own.
  */
 internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
@@ -95,6 +100,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   private val runningActivityReader = RunningActivityReferenceReader(graph)
 
   private val cachedMapValues = CachedMapValues(graph)
+
+  private val slotTableReader = SlotTableReferenceReader(graph)
 
   /**
    * Which fields of a class hold their value without retaining it, by class object id. Cached because
@@ -113,9 +120,15 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> {
+    if (slotTableReader.slotsReadFromTheirGroups(source)) {
+      // The one reader here that replaces an object's references rather than adding to them, and the
+      // KDoc of [SlotTableReferenceReader] is about why.
+      return emptySequence()
+    }
     val references = retainingReader.read(source) + classMetadataReferencesOf(source) +
       viewChildReader.childReferencesOf(source) + layoutNodeChildReader.childReferencesOf(source) +
-      dataStructureReader.entryReferencesOf(source) + runningActivityReader.activityReferencesOf(source)
+      slotTableReader.groupReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
+      runningActivityReader.activityReferencesOf(source)
     val cachedValueIds = cachedMapValues.cachedValueIdsOf(source)
     return if (cachedValueIds.isEmpty()) {
       references
