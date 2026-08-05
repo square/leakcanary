@@ -81,6 +81,30 @@ class OwnerReferencesTest {
     }
   }
 
+  @Test fun `a hierarchy whose root nothing owns still nests inside its root`() {
+    HeapExplorer.open(windowWithoutActivityDecorHeapDump()).use { explorer ->
+      val tree = explorer.tree
+
+      // `Activity.mDecor` is a field of the framework that is null on a live activity more often than not —
+      // measured null for the only activity of compose_leak.hprof, for two of the three in
+      // leak_asynctask_m.hprof and for two of the four in large-dump.hprof — because what holds a decor
+      // view is the window. So the rule about that field mostly doesn't fire, and what a hierarchy hangs
+      // off has to be right without it.
+      assertThat(tree.dominatorOf(tree.findByLabel("DecorView").objectId)!!.label)
+        .isEqualTo("PhoneWindow")
+      // Each layer under its own parent, and the bytes at the bottom counted all the way up. Declaring
+      // every view owned whether or not an owner points at one used to cost exactly this: with nothing
+      // owning the root, every view of the window became held as a last resort, every rival counted, and
+      // the hierarchy was drawn as a flat pile under whatever dominated all of them.
+      assertThat(tree.dominatorOf(tree.findByLabel("ContentFrame").objectId)!!.label)
+        .isEqualTo("DecorView")
+      assertThat(tree.dominatorOf(tree.findByLabel("ContentView").objectId)!!.label)
+        .isEqualTo("ContentFrame")
+      assertThat(tree.weight(tree.findByLabel("PhoneWindow").objectId))
+        .isGreaterThan(tree.weight(tree.findByLabel("ContentView").objectId))
+    }
+  }
+
   @Test fun `an activity the framework hasn't destroyed is held by the thread running it`() {
     HeapExplorer.open(viewHierarchyHeapDump()).use { explorer ->
       val tree = explorer.tree
@@ -301,6 +325,104 @@ class OwnerReferencesTest {
       gcRoot(JniGlobal(id = leaker.value, jniGlobalRefId = 1))
       gcRoot(JniGlobal(id = fallbackHandler.value, jniGlobalRefId = 2))
       gcRoot(JniGlobal(id = inputMethodManager.value, jniGlobalRefId = 3))
+    }
+    return file
+  }
+
+  /**
+   * A window of an activity whose `mDecor` is null, which is how a live activity looks in most real dumps:
+   * three views deep, with something pointing at the middle of the hierarchy the way an app's own field
+   * does.
+   */
+  private fun windowWithoutActivityDecorHeapDump(): File {
+    val file = testFolder.newFile("window-without-activity-decor.hprof")
+    file.dump {
+      val viewClassId = clazz(
+        className = "android.view.View",
+        fields = listOf(
+          "mParent" to ReferenceHolder::class,
+          "mWindowAttachCount" to IntHolder::class,
+          "mAttachInfo" to ReferenceHolder::class,
+          "mContext" to ReferenceHolder::class
+        )
+      )
+      val viewGroupClassId = clazz(
+        className = "android.view.ViewGroup",
+        superclassId = viewClassId,
+        fields = listOf(
+          "mChildren" to ReferenceHolder::class,
+          "mChildrenCount" to IntHolder::class
+        )
+      )
+      val viewArrayClassId = arrayClass("android.view.View")
+      val activityClassId = clazz(
+        className = "android.app.Activity",
+        fields = listOf("mDecor" to ReferenceHolder::class)
+      )
+      val decorId = reserveObjectId()
+      val activityId = reserveObjectId()
+      val attachInfo = "android.view.View\$AttachInfo" instance { field["mRootView"] = decorId }
+      val contentView = instance(
+        clazz(
+          className = "com.example.ContentView",
+          superclassId = viewClassId,
+          fields = listOf("payload" to ReferenceHolder::class)
+        ),
+        listOf(
+          ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))),
+          NO_REFERENCE,
+          IntHolder(1),
+          attachInfo,
+          activityId
+        )
+      )
+      val contentFrame = instance(
+        clazz(className = "com.example.ContentFrame", superclassId = viewGroupClassId),
+        listOf(
+          ReferenceHolder(objectArray(viewArrayClassId, longArrayOf(contentView.value))),
+          IntHolder(1),
+          decorId,
+          IntHolder(1),
+          attachInfo,
+          activityId
+        )
+      )
+      instance(
+        clazz(className = "com.android.internal.policy.DecorView", superclassId = viewGroupClassId),
+        listOf(
+          ReferenceHolder(objectArray(viewArrayClassId, longArrayOf(contentFrame.value))),
+          IntHolder(1),
+          NO_REFERENCE,
+          IntHolder(1),
+          attachInfo,
+          activityId
+        ),
+        objectId = decorId
+      )
+      // The window really holding the decor view, and the activity's own field left null.
+      val window = "com.android.internal.policy.PhoneWindow" instance {
+        field["mDecor"] = decorId
+      }
+      instance(activityClassId, listOf(NO_REFERENCE), objectId = activityId)
+      val activityRecordClassId = clazz(
+        className = "android.app.ActivityThread\$ActivityClientRecord",
+        fields = listOf("activity" to ReferenceHolder::class)
+      )
+      val activityThread = "android.app.ActivityThread" instance {
+        field["mActivities"] = "android.util.ArrayMap" instance {
+          field["mArray"] = objectArray(
+            instance(clazz(className = "android.os.BinderProxy")),
+            instance(activityRecordClassId, listOf(activityId))
+          )
+          field["mSize"] = IntHolder(1)
+        }
+        // Whatever the app hangs off the thread, the window among it.
+        field["mWindow"] = window
+      }
+      // A rival into the middle of the hierarchy, one step from a GC root while the decor view is three.
+      val leaker = "com.example.Leaker" instance { field["frame"] = contentFrame }
+      gcRoot(JniGlobal(id = activityThread.value, jniGlobalRefId = 0))
+      gcRoot(JniGlobal(id = leaker.value, jniGlobalRefId = 1))
     }
     return file
   }
