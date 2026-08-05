@@ -90,6 +90,54 @@ what was being read and how long it took. What that makes readable:
 Which is also the rule for new code here: **anything the UI swallows or falls back from gets a
 `SharkLog.d` line saying so.** The file is only worth reading if it's complete.
 
+## This app has its own version line, and no number of it can mean "alpha"
+
+`SHARK_EXPLORER_VERSION` in `gradle.properties`, not the repo wide `VERSION_NAME`, and the two are released
+independently — `shark-explorer-*` tags against `v*` tags. See `docs/releasing-shark-explorer.md`.
+
+It isn't only a preference. Every installer format validates the version, and what they leave between them,
+each measured by building it, is **`MAJOR.MINOR.PATCH` with MAJOR from 1 to 255**, MINOR up to 255, PATCH up
+to 65535:
+
+- `3.0-alpha-10` — `Illegal version for 'Dmg'`, and for `Msi`. No qualifiers, in any format.
+- `0.1.0` — fails `createDistributable`, and **not through the version validation the other two trip**:
+  the Compose plugin accepts it and jpackage then reports `Bundler Mac Application Image skipped because
+  of a configuration problem: The first number in an app-version cannot be zero or negative`. So the
+  message says "skipped", is only in `build/compose/logs/createDistributable/jpackage-*-err.txt`, and the
+  Gradle failure above it names no version at all.
+- `2026.8.0` and `256.0.0` — `Illegal version for 'Msi'`, whose fields cap at 255.255.65535.
+
+So `0.x` is not available and neither is a calendar version, and "this is an alpha" is said by the release
+being a prerelease titled that way. Don't try to encode it in the number, and don't split it across
+`macOS.packageVersion` and `macOS.packageBuildVersion` either: the user visible one is
+`CFBundleShortVersionString`, which is also the field Munki compares for Managed Software Center updates,
+so pinning it would freeze updates for everyone who installed from there.
+
+**The version reaches the app as a generated resource**, `shark-explorer-version.properties`, written by
+`writeVersionResource` and read by `SharkExplorerVersion`. Not the jar manifest: `run` and the tests put
+class directories on the classpath rather than the jar, so `Package.getImplementationVersion()` is null for
+every way this app is launched while being worked on, and the update check would only be exercisable from a
+packaged build. `SharkExplorerVersionTest` exists because a broken wiring here fails silently — the version
+becomes `unknown`, the check declines to run, and no window ever mentions an update.
+
+## The update check reports and nothing else
+
+`UpdateCheck` fetches one file and, if it names a later version, `UpdateNotice` puts a bar in every window
+of the run. Nothing downloads or installs. Three things about it that reading the code won't tell you:
+
+- **`releases/latest` is the wrong release.** This repository publishes LeakCanary libraries on `v*` tags
+  and the explorer on `shark-explorer-*` tags, and GitHub has one "latest" pointer per repository, so that
+  endpoint answers with whichever line released last. Verified: it returns `v3.0-alpha-9`.
+- **The unauthenticated GitHub API allows 60 requests an hour per IP**, and Block's shared egress can
+  exhaust that on other people's runs. A release asset download is unmetered, which is why the manifest is
+  one.
+- **The manifest is written by `promote-shark-explorer.yml` and nothing else**, so publishing a release and
+  offering it to everyone are two separate acts. `UpdateCheckTest` pins the manifest format from this side,
+  because the workflow writes it in bash and nothing else keeps the two agreeing.
+
+`UpdateNotice` is one per run rather than per window, so dismissing the bar in one window clears it in all
+of them.
+
 ## Gradle facts that aren't visible from these build scripts
 
 - **`shark-explorer-app` is excluded by name** from the repo-wide Java 8 target in the root
@@ -156,9 +204,9 @@ variable AWT reads at that same moment: a run given `-Xdock:name=X` and a run th
 time. So the run task passes no name and an IDE run configuration needs none either, and
 `java.awt.Taskbar` is no help — its API is icon, badge, menu and progress, and no name.
 
-**A packaged app ignores the property and keeps its bundle's name.** `Shark Explorer.app` launched with
-`--title="Packaged with a title"` logs that title and is still called `Shark Explorer` by macOS, because
-jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
+**A packaged app ignores the property and keeps its bundle's name.** The `.app` launched with
+`--title="Packaged with a title"` logs that title and is still called whatever `packageName` made the
+bundle, because jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
 bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it until
 something names it.
 

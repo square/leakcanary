@@ -1,0 +1,264 @@
+# Releases Shark Explorer, which is released separately from LeakCanary itself.
+#
+# LeakCanary's libraries go out on `v*` tags through publish-release.yml, to Maven Central. This app goes
+# out on `shark-explorer-*` tags, to a GitHub release, on its own version line and its own schedule. The
+# two share nothing but the repository. See docs/releasing-shark-explorer.md.
+#
+# Publishing a release does NOT tell anyone about it. The in-app update check reads the manifest that
+# promote-shark-explorer.yml writes, which is a separate, deliberate step.
+name: Release Shark Explorer
+
+on:
+  push:
+    tags:
+      - 'shark-explorer-*'
+
+permissions:
+  contents: read
+
+env:
+  EXPLORER_MODULE: ':shark:shark-explorer:shark-explorer-app'
+
+jobs:
+  # The tag names the version, gradle.properties holds it, and nothing keeps the two the same. Checked
+  # first and on its own so that a mismatch costs one quick job rather than four packaging jobs and a
+  # release built out of the wrong version.
+  version:
+    runs-on: ubuntu-latest
+    if: github.repository == 'square/leakcanary'
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the tag against SHARK_EXPLORER_VERSION
+        id: version
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#shark-explorer-}"
+          built_version="$(sed -n 's/^SHARK_EXPLORER_VERSION=//p' gradle.properties)"
+          if [[ "$tag_version" != "$built_version" ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME would build $built_version. Set SHARK_EXPLORER_VERSION=$tag_version, or tag shark-explorer-$built_version."
+            exit 1
+          fi
+          echo "version=$tag_version" >> "$GITHUB_OUTPUT"
+
+  # macOS is the platform this app is for, and the only one whose artifact is signed. Two jobs rather than
+  # one universal binary: jpackage builds a thin binary for the architecture it runs on and has no
+  # universal option, so an Apple Silicon DMG and an Intel DMG are two builds on two runners.
+  #
+  # macos-15-intel is the last x86_64 macOS image GitHub will offer, and it goes away in August 2027. When
+  # it does, either this matrix entry goes or Intel users stay on whatever the last release was.
+  macos:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      # The signing service authenticates the workflow through OIDC rather than through a secret, which is
+      # what makes signing from a public repository safe: there is no key here to leak.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: 'zulu'
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          # An Actions cache is writable from any branch of the repository and restorable by a tag build,
+          # so on a workflow whose output people download — and, on macOS, download signed as Block — a
+          # cache entry is an untrusted input. A release runs a few times a year, so caching buys nothing
+          # worth that. https://docs.zizmor.sh/audits/#cache-poisoning
+          cache-disabled: true
+
+      # Not packageReleaseDmg, which runs the artifact through R8. Shark's object inspectors read fields
+      # by name, so minification is a change that needs testing on its own rather than one to take on
+      # along with a first release.
+      - name: Build the DMG
+        run: ./gradlew ${{ env.EXPLORER_MODULE }}:packageDmg --stacktrace
+
+      - name: Find the unsigned DMG
+        id: unsigned
+        run: |
+          set -euo pipefail
+          # Found rather than named: jpackage names it after packageName and the version, and the DMG
+          # this uploads is named below instead, after the architecture the runner built it for.
+          dmg="$(find shark/shark-explorer/shark-explorer-app/build/compose/binaries/main/dmg -name '*.dmg' -print -quit)"
+          test -n "$dmg"
+          echo "path=$dmg" >> "$GITHUB_OUTPUT"
+
+      # Signs and notarizes with `Developer ID Application: Block, Inc.` through Block's internal signing
+      # service. Ask #mdx-ios to provision OSX_CODESIGN_ROLE and CODESIGN_S3_BUCKET for the repository.
+      #
+      # It signs the .app inside the DMG and rebuilds the DMG around it, so the app is notarized and the
+      # DMG container itself is not signed. Gatekeeper checks the app, which is what has to pass.
+      - name: Codesign and notarize
+        id: codesign
+        uses: block/apple-codesign-action@679535d1ab7c5a7c18e6f9afcba3464512cc3dde # v1.1.0
+        with:
+          osx-codesign-role: ${{ secrets.OSX_CODESIGN_ROLE }}
+          codesign-s3-bucket: ${{ secrets.CODESIGN_S3_BUCKET }}
+          unsigned-artifact-path: ${{ steps.unsigned.outputs.path }}
+          entitlements-plist-path: shark/shark-explorer/shark-explorer-app/entitlements.plist
+          artifact-name: shark-explorer-${{ needs.version.outputs.version }}-${{ matrix.arch }}-${{ github.run_id }}
+
+      # Says what was actually produced rather than trusting that it was signed.
+      #
+      # `stapler validate` failing is fatal, because an app the signing service signed but Apple did not
+      # notarize does not launch: measured on macOS 26.5, it hangs in dyld with no output and no log file
+      # rather than being refused. `stapler` is also the only one of these that fails on it — `codesign`
+      # is happy, and `spctl --assess` still answers "accepted" for a build Apple has no notarization
+      # record of, because nothing here carries the quarantine attribute that makes Gatekeeper insist on
+      # a ticket. Its `source=` line is the tell, though: `Notarized Developer ID` against a plain
+      # `Developer ID`, which is why this prints it. So this is the check standing between a green
+      # release and a DMG that opens into a hang.
+      - name: Verify the signature and the notarization
+        env:
+          SIGNED_DMG: ${{ steps.codesign.outputs.signed-dmg-path }}
+        run: |
+          set -euo pipefail
+          mount_point="$(hdiutil attach "$SIGNED_DMG" -nobrowse -readonly | grep -o '/Volumes/.*')"
+          app="$(find "$mount_point" -maxdepth 1 -name '*.app' -print -quit)"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dvv "$app" 2>&1 | grep -E 'Authority|TeamIdentifier|flags'
+          spctl --assess --type execute --verbose=4 "$app" || echo "::warning::Gatekeeper did not accept the app"
+          if ! xcrun stapler validate "$app"; then
+            echo "::error::No notarization ticket is stapled to the app, so it will not launch. It came back signed, and Apple has no notarization record of it."
+            hdiutil detach "$mount_point"
+            exit 1
+          fi
+          hdiutil detach "$mount_point"
+
+      # Renamed here rather than in the build script: the architecture is a property of the runner that
+      # built it rather than of the project, so jpackage has no way to put it in the name.
+      - name: Name the DMG after its version and architecture
+        id: named
+        env:
+          SIGNED_DMG: ${{ steps.codesign.outputs.signed-dmg-path }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          named="$RUNNER_TEMP/Shark-Explorer-$VERSION-macos-${{ matrix.arch }}.dmg"
+          mv "$SIGNED_DMG" "$named"
+          echo "path=$named" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: shark-explorer-macos-${{ matrix.arch }}
+          path: ${{ steps.named.outputs.path }}
+          if-no-files-found: error
+
+  # Unsigned, deliberately. Windows would need Azure Trusted Signing, which is a separate ask and a
+  # separate service from the Apple one above, and a .deb needs no signature at all. Both are built
+  # because the build script already targets them and an unsigned build beats no build.
+  other-platforms:
+    needs: version
+    # Windows runners default to pwsh, where `./gradlew` does nothing at all and the step still reports
+    # success — so the MSI never got built and the first sign of it was a later step not finding the file.
+    # Git bash is on the image, and it runs the same script the Linux runner does.
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            task: packageMsi
+            artifact: windows-x64
+            extension: msi
+          - runner: ubuntu-latest
+            task: packageDeb
+            artifact: linux-x64
+            extension: deb
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with:
+          java-version: 17
+          distribution: 'zulu'
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+        with:
+          # An Actions cache is writable from any branch of the repository and restorable by a tag build,
+          # so on a workflow whose output people download — and, on macOS, download signed as Block — a
+          # cache entry is an untrusted input. A release runs a few times a year, so caching buys nothing
+          # worth that. https://docs.zizmor.sh/audits/#cache-poisoning
+          cache-disabled: true
+
+      - name: Build the installer
+        run: ./gradlew ${{ env.EXPLORER_MODULE }}:${{ matrix.task }} --stacktrace
+
+      - name: Name it after its version and platform
+        id: named
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          built="$(find shark/shark-explorer/shark-explorer-app/build/compose/binaries/main -name "*.${{ matrix.extension }}" -print -quit)"
+          test -n "$built"
+          named="$RUNNER_TEMP/Shark-Explorer-$VERSION-${{ matrix.artifact }}.${{ matrix.extension }}"
+          mv "$built" "$named"
+          echo "path=$named" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: shark-explorer-${{ matrix.artifact }}
+          path: ${{ steps.named.outputs.path }}
+          if-no-files-found: error
+
+  release:
+    needs: [ version, macos, other-platforms ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      # A prerelease, and titled so. The version number cannot say "alpha" — every installer format
+      # validates it down to three integers with a non-zero major, see gradle.properties — so this is
+      # where that gets said instead.
+      # The notes are a YAML block scalar rather than a shell heredoc because YAML strips this
+      # indentation and a heredoc would keep it, and four spaces of kept indentation is a Markdown code
+      # block: the whole release page would render as one.
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          NOTES: |
+            Shark Explorer ${{ needs.version.outputs.version }}, an alpha release.
+
+            A desktop app that opens an Android heap dump and shows what is holding its memory, as a
+            navigable treemap. Download the build for your platform below, open it, and drag the app to
+            Applications.
+
+            | Platform | Download | Signed |
+            | --- | --- | --- |
+            | macOS, Apple Silicon | `Shark-Explorer-${{ needs.version.outputs.version }}-macos-arm64.dmg` | Yes |
+            | macOS, Intel | `Shark-Explorer-${{ needs.version.outputs.version }}-macos-x64.dmg` | Yes |
+            | Windows | `Shark-Explorer-${{ needs.version.outputs.version }}-windows-x64.msi` | No |
+            | Linux | `Shark-Explorer-${{ needs.version.outputs.version }}-linux-x64.deb` | No |
+
+            The macOS builds are signed and notarized by Block. The Windows and Linux builds are not
+            signed, so their installers will warn.
+
+            What changed: https://square.github.io/leakcanary/shark-explorer-changelog/
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Shark Explorer $VERSION (alpha)" \
+            --notes "$NOTES" \
+            --prerelease \
+            artifacts/*
