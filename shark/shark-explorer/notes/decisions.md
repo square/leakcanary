@@ -405,6 +405,15 @@ One walk up per object found, which on the 38 MB dump is 48 objects and **328 ms
 candidates already paid for. That is what a walk *down* from the roots at open time would replace, and it
 would replace it with work every dump does whether or not anyone opens this screen.
 
+**The leaks are found as the heap dump opens**, not when something asks for them, and the map opens with
+them shaded — a heap dump is opened to see what shouldn't be in memory, and a map that shows it only once a
+box is ticked is a map that hides it. They ride along with the pass that builds `ReferrerIndex`, which
+already ran on the read thread as soon as the map was up, so the map is still the first thing drawn and the
+shading lands a moment later. Which is also why `CellColoring.DEFAULT` greys the strengths: that is what
+`withLeaks` does either way, since a red shade over a map of pastels is one more pastel. On a dump whose
+leaks retain almost nothing the map is then all grey — `unloaded_classes-stripped`, 4 objects out of
+332,905 — and on one where they retain something it opens with the leak drawn as a red block.
+
 **A leak is a reference, not a class**, and what groups the app's own leaks is the signature LeakCanary
 prints under one — `LeakTrace.signature`, a SHA-1 of the suspect stretch of the chain, from the last object
 known to still be needed down to the first one that shouldn't be there. Three things it deliberately leaves

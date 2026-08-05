@@ -621,9 +621,12 @@ class ExplorerAppTest {
       val wholeHeapDump = strengthLegend()
 
       // A checkbox is the colour scale and nothing else, so there is no strength it makes no sense to
-      // press: greying the strong heap is how you find the little there is of everything else.
+      // press: greying the strong heap is how you find the little there is of everything else. They start
+      // greyed, because a heap dump opens with the leaks shaded over them.
       ReachabilityStrength.values().forEach { strength ->
-        strengthToggle(strength).assertIsOn().assertIsEnabled()
+        strengthToggle(strength).assertIsOff().assertIsEnabled()
+        strengthToggle(strength).performClick()
+        strengthToggle(strength).assertIsOn()
         strengthToggle(strength).performClick()
         strengthToggle(strength).assertIsOff()
       }

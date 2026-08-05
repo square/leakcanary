@@ -145,31 +145,33 @@ class LeaksScreenTest {
     }
   }
 
-  @Test fun `the map can be shaded by what is leaking`() {
+  @Test fun `the map is shaded by what is leaking as soon as it is drawn`() {
     explorerUiTest {
       openHeapDump()
-      leakToggle().assertIsOff()
+
+      // Nothing is ticked to make this happen: the leaks are looked for as the heap dump opens, and the
+      // box says how many there are once they are found.
+      leakToggle().assertIsOn()
+      waitUntilAtLeastOneExists(hasText("$LEAKING $LEAKING_OBJECT_COUNT"), OPEN_TIMEOUT_MILLIS)
 
       leakToggle().performClick()
 
-      // Ticking it is what sends the explorer looking, so the row says how many it found once it has.
-      waitUntilAtLeastOneExists(hasText("$LEAKING $LEAKING_OBJECT_COUNT"), OPEN_TIMEOUT_MILLIS)
-      leakToggle().assertIsOn()
+      leakToggle().assertIsOff()
     }
   }
 
   @Test fun `shading the leaks and colouring the map by strength are one choice`() {
     explorerUiTest {
       openHeapDump()
-      strengthToggle().assertIsOn()
+      leakToggle().assertIsOn()
 
-      leakToggle().performClick()
+      strengthToggle().performClick()
 
       // Grey underneath is what leaves the few objects that shouldn't be there as the only colour on the
-      // map, so ticking this unticks the strengths — and ticking a strength back on unticks this.
-      strengthToggle().assertIsOff()
-      strengthToggle().performClick()
+      // map, so ticking a strength unticks the leaks — and ticking the leaks back on unticks the strengths.
       leakToggle().assertIsOff()
+      leakToggle().performClick()
+      strengthToggle().assertIsOff()
     }
   }
 

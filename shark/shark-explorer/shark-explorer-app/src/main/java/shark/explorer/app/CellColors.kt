@@ -60,9 +60,12 @@ internal data class CellColoring(
    * nothing to see in a picture that is only about leaking, and every other question about a rectangle —
    * how big, how nested, how firmly held — is still worth an answer while looking for one.
    *
-   * Off until asked for, because it costs the pass over the heap dump that finds the leaks.
+   * **On when a heap dump opens**, since the leaks are found as it opens rather than when something asks
+   * for them: what someone opens a heap dump to see is what shouldn't be in memory, and a map that shows
+   * it only once a box is ticked is a map that hides it. Ticking a strength back on is the way to the
+   * picture underneath, which is [withStrengths].
    */
-  val showsLeaks: Boolean = false
+  val showsLeaks: Boolean = true
 ) {
 
   /**
@@ -82,9 +85,10 @@ internal data class CellColoring(
   companion object {
     private val ALL_STRENGTHS = ReachabilityStrength.values().toSet()
 
+    /** Leaks shaded and the strengths greyed under them, which is what [withLeaks] leaves either way. */
     val DEFAULT = CellColoring(
       scheme = CellColorScheme.DAISY,
-      coloredStrengths = ALL_STRENGTHS
+      coloredStrengths = emptySet()
     )
   }
 }

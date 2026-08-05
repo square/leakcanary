@@ -128,9 +128,10 @@ internal fun HeapDumpExplorer(
   var chosenWays by remember { mutableStateOf(emptyMap<Int, Int>()) }
   var objects by remember { mutableStateOf(ObjectList.EMPTY) }
   var isListing by remember { mutableStateOf(false) }
-  /** Every leaking object of the heap dump, once something has asked for them. Null until then. */
+  /** Every leaking object of the heap dump. Null until the pass that finds them is done. */
   var leaks: HeapLeaks? by remember { mutableStateOf(null) }
-  var isFindingLeaks by remember { mutableStateOf(false) }
+  // On from the moment the window opens, because that is when the pass that finds them starts.
+  var isFindingLeaks by remember { mutableStateOf(true) }
   /** Whether the map is rooted inside a leak, which makes everything it draws leaking too. */
   var isRootLeaking by remember { mutableStateOf(false) }
   /** How many bitmaps this heap dump has and how many of them can be drawn, which fetching changes. */
@@ -360,12 +361,19 @@ internal fun HeapDumpExplorer(
   // over the whole heap dump: seconds on a large one, once per session. Started as soon as the map is up
   // rather than left for the first rectangle the pointer lands on, and after it so that the map isn't the
   // thing waiting.
+  //
+  // The leaks come with it, for the same reason and in the same breath: the map is shaded by them, so they
+  // are what the window shows before anyone asks it anything, rather than what a checkbox goes looking for.
   LaunchedEffect(session) {
     snapshotFlow { view }.first { it !== ViewState.EMPTY }
     val objectCount = session.read("the index of what points at what") { explorer ->
       explorer.tree.indexReferrers()
     }
     SharkLog.d { "Indexed what points at each of ${formatObjectCount(objectCount)}" }
+    leaks = session.read("the leaking objects of ${session.heapDumpFile.name}") { explorer ->
+      explorer.tree.findLeaks()
+    }
+    isFindingLeaks = false
   }
 
   // Listing objects is a pass over every one of them, which is seconds on a large heap dump, so it waits
@@ -386,21 +394,6 @@ internal fun HeapDumpExplorer(
         "out of ${formatObjectCount(objects.totalCount)}"
     }
     isListing = false
-  }
-
-  // Finding the leaks is a pass over every instance of the heap dump and a walk up to the GC roots per
-  // object found, so it waits until something asks: the screen listing them, or the checkbox that shades
-  // them on the map. Once found they're kept, so the two share the wait and neither pays it twice.
-  val needsLeaks = screen is ExplorerScreen.Leaks || coloring.showsLeaks
-  LaunchedEffect(session, needsLeaks) {
-    if (!needsLeaks || leaks != null) {
-      return@LaunchedEffect
-    }
-    isFindingLeaks = true
-    leaks = session.read("the leaking objects of ${session.heapDumpFile.name}") { explorer ->
-      explorer.tree.findLeaks()
-    }
-    isFindingLeaks = false
   }
 
   // Whether the map is rooted inside a leak, which the cells themselves can't say: a rectangle is drawn
