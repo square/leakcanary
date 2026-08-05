@@ -67,7 +67,7 @@ class DebugExampleApplication : ExampleApplication() {
 }
 ```
 
-You should start seeing leaks reported into Bugsnag, grouped by their leak signature:
+You should start seeing leaks reported into Bugsnag, grouped by their leak fingerprint:
 
 ![list](images/bugsnag-list.png)
 

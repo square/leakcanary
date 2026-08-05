@@ -22,7 +22,7 @@ sealed class Destination(val title: String) : Parcelable {
 
   @Parcelize
   class LeakDestination(
-    val leakSignature: String,
+    val leakFingerprint: String,
     val selectedAnalysisId: Long? = null
   ) : Destination("Leak")
 }

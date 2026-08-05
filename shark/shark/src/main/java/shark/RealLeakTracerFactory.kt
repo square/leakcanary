@@ -253,11 +253,11 @@ class RealLeakTracerFactory constructor(
 
       val firstLibraryLeakMatcher = shortestPath.firstLibraryLeakMatcher()
       if (firstLibraryLeakMatcher != null) {
-        val signature: String = firstLibraryLeakMatcher.pattern.toString().createSHA1Hash()
-        libraryLeaksMap.getOrPut(signature) { firstLibraryLeakMatcher to mutableListOf() }
+        val leakFingerprint: String = firstLibraryLeakMatcher.pattern.toString().createSHA1Hash()
+        libraryLeaksMap.getOrPut(leakFingerprint) { firstLibraryLeakMatcher to mutableListOf() }
           .second += leakTrace
       } else {
-        applicationLeaksMap.getOrPut(leakTrace.signature) { mutableListOf() } += leakTrace
+        applicationLeaksMap.getOrPut(leakTrace.leakFingerprint) { mutableListOf() } += leakTrace
       }
     }
     val applicationLeaks = applicationLeaksMap.map { (_, leakTraces) ->

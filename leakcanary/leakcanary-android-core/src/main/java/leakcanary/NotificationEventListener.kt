@@ -56,7 +56,7 @@ object NotificationEventListener : EventListener {
           val heapAnalysis = event.heapAnalysis
           val retainedObjectCount = heapAnalysis.allLeaks.sumBy { it.leakTraces.size }
           val leakTypeCount = heapAnalysis.applicationLeaks.size + heapAnalysis.libraryLeaks.size
-          val unreadLeakCount = event.unreadLeakSignatures.size
+          val unreadLeakCount = event.unreadLeakFingerprints.size
           appContext.getString(
             R.string.leak_canary_analysis_success_notification,
             retainedObjectCount,

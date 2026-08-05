@@ -3,21 +3,21 @@ CREATE TABLE leak_trace (
   class_simple_name TEXT NOT NULL,
   leak_trace_index INTEGER NOT NULL,
   heap_analysis_id INTEGER NOT NULL,
-  leak_signature TEXT NOT NULL,
+  leak_fingerprint TEXT NOT NULL,
   FOREIGN KEY(heap_analysis_id) REFERENCES heap_analysis(id),
-  FOREIGN KEY(leak_signature) REFERENCES leak(signature)
+  FOREIGN KEY(leak_fingerprint) REFERENCES leak(fingerprint)
 );
 
 -- Note: FK doesn't automatically create an index.
 CREATE INDEX leak_trace_heap_analysis_id ON leak_trace(heap_analysis_id);
-CREATE INDEX leak_trace_leak_signature ON leak_trace(leak_signature);
+CREATE INDEX leak_trace_leak_fingerprint ON leak_trace(leak_fingerprint);
 
 insert:
 INSERT INTO leak_trace (
 class_simple_name,
 leak_trace_index,
 heap_analysis_id,
-leak_signature
+leak_fingerprint
 )
 VALUES (?, ?, ?, ?);
 
@@ -25,7 +25,7 @@ deleteByHeapAnalysisId:
 DELETE FROM leak_trace
 WHERE heap_analysis_id=:heap_analysis_id;
 
-retrieveLeakBySignature:
+retrieveLeakByFingerprint:
 SELECT
 lt.leak_trace_index
 , lt.heap_analysis_id
@@ -35,7 +35,7 @@ lt.leak_trace_index
 , l.is_read
 , l.is_library_leak
 FROM leak_trace lt
-JOIN leak l ON lt.leak_signature = l.signature
+JOIN leak l ON lt.leak_fingerprint = l.fingerprint
 JOIN heap_analysis h ON lt.heap_analysis_id = h.id
-WHERE l.signature = :signature
+WHERE l.fingerprint = :fingerprint
 ORDER BY h.created_at_time_millis DESC;

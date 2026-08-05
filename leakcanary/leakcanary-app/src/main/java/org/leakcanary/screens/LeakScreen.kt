@@ -86,7 +86,7 @@ class LeakViewModel @Inject constructor(
   private fun markLeakAsReadWhenEntering() {
     viewModelScope.launch {
       navigator.filterDestination<LeakDestination>().collect { destination ->
-        repository.markAsRead(destination.leakSignature)
+        repository.markAsRead(destination.leakFingerprint)
       }
     }
   }
@@ -101,7 +101,7 @@ class LeakViewModel @Inject constructor(
 
   private fun stateStream(destination: LeakDestination): Flow<LeakState> {
     return repository
-      .getLeak(destination.leakSignature).flatMapLatest { leakTraces ->
+      .getLeak(destination.leakFingerprint).flatMapLatest { leakTraces ->
         val selectedHeapAnalysisId = destination.selectedAnalysisId
         val selectedLeakTraceIndex =
           if (selectedHeapAnalysisId == null) 0 else leakTraces.indexOfFirst { it.heap_analysis_id == selectedHeapAnalysisId }
@@ -116,7 +116,7 @@ class LeakViewModel @Inject constructor(
           Success(
             with(leakTraces.first()) {
               LeakData(
-                leak = heapAnalysis.allLeaks.first { it.signature == destination.leakSignature },
+                leak = heapAnalysis.allLeaks.first { it.leakFingerprint == destination.leakFingerprint },
                 shortDescription = short_description,
                 isNew = is_read != 1L,
                 isLibraryLeak = is_library_leak == 1L,

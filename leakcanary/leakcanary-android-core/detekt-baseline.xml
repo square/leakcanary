@@ -33,7 +33,7 @@
     <ID>MultiLineIfElse:LeakScreen.kt$LeakScreen$""</ID>
     <ID>MultiLineIfElse:LeakScreen.kt$LeakScreen$"&lt;br>&lt;br>" + "A &lt;font color='#FFCC32'>Library Leak&lt;/font> is a leak caused by a known bug in 3rd party code that you do not have control over. " + "(&lt;a href=\"https://square.github.io/leakcanary/fundamentals-how-leakcanary-works/#4-categorizing-leaks\">Learn More&lt;/a>)&lt;br>&lt;br>" + "&lt;b>Leak pattern&lt;/b>: ${selectedLeak.pattern}&lt;br>&lt;br>" + "&lt;b>Description&lt;/b>: ${parseLinks(selectedLeak.description)}"</ID>
     <ID>MultiLineIfElse:LeakTable.kt$LeakTable$cursor.getLong(0)</ID>
-    <ID>MultiLineIfElse:LeakTable.kt$LeakTable$throw IllegalStateException( "No id found for leak with signature '${leak.signature}'" )</ID>
+    <ID>MultiLineIfElse:LeakTable.kt$LeakTable$throw IllegalStateException( "No id found for leak with fingerprint '${leak.leakFingerprint}'" )</ID>
     <ID>MultiLineIfElse:LeakTraceWrapper.kt$LeakTraceWrapper$null</ID>
     <ID>MultiLineIfElse:Notifications.kt$Notifications$Notification.Builder(context)</ID>
     <ID>NoBlankLineBeforeRbrace:HeapDumpsScreen.kt$HeapDumpsScreen$ </ID>

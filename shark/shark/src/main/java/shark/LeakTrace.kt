@@ -70,12 +70,16 @@ data class LeakTrace(
       }
 
   /**
-   * A SHA1 hash that represents this leak trace. This can be useful to group together similar
-   * leak traces.
+   * The leak fingerprint of this leak trace: a SHA1 hash of [suspectReferenceSubpath], i.e. of the
+   * references suspected to cause the leak. Two leak traces with the same leak fingerprint are
+   * caused by the same bug, which is how LeakCanary groups leak traces into a [Leak].
    *
-   * The signature is a hash of [suspectReferenceSubpath].
+   * A leak fingerprint doesn't depend on the addresses of the objects in a heap dump, nor on how
+   * the runtime happens to implement the collections a leak goes through, so the same bug keeps the
+   * same leak fingerprint across heap dumps, devices, runtimes and OS versions. That makes it what
+   * to compare two heap dumps by, and what to put in a bug report.
    */
-  val signature: String
+  val leakFingerprint: String
     get() = suspectReferenceSubpath
       .joinToString(separator = "") { element ->
         element.originObject.className + element.referenceGenericName

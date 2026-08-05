@@ -53,7 +53,7 @@ sealed interface ExplorerScreen {
   data class Leaks(
     override val treeNavigation: TreemapNavigation<Long>,
     /**
-     * Which leaks have been unfolded to show the objects in them, by [LeakGroup.signature] and which section
+     * Which leaks have been unfolded to show the objects in them, by [LeakGroup.leakFingerprint] and which section
      * the group is in: a leak of one class held two ways is two groups with one title.
      */
     val expandedGroups: Set<String> = emptySet(),

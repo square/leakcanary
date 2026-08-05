@@ -51,7 +51,7 @@ class BugsnagLeakUploader(applicationContext: Application) {
               event.addHeapAnalysis(heapAnalysis)
               event.addLeak(leak)
               event.addLeakTrace(leakTrace)
-              event.groupingHash = leak.signature
+              event.groupingHash = leak.leakFingerprint
               true
             }
           }
@@ -85,7 +85,7 @@ class BugsnagLeakUploader(applicationContext: Application) {
 
   private fun Event.addLeakTrace(leakTrace: LeakTrace) {
     addMetadata("Leak", "retainedHeapByteSize", leakTrace.retainedHeapByteSize)
-    addMetadata("Leak", "signature", leakTrace.signature)
+    addMetadata("Leak", "leakFingerprint", leakTrace.leakFingerprint)
     addMetadata("Leak", "leakTrace", leakTrace.toString())
   }
 

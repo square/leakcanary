@@ -120,9 +120,9 @@ internal object AndroidDebugHeapAnalyzer {
     return when (heapAnalysis) {
       is HeapAnalysisSuccess -> {
         val showIntent = LeakActivity.createSuccessIntent(application, analysisId)
-        val leakSignatures = heapAnalysis.allLeaks.map { it.signature }.toSet()
-        val leakSignatureStatuses = LeakTable.retrieveLeakReadStatuses(db, leakSignatures)
-        val unreadLeakSignatures = leakSignatureStatuses.filter { (_, read) ->
+        val leakFingerprints = heapAnalysis.allLeaks.map { it.leakFingerprint }.toSet()
+        val leakReadStatuses = LeakTable.retrieveLeakReadStatuses(db, leakFingerprints)
+        val unreadLeakFingerprints = leakReadStatuses.filter { (_, read) ->
           !read
         }.keys
           // keys returns LinkedHashMap$LinkedKeySet which isn't Serializable
@@ -131,7 +131,7 @@ internal object AndroidDebugHeapAnalyzer {
           uniqueId,
           analysisId,
           heapAnalysis,
-          unreadLeakSignatures,
+          unreadLeakFingerprints,
           showIntent
         )
       }

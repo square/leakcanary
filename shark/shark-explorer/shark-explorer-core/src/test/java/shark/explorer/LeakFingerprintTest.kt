@@ -17,10 +17,10 @@ import shark.explorer.LeakKind.APPLICATION
 
 /**
  * The leaks the explorer finds in a heap dump, against the leaks LeakCanary finds in the same one, compared
- * by the signature both print.
+ * by the leak fingerprint both print.
  *
- * Which is the strongest thing there is to say about the explorer's chains: a signature is a hash of the
- * stretch of the chain that explains the leak, so two tools agreeing on one agree about which references
+ * Which is the strongest thing there is to say about the explorer's chains: a leak fingerprint is a hash
+ * of the stretch of the chain that explains the leak, so two tools agreeing on one agree about which references
  * hold the object, which of them the app is meant to have, and where the leak starts. Read the failure as
  * "the two found different paths" rather than as "the hash is wrong".
  *
@@ -28,7 +28,7 @@ import shark.explorer.LeakKind.APPLICATION
  * `notes/decisions.md` for the sweep over the repo's real Android dumps and for the two differences that
  * remain, which are about which leaking objects get a chain of their own rather than about the chains.
  */
-class LeakSignatureTest {
+class LeakFingerprintTest {
 
   @get:Rule
   var testFolder = TemporaryFolder()
@@ -36,19 +36,19 @@ class LeakSignatureTest {
   @Test fun `a leak in a collection is named by the collection`() {
     // Rather than by the array the collection keeps its elements in, which is a step neither an app's code
     // nor a LeakCanary report has.
-    assertSameSignatures(testFolder.leakInAListHeapDump())
+    assertSameLeakFingerprints(testFolder.leakInAListHeapDump())
   }
 
   @Test fun `a leak on a stack is named by the field that also holds it`() {
     // The stack frame is the shorter way to it, and the field is the one worth reading.
-    assertSameSignatures(testFolder.leakOnAStackAndInAFieldHeapDump())
+    assertSameLeakFingerprints(testFolder.leakOnAStackAndInAFieldHeapDump())
   }
 
   /**
-   * That the two find the same leaks in [heapDumpFile], by the signature each prints under one, and that
-   * they find any at all: two empty lists are equal and say nothing.
+   * That the two find the same leaks in [heapDumpFile], by the leak fingerprint each prints under one, and
+   * that they find any at all: two empty lists are equal and say nothing.
    */
-  private fun assertSameSignatures(heapDumpFile: File) {
+  private fun assertSameLeakFingerprints(heapDumpFile: File) {
     val analysis = HeapAnalyzer(OnAnalysisProgressListener.NO_OP).analyze(
       heapDumpFile = heapDumpFile,
       // Every leak of the heap dump rather than the ones watched since the last one, which is what the
@@ -67,9 +67,9 @@ class LeakSignatureTest {
 
     HeapExplorer.open(heapDumpFile).use { explorer ->
       val explored = explorer.tree.findLeaks().sections.single { it.kind == APPLICATION }.groups
-      assertThat(explored.map { it.signature })
+      assertThat(explored.map { it.leakFingerprint })
         .isNotEmpty
-        .containsExactlyInAnyOrderElementsOf(analysis.applicationLeaks.map { it.signature })
+        .containsExactlyInAnyOrderElementsOf(analysis.applicationLeaks.map { it.leakFingerprint })
     }
   }
 }

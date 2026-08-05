@@ -81,7 +81,7 @@ fun interface EventListener {
         uniqueId: String,
         analysisId: Long,
         heapAnalysis: HeapAnalysisSuccess,
-        val unreadLeakSignatures: Set<String>,
+        val unreadLeakFingerprints: Set<String>,
         showIntent: Intent
       ) : HeapAnalysisDone<HeapAnalysisSuccess>(uniqueId, analysisId, heapAnalysis, showIntent)
 

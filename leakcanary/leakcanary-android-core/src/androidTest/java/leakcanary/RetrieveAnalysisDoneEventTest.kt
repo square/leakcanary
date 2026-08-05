@@ -65,8 +65,8 @@ internal class RetrieveAnalysisDoneEventTest {
     val succeeded = event as HeapAnalysisSucceeded
     assertThat(succeeded.uniqueId).isEqualTo("unique-id")
     assertThat(succeeded.analysisId).isEqualTo(analysisId)
-    assertThat(succeeded.heapAnalysis.allLeaks.map { it.signature }.toList())
-      .isEqualTo(analysis.allLeaks.map { it.signature }.toList())
+    assertThat(succeeded.heapAnalysis.allLeaks.map { it.leakFingerprint }.toList())
+      .isEqualTo(analysis.allLeaks.map { it.leakFingerprint }.toList())
   }
 
   @Test fun retrieves_stored_failure_as_HeapAnalysisFailed() {
@@ -99,8 +99,8 @@ internal class RetrieveAnalysisDoneEventTest {
       "unique-id", analysisId
     ) as HeapAnalysisSucceeded
 
-    assertThat(event.unreadLeakSignatures)
-      .isEqualTo(analysis.allLeaks.map { it.signature }.toSet())
+    assertThat(event.unreadLeakFingerprints)
+      .isEqualTo(analysis.allLeaks.map { it.leakFingerprint }.toSet())
   }
 
   @Test fun read_leaks_are_not_reported_as_unread() {
@@ -111,14 +111,14 @@ internal class RetrieveAnalysisDoneEventTest {
     }
     val analysisId = insert(analysis)
     ScopedLeaksDb.writableDatabase(context) { db ->
-      analysis.allLeaks.forEach { LeakTable.markAsRead(db, it.signature) }
+      analysis.allLeaks.forEach { LeakTable.markAsRead(db, it.leakFingerprint) }
     }
 
     val event = AndroidDebugHeapAnalyzer.retrieveAnalysisDoneEvent(
       "unique-id", analysisId
     ) as HeapAnalysisSucceeded
 
-    assertThat(event.unreadLeakSignatures).isEmpty()
+    assertThat(event.unreadLeakFingerprints).isEmpty()
   }
 
   @Test fun show_intent_points_at_the_stored_analysis() {

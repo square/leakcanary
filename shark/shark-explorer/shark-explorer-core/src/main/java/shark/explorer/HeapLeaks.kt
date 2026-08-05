@@ -86,25 +86,26 @@ data class LeakSection(
 data class LeakGroup(
   /**
    * What makes two objects instances of the same leak, and so what tells one leak from another: two groups
-   * can have the same [title] and never the same signature.
+   * can have the same [title] and never the same leak fingerprint.
    *
    * **The same string LeakCanary prints under this leak**, which is what makes a leak something to write
    * down: the same leak found in two heap dumps of the same app has the same one, however different the two
    * dumps are and whatever the addresses of the objects in them, and a report of a dump and this list of it
    * line up hash by hash. A SHA-1 of the suspect stretch of the chain for an app's own leak, of the pattern
-   * for a library one — `shark.Leak.signature`, computed by Shark's own code, see `LeakSignature.kt`.
+   * for a library one — `shark.Leak.leakFingerprint`, computed by Shark's own code, see
+   * `LeakFingerprint.kt`.
    */
-  val signature: String,
+  val leakFingerprint: String,
   /** What the leak is: the class of the objects leaking, or the reference a library leak is known by. */
   val title: String,
   /**
    * The references the leak *is*, as `Foo.bar` each: from the one that shouldn't be holding any more down
    * to the one that points straight at what leaked.
    *
-   * The stretch of the chain [signature] hashes, which is what makes these objects one leak, and the same
-   * for every object in the group. Both ends are worth reading — the first says what to stop holding, the
-   * last says where on the chain to find what it left behind — and they are the same reference for a leak
-   * held one step below something still needed, which is most leaks.
+   * The stretch of the chain [leakFingerprint] hashes, which is what makes these objects one leak, and
+   * the same for every object in the group. Both ends are worth reading — the first says what to stop
+   * holding, the last says where on the chain to find what it left behind — and they are the same
+   * reference for a leak held one step below something still needed, which is most leaks.
    *
    * Empty for the leaks named some other way: a library leak is named by the pattern that recognized it,
    * and a leak nothing holds any more has no chain to read references off.
@@ -128,7 +129,7 @@ data class LeakGroup(
 
 /**
  * Hex, lowercase, the way every tool that prints a SHA-1 prints one — and the way
- * `shark.internal.createSHA1Hash` does, which is what [LeakGroup.signature] has to agree with and can't
+ * `shark.internal.createSHA1Hash` does, which is what [LeakGroup.leakFingerprint] has to agree with and can't
  * call, since it's internal to Shark.
  */
 internal fun String.sha1Hex(): String =

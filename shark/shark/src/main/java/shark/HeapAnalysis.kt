@@ -159,7 +159,7 @@ Heap dump duration: ${if (dumpDurationMillis != DUMP_DURATION_UNKNOWN) "$dumpDur
 sealed class Leak : Serializable {
 
   /**
-   * Group of leak traces which share the same leak signature.
+   * Group of leak traces which share the same leak fingerprint.
    */
   abstract val leakTraces: List<LeakTrace>
 
@@ -186,19 +186,21 @@ sealed class Leak : Serializable {
     }
 
   /**
-   * A unique SHA1 hash that represents this group of leak traces.
+   * A unique SHA1 hash that represents this group of leak traces: two leaks with the same leak
+   * fingerprint are caused by the same bug, and the same bug keeps the same leak fingerprint across
+   * heap dumps, devices, runtimes and OS versions.
    *
-   * For [ApplicationLeak] this is based on [LeakTrace.signature] and for [LibraryLeak] this is
+   * For [ApplicationLeak] this is based on [LeakTrace.leakFingerprint] and for [LibraryLeak] this is
    * based on [LibraryLeak.pattern].
    */
-  abstract val signature: String
+  abstract val leakFingerprint: String
 
   abstract val shortDescription: String
 
   override fun toString(): String {
     return (if (totalRetainedHeapByteSize != null) "$totalRetainedHeapByteSize bytes retained by leaking objects\n" else "") +
-      (if (leakTraces.size > 1) "Displaying only 1 leak trace out of ${leakTraces.size} with the same signature\n" else "") +
-      "Signature: $signature\n" +
+      (if (leakTraces.size > 1) "Displaying only 1 leak trace out of ${leakTraces.size} with the same leak fingerprint\n" else "") +
+      "Leak fingerprint: $leakFingerprint\n" +
       leakTraces.first()
   }
 
@@ -224,7 +226,7 @@ data class LibraryLeak(
    */
   val description: String
 ) : Leak() {
-  override val signature: String
+  override val leakFingerprint: String
     get() = pattern.toString().createSHA1Hash()
 
   override val shortDescription: String
@@ -248,8 +250,8 @@ ${super.toString()}
 data class ApplicationLeak(
   override val leakTraces: List<LeakTrace>
 ) : Leak() {
-  override val signature: String
-    get() = leakTraces.first().signature
+  override val leakFingerprint: String
+    get() = leakTraces.first().leakFingerprint
 
   override val shortDescription: String
     get() {
