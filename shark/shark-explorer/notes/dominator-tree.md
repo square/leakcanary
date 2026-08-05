@@ -389,8 +389,10 @@ whatever points at them.
 
 Everything above is about views, and none of it fires on a Compose screen: the tree is `LayoutNode`s, the
 children are in a vector rather than a `View[]`, and there is no `mChildrenCount`. So the same two
-mechanisms again, plus the ownership rules — measured on a dump of `leakcanary-android-sample` taken off
-an API 36 emulator, since every heap dump in the repo predates Compose.
+mechanisms again, plus the ownership rules — measured on a dump of `leakcanary-app` taken off an API 36
+emulator, since every heap dump in the repo predates Compose and the sample app has none of it. The images
+the numbers below move around came from a screen added to that app for the measurement and deleted again,
+so reproducing them means a screen that remembers a few large images, not a dump of the app as it stands.
 
 `LayoutNodeChildReferenceReader` is `ViewChildReferenceReader` for a node, and the array it collapses is
 further down: `LayoutNode._foldedChildren` → `MutableVectorWithMutationTracking.vector` →
@@ -429,8 +431,8 @@ hangs off them, so there's no rule here worth the risk of a wrong claim.
 A composition keeps its state in one `Object[]` per window — every `remember` of every composable in it,
 every composition local map, every lambda, every `LayoutNode`, side by side — plus an `int[]` describing
 that array. So a bitmap one screen remembers is held by the same array as a bitmap five screens away, and
-the dominator answer for either is the composition rather than a piece of UI. On the sample app's dump
-that array was the single thing holding the images of every screen.
+the dominator answer for either is the composition rather than a piece of UI. On that app's dump the
+array was the single thing holding the images of every screen.
 
 `SlotTableReferenceReader` reads the `int[]` and hands each element out from the node whose composable is
 inside. The layout, read off Compose 1.11.4's bytecode and confirmed against a real dump: **five ints a
@@ -459,7 +461,7 @@ Three things about it are decisions rather than mechanics:
   its slots in chunks rather than one array and is refused for the same reason: it isn't decodable from
   these four fields.
 
-Measured, the two commits together, on that API 36 sample app dump: `AndroidComposeView` retains
+Measured, the two commits together, on that API 36 dump of `leakcanary-app`: `AndroidComposeView` retains
 **10,368,941 B where it retained 2,619,473 B**, its root `LayoutNode` **7,744,454 B where it retained
 8,895 B**, and the `BitmapPainter`s and `AndroidImageBitmap`s of a screen are dominated by a `LayoutNode`
 under `AndroidComposeView` → `ComposeView` → … → `DecorView` → `MainActivity` →
