@@ -22,6 +22,17 @@ internal fun HeapDominatorTreemap.instancesOf(simpleClassName: String): List<Obj
 internal fun HeapDominatorTreemap.onlyInstanceOf(simpleClassName: String): ObjectListEntry =
   instancesOf(simpleClassName).single()
 
+/** Every object the tree has between [objectId] and its root, nearest first. */
+internal fun HeapDominatorTreemap.dominatorLabelsOf(objectId: Long): List<String> {
+  val labels = mutableListOf<String>()
+  var dominator = dominatorOf(objectId)
+  while (dominator != null) {
+    labels += dominator.label
+    dominator = if (dominator.kind == DominatorKind.OBJECT) dominatorOf(dominator.nodeId) else null
+  }
+  return labels
+}
+
 /** Every object of the tree, walked past the groups, which stand for objects rather than being one. */
 internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
   val summaries = mutableListOf<HeapObjectSummary>()

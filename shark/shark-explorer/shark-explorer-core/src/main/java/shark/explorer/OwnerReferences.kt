@@ -9,6 +9,8 @@ import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.Reference
+import shark.explorer.OwnedObjects.HeldByScopedProviders
+import shark.explorer.OwnedObjects.InstancesOf
 
 /**
  * A construct where one reference is the one that really holds an object, and every other reference to
@@ -28,8 +30,8 @@ import shark.Reference
  * expressed by which references exist.
  */
 internal class OwnerRule(
-  /** The class whose instances something owns, subclasses included. */
-  val ownedClassName: String,
+  /** Which objects of a heap dump the rule is about. */
+  val ownedObjects: OwnedObjects,
   /**
    * The fields that own what they point at, by the name of the class declaring them. Read against the
    * whole class hierarchy of the referring object, so a rule on a base class covers every subclass.
@@ -44,6 +46,55 @@ internal class OwnerRule(
    * whichever slot of whichever array each one is really in.
    */
   val ownerVirtualClassNames: Set<String> = emptySet()
+)
+
+/**
+ * How an [OwnerRule] says which objects of a heap dump it is about.
+ *
+ * Two ways, because the cheap one doesn't always apply. Naming a class is a scan of two indexes and no
+ * object record, so it's the one to reach for — but it needs the owned objects to have a class in
+ * common, and the objects of some constructs have nothing in common but where they're held.
+ */
+internal sealed class OwnedObjects {
+
+  /** Every instance of [className] and of its subclasses, which the heap dump index answers on its own. */
+  class InstancesOf(val className: String) : OwnedObjects()
+
+  /**
+   * Whatever the [providers] are holding, whatever its class — for a dependency injection singleton,
+   * which is any type at all. What makes an object one is a provider caching it, so there is nothing
+   * about the object itself to recognise, and this reads the providers to find out.
+   */
+  class HeldByScopedProviders(val providers: List<ScopedProvider>) : OwnedObjects()
+}
+
+/**
+ * A dependency injection framework's scoped provider: the object a generated component keeps a binding's
+ * instance in, so that every injection point of that scope is handed the same one.
+ *
+ * Named per framework rather than found by shape, since a provider is an ordinary class with an ordinary
+ * field and nothing in a heap dump marks it. Each entry is four names, and all four are checkable against
+ * a dump of an app using the framework — a wrong one doesn't fail, it silently stops finding singletons.
+ */
+internal class ScopedProvider(
+  /**
+   * The provider class, subclasses included, so that naming Metro's `BaseDoubleCheck` covers the
+   * `DoubleCheck` its generated code really instantiates.
+   */
+  val className: String,
+  /** The field the provider caches the instance in, once something has asked it for one. */
+  val instanceFieldName: String,
+  /** The class declaring the static field below, which is the provider's own only for Dagger. */
+  val uninitializedHolderClassName: String,
+  /**
+   * The static field holding what [instanceFieldName] points at until something asks: one sentinel object
+   * the framework shares between every provider in the process.
+   *
+   * Which has to be skipped rather than ignored, because it is a real object that real fields point at.
+   * Counting it as owned would hand a bare `Object` to whichever provider hadn't been asked yet and take
+   * the static field that does hold it out of the tree.
+   */
+  val uninitializedFieldName: String
 )
 
 /**
@@ -178,6 +229,31 @@ internal class OwnerReferences private constructor(
     private const val ACTIVITY_CLASS_NAME = "android.app.Activity"
 
     /**
+     * The scoped providers of the dependency injection frameworks the explorer knows about, read off a
+     * heap dump of an app built with each — see `notes/dependency-injection.md`.
+     *
+     * Both frameworks null the provider's own `provider` field once it has produced the instance, so a
+     * live provider points at nothing but its singleton.
+     */
+    private val SCOPED_PROVIDERS = listOf(
+      // Dagger keeps the sentinel on the provider class itself.
+      ScopedProvider(
+        className = "dagger.internal.DoubleCheck",
+        instanceFieldName = "instance",
+        uninitializedHolderClassName = "dagger.internal.DoubleCheck",
+        uninitializedFieldName = "UNINITIALIZED"
+      ),
+      // Metro's is a top level property of the file declaring the class, so it lives on the file's facade
+      // class rather than on the provider — which is why this needs a class name of its own.
+      ScopedProvider(
+        className = "dev.zacsweers.metro.internal.BaseDoubleCheck",
+        instanceFieldName = "_value",
+        uninitializedHolderClassName = "dev.zacsweers.metro.internal.BaseDoubleCheckKt",
+        uninitializedFieldName = "UNINITIALIZED"
+      )
+    )
+
+    /**
      * The constructs the explorer knows about. Curated: each one is a claim that a reference is *the* way
      * an object is held, and getting that wrong moves bytes to the wrong place in the tree.
      */
@@ -190,7 +266,7 @@ internal class OwnerReferences private constructor(
       // so a rule about View[] also hands ownership to an app's own array of views it merely points at,
       // and it leaves a hierarchy hanging off an unnamed array at every level of the tree.
       OwnerRule(
-        ownedClassName = VIEW_CLASS_NAME,
+        ownedObjects = InstancesOf(VIEW_CLASS_NAME),
         ownerVirtualClassNames = setOf(ViewChildReferenceReader.VIEW_GROUP_CLASS_NAME)
       ),
       // The root view of a hierarchy has no parent to own it, and belongs to whatever the hierarchy is
@@ -207,7 +283,7 @@ internal class OwnerReferences private constructor(
       // monitor held the window from a GC root of its own, which cost the activity all 18 MB of its
       // hierarchy. One owner per construct, and it should be the one you'd want to read the bytes under.
       OwnerRule(
-        ownedClassName = VIEW_CLASS_NAME,
+        ownedObjects = InstancesOf(VIEW_CLASS_NAME),
         ownerFieldsByClassName = mapOf(
           ACTIVITY_CLASS_NAME to setOf("mDecor"),
           "android.app.Dialog" to setOf("mDecor")
@@ -227,8 +303,32 @@ internal class OwnerReferences private constructor(
       // screen spends three of its steps on a map's bookkeeping and the thread's own rectangle is a pile of
       // records rather than a row of screens to compare.
       OwnerRule(
-        ownedClassName = ACTIVITY_CLASS_NAME,
+        ownedObjects = InstancesOf(ACTIVITY_CLASS_NAME),
         ownerVirtualClassNames = setOf(RunningActivityReferenceReader.ACTIVITY_THREAD_CLASS_NAME)
+      ),
+      // A dependency injection singleton is held by the provider its component caches it in, and every
+      // other reference to one is an injection site the component handed it to. Which is nearly always a
+      // lot of them, all over the app, so without this rule a singleton is dominated by whatever dominates
+      // the whole graph of things that were injected with it — the top of the tree. Measured on a JVM dump
+      // of a Dagger and a Metro component: every scoped instance came out under the root, and under this
+      // rule every one of them came out under its own component.
+      //
+      // The provider and not the component, though the component is what you'd want to read the bytes
+      // under, because **nothing in a heap dump says which object is a component**. Dagger's generated one
+      // is a `DaggerAppComponent$AppComponentImpl`, which a name could just about catch; Metro's is an
+      // `AppGraph$Impl`, an `Impl` nested in the interface the app declared, with no marker of any kind.
+      // A rule about the provider needs no such guess, and the component still collects the bytes, one
+      // step further down: it is what holds every provider.
+      //
+      // Self-clearing in the way the rest of these are. A provider never lets go of its instance, so there
+      // is no state to check: while the component is reachable so is the provider, and once the component
+      // is gone the provider is gone with it, no owner reaches the singleton, and whatever is still
+      // pointing at it is both how it's held and what's leaking it.
+      OwnerRule(
+        ownedObjects = HeldByScopedProviders(SCOPED_PROVIDERS),
+        ownerFieldsByClassName = SCOPED_PROVIDERS.associate {
+          it.className to setOf(it.instanceFieldName)
+        }
       )
     )
 
@@ -243,43 +343,97 @@ internal class OwnerReferences private constructor(
      */
     fun computeFor(graph: HeapGraph): OwnerReferences {
       val ownedClassIds = MutableLongSet()
-      RULES.mapTo(mutableSetOf()) { it.ownedClassName }.forEach { className ->
-        graph.findClassByName(className)?.let { ownedClassIds += it.objectId }
+      RULES.mapNotNullTo(mutableSetOf()) { (it.ownedObjects as? InstancesOf)?.className }
+        .forEach { className ->
+          graph.findClassByName(className)?.let { ownedClassIds += it.objectId }
+        }
+      val scopedProviders = RULES.flatMap {
+        (it.ownedObjects as? HeldByScopedProviders)?.providers.orEmpty()
       }
       return OwnerReferences(
         graph = graph,
-        ownedObjectIds = ownedObjectIdsOf(graph, ownedClassIds),
+        ownedObjectIds = ownedObjectIdsOf(graph, ownedClassIds, scopedProviders),
         ownerFieldsByClassName = ownerFieldsByClassName(),
         ownerVirtualClassNames = RULES.flatMapTo(mutableSetOf()) { it.ownerVirtualClassNames }
       )
     }
 
     /**
-     * The instances of [ownedClassIds] and of their subclasses, by object id.
+     * The instances of [ownedClassIds] and of their subclasses, plus what the [scopedProviders] found in
+     * the same pass are holding, by object id.
      *
-     * Reads no object record: an instance's class comes from the heap dump index, and so does the
-     * superclass of a class, so this is a scan of two indexes.
+     * The class half reads no object record: an instance's class comes from the heap dump index, and so
+     * does the superclass of a class, so it is a scan of two indexes. The provider half then reads one
+     * record per provider, which is one per binding a component has been asked for rather than one per
+     * object — a few thousand at the very most, against the millions the index pass walks past.
      */
     private fun ownedObjectIdsOf(
       graph: HeapGraph,
-      ownedClassIds: LongSet
+      ownedClassIds: LongSet,
+      scopedProviders: List<ScopedProvider>
     ): LongSet {
       val ownedObjectIds = MutableLongSet()
-      if (ownedClassIds.isEmpty()) {
-        return ownedObjectIds
-      }
-      val subclassIds = MutableLongSet()
-      graph.classes.forEach { heapClass ->
-        if (heapClass.classHierarchy.any { ownedClassIds.contains(it.objectId) }) {
-          subclassIds += heapClass.objectId
+      // Only the frameworks the heap dump has classes for, so an app using neither pays one class lookup
+      // per framework and nothing else.
+      val providerByDeclaringClassId = MutableLongObjectMap<ScopedProvider>()
+      scopedProviders.forEach { provider ->
+        graph.findClassByName(provider.className)?.let {
+          providerByDeclaringClassId[it.objectId] = provider
         }
       }
+      if (ownedClassIds.isEmpty() && providerByDeclaringClassId.isEmpty()) {
+        return ownedObjectIds
+      }
+      // Both halves need the subclasses of a named class, so both read them out of the one pass:
+      // HeapClass.subclasses is a scan of every class of the dump, and there are several names here.
+      val subclassIds = MutableLongSet()
+      val providerByClassId = MutableLongObjectMap<ScopedProvider>()
+      graph.classes.forEach { heapClass ->
+        heapClass.classHierarchy.forEach { superclass ->
+          if (ownedClassIds.contains(superclass.objectId)) {
+            subclassIds += heapClass.objectId
+          }
+          providerByDeclaringClassId[superclass.objectId]?.let {
+            providerByClassId[heapClass.objectId] = it
+          }
+        }
+      }
+      val providerInstances = mutableListOf<HeapInstance>()
       graph.instances.forEach { instance ->
         if (subclassIds.contains(instance.instanceClassId)) {
           ownedObjectIds += instance.objectId
         }
+        if (providerByClassId.containsKey(instance.instanceClassId)) {
+          providerInstances += instance
+        }
+      }
+      val uninitializedValueIds = uninitializedValueIdsOf(graph, providerByDeclaringClassId)
+      providerInstances.forEach { providerInstance ->
+        val provider = providerByClassId[providerInstance.instanceClassId]!!
+        val heldObjectId = providerInstance[provider.className, provider.instanceFieldName]
+          ?.value
+          ?.asNonNullObjectId
+        if (heldObjectId != null && !uninitializedValueIds.contains(heldObjectId)) {
+          ownedObjectIds += heldObjectId
+        }
       }
       return ownedObjectIds
+    }
+
+    /** The sentinel each of the frameworks present in [graph] leaves in a provider nothing has asked yet. */
+    private fun uninitializedValueIdsOf(
+      graph: HeapGraph,
+      providerByDeclaringClassId: MutableLongObjectMap<ScopedProvider>
+    ): LongSet {
+      val uninitializedValueIds = MutableLongSet()
+      providerByDeclaringClassId.forEachValue { provider ->
+        graph.findClassByName(provider.uninitializedHolderClassName)
+          ?.get(provider.uninitializedFieldName)
+          ?.value
+          ?.asNonNullObjectId
+          ?.let { uninitializedValueIds += it }
+      }
+      return uninitializedValueIds
     }
 
     /** [RULES]' owner fields merged, so that two rules on the same class both hold. */
