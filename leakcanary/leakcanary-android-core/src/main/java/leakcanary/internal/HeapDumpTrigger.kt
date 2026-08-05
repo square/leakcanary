@@ -96,7 +96,7 @@ internal class HeapDumpTrigger(
       if (!checkedForDroppedAnalyses) {
         checkedForDroppedAnalyses = true
         backgroundHandler.post {
-          dispatchAnalysisOfHeapDumpsWaitingForOne()
+          dispatchAnalysisOfOldestHeapDumpWaitingForOne()
         }
       }
     } else {
@@ -175,7 +175,7 @@ internal class HeapDumpTrigger(
     // racing the other for CPU, and would fill up the stored heap dumps with heap dumps nothing has
     // read yet, until the oldest one gets deleted out from under the analysis that was going to read
     // it. So we wait, and while we wait we make sure that analysis is actually still coming.
-    val waitingForAnalysis = dispatchAnalysisOfHeapDumpsWaitingForOne()
+    val waitingForAnalysis = dispatchAnalysisOfOldestHeapDumpWaitingForOne()
     if (waitingForAnalysis.isNotEmpty()) {
       SharkLog.d {
         "Waiting for the analysis of $waitingForAnalysis to finish before dumping the heap again"
@@ -202,29 +202,35 @@ internal class HeapDumpTrigger(
   }
 
   /**
-   * Dispatches the analysis of every stored heap dump that has no stored analysis, and returns those
-   * heap dumps.
+   * Returns the stored heap dumps that have no stored analysis, oldest first, and dispatches the
+   * analysis of the oldest one.
    *
    * The analysis of a heap dump is dispatched once when the heap dump is taken and normally needs no
-   * help after that: WorkManager persists the work it was given and resumes it in the next process,
-   * and [leakcanary.BackgroundThreadHeapAnalyzer], which is what LeakCanary falls back to when
-   * WorkManager isn't in the classpath, has nothing to resume from but also nothing that can drop the
-   * analysis except the process dying. Dispatching again is how the case that's left, a process that
-   * died while its analysis was queued or running, stops being a heap dump nobody will ever read.
+   * help after that: WorkManager persists the work it was given and re-runs an analysis that was
+   * interrupted by the process dying. What it doesn't re-run is an analysis it considers failed, which
+   * is what a dead `:leakcanary` process looks like to the main process, and it isn't there at all for
+   * [leakcanary.BackgroundThreadHeapAnalyzer], the bare [Handler] LeakCanary falls back to when
+   * WorkManager isn't in the classpath. Dispatching again is how those stop being a heap dump nobody
+   * will ever read, and it costs nothing when the analysis is still coming: the analysis is enqueued
+   * under a name unique to that heap dump, so WorkManager keeps the work it already has, and an
+   * analysis that did complete is no longer waiting and so is never dispatched again.
    *
-   * Dispatching again costs nothing when the analysis is still coming: the analysis is enqueued under
-   * a name unique to that heap dump, so WorkManager keeps the work it already has, and an analysis
-   * that did complete is no longer waiting and so is never dispatched again.
+   * Only the oldest one is dispatched, because dispatching all of them would hand several analyses to
+   * WorkManager at once, which runs them on a pool of 2 to 4 threads: several parsed heaps in memory
+   * racing each other for CPU, which is the thing waiting for the analysis exists to prevent. The next
+   * one is dispatched by the next call, once this one is no longer waiting.
    */
-  private fun dispatchAnalysisOfHeapDumpsWaitingForOne(): List<File> {
+  private fun dispatchAnalysisOfOldestHeapDumpWaitingForOne(): List<File> {
     val waitingForAnalysis = InternalLeakCanary.createLeakDirectoryProvider(application)
       .heapDumpFilesWaitingForAnalysis()
-    waitingForAnalysis.forEach { heapDumpFile ->
-      SharkLog.d { "Dispatching analysis of heap dump $heapDumpFile, which has no analysis" }
+    waitingForAnalysis.firstOrNull()?.let { oldestWaitingForAnalysis ->
+      SharkLog.d {
+        "Dispatching analysis of heap dump $oldestWaitingForAnalysis, which has no analysis"
+      }
       InternalLeakCanary.sendEvent(
         HeapDump(
           uniqueId = UUID.randomUUID().toString(),
-          file = heapDumpFile,
+          file = oldestWaitingForAnalysis,
           durationMillis = DUMP_DURATION_UNKNOWN,
           reason = "Heap dump was taken earlier and its analysis never completed"
         )

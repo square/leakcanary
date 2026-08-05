@@ -76,6 +76,22 @@ internal class RepeatedHeapAnalysisTest {
       .containsExactly(waitingForAnalysis)
   }
 
+  /**
+   * Several heap dumps waiting at once is what a process that died mid analysis more than once leaves
+   * behind. Dispatching them all would hand WorkManager several analyses to run on its 2 to 4 thread
+   * pool, which is the parallel analysis that waiting for the analysis exists to prevent.
+   */
+  @Test fun only_the_oldest_heap_dump_waiting_for_analysis_is_dispatched() {
+    val older = writeHeapDump(name = "older.hprof", lastModifiedMillis = 1000)
+    writeHeapDump(name = "newer.hprof", lastModifiedMillis = 2000)
+    val dispatchedEvents = captureDispatchedEvents()
+
+    onApplicationVisible()
+
+    assertThat(dispatchedEvents.filterIsInstance<HeapDump>().map { it.file })
+      .containsExactly(older)
+  }
+
   @Test fun analysis_of_an_analyzed_heap_dump_is_not_dispatched_again() {
     val heapDumpFile = writeHeapDump()
     analyze(heapDumpFile)
@@ -214,9 +230,13 @@ internal class RepeatedHeapAnalysisTest {
     }
   }
 
-  private fun writeHeapDump(block: HprofWriterHelper.() -> Unit = {}): File {
+  private fun writeHeapDump(
+    name: String = "waiting-for-analysis.hprof",
+    lastModifiedMillis: Long? = null,
+    block: HprofWriterHelper.() -> Unit = {}
+  ): File {
     heapDumpDirectory.mkdirs()
-    val heapDumpFile = File(heapDumpDirectory, "waiting-for-analysis.hprof")
+    val heapDumpFile = File(heapDumpDirectory, name)
     heapDumpFile.dump {
       "android.os.Build" clazz {
         staticField["MANUFACTURER"] = string("Samsing")
@@ -229,6 +249,11 @@ internal class RepeatedHeapAnalysisTest {
         staticField["leak"] = "com.example.Leaking" watchedInstance {}
       }
       block()
+    }
+    if (lastModifiedMillis != null) {
+      check(heapDumpFile.setLastModified(lastModifiedMillis)) {
+        "Could not set the last modified time of $heapDumpFile"
+      }
     }
     return heapDumpFile
   }
