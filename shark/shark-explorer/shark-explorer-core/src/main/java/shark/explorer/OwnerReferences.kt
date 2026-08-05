@@ -228,6 +228,8 @@ internal class OwnerReferences private constructor(
 
     private const val ACTIVITY_CLASS_NAME = "android.app.Activity"
 
+    private const val MODIFIER_NODE_CLASS_NAME = "androidx.compose.ui.Modifier\$Node"
+
     /**
      * The scoped providers of the dependency injection frameworks the explorer knows about, read off a
      * heap dump of an app built with each — see `notes/dependency-injection.md`.
@@ -305,6 +307,52 @@ internal class OwnerReferences private constructor(
       OwnerRule(
         ownedObjects = InstancesOf(ACTIVITY_CLASS_NAME),
         ownerVirtualClassNames = setOf(RunningActivityReferenceReader.ACTIVITY_THREAD_CLASS_NAME)
+      ),
+      // A Compose UI is a tree of LayoutNodes and the same rule applies to it, through the virtual
+      // reference [LayoutNodeChildReferenceReader] reads from a parent to each child.
+      //
+      // It needs saying louder here than for a view, because Compose keeps a flat registry of every node
+      // of a window — `AndroidComposeView.layoutNodes`, by semantics id — so *every* node of a UI is one
+      // reference from the view that hosts it, and the tree of a screen is a list until this rule turns
+      // it back into a tree. The rest of the rivals are Compose's own graphs pointing sideways: the nodes
+      // waiting to be measured, the ones waiting to be positioned, a focus listener the input method
+      // manager holds, a modifier node's coordinator.
+      OwnerRule(
+        ownedObjects = InstancesOf(LayoutNodeChildReferenceReader.LAYOUT_NODE_CLASS_NAME),
+        ownerVirtualClassNames = setOf(LayoutNodeChildReferenceReader.LAYOUT_NODE_CLASS_NAME)
+      ),
+      // The node at the top of a window has no parent node, and belongs to the view hosting it — the same
+      // rule as a decor view belonging to its Activity, and what puts a Compose UI's bytes inside the
+      // hierarchy of the screen showing it.
+      //
+      // The composition holds that node too, in a slot of its table, and this is deliberately the owner
+      // instead: a composition is one flat store per window, so owning from there would be the registry
+      // problem again. See [SlotTableReferenceReader] for what a slot reference is.
+      OwnerRule(
+        ownedObjects = InstancesOf(LayoutNodeChildReferenceReader.LAYOUT_NODE_CLASS_NAME),
+        ownerFieldsByClassName = mapOf(
+          "androidx.compose.ui.platform.AndroidComposeView" to setOf("root")
+        )
+      ),
+      // What a node of a Compose UI is made of belongs to that node: its modifiers are a chain hanging
+      // off its `NodeChain`, from the outermost through each one's `child` to the tail.
+      //
+      // Without this the chain is a way *into* the UI rather than a part of it, and that is measurable:
+      // Compose's modifier nodes point back at their coordinators, which point back at their layers and
+      // at each other, so a single reference into any one of them reaches the lot. A heap dump taken on
+      // API 36 has three such references from outside — a focus listener the input method manager reaches
+      // through the window's `ViewTreeObserver`, the snapshot observer's static list of what it observes,
+      // and the `Recomposer` — so every modifier of every screen was held from a GC root of its own, and
+      // the images the UI draws were dominated by the top of the heap rather than by the UI showing them.
+      //
+      // `child` and not `parent`: a chain has to be owned in one direction, and it reads outermost first,
+      // the way the modifiers were written.
+      OwnerRule(
+        ownedObjects = InstancesOf(MODIFIER_NODE_CLASS_NAME),
+        ownerFieldsByClassName = mapOf(
+          "androidx.compose.ui.node.NodeChain" to setOf("head"),
+          MODIFIER_NODE_CLASS_NAME to setOf("child")
+        )
       ),
       // A dependency injection singleton is held by the provider its component caches it in, and every
       // other reference to one is an injection site the component handed it to. Which is nearly always a

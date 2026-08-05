@@ -375,8 +375,8 @@ run through a *leaked* `SquareActivity.foot → ArrayList → Object[]`, since t
 Byte counts are again identical before and after, which is the check that no object left the graph:
 30,090,032 B strong, 28,302 B thread local, 1,444 B soft, 261 B weak, 9,353 B finalizer, 631,761 B
 unreachable, 387,971 objects. Opening the dump costs at most 2% more — median of five steady state opens
-2.02 s with the reader against 1.98 s without, ranges overlapping — which is the fourth sequence
-concatenation `retainingReferencesOf` now does per object, since the reader itself is one class id
+2.02 s with the reader against 1.98 s without, ranges overlapping — which is one more sequence
+concatenation `retainingReferencesOf` does per object, since the reader itself is one class id
 comparison for everything that isn't the activity thread.
 
 `mActivities` has been an `ArrayMap` since Lollipop, seven releases before the oldest one LeakCanary

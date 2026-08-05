@@ -74,7 +74,8 @@ internal class WeakeningReference(
  *
  * Where a structure is worth presenting the way you think about it anyway, the reference is **added**
  * rather than swapped in: [DataStructureReferenceReader] gives a collection a reference to each entry,
- * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children and
+ * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children,
+ * [LayoutNodeChildReferenceReader] does the same for a Compose `LayoutNode` and
  * [RunningActivityReferenceReader] gives an `ActivityThread` one to each activity the app is running — and
  * the table, the `View[]` and the `ArrayMap` they really live in are still reached through their fields and
  * still nodes of their own.
@@ -86,6 +87,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
       .createFor(graph)
 
   private val viewChildReader = ViewChildReferenceReader(graph)
+
+  private val layoutNodeChildReader = LayoutNodeChildReferenceReader(graph)
 
   private val dataStructureReader = DataStructureReferenceReader(graph)
 
@@ -111,8 +114,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> {
     val references = retainingReader.read(source) + classMetadataReferencesOf(source) +
-      viewChildReader.childReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
-      runningActivityReader.activityReferencesOf(source)
+      viewChildReader.childReferencesOf(source) + layoutNodeChildReader.childReferencesOf(source) +
+      dataStructureReader.entryReferencesOf(source) + runningActivityReader.activityReferencesOf(source)
     val cachedValueIds = cachedMapValues.cachedValueIdsOf(source)
     return if (cachedValueIds.isEmpty()) {
       references
