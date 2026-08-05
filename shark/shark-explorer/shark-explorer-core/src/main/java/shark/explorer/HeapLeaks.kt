@@ -97,6 +97,15 @@ data class LeakGroup(
   val signature: String,
   /** What the leak is: the class of the objects leaking, or the reference a library leak is known by. */
   val title: String,
+  /**
+   * The reference that points straight at what leaked, as `Foo.bar`: what the leaking object hangs off.
+   *
+   * The other end of the stretch [title] names the top of, and the same for every object of the leak, since
+   * that stretch is what grouped them. Null when there is no chain to read one off, which is a leak nothing
+   * holds any more. The two are the same string for a leak held one reference below something still needed,
+   * which is most of them — see [title].
+   */
+  val heldBy: String?,
   /** Why they are leaking, or what is known about the library leak. Null when there is nothing to add. */
   val subtitle: String?,
   /** Largest first. Never empty: a group is made by there being an object in it. */

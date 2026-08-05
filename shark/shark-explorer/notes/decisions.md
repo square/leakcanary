@@ -401,6 +401,10 @@ Two reasons, and the second is the one that decided it.
   when `strengthOf` says so, a library leak when one of the path's own references carries a
   `LibraryLeakPattern`, the app's own otherwise — and clicking the row shows that path.
 
+One walk up per object found, which on the 38 MB dump is 48 objects and **328 ms** with the index and the
+candidates already paid for. That is what a walk *down* from the roots at open time would replace, and it
+would replace it with work every dump does whether or not anyone opens this screen.
+
 **A leak is a reference, not a class**, and what groups the app's own leaks is the signature LeakCanary
 prints under one — `LeakTrace.signature`, a SHA-1 of the suspect stretch of the chain, from the last object
 known to still be needed down to the first one that shouldn't be there. Three things it deliberately leaves
@@ -420,6 +424,12 @@ one, off the pattern they were recognized by. What the row is *named* after is s
 first reference of the suspect stretch, `Holder.activity`, by the class declaring the field so that the name
 is a string that is also on the chain drawn for it, where the signature uses the class of the object. Which
 is why the name is no substitute for the signature and both are on the row.
+
+**Both ends of that stretch are on the row**, since they answer different questions: the name is the
+reference that shouldn't be holding, and `Held by` is the one that points straight at what leaked, which is
+where to look on the chain to see the leak itself. Left off when they are the same reference, which is most
+leaks. It is what tells two rows apart when the prefix is shared — on `unloaded_classes-stripped` both app
+leaks are named `MediaStateMachine.observer` and differ only in this line.
 
 Fifty leaked rows of one list are one thing to fix, so a group is one row until it is unfolded — one object
 or fifty, since a row that led somewhere when it held one and unfolded when it held two would be two rows

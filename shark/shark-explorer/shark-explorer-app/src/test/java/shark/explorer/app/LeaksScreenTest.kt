@@ -23,7 +23,12 @@ import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.ExplorerScreen
+import shark.explorer.HeapLeaks
+import shark.explorer.HeapObjectKind
+import shark.explorer.LeakGroup
 import shark.explorer.LeakKind
+import shark.explorer.LeakSection
+import shark.explorer.LeakingObject
 import shark.explorer.ReachabilityStrength
 import shark.explorer.hexObjectId
 
@@ -125,6 +130,18 @@ class LeaksScreenTest {
       // The KeyedWeakReference is an object of the heap dump like any other, so the line about it opens it.
       waitUntilTheLeaksAreLeft()
       assertThat(nodesNaming(heapDump.weakReferenceObjectId)).isNotEmpty()
+    }
+  }
+
+  @Test fun `a leak says what the object that leaked hangs off, when that isn't its name`() {
+    explorerUiTest {
+      // Rendered from leaks rather than read off a heap dump: what is being pinned is which of the two ends
+      // of a leak the row shows, and a dump whose leaks have the shape to show it is a dump built for it.
+      setContent { MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, {}) } }
+
+      onNodeWithText("$HELD_BY $FAR_END").assertIsDisplayed()
+      // And left off the leak whose two ends are one reference, where the row above it already says it.
+      assertThat(onAllNodesWithText("$HELD_BY $NEAR_END").fetchSemanticsNodes()).isEmpty()
     }
   }
 
@@ -267,5 +284,50 @@ class LeaksScreenTest {
 
     /** An `adb` connected to nothing, so that a test doesn't answer for whatever is plugged in. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }
+
+    /** The reference that points straight at what leaked, on a leak named after a different one. */
+    private const val FAR_END = "Middle.activity"
+
+    /** And on a leak whose suspect stretch is one reference, where it is the name. */
+    private const val NEAR_END = "Holder.activity"
+
+    /** Two app leaks, one of each shape. See [LeakGroup.heldBy]. */
+    private val TWO_ENDED_LEAKS = HeapLeaks(
+      listOf(
+        LeakSection(
+          kind = LeakKind.APPLICATION,
+          groups = listOf(
+            leakGroup(title = "Holder.middle", heldBy = FAR_END),
+            leakGroup(title = NEAR_END, heldBy = NEAR_END)
+          )
+        )
+      )
+    )
+
+    private fun leakGroup(
+      title: String,
+      heldBy: String
+    ) = LeakGroup(
+      signature = title.sha1OfNothing(),
+      title = title,
+      heldBy = heldBy,
+      subtitle = null,
+      objects = listOf(
+        LeakingObject(
+          objectId = title.hashCode().toLong(),
+          className = "com.example.MainActivity",
+          kind = HeapObjectKind.INSTANCE,
+          headline = null,
+          retainedSize = 0L,
+          retainedCount = 1,
+          strength = ReachabilityStrength.STRONG,
+          leakingReason = null,
+          watcher = null
+        )
+      )
+    )
+
+    /** Any forty characters of hex: what the row does with a signature is show it. */
+    private fun String.sha1OfNothing() = "%040x".format(hashCode().toLong() and 0xffffffffL)
   }
 }

@@ -892,10 +892,14 @@ class HeapDominatorTreemap internal constructor(
         // has no signature to match here: it reports what a GC root reaches, and this is what none does.
         signature = leakingObject.className.sha1Hex(),
         title = simpleClassName,
+        heldBy = null,
         subtitle = UNREACHABLE_LEAK_SUBTITLE,
         leakingObject = leakingObject
       )
     }
+    // Both ends of it: a leak is named after the reference that shouldn't be holding, and the other end is
+    // what the object that leaked hangs off, which is the one to go looking for on the chain.
+    val suspectSubpath = suspectSubpath(steps)
     // The first one on the way down, so a chain through two known leaks is named after the one nearest
     // the root, which is the one holding the other. A chain goes through a known leaking reference only
     // when there is no other way to the object, which is LeakCanary's rule and is what puts the same
@@ -908,6 +912,7 @@ class HeapDominatorTreemap internal constructor(
         // one of this list are the same string when they are the same known leak.
         signature = libraryLeak.pattern.sha1Hex(),
         title = libraryLeak.pattern,
+        heldBy = suspectSubpath.lastOrNull(),
         subtitle = libraryLeak.description.ifEmpty { null },
         leakingObject = leakingObject
       )
@@ -920,7 +925,8 @@ class HeapDominatorTreemap internal constructor(
       signature = steps.leakSignature(),
       // The reference that shouldn't be holding, which is the leak itself rather than one of the objects
       // it left behind. Those are the rows under it, and each says what it is.
-      title = suspectSubpath(steps).firstOrNull() ?: simpleClassName,
+      title = suspectSubpath.firstOrNull() ?: simpleClassName,
+      heldBy = suspectSubpath.lastOrNull(),
       subtitle = leakingObject.leakingReason,
       leakingObject = leakingObject
     )
@@ -970,6 +976,7 @@ class HeapDominatorTreemap internal constructor(
     /** What makes two objects instances of the same leak. See [LeakGroup.signature]. */
     val signature: String,
     val title: String,
+    val heldBy: String?,
     val subtitle: String?,
     val leakingObject: LeakingObject
   )
@@ -1012,6 +1019,7 @@ class HeapDominatorTreemap internal constructor(
         LeakGroup(
           signature = signature,
           title = found.first().title,
+          heldBy = found.first().heldBy,
           // From whichever object was recognized first, since a leak is one thing however many objects
           // of it there are: they are all leaking for the same reason, which is what grouped them.
           subtitle = found.firstNotNullOfOrNull { it.subtitle },

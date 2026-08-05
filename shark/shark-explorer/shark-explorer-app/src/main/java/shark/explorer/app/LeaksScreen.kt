@@ -75,9 +75,11 @@ internal fun LeaksScreen(
       }
       HorizontalDivider()
       LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
-        leaks.sections.forEach { section ->
-          item(key = section.kind.name) {
-            SectionHeader(section)
+        leaks.sections.forEachIndexed { sectionIndex, section ->
+          // Pinned while its own leaks scroll under it, which is what says they are its: a heading that
+          // scrolls away leaves a list of rows with nothing above them saying which of the three they are.
+          stickyHeader(key = section.kind.name) {
+            SectionHeader(section, isFirst = sectionIndex == 0)
           }
           section.groups.forEach { group ->
             val groupKey = section.kind.groupKey(group)
@@ -109,23 +111,40 @@ internal fun LeaksScreen(
   }
 }
 
-/** What one of the three parts is, and how much of the heap dump is in it. */
+/**
+ * What one of the three parts is, and how much of the heap dump is in it.
+ *
+ * The gap and the rule are above it and nothing is below it, which is the whole of what says the leaks
+ * under it are its: a heading the same distance from the section above and the one below belongs to
+ * neither. The band is opaque for the same reason the header is pinned — rows scroll under it.
+ */
 @Composable
-private fun SectionHeader(section: LeakSection) {
+private fun SectionHeader(
+  section: LeakSection,
+  /** Whether it opens the list, where there is nothing above to be told apart from. */
+  isFirst: Boolean
+) {
   Column(
     Modifier.fillMaxWidth()
-      .background(MaterialTheme.colorScheme.surfaceVariant)
-      .padding(horizontal = 12.dp, vertical = 6.dp)
+      .background(MaterialTheme.colorScheme.surface)
+      .padding(top = if (isFirst) 0.dp else SECTION_GAP)
   ) {
-    Text(
-      "${section.kind.title} · ${section.summary()}",
-      style = MaterialTheme.typography.titleSmall
-    )
-    Text(
-      section.kind.explanation,
-      style = MaterialTheme.typography.bodySmall,
-      color = MUTED_TEXT
-    )
+    HorizontalDivider(thickness = SECTION_RULE_WIDTH, color = SECTION_RULE_COLOR)
+    Column(
+      Modifier.fillMaxWidth()
+        .background(MaterialTheme.colorScheme.secondaryContainer)
+        .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+      Text(
+        "${section.kind.title} · ${section.summary()}",
+        style = MaterialTheme.typography.titleSmall
+      )
+      Text(
+        section.kind.explanation,
+        style = MaterialTheme.typography.bodySmall,
+        color = MUTED_TEXT
+      )
+    }
   }
 }
 
@@ -142,59 +161,92 @@ private fun GroupRow(
   isExpanded: Boolean,
   onToggle: () -> Unit
 ) {
-  Row(
-    Modifier.fillMaxWidth().clickableRow(onToggle)
-      .padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
-    horizontalArrangement = Arrangement.spacedBy(8.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Text(
-      if (isExpanded) EXPANDED_ARROW else FOLDED_ARROW,
-      Modifier.width(TOGGLE_WIDTH),
-      style = MaterialTheme.typography.bodyMedium,
-      textAlign = TextAlign.Center
-    )
-    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+  Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clickableRow(onToggle)) {
+    SectionBar()
+    Row(
+      Modifier.weight(1f).padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
       Text(
-        group.title,
+        if (isExpanded) EXPANDED_ARROW else FOLDED_ARROW,
+        Modifier.width(TOGGLE_WIDTH),
         style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Bold,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
+        textAlign = TextAlign.Center
       )
-      group.subtitle?.let { subtitle ->
+      Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
-          subtitle,
-          style = MaterialTheme.typography.bodySmall,
-          color = MUTED_TEXT,
-          maxLines = MAX_SUBTITLE_LINES,
-          overflow = TextOverflow.Ellipsis
-        )
-      }
-      // What makes a leak something to write down: the addresses in this list are of one heap dump, and
-      // this is the same for the same leak in the next one. See [LeakGroup.signature].
-      Hint(SIGNATURE_HINT) {
-        Text(
-          "$SIGNATURE ${group.signature}",
-          style = MaterialTheme.typography.bodySmall,
-          color = MUTED_TEXT,
+          group.title,
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = FontWeight.Bold,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
         )
+        group.subtitle?.let { subtitle ->
+          Text(
+            subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MUTED_TEXT,
+            maxLines = MAX_SUBTITLE_LINES,
+            overflow = TextOverflow.Ellipsis
+          )
+        }
+        // Left out when the row already says it, which is a leak held one reference below something still
+        // needed: the two ends of a one reference stretch are the same reference. See [LeakGroup.heldBy].
+        group.heldBy?.takeIf { it != group.title }?.let { heldBy ->
+          Hint(HELD_BY_HINT) {
+            Text(
+              "$HELD_BY $heldBy",
+              style = MaterialTheme.typography.bodySmall,
+              color = MUTED_TEXT,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis
+            )
+          }
+        }
+        // What makes a leak something to write down: the addresses in this list are of one heap dump, and
+        // this is the same for the same leak in the next one. See [LeakGroup.signature].
+        Hint(SIGNATURE_HINT) {
+          Text(
+            "$SIGNATURE ${group.signature}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MUTED_TEXT,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+          )
+        }
       }
+      Text(
+        group.objectCountText(),
+        style = MaterialTheme.typography.bodySmall,
+        color = MUTED_TEXT
+      )
+      Text(
+        formatByteSize(group.retainedSize),
+        Modifier.width(SIZE_COLUMN_WIDTH),
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.End
+      )
     }
-    Text(
-      group.objectCountText(),
-      style = MaterialTheme.typography.bodySmall,
-      color = MUTED_TEXT
-    )
-    Text(
-      formatByteSize(group.retainedSize),
-      Modifier.width(SIZE_COLUMN_WIDTH),
-      style = MaterialTheme.typography.bodyMedium,
-      textAlign = TextAlign.End
-    )
   }
+}
+
+/**
+ * The bar down the left of every row of one part of the list, which is what says those rows are its.
+ *
+ * Three headings on a flat list say as much about the rows above them as about the rows below, and a
+ * heading is the one thing on this screen that has to be unambiguous: an app leak and a library leak are
+ * two different things to do about a row that otherwise looks the same. The bar ends where the part's last
+ * row does, so it draws the part's height without anything having to know how tall that is.
+ */
+@Composable
+private fun SectionBar() {
+  Box(
+    Modifier.width(SECTION_BAR_WIDTH)
+      .fillMaxHeight()
+      // The heading's own colour, which is what makes it the heading's bar rather than a border.
+      .background(MaterialTheme.colorScheme.secondaryContainer)
+  )
 }
 
 /**
@@ -212,7 +264,8 @@ private fun LeakingObjectRow(
   onOpen: (Long) -> Unit
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(INSTANCE_BACKGROUND)) {
-    Spacer(Modifier.width(INSTANCE_INSET))
+    SectionBar()
+    Spacer(Modifier.width(INSTANCE_INSET - SECTION_BAR_WIDTH))
     Box(
       Modifier.width(INSTANCE_RULE_WIDTH)
         .fillMaxHeight()
@@ -346,6 +399,14 @@ private const val WATCHED_GLYPH = "◉"
 /** What the hash of a leak is called on the row, since a bare 40 characters of hex names nothing. */
 internal const val SIGNATURE = "Signature:"
 
+/** What the reference into the leaking object is called on the row, since `Foo.bar` alone says nothing. */
+internal const val HELD_BY = "Held by:"
+
+internal const val HELD_BY_HINT =
+  "The reference that points straight at what leaked, which is where to look on the chain to see the leak " +
+    "itself. The name of the leak above is the other end of the same stretch: the reference that shouldn't " +
+    "be holding any more. Everything between the two is the app working as intended."
+
 internal const val SIGNATURE_HINT =
   "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +
     "— unlike the addresses under it, which are of this one. So it is what to write in a bug report, and " +
@@ -357,6 +418,16 @@ internal const val EXPANDED_ARROW = "▾"
 
 /** Wide enough for the triangle, which every row has: every leak unfolds, one object or fifty. */
 private val TOGGLE_WIDTH = 16.dp
+
+/** Between the last leak of one part and the heading of the next, which is what parts the three. */
+private val SECTION_GAP = 20.dp
+
+/** And the line across that gap, heavier than the one under the count so that it reads as a break. */
+private val SECTION_RULE_WIDTH = 2.dp
+private val SECTION_RULE_COLOR = Color(0x33000000)
+
+/** The bar tying a part's rows to its heading. Wide enough to read as a bar and not as a window edge. */
+private val SECTION_BAR_WIDTH = 6.dp
 
 /** Enough that the objects of a leak read as being inside it rather than as more leaks. */
 private val INSTANCE_INSET = 28.dp

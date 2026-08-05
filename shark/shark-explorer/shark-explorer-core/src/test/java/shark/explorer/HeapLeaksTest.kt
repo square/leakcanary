@@ -77,6 +77,19 @@ class HeapLeaksTest {
     }
   }
 
+  @Test fun `a leak also says what the object that leaked hangs off`() {
+    val heapDump = testFolder.leakTwoLeaksHoldHeapDump()
+    HeapExplorer.open(heapDump.file).use { explorer ->
+      val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups
+        .single { it.title == "Further.holder" }
+
+      // The other end of the stretch the leak is named after. The name says which reference shouldn't be
+      // holding, and this says where on the chain to find what it left behind — two different steps as soon
+      // as the stretch is longer than one reference.
+      assertThat(group.heldBy).isEqualTo("Holder.activity")
+    }
+  }
+
   @Test fun `objects in two slots of one array are instances of one leak`() {
     HeapExplorer.open(testFolder.leaksInOneArrayHeapDump()).use { explorer ->
       val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups.single()
