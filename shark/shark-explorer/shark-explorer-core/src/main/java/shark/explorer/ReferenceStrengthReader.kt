@@ -314,7 +314,14 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
     private val CACHE_FIELDS_BY_CLASS_NAME = mapOf(
       // Coil 3's memory cache: a bounded LRU of decoded images, halved on TRIM_MEMORY_RUNNING_LOW and
       // cleared on TRIM_MEMORY_BACKGROUND by AndroidSystemCallbacks.
-      "coil3.memory.RealStrongMemoryCache\$InternalValue" to setOf("image")
+      "coil3.memory.RealStrongMemoryCache\$InternalValue" to setOf("image"),
+      // What Glide keeps to hand out again rather than allocate: the bitmaps of `LruBitmapPool`, and the
+      // arrays a decode reads through of `LruArrayPool`. Both are one `GroupedLinkedMap` keyed by the
+      // size and config asked for, so this one entry covers the two of them, and both evict on their own
+      // — over their maximum size, and down to nothing on `onTrimMemory`. Nothing else holds a pooled
+      // object: it is there because it is free, which is what makes it worth telling apart from the
+      // bytes an app is using.
+      "com.bumptech.glide.load.engine.bitmap_recycle.GroupedLinkedMap\$LinkedEntry" to setOf("values")
     )
 
     /**
