@@ -452,6 +452,8 @@ Design decisions and findings, kept current as the work proceeds:
   treemap
 - `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and the two ways
   the ones that don't are fetched off the device
+- `notes/dependency-injection.md` — what Dagger and Metro leave in a heap dump, why the owner rule is
+  about the provider rather than the component, and how to dump really generated code
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.
