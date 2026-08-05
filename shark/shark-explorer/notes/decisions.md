@@ -434,11 +434,16 @@ first reference of the suspect stretch, `Holder.activity`, by the class declarin
 is a string that is also on the chain drawn for it, where the signature uses the class of the object. Which
 is why the name is no substitute for the signature and both are on the row.
 
-**Both ends of that stretch are on the row**, since they answer different questions: the name is the
-reference that shouldn't be holding, and `Held by` is the one that points straight at what leaked, which is
-where to look on the chain to see the leak itself. Left off when they are the same reference, which is most
-leaks. It is what tells two rows apart when the prefix is shared — on `unloaded_classes-stripped` both app
-leaks are named `MediaStateMachine.observer` and differ only in this line.
+**The row is named after both ends of that stretch**, in one line: `MortarScope.tearDowns → … →
+QueueService.f$0`, and just `Holder.activity` when the two ends are the same reference, which is most
+leaks. The first end is the reference that shouldn't be holding — **which is what LeakCanary calls a leak**,
+`ApplicationLeak.shortDescription` being `suspectReferenceSubpath.first()` — and the last is the one that
+points straight at what leaked, which is where to look on the chain to see it.
+
+One line rather than two, because a second line that repeats the first whenever the stretch is one
+reference reads as the row having two names. Both ends because either alone leaves rows that can't be told
+apart: on `unloaded_classes-stripped` both app leaks start at `MediaStateMachine.observer` and end at
+different references, and on a dump where two leaks are held by the same field it is the other way round.
 
 Fifty leaked rows of one list are one thing to fix, so a group is one row until it is unfolded — one object
 or fifty, since a row that led somewhere when it held one and unfolded when it held two would be two rows

@@ -133,15 +133,16 @@ class LeaksScreenTest {
     }
   }
 
-  @Test fun `a leak says what the object that leaked hangs off, when that isn't its name`() {
+  @Test fun `a leak is named after both ends of the references it is`() {
     explorerUiTest {
-      // Rendered from leaks rather than read off a heap dump: what is being pinned is which of the two ends
-      // of a leak the row shows, and a dump whose leaks have the shape to show it is a dump built for it.
+      // Rendered from leaks rather than read off a heap dump: what is being pinned is how the two ends of a
+      // leak are named, and a dump whose leaks have the shape to show it is a dump built for it.
       setContent { MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, {}) } }
 
-      onNodeWithText("$HELD_BY $FAR_END").assertIsDisplayed()
-      // And left off the leak whose two ends are one reference, where the row above it already says it.
-      assertThat(onAllNodesWithText("$HELD_BY $NEAR_END").fetchSemanticsNodes()).isEmpty()
+      // Both ends and a gap for what is between them, then the leak whose two ends are one reference.
+      onNodeWithText("$FIRST_END $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW $LAST_END")
+        .assertIsDisplayed()
+      onNodeWithText(ONE_REFERENCE).assertIsDisplayed()
     }
   }
 
@@ -287,36 +288,36 @@ class LeaksScreenTest {
     /** An `adb` connected to nothing, so that a test doesn't answer for whatever is plugged in. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }
 
-    /** The reference that points straight at what leaked, on a leak named after a different one. */
-    private const val FAR_END = "Middle.activity"
+    /** The reference that shouldn't be holding, which is what a leak of more than one is named after. */
+    private const val FIRST_END = "Holder.middle"
 
-    /** And on a leak whose suspect stretch is one reference, where it is the name. */
-    private const val NEAR_END = "Holder.activity"
+    /** And the one that points straight at what leaked, three references down from it. */
+    private const val LAST_END = "Third.activity"
 
-    /** Two app leaks, one of each shape. See [LeakGroup.heldBy]. */
+    /** The leak whose two ends are the same reference, which is most of them. */
+    private const val ONE_REFERENCE = "Holder.activity"
+
+    /** Two app leaks, one of each shape. See [LeakGroup.suspectPath]. */
     private val TWO_ENDED_LEAKS = HeapLeaks(
       listOf(
         LeakSection(
           kind = LeakKind.APPLICATION,
           groups = listOf(
-            leakGroup(title = "Holder.middle", heldBy = FAR_END),
-            leakGroup(title = NEAR_END, heldBy = NEAR_END)
+            leakGroup(listOf(FIRST_END, "Middle.third", LAST_END)),
+            leakGroup(listOf(ONE_REFERENCE))
           )
         )
       )
     )
 
-    private fun leakGroup(
-      title: String,
-      heldBy: String
-    ) = LeakGroup(
-      signature = title.sha1OfNothing(),
-      title = title,
-      heldBy = heldBy,
+    private fun leakGroup(suspectPath: List<String>) = LeakGroup(
+      signature = suspectPath.first().sha1OfNothing(),
+      title = suspectPath.first(),
+      suspectPath = suspectPath,
       subtitle = null,
       objects = listOf(
         LeakingObject(
-          objectId = title.hashCode().toLong(),
+          objectId = suspectPath.first().hashCode().toLong(),
           className = "com.example.MainActivity",
           kind = HeapObjectKind.INSTANCE,
           headline = null,

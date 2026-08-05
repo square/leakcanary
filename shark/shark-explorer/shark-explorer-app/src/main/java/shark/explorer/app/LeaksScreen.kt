@@ -175,13 +175,15 @@ private fun GroupRow(
         textAlign = TextAlign.Center
       )
       Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-          group.title,
-          style = MaterialTheme.typography.bodyMedium,
-          fontWeight = FontWeight.Bold,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
-        )
+        Hint(NAME_HINT) {
+          Text(
+            group.nameText(),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+          )
+        }
         group.subtitle?.let { subtitle ->
           Text(
             subtitle,
@@ -190,19 +192,6 @@ private fun GroupRow(
             maxLines = MAX_SUBTITLE_LINES,
             overflow = TextOverflow.Ellipsis
           )
-        }
-        // Left out when the row already says it, which is a leak held one reference below something still
-        // needed: the two ends of a one reference stretch are the same reference. See [LeakGroup.heldBy].
-        group.heldBy?.takeIf { it != group.title }?.let { heldBy ->
-          Hint(HELD_BY_HINT) {
-            Text(
-              "$HELD_BY $heldBy",
-              style = MaterialTheme.typography.bodySmall,
-              color = MUTED_TEXT,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis
-            )
-          }
         }
         // What makes a leak something to write down: the addresses in this list are of one heap dump, and
         // this is the same for the same leak in the next one. See [LeakGroup.signature].
@@ -358,6 +347,20 @@ private fun HeapLeaks.countText(): String = when (objectCount) {
 private fun LeakGroup.objectCountText(): String =
   "${objects.size} ${if (objects.size == 1) OBJECT else OBJECTS}"
 
+/**
+ * Both ends of what the leak is, and a gap for whatever is between them.
+ *
+ * One line rather than two, because the ends are the same reference for most leaks and a second line that
+ * repeats the first says the row has two names. Which end is which is worth knowing — the first is what to
+ * stop holding, the last is where the object that leaked hangs off — and a row of a list is read left to
+ * right, so it is the same order the chain is in. See [LeakGroup.suspectPath] and [NAME_HINT].
+ */
+private fun LeakGroup.nameText(): String = when (suspectPath.size) {
+  0, 1 -> title
+  2 -> "${suspectPath.first()} $STRETCH_ARROW ${suspectPath.last()}"
+  else -> "${suspectPath.first()} $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW ${suspectPath.last()}"
+}
+
 /** The class in full, then the address: the same two things every list of objects here shows. */
 private fun LeakingObject.identityText() = buildAnnotatedString {
   withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(className.substringAfterLast('.')) }
@@ -399,19 +402,24 @@ private const val WATCHED_GLYPH = "◉"
 /** What the hash of a leak is called on the row, since a bare 40 characters of hex names nothing. */
 internal const val SIGNATURE = "Signature:"
 
-/** What the reference into the leaking object is called on the row, since `Foo.bar` alone says nothing. */
-internal const val HELD_BY = "Held by:"
-
-internal const val HELD_BY_HINT =
-  "The reference that points straight at what leaked, which is where to look on the chain to see the leak " +
-    "itself. The name of the leak above is the other end of the same stretch: the reference that shouldn't " +
-    "be holding any more. Everything between the two is the app working as intended."
+internal const val NAME_HINT =
+  "The references this leak is: the first is the one that shouldn't be holding any more, which is what " +
+    "LeakCanary calls the leak, and the last is the one that points straight at what leaked, which is " +
+    "where to look on the chain to see it. They are one reference for most leaks. Everything above the " +
+    "first is the app working as intended and everything below the last is what the leak is holding, so " +
+    "neither is part of what makes this leak this leak."
 
 internal const val SIGNATURE_HINT =
   "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +
     "— unlike the addresses under it, which are of this one. So it is what to write in a bug report, and " +
     "what to compare two dumps by. It is also the signature LeakCanary prints under this leak when it " +
     "reports it, so a report and this list can be lined up hash by hash."
+
+/** Between the two ends of a leak, pointing the way the chain runs: down, away from the GC roots. */
+internal const val STRETCH_ARROW = "→"
+
+/** And what stands in for the references between them, which are on the chain and not on the row. */
+internal const val STRETCH_GAP = "…"
 
 internal const val FOLDED_ARROW = "▸"
 internal const val EXPANDED_ARROW = "▾"
