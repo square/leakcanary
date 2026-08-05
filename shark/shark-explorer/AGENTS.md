@@ -67,6 +67,19 @@ steps read out, and the search for every way an object is held runs for the obje
 A new question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md`
 has the numbers on the biggest dump in the repo.
 
+## A heap dump can have `android.os.Build` and not the fields Shark reads off it
+
+`AndroidBuildMirror.fromHeapGraph` reads `MANUFACTURER`, `ID` and `VERSION.SDK_INT` with `!!`, and nearly
+every one of Shark's library leak patterns decides whether it applies by asking it. Those patterns are
+filtered against the graph when a `ReferenceReader` is *created*, which in the explorer is while the
+dominator tree is being built — so a dump that has the class and not the fields throws a bare NPE from
+under everything, and what you see is a window that spins for ever and never draws a tree.
+
+Real dumps have all three. Synthetic ones written with the `dump { }` DSL have whatever the fixture wrote,
+which is why `ReferenceStrengthReader.recordsAndroidBuild` checks the fields rather than the class, and
+why the test fixtures that write an `android.os.Build` write `ID` too even though nothing in the window
+shows it.
+
 ## Every run writes a log file
 
 `installLogging()` in `shark-explorer-app` points `SharkLog` at stdout **and** at

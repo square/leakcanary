@@ -70,7 +70,6 @@ internal fun RootPathPanel(
   /** Which of them is drawn, for the stretches the reader has switched. */
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -125,7 +124,6 @@ internal fun RootPathPanel(
           ways = ways,
           chosenWays = chosenWays,
           onChooseWay = onChooseWay,
-          coloring = coloring,
           onOpen = onOpen
         )
       } else {
@@ -137,16 +135,14 @@ internal fun RootPathPanel(
         HoveredTail(
           steps = tail,
           isCut = false,
-          stronglyReachableByteCount = stronglyReachableByteCount,
-          coloring = coloring
+          stronglyReachableByteCount = stronglyReachableByteCount
         )
       } else if (cutTail != null) {
         // Nothing above it on screen is what holds it, so the end of it is the object being described here.
         HoveredTail(
           steps = cutTail,
           isCut = true,
-          stronglyReachableByteCount = stronglyReachableByteCount,
-          coloring = coloring
+          stronglyReachableByteCount = stronglyReachableByteCount
         )
       }
     }
@@ -180,7 +176,6 @@ private fun RootPathTrace(
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit
 ) {
   val steps = drawn.path.steps
@@ -199,7 +194,6 @@ private fun RootPathTrace(
         reference = next?.step?.reference,
         nextStrength = next?.step?.strength,
         stronglyReachableByteCount = stronglyReachableByteCount,
-        coloring = coloring,
         onOpen = onOpen,
         role = when {
           // The object the details panel is about, whatever the pointer has added below it.
@@ -225,8 +219,7 @@ private fun HoveredTail(
   steps: List<RootPathStep>,
   /** Whether it runs on from the chain above or starts somewhere else, which the dots say. */
   isCut: Boolean,
-  stronglyReachableByteCount: Long,
-  coloring: CellColoring
+  stronglyReachableByteCount: Long
 ) {
   Column(Modifier.fillMaxWidth()) {
     if (isCut) {
@@ -241,7 +234,6 @@ private fun HoveredTail(
         reference = next?.step?.reference,
         nextStrength = next?.step?.strength,
         stronglyReachableByteCount = stronglyReachableByteCount,
-        coloring = coloring,
         // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
         onOpen = {},
         role = when {

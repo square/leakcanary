@@ -106,6 +106,13 @@ data class PathStep(
   val retainedCount: Int,
   /** What Shark's object inspectors have to say, e.g. that an activity is destroyed. */
   val inspectorLabels: List<String>,
+  /**
+   * Whether this object is meant to still be in memory, which every path says of every one of its
+   * objects rather than only the paths that turn out to be leaks. See [LeakStatus].
+   */
+  val leakStatus: LeakStatus,
+  /** Why, in words. Null for [LeakStatus.UNKNOWN], which is most objects of most paths. */
+  val leakStatusReason: String?,
   /** How the step before points at this one. Null for the first step of a path a GC root starts. */
   val reference: PathReference?,
   /** Whether the object is in the tree and can therefore be opened. */
@@ -118,5 +125,22 @@ data class PathReference(
   val name: String,
   /** Simple name of the class that declares the field, which isn't always the referrer's own class. */
   val ownerClassName: String,
-  val locationType: ReferenceLocationType
+  val locationType: ReferenceLocationType,
+  /** Set for the references Shark knows leak in code an app doesn't control, null for the rest. */
+  val libraryLeak: LibraryLeakPattern?
+)
+
+/**
+ * A reference Shark recognizes as one that leaks in code the app doesn't control. See
+ * [PathReference.libraryLeak].
+ *
+ * Shark's own strings rather than the matcher it came from, so that what the explorer hands its UI stays
+ * the explorer's own model — and so that two of them can be compared to gather the objects one known leak
+ * is holding.
+ */
+data class LibraryLeakPattern(
+  /** Which reference, e.g. `instance field android.app.ActivityThread#mNewActivities`. */
+  val pattern: String,
+  /** What's known about the leak, which is a paragraph. Empty for a matcher that carries none. */
+  val description: String
 )

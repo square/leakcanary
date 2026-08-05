@@ -60,7 +60,6 @@ internal fun DetailsPanel(
   /** The selected object's pixels, when it's a bitmap anything has the pixels of. */
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit,
@@ -85,13 +84,12 @@ internal fun DetailsPanel(
           Detail("Retained", formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount))
         }
         is Selection.ObjectGroup ->
-          ObjectGroupDetails(selection.summary, stronglyReachableByteCount, coloring)
+          ObjectGroupDetails(selection.summary, stronglyReachableByteCount)
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
           stronglyReachableByteCount = stronglyReachableByteCount,
           bitmap = bitmap,
           isStarred = isStarred,
-          coloring = coloring,
           onOpen = onOpen,
           onListInstances = onListInstances,
           onToggleStar = onToggleStar
@@ -125,8 +123,7 @@ internal sealed interface Selection {
 @Composable
 private fun ObjectGroupDetails(
   summary: ObjectGroupSummary,
-  stronglyReachableByteCount: Long,
-  coloring: CellColoring
+  stronglyReachableByteCount: Long
 ) {
   Text(summary.title(), style = MaterialTheme.typography.titleMedium)
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -134,7 +131,7 @@ private fun ObjectGroupDetails(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
     Text(summary.explanation(), style = MaterialTheme.typography.bodySmall)
   }
   Detail("Retained together", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
@@ -158,7 +155,6 @@ private fun ObjectDetails(
   stronglyReachableByteCount: Long,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit
@@ -180,7 +176,7 @@ private fun ObjectDetails(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
     Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
   Detail("Retained", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))

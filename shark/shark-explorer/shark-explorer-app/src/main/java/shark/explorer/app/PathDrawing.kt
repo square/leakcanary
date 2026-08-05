@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import shark.ReferenceLocationType
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
+import shark.explorer.LeakStatus
 import shark.explorer.PathReference
 import shark.explorer.PathStep
 import shark.explorer.ReachabilityStrength
@@ -123,7 +124,6 @@ internal fun PathStepRow(
   nextStrength: ReachabilityStrength?,
   /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
   stronglyReachableByteCount: Long,
-  coloring: CellColoring,
   onOpen: (Long) -> Unit,
   role: PathRole = PathRole.STEP,
   detail: PathDetail = PathDetail.FULL,
@@ -144,9 +144,11 @@ internal fun PathStepRow(
         role = role
       )
     },
-    // The object the panel is describing, marked as such: a chain and a panel side by side that don't say
-    // which of the chain's objects the panel is about are two answers to two questions nobody asked.
-    background = if (role == PathRole.TARGET) TARGET_BACKGROUND else null
+    // Green behind an object that is meant to be alive, red behind one that is meant to be gone, and the
+    // blue of the object the panel is describing when nothing is known either way. The leak status wins
+    // over the blue because it is the rarer thing to know, and because which object the panel is about is
+    // already said twice over: the ring on its circle, and the panel itself.
+    background = step.leakStatus.background ?: TARGET_BACKGROUND.takeIf { role == PathRole.TARGET }
   ) {
     if (detail == PathDetail.FULL) {
       ObjectIdentity(
@@ -184,12 +186,21 @@ internal fun PathStepRow(
       Text(
         step.strength.reachabilityText,
         style = MaterialTheme.typography.bodySmall,
-        color = legendColor(coloring, step.strength)
+        color = objectStrengthColor(step.strength)
       )
     }
     if (detail == PathDetail.FULL) {
       step.inspectorLabels.forEach { label ->
         Text(label, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+      }
+      // Why this object is one or the other, which is most of the answer: half the objects of a chain are
+      // green or red because of what an object above or below them is, and the reason is what says so.
+      step.leakStatusReason?.let { reason ->
+        Text(
+          "${step.leakStatus.statusText}: $reason",
+          style = MaterialTheme.typography.bodySmall,
+          color = step.leakStatus.textColor
+        )
       }
     }
     below()
@@ -395,25 +406,39 @@ private fun BriefStepLine(
 /** How the object above points at the one below: the field, on the class that declares it. */
 @Composable
 private fun ReferenceLine(reference: PathReference) {
-  Text(
-    buildAnnotatedString {
-      withStyle(MUTED_SPAN) { append(reference.ownerPrefix()) }
-      withStyle(
-        SpanStyle(
-          textDecoration = TextDecoration.Underline,
-          // Italic for a static field, which belongs to the class rather than to the instance above.
-          fontStyle = if (reference.locationType == ReferenceLocationType.STATIC_FIELD) {
-            FontStyle.Italic
-          } else {
-            FontStyle.Normal
-          }
-        )
-      ) {
-        append(reference.displayName())
-      }
-    },
-    style = MaterialTheme.typography.bodySmall
-  )
+  val line = @Composable {
+    Text(
+      buildAnnotatedString {
+        withStyle(MUTED_SPAN) { append(reference.ownerPrefix()) }
+        withStyle(
+          SpanStyle(
+            textDecoration = TextDecoration.Underline,
+            // Italic for a static field, which belongs to the class rather than to the instance above.
+            fontStyle = if (reference.locationType == ReferenceLocationType.STATIC_FIELD) {
+              FontStyle.Italic
+            } else {
+              FontStyle.Normal
+            }
+          )
+        ) {
+          append(reference.displayName())
+        }
+        // Which is what makes a chain through a known leak readable as one: the objects below this
+        // reference are held by code the app doesn't control, and this is the reference that does it.
+        if (reference.libraryLeak != null) {
+          withStyle(LIBRARY_LEAK_SPAN) { append(" $LIBRARY_LEAK") }
+        }
+      },
+      style = MaterialTheme.typography.bodySmall
+    )
+  }
+  // What is known about the leak is a paragraph, which belongs on hover rather than in the chain.
+  val description = reference.libraryLeak?.description?.takeIf { it.isNotEmpty() }
+  if (description == null) {
+    line()
+  } else {
+    Hint(description, line)
+  }
 }
 
 /**
@@ -561,6 +586,9 @@ internal const val DOMINATES_BELOW = "Dominates ↓"
 /** How a leak trace names the reference a running method holds, which has no field to name. */
 private const val LOCAL_VARIABLE = "<local variable>"
 
+/** What a reference Shark knows leaks in code the app doesn't control says about itself. */
+internal const val LIBRARY_LEAK = "· known library leak"
+
 /** Wide enough for the line, its arrow head and a ring to sit clear of the text beside it. */
 private val GUTTER_WIDTH = 26.dp
 
@@ -593,6 +621,45 @@ private val BADGE_LETTER_SIZE = 10.sp
 /** On every kind's colour, all of which are dark enough to read white out of. */
 private val BADGE_LETTER_COLOR = Color.White
 
+/**
+ * The shade behind an object whose status is known, and none behind the objects nothing knows about,
+ * which is most of a chain.
+ *
+ * A background rather than a colour on the text, because it is about the object rather than about any one
+ * line naming it, and the lines a row is made of already mean things by their colour. Faint enough that a
+ * column of them still reads as a chain: the shade says where along the chain something went wrong, and
+ * the reason under the object says what.
+ */
+private val LeakStatus.background: Color?
+  get() = when (this) {
+    LeakStatus.NOT_LEAKING -> ALIVE_BACKGROUND
+    LeakStatus.UNKNOWN -> null
+    LeakStatus.LEAKING -> LEAKING_BACKGROUND
+  }
+
+/** How the reason line names the status it is the reason for. */
+private val LeakStatus.statusText: String
+  get() = when (this) {
+    LeakStatus.NOT_LEAKING -> "Not leaking"
+    LeakStatus.UNKNOWN -> "Unknown"
+    LeakStatus.LEAKING -> "Leaking"
+  }
+
+private val LeakStatus.textColor: Color
+  get() = when (this) {
+    LeakStatus.NOT_LEAKING -> ALIVE_TEXT
+    LeakStatus.UNKNOWN -> MUTED_TEXT
+    LeakStatus.LEAKING -> LEAKING_TEXT
+  }
+
+/** Green for an object something knows is still needed. */
+private val ALIVE_BACKGROUND = Color(0x1A2E7D32)
+private val ALIVE_TEXT = Color(0xFF2E7D32)
+
+/** And red for one that should have been collected. */
+private val LEAKING_BACKGROUND = Color(0x1AC62828)
+private val LEAKING_TEXT = Color(0xFFC62828)
+
 /** What the object the panel is describing is drawn behind, which is the end of the chain. */
 private val TARGET_BACKGROUND = Color(0x1A2196F3)
 private val TARGET_SHAPE = RoundedCornerShape(4.dp)
@@ -615,6 +682,9 @@ internal val MUTED_TEXT = Color(0xFF6E6E6E)
 
 /** The same, for the part of a line that is one text: greyed, and unbolded where the line is bold. */
 private val MUTED_SPAN = SpanStyle(color = MUTED_TEXT, fontWeight = FontWeight.Normal)
+
+/** And for the words saying a reference is a known library leak, in the red of the leaks it explains. */
+private val LIBRARY_LEAK_SPAN = SpanStyle(color = LEAKING_TEXT, fontWeight = FontWeight.Normal)
 
 /** The letter drawn in an object's circle, which is what kind of object it is. */
 private val HeapObjectKind.badgeLetter: String

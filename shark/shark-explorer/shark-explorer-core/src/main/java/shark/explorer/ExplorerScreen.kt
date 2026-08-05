@@ -49,6 +49,21 @@ sealed interface ExplorerScreen {
     override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
   }
 
+  /** Every leaking object of the heap dump, gathered into leaks. See [HeapDominatorTreemap.findLeaks]. */
+  data class Leaks(
+    override val treeNavigation: TreemapNavigation<Long>,
+    /**
+     * Which leaks have been unfolded to show the objects in them, by [LeakGroup.signature] and which section
+     * the group is in: a leak of one class held two ways is two groups with one title.
+     */
+    val expandedGroups: Set<String> = emptySet(),
+    /** Whatever was being described when the leaks were opened, as on [Objects]. */
+    override val describedNode: Long = treeNavigation.current
+  ) : ExplorerScreen {
+
+    override fun withTreeNavigation(navigation: TreemapNavigation<Long>) = copy(treeNavigation = navigation)
+  }
+
   /** The objects starred so far, kept so that two of them can be compared. */
   data class Starred(
     override val treeNavigation: TreemapNavigation<Long>,
@@ -60,7 +75,10 @@ sealed interface ExplorerScreen {
   }
 
   companion object {
-    /** What the button leading to the list of every object says, which is the only one of these named. */
+    /** What the button leading to the list of every object says. */
     const val OBJECTS_LABEL = "All objects"
+
+    /** And the one leading to the leaks, beside it. */
+    const val LEAKS_LABEL = "Leaks"
   }
 }

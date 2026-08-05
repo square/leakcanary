@@ -2,11 +2,13 @@ package shark.explorer
 
 import androidx.collection.MutableLongObjectMap
 import shark.ActualMatchingReferenceReaderFactory
+import shark.AndroidReferenceMatchers
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
+import shark.LibraryLeakReferenceMatcher
 import shark.Reference
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.INSTANCE_FIELD
@@ -15,6 +17,7 @@ import shark.ReferenceMatcher
 import shark.ReferenceMatcher.Companion.ALWAYS
 import shark.ReferencePattern.Companion.instanceField
 import shark.ReferenceReader
+import shark.SharkLog
 import shark.ValueHolder
 import shark.ignored
 import shark.explorer.ReachabilityStrength.CACHE
@@ -69,17 +72,21 @@ internal class WeakeningReference(
  * unreachable byte count are exact.
  *
  * Where a structure is worth presenting the way you think about it anyway, the reference is **added**
- * rather than swapped in: [ViewChildReferenceReader] gives a `ViewGroup` a reference to each of its
- * children and [RunningActivityReferenceReader] gives an `ActivityThread` one to each activity the app is
- * running, and the `View[]` and the `ArrayMap` they really live in are still reached through their fields
- * and still nodes of their own.
+ * rather than swapped in: [DataStructureReferenceReader] gives a collection a reference to each entry,
+ * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children and
+ * [RunningActivityReferenceReader] gives an `ActivityThread` one to each activity the app is running — and
+ * the table, the `View[]` and the `ArrayMap` they really live in are still reached through their fields and
+ * still nodes of their own.
  */
 internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   private val retainingReader: ReferenceReader<HeapObject> =
-    ActualMatchingReferenceReaderFactory(WEAKENING_REFERENCE_MATCHERS).createFor(graph)
+    ActualMatchingReferenceReaderFactory(WEAKENING_REFERENCE_MATCHERS + libraryLeakMatchers(graph))
+      .createFor(graph)
 
   private val viewChildReader = ViewChildReferenceReader(graph)
+
+  private val dataStructureReader = DataStructureReferenceReader(graph)
 
   private val runningActivityReader = RunningActivityReferenceReader(graph)
 
@@ -101,7 +108,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> =
     retainingReader.read(source) + classMetadataReferencesOf(source) +
-      viewChildReader.childReferencesOf(source) +
+      viewChildReader.childReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
       runningActivityReader.activityReferencesOf(source)
 
   /**
@@ -201,6 +208,54 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   private class WeakeningFields(val strengthByFieldName: Map<String, ReachabilityStrength>)
 
   companion object {
+    /**
+     * Shark's list of the references known to leak in code an app doesn't control, which **names the
+     * references it matches without changing which of them are followed**: a
+     * [LibraryLeakReferenceMatcher] sets [Reference.isLowPriority] and [LazyDetails.matchedLibraryLeak] and
+     * nothing else. So the tree is the same tree with the known leaks of it named, and a chain through one
+     * can say so. The first of those two is why a chain goes through one only when there is no other way to
+     * the object, the same as in a leak trace — see [RootPathSearch].
+     *
+     * Only the library leak matchers of that list. The ignored ones beside them would drop references,
+     * and every object of the heap dump has to stay a node of the tree exactly once — see the class
+     * comment.
+     *
+     * Empty for a heap dump that doesn't say which Android build it was taken on, whose references none
+     * of these can match anyway: most of them decide whether they apply by reading `android.os.Build`.
+     */
+    private fun libraryLeakMatchers(graph: HeapGraph): List<ReferenceMatcher> {
+      if (!graph.recordsAndroidBuild()) {
+        SharkLog.d {
+          "The heap dump doesn't record the $ANDROID_BUILD_CLASS_NAME it was taken on, so no chain " +
+            "through it can name a known Android library leak"
+        }
+        return emptyList()
+      }
+      return AndroidReferenceMatchers.appDefaults.filterIsInstance<LibraryLeakReferenceMatcher>()
+    }
+
+    /**
+     * Whether the heap dump has the device [shark.AndroidBuildMirror] is a mirror of, which is what
+     * nearly every one of Shark's library leak patterns decides whether it applies by.
+     *
+     * By the three fields it reads rather than by the class, because it reads all three with `!!`: a dump
+     * that has `android.os.Build` and not its fields — a synthetic one, an Android runtime that strips
+     * them — is a bare NPE from inside the reference reader, which is under everything the explorer
+     * reads. What that looks like is a window that never draws a tree.
+     */
+    private fun HeapGraph.recordsAndroidBuild(): Boolean {
+      val buildClass = findClassByName(ANDROID_BUILD_CLASS_NAME) ?: return false
+      val versionClass = findClassByName(ANDROID_BUILD_VERSION_CLASS_NAME) ?: return false
+      return buildClass["MANUFACTURER"]?.value?.readAsJavaString() != null &&
+        buildClass["ID"]?.value?.readAsJavaString() != null &&
+        versionClass["SDK_INT"]?.value?.asInt != null
+    }
+
+    /** What every Android heap dump has and no other kind does. See [libraryLeakMatchers]. */
+    private const val ANDROID_BUILD_CLASS_NAME = "android.os.Build"
+
+    private const val ANDROID_BUILD_VERSION_CLASS_NAME = "android.os.Build\$VERSION"
+
     private const val STRING_CLASS_NAME = "java.lang.String"
 
     /** No heap object has id 0, which is what a null reference is. */

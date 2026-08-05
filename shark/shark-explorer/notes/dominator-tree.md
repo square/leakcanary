@@ -44,9 +44,10 @@ and only one of them belongs here:
   latter also installs `FlatteningPartitionedInstanceReferenceReader`, which surfaces a map's or
   list's internals as direct children of the collection and marks them leaf objects. Good for a leak
   trace, wrong here — a treemap needs every object to be a node exactly once, and the array a
-  `HashMap` actually holds has to be a node of its own or its bytes land nowhere. Where presenting a
-  structure that way is worth it anyway, the explorer *adds* the reference instead of swapping it in —
-  one reader does, for a `ViewGroup`'s children, and the array is still a node.
+  `HashMap` actually holds has to be a node of its own or its bytes land nowhere. The explorer *adds*
+  those readers instead of swapping them in, so a collection points straight at what it holds and its
+  table is still a node: `DataStructureReferenceReader` for the structures Shark knows, and
+  `ViewChildReferenceReader` for a `ViewGroup`'s children.
 
 **The strength that decides whether a weakening edge is followed is the target's, not the reference's.**
 A `WeakReference` whose referent is also held strongly is the common case, and following that edge adds a
@@ -271,13 +272,21 @@ path, while owning is a property of the last reference alone. It's a separate bi
 gated in the same place — `WeakeningAwareReferenceReader`, which the dominator tree, the referrer index
 and the path search all read through, so all three see one edge set.
 
-### The two virtual references the explorer adds
+### The virtual references the explorer adds
 
 A rule can only claim ownership through something nameable, and the framework's own structure often has
 nothing to name — so the reader below each rule adds the reference the rule is about, and the dominator
 tree is what then collapses the levels the real structure went through. Both are **additive**, both are
 read from `ReferenceStrengthReader.retainingReferencesOf`, and both are bounded by the count the framework
 keeps rather than by the capacity of the array behind it.
+
+A third reader adds virtual references for a different reason, and is not the explorer's own:
+`DataStructureReferenceReader`, Shark's dozen `java.util` and framework structures. A leak through a
+`HashMap` reads `HashMap[x]` rather than through its table, its node array and its entry, which is what
+makes a chain here the chain a LeakCanary report shows (see `decisions.md`). All of them but
+`AndroidReferenceReaders.ANIMATOR_WEAK_REF_SUCKS`, which reads an `ObjectAnimator`'s target through the
+`WeakReference` holding it and presents it as a plain field: a useful guess in a leak trace, and here it
+would make a weakly held object read as strongly held, which is the one thing the tree can't say.
 
 #### A `ViewGroup` points at its children
 

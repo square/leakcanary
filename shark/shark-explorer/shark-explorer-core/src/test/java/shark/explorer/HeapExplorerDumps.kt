@@ -4,6 +4,7 @@ import java.io.File
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.ThreadObject
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
@@ -225,6 +226,31 @@ internal fun TemporaryFolder.twoWaysToOnePayloadHeapDump(): File {
       field["relay"] = relay
     }
     gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
+/**
+ * A heap dump where a payload is on a running method's stack as well as two fields from a GC root: the
+ * shortest way to it is the stack frame, and the field is the one worth reading.
+ *
+ * A local variable is a step away from whatever a thread is doing, so a shortest path finds one for a great
+ * many objects, and it says nothing you can act on — the object is there because a method is running. The
+ * thread has to be a `ThreadObject` GC root with a name for Shark to read its frames as references at all.
+ */
+internal fun TemporaryFolder.onAStackAndInAFieldHeapDump(): File {
+  val file = newFile("on-a-stack-and-in-a-field.hprof")
+  file.dump {
+    val thread = instance(
+      clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class)),
+      fields = listOf(string("main"))
+    )
+    gcRoot(ThreadObject(id = thread.value, threadSerialNumber = 42, stackTraceSerialNumber = 0))
+    val payload = objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+    gcRoot(JavaFrame(id = payload, threadSerialNumber = 42, frameNumber = 0))
+    val holder = "com.example.Holder" instance { field["payload"] = ReferenceHolder(payload) }
+    val owner = "com.example.Owner" instance { field["holder"] = holder }
+    gcRoot(JniGlobal(id = owner.value, jniGlobalRefId = 0))
   }
   return file
 }

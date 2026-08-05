@@ -3,6 +3,7 @@ package shark.explorer.app
 import java.io.File
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
+import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.ReachabilityStrength
@@ -162,6 +163,74 @@ internal fun TemporaryFolder.manySiblingsHeapDump(): File {
   }
   return file
 }
+
+/**
+ * A heap dump with both kinds of leak in it: two destroyed activities held the same way, which is one leak
+ * with two objects in it, and one object the app handed to LeakCanary's watcher, which is a leak of its own.
+ *
+ * The watched object holds the payload, so it is the largest thing in the dump and its leak is the first
+ * row of the list.
+ */
+internal fun TemporaryFolder.leakyHeapDump(): LeakyHeapDump {
+  val file = newFile("leaky.hprof")
+  var watchedObjectId = 0L
+  var weakReferenceObjectId = 0L
+  var activityObjectIds = emptyList<Long>()
+  file.dump {
+    val activityClassId = clazz(
+      className = LEAKING_ACTIVITY_CLASS_NAME,
+      // Field values are written most derived class first, and the subclass declares none, so an instance
+      // of it is written with the one field it inherits.
+      superclassId = clazz(
+        className = "android.app.Activity",
+        fields = listOf("mDestroyed" to BooleanHolder::class)
+      )
+    )
+    val holderClassId = clazz(
+      className = "com.example.Holder",
+      fields = listOf("activity" to ReferenceHolder::class)
+    )
+    activityObjectIds = (0..1).map { index ->
+      val activity = instance(activityClassId, fields = listOf(BooleanHolder(true)))
+      val holder = instance(holderClassId, fields = listOf(activity))
+      gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = index.toLong()))
+      activity.value
+    }
+    val watched = LEAKING_PRESENTER_CLASS_NAME instance {
+      field["payload"] =
+        ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
+    }
+    watchedObjectId = watched.value
+    weakReferenceObjectId = keyedWeakReference(watched).value
+    val presenters = "com.example.Presenters" instance { field["presenter"] = watched }
+    gcRoot(JniGlobal(id = presenters.value, jniGlobalRefId = 2))
+  }
+  return LeakyHeapDump(file, watchedObjectId, weakReferenceObjectId, activityObjectIds)
+}
+
+/** A [leakyHeapDump] and the objects a test asks the window about. */
+internal class LeakyHeapDump(
+  val file: File,
+  /** The object LeakCanary was watching, which is the leak the list leads with. */
+  val watchedObjectId: Long,
+  /** The `KeyedWeakReference` it was watched with, which the row about it leads to. */
+  val weakReferenceObjectId: Long,
+  /** The two destroyed activities, which are one leak the list folds them into. */
+  val activityObjectIds: List<Long>
+)
+
+internal const val LEAKING_ACTIVITY_CLASS_NAME = "com.example.MainActivity"
+
+internal const val LEAKING_PRESENTER_CLASS_NAME = "com.example.LeakingPresenter"
+
+/**
+ * What the list calls the leak the two destroyed activities are instances of: the reference that shouldn't
+ * be holding them, which is what a leak is, rather than the class of what it holds.
+ */
+internal const val ACTIVITY_LEAK_NAME = "Holder.activity"
+
+/** And what it calls the leak the watched object is the one instance of. */
+internal const val PRESENTER_LEAK_NAME = "Presenters.presenter"
 
 /** A heap dump with more objects of one class directly under the root than a view can draw. */
 internal fun TemporaryFolder.crowdedRootHeapDump(): File {
