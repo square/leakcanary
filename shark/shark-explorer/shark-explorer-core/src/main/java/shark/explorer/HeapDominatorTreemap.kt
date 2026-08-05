@@ -933,7 +933,9 @@ class HeapDominatorTreemap internal constructor(
       // it left behind. Those are the rows under it, and each says what it is.
       title = suspectSubpath.firstOrNull() ?: simpleClassName,
       suspectPath = suspectSubpath,
-      subtitle = leakingObject.leakingReason,
+      // Nothing a group of these can say that its references don't: why an object is leaking is read off
+      // that object by an inspector, so it belongs on the object's row and differs between them.
+      subtitle = null,
       heldThrough = heldThrough,
       leakingObject = leakingObject
     )

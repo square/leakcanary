@@ -59,43 +59,59 @@ class LeaksScreenTest {
       LeakKind.values().forEach { kind ->
         onNodeWithText("${kind.title} ·", substring = true).assertIsDisplayed()
       }
-      onNodeWithText(PRESENTER_LEAK_NAME).assertIsDisplayed()
-      onNodeWithText(ACTIVITY_LEAK_NAME).assertIsDisplayed()
+      onNodeWithText(PRESENTER_LEAK_NAME, substring = true).assertIsDisplayed()
+      onNodeWithText(ACTIVITY_LEAK_NAME, substring = true).assertIsDisplayed()
     }
   }
 
-  @Test fun `objects leaking the same way are one row until it is unfolded`() {
+  @Test fun `the first object of a leak is on the list and the rest are behind one row`() {
     explorerUiTest {
       openLeaks()
 
-      // Two destroyed activities, held the same way, so one leak: the row says how many and shows none of
-      // them until it is pressed.
+      // Two destroyed activities, held the same way, so one leak: one of them is under it and the other is
+      // a row saying there is one more, until that row is pressed.
       onNodeWithText("2 objects").assertIsDisplayed()
-      assertThat(nodesNaming(heapDump.activityObjectIds[0])).isEmpty()
+      assertThat(heapDump.activityObjectIds.filter { nodesNaming(it).isNotEmpty() }).hasSize(1)
 
-      unfold(ACTIVITY_LEAK_NAME, heapDump.activityObjectIds[0])
+      openTheRest()
 
-      assertThat(nodesNaming(heapDump.activityObjectIds[1])).isNotEmpty()
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        heapDump.activityObjectIds.all { nodesNaming(it).isNotEmpty() }
+      }
     }
   }
 
-  @Test fun `a leak with one object in it folds like every other leak`() {
+  @Test fun `a leak with one object in it has nothing to open`() {
     explorerUiTest {
       openLeaks()
 
-      // A row that led somewhere when it held one object and unfolded when it held two would be two rows
-      // that look the same and do different things.
+      // Its object is already on the list, so a row to open would open nothing. The one on screen is the
+      // other leak's, which has two.
       onNodeWithText("1 object").assertIsDisplayed()
-      assertThat(nodesNaming(heapDump.watchedObjectId)).isEmpty()
+      assertThat(nodesNaming(heapDump.watchedObjectId)).isNotEmpty()
+      assertThat(onAllNodesWithText(LEAKING_THE_SAME_WAY, substring = true).fetchSemanticsNodes())
+        .hasSize(1)
+    }
+  }
 
-      unfold(PRESENTER_LEAK_NAME, heapDump.watchedObjectId)
+  @Test fun `why an object is leaking is said once per object, not once per leak`() {
+    explorerUiTest {
+      openLeaks()
+      openTheRest()
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        heapDump.activityObjectIds.all { nodesNaming(it).isNotEmpty() }
+      }
+
+      // An inspector reads it off the object, so two objects of one leak can be leaking for reasons that
+      // don't read the same — and the row above them says what the leak is, which is the references.
+      val destroyed = onAllNodes(hasText(DESTROYED_REASON, substring = true) and hasClickAction())
+      assertThat(destroyed.fetchSemanticsNodes()).hasSize(heapDump.activityObjectIds.size)
     }
   }
 
   @Test fun `clicking an object of a leak goes to it on the map`() {
     explorerUiTest {
       openLeaks()
-      unfold(PRESENTER_LEAK_NAME, heapDump.watchedObjectId)
 
       onNode(namesObject(heapDump.watchedObjectId) and hasClickAction()).performClick()
 
@@ -123,7 +139,6 @@ class LeaksScreenTest {
   @Test fun `what the app told LeakCanary about an object is on the row, and leads to the record`() {
     explorerUiTest {
       openLeaks()
-      unfold(PRESENTER_LEAK_NAME, heapDump.watchedObjectId)
 
       onNodeWithText(WATCHED, substring = true).performClick()
 
@@ -139,10 +154,11 @@ class LeaksScreenTest {
       // leak are named, and a dump whose leaks have the shape to show it is a dump built for it.
       setContent { MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, {}) } }
 
-      // Both ends and a gap for what is between them, then the leak whose two ends are one reference.
-      onNodeWithText("$FIRST_END $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW $LAST_END")
+      // Both ends and a gap for what is between them, then the leak whose two ends are one reference. Each
+      // ends on an arrow, because what it points at is the object on the row below.
+      onNodeWithText("$FIRST_END $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW $LAST_END $STRETCH_ARROW")
         .assertIsDisplayed()
-      onNodeWithText(ONE_REFERENCE).assertIsDisplayed()
+      onNodeWithText("$ONE_REFERENCE $STRETCH_ARROW").assertIsDisplayed()
     }
   }
 
@@ -242,13 +258,9 @@ class LeaksScreenTest {
     }
   }
 
-  /** Presses a leak's row, which unfolds it, and waits for the objects it holds. */
-  private fun ComposeUiTest.unfold(
-    leakName: String,
-    firstObjectId: Long
-  ) {
-    onNodeWithText(leakName).performClick()
-    waitUntilAtLeastOneExists(namesObject(firstObjectId), OPEN_TIMEOUT_MILLIS)
+  /** Presses the row standing for the objects of a leak past the first, which shows them. */
+  private fun ComposeUiTest.openTheRest() {
+    onNodeWithText(LEAKING_THE_SAME_WAY, substring = true).performClick()
   }
 
   /** Everything on screen naming [objectId], which is how a list of objects says which ones they are. */
@@ -278,6 +290,9 @@ class LeaksScreenTest {
 
     /** What the row about a watched object starts with, past the glyph in front of it. */
     private const val WATCHED = "Watched · key"
+
+    /** Part of what the inspector says about a destroyed activity, which is why it shouldn't be here. */
+    private const val DESTROYED_REASON = "mDestroyed"
 
     /** How the log says the pass over the heap dump that finds the leaks was started. */
     private const val READING_THE_LEAKS = "Reading the leaking objects of"

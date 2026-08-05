@@ -110,7 +110,13 @@ data class LeakGroup(
    * and a leak nothing holds any more has no chain to read references off.
    */
   val suspectPath: List<String>,
-  /** Why they are leaking, or what is known about the library leak. Null when there is nothing to add. */
+  /**
+   * What is known about the leak itself: the description of the library leak pattern that recognized it, or
+   * that nothing holds these objects any more. Null for an app's own leak, which its references say.
+   *
+   * Not why an object is leaking — that is read off the object by an inspector, so it is
+   * [LeakingObject.leakingReason] and differs between the objects of one group.
+   */
   val subtitle: String?,
   /** Largest first. Never empty: a group is made by there being an object in it. */
   val objects: List<LeakingObject>

@@ -84,23 +84,36 @@ internal fun LeaksScreen(
           section.groups.forEach { group ->
             val groupKey = section.kind.groupKey(group)
             val isExpanded = groupKey in expandedGroups
-            // Folded rows are one item each, so that a leak with five hundred instances costs the list
-            // one row until someone asks to see them.
-            item(key = groupKey) {
-              GroupRow(
-                group = group,
-                isExpanded = isExpanded,
-                onToggle = { onToggleGroup(groupKey) }
+            val hasMore = group.objects.size > 1
+            item(key = groupKey) { GroupRow(group) }
+            // The first object always: a leak is a reference, and a reference with nothing under it says
+            // what shouldn't be holding without ever saying what it is holding.
+            item(key = "$groupKey ${group.objects.first().objectId}") {
+              LeakingObjectRow(
+                leakingObject = group.objects.first(),
+                isLast = !hasMore,
+                onOpen = onOpen
               )
             }
-            if (isExpanded) {
-              group.objects.forEachIndexed { index, leakingObject ->
-                item(key = "$groupKey ${leakingObject.objectId}") {
-                  LeakingObjectRow(
-                    leakingObject = leakingObject,
-                    isLast = index == group.objects.lastIndex,
-                    onOpen = onOpen
-                  )
+            if (hasMore) {
+              // The rest are one item each behind this, so that a leak with five hundred instances costs
+              // the list two rows until someone asks to see them.
+              item(key = "$groupKey $MORE_KEY") {
+                MoreObjectsRow(
+                  count = group.objects.size - 1,
+                  isExpanded = isExpanded,
+                  onToggle = { onToggleGroup(groupKey) }
+                )
+              }
+              if (isExpanded) {
+                group.objects.drop(1).forEachIndexed { index, leakingObject ->
+                  item(key = "$groupKey ${leakingObject.objectId}") {
+                    LeakingObjectRow(
+                      leakingObject = leakingObject,
+                      isLast = index == group.objects.size - 2,
+                      onOpen = onOpen
+                    )
+                  }
                 }
               }
             }
@@ -149,31 +162,21 @@ private fun SectionHeader(
 }
 
 /**
- * One leak: what it is, how many objects of the heap dump are instances of it, and what they hold.
+ * One leak: the references it is, how many objects of the heap dump it left behind, and what they hold.
  *
- * Pressing it anywhere unfolds it into those objects, whether there are fifty of them or one. A row that
- * led somewhere when it held one object and unfolded when it held two would be two rows that look the
- * same and do different things — and the objects of a leak are what lead somewhere, one each.
+ * A heading rather than something to press. What a leak *is* is the references, and they are the same for
+ * every object under it; the objects are what lead somewhere, and the first of them is on the row below
+ * this one whether the leak has one or fifty. See [MoreObjectsRow] for the rest.
  */
 @Composable
-private fun GroupRow(
-  group: LeakGroup,
-  isExpanded: Boolean,
-  onToggle: () -> Unit
-) {
-  Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).clickableRow(onToggle)) {
+private fun GroupRow(group: LeakGroup) {
+  Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     SectionBar()
     Row(
-      Modifier.weight(1f).padding(start = 4.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+      Modifier.weight(1f).padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
       horizontalArrangement = Arrangement.spacedBy(8.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
-      Text(
-        if (isExpanded) EXPANDED_ARROW else FOLDED_ARROW,
-        Modifier.width(TOGGLE_WIDTH),
-        style = MaterialTheme.typography.bodyMedium,
-        textAlign = TextAlign.Center
-      )
       Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Hint(NAME_HINT) {
           Text(
@@ -221,6 +224,45 @@ private fun GroupRow(
 }
 
 /**
+ * The objects of a leak past the first, and the one thing on this screen that opens and closes.
+ *
+ * Says how many rather than showing them, because a leak with five hundred instances of it is one thing to
+ * fix and a list that scrolls for a minute to get past it says the opposite. Inside the leak, styled like
+ * the objects it stands for, so that what opens is plainly more of the rows above it and not more leaks.
+ */
+@Composable
+private fun MoreObjectsRow(
+  count: Int,
+  isExpanded: Boolean,
+  onToggle: () -> Unit
+) {
+  Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(INSTANCE_BACKGROUND)) {
+    SectionBar()
+    Spacer(Modifier.width(INSTANCE_INSET - SECTION_BAR_WIDTH))
+    InstanceRule(isLast = !isExpanded)
+    Row(
+      Modifier.weight(1f).clickableRow(onToggle)
+        .padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+      horizontalArrangement = Arrangement.spacedBy(4.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Text(
+        if (isExpanded) EXPANDED_ARROW else FOLDED_ARROW,
+        Modifier.width(TOGGLE_WIDTH),
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center
+      )
+      Text(
+        moreObjectsText(count),
+        style = MaterialTheme.typography.bodySmall,
+        fontWeight = FontWeight.Bold,
+        color = MUTED_TEXT
+      )
+    }
+  }
+}
+
+/**
  * The bar down the left of every row of one part of the list, which is what says those rows are its.
  *
  * Three headings on a flat list say as much about the rows above them as about the rows below, and a
@@ -255,12 +297,7 @@ private fun LeakingObjectRow(
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(INSTANCE_BACKGROUND)) {
     SectionBar()
     Spacer(Modifier.width(INSTANCE_INSET - SECTION_BAR_WIDTH))
-    Box(
-      Modifier.width(INSTANCE_RULE_WIDTH)
-        .fillMaxHeight()
-        .padding(bottom = if (isLast) INSTANCE_RULE_TAIL else 0.dp)
-        .background(INSTANCE_RULE_COLOR)
-    )
+    InstanceRule(isLast)
     Column(Modifier.weight(1f).padding(start = 8.dp, end = 12.dp, bottom = 4.dp)) {
       Row(
         Modifier.fillMaxWidth().clickableRow { onOpen(leakingObject.objectId) }
@@ -285,6 +322,17 @@ private fun LeakingObjectRow(
               overflow = TextOverflow.Ellipsis
             )
           }
+          // Why *this* object shouldn't be here, which the inspector that recognized it read off the object
+          // itself: two objects of one leak can be leaking for reasons that don't read the same.
+          leakingObject.leakingReason?.let { reason ->
+            Text(
+              reason,
+              style = MaterialTheme.typography.bodySmall,
+              color = MUTED_TEXT,
+              maxLines = MAX_SUBTITLE_LINES,
+              overflow = TextOverflow.Ellipsis
+            )
+          }
         }
         Text(
           formatByteSize(leakingObject.retainedSize),
@@ -294,10 +342,26 @@ private fun LeakingObjectRow(
         )
       }
       leakingObject.watcher?.let { watcher ->
-        WatcherRow(watcher, onOpen)
+        WatcherRow(watcher, alreadySaid = leakingObject.leakingReason.orEmpty(), onOpen = onOpen)
       }
     }
   }
+}
+
+/**
+ * The rule down the left of everything inside one leak, which is what ties those rows to it.
+ *
+ * Stops short of the bottom on the row that closes the leak, so the rule draws where the leak ends rather
+ * than running into the next one.
+ */
+@Composable
+private fun InstanceRule(isLast: Boolean) {
+  Box(
+    Modifier.width(INSTANCE_RULE_WIDTH)
+      .fillMaxHeight()
+      .padding(bottom = if (isLast) INSTANCE_RULE_TAIL else 0.dp)
+      .background(INSTANCE_RULE_COLOR)
+  )
 }
 
 /**
@@ -310,6 +374,11 @@ private fun LeakingObjectRow(
 @Composable
 private fun WatcherRow(
   watcher: WatchedObject,
+  /**
+   * What the row above it already says about this object, which for a watched one is a sentence the
+   * inspector built out of the watcher's own description — so printing it again is printing it twice.
+   */
+  alreadySaid: String,
   onOpen: (Long) -> Unit
 ) {
   Column(
@@ -317,7 +386,7 @@ private fun WatcherRow(
       .padding(bottom = 2.dp)
   ) {
     Text(watcher.watchText(), style = MaterialTheme.typography.bodySmall, color = LINK_COLOR)
-    if (watcher.description.isNotEmpty()) {
+    if (watcher.description.isNotEmpty() && watcher.description !in alreadySaid) {
       Text(
         watcher.description,
         style = MaterialTheme.typography.bodySmall,
@@ -354,12 +423,23 @@ private fun LeakGroup.objectCountText(): String =
  * repeats the first says the row has two names. Which end is which is worth knowing — the first is what to
  * stop holding, the last is where the object that leaked hangs off — and a row of a list is read left to
  * right, so it is the same order the chain is in. See [LeakGroup.suspectPath] and [NAME_HINT].
+ *
+ * It ends on an arrow, because what the last reference points at is the row underneath: the references are
+ * the leak and the objects below them are what it left behind, which is the whole shape of this list.
  */
 private fun LeakGroup.nameText(): String = when (suspectPath.size) {
-  0, 1 -> title
-  2 -> "${suspectPath.first()} $STRETCH_ARROW ${suspectPath.last()}"
-  else -> "${suspectPath.first()} $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW ${suspectPath.last()}"
+  // A library leak is named by the pattern that recognized it and an unreachable one by its class, and
+  // neither is a reference, so neither points anywhere.
+  0 -> title
+  1 -> "${suspectPath.single()} $STRETCH_ARROW"
+  2 -> "${suspectPath.first()} $STRETCH_ARROW ${suspectPath.last()} $STRETCH_ARROW"
+  else ->
+    "${suspectPath.first()} $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW ${suspectPath.last()} $STRETCH_ARROW"
 }
+
+/** How many objects the leak has past the one on the row above, which is what opening it shows. */
+private fun moreObjectsText(count: Int): String =
+  "$count $MORE ${if (count == 1) OBJECT else OBJECTS} $LEAKING_THE_SAME_WAY"
 
 /** The class in full, then the address: the same two things every list of objects here shows. */
 private fun LeakingObject.identityText() = buildAnnotatedString {
@@ -396,6 +476,13 @@ private const val LEAKS = "leaks"
 private const val OBJECT = "object"
 private const val OBJECTS = "objects"
 
+/** What the row opening the rest of a leak says, since a bare count would read as a count of leaks. */
+internal const val MORE = "more"
+internal const val LEAKING_THE_SAME_WAY = "leaking the same way"
+
+/** Its key in the list, which is one per leak and so can't be an object id. */
+private const val MORE_KEY = "more"
+
 /** What the line about the watcher starts with, so it reads as the watcher's line and not the object's. */
 private const val WATCHED_GLYPH = "◉"
 
@@ -424,7 +511,7 @@ internal const val STRETCH_GAP = "…"
 internal const val FOLDED_ARROW = "▸"
 internal const val EXPANDED_ARROW = "▾"
 
-/** Wide enough for the triangle, which every row has: every leak unfolds, one object or fifty. */
+/** Wide enough for the triangle on the one row of a leak that opens and closes. */
 private val TOGGLE_WIDTH = 16.dp
 
 /** Between the last leak of one part and the heading of the next, which is what parts the three. */

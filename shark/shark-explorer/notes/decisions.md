@@ -445,9 +445,17 @@ reference reads as the row having two names. Both ends because either alone leav
 apart: on `unloaded_classes-stripped` both app leaks start at `MediaStateMachine.observer` and end at
 different references, and on a dump where two leaks are held by the same field it is the other way round.
 
-Fifty leaked rows of one list are one thing to fix, so a group is one row until it is unfolded — one object
-or fifty, since a row that led somewhere when it held one and unfolded when it held two would be two rows
-that look the same and do different things.
+**The row above them is the leak and the rows under it are the objects**, so the first object is always
+shown and the rest are behind one row saying how many there are. Which is the shape of the thing: fifty
+leaked instances of a screen are one reference to stop holding, and a list that scrolls for a minute to get
+past them says the opposite — but a leak drawn with nothing under it says what shouldn't be holding without
+ever saying what it is holding. The name ends on an arrow for the same reason: what the last reference
+points at is the row underneath.
+
+**Why an object is leaking is on the object, not on the leak.** An inspector reads it off the object —
+`Activity#mDestroyed is true` — so two objects of one group can be leaking for reasons that don't read the
+same, and a group has no business printing one of them as its own. What is left on the leak's row is what
+is true of all of them: the references, the hash of them, how many objects and what they retain.
 
 **A leak that can only be reached through another leak is dropped from the list**
 (`foldedIntoWhatHoldsThem`). A leaked activity holds a leaked window which holds a leaked view tree, and
