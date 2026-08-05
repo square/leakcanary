@@ -1,5 +1,6 @@
 package shark.explorer
 
+import androidx.collection.LongSet
 import shark.HeapGraph
 import shark.HeapObject.HeapInstance
 import shark.ValueHolder
@@ -13,15 +14,21 @@ import shark.ValueHolder
  * aren't in the dump names no owner and therefore owns nothing, which is what keeps a rule about Android
  * from costing anything on a dump of a JVM.
  */
-internal fun ownerRulesFor(graph: HeapGraph): List<OwnerRule> = listOf(
-  ViewParentRule(graph),
-  WindowDecorRule(),
-  RunningActivityRule(graph),
-  LayoutNodeParentRule(graph),
-  ComposeUiRootNodeRule(),
-  ModifierChainRule(),
-  ScopedProviderRule(graph)
-)
+internal fun ownerRulesFor(graph: HeapGraph): List<OwnerRule> {
+  // One reader between the two rules that read the activities the app is running: they ask it for the same
+  // thing, from either end of it — which activities the thread owns, and which of them own their window.
+  val runningActivities = RunningActivityReferenceReader(graph)
+  return listOf(
+    ViewParentRule(graph),
+    WindowDecorRule(),
+    ActivityWindowRule(runningActivities),
+    RunningActivityRule(runningActivities),
+    LayoutNodeParentRule(graph),
+    ComposeUiRootNodeRule(),
+    ModifierChainRule(),
+    ScopedProviderRule(graph)
+  )
+}
 
 /**
  * A view of a hierarchy is held by its parent, through the virtual reference [ViewChildReferenceReader]
@@ -47,21 +54,81 @@ internal class ViewParentRule(graph: HeapGraph) : OwnerRule {
 }
 
 /**
- * The root view of a hierarchy has no parent to own it, and belongs to whatever the hierarchy is for.
- * Attributing a window's views to the `Activity` or `Dialog` they're for is the whole point: otherwise they
- * land under the `WindowManagerGlobal` that holds every window of the process, which tells you nothing
- * about which screen is expensive.
+ * The decor view at the top of a hierarchy has no parent to own it, and is held by the window it is the
+ * decor of.
  *
- * The framework nulls `Activity.mDecor` when it destroys the activity, and that is the whole of "unless the
- * activity is destroyed": a rule needs no state check when the field is already gone.
+ * Not by the `Activity` or `Dialog`, which is what this rule used to say. `Activity.mDecor` is written in
+ * one place, `ActivityThread.handleResumeActivity`, guarded by the activity's record having no window yet —
+ * so it is set once per `ActivityClientRecord` rather than once per activity, and an activity recreated on a
+ * configuration change is visible, resumed, and has a null `mDecor` for the rest of its life. Which is most
+ * of the activities in the heap dumps here. Worse than useless: with the decor view declared owned and no
+ * owner reaching it, every rival counted, and a window's whole hierarchy was drawn flat at the top of the
+ * tree.
  *
- * Not `PhoneWindow.mDecor`, which also holds the decor view and is set whether the activity is destroyed or
- * not. Two owners are two ways of owning, so the decor view would end up dominated by whatever dominates
- * both, and on a real app dump that's the top of the tree: a jank monitor held the window from a GC root of
- * its own, which cost the activity all 18 MB of its hierarchy. One owner per construct, and it should be
- * the one you'd want to read the bytes under.
+ * The window holds it whether the activity is destroyed or not, so this rule leans on [ActivityWindowRule]
+ * for the fallback the field used to give: it is the *window* that stops being owned when its activity goes,
+ * and the hierarchy comes with it.
+ *
+ * One owner and not both, though — a decor view owned by its window *and* its activity is dominated by
+ * whatever dominates the two, and on a real app dump that's the top of the tree: a jank monitor held the
+ * window from a GC root of its own, which cost the activity all 18 MB of its hierarchy.
  */
 internal class WindowDecorRule : OwnerRule {
+
+  override val ownerClassNames = setOf(WINDOW_CLASS_NAME)
+
+  override fun forEachOwnedObject(
+    owner: HeapInstance,
+    onOwned: (Long) -> Unit
+  ) {
+    // By field name rather than by declaring class, because the class declaring it is internal and has
+    // moved: com.android.internal.policy.impl.PhoneWindow before Lollipop, com.android.internal.policy
+    // .PhoneWindow since. Reading the fields of a window costs the record read this rule makes anyway.
+    owner.readFields()
+      .firstOrNull { it.name == DECOR_FIELD_NAME }
+      ?.value
+      ?.asNonNullObjectId
+      ?.let(onOwned)
+  }
+
+  companion object {
+    private const val WINDOW_CLASS_NAME = "android.view.Window"
+    private const val DECOR_FIELD_NAME = "mDecor"
+  }
+}
+
+/**
+ * A window is held by the `Activity` or `Dialog` it is the window of. Everything else pointing at one is
+ * something that needs to reach the window: the `WindowManagerImpl` that added it, an
+ * `AppCompatDelegateImpl`, a `DecorContext`, a menu callback, the window's own inner classes.
+ *
+ * Attributing a window to what it is for is what makes the rest of these rules land somewhere worth reading.
+ * Its decor view is nearly all of its bytes ([WindowDecorRule]), and a window with several referrers is
+ * otherwise dominated by whatever dominates all of them — measured on the heap dumps here, 6 of 16 windows
+ * were drawn at the top of the tree, taking their hierarchy with them.
+ *
+ * The one rule whose owning reference outlives the construct it is about, and the whole of the difficulty
+ * here. `Activity.mWindow` is set in `attach` and never cleared, and `Dialog.mWindow` is final, so a
+ * destroyed activity and a dismissed dialog go on pointing at a window they have nothing left to do with.
+ * Owning it anyway takes the only honest answer away from the case that needs it: a leaked screen whose
+ * window something else holds as well is two things to fix, and it reads as one if the leak owns the window.
+ *
+ * So this rule owns through `mWindow` and reads whether the screen is up off *another* reference, one the
+ * framework does drop — the same self-clearing signal the rest of these rules own by, borrowed from beside
+ * the one they own through. A dialog is dropped from its decor view, which `show` sets and `dismiss` nulls;
+ * an activity is dropped from `ActivityThread.mActivities`, which `handleDestroyActivity` removes the record
+ * from and which [RunningActivityRule] already owns activities by. Nothing here reads the state of an
+ * object: a screen the framework is done with owns its window for exactly as long as the framework holds it.
+ */
+internal class ActivityWindowRule(runningActivities: RunningActivityReferenceReader) : OwnerRule {
+
+  /**
+   * The activities the app is running, which is the reference `handleDestroyActivity` drops.
+   *
+   * Read once for the heap dump rather than per activity, because the read starts at the thread and not at
+   * the activity: there is no way from an activity back to the record running it.
+   */
+  private val runningActivityIds: LongSet by lazy { runningActivities.runningActivityIds() }
 
   override val ownerClassNames = setOf(ACTIVITY_CLASS_NAME, DIALOG_CLASS_NAME)
 
@@ -69,14 +136,29 @@ internal class WindowDecorRule : OwnerRule {
     owner: HeapInstance,
     onOwned: (Long) -> Unit
   ) {
-    ownerClassNames.forEach { className ->
-      owner[className, DECOR_FIELD_NAME]?.value?.asNonNullObjectId?.let(onOwned)
+    if (!owner.isScreenTheFrameworkStillHolds()) {
+      return
     }
+    ownerClassNames.forEach { className ->
+      owner[className, WINDOW_FIELD_NAME]?.value?.asNonNullObjectId?.let(onOwned)
+    }
+  }
+
+  /** Whether the framework is still holding [this] screen, read off what it lets go of. */
+  private fun HeapInstance.isScreenTheFrameworkStillHolds(): Boolean {
+    // Asked of the dialog first because having the field is also what tells a dialog from an activity — an
+    // activity has no android.app.Dialog.mDecor, and a dialog is in no ActivityThread.
+    val dialogDecor = this[DIALOG_CLASS_NAME, DECOR_FIELD_NAME]
+    if (dialogDecor != null) {
+      return dialogDecor.value.asNonNullObjectId != null
+    }
+    return runningActivityIds.contains(objectId)
   }
 
   companion object {
     private const val ACTIVITY_CLASS_NAME = "android.app.Activity"
     private const val DIALOG_CLASS_NAME = "android.app.Dialog"
+    private const val WINDOW_FIELD_NAME = "mWindow"
     private const val DECOR_FIELD_NAME = "mDecor"
   }
 }
@@ -91,9 +173,9 @@ internal class WindowDecorRule : OwnerRule {
  * `mActivities`, so a destroyed activity has no owner left and falls back on whatever is leaking it, which
  * is exactly what you want its bytes drawn under.
  */
-internal class RunningActivityRule(graph: HeapGraph) : OwnerRule {
-
-  private val activityReferenceReader = RunningActivityReferenceReader(graph)
+internal class RunningActivityRule(
+  private val activityReferenceReader: RunningActivityReferenceReader
+) : OwnerRule {
 
   override val ownerClassNames = setOf(RunningActivityReferenceReader.ACTIVITY_THREAD_CLASS_NAME)
 
