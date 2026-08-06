@@ -1,5 +1,7 @@
 package shark.explorer
 
+import androidx.collection.LongSet
+import androidx.collection.MutableLongSet
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapInstance
@@ -44,6 +46,22 @@ internal class RunningActivityReferenceReader(private val graph: HeapGraph) {
    */
   private val activityThreadClassId: Long by lazy {
     graph.findClassByName(ACTIVITY_THREAD_CLASS_NAME)?.objectId ?: ValueHolder.NULL_REFERENCE
+  }
+
+  /**
+   * Every activity the app is running, whichever `ActivityThread` runs it, by object id.
+   *
+   * The same read as [activityReferencesOf] asked of the whole heap dump rather than of one thread, for
+   * [ActivityWindowRule], which needs to know whether the framework is still running a screen and has only
+   * this to read it off: an activity it has finished with is out of `mActivities` and says so nowhere else
+   * in its references.
+   */
+  fun runningActivityIds(): LongSet {
+    val activityIds = MutableLongSet()
+    graph.findClassByName(ACTIVITY_THREAD_CLASS_NAME)?.instances?.forEach { activityThread ->
+      runningActivityIdsOf(activityThread).forEach { activityIds += it }
+    }
+    return activityIds
   }
 
   /** The activities [source] is running when it's the `ActivityThread`, and nothing at all for the rest. */
