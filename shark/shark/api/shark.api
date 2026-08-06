@@ -285,6 +285,13 @@ public final class shark/HeapDominatorTree$Companion {
 	public final fun buildFor (Lshark/HeapGraph;Lshark/ReferenceReader;Lshark/GcRootProvider;)Lshark/HeapDominatorTree;
 }
 
+public final class shark/HeapMapEntry {
+	public fun <init> (Lshark/HeapObject$HeapInstance;Lshark/HeapValue;Lshark/HeapValue;)V
+	public final fun getInstance ()Lshark/HeapObject$HeapInstance;
+	public final fun getKey ()Lshark/HeapValue;
+	public final fun getValue ()Lshark/HeapValue;
+}
+
 public abstract interface class shark/HeapTraversalInput {
 	public abstract fun getHeapDumpCount ()Ljava/lang/Integer;
 	public abstract fun getScenarioLoopsPerGraph ()I
@@ -586,6 +593,15 @@ public final class shark/LibraryLeakReferenceMatcher : shark/ReferenceMatcher {
 	public fun getPatternApplies ()Lkotlin/jvm/functions/Function1;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/MapEntryReader {
+	public static final field Companion Lshark/MapEntryReader$Companion;
+	public final fun readEntriesOf (Lshark/HeapObject$HeapInstance;)Lkotlin/sequences/Sequence;
+}
+
+public final class shark/MapEntryReader$Companion {
+	public final fun createFor (Lshark/HeapGraph;)Lshark/MapEntryReader;
 }
 
 public final class shark/MatchingGcRootProvider : shark/GcRootProvider {
