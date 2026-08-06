@@ -443,7 +443,7 @@ the stretches are.
 The `Leaks` screen finds the objects that shouldn't be in memory the two ways Shark finds them — the
 `KeyedWeakReference`s LeakCanary left behind (`WatchedObjects`), and a pass over every instance with
 `AndroidObjectInspectors.appLeakingObjectFilters` — and then answers everything else about them **with the
-same code the rest of the window uses**: `HeapDominatorTreemap.rootPathTo`, the function that draws the
+same code the rest of the window uses**: `SemanticDominatorTreemap.rootPathTo`, the function that draws the
 chain beside the map. No path here comes from `RealLeakTracerFactory` or the shortest path finder — though
 what a leak is *called* does, since the chain is handed to a `LeakTrace` to be hashed, see below.
 

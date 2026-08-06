@@ -23,12 +23,12 @@ class TreemapPresentation(
     /**
      * Lays [tree] out into [viewport] rooted at [root] and reads what it takes to draw the result.
      *
-     * Here rather than in [HeapDominatorTreemap] — as is every shape's — because which shapes there are
+     * Here rather than in [SemanticDominatorTreemap] — as is every shape's — because which shapes there are
      * is not something a heap dump reader should have to know: it labels cells, and pairing that with a
-     * layout is this side of the line. See [HeapDominatorTreemap.present].
+     * layout is this side of the line. See [SemanticDominatorTreemap.present].
      */
     fun of(
-      tree: HeapDominatorTreemap,
+      tree: SemanticDominatorTreemap,
       layout: TreemapLayout<Long>,
       viewport: TreemapRect,
       root: Long = tree.root
@@ -53,7 +53,7 @@ class RadialPresentation(
   companion object {
     /** See [TreemapPresentation.of]. */
     fun of(
-      tree: HeapDominatorTreemap,
+      tree: SemanticDominatorTreemap,
       layout: RadialLayout<Long>,
       viewport: TreemapRect,
       root: Long = tree.root
@@ -78,7 +78,7 @@ class StackPresentation(
   companion object {
     /** See [TreemapPresentation.of]. */
     fun of(
-      tree: HeapDominatorTreemap,
+      tree: SemanticDominatorTreemap,
       layout: StackLayout<Long>,
       viewport: TreemapRect,
       root: Long = tree.root
@@ -120,14 +120,14 @@ sealed interface CellContent {
     /**
      * Whether the object is an `android.graphics.Bitmap`, which is what makes a cell one an image can
      * be drawn on. Says nothing about whether the heap dump has that image: see
-     * [HeapDominatorTreemap.bitmapImages], which is the read that finds out.
+     * [SemanticDominatorTreemap.bitmapImages], which is the read that finds out.
      */
     val isBitmap: Boolean = false
   ) : CellContent
 
   /**
    * A pile of objects as one cell: half of the heap dump, or every instance of one class the root
-   * dominates. See [HeapDominatorTreemap.groupOrNull].
+   * dominates. See [SemanticDominatorTreemap.groupOrNull].
    */
   data class ObjectGroup(
     val kind: ObjectGroupKind,

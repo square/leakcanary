@@ -7,8 +7,8 @@ package shark.explorer
  * Every path from a GC root goes through every dominator of the object, so a step that dominates it is one
  * the chain has no choice about. A run of steps between two of those is the opposite: if the chain had to
  * run through them, they would dominate the object as well and be marked. So a detour is exactly where the
- * question "held how else?" has an answer, and [HeapDominatorTreemap.independentPathsBetween] is the answer
- * — asked of the two ends rather than of the whole chain, which is what keeps it to the part in doubt.
+ * question "held how else?" has an answer, and [SemanticDominatorTreemap.independentPathsBetween] is the
+ * answer — asked of the two ends rather than of the whole chain, which is what keeps it to the part in doubt.
  */
 data class RootPathDetour(
   /** Index into [RootPath.steps] of the first step that could have been another object. */

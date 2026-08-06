@@ -101,15 +101,21 @@ internal class ScopedProvider(
  * Which objects of a heap dump something owns, and which references are the owning ones — the
  * [OwnerRule] list applied to one heap dump.
  *
+ * **Allow-listing an owner**, one of the two patterns behind the explorer's **semantic dominators**: a
+ * dominator tree built over a curated edge set, so that it answers "what owns this object?" rather than
+ * "what would the collector free?". Allow-listing names the target and the one edge into it that owns,
+ * which makes rivals of all the rest. Deny-listing a reference is the other pattern, and the same rule read
+ * off the other end of a reference: see [ReferenceStrengthReader].
+ *
  * The rule this exists to apply: **a reference into an object something else owns is not one of the ways
  * that object is held, unless nothing that owns it reached it.** A walk therefore parks a rival
  * reference instead of dropping it, and only takes a parked one once it has nothing else left to
  * follow — see [HeapReachability.walkFromGcRoots]. That's what makes the rule safe to apply without
  * knowing anything about the state of the objects: when the owner turns out not to be there, the walk
- * calls [markLastResortHeld] and the rivals count after all.
+ * calls [markNoOwnerReached] and the rivals count after all.
  *
  * Filled in by the walk, then read by everything that needs the same edges the walk followed:
- * [WeakeningAwareReferenceReader], and so the dominator tree, the referrer index and the path search.
+ * [SemanticReferenceReader], and so the dominator tree, the referrer index and the path search.
  * So [isHeldThrough] is only meaningful once [HeapReachability.computeFor] has returned.
  */
 internal class OwnerReferences private constructor(
@@ -132,7 +138,7 @@ internal class OwnerReferences private constructor(
    * after all: a view of a hierarchy whose parent is gone, a dialog's decor view once the dialog is
    * collected.
    */
-  private val lastResortHeldObjectIndexes = BitSet(graph.objectCount)
+  private val noOwnerReachedObjectIndexes = BitSet(graph.objectCount)
 
   /** What [source] owns, worked out once per object rather than once per reference out of it. */
   fun ownershipOf(source: HeapObject): Ownership =
@@ -151,8 +157,8 @@ internal class OwnerReferences private constructor(
    * Records that nothing that owns [heapObject] reached it, so [isHeldThrough] answers true for every
    * reference into it from here on.
    */
-  fun markLastResortHeld(heapObject: HeapObject) {
-    lastResortHeldObjectIndexes.set(heapObject.objectIndex)
+  fun markNoOwnerReached(heapObject: HeapObject) {
+    noOwnerReachedObjectIndexes.set(heapObject.objectIndex)
   }
 
   /**
@@ -160,8 +166,11 @@ internal class OwnerReferences private constructor(
    *
    * True for everything but a rival reference into an object an owner reached. Nothing is lost by it:
    * every object was reached either through a reference this keeps, or from the parked references, and
-   * then [markLastResortHeld] keeps all of them. So the graph the dominator tree is built from still has
+   * then [markNoOwnerReached] keeps all of them. So the graph the dominator tree is built from still has
    * every object of the heap dump in it, reachable and garbage alike.
+   *
+   * Shares its name with [HeapReachability.isHeldThrough] on purpose: same question of the other pattern,
+   * and an edge has to pass both to be in the set [SemanticReferenceReader] reads.
    */
   fun isHeldThrough(
     sourceOwnership: Ownership,
@@ -171,7 +180,7 @@ internal class OwnerReferences private constructor(
       return true
     }
     val target = graph.findObjectByIdOrNull(reference.valueObjectId) ?: return true
-    return lastResortHeldObjectIndexes.get(target.objectIndex)
+    return noOwnerReachedObjectIndexes.get(target.objectIndex)
   }
 
   /** Every instance of a class owns the same fields and the same virtual references. */

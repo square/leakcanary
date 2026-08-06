@@ -17,7 +17,7 @@ enum class HeapObjectKind(
 }
 
 /**
- * Which objects of a heap dump a list shows. See [HeapDominatorTreemap.listObjects].
+ * Which objects of a heap dump a list shows. See [SemanticDominatorTreemap.listObjects].
  *
  * The default matches everything: a heap dump is worth scrolling through before it's worth searching.
  */
@@ -50,7 +50,7 @@ data class ObjectListFilter(
   }
 }
 
-/** One row of a list of objects. See [HeapDominatorTreemap.listObjects]. */
+/** One row of a list of objects. See [SemanticDominatorTreemap.listObjects]. */
 data class ObjectListEntry(
   val objectId: Long,
   /** Fully qualified class name, or array type. */
@@ -69,7 +69,7 @@ data class ObjectListEntry(
 )
 
 /**
- * Every object a filter matches, largest first, capped. See [HeapDominatorTreemap.listObjects].
+ * Every object a filter matches, largest first, capped. See [SemanticDominatorTreemap.listObjects].
  */
 data class ObjectList(
   val filter: ObjectListFilter,

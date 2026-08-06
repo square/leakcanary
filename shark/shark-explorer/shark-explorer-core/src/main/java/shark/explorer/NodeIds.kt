@@ -1,7 +1,7 @@
 package shark.explorer
 
-import shark.explorer.HeapDominatorTreemap.Companion.ROOT_OBJECT_ID
-import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_NODE_ID
+import shark.explorer.SemanticDominatorTreemap.Companion.ROOT_OBJECT_ID
+import shark.explorer.SemanticDominatorTreemap.Companion.UNREACHABLE_NODE_ID
 
 /**
  * The address a heap dump recorded an object at, which is what an object id is.
@@ -17,16 +17,16 @@ fun hexObjectId(objectId: Long): String {
 }
 
 /**
- * How a node of a [HeapDominatorTreemap] reads in a message: the address of an object, or which pile of
+ * How a node of a [SemanticDominatorTreemap] reads in a message: the address of an object, or which pile of
  * objects it is.
  *
  * A pile is no object of the heap dump, so it has no address to name it by. See
- * [HeapDominatorTreemap.isPileId].
+ * [SemanticDominatorTreemap.isPileId].
  */
 fun nodeIdText(nodeId: Long): String = when {
   nodeId == ROOT_OBJECT_ID -> "the whole heap dump"
   nodeId == UNREACHABLE_NODE_ID -> "the uncollected garbage"
-  HeapDominatorTreemap.isPileId(nodeId) -> "the class pile ${nodeId - UNREACHABLE_NODE_ID}"
+  SemanticDominatorTreemap.isPileId(nodeId) -> "the class pile ${nodeId - UNREACHABLE_NODE_ID}"
   else -> hexObjectId(nodeId)
 }
 

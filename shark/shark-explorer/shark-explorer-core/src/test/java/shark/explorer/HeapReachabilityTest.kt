@@ -11,13 +11,13 @@ import shark.GcRoot.StickyClass
 import shark.HprofWriterHelper
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
-import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_LABEL
-import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_NODE_ID
 import shark.explorer.ReachabilityStrength.FINALIZER
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.WEAK
+import shark.explorer.SemanticDominatorTreemap.Companion.UNREACHABLE_LABEL
+import shark.explorer.SemanticDominatorTreemap.Companion.UNREACHABLE_NODE_ID
 
 class HeapReachabilityTest {
 
@@ -367,7 +367,7 @@ class HeapReachabilityTest {
   }
 
   /** The one `Object[]` of a payload heap dump, found by walking the tree. */
-  private fun HeapDominatorTreemap.payloadObjectId(): Long {
+  private fun SemanticDominatorTreemap.payloadObjectId(): Long {
     val toVisit = ArrayDeque(listOf(root))
     while (toVisit.isNotEmpty()) {
       val objectId = toVisit.removeFirst()

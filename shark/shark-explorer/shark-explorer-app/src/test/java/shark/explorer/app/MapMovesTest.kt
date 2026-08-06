@@ -23,7 +23,7 @@ import java.io.File
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.explorer.HeapDominatorTreemap
+import shark.explorer.SemanticDominatorTreemap
 
 /**
  * Where a click on the map takes the map.
@@ -67,7 +67,7 @@ class MapMovesTest {
 
       // A tab of its own rather than this one moved: the bar is the way in to a heap dump, so clicking it
       // while reading an object is asking for both. Either way the map is drawn at the top again.
-      onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and isButton()).performClick()
+      onNode(hasText(SemanticDominatorTreemap.ROOT_LABEL) and isButton()).performClick()
 
       waitUntilZoomedOut()
     }

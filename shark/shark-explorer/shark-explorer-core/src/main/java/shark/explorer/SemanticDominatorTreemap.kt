@@ -58,6 +58,12 @@ import shark.ValueHolder.ShortHolder
 /**
  * A heap dump's dominator tree, seen as a [TreemapTree] weighted by retained size.
  *
+ * **Semantic dominators, not the garbage collector's**, which is what the name is for.
+ * [shark.HeapDominatorTree] computes exact dominators over whatever graph it is given, and what it's given
+ * here is a curated edge set rather than every reference the heap dump records — see
+ * [SemanticReferenceReader]. So a node's parent is what *owns* it, which is the question someone looking at
+ * a rectangle is asking, and not what the collector would have to see go to free it.
+ *
  * Nodes are object ids, and the root is [NULL_REFERENCE]: the virtual root [shark.HeapDominatorTree]
  * puts above every GC root, so that the whole heap dump is one rectangle. Its children are the objects no
  * one object owns, and [UNREACHABLE_NODE_ID] beside them: every object of the dump is in here whether a GC
@@ -76,7 +82,7 @@ import shark.ValueHolder.ShortHolder
 // back into this one. Worth doing, and worth doing on its own rather than inside a change that adds one
 // more answer.
 @Suppress("LargeClass", "TooManyFunctions")
-class HeapDominatorTreemap internal constructor(
+class SemanticDominatorTreemap internal constructor(
   private val graph: HeapGraph,
   private val reachability: HeapReachability,
   private val strengthReader: ReferenceStrengthReader,
@@ -101,7 +107,7 @@ class HeapDominatorTreemap internal constructor(
    * too: a path through a reference the tree ignored would explain a retention the tree doesn't show.
    */
   private val pathReferenceReader by lazy {
-    WeakeningAwareReferenceReader(strengthReader, reachability, ownerReferences)
+    SemanticReferenceReader(strengthReader, reachability, ownerReferences)
   }
 
   /**
@@ -510,9 +516,11 @@ class HeapDominatorTreemap internal constructor(
    * The one node this tree attributes [objectId]'s bytes to, or null for the root itself and for an
    * object that is no node of the tree.
    *
-   * The dominator is the answer to "what would free this": every path from a GC root to the object goes
-   * through it. There is exactly one, which is what makes it worth showing on its own, and it is a group
-   * rather than an object when nothing in particular holds the object — see [DominatorKind].
+   * The dominator is the answer to "what owns this": every path the curated edge set counts goes through
+   * it, though a deferred reference is still there in the heap, so it isn't necessarily what would free the
+   * object — see [ObjectDominator]. There is exactly one, which is what makes it worth showing on its own,
+   * and it is a group rather than an object when nothing in particular holds the object — see
+   * [DominatorKind].
    */
   fun dominatorOf(objectId: Long): ObjectDominator? {
     if (objectId == root || objectId !in nodes) {
@@ -1664,7 +1672,7 @@ class HeapDominatorTreemap internal constructor(
   }
 }
 
-/** What the UI knows about one heap object. See [HeapDominatorTreemap.summarize]. */
+/** What the UI knows about one heap object. See [SemanticDominatorTreemap.summarize]. */
 data class HeapObjectSummary(
   val objectId: Long,
   /** Short name, as drawn on a rectangle. */
@@ -1695,7 +1703,7 @@ data class HeapObjectSummary(
 
 /**
  * What the UI knows about a cell that stands for a pile of objects rather than for one. See
- * [HeapDominatorTreemap.groupOrNull].
+ * [SemanticDominatorTreemap.groupOrNull].
  */
 data class ObjectGroupSummary(
   /** What the tree knows this group by, e.g. to zoom into it. Not an object id. */

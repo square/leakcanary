@@ -38,12 +38,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import shark.ReferenceLocationType
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.LeakStatus
 import shark.explorer.PathReference
 import shark.explorer.PathStep
 import shark.explorer.ReachabilityStrength
+import shark.explorer.SemanticDominatorTreemap
 import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
@@ -77,8 +77,8 @@ internal fun PathRootRow(
     NodeGutter(kind = null, incoming = null, outgoing = nextStrength, endsInArrow = nextStrength != null)
     Column(Modifier.padding(bottom = PathDetail.FULL.rowSpacing)) {
       Text(
-        HeapDominatorTreemap.ROOT_LABEL,
-        Modifier.openable { openIn -> onOpen(HeapDominatorTreemap.ROOT_OBJECT_ID, openIn) },
+        SemanticDominatorTreemap.ROOT_LABEL,
+        Modifier.openable { openIn -> onOpen(SemanticDominatorTreemap.ROOT_OBJECT_ID, openIn) },
         style = MaterialTheme.typography.bodyMedium,
         fontWeight = FontWeight.Bold
       )
@@ -332,8 +332,8 @@ internal enum class PathRole {
   STEP,
 
   /**
-   * An object that dominates the one the chain leads to: every path from a GC root goes through it, so
-   * releasing it is what would free the object.
+   * An object that dominates the one the chain leads to: every path the explorer counts as a way it is held
+   * goes through it, so it is what owns the object.
    */
   DOMINATOR,
 
@@ -375,7 +375,7 @@ internal fun ObjectIdentity(
     if ('.' in className) {
       Text(className, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
     }
-    if (objectId != null && objectId != HeapDominatorTreemap.ROOT_OBJECT_ID) {
+    if (objectId != null && objectId != SemanticDominatorTreemap.ROOT_OBJECT_ID) {
       Text(hexObjectId(objectId), style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
     }
   }

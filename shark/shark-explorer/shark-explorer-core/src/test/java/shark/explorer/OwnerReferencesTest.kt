@@ -57,7 +57,7 @@ class OwnerReferencesTest {
       // What a parent holds is what mChildrenCount covers, not what its array has room for. A slot past
       // the count is a view the parent has let go of or hasn't taken yet, and calling it a child would
       // attribute a removed view to the parent that removed it — which is the leak you'd be looking for.
-      // So nothing owns this one, and the array that points at it holds it as a last resort.
+      // So no owner reaches this one, and the array that points at it counts after all.
       assertThat(tree.dominatorOf(uncounted.objectId)!!.label).isEqualTo("View[]")
     }
   }
@@ -111,8 +111,8 @@ class OwnerReferencesTest {
       val uncounted = tree.findByLabel("UncountedActivity")
 
       // What the thread runs is what mSize covers, not what its array has room for. A pair past the count
-      // is an entry the map has let go of or hasn't taken yet, so nothing owns the activity in it and the
-      // record that points at it holds it as a last resort.
+      // is an entry the map has let go of or hasn't taken yet, so no owner reaches the activity in it and
+      // the record that points at it counts after all.
       assertThat(tree.dominatorOf(uncounted.objectId)!!.label)
         .isEqualTo("ActivityThread\$ActivityClientRecord")
     }

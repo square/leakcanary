@@ -42,7 +42,6 @@ import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.BitmapCounts
 import shark.explorer.DeviceHeapDumps
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapLeaks
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
@@ -57,6 +56,7 @@ import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
 import shark.explorer.RootPath
 import shark.explorer.RootPathWay
+import shark.explorer.SemanticDominatorTreemap
 import shark.explorer.StackLayout
 import shark.explorer.StackPresentation
 import shark.explorer.Tabs
@@ -221,7 +221,7 @@ internal fun HeapDumpExplorer(
         SharkLog.d {
           "${nodeIdText(requested)} is no node of the tree: rooting the view at the whole heap dump"
         }
-        HeapDominatorTreemap.ROOT_OBJECT_ID
+        SemanticDominatorTreemap.ROOT_OBJECT_ID
       }
       ViewState(
         rootObjectId = rooted,
@@ -849,7 +849,7 @@ private fun DescribedObject(selection: Selection?) {
       )
     }
     is Selection.ObjectGroup -> Text(
-      selection.summary.className ?: HeapDominatorTreemap.UNREACHABLE_LABEL,
+      selection.summary.className ?: SemanticDominatorTreemap.UNREACHABLE_LABEL,
       style = MaterialTheme.typography.bodyMedium
     )
     is Selection.Group -> Text(
@@ -883,7 +883,7 @@ private fun ScreenBar(
     verticalAlignment = Alignment.CenterVertically
   ) {
     TextButton(onClick = onShowWholeHeapDump) {
-      Text(HeapDominatorTreemap.ROOT_LABEL)
+      Text(SemanticDominatorTreemap.ROOT_LABEL)
     }
     TextButton(onClick = onListObjects) {
       Text(Place.OBJECTS_LABEL)
@@ -1099,7 +1099,7 @@ internal class ViewState(
   companion object {
     /** Nothing laid out yet. An empty treemap and an empty radial view draw the same nothing. */
     val EMPTY = ViewState(
-      rootObjectId = HeapDominatorTreemap.ROOT_OBJECT_ID,
+      rootObjectId = SemanticDominatorTreemap.ROOT_OBJECT_ID,
       presentation = ViewPresentation.Treemap(TreemapPresentation.EMPTY)
     )
   }

@@ -2,8 +2,8 @@ package shark.explorer
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.explorer.HeapDominatorTreemap.Companion.ROOT_OBJECT_ID
-import shark.explorer.HeapDominatorTreemap.Companion.UNREACHABLE_NODE_ID
+import shark.explorer.SemanticDominatorTreemap.Companion.ROOT_OBJECT_ID
+import shark.explorer.SemanticDominatorTreemap.Companion.UNREACHABLE_NODE_ID
 
 class NodeIdsTest {
 

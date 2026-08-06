@@ -53,11 +53,11 @@ internal fun TemporaryFolder.weaklyReachablePayloadHeapDump(): File {
 }
 
 /**
- * A heap dump where an owner holds three objects a last resort holder also holds — a stack frame, a
+ * A heap dump where an owner holds three objects a weakening holder also holds — a stack frame, a
  * thread local and a finalizer queue — plus one object only the stack frame holds.
  */
-internal fun TemporaryFolder.lastResortHoldersHeapDump(): File {
-  val file = newFile("last-resort-holders.hprof")
+internal fun TemporaryFolder.weakeningHoldersHeapDump(): File {
+  val file = newFile("weakening-holders.hprof")
   file.dump {
     val classes = referenceClasses()
     val onStack = "com.example.OnStack" instance { }
@@ -447,7 +447,7 @@ internal const val CACHE_ENTRY_CLASS_NAME = "coil3.memory.RealStrongMemoryCache\
 /** The one class group of a [crowdedRootHeapDump], which is the tiles. */
 internal const val TILE_CLASS_NAME = "com.example.Tile"
 
-/** Past `MIN_CHILDREN_TO_GROUP_BY_CLASS` in [HeapDominatorTreemap], which is 200. */
+/** Past `MIN_CHILDREN_TO_GROUP_BY_CLASS` in [SemanticDominatorTreemap], which is 200. */
 internal const val TILE_COUNT = 205
 
 /** Enough objects between a GC root and a payload that the chain to it has to be cut. */

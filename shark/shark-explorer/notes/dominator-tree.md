@@ -1,5 +1,36 @@
 # Dominator tree
 
+## Semantic dominators
+
+**This is not the garbage collector's dominator tree.** It's a dominator tree over a *curated* edge set,
+and the name for what that computes is **semantic dominators**: it answers "what owns this object?" where a
+GC dominator tree answers "what would the collector free?". The two come apart wherever something is held
+by more than one thing, and a real dump is full of that — a bitmap a cache and a screen both hold has no
+single owner the collector would blame, so a GC dominator tree hands its bytes to the whole heap and says
+nothing. Most of the sections below are about closing that gap.
+
+`shark.HeapDominatorTree` does the computing either way — what makes the dominators semantic is the graph it
+is handed, not the algorithm — and the explorer's tree is `SemanticDominatorTreemap`.
+
+Two patterns curate the edge set, and they're the same rule read off the two ends of a reference:
+
+- **Deny-listing a reference.** "Don't follow this one unless nothing else holds the target." Names the
+  edge, in `ReferenceStrengthReader`: `WEAKENING_FIELDS_BY_CLASS_NAME` covers the four `java.lang.ref`
+  strengths plus the cache and thread local fields, and `CachedMapValues` covers the cache entries no field
+  name can name. Both end up as a `ReachabilityStrength` weaker than `STRONG`.
+- **Allow-listing an owner.** "Only this reference owns the target, so park every rival unless no owner
+  reaches it." Names the target and the one edge into it that owns, which makes rivals of all the rest:
+  `OwnerRule` and `OwnerReferences`.
+
+**Either way the edge is deferred, not dropped**, which is the whole of why neither pattern needs to know
+what state the object it's about is in. A deny-listed edge waits in the queue of the strength it weakens
+the path to, drained after every stronger queue; a rival waits in the parked queue of the strength that
+parked it, drained once that strength has nothing else left. Both queues are in
+`HeapReachability.walkFromGcRoots`, and both patterns are gated in `SemanticReferenceReader`, so the
+dominator tree, the referrer index and the path search all see one edge set. What follows from deferring is
+that a rule moves where bytes are attributed without changing how many are reachable — the sections on each
+pattern below say what that measured out at.
+
 ## Which implementation to use
 
 `shark.HeapDominatorTree` — exact Lengauer–Tarjan with the simple link-eval, on `main` since
@@ -14,7 +45,7 @@ is still `a`.
 
 ## How the explorer uses it
 
-`HeapExplorer.open` calls `HeapDominatorTree.buildFor` with a `WeakeningAwareReferenceReader` wrapping
+`HeapExplorer.open` calls `HeapDominatorTree.buildFor` with a `SemanticReferenceReader` wrapping
 `ActualMatchingReferenceReaderFactory`, then `buildNodes` with `AndroidObjectSizeCalculator`. One tree
 per open heap dump, built once, holding every object of the dump.
 
@@ -52,7 +83,7 @@ and only one of them belongs here:
 **The strength that decides whether a weakening edge is followed is the target's, not the reference's.**
 A `WeakReference` whose referent is also held strongly is the common case, and following that edge adds a
 second path to an object that was already in the tree: its bytes move up to the two paths' common
-ancestor and the treemap reshuffles, revealing nothing. So `WeakeningAwareReferenceReader` asks
+ancestor and the treemap reshuffles, revealing nothing. So `SemanticReferenceReader` asks
 `HeapReachability` how the target came out and follows a weakening edge only when nothing strong reaches
 it. Every weakly reachable object is therefore in the tree, under the reference that is the only thing
 holding it, and nothing else moves.
@@ -154,7 +185,7 @@ stay ungrouped; two of the core tests exist to pin both cases.
 **`HeapGraph.findClassByName` is not a lookup**, it's two linear scans over every string in the dump, and
 grouping is the one place that's tempting to call it per object. Doing it per class object cost 49 s and
 doing it per primitive array — via `HeapPrimitiveArray.arrayClass`, which calls it internally — cost
-another 6.8 s, so `HeapDominatorTreemap` memoizes it in `classIdByName` and reads `instanceClassId` /
+another 6.8 s, so `SemanticDominatorTreemap` memoizes it in `classIdByName` and reads `instanceClassId` /
 `arrayClassId` directly where they exist.
 
 ## What logically owns a bitmap: Coil, measured
@@ -184,6 +215,9 @@ itself under pressure, and an *owner*, which is a piece of UI or a job. The domi
 them apart, so it hands the bytes to the root — which is what `ReachabilityStrength.CACHE` is for.
 
 ## A cache is not an owner: the `CACHE` strength
+
+The first of the two semantic dominator patterns: **deny-listing**, which names an edge and follows it only
+when nothing else holds its target.
 
 The fix for the above is to stop treating a cache's reference as retaining. `CACHE` ranks between
 `STRONG` and `SOFT`, and `ReferenceStrengthReader.CACHE_FIELDS_BY_CLASS_NAME` is the curated list of
@@ -239,6 +273,9 @@ rather than images.
 
 ## An owner beats a bystander: the `OwnerReferences` rule
 
+The second semantic dominator pattern: **allow-listing**, which names the one edge into an object that owns
+it and parks every rival unless no owner turns up.
+
 A view that's part of a hierarchy is held by its parent, and a dominator tree that doesn't know that
 scatters a window across whatever happened to be closest to a GC root. Measured on the 82 MB dump before
 the rule: all 279 attached views had rival referrers, median ~10 and up to 246, and **170 of the 277
@@ -261,7 +298,7 @@ largest rectangle under the GC roots.
 **A rule is parked, not dropped, and that's the whole design.** The walk in
 `HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
 one is empty, so an owner gets every chance to reach the object first, wherever in the heap dump it is.
-When no owner turns up, `markLastResortHeld` records it and the rivals count after all. Dropping a rival
+When no owner turns up, `markNoOwnerReached` records it and the rivals count after all. Dropping a rival
 outright would be a correctness bug, not a mis-attribution: a detached hierarchy leaked through a
 mid-tree child would become unreachable, the explorer would call live objects garbage, and the same rule
 in `PathFinder` would make LeakCanary report no leak. Measured proof that it costs nothing: after the
@@ -297,8 +334,8 @@ Two things to know before adding a rule:
 
 Ownership is **not** a `ReachabilityStrength` and can't be: strength is a min over the references of a
 path, while owning is a property of the last reference alone. It's a separate binary verdict per object,
-gated in the same place — `WeakeningAwareReferenceReader`, which the dominator tree, the referrer index
-and the path search all read through, so all three see one edge set.
+gated in the same place — `SemanticReferenceReader`, which the dominator tree, the referrer index and
+the path search all read through, so all three see one edge set.
 
 ### The virtual references the explorer adds
 
@@ -478,8 +515,9 @@ containing both. Read it as "this subtree is why the bytes are here", the same a
 like a LeakCanary leak trace. Which of its steps *dominate* the object is marked on it, and that marking
 is what the reader gets two different things out of:
 
-- **A step marked a dominator is one every way of holding the object goes through**, so it is what would
-  free it. The lowest such step is `dominatorOf`, and it is a *group* rather than an object when nothing
+- **A step marked a dominator is one every way the curated edge set counts goes through**, so it is what
+  owns the object — not necessarily what would free it, since a deferred edge is still a reference in the
+  heap. The lowest such step is `dominatorOf`, and it is a *group* rather than an object when nothing
   in particular holds it (`DominatorKind.WHOLE_HEAP_DUMP`, where the tree draws it directly under the root)
   or when nothing holds it at all (`UNCOLLECTED_GARBAGE`, the one pile the top of the tree has).
 - **A stretch of unmarked steps between two marked ones is a stretch the chain didn't have to take**, since

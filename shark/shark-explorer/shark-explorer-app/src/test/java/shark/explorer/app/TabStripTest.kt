@@ -31,8 +31,8 @@ import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.Place
+import shark.explorer.SemanticDominatorTreemap
 import shark.explorer.hexObjectId
 
 /**
@@ -60,7 +60,7 @@ class TabStripTest {
       openHeapDump()
 
       assertThat(tabs().fetchSemanticsNodes()).hasSize(1)
-      tab(HeapDominatorTreemap.ROOT_LABEL).assertIsDisplayed()
+      tab(SemanticDominatorTreemap.ROOT_LABEL).assertIsDisplayed()
     }
   }
 
@@ -148,7 +148,7 @@ class TabStripTest {
       // Behind rather than in front: opening a tab this way is parking somewhere to come back to, so the
       // tab being read stays the one on screen and the whole heap dump is still what the panes describe.
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { tabs().fetchSemanticsNodes().size == 2 }
-      tab(HeapDominatorTreemap.ROOT_LABEL).assertIsSelected()
+      tab(SemanticDominatorTreemap.ROOT_LABEL).assertIsSelected()
       tab(tabTitleOfTheArray()).assertIsNotSelected()
     }
   }
@@ -207,7 +207,7 @@ class TabStripTest {
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
     // A tab is named by a read of the heap dump, so a window whose strip has not caught up yet is one
     // where every assertion about a title would be about the placeholder.
-    waitUntilAtLeastOneExists(hasText(HeapDominatorTreemap.ROOT_LABEL) and isTab(), OPEN_TIMEOUT_MILLIS)
+    waitUntilAtLeastOneExists(hasText(SemanticDominatorTreemap.ROOT_LABEL) and isTab(), OPEN_TIMEOUT_MILLIS)
   }
 
   /**

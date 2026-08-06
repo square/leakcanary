@@ -125,6 +125,9 @@ internal class HeapReachability private constructor(
    * And nothing is lost by it. Every object was reached by a walk at exactly the strength this compares
    * against — the strongest path to it — so it keeps at least the edges of that path, and the graph the
    * dominator tree is built from still has every object of the heap dump in it.
+   *
+   * Shares its name with [OwnerReferences.isHeldThrough] on purpose: same question of the other pattern,
+   * and an edge has to pass both to be in the set [SemanticReferenceReader] reads.
    */
   fun isHeldThrough(
     objectId: Long,
@@ -234,14 +237,14 @@ internal class HeapReachability private constructor(
         // can't cost an object the strength it's really held at.
         val parked = ArrayDeque<Long>()
         while (queue.isNotEmpty() || parked.isNotEmpty()) {
-          val isLastResort = queue.isEmpty()
-          val objectId = if (isLastResort) parked.removeFirst() else queue.removeFirst()
+          val takingFromParked = queue.isEmpty()
+          val objectId = if (takingFromParked) parked.removeFirst() else queue.removeFirst()
           val heapObject = graph.findObjectByIdOrNull(objectId) ?: continue
           if (!reach(heapObject, strength)) {
             continue
           }
-          if (isLastResort) {
-            ownerReferences.markLastResortHeld(heapObject)
+          if (takingFromParked) {
+            ownerReferences.markNoOwnerReached(heapObject)
           }
           val ownership = ownerReferences.ownershipOf(heapObject)
           // A reference that retains its target doesn't weaken the path it's on.
@@ -382,7 +385,7 @@ internal class HeapReachability private constructor(
 
     /**
      * Runs [block] for every unreachable object the unreachable [objectId] points at, which is the same
-     * set of edges [WeakeningAwareReferenceReader] gives the dominator tree: a reference that doesn't
+     * set of edges [SemanticReferenceReader] gives the dominator tree: a reference that doesn't
      * retain is followed when nothing stronger holds its target, and nothing at all holds these.
      *
      * It has to be the same set, because it decides which pieces of garbage the tree is walked from. A

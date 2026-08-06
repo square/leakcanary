@@ -3,11 +3,15 @@ package shark.explorer
 import shark.ReferenceLocationType
 
 /**
- * The one node a dominator tree attributes an object's bytes to. See
- * [HeapDominatorTreemap.dominatorOf].
+ * The one node an object's bytes are attributed to: its semantic dominator. See
+ * [SemanticDominatorTreemap.dominatorOf].
  *
- * There is always exactly one: releasing this is what would free the object, and there is no second
- * answer. When no single object holds it — several holders on paths that meet nowhere — the dominator is
+ * There is always exactly one and there is no second answer, because every way the explorer counts the
+ * object as held goes through this node. Not necessarily what the collector would have to see go, though —
+ * a reference the edge set deferred is still there in the heap, so a cache or a rival referrer can go on
+ * holding an object attributed to its owner. That gap is what the word semantic is carrying.
+ *
+ * When no single object holds it — several holders on paths that meet nowhere — the dominator is
  * where the tree draws it rather than an object: the whole heap dump, or the pile of garbage. [kind] is
  * which.
  */
@@ -72,7 +76,7 @@ data class IndependentPaths(
 data class IndependentPath(
   /**
    * Which kind of GC root the chain starts at, for a path found by
-   * [HeapDominatorTreemap.independentPathsFromRoots]. Null for one found below an object, which is where
+   * [SemanticDominatorTreemap.independentPathsFromRoots]. Null for one found below an object, which is where
    * that chain starts instead.
    */
   val gcRootLabel: String?,

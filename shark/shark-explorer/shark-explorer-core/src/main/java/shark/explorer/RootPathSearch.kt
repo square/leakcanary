@@ -27,7 +27,7 @@ import androidx.collection.IntSet
  * does — an object a leak dominates is held by that leak, and saying so is the whole answer.
  *
  * Object indexes rather than ids throughout, because that is what a [ReferrerIndex] walks in and what the
- * arrays here are indexed by. See [HeapDominatorTreemap.rootPathTo], which reads the objects out.
+ * arrays here are indexed by. See [SemanticDominatorTreemap.rootPathTo], which reads the objects out.
  *
  * One instance per tree rather than per question, because a treemap answers this for every rectangle the
  * pointer crosses and the arrays are the size of the heap dump. Which objects one walk has seen is

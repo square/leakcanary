@@ -27,7 +27,7 @@ class HeapExplorer private constructor(
   private val graph: CloseableHeapGraph,
   private val reachability: HeapReachability,
   /** Every object of the heap dump, reachable or not, weighted by what it retains. */
-  val tree: HeapDominatorTreemap,
+  val tree: SemanticDominatorTreemap,
   /** The device and process that wrote the heap dump, which is where its bitmaps still are. */
   val origin: HeapDumpOrigin
 ) : Closeable {
@@ -86,10 +86,10 @@ class HeapExplorer private constructor(
         val tree = steps.run("Working out what retains what") {
           val dominatorTree = HeapDominatorTree.buildFor(
             graph = graph,
-            referenceReader = WeakeningAwareReferenceReader(strengthReader, reachability, ownerReferences),
+            referenceReader = SemanticReferenceReader(strengthReader, reachability, ownerReferences),
             gcRootProvider = gcRootProvider
           )
-          HeapDominatorTreemap(
+          SemanticDominatorTreemap(
             graph = graph,
             reachability = reachability,
             strengthReader = strengthReader,

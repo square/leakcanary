@@ -11,7 +11,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.explorer.HeapDominatorTreemap
+import shark.explorer.SemanticDominatorTreemap
 
 /**
  * What happens to a read of the heap dump when whoever asked for it stops waiting for the answer.
@@ -92,7 +92,7 @@ class HeapDumpSessionTest {
    * stop on every record it reads — and positive ids because the tree gathers small children into piles,
    * which stand for objects and are none.
    */
-  private fun HeapDominatorTreemap.objectsNearTheRoot(): List<Long> =
+  private fun SemanticDominatorTreemap.objectsNearTheRoot(): List<Long> =
     children(root).flatMap { child -> children(child) + child }.filter { it > 0L }
 
   companion object {

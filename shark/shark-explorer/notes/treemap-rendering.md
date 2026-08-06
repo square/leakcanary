@@ -3,18 +3,18 @@
 Implemented in `shark-explorer-core`: `Squarify.kt` (row layout), `TreemapLayout.kt` (adaptive depth
 and hit testing), `RadialLayout.kt` (the same, as rings), `StackLayout.kt` (the same, as a row per
 level), `TreemapRect.kt`, `LayoutCell.kt` (what the three layouts have in common),
-`HeapDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and `present()`, which labels and
+`SemanticDominatorTreemap.kt` (the dominator tree as a `TreemapTree`, and `present()`, which labels and
 colours the cells a layout produced), `TreemapPresentation.kt` (a presentation per shape, each with an
 `of()` pairing a layout with that). Drawn by `TreemapView`, `RadialView` and `StackView` in
 `shark-explorer-app`.
 
-**`of()` is a presentation's own, not a method per shape on `HeapDominatorTreemap`.** It used to be the
+**`of()` is a presentation's own, not a method per shape on `SemanticDominatorTreemap`.** It used to be the
 other way round, and adding a third shape is what moved it: that class is a 1,200 line heap dump reader
 which detekt allows 50 functions, and `presentStack` was the fiftieth. Rather than split it somewhere
 arbitrary, the per-shape method came out of it — which is also the better line, since which shapes exist
 is no business of a heap dump reader. `present(cells)` is all that stayed behind: it reads a name and a
 strength off a `CellSubject`, and every shape's cells are those. **So a fourth shape needs nothing in
-`HeapDominatorTreemap` at all.**
+`SemanticDominatorTreemap` at all.**
 
 ## Three shapes, one cut of the tree
 

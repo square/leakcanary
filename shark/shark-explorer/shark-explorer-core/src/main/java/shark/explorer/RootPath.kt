@@ -2,7 +2,7 @@ package shark.explorer
 
 /**
  * The shortest way a GC root reaches one object, with the objects that dominate it marked. See
- * [HeapDominatorTreemap.rootPathTo].
+ * [SemanticDominatorTreemap.rootPathTo].
  *
  * What a treemap can't say on its own: a rectangle says which object the tree attributes these bytes to,
  * and this says which of the heap dump's own references had to be followed to get to them. Shortest
@@ -47,7 +47,7 @@ fun RootPath.stepsBelow(rootNodeId: Long): List<RootPathStep> {
     return steps
   }
   val rootIndex = steps.indexOfFirst { it.step.objectId == rootNodeId }
-  if (rootIndex == -1 && rootNodeId != HeapDominatorTreemap.ROOT_OBJECT_ID) {
+  if (rootIndex == -1 && rootNodeId != SemanticDominatorTreemap.ROOT_OBJECT_ID) {
     return steps
   }
   val fromIndex = (rootIndex + 1 until steps.size).firstOrNull { steps[it].isDominator }
@@ -70,9 +70,9 @@ fun RootPath.stepsAfter(objectId: Long): List<RootPathStep>? {
 /**
  * One object along a [RootPath].
  *
- * [isDominator] is what makes the chain more than a list of holders: every path from a GC root to the
- * object goes through each of its dominators, so a marked step is one that releasing would free the
- * object, and the rest are only on the way to it.
+ * [isDominator] is what makes the chain more than a list of holders: every path the explorer counts as a
+ * way the object is held goes through each of its dominators, so a marked step is one that owns it — see
+ * [ObjectDominator] — and the rest are only on the way to it.
  */
 data class RootPathStep(
   val step: PathStep,

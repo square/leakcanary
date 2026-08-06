@@ -21,11 +21,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import shark.explorer.DrawnRootPath
 import shark.explorer.HEAD_INDEX
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
 import shark.explorer.RootPath
 import shark.explorer.RootPathStep
 import shark.explorer.RootPathWay
+import shark.explorer.SemanticDominatorTreemap
 import shark.explorer.detours
 import shark.explorer.drawnWith
 import shark.explorer.stepsAfter
@@ -49,8 +49,9 @@ import shark.explorer.stepsBelow
  * chain and a few more steps. Which makes moving the pointer around the map read as the chain growing and
  * shrinking, and leaves the reader the part of it they were already reading.
  *
- * Everything here is read on the heap dump's thread — see [shark.explorer.HeapDominatorTreemap.rootPathTo] —
- * so [rootPath] arrives a little after whatever was pointed at changed.
+ * Everything here is read on the heap dump's thread — see
+ * [shark.explorer.SemanticDominatorTreemap.rootPathTo] — so [rootPath] arrives a little after whatever was
+ * pointed at changed.
  */
 @Composable
 internal fun RootPathPanel(
@@ -74,7 +75,7 @@ internal fun RootPathPanel(
   modifier: Modifier = Modifier
 ) {
   val summary = (selection as? Selection.Object)?.summary
-  val isWholeHeapDump = summary?.objectId == HeapDominatorTreemap.ROOT_OBJECT_ID
+  val isWholeHeapDump = summary?.objectId == SemanticDominatorTreemap.ROOT_OBJECT_ID
   val chain = rootPath?.takeIf { summary != null && !isWholeHeapDump && it.steps.isNotEmpty() }
   val drawn = chain?.let { path ->
     path.drawnWith(path.detours()) { detour ->

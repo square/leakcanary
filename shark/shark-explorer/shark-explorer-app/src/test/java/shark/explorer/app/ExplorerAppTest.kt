@@ -44,7 +44,6 @@ import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.Place
 import shark.explorer.ReachabilityStrength
@@ -52,6 +51,7 @@ import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.UNREACHABLE
 import shark.explorer.ReachabilityStrength.WEAK
+import shark.explorer.SemanticDominatorTreemap
 import shark.explorer.formatByteSize
 import shark.explorer.hexObjectId
 
@@ -597,7 +597,7 @@ class ExplorerAppTest {
       clickContainerEdge(yFraction = 0.5f)
 
       waitUntilAtLeastOneExists(
-        hasText(HeapDominatorTreemap.UNREACHABLE_LABEL),
+        hasText(SemanticDominatorTreemap.UNREACHABLE_LABEL),
         OPEN_TIMEOUT_MILLIS
       )
       onNodeWithText(UNREACHABLE_EXPLANATION).assertIsDisplayed()
@@ -808,7 +808,7 @@ class ExplorerAppTest {
 
   /** And the tab open on it, which is what the strip says a window opens on. */
   private fun ComposeUiTest.wholeHeapDumpTab(): SemanticsNodeInteraction =
-    onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and isTab())
+    onNode(hasText(SemanticDominatorTreemap.ROOT_LABEL) and isTab())
 
   /** A button on the row of screens an open heap dump can be read through. */
   private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
@@ -822,7 +822,7 @@ class ExplorerAppTest {
    * the role: the bar has buttons, the strip has tabs, and a row that navigates is a link with neither.
    */
   private fun isWholeHeapDumpRow(): SemanticsMatcher =
-    hasText(HeapDominatorTreemap.ROOT_LABEL) and hasClickAction() and !isButton() and !isTab()
+    hasText(SemanticDominatorTreemap.ROOT_LABEL) and hasClickAction() and !isButton() and !isTab()
 
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)

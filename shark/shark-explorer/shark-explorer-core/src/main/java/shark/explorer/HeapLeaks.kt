@@ -4,7 +4,7 @@ import java.security.MessageDigest
 
 /**
  * Every object of a heap dump that shouldn't be there, gathered into the leaks they are instances of. See
- * [HeapDominatorTreemap.findLeaks].
+ * [SemanticDominatorTreemap.findLeaks].
  *
  * The same answer LeakCanary's analysis gives, computed here instead so that every row keeps the object id
  * it came from: a leak trace names classes, and a screen you can click through has to name objects. Which

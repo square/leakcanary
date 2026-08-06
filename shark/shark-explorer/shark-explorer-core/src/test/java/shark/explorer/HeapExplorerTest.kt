@@ -23,7 +23,7 @@ class HeapExplorerTest {
       // The objects the GC roots hold, drawn straight under the whole heap dump rather than under a level
       // of their own: a dump whose garbage was all collected has no pile of it to sit beside them either.
       assertThat(rootChildren.map { tree.label(it) }).contains("Holder")
-      assertThat(rootChildren).noneMatch { HeapDominatorTreemap.isPileId(it) }
+      assertThat(rootChildren).noneMatch { SemanticDominatorTreemap.isPileId(it) }
       // The virtual root has no shallow size of its own, so it weighs exactly what it dominates.
       assertThat(tree.weight(tree.root)).isEqualTo(rootChildren.sumOf { tree.weight(it) })
       assertThat(tree.weight(tree.root)).isEqualTo(explorer.sizes.totalByteCount)
@@ -43,7 +43,7 @@ class HeapExplorerTest {
     testFolder.openTestHeapDump().use { explorer ->
       val tree = explorer.tree
 
-      assertThat(tree.label(tree.root)).isEqualTo(HeapDominatorTreemap.ROOT_LABEL)
+      assertThat(tree.label(tree.root)).isEqualTo(SemanticDominatorTreemap.ROOT_LABEL)
       assertThat(tree.summarize(tree.root).inspectorLabels).isEmpty()
     }
   }
@@ -198,7 +198,7 @@ class HeapExplorerTest {
       assertThat(tree.titleOf(Place.Object(view.objectId)))
         .isEqualTo("View ${hexObjectId(view.objectId)}")
       // The whole heap dump is no object, so it has no address to be named by.
-      assertThat(tree.titleOf(Place.wholeHeapDump())).isEqualTo(HeapDominatorTreemap.ROOT_LABEL)
+      assertThat(tree.titleOf(Place.wholeHeapDump())).isEqualTo(SemanticDominatorTreemap.ROOT_LABEL)
     }
   }
 
@@ -347,7 +347,7 @@ class HeapExplorerTest {
   }
 
   @Test fun `what only holds an object until the runtime is done with it is on no path`() {
-    HeapExplorer.open(testFolder.lastResortHoldersHeapDump()).use { explorer ->
+    HeapExplorer.open(testFolder.weakeningHoldersHeapDump()).use { explorer ->
       val tree = explorer.tree
 
       // A thread inside a method, a value left in a thread local, an object queued for finalization: each
@@ -368,7 +368,7 @@ class HeapExplorerTest {
   }
 
   @Test fun `an object nothing but a stack frame holds is drawn under the frame's root`() {
-    HeapExplorer.open(testFolder.lastResortHoldersHeapDump()).use { explorer ->
+    HeapExplorer.open(testFolder.weakeningHoldersHeapDump()).use { explorer ->
       val tree = explorer.tree
       val onlyOnStack = tree.findByLabel("OnlyOnStack")
 
@@ -504,7 +504,7 @@ class HeapExplorerTest {
       val tree = explorer.tree
 
       assertThat(tree.rootPathTo(tree.root)).isEqualTo(RootPath.NONE)
-      assertThat(tree.rootPathTo(HeapDominatorTreemap.UNREACHABLE_NODE_ID)).isEqualTo(RootPath.NONE)
+      assertThat(tree.rootPathTo(SemanticDominatorTreemap.UNREACHABLE_NODE_ID)).isEqualTo(RootPath.NONE)
     }
   }
 
@@ -518,7 +518,7 @@ class HeapExplorerTest {
       // pixels — are each read as a pile of objects that this tree has never heard of, and every panel
       // asking about one is told there is nothing there.
       assertThat(dump.payloadObjectId).isNegative()
-      assertThat(HeapDominatorTreemap.isPileId(dump.payloadObjectId)).isFalse()
+      assertThat(SemanticDominatorTreemap.isPileId(dump.payloadObjectId)).isFalse()
       assertThat(dump.payloadObjectId in tree).isTrue()
       assertThat(tree.groupOrNull(dump.payloadObjectId)).isNull()
       assertThat(tree.summarize(dump.payloadObjectId).className).isEqualTo("java.lang.Object[]")
@@ -645,7 +645,7 @@ class HeapExplorerTest {
         .single { (it.cell.subject as? CellSubject.Node)?.node == group }
 
       assertThat(tree.label(group))
-        .isEqualTo("$TILE_COUNT ${HeapDominatorTreemap.CLASS_GROUP_LABEL_SEPARATOR} Tile")
+        .isEqualTo("$TILE_COUNT ${SemanticDominatorTreemap.CLASS_GROUP_LABEL_SEPARATOR} Tile")
       assertThat(presented.content)
         .isEqualTo(CellContent.ObjectGroup(ObjectGroupKind.CLASS, STRONG, TILE_COUNT))
       // Held as firmly as the instances in it, which are all held the same way — being up here is what
@@ -656,7 +656,7 @@ class HeapExplorerTest {
     }
   }
 
-  private fun HeapDominatorTreemap.classGroup(): ObjectGroupSummary =
+  private fun SemanticDominatorTreemap.classGroup(): ObjectGroupSummary =
     children(root).mapNotNull { groupOrNull(it) }.single()
 
   companion object {
@@ -668,10 +668,10 @@ class HeapExplorerTest {
     /** An address no heap dump the tests write has an object at. */
     private const val NO_SUCH_OBJECT_ID = -1L
 
-    /** Matches `MAX_FIELDS` in [HeapDominatorTreemap], which isn't public. */
+    /** Matches `MAX_FIELDS` in [SemanticDominatorTreemap], which isn't public. */
     private const val MAX_FIELDS_SHOWN = 500
 
-    /** Matches `MAX_ROOT_PATH_STEPS` in [HeapDominatorTreemap], which isn't public. */
+    /** Matches `MAX_ROOT_PATH_STEPS` in [SemanticDominatorTreemap], which isn't public. */
     private const val MAX_ROOT_PATH_STEPS_SHOWN = 20
 
     /** Object ids are 4 bytes in a dump built by the test DSL. */

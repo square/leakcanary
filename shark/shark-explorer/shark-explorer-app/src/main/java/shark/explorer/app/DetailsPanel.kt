@@ -28,11 +28,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import shark.explorer.CellSubject
-import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapObjectSummary
 import shark.explorer.ObjectGroupKind
 import shark.explorer.ObjectGroupSummary
+import shark.explorer.SemanticDominatorTreemap
 import shark.explorer.formatByteSize
 import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.formatObjectCount
@@ -139,7 +139,7 @@ private fun ObjectGroupDetails(
 
 /** What a pile of objects is called wherever it is described: here, and on the card at the pointer. */
 internal fun ObjectGroupSummary.title(): String = when (kind) {
-  ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
+  ObjectGroupKind.UNREACHABLE -> SemanticDominatorTreemap.UNREACHABLE_LABEL
   ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
 }
 

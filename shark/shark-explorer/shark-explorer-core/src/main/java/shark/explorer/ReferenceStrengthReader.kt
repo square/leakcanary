@@ -24,7 +24,6 @@ import shark.explorer.ReachabilityStrength.CACHE
 import shark.explorer.ReachabilityStrength.FINALIZER
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.SOFT
-import shark.explorer.ReachabilityStrength.STRONG
 import shark.explorer.ReachabilityStrength.THREAD_LOCAL
 import shark.explorer.ReachabilityStrength.WEAK
 
@@ -58,6 +57,13 @@ internal class WeakeningReference(
  * Splits an object's outgoing references in two: the ones that keep their target alive, and the ones
  * that don't — what a `java.lang.ref.Reference` holds its referent with, and what a cache holds its
  * entries with.
+ *
+ * **Deny-listing a reference**, one of the two patterns behind the explorer's **semantic dominators**: a
+ * dominator tree built over a curated edge set, so that it answers "what owns this object?" rather than
+ * "what would the collector free?". Deny-listing names the edge — this field of this class holds its value
+ * without keeping it, or this entry belongs to that cache — and the edge then counts as a way its target is
+ * held only when nothing else holds it. Allow-listing an owner is the other pattern, and the same rule read
+ * off the other end of a reference: see [OwnerReferences].
  *
  * Reference strength lives entirely in Shark's ignored reference matchers, and those only say what
  * not to follow, never why. So this reads both halves: a matched [ReferenceReader] for everything
@@ -429,56 +435,5 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
           instanceField(className, it).ignored(patternApplies = ALWAYS)
         }
       }
-  }
-}
-
-/**
- * Reads the references that retain their target, plus the ones that hold an object without retaining it
- * — a `java.lang.ref.Reference`'s referent, a cache's entries, a thread local — when such a reference is
- * the strongest thing reaching the object.
- *
- * That's what puts a weakly reachable object in the tree, dominated by the weak reference itself, and a
- * cached one under its cache entry: every object of the heap dump is a node, and every one of them is
- * held by whatever the garbage collector would have to let go of first.
- *
- * **The target's strength decides, not the reference's.** Following a weak reference to an object that
- * something else holds strongly wouldn't reveal anything — the object is already in the tree — but it
- * would add an edge, which moves the object's retained size up to whatever dominates both paths and
- * attributes it to neither. Which is exactly what a weak reference isn't: it holds nothing.
- *
- * **And a path stays as weak as its weakest reference.** An object held only by a finalizer queue, a
- * thread local or a stack frame doesn't hold what something firmer holds either, so every reference out of
- * it is weighed the same way. Without that, a `FinalizerReference` two steps up a chain would be one more
- * way of holding an object that a field holds squarely, which is a way of holding nothing.
- *
- * Drops the references that lose to an owner for the same reason, and it's the same rule read off a
- * different property of the reference: see [OwnerReferences].
- */
-internal class WeakeningAwareReferenceReader(
-  private val strengthReader: ReferenceStrengthReader,
-  private val reachability: HeapReachability,
-  private val ownerReferences: OwnerReferences
-) : ReferenceReader<HeapObject> {
-
-  override fun read(source: HeapObject): Sequence<Reference> {
-    val pathStrength = reachability.strengthOf(source)
-    val ownership = ownerReferences.ownershipOf(source)
-    val retaining = strengthReader.retainingReferencesOf(source)
-      .filter { ownerReferences.isHeldThrough(ownership, it) }
-      .let { references ->
-        // Nothing to weigh when the path here is strong, which it is for nearly every object of a dump.
-        if (pathStrength == STRONG) {
-          references
-        } else {
-          references.filter { reachability.isHeldThrough(it.valueObjectId, pathStrength) }
-        }
-      }
-    val followed = strengthReader.weakeningReferencesOf(source)
-      .filter { reachability.isHeldThrough(it.valueObjectId, maxOf(pathStrength, it.strength)) }
-    return if (followed.isEmpty()) {
-      retaining
-    } else {
-      retaining + followed.asSequence().map { it.toReference() }
-    }
   }
 }

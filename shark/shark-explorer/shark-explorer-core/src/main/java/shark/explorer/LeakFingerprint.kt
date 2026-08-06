@@ -22,7 +22,7 @@ import shark.ReferenceLocationType
  * That trace is built to be hashed and for nothing else: what the explorer draws is the chain, which says
  * more than a leak trace does. Which is why the GC root it names is [LeakTrace.GcRootType.UNKNOWN] — the
  * leak fingerprint doesn't include the root, and the explorer names roots its own way, see
- * `HeapDominatorTreemap.rootPathTo`.
+ * `SemanticDominatorTreemap.rootPathTo`.
  */
 internal fun List<PathStep>.leakFingerprint(): String = toLeakTrace().leakFingerprint
 

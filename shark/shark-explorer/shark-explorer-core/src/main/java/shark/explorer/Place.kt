@@ -20,7 +20,7 @@ sealed interface Place {
   /**
    * What a tab showing this is called, or null for a place only the heap dump can name.
    *
-   * See [HeapDominatorTreemap.titleOf], which is the one that always answers.
+   * See [SemanticDominatorTreemap.titleOf], which is the one that always answers.
    */
   val title: String?
 
@@ -57,7 +57,7 @@ sealed interface Place {
     override val viewRootObjectId: Long get() = parentObjectId
   }
 
-  /** Every object of the heap dump as a list, filtered. See [HeapDominatorTreemap.listObjects]. */
+  /** Every object of the heap dump as a list, filtered. See [SemanticDominatorTreemap.listObjects]. */
   data class Objects(val filter: ObjectListFilter = ObjectListFilter()) : Place {
 
     // Named after what it is filtered to, so that two of these open at once are two different lists on
@@ -68,7 +68,7 @@ sealed interface Place {
     override val viewRootObjectId: Long? get() = null
   }
 
-  /** Every leaking object of the heap dump, gathered into leaks. See [HeapDominatorTreemap.findLeaks]. */
+  /** Every leaking object of the heap dump, gathered into leaks. See [SemanticDominatorTreemap.findLeaks]. */
   data class Leaks(
     /**
      * Which leaks have been unfolded to show the objects in them, by [LeakGroup.leakFingerprint] and which
@@ -110,7 +110,7 @@ sealed interface Place {
     }
 
     /** The place a window opens on, which is the heap dump as a whole. */
-    fun wholeHeapDump(): Object = Object(HeapDominatorTreemap.ROOT_OBJECT_ID)
+    fun wholeHeapDump(): Object = Object(SemanticDominatorTreemap.ROOT_OBJECT_ID)
 
     /** What the button leading to the list of every object says, on the bar and on a tab. */
     const val OBJECTS_LABEL = "Object list"
@@ -130,12 +130,12 @@ sealed interface Place {
  * class is still a tab strip you can pick out of. A class pile keeps the name the map draws on it —
  * `42 × Bitmap` — because how many instances it stands for is the whole of what it is.
  */
-fun HeapDominatorTreemap.titleOf(place: Place): String = when (place) {
+fun SemanticDominatorTreemap.titleOf(place: Place): String = when (place) {
   is Place.Object -> {
     val objectId = place.objectId
     val label = label(objectId)
     // The whole heap dump and the piles have no address to add: one is no object, the others are many.
-    if (objectId == HeapDominatorTreemap.ROOT_OBJECT_ID || groupOrNull(objectId) != null) {
+    if (objectId == SemanticDominatorTreemap.ROOT_OBJECT_ID || groupOrNull(objectId) != null) {
       label
     } else {
       "$label ${hexObjectId(objectId)}"
@@ -172,7 +172,7 @@ private fun PresentedCell<*>.title(): String {
   return if (
     place is Place.Object &&
     content is CellContent.Object &&
-    place.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID
+    place.objectId != SemanticDominatorTreemap.ROOT_OBJECT_ID
   ) {
     "$label ${hexObjectId(place.objectId)}"
   } else {

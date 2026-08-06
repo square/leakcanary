@@ -33,7 +33,7 @@ import shark.Reference
  * LeakCanary makes on purpose — the animation handler tends to keep that target alive — and it is the one
  * thing this explorer can't say. Here a weak reference holds nothing, the strength of what reaches an
  * object is a property the whole tree is built on, and an edge like that would make a weakly held object
- * read as strongly held. See [WeakeningAwareReferenceReader].
+ * read as strongly held. See [SemanticReferenceReader].
  */
 internal class DataStructureReferenceReader(graph: HeapGraph) {
 
