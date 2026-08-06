@@ -250,12 +250,13 @@ itself and retained 4.2 KB and 3.9 KB instead of their windows. The damaging ref
 view bindings and `StandardRowSpec$StandardViewHolder.itemView`.
 
 `OwnerReferences` applies a curated list of `OwnerRule`s: a class whose instances something owns, plus the
-references that own them — named fields, or the virtual references a class's instances hand out. Three
+references that own them — named fields, or the virtual references a class's instances hand out. Six
 today — `android.view.View` owned by the `ViewGroup` that reads it as a child (see below) and by
-`Activity.mDecor` or `Dialog.mDecor`, and `android.app.Activity` owned by the `ActivityThread` that reads
-it as one it's running (see below too). After: **every one of the 277 child views is under its parent**,
-the dialog's `DecorView` is dominated by the `PartialModalDialog`, and `MainActivity` retains 18 MB under
-the thread running it, which is the second largest rectangle under the GC roots.
+`Activity.mDecor` or `Dialog.mDecor`, `android.app.Activity` owned by the `ActivityThread` that reads it
+as one it's running (see below too), and the three Compose ones in the section on Compose below. After: **every one of
+the 277 child views is under its parent**, the dialog's `DecorView` is dominated by the
+`PartialModalDialog`, and `MainActivity` retains 18 MB under the thread running it, which is the second
+largest rectangle under the GC roots.
 
 **A rule is parked, not dropped, and that's the whole design.** The walk in
 `HeapReachability.walkFromGcRoots` keeps a second queue per strength and only takes from it once the main
@@ -375,14 +376,101 @@ run through a *leaked* `SquareActivity.foot → ArrayList → Object[]`, since t
 Byte counts are again identical before and after, which is the check that no object left the graph:
 30,090,032 B strong, 28,302 B thread local, 1,444 B soft, 261 B weak, 9,353 B finalizer, 631,761 B
 unreachable, 387,971 objects. Opening the dump costs at most 2% more — median of five steady state opens
-2.02 s with the reader against 1.98 s without, ranges overlapping — which is the fourth sequence
-concatenation `retainingReferencesOf` now does per object, since the reader itself is one class id
+2.02 s with the reader against 1.98 s without, ranges overlapping — which is one more sequence
+concatenation `retainingReferencesOf` does per object, since the reader itself is one class id
 comparison for everything that isn't the activity thread.
 
 `mActivities` has been an `ArrayMap` since Lollipop, seven releases before the oldest one LeakCanary
 supports, so the `HashMap` it was before that is deliberately not read: a dump that doesn't have the
 `ArrayMap` shape logs a line and reads as a thread running nothing, which leaves its activities held by
 whatever points at them.
+
+## A Compose UI is a hierarchy too, and needs more help to read as one
+
+Everything above is about views, and none of it fires on a Compose screen: the tree is `LayoutNode`s, the
+children are in a vector rather than a `View[]`, and there is no `mChildrenCount`. So the same two
+mechanisms again, plus the ownership rules — measured on a dump of `leakcanary-app` taken off an API 36
+emulator, since every heap dump in the repo predates Compose and the sample app has none of it. The images
+the numbers below move around came from a screen added to that app for the measurement and deleted again,
+so reproducing them means a screen that remembers a few large images, not a dump of the app as it stands.
+
+`LayoutNodeChildReferenceReader` is `ViewChildReferenceReader` for a node, and the array it collapses is
+further down: `LayoutNode._foldedChildren` → `MutableVectorWithMutationTracking.vector` →
+`MutableVector.content` → `LayoutNode[]` → the child. Four objects between two levels of UI, three of them
+bookkeeping, bounded by the vector's `size` rather than by the array's length for the same reason the view
+reader is bounded by `mChildrenCount`.
+
+**Compose flattens harder than the framework does, in three places.** Each of these was found by asking
+`independentPathsBelowDominator` why a `LayoutNode` was a root child:
+
+- `AndroidComposeView.layoutNodes`, a `MutableIntObjectMap` registry of **every** node of the window by
+  semantics id. Not a leak and not an accident — it's how a semantics id is resolved — but it means every
+  node of a screen is one reference from the view, so the tree of a screen is a *list* until the rule says
+  a node belongs to its parent.
+- The modifier graph, which is bidirectional and therefore all one piece: a `Modifier$Node` points at its
+  `NodeChain` and its `NodeCoordinator`, a coordinator at its `GraphicsLayer` and at the coordinators
+  either side of it, a layer at the layers it depends on through `childDependenciesTracker`. One reference
+  into any of it reaches the lot. On that dump there were three from outside, each a GC root away:
+  `InputMethodManager` → `ViewRootImpl` → `ViewTreeObserver.mOnGlobalFocusListeners` →
+  `FocusGroupPropertiesNode`, `SnapshotKt.applyObservers` → `Recomposer` → `CompositionImpl`, and the
+  layer dependency graph. So every modifier of every screen was held from outside the UI, and with it
+  everything the modifiers draw.
+- The composition, which is the next section.
+
+Hence the three rules: a node owned by the parent node's virtual reference, the node at the top of a
+window owned by `AndroidComposeView.root`, and a `Modifier$Node` owned by `NodeChain.head` or by the
+previous node's `child`. `child` rather than `parent` because a chain has to be owned in one direction, and
+outermost first is the order the modifiers were written in.
+
+**What is still flat under the root after all of it**: the `NodeCoordinator`s and `GraphicsLayer`s
+themselves, a few hundred bytes each. Their graph has no one entry to name as the owner, and nothing bigger
+hangs off them, so there's no rule here worth the risk of a wrong claim.
+
+## What a composable remembers: reading a `SlotTable`
+
+A composition keeps its state in one `Object[]` per window — every `remember` of every composable in it,
+every composition local map, every lambda, every `LayoutNode`, side by side — plus an `int[]` describing
+that array. So a bitmap one screen remembers is held by the same array as a bitmap five screens away, and
+the dominator answer for either is the composition rather than a piece of UI. On that app's dump the
+array was the single thing holding the images of every screen.
+
+`SlotTableReferenceReader` reads the `int[]` and hands each element out from the node whose composable is
+inside. The layout, read off Compose 1.11.4's bytecode and confirmed against a real dump: **five ints a
+group** — key, group info, parent anchor, how many groups it contains, where its slots start — laid out in
+the order the composables ran, depth first. **Bit 30 of the group info** says the group emitted a node,
+and that node is in the group's first slot. A group's slots run to the *next* group's anchor, the last
+group's to `slotsSize`, and the array past `slotsSize` is the gap the next write is made through.
+
+Three things about it are decisions rather than mechanics:
+
+- **It replaces the array's references instead of adding to them** — the only reader here that does, and
+  the reason is the array's position. A `View[]` sits *under* the parent, so an added reference gives the
+  child two paths that both start at the parent and the level collapses. A composition's array sits under
+  the composition, nowhere near the UI, so an added reference would give a bitmap a second path from a
+  different part of the heap, and its dominator would move *up* to whatever dominates both — the top of
+  the tree. The array is still a node holding its own bytes, still reached through the table's own field,
+  and every element of it is still reached exactly once.
+- **All or nothing per table.** An array only partly handed out from its groups would leave the rest
+  reachable through nothing, which the explorer would draw as uncollected garbage. So a table that doesn't
+  validate keeps every reference of its own and reads the way it did before this existed, and says so
+  through `SharkLog`.
+- **What it validates is a dump caught mid-write**, not a corrupt file. A composition being written to has
+  its two arrays half moved — the gap is wherever the writer left it and the anchors past it are stored
+  negative — so monotonic anchors inside `[0, slotsSize]` and group sizes that stay inside the table are
+  what tell a readable table from one caught in the middle. Compose's newer `linkbuffer.SlotTable` keeps
+  its slots in chunks rather than one array and is refused for the same reason: it isn't decodable from
+  these four fields.
+
+Measured, the two commits together, on that API 36 dump of `leakcanary-app`: `AndroidComposeView` retains
+**10,368,941 B where it retained 2,619,473 B**, its root `LayoutNode` **7,744,454 B where it retained
+8,895 B**, and the `BitmapPainter`s and `AndroidImageBitmap`s of a screen are dominated by a `LayoutNode`
+under `AndroidComposeView` → `ComposeView` → … → `DecorView` → `MainActivity` →
+`ActivityThread$ActivityClientRecord`. A second dump of the same app: 12,844,587 B and 5,139,099 B.
+
+**An image often lands on an ancestor composable rather than the exact one**, and that is the honest
+answer rather than a bug: a value the UI both remembers and draws occupies a slot in more than one group —
+a `Box`'s slot 108 and a `Column`'s slot 170 in one case here — so the dominator is the composable
+containing both. Read it as "this subtree is why the bytes are here", the same as any shared object.
 
 ## What holds an object: one chain, with the dominators on it marked
 

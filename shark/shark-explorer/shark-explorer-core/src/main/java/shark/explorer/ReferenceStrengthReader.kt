@@ -74,10 +74,16 @@ internal class WeakeningReference(
  *
  * Where a structure is worth presenting the way you think about it anyway, the reference is **added**
  * rather than swapped in: [DataStructureReferenceReader] gives a collection a reference to each entry,
- * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children and
+ * [ViewChildReferenceReader] gives a `ViewGroup` one to each of its children,
+ * [LayoutNodeChildReferenceReader] does the same for a Compose `LayoutNode` and
  * [RunningActivityReferenceReader] gives an `ActivityThread` one to each activity the app is running — and
  * the table, the `View[]` and the `ArrayMap` they really live in are still reached through their fields and
  * still nodes of their own.
+ *
+ * [SlotTableReferenceReader] is the one exception, and only for the references *out of* one array per
+ * Compose composition: adding there would push what a composable remembers further up the tree rather
+ * than down to it, for the reason its KDoc gives. Every object it moves a reference to is still reached
+ * exactly once, and the array is still a node of its own.
  */
 internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
@@ -87,11 +93,15 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   private val viewChildReader = ViewChildReferenceReader(graph)
 
+  private val layoutNodeChildReader = LayoutNodeChildReferenceReader(graph)
+
   private val dataStructureReader = DataStructureReferenceReader(graph)
 
   private val runningActivityReader = RunningActivityReferenceReader(graph)
 
   private val cachedMapValues = CachedMapValues(graph)
+
+  private val slotTableReader = SlotTableReferenceReader(graph)
 
   /**
    * Which fields of a class hold their value without retaining it, by class object id. Cached because
@@ -110,8 +120,14 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   /** The references from [source] that keep their target alive. */
   fun retainingReferencesOf(source: HeapObject): Sequence<Reference> {
+    if (slotTableReader.slotsReadFromTheirGroups(source)) {
+      // The one reader here that replaces an object's references rather than adding to them, and the
+      // KDoc of [SlotTableReferenceReader] is about why.
+      return emptySequence()
+    }
     val references = retainingReader.read(source) + classMetadataReferencesOf(source) +
-      viewChildReader.childReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
+      viewChildReader.childReferencesOf(source) + layoutNodeChildReader.childReferencesOf(source) +
+      slotTableReader.groupReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
       runningActivityReader.activityReferencesOf(source)
     val cachedValueIds = cachedMapValues.cachedValueIdsOf(source)
     return if (cachedValueIds.isEmpty()) {
