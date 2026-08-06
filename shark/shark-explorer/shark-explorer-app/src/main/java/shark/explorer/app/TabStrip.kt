@@ -9,14 +9,13 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.onClick
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,14 +33,17 @@ import shark.explorer.Place
 import shark.explorer.Tabs
 
 /**
- * The tabs open in this window, left to right, as a strip under the bar that opens them.
+ * The tabs open in this window, left to right and wrapping onto a line of its own once a line is full, as
+ * a strip under the bar that opens them.
  *
  * Every tab is closeable, the last one included: a window with no tab still holds the heap dump it spent
  * seconds reading, and the bar above is one click from a tab again. See [Tabs].
  *
- * The strip scrolls rather than shrinking its tabs to nothing, because what a tab is called — which class,
+ * Neither shrinking its tabs nor scrolling them off the edge, because what a tab is called — which class,
  * and which instance of it — is the whole of how a strip of a dozen instances of one class is one you can
- * pick out of.
+ * pick out of, and a tab you have to go looking for is one you may as well not have opened. So the strip
+ * grows down into the window instead: what it costs is the view's height, and only for someone who has
+ * opened enough tabs to be reading across them anyway.
  */
 @Composable
 internal fun TabStrip(
@@ -55,10 +57,11 @@ internal fun TabStrip(
   if (tabs.tabs.isEmpty()) {
     return
   }
-  Row(
-    modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+  FlowRow(
+    modifier.fillMaxWidth().padding(horizontal = 4.dp),
     horizontalArrangement = Arrangement.spacedBy(2.dp),
-    verticalAlignment = Alignment.Bottom
+    verticalArrangement = Arrangement.spacedBy(2.dp),
+    itemVerticalAlignment = Alignment.Bottom
   ) {
     tabs.tabs.forEach { tab ->
       // Keyed on the tab rather than on where it is in the strip, because a tab opens *beside* the one it
