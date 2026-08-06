@@ -251,13 +251,7 @@ class HeapDominatorTreemap internal constructor(
     // Heaviest first, like the dominated ids a node hands out, so that the root's children are ordered the
     // way every other level's are. Not through [weight], which would ask for the groups being built.
     ids.sortByDescending { groups[it]?.retainedSize ?: nodeOf(it).retainedSize }
-    val classGroupIdByObjectId = mutableMapOf<Long, Long>()
-    groups.forEach { (groupId, group) ->
-      if (group.kind == ObjectGroupKind.CLASS) {
-        group.childIds.forEach { classGroupIdByObjectId[it] = groupId }
-      }
-    }
-    return TopLevel(ids = ids, groups = groups, classGroupIdByObjectId = classGroupIdByObjectId)
+    return TopLevel(ids = ids, groups = groups)
   }
 
   /**
@@ -1044,50 +1038,6 @@ class HeapDominatorTreemap internal constructor(
       .sortedByDescending { it.retainedSize }
 
   /**
-   * The nodes to zoom through so that [node] is drawn, the root first.
-   *
-   * Clicking an object in the details panel should show it where the treemap has it, which is under
-   * however many groups and dominators it sits — the panel walks the heap dump's own references, so what
-   * it leads to can be anywhere in the tree.
-   *
-   * Stops at the last node that has children: zooming into an object that dominates nothing would draw an
-   * empty view, so the caller ends up looking at what holds it, with it selected inside.
-   */
-  fun pathToOpen(node: Long): List<Long> {
-    if (node == root) {
-      return listOf(root)
-    }
-    val group = group(node)
-    if (group != null) {
-      // A class group of the garbage hangs off the garbage pile; everything else at the top hangs off the
-      // root, which the path starts at anyway.
-      val above = if (group.parentNodeId == root) listOf(root) else listOf(root, group.parentNodeId)
-      return above + listOfNotNull(node.takeIf { group.childIds.isNotEmpty() })
-    }
-    if (node !in nodes) {
-      return listOf(root)
-    }
-    val dominators = ArrayDeque<Long>()
-    var current = node
-    while (current != root) {
-      dominators.addFirst(current)
-      current = dominatorTree.immediateDominatorOf(current)
-    }
-    if (children(node).isEmpty()) {
-      dominators.removeLast()
-    }
-    val topLevelObjectId = dominators.firstOrNull() ?: node
-    return listOf(root) +
-      listOfNotNull(garbagePileOrNull(topLevelObjectId)) +
-      listOfNotNull(topLevel.classGroupIdByObjectId[topLevelObjectId]) +
-      dominators
-  }
-
-  /** The pile the garbage is drawn as, for an object in it, and null for one the GC roots reach. */
-  private fun garbagePileOrNull(objectId: Long): Long? =
-    UNREACHABLE_NODE_ID.takeIf { strengthOf(objectId) == ReachabilityStrength.UNREACHABLE }
-
-  /**
    * One found path as the UI shows it: from the step below where it starts down to the object.
    *
    * Below a group the first step is the GC rooted object itself, named by the kind of root that reaches
@@ -1520,9 +1470,7 @@ class HeapDominatorTreemap internal constructor(
   /** What [children] answers for the root, and every group of this tree by its id. */
   private class TopLevel(
     val ids: List<Long>,
-    val groups: Map<Long, NodeGroup>,
-    /** Which class group each grouped child of the root is drawn in. See [pathToOpen]. */
-    val classGroupIdByObjectId: Map<Long, Long>
+    val groups: Map<Long, NodeGroup>
   )
 
   /**

@@ -1,7 +1,6 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,7 +57,7 @@ internal fun ObjectsScreen(
   filter: ObjectListFilter,
   isListing: Boolean,
   onFilterChange: (ObjectListFilter) -> Unit,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -192,11 +191,11 @@ private fun HeaderCell(
 private fun ObjectRow(
   entry: ObjectListEntry,
   stronglyReachableByteCount: Long,
-  onOpen: (Long) -> Unit
+  onOpen: (Long, OpenIn) -> Unit
 ) {
   Row(
     Modifier.fillMaxWidth()
-      .clickable { onOpen(entry.objectId) }
+      .openable { openIn -> onOpen(entry.objectId, openIn) }
       .padding(horizontal = 12.dp, vertical = 4.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     verticalAlignment = Alignment.CenterVertically

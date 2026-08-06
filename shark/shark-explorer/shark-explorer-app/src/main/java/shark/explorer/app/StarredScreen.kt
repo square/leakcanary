@@ -32,7 +32,7 @@ internal fun StarredScreen(
   favourites: List<Favourite>,
   /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
   stronglyReachableByteCount: Long,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   onRemove: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {

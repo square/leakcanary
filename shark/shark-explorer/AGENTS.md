@@ -390,11 +390,14 @@ numbers belong in `notes/bitmaps.md`.
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on what
   is written outside the view: the chain pane and the details panel either side of it, and the card that
   follows the pointer, whose text is real text and so can be found and its bounds read.
-- **A clickable block naming an object is one semantics node**, because `Modifier.clickable` merges its
-  descendants, so a step of the chain is found by any one of the three lines it prints. The same object is
-  usually named in more than one place at once — a step of the chain, the bar above the map, the details
-  panel — so an assertion about it either counts `onAllNodesWithText` matches or picks the one it means
-  with `hasClickAction()`. `onNodeWithText` failing with "found 2" is that, not a duplicated composable.
+- **A block naming an object is one semantics node**, because `Modifier.openable` merges its descendants,
+  so a step of the chain is found by any one of the three lines it prints. The same name is usually in the
+  window several times at once — a step of the chain, a tab, a button on the bar, the details panel — so
+  `onNodeWithText` failing with "found 2" is that, not a duplicated composable. **Tell them apart by the
+  role, not by `hasClickAction()`**, since all of them have one: `Role.Button` is the bar, `Role.Tab` is
+  the strip, and no role at all is a row that navigates, which is a link rather than a button. The
+  `isTab()` and `isButton()` matchers in the test files are that, and `openable` deliberately sets no role
+  so that the third case exists.
 - **A UI test knows the map is drawn through `waitForTheTree`**, which waits for the view's
   `contentDescription` with nothing left spinning, because the drawn map itself adds no text to the
   window. Where "the map *moved*" is the point rather than "the map is there", wait on the log line

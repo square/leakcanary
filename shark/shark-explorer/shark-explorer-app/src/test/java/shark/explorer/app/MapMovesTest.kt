@@ -32,7 +32,7 @@ import shark.explorer.HeapDominatorTreemap
  * That one is no node of the tree, so there is nothing to root the map at but the rectangle they were left
  * out of — which is exactly where they are, and rooted there the map has the room to draw them one by one.
  *
- * And the way back out, since a map zoomed in a few levels has nothing on screen saying where the top is
+ * And the way back to the top, since a map a few levels in has nothing on screen saying where the top is
  * until a rectangle has been clicked. [ExplorerAppTest] covers the rest of the window.
  */
 @OptIn(ExperimentalTestApi::class)
@@ -59,12 +59,14 @@ class MapMovesTest {
     }
   }
 
-  @Test fun `the screen bar leads back out to the whole heap dump`() {
+  @Test fun `the screen bar opens a tab on the whole heap dump`() {
     explorerUiTest {
       openHeapDump(testFolder.manySiblingsHeapDump())
       clickView(LEFTOVER_X, LEFTOVER_Y)
       waitUntilZoomedIn()
 
+      // A tab of its own rather than this one moved: the bar is the way in to a heap dump, so clicking it
+      // while reading an object is asking for both. Either way the map is drawn at the top again.
       onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and isButton()).performClick()
 
       waitUntilZoomedOut()
@@ -101,7 +103,10 @@ class MapMovesTest {
     }
   }
 
-  /** A button of the screen bar, as against the chain row of the same name. See [ExplorerAppTest]. */
+  /**
+   * A button of the screen bar, as against the tab and the chain row of the same name. See
+   * [ExplorerAppTest], which spells out why the role is what tells the three apart.
+   */
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 

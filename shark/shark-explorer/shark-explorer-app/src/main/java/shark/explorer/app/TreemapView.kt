@@ -1,7 +1,6 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -63,8 +62,8 @@ internal fun TreemapView(
   hovered: SelectedCell?,
   /** The rectangle the pointer moved onto and where it is, or null when it moved onto none or left. */
   onHover: (PointedAt?) -> Unit,
-  /** The rectangle pressed, which is where the window goes. */
-  onClick: (LayoutCell<Long>) -> Unit,
+  /** The rectangle pressed, which is where the window goes, and which tab it asked for. */
+  onClick: (LayoutCell<Long>, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
@@ -123,11 +122,9 @@ internal fun TreemapView(
           }
         }
         .pointerInput(presentation, cells, edgeGrab) {
-          detectTapGestures(
-            // On press rather than on tap, which is immediate: with nothing waiting for a second click,
-            // a tap handler would still hold every click for the double click window.
-            onPress = { offset -> presentation.cellAt(offset, cells, edgeGrab)?.let(onClick) }
-          )
+          detectOpenPresses { offset, openIn ->
+            presentation.cellAt(offset, cells, edgeGrab)?.let { cell -> onClick(cell, openIn) }
+          }
         }
     ) {
       // Fills first and outlines after, all of them: a child covers every pixel of its parent, so a

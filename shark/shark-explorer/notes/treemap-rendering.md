@@ -328,23 +328,26 @@ answering a question nobody asked. It lives in the app module rather than in `co
 can measure text, and the plate is clamped to the rectangle it names, so a name on a cell barely a line
 tall doesn't answer for the sibling below it. Everywhere else the innermost rectangle still wins.
 
-**A single click goes to the rectangle it landed on**, and it's handled on press rather than on tap:
-`detectTapGestures` holds `onTap` for the double click window whenever `onDoubleTap` is set, and with
-nothing waiting for a second click there is nothing to wait for. So the whole map is one click deep, which
-is what replaced a double click nothing announced.
+**A single click goes to the rectangle it landed on**, and it's handled on press rather than on release:
+with nothing here waiting for a second click, holding every click until the button came up would cost the
+whole map a delay for nothing. So the whole map is one click deep, which is what replaced a double click
+nothing announced. `detectOpenPresses` is what reads the press, since the views draw their cells rather
+than composing them and so have no modifier to hang the gestures on — see `decisions.md`.
 
-Where the map ends up is not resolved from the cell, though: a click goes through the same walk as a click
-on a line of a panel or a row of a list — `HeapDominatorTreemap.pathToOpen`, which walks the tree rather than
-the layout, and hands back the chain of nodes from the root down. So a rectangle five levels down is zoomed
-into **along the whole chain**, and the chain beside the map is the way back out of it. Two things follow
-from resolving it that way rather than from the cell's own `parent`: an object that dominates nothing lands
-inside what holds it with itself selected, rather than filling the view with one rectangle and nothing to
-read; and it's the same code path whatever led there, so a class name clicked in the details panel and a
-rectangle clicked on the map land in the same place. A group isn't a node of the tree, so what a click on
-one is walked to is its `parent` — the rectangle it was left out of, which is where those objects are, and
-rooted there the map has the room to draw the biggest of them one by one. The panels stay on the group,
-since the group is what was clicked. **Every rectangle moves the map**, in other words, and the group used
-to be the one that didn't.
+Where the map ends up isn't resolved here at all. A rectangle hands back a `Place` — `Place.of(cell)` — and
+the map is laid out at `place.viewRootObjectId`, so a click on a rectangle is the same move as a click on a
+line of the details panel or a row of a list, and the map is **rooted at the object clicked** rather than
+zoomed along a chain to it. An object that dominates nothing is then one rectangle of its own bytes, which
+is the honest answer to what it holds; how it is held is the chain pane's answer, not the map's. A group
+isn't a node of the tree, so `Place.SmallerObjects` carries the parent it was left out of and roots the map
+there, which is where those objects are and where the map has the room to draw the biggest of them one by
+one.
+
+Two things fall out of rooting rather than zooming. The tree is walked once, to draw the chain, instead of
+once for the chain and once to find where to put the map — the path down a dominator tree is unique, so the
+map root is a function of the object and there is nothing to keep in sync. And a view rooted at an object
+the tree has no node for — a field can name one — falls back to the whole heap dump with a log line saying
+so, rather than a walk that comes back empty.
 
 Keeping all of that pure functions in `shark-explorer-core` is what makes it testable — see
 `decisions.md` for how the UI tests are structured around this.

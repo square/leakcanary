@@ -3,13 +3,14 @@ package shark.explorer
 /**
  * Where a view has been, so that a back arrow undoes a move and a forward arrow redoes it.
  *
- * Zooming in and out already walks up and down one path, but everything else the explorer does moves
- * sideways: clicking a dominator or a step of a path jumps to wherever the treemap draws that object,
- * opening the object list or the starred ones leaves the map altogether, and the way back from any of that
- * isn't up. This remembers the moves themselves.
+ * Everything the explorer does is a move sideways: clicking a dominator or a step of a path shows that
+ * object instead, and opening the object list or the starred ones leaves the map altogether. So there is
+ * no up to walk, and the moves themselves are what has to be remembered.
+ *
+ * One of these per [Tab], not per window — see [Tabs] for why.
  *
  * Immutable so it can be held as UI state, and in this module rather than in the UI so that it's unit
- * testable, like [TreemapNavigation] and [ExplorerScreen].
+ * testable, like [Place] and [Tabs].
  */
 data class NavigationHistory<T>(
   /** Oldest first. Always holds at least one entry, the one [current] returns. */
