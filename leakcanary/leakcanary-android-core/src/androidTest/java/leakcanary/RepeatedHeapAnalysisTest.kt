@@ -13,6 +13,7 @@ import leakcanary.EventListener.Event.HeapAnalysisDone.HeapAnalysisSucceeded
 import leakcanary.EventListener.Event.HeapDump
 import leakcanary.internal.AndroidDebugHeapAnalyzer
 import leakcanary.internal.HeapDumpTrigger
+import leakcanary.internal.InternalLeakCanary
 import leakcanary.internal.activity.db.HeapDumpTable
 import leakcanary.internal.activity.db.ScopedLeaksDb
 import org.assertj.core.api.Assertions.assertThat
@@ -160,6 +161,53 @@ internal class RepeatedHeapAnalysisTest {
     assertThat(analysisStartCount(heapDumpFile)).isZero()
   }
 
+  @Test fun the_next_heap_dump_waiting_for_analysis_is_dispatched_when_an_analysis_is_done() {
+    val analyzed = writeHeapDump(name = "analyzed.hprof", lastModifiedMillis = 1000)
+    val stillWaiting = writeHeapDump(name = "still-waiting.hprof", lastModifiedMillis = 2000)
+    analyze(analyzed)
+    val dispatchedEvents = captureDispatchedEvents()
+
+    onHeapAnalysisDone()
+
+    assertThat(dispatchedEvents.filterIsInstance<HeapDump>().map { it.file })
+      .containsExactly(stillWaiting)
+  }
+
+  @Test fun dispatching_an_analysis_done_event_dispatches_the_next_heap_dump_waiting() {
+    val analyzed = writeHeapDump(name = "analyzed.hprof", lastModifiedMillis = 1000)
+    val stillWaiting = writeHeapDump(name = "still-waiting.hprof", lastModifiedMillis = 2000)
+    val analysisDone = analyze(analyzed)
+    val nextDispatched = CountDownLatch(1)
+    val dispatchedHeapDumps = mutableListOf<File>()
+    LeakCanary.config = LeakCanary.config.copy(
+      eventListeners = listOf(EventListener { event ->
+        if (event is HeapDump) {
+          dispatchedHeapDumps += event.file
+          nextDispatched.countDown()
+        }
+      })
+    )
+
+    // Goes through the same funnel every analyzer's done event goes through in the main process,
+    // which is what hands the trigger its cue to dispatch the next one.
+    InternalLeakCanary.sendEvent(analysisDone)
+
+    check(nextDispatched.await(30, SECONDS)) {
+      "Timed out waiting for the analysis of the next heap dump to be dispatched"
+    }
+    assertThat(dispatchedHeapDumps).containsExactly(stillWaiting)
+  }
+
+  @Test fun no_analysis_is_dispatched_when_an_analysis_is_done_and_nothing_is_waiting() {
+    val heapDumpFile = writeHeapDump()
+    analyze(heapDumpFile)
+    val dispatchedEvents = captureDispatchedEvents()
+
+    onHeapAnalysisDone()
+
+    assertThat(dispatchedEvents.filterIsInstance<HeapDump>()).isEmpty()
+  }
+
   private fun analyze(
     heapDumpFile: File,
     cancelSignal: CancelSignal = CancelSignal.NEVER
@@ -177,7 +225,21 @@ internal class RepeatedHeapAnalysisTest {
    * Runs what [HeapDumpTrigger] does when the app comes back to the foreground, which is where a new
    * process picks up the heap dumps an earlier one left waiting for an analysis.
    */
-  private fun onApplicationVisible() {
+  private fun onApplicationVisible() = onTrigger {
+    onApplicationVisibilityChanged(applicationVisible = true)
+  }
+
+  /**
+   * Runs what [HeapDumpTrigger] does when an analysis is done, which is where the next heap dump
+   * waiting for one gets its turn.
+   */
+  private fun onHeapAnalysisDone() = onTrigger { onHeapAnalysisDone() }
+
+  /**
+   * Runs [block] on a [HeapDumpTrigger] and waits for the background work it posted, so that what it
+   * dispatched has been dispatched by the time this returns.
+   */
+  private fun onTrigger(block: HeapDumpTrigger.() -> Unit) {
     val handlerThread = HandlerThread("RepeatedHeapAnalysisTest")
     handlerThread.start()
     val backgroundHandler = Handler(handlerThread.looper)
@@ -187,7 +249,7 @@ internal class RepeatedHeapAnalysisTest {
       retainedObjectTracker = AppWatcher.objectWatcher,
       gcTrigger = GcTrigger.inProcess(),
       configProvider = { LeakCanary.config }
-    ).onApplicationVisibilityChanged(applicationVisible = true)
+    ).block()
     val done = CountDownLatch(1)
     backgroundHandler.post { done.countDown() }
     check(done.await(30, SECONDS)) {

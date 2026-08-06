@@ -18,6 +18,7 @@ import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
 import leakcanary.AppWatcher
 import leakcanary.EventListener.Event
+import leakcanary.EventListener.Event.HeapAnalysisDone
 import leakcanary.GcTrigger
 import leakcanary.LeakCanary
 import leakcanary.LeakCanaryAndroidInternalUtils
@@ -224,6 +225,12 @@ internal object InternalLeakCanary : (Application) -> Unit, OnObjectRetainedList
   fun sendEvent(event: Event) {
     for(listener in LeakCanary.config.eventListeners) {
       listener.onEvent(event)
+    }
+    // Every analyzer funnels its done event through here in the main process, including the remote
+    // one, whose HeapAnalysisDoneDispatchWorker exists to do exactly that. So this is where the heap
+    // dump trigger gets to hear that an analysis is over and dispatch the next one waiting.
+    if (event is HeapAnalysisDone<*> && this::heapDumpTrigger.isInitialized) {
+      heapDumpTrigger.onHeapAnalysisDone()
     }
   }
 

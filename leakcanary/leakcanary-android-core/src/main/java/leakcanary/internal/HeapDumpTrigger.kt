@@ -109,6 +109,21 @@ internal class HeapDumpTrigger(
     }
   }
 
+  /**
+   * Dispatches the analysis of the next heap dump waiting for one, now that the analysis that just
+   * finished isn't in the way anymore.
+   *
+   * Heap dumps waiting for an analysis are dispatched one at a time, so something has to dispatch the
+   * next one. Waiting for the next retained object check to do it would leave the heap unanalyzed and
+   * undumpable for as long as no object is retained, which on an app that just had its analyses
+   * dropped is exactly when LeakCanary should be catching up rather than idling.
+   */
+  fun onHeapAnalysisDone() {
+    backgroundHandler.post {
+      dispatchAnalysisOfOldestHeapDumpWaitingForOne()
+    }
+  }
+
   private fun checkRetainedObjects() {
     val iCanHasHeap = HeapDumpControl.iCanHasHeap()
 
@@ -174,7 +189,11 @@ internal class HeapDumpTrigger(
     // two analyses of two heap dumps in flight at once, each one holding a parsed heap in memory and
     // racing the other for CPU, and would fill up the stored heap dumps with heap dumps nothing has
     // read yet, until the oldest one gets deleted out from under the analysis that was going to read
-    // it. So we wait, and while we wait we make sure that analysis is actually still coming.
+    // it. It would also capture the index Shark builds of the heap dump being analyzed, one of the
+    // largest things in the heap while an analysis runs, so the new heap dump would be bigger, slower
+    // to analyze and full of LeakCanary's own objects. So we wait until nothing is waiting for an
+    // analysis anymore, not just until the next one is dispatched, and while we wait we make sure
+    // those analyses are actually still coming.
     val waitingForAnalysis = dispatchAnalysisOfOldestHeapDumpWaitingForOne()
     if (waitingForAnalysis.isNotEmpty()) {
       SharkLog.d {
