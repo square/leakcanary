@@ -55,7 +55,7 @@ internal fun LeaksScreen(
   isFindingLeaks: Boolean,
   expandedGroups: Set<String>,
   onToggleGroup: (String) -> Unit,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -292,7 +292,7 @@ private fun LeakingObjectRow(
   leakingObject: LeakingObject,
   /** Whether it closes the leak it is in, which is where the rule down the objects stops. */
   isLast: Boolean,
-  onOpen: (Long) -> Unit
+  onOpen: (Long, OpenIn) -> Unit
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(INSTANCE_BACKGROUND)) {
     SectionBar()
@@ -300,7 +300,7 @@ private fun LeakingObjectRow(
     InstanceRule(isLast)
     Column(Modifier.weight(1f).padding(start = 8.dp, end = 12.dp, bottom = 4.dp)) {
       Row(
-        Modifier.fillMaxWidth().clickableRow { onOpen(leakingObject.objectId) }
+        Modifier.fillMaxWidth().openable { openIn -> onOpen(leakingObject.objectId, openIn) }
           .padding(vertical = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -379,10 +379,10 @@ private fun WatcherRow(
    * inspector built out of the watcher's own description — so printing it again is printing it twice.
    */
   alreadySaid: String,
-  onOpen: (Long) -> Unit
+  onOpen: (Long, OpenIn) -> Unit
 ) {
   Column(
-    Modifier.fillMaxWidth().clickableRow { onOpen(watcher.weakReferenceObjectId) }
+    Modifier.fillMaxWidth().openable { openIn -> onOpen(watcher.weakReferenceObjectId, openIn) }
       .padding(bottom = 2.dp)
   ) {
     Text(watcher.watchText(), style = MaterialTheme.typography.bodySmall, color = LINK_COLOR)

@@ -32,9 +32,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
-import androidx.compose.ui.test.waitUntilExactlyOneExists
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
@@ -46,9 +44,9 @@ import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
-import shark.explorer.ExplorerScreen
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
+import shark.explorer.Place
 import shark.explorer.ReachabilityStrength
 import shark.explorer.ReachabilityStrength.PHANTOM
 import shark.explorer.ReachabilityStrength.STRONG
@@ -86,8 +84,11 @@ class ExplorerAppTest {
       openHeapDump()
 
       onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
-      onNodeWithText(NO_SELECTION).assertIsDisplayed()
-      onNodeWithText(NO_ROOT_PATH_YET).assertIsDisplayed()
+      // On the whole heap dump, which is a place like any other: a window opens on a tab for it, and the
+      // panes describe it from the first frame rather than asking for a click first.
+      wholeHeapDumpTab().assertIsDisplayed()
+      wholeHeapDumpRow().assertIsDisplayed()
+      onNodeWithText(EVERYTHING_RETAINED, substring = true).assertIsDisplayed()
     }
   }
 
@@ -162,8 +163,10 @@ class ExplorerAppTest {
 
       clickView(TREEMAP_X, TREEMAP_Y)
 
-      waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(NO_SELECTION).assertDoesNotExist()
+      // The panel was already describing the whole heap dump the window opened on, so what a click does is
+      // move it onto the object clicked: what it says has to be about that object and not about the tree.
+      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("Retained objects").assertIsDisplayed()
       onNodeWithText(STRONG.reachabilityText).assertIsDisplayed()
     }
   }
@@ -177,10 +180,10 @@ class ExplorerAppTest {
       // Reading the map is moving the mouse across it, so what a rectangle is arrives without a click —
       // in the card beside the pointer, which is where the reader is already looking.
       waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      // And nowhere else — the assertion above is for exactly one node: pointing at a rectangle is how you
+      // find out whether it's worth going to, so the panes stay on the place the tab is open on.
       onNodeWithText(hexObjectId(payloadObjectId)).assertIsDisplayed()
-      // And nowhere else: pointing at a rectangle is how you find out whether it's worth going to, so the
-      // panel beside the map stays on the object clicked, which here is none.
-      onNodeWithText(NO_SELECTION).assertIsDisplayed()
+      wholeHeapDumpTab().assertIsDisplayed()
     }
   }
 
@@ -211,9 +214,9 @@ class ExplorerAppTest {
       // Where the object came from, where it is, and what it is keeping alive, read left to right — rather
       // than the window's two outer edges with everything else between them.
       val view = viewBounds()
-      assertThat(onNodeWithText(NO_ROOT_PATH_YET).fetchSemanticsNode().boundsInRoot.right)
+      assertThat(onNodeWithText(Pane.CHAIN.paneName).fetchSemanticsNode().boundsInRoot.right)
         .isLessThanOrEqualTo(view.left)
-      assertThat(onNodeWithText(NO_SELECTION).fetchSemanticsNode().boundsInRoot.left)
+      assertThat(onNodeWithText(Pane.DETAILS.paneName).fetchSemanticsNode().boundsInRoot.left)
         .isGreaterThanOrEqualTo(view.right)
     }
   }
@@ -221,21 +224,21 @@ class ExplorerAppTest {
   @Test fun `what the pointer adds to the chain drops away when it leaves the map`() {
     explorerUiTest {
       openHeapDump()
-      clickView(TREEMAP_X, TREEMAP_Y)
-      waitUntilAtLeastOneExists(hasText(hexObjectId(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
-      // The band the instance holding the array keeps across the top of the view for itself, which is the
-      // one other cell there is to point at once the map has gone to the array.
-      hoverRootBand()
-      waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
+      // The instance holding the array, so that the array drawn inside it is a rectangle to point at that
+      // the chain on screen doesn't reach yet.
+      clickContainerEdge(yFraction = 0.5f)
+      waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
+      hoverView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText("Object[] · ", substring = true), OPEN_TIMEOUT_MILLIS)
 
       leaveView()
 
       // Back to the chain of the object clicked, and without reading the heap dump again: what was clicked
       // was never thrown away.
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
-        onAllNodesWithText("$HOLDER_LABEL · ", substring = true).fetchSemanticsNodes().isEmpty()
+        onAllNodesWithText("Object[] · ", substring = true).fetchSemanticsNodes().isEmpty()
       }
-      assertThat(onAllNodesWithText(hexObjectId(payloadObjectId)).fetchSemanticsNodes()).isNotEmpty()
+      assertThat(onAllNodesWithText(hexObjectId(holderObjectId)).fetchSemanticsNodes()).isNotEmpty()
     }
   }
 
@@ -506,8 +509,11 @@ class ExplorerAppTest {
       // One click rather than two: reading a treemap is walking into it, and a click that only outlined a
       // rectangle spent the obvious gesture on the thing the panels do anyway.
       waitUntilZoomedIn()
-      // Drawing an object that dominates nothing would be a view with one rectangle in it, so the map lands
-      // on the instance holding the array clicked, with the array drawn and described inside it.
+      // At the array itself, however little it holds. An object's screen is drawn from that object, so a
+      // leaf comes out as the one rectangle its own bytes are — which is the honest answer to what it
+      // holds, rather than a picture of the instance that happens to hold it.
+      assertThat(logged.last { it.startsWith(TREEMAP_LAID_OUT) })
+        .contains(hexObjectId(payloadObjectId))
       assertThat(onAllNodesWithText(hexObjectId(payloadObjectId)).fetchSemanticsNodes()).isNotEmpty()
     }
   }
@@ -720,79 +726,6 @@ class ExplorerAppTest {
     }
   }
 
-  @Test fun `every object of the heap dump can be listed`() {
-    explorerUiTest {
-      openHeapDump()
-
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
-
-      // The view a treemap can't be: one line per object, whatever its size, with the retained size the
-      // treemap draws its rectangle from.
-      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("com.example.Holder instance").assertIsDisplayed()
-      onNodeWithText("$PAYLOAD_LENGTH elements").assertIsDisplayed()
-      // How much of the heap dump is being looked at, which is what says a search found little of it.
-      onNodeWithText("objects match", substring = true).assertIsDisplayed()
-    }
-  }
-
-  @Test fun `a few characters filter the list down to the class names holding them`() {
-    explorerUiTest {
-      openHeapDump()
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
-      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
-
-      // Part of a name rather than all of it, which is how anyone types a class they half remember.
-      searchBox().performTextInput("Hold")
-
-      waitUntilExactlyOneExists(hasText("com.example.Holder instance"), OPEN_TIMEOUT_MILLIS)
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
-        onAllNodesWithText("java.lang.Object[] array").fetchSemanticsNodes().isEmpty()
-      }
-    }
-  }
-
-  @Test fun `a class leads to the instances of it`() {
-    explorerUiTest {
-      openHeapDump()
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
-      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
-      // The class object itself, which the list has a line of its own for.
-      onNodeWithText("com.example.Holder class").performClick()
-      waitUntilAtLeastOneExists(hasText(LIST_INSTANCES), OPEN_TIMEOUT_MILLIS)
-
-      onNodeWithText(LIST_INSTANCES).performClick()
-
-      // Back on the list, filtered to the instances of that one class. Exactly it: a class whose name
-      // merely contains this one is another class, and its instances are not these. Waited for by the class
-      // itself going, since listing the objects again is a read of the heap dump and the list on screen is
-      // the one from before it until it comes back.
-      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
-        onAllNodesWithText("com.example.Holder class").fetchSemanticsNodes().isEmpty()
-      }
-      onNodeWithText("com.example.Holder instance").assertIsDisplayed()
-      onNode(hasText(EXACT_MATCH) and isToggleable()).assertIsOn()
-      kindToggle(HeapObjectKind.INSTANCE).assertIsOn()
-      kindToggle(HeapObjectKind.CLASS).assertIsOff()
-    }
-  }
-
-  @Test fun `clicking a listed object shows it on the map and describes it`() {
-    explorerUiTest {
-      openHeapDump()
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
-      waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
-
-      onNodeWithText("java.lang.Object[] array").performClick()
-
-      // The same place clicking its rectangle would have taken you: the map zoomed to it, and the panel
-      // describing it.
-      waitUntilAtLeastOneExists(hasText(hexObjectId(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
-      onNodeWithContentDescription(VIEW_DESCRIPTION).assertIsDisplayed()
-      waitUntilZoomedIn()
-    }
-  }
-
   @Test fun `the panels describe whatever the map went to`() {
     explorerUiTest {
       openHeapDump()
@@ -816,7 +749,7 @@ class ExplorerAppTest {
       strengthToggle(STRONG).assertIsDisplayed()
       shapeOption(ViewShape.RADIAL).assertIsDisplayed()
 
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
+      screenButton(Place.OBJECTS_LABEL).performClick()
 
       // A list of objects is coloured by nothing and shaped like a list, so controls for how the tree is
       // drawn have nothing to do there.
@@ -873,19 +806,29 @@ class ExplorerAppTest {
   /** The row every chain hangs below, which leads to the whole heap dump as the screen bar's button does. */
   private fun ComposeUiTest.wholeHeapDumpRow(): SemanticsNodeInteraction = onNode(isWholeHeapDumpRow())
 
+  /** And the tab open on it, which is what the strip says a window opens on. */
+  private fun ComposeUiTest.wholeHeapDumpTab(): SemanticsNodeInteraction =
+    onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and isTab())
+
   /** A button on the row of screens an open heap dump can be read through. */
   private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
     onNode(hasText(label) and isButton())
 
   /**
-   * What names the whole heap dump in the chain pane, which is a clickable line and not a button: the
-   * screen bar has a button of the same name, so the text alone matches two nodes.
+   * What names the whole heap dump in the chain pane, which is neither a button nor a tab.
+   *
+   * Three things in the window can say `Whole heap dump` at once — the screen bar's button, a tab open on
+   * it, and this row — so the text alone is never enough to pick one of them out. What tells them apart is
+   * the role: the bar has buttons, the strip has tabs, and a row that navigates is a link with neither.
    */
   private fun isWholeHeapDumpRow(): SemanticsMatcher =
-    hasText(HeapDominatorTreemap.ROOT_LABEL) and hasClickAction() and !isButton()
+    hasText(HeapDominatorTreemap.ROOT_LABEL) and hasClickAction() and !isButton() and !isTab()
 
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+
+  private fun isTab(): SemanticsMatcher =
+    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
 
   /** The search box of the object list, the one thing in the window that takes typing. */
   private fun ComposeUiTest.searchBox(): SemanticsNodeInteraction = onNode(hasSetTextAction())
@@ -973,17 +916,6 @@ class ExplorerAppTest {
   private fun ComposeUiTest.pointerCardBounds() =
     onNodeWithText(hexObjectId(payloadObjectId)).fetchSemanticsNode().boundsInRoot
 
-  /**
-   * Moves the pointer onto the band the root keeps across the top of the view for its own label, which its
-   * children leave uncovered. A fraction of the view would be a fraction of however tall the window is.
-   */
-  private fun ComposeUiTest.hoverRootBand() {
-    val view = viewBounds()
-    onRoot().performMouseInput {
-      hover(Offset(x = view.left + view.width / 2, y = view.top + LABEL_BAND_INSET))
-    }
-  }
-
   /** Moves the pointer off the view, onto the panes beside it, which is what leaves nothing hovered. */
   private fun ComposeUiTest.leaveView() {
     val view = viewBounds()
@@ -1033,11 +965,16 @@ class ExplorerAppTest {
     /** How far inside the left edge of the view a container's outline is pressed. Within EDGE_GRAB. */
     private const val EDGE_PRESS_INSET = 2f
 
-    /** How far down the view the root's own label band is, which is where its children start. */
-    private const val LABEL_BAND_INSET = 2f
-
     /** How far past the edge of the view the panes beside it start. */
     private const val PANE_INSET = 10f
+
+    /**
+     * What the details panel says the whole heap dump retains, which is all of it.
+     *
+     * The share rather than the size, so that the assertion says why the number is that number: only the
+     * object a window opens on can be all of what the heap dump holds.
+     */
+    private const val EVERYTHING_RETAINED = "(100% total)"
 
     /**
      * Well inside the largest rectangle of the second level rather than in its label band, which is what

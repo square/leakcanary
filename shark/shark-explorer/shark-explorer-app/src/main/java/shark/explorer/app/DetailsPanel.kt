@@ -4,7 +4,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,7 +59,7 @@ internal fun DetailsPanel(
   /** The selected object's pixels, when it's a bitmap anything has the pixels of. */
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit,
   modifier: Modifier = Modifier
@@ -155,7 +154,7 @@ private fun ObjectDetails(
   stronglyReachableByteCount: Long,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit
 ) {
@@ -245,7 +244,7 @@ internal fun Hint(
 @Composable
 private fun Fields(
   summary: HeapObjectSummary,
-  onInspect: (Long) -> Unit
+  onInspect: (Long, OpenIn) -> Unit
 ) {
   if (summary.fields.isEmpty()) {
     return
@@ -267,14 +266,14 @@ private fun Fields(
 internal fun Inspectable(
   text: String,
   objectId: Long?,
-  onInspect: (Long) -> Unit
+  onInspect: (Long, OpenIn) -> Unit
 ) {
   if (objectId == null) {
     Text(text, style = MaterialTheme.typography.bodySmall)
   } else {
     Text(
       text,
-      Modifier.clickable { onInspect(objectId) },
+      Modifier.openable { openIn -> onInspect(objectId, openIn) },
       style = MaterialTheme.typography.bodySmall,
       color = LINK_COLOR
     )

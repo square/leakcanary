@@ -1,9 +1,11 @@
 package shark.explorer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
@@ -24,13 +26,13 @@ import org.junit.rules.TemporaryFolder
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
-import shark.explorer.ExplorerScreen
 import shark.explorer.HeapLeaks
 import shark.explorer.HeapObjectKind
 import shark.explorer.LeakGroup
 import shark.explorer.LeakKind
 import shark.explorer.LeakSection
 import shark.explorer.LeakingObject
+import shark.explorer.Place
 import shark.explorer.ReachabilityStrength
 import shark.explorer.hexObjectId
 
@@ -156,7 +158,7 @@ class LeaksScreenTest {
     explorerUiTest {
       // Rendered from leaks rather than read off a heap dump: what is being pinned is how the two ends of a
       // leak are named, and a dump whose leaks have the shape to show it is a dump built for it.
-      setContent { MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, {}) } }
+      setContent { MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }) } }
 
       // Both ends and a gap for what is between them, then the leak whose two ends are one reference. Each
       // ends on an arrow, because what it points at is the object on the row below.
@@ -201,7 +203,7 @@ class LeaksScreenTest {
       openHeapDump()
       // Reached through the list of every object rather than through the leaks, because that is the point:
       // whatever a chain was built for, the inspectors have run over the objects on it.
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
+      screenButton(Place.OBJECTS_LABEL).performClick()
       // Filtered down to it rather than scrolled to it: the activities of this dump retain the least of
       // anything in it, so they are the last rows of a list that is longer than the window.
       onNode(hasSetTextAction()).performTextInput(LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.'))
@@ -219,8 +221,8 @@ class LeaksScreenTest {
     explorerUiTest {
       openLeaks()
 
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
-      screenButton(ExplorerScreen.LEAKS_LABEL).performClick()
+      screenButton(Place.OBJECTS_LABEL).performClick()
+      screenButton(Place.LEAKS_LABEL).performClick()
       waitUntilAtLeastOneExists(hasText("${LeakKind.APPLICATION.title} ·", substring = true), OPEN_TIMEOUT_MILLIS)
     }
 
@@ -249,7 +251,7 @@ class LeaksScreenTest {
   /** And goes on to the leaks, waiting for the pass over the heap dump that finds them. */
   private fun ComposeUiTest.openLeaks() {
     openHeapDump()
-    screenButton(ExplorerScreen.LEAKS_LABEL).performClick()
+    screenButton(Place.LEAKS_LABEL).performClick()
     waitUntilAtLeastOneExists(
       hasText("${LeakKind.APPLICATION.title} ·", substring = true),
       OPEN_TIMEOUT_MILLIS
@@ -276,9 +278,15 @@ class LeaksScreenTest {
 
   private fun namesObject(objectId: Long) = hasText(hexObjectId(objectId), substring = true)
 
-  /** A button on the row of screens an open heap dump can be read through. */
+  /**
+   * A button on the row of screens an open heap dump can be read through, as against the tab of the same
+   * name that clicking it opens. See [ExplorerAppTest] for why the role is what tells them apart.
+   */
   private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
-    onNode(hasText(label) and hasClickAction())
+    onNode(hasText(label) and isButton())
+
+  private fun isButton(): SemanticsMatcher =
+    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
   /** The checkbox above the view that shades the objects that shouldn't be in memory. */
   private fun ComposeUiTest.leakToggle(): SemanticsNodeInteraction =

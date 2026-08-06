@@ -414,9 +414,9 @@ private fun TreemapUnderTest(
         selected = selected,
         bitmapImages = bitmapImages,
         hovered = hovered,
-        onClick = {
-          selected = SelectedCell.of(it.subject)
-          onClick(it)
+        onClick = { cell, _ ->
+          selected = SelectedCell.of(cell.subject)
+          onClick(cell)
         },
         // Only which cell, since where the pointer is on it is the card's business rather than the view's.
         onHover = { pointedAt ->

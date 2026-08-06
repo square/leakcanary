@@ -188,17 +188,17 @@ class HeapExplorerTest {
     }
   }
 
-  @Test fun `the paths to a starred object lead back to where the treemap draws it`() {
+  @Test fun `a tab is named after the object it is open on`() {
     HeapExplorer.open(testFolder.cachedPayloadHeapDump()).use { explorer ->
       val tree = explorer.tree
       val view = tree.findByLabel("View")
-      val tile = tree.findByLabel("Tile")
 
-      // What clicking a step of a path does: the treemap zooms to where that object is drawn, however
-      // deep in the tree the heap dump's own references led.
-      assertThat(tree.pathToOpen(view.objectId)).containsExactly(tree.root, tile.objectId)
-      assertThat(tree.pathToOpen(tile.objectId)).containsExactly(tree.root, tile.objectId)
-      assertThat(tree.pathToOpen(tree.root)).containsExactly(tree.root)
+      // Which class and which instance of it, because a strip of a dozen instances of one class is only
+      // a strip you can pick out of if the address is on it.
+      assertThat(tree.titleOf(Place.Object(view.objectId)))
+        .isEqualTo("View ${hexObjectId(view.objectId)}")
+      // The whole heap dump is no object, so it has no address to be named by.
+      assertThat(tree.titleOf(Place.wholeHeapDump())).isEqualTo(HeapDominatorTreemap.ROOT_LABEL)
     }
   }
 
@@ -437,7 +437,6 @@ class HeapExplorerTest {
     val dump = testFolder.highAddressHeapDump()
     HeapExplorer.open(dump.file).use { explorer ->
       val tree = explorer.tree
-      val holder = tree.findByLabel("Holder")
 
       // The premise: a 4 byte id that far up the address space reads back negative. Which the tree's own
       // ids have to stay clear of, or the biggest objects of a 32 bit Android dump — its bitmaps and their
@@ -450,9 +449,9 @@ class HeapExplorerTest {
       assertThat(tree.summarize(dump.payloadObjectId).className).isEqualTo("java.lang.Object[]")
       assertThat(tree.rootPathTo(dump.payloadObjectId).stepLabels())
         .containsExactly("Holder", "payload → Object[]")
-      // And zooming to it lands on what holds it, rather than back at the root.
-      assertThat(tree.pathToOpen(dump.payloadObjectId))
-        .containsExactly(tree.root, holder.objectId)
+      // And a tab opened on it is named after it, rather than after a pile this tree has never heard of.
+      assertThat(tree.titleOf(Place.Object(dump.payloadObjectId)))
+        .isEqualTo("Object[] ${hexObjectId(dump.payloadObjectId)}")
     }
   }
 

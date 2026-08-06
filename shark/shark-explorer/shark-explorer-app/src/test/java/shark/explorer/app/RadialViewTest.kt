@@ -233,9 +233,9 @@ private fun RadialUnderTest(
         shading = LeakShading.NONE,
         selected = selected,
         hovered = hovered,
-        onClick = {
-          selected = SelectedCell.of(it.subject)
-          onClick(it)
+        onClick = { cell, _ ->
+          selected = SelectedCell.of(cell.subject)
+          onClick(cell)
         },
         // Only which sector, as in [TreemapViewTest]: where the pointer is on it is the card's business.
         onHover = { pointedAt ->

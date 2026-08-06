@@ -152,6 +152,62 @@ for before starting over.
 The memory cost is per window and it isn't small — a tree, a graph and an index each — so N windows on
 large dumps is N times the numbers in `dominator-tree.md`.
 
+## An object is a place, and everything in the window is derived from it
+
+Where a tab is, is **one value**: a `Place` in `shark-explorer-core` — an object, the pile of smaller
+objects left out of one, the object list with its filter, the leaks, the starred. Everything drawn is a
+function of it. The map is laid out at `place.viewRootObjectId`, the chain pane walks up to a GC root from
+that same object, the details panel summarises it, the tab is named after it. Nothing else is stored.
+
+Before this there were two coordinates — which screen the window was on, and a path the treemap had zoomed
+along — and a dozen places that set one, the other, or both. What that cost was not the lines: it was that
+a click on a rectangle, a row of a list, a field in the panel and a step of the chain each set them
+slightly differently, so which panes agreed with each other depended on which of the four you had used.
+Collapsing to one value is what makes **every way to an object the same move**, which is the whole point:
+`Place.of(cell)` for a rectangle, `Place.Object(id)` everywhere else, and one `open` in
+`HeapDumpExplorer` that the four of them go through.
+
+**The second coordinate could go because it was never independent.** In a dominator tree the way down to an
+object is unique, so the map root *is* the object — there is no path worth storing, and `TreemapNavigation`,
+which stored one, is gone. What replaced going back out along it is the chain pane, which was already
+drawing that path for a different reason.
+
+**Which tab a click means is the click's own answer, not the target's** — `OpenIn`, decided in `OpenIn.kt`
+and nowhere else. A plain click moves the tab being read, the way following a link moves a browser tab; a
+middle click, a ⌘ or Ctrl click, and `Open in a new tab` from the right click menu open one **behind** what
+is being read, because opening a tab that way is parking somewhere to come back to. The buttons on the bar
+are the exception twice over: they always open a tab rather than moving one, and they open it in front,
+since pressing one is asking to be somewhere else. Two lists of objects filtered differently are two useful
+tabs, which is why the bar never reuses the tab of the same name.
+
+The gestures are read twice because the views draw their cells rather than composing them: `Modifier.openable`
+for anything composed, `detectOpenPresses` for the three views, both in `OpenIn.kt` so that a middle click on
+a rectangle, on a ring, on a row of the stack and on a row of a list mean one thing. The right click menu is
+the only part that is words, and it is what makes the other two findable.
+
+**Every tab is closeable, the last one included.** A window with no tab still holds the heap dump it spent
+seconds reading, and the bar above is one click from a tab again — closing tabs is never closing the dump,
+which is the window's, see above. A tab's history is its own rather than the window's, or the back arrow
+would walk out of the tab being read. And a tab id is counted up rather than reused, so a tab closed and
+another opened are two tabs rather than one that changed its mind.
+
+**A tab's name is a read of the heap dump**, class name plus address, because a strip of a dozen instances
+of one class is only one you can pick out of if each tab says which instance it is. So the strip scrolls
+rather than shrinking its tabs to nothing, and a tab shows a placeholder for the moment before the read
+comes back.
+
+**Three things in the window can say `Whole heap dump` at once** — the button on the bar, the tab, and the
+top row of every chain — and they are three different moves: open a tab there, go to that tab, go there in
+this tab. What tells them apart, to a screen reader and to a test, is the role: `Role.Button` on the bar,
+`Role.Tab` on the strip, and no role at all on a row that navigates, which is a link rather than a button.
+An assertion that means one of them says which.
+
+**The three panes are resizable against the map and each foldable to nothing** (`Panes.kt`). Folding leaves
+the button that unfolds it and nothing else, and folding the map is allowed too: a chain 30 steps long and
+a details panel of 40 fields are each worth the whole window sometimes, and the map is the pane that can
+always be got back to by unfolding. Widths are the window's rather than the tab's — a reader who has
+widened the chain has widened it for the investigation, not for one object.
+
 ## Going back to the live device, through the `adb` command line
 
 Reaching into the process that wrote the heap dump — which is the only place a native bitmap's pixels
@@ -281,7 +337,7 @@ The card used to be drawn for `Selection.Object` alone, which meant pointing at 
 name is incomplete answered nothing at all.
 
 Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
-pointer is on. Nothing is read when the pointer leaves, and nothing on the map screen is blanked as the
+pointer is on. Nothing is read when the pointer leaves, and nothing beside the map is blanked as the
 next cell is read, so a sweep across the map doesn't flicker.
 
 Clicking selecting in place was the first version, with a double click to go anywhere. It went because the
@@ -313,26 +369,25 @@ plainest way the object is held; the marked steps are the rectangles it sits ins
 chain to the picture. On the production dump the longest one is 34 steps, two of them views and the rest
 RxJava plumbing — which is why it is cut at 20 and cut at the root end.
 
-It sits **on the far side of the view from the details panel**, and only on the map screen: chain, view,
-details, left to right — where the object came from, where it is, what it is keeping alive. A chain and the
-details are both tall columns, so one pane holding both would always have one of them scrolled off, and
-putting them either side of the map makes what was clicked and how it is held one answer around the thing
-they are about rather than the window's two outer edges. Neither pane is drawn on the other screens: a list
-of objects wants the width of the window more than it wants either of them.
+It sits **on the far side of the view from the details panel**: chain, view, details, left to right — where
+the object came from, where it is, what it is keeping alive. A chain and the details are both tall columns,
+so one pane holding both would always have one of them scrolled off, and putting them either side of the map
+makes what was clicked and how it is held one answer around the thing they are about rather than the
+window's two outer edges. Neither pane is drawn for a tab on a list: a list of objects wants the width of
+the window more than it wants either of them, and there is no one object for them to be about.
 
 **Every object of the chain is clickable, and that's how you get back out.** The ringed steps are the
-rectangles the map is drawn inside, in the order it zoomed through them, so a click on one is a zoom back
-out to it — `TreemapNavigation.zoomInto` of a node already on the path truncates rather than appends. A row
-of breadcrumbs above the view used to be the way out; it went because it said a subset of what this pane
-says, in a strip that couldn't hold a class name. **The whole heap dump is the top row of every chain**, for
-the same reason: the way back to the screen the window opens on belongs where the chain says the whole heap
-is, and a chain of the whole heap dump is that one row and nothing else.
+objects the one being read sits inside, so a click on one is the way back out to it — the same move as
+clicking its rectangle, since a chain step and a rectangle are both just an object to go to. A row of
+breadcrumbs above the view used to be the way out; it went because it said a subset of what this pane says,
+in a strip that couldn't hold a class name. **The whole heap dump is the top row of every chain**, for the
+same reason: the way back to where the window opens belongs where the chain says the whole heap is, and a
+chain of the whole heap dump is that one row and nothing else.
 
-**The screen bar has a button of the same name, which is not a duplicate of that row.** The chain is drawn
-for the rectangle clicked, on the map screen only, so until something has been clicked, and from a list of
-objects, that row isn't there — and the way back to the top of the tree is the one move that has to be
-available whatever the window is showing. Hence a button beside the other screens rather than a second one
-above the map: leaving the map and going back to the top of it are the same kind of move.
+**The bar above has a button of the same name, and it is not a duplicate of that row.** The row goes to the
+whole heap dump *in this tab*, keeping the trail that led here on the back arrow; the button opens a tab on
+it, leaving this one where it is. A tab on a list has no chain pane at all, so the button is also the only
+one of the two available whatever a tab is showing.
 
 **The pointer's chain is drawn onto the end of the clicked one.** The rectangle under the pointer is inside
 the one the window is describing, so the chain holding it *is* this chain plus a few steps — and drawing it
@@ -593,9 +648,9 @@ lines on one should not have to learn where they are again on the next. The pack
 what keeps a row from wrapping in a pane 300 dp wide.
 
 **Which object it is lives above the map, not in the details panel.** It is a different question from the
-rest of that panel — which object, as against what that object holds — and it's the one line worth having on
-the screens that have no panel. So the panel names no object of its own: it starts with the star and the
-numbers.
+rest of that panel — which object, as against what that object holds — and it is what the tab strip and the
+chain are both about, so it belongs between them. So the panel names no object of its own: it starts with
+the star and the numbers.
 
 **An address is printed as hex, everywhere.** A decimal object id matches nothing: `hexObjectId` is what
 `shark-cli`, a leak trace and every other tool print, so it is what can be pasted between them.

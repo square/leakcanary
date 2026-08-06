@@ -1,7 +1,6 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -53,8 +52,8 @@ internal fun RadialView(
   hovered: SelectedCell?,
   /** The sector the pointer moved onto and where it is, or null when it moved onto none or left. */
   onHover: (PointedAt?) -> Unit,
-  /** The sector pressed, which is where the window goes. */
-  onClick: (LayoutCell<Long>) -> Unit,
+  /** The sector pressed, which is where the window goes, and which tab it asked for. */
+  onClick: (LayoutCell<Long>, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
@@ -92,9 +91,9 @@ internal fun RadialView(
           }
         }
         .pointerInput(presentation) {
-          detectTapGestures(
-            onPress = { offset -> presentation.cellAt(offset)?.let(onClick) }
-          )
+          detectOpenPresses { offset, openIn ->
+            presentation.cellAt(offset)?.let { cell -> onClick(cell, openIn) }
+          }
         }
     ) {
       sectors.forEach { sector -> drawSector(sector) }

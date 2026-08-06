@@ -2,7 +2,6 @@ package shark.explorer.app
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.VerticalScrollbar
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -69,8 +68,8 @@ internal fun StackView(
   hovered: SelectedCell?,
   /** The block the pointer moved onto and where it is, or null when it moved onto none or left. */
   onHover: (PointedAt?) -> Unit,
-  /** The block pressed, which is where the window goes. */
-  onClick: (LayoutCell<Long>) -> Unit,
+  /** The block pressed, which is where the window goes, and which tab it asked for. */
+  onClick: (LayoutCell<Long>, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
@@ -128,12 +127,10 @@ internal fun StackView(
             }
           }
           .pointerInput(presentation, blocks) {
-            detectTapGestures(
-              onPress = { offset ->
-                presentation.cellAt(offset.inTheView(scrollState.value), scrollState.value)
-                  ?.let(onClick)
-              }
-            )
+            detectOpenPresses { offset, openIn ->
+              presentation.cellAt(offset.inTheView(scrollState.value), scrollState.value)
+                ?.let { cell -> onClick(cell, openIn) }
+            }
           }
       ) {
         // Fills first and outlines after, all of them, as in [TreemapView]: a stroke straddles the edge

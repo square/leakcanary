@@ -70,7 +70,7 @@ internal fun RootPathPanel(
   /** Which of them is drawn, for the stretches the reader has switched. */
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val summary = (selection as? Selection.Object)?.summary
@@ -176,7 +176,7 @@ private fun RootPathTrace(
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  onOpen: (Long) -> Unit
+  onOpen: (Long, OpenIn) -> Unit
 ) {
   val steps = drawn.path.steps
   Column(Modifier.fillMaxWidth()) {
@@ -235,7 +235,7 @@ private fun HoveredTail(
         nextStrength = next?.step?.strength,
         stronglyReachableByteCount = stronglyReachableByteCount,
         // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
-        onOpen = {},
+        onOpen = { _, _ -> },
         role = when {
           // The end of a cut tail is the only object being described here, since the chain above it isn't
           // the way to it; the end of one that runs on is described by the card at the pointer instead.
