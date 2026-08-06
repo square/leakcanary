@@ -7,6 +7,7 @@ import androidx.collection.MutableLongSet
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapInstance
+import shark.MapEntryReader
 import shark.SharkLog
 import shark.ValueHolder
 
@@ -19,7 +20,8 @@ import shark.ValueHolder
  * The ones here keep their values in a `java.util.HashMap`, where the only thing between the cache and
  * what it caches is a `HashMap$Node`, a class every map of the heap dump shares. Weakening its `value`
  * field by class name would weaken every map there is, so which entries are a cache's is read off the
- * heap dump instead: this walks the map of each cache and remembers what its entries point at.
+ * heap dump instead: this reads the map of each cache through [MapEntryReader] and remembers which node
+ * holds which value.
  *
  * Cutting there rather than at the map keeps the cache's own bookkeeping where [ReferenceStrengthReader]
  * keeps it — strongly held, its bytes attributed to the cache — since weakening the map would take the
@@ -67,6 +69,14 @@ internal class CachedMapValues(private val graph: HeapGraph) {
   }
 
   /**
+   * How the maps of this heap dump are laid out, which is Shark's answer rather than one of our own:
+   * which class holds a map's table and what its nodes call their fields differs between the OpenJDK
+   * implementation and the Apache Harmony one Android shipped before it, and [MapEntryReader] is that
+   * question already answered — see its KDoc for why it hands back nodes when a leak trace doesn't.
+   */
+  private val mapEntryReader by lazy { MapEntryReader.createFor(graph) }
+
+  /**
    * Walks the map of every cache of [CACHE_MAP_FIELDS_BY_CLASS_NAME], which takes one pass over the
    * classes of the heap dump, one over its instances, and a read per entry of the caches it found.
    */
@@ -103,16 +113,10 @@ internal class CachedMapValues(private val graph: HeapGraph) {
   }
 
   /**
-   * Reads the entries of [cache]'s map into [cachedValues], by walking the buckets of the table and the
-   * chain each one starts.
+   * Reads the entries of [cache]'s map into [cachedValues].
    *
-   * The table rather than the `head` and `after` of a `LinkedHashMap`, so that the one walk covers a
-   * plain `HashMap` too, and the chain rather than the entry count, so that a map caught mid-insertion
-   * reads as what it holds rather than as what it is about to.
-   *
-   * Fields are matched by name against the whole instance instead of by their declaring class, because
-   * which class of the hierarchy declares `table` and `value` is exactly the sort of thing that differs
-   * between runtimes, and a name that doesn't match here silently caches nothing.
+   * A map caught mid-insertion reads as what it holds rather than as what it is about to, since the walk
+   * follows the chain each bucket starts rather than trusting the entry count.
    */
   private fun readEntriesOf(
     cache: HeapInstance,
@@ -123,38 +127,18 @@ internal class CachedMapValues(private val graph: HeapGraph) {
       .firstOrNull { it.name == mapFieldName }
       ?.valueAsInstance
       ?: return
-    val tableField = map.readFields().firstOrNull { it.name == TABLE_FIELD_NAME }
-    if (tableField == null) {
+    val entries = mapEntryReader.readEntriesOf(map)
+    if (entries == null) {
       SharkLog.d {
         "${cache.instanceClassSimpleName} keeps its entries in ${map.instanceClassSimpleName}, which " +
-          "has no $TABLE_FIELD_NAME to read them from, so nothing of it reads as cached"
+          "Shark has no map reader for, so nothing of it reads as cached"
       }
       return
     }
-    // A map allocates its table on the first put, so a null one is a cache holding nothing rather than a
-    // shape this can't read, and says nothing worth a line: an idle app's dump is full of them — every
-    // `android.util.LruCache` of `compose-nopng.hprof` is an empty `LinkedHashMap`. Saying that couldn't
-    // be read would report five defects where there are none.
-    val table = tableField.valueAsObjectArray ?: return
-    // A heap dump is a file, and a file can say anything: a bucket chain that loops would otherwise be
-    // read until it ran out of memory.
-    val entryIds = MutableLongSet()
-    table.readRecord().elementIds.forEach { bucketId ->
-      var entryId = bucketId
-      while (entryId != ValueHolder.NULL_REFERENCE && entryIds.add(entryId)) {
-        val entry = graph.findObjectByIdOrNull(entryId) as? HeapInstance ?: break
-        var valueId = ValueHolder.NULL_REFERENCE
-        var nextId = ValueHolder.NULL_REFERENCE
-        entry.readFields().forEach { field ->
-          when (field.name) {
-            VALUE_FIELD_NAME -> valueId = field.value.asNonNullObjectId ?: ValueHolder.NULL_REFERENCE
-            NEXT_FIELD_NAME -> nextId = field.value.asNonNullObjectId ?: ValueHolder.NULL_REFERENCE
-          }
-        }
-        if (valueId != ValueHolder.NULL_REFERENCE && graph.objectExists(valueId)) {
-          cachedValues.add(entryId = entryId, mapId = map.objectId, valueId = valueId)
-        }
-        entryId = nextId
+    entries.forEach { entry ->
+      val valueId = entry.value.asNonNullObjectId ?: return@forEach
+      if (graph.objectExists(valueId)) {
+        cachedValues.add(entryId = entry.instance.objectId, mapId = map.objectId, valueId = valueId)
       }
     }
   }
@@ -213,11 +197,11 @@ internal class CachedMapValues(private val graph: HeapGraph) {
     /** Read by every object of a heap dump with no cache in it, so one set rather than one per object. */
     private val NOTHING_CACHED = MutableLongSet(initialCapacity = 0)
 
-    /** What `java.util.HashMap` calls the array of buckets, and its nodes their value and their chain. */
-    private const val TABLE_FIELD_NAME = "table"
-
+    /**
+     * What the entry of a cache calls the field this weakens, for the panel that names it. Every cache
+     * above keeps its entries in a `java.util.HashMap` or a `LinkedHashMap`, whose nodes call it `value`;
+     * a `ConcurrentHashMap`, which [MapEntryReader] also reads, calls it `val`.
+     */
     const val VALUE_FIELD_NAME = "value"
-
-    private const val NEXT_FIELD_NAME = "next"
   }
 }
