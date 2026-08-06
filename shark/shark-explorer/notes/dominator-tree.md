@@ -218,8 +218,10 @@ Picasso's and Glide's all keep what they cache in a `java.util.HashMap`, so the 
 cache and the value is a `HashMap$Node`, a class every map in the dump shares: weakening its `value` by
 class name would weaken every map there is, and weakening the cache's map field would take the table, the
 entries and the keys down with it. So which entries are a cache's is read off the heap dump instead —
-`CachedMapValues` walks the map of each cache listed in it and remembers what its entries point at, one
-pass over the classes and one over the instances, 30 to 45 ms on `large-dump.hprof`.
+`CachedMapValues` reads the map of each cache listed in it through `shark.MapEntryReader` — the entry
+level half of the walk Shark's own map readers make, which hands back the node as well as the key and the
+value — and remembers which node holds which value, one pass over the classes and one over the instances,
+30 to 45 ms on `large-dump.hprof`.
 
 **Two references to drop per value, not one**, and this is the part that breaks silently:
 `DataStructureReferenceReader` reads a map as the entries you put in it, so a cache's map points straight
