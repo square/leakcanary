@@ -62,7 +62,8 @@ internal class WeakeningReference(
  * Reference strength lives entirely in Shark's ignored reference matchers, and those only say what
  * not to follow, never why. So this reads both halves: a matched [ReferenceReader] for everything
  * that retains, and the fields listed in [WEAKENING_FIELDS_BY_CLASS_NAME] for everything that doesn't,
- * with the strength coming from which class declares them.
+ * with the strength coming from which class declares them. Plus the one weakening reference no class name
+ * can name, an entry of a cache that keeps its values in a plain map — see [CachedMapValues].
  *
  * Deliberately uses the plain field and array readers rather than
  * [shark.AndroidReferenceReaderFactory]: the Android readers present data structures the way you
@@ -90,6 +91,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   private val runningActivityReader = RunningActivityReferenceReader(graph)
 
+  private val cachedMapValues = CachedMapValues(graph)
+
   /**
    * Which fields of a class hold their value without retaining it, by class object id. Cached because
    * it takes a class hierarchy walk to work out and a heap dump has far more instances than classes.
@@ -106,10 +109,22 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   }
 
   /** The references from [source] that keep their target alive. */
-  fun retainingReferencesOf(source: HeapObject): Sequence<Reference> =
-    retainingReader.read(source) + classMetadataReferencesOf(source) +
+  fun retainingReferencesOf(source: HeapObject): Sequence<Reference> {
+    val references = retainingReader.read(source) + classMetadataReferencesOf(source) +
       viewChildReader.childReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
       runningActivityReader.activityReferencesOf(source)
+    val cachedValueIds = cachedMapValues.cachedValueIdsOf(source)
+    return if (cachedValueIds.isEmpty()) {
+      references
+    } else {
+      // Dropped by what they point at rather than by the name of the field they're in, so that no
+      // reference has to have its details resolved to be weighed — reading names is what costs here, and
+      // a cache entry pointing at its value twice is an entry that retains it neither way. The map holding
+      // the entries has its own reference to each value, which [dataStructureReader] reads, and it goes
+      // the same way for the same reason — see [CachedMapValues].
+      references.filter { !cachedValueIds.contains(it.valueObjectId) }
+    }
+  }
 
   /**
    * The arrays ART hangs off a class object to hold what it embeds — its method tables in
@@ -164,16 +179,18 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /**
    * The references from [source] that don't keep their target alive: a `java.lang.ref.Reference`'s
    * `referent`, the `zombie` a `FinalizerReference` holds an object in while it's being finalized, a
-   * thread's own storage, and the entries of a cache from [CACHE_FIELDS_BY_CLASS_NAME]. Empty for anything
-   * else, which is nearly every object of a heap dump.
+   * thread's own storage, and the entries of a cache — from [CACHE_FIELDS_BY_CLASS_NAME] when the cache
+   * wraps each value in a class of its own, and from [CachedMapValues] when it keeps them in a map. Empty
+   * for anything else, which is nearly every object of a heap dump.
    */
   fun weakeningReferencesOf(source: HeapObject): List<WeakeningReference> {
     if (source !is HeapInstance) {
       return emptyList()
     }
+    val cachedValue = cachedValueReferenceOf(source)
     val weakening = weakeningFieldsOf(source.instanceClass)
     if (weakening === NOTHING_WEAKENING) {
-      return emptyList()
+      return listOfNotNull(cachedValue)
     }
     val locationClassObjectId = source.instanceClass.objectId
     return source.readFields()
@@ -186,7 +203,28 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
           WeakeningReference(strength, valueObjectId, field.name, locationClassObjectId)
         }
       }
-      .toList()
+      .toList() + listOfNotNull(cachedValue)
+  }
+
+  /**
+   * What [source] holds as an entry of a cache that keeps its values in a map, at [CACHE] and named after
+   * the field it really is in — see [CachedMapValues]. Null for anything else.
+   *
+   * The same reference [retainingReferencesOf] drops, so that a cached value is held one way and weakly,
+   * the way [CACHE_FIELDS_BY_CLASS_NAME] holds what a cache entry class wraps.
+   */
+  private fun cachedValueReferenceOf(source: HeapInstance): WeakeningReference? {
+    val cachedValueId = cachedMapValues.cachedValueIdOf(source)
+    return if (cachedValueId == ValueHolder.NULL_REFERENCE) {
+      null
+    } else {
+      WeakeningReference(
+        strength = CACHE,
+        valueObjectId = cachedValueId,
+        fieldName = CachedMapValues.VALUE_FIELD_NAME,
+        locationClassObjectId = source.instanceClassId
+      )
+    }
   }
 
   private fun weakeningFieldsOf(instanceClass: HeapClass): WeakeningFields =
@@ -310,11 +348,22 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
      * Cutting as low as the value a cache entry wraps, rather than at the cache itself, is what keeps
      * the cache's own bookkeeping — the map, the entries, the sizes — where it belongs: strongly held by
      * the cache, and its bytes attributed to it.
+     *
+     * Which is also why a cache that wraps its values in nothing is listed in [CachedMapValues] instead:
+     * there the class between the cache and its value is a `HashMap$Node` every map of the heap dump
+     * shares, so naming it here would weaken every map there is.
      */
     private val CACHE_FIELDS_BY_CLASS_NAME = mapOf(
       // Coil 3's memory cache: a bounded LRU of decoded images, halved on TRIM_MEMORY_RUNNING_LOW and
       // cleared on TRIM_MEMORY_BACKGROUND by AndroidSystemCallbacks.
-      "coil3.memory.RealStrongMemoryCache\$InternalValue" to setOf("image")
+      "coil3.memory.RealStrongMemoryCache\$InternalValue" to setOf("image"),
+      // What Glide keeps to hand out again rather than allocate: the bitmaps of `LruBitmapPool`, and the
+      // arrays a decode reads through of `LruArrayPool`. Both are one `GroupedLinkedMap` keyed by the
+      // size and config asked for, so this one entry covers the two of them, and both evict on their own
+      // — over their maximum size, and down to nothing on `onTrimMemory`. Nothing else holds a pooled
+      // object: it is there because it is free, which is what makes it worth telling apart from the
+      // bytes an app is using.
+      "com.bumptech.glide.load.engine.bitmap_recycle.GroupedLinkedMap\$LinkedEntry" to setOf("values")
     )
 
     /**

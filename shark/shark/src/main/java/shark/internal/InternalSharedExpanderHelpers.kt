@@ -1,6 +1,7 @@
 package shark.internal
 
 import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.HeapMapEntry
 import shark.HeapObject.HeapInstance
 import shark.HeapValue
 import shark.Reference
@@ -25,31 +26,80 @@ internal class InternalSharedHashMapReferenceReader(
 
   override val readsCutSet = true
 
-  override fun read(source: HeapInstance): Sequence<Reference> {
-    val table = source[className, tableFieldName]!!.valueAsObjectArray
-    return if (table != null) {
-      val entries = table.readElements().mapNotNull { entryRef ->
-        if (entryRef.isNonNullReference) {
-          val entry = entryRef.asObject!!.asInstance!!
-          generateSequence(entry) { node ->
-            node[nodeClassName, nodeNextFieldName]!!.valueAsInstance
-          }
-        } else {
-          null
+  /**
+   * The entries [source] holds, each as the node holding it and the key and value it maps — which is
+   * what [read] turns into references, and what [shark.MapEntryReader] hands to a caller that needs the
+   * node itself rather than a reference that skips it.
+   *
+   * Empty for a map that has never been written to: a map allocates its table on the first put.
+   */
+  fun readEntries(source: HeapInstance): Sequence<HeapMapEntry> {
+    return entryNodes(source).map { node ->
+      HeapMapEntry(
+        instance = node,
+        key = node[nodeClassName, nodeKeyFieldName]!!.value,
+        value = node[nodeClassName, nodeValueFieldName]!!.value
+      )
+    }
+  }
+
+  /** Every node of [source]'s table, bucket by bucket and down the chain each bucket starts. */
+  private fun entryNodes(source: HeapInstance): Sequence<HeapInstance> {
+    val table = source[className, tableFieldName]!!.valueAsObjectArray ?: return emptySequence()
+    return table.readElements().mapNotNull { entryRef ->
+      if (entryRef.isNonNullReference) {
+        val entry = entryRef.asObject!!.asInstance!!
+        generateSequence(entry) { node ->
+          node[nodeClassName, nodeNextFieldName]!!.valueAsInstance
         }
-      }.flatten()
+      } else {
+        null
+      }
+    }.flatten()
+  }
 
-      val declaringClassId = declaringClassId(source)
+  override fun read(source: HeapInstance): Sequence<Reference> {
+    val declaringClassId = declaringClassId(source)
 
-      val createKeyRef: (HeapValue) -> Reference? = { key ->
-        if (key.isNonNullReference) {
+    val createKeyRef: (HeapValue) -> Reference? = { key ->
+      if (key.isNonNullReference) {
+        Reference(
+          valueObjectId = key.asObjectId!!,
+          isLowPriority = false,
+          lazyDetailsResolver = {
+            LazyDetails(
+              // All entries are represented by the same key name, e.g. "key()"
+              name = keyName,
+              locationClassObjectId = declaringClassId,
+              locationType = ARRAY_ENTRY,
+              isVirtual = true,
+              matchedLibraryLeak = null
+            )
+          }
+        )
+      } else null
+    }
+
+    return if (keysOnly) {
+      entryNodes(source).mapNotNull { node ->
+        val key = node[nodeClassName, nodeKeyFieldName]!!.value
+        createKeyRef(key)
+      }
+    } else {
+      readEntries(source).flatMap { entry ->
+        val key = entry.key
+        val keyRef = createKeyRef(key)
+        val value = entry.value
+        val valueRef = if (value.isNonNullReference) {
           Reference(
-            valueObjectId = key.asObjectId!!,
+            valueObjectId = value.asObjectId!!,
             isLowPriority = false,
             lazyDetailsResolver = {
+              val keyAsString = key.asObject?.asInstance?.readAsJavaString()?.let { "\"$it\"" }
+              val keyAsName =
+                keyAsString ?: key.asObject?.toString() ?: "null"
               LazyDetails(
-                // All entries are represented by the same key name, e.g. "key()"
-                name = keyName,
+                name = keyAsName,
                 locationClassObjectId = declaringClassId,
                 locationType = ARRAY_ENTRY,
                 isVirtual = true,
@@ -58,49 +108,16 @@ internal class InternalSharedHashMapReferenceReader(
             }
           )
         } else null
-      }
-
-      if (keysOnly) {
-        entries.mapNotNull { entry ->
-          val key = entry[nodeClassName, nodeKeyFieldName]!!.value
-          createKeyRef(key)
-        }
-      } else {
-        entries.flatMap { entry ->
-          val key = entry[nodeClassName, nodeKeyFieldName]!!.value
-          val keyRef = createKeyRef(key)
-          val value = entry[nodeClassName, nodeValueFieldName]!!.value
-          val valueRef = if (value.isNonNullReference) {
-            Reference(
-              valueObjectId = value.asObjectId!!,
-              isLowPriority = false,
-              lazyDetailsResolver = {
-                val keyAsString = key.asObject?.asInstance?.readAsJavaString()?.let { "\"$it\"" }
-                val keyAsName =
-                  keyAsString ?: key.asObject?.toString() ?: "null"
-                LazyDetails(
-                  name = keyAsName,
-                  locationClassObjectId = declaringClassId,
-                  locationType = ARRAY_ENTRY,
-                  isVirtual = true,
-                  matchedLibraryLeak = null
-                )
-              }
-            )
-          } else null
-          if (keyRef != null && valueRef != null) {
-            sequenceOf(keyRef, valueRef)
-          } else if (keyRef != null) {
-            sequenceOf(keyRef)
-          } else if (valueRef != null) {
-            sequenceOf(valueRef)
-          } else {
-            emptySequence()
-          }
+        if (keyRef != null && valueRef != null) {
+          sequenceOf(keyRef, valueRef)
+        } else if (keyRef != null) {
+          sequenceOf(keyRef)
+        } else if (valueRef != null) {
+          sequenceOf(valueRef)
+        } else {
+          emptySequence()
         }
       }
-    } else {
-      emptySequence()
     }
   }
 }

@@ -5,7 +5,9 @@ import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
+import shark.ValueHolder
 import shark.ValueHolder.BooleanHolder
+import shark.ValueHolder.FloatHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
@@ -204,6 +206,97 @@ internal fun TemporaryFolder.coilCachedImageHeapDump(alsoShownByATile: Boolean):
         field["result"] = result
       }
       gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 1))
+    }
+  }
+  return file
+}
+
+/**
+ * A heap dump shaped like the caches that wrap what they cache in nothing: the framework's
+ * `android.util.LruCache` holds a payload in a `LinkedHashMap`, and Glide's `LruCache` holds another one
+ * the same way, as the `LruResourceCache` subclass an app using it really has. When [alsoHeldByATile], a
+ * tile holds the payload Glide caches as well.
+ *
+ * The map is built with the class and field names a real one has, `table` and `next` included, because
+ * which entries belong to a cache is read off the heap dump rather than off a class name — see
+ * [CachedMapValues]. Two buckets and a chain of two entries in one of them, so that a walk that only
+ * looked at the buckets, or only at the first entry of a chain, would come up short.
+ */
+internal fun TemporaryFolder.mapCachedPayloadsHeapDump(alsoHeldByATile: Boolean): File {
+  val file = newFile("map-cached-payloads-$alsoHeldByATile.hprof")
+  file.dump {
+    val nothing = ReferenceHolder(ValueHolder.NULL_REFERENCE)
+    val nodeClassId = clazz(
+      className = "java.util.HashMap\$Node",
+      fields = listOf(
+        "key" to ReferenceHolder::class,
+        "value" to ReferenceHolder::class,
+        "next" to ReferenceHolder::class
+      )
+    )
+    val entryClassId = clazz(
+      className = "java.util.LinkedHashMap\$Entry",
+      superclassId = nodeClassId,
+      fields = listOf("before" to ReferenceHolder::class, "after" to ReferenceHolder::class)
+    )
+    val hashMapClassId = clazz(
+      className = "java.util.HashMap",
+      // loadFactor is what tells the OpenJDK implementation from the Apache Harmony one, and every reader
+      // of a map asks: without it Shark reads this map as Harmony's, whose entries are a class this dump
+      // doesn't have, and the walk fails on a field that isn't there. Every real Android dump has it.
+      fields = listOf("table" to ReferenceHolder::class, "loadFactor" to FloatHolder::class)
+    )
+    val mapClassId = clazz(
+      className = "java.util.LinkedHashMap",
+      superclassId = hashMapClassId,
+      fields = listOf("head" to ReferenceHolder::class)
+    )
+    // Field values go most derived class first, so an entry is before, after, then what a node declares.
+    fun entry(
+      key: String,
+      value: ReferenceHolder,
+      next: ReferenceHolder = nothing
+    ) = instance(entryClassId, listOf(nothing, nothing, string(key), value, next))
+
+    fun mapHolding(value: ReferenceHolder): ReferenceHolder {
+      val chained = entry(key = "chained to the one the bucket holds", value = nothing)
+      val entry = entry(key = "cached", value = value, next = chained)
+      val table = ReferenceHolder(
+        objectArray(
+          arrayClass("java.util.HashMap\$Node"),
+          longArrayOf(ValueHolder.NULL_REFERENCE, entry.value)
+        )
+      )
+      return instance(mapClassId, listOf(entry, table, FloatHolder(0.75f)))
+    }
+
+    fun payload() = ReferenceHolder(
+      objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+    )
+
+    val frameworkCached = payload()
+    val frameworkCache = "android.util.LruCache" instance {
+      field["map"] = mapHolding(frameworkCached)
+    }
+    gcRoot(JniGlobal(id = frameworkCache.value, jniGlobalRefId = 0))
+
+    val glideCached = payload()
+    val glideCacheClassId = clazz(
+      className = "com.bumptech.glide.util.LruCache",
+      fields = listOf("cache" to ReferenceHolder::class)
+    )
+    val glideCache = instance(
+      clazz(
+        className = "com.bumptech.glide.load.engine.cache.LruResourceCache",
+        superclassId = glideCacheClassId
+      ),
+      listOf(mapHolding(glideCached))
+    )
+    gcRoot(JniGlobal(id = glideCache.value, jniGlobalRefId = 1))
+
+    if (alsoHeldByATile) {
+      val tile = "com.example.Tile" instance { field["resource"] = glideCached }
+      gcRoot(JniGlobal(id = tile.value, jniGlobalRefId = 2))
     }
   }
   return file

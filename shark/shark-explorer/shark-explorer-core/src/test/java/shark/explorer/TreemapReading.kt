@@ -34,9 +34,18 @@ internal fun HeapDominatorTreemap.dominatorLabelsOf(objectId: Long): List<String
 }
 
 /** Every object of the tree, walked past the groups, which stand for objects rather than being one. */
-internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
+internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> = summariesBelow(root)
+
+/**
+ * Every object the tree draws below [node], however deep and not counting [node] itself: what the tree
+ * says it retains, spelled out.
+ */
+internal fun HeapDominatorTreemap.descendantsOf(node: Long): List<HeapObjectSummary> =
+  children(node).flatMap { child -> summariesBelow(child) }
+
+private fun HeapDominatorTreemap.summariesBelow(from: Long): List<HeapObjectSummary> {
   val summaries = mutableListOf<HeapObjectSummary>()
-  val toVisit = ArrayDeque(listOf(root))
+  val toVisit = ArrayDeque(listOf(from))
   while (toVisit.isNotEmpty()) {
     val node = toVisit.removeFirst()
     if (groupOrNull(node) == null) {
