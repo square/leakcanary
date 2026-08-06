@@ -202,6 +202,29 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `a laid out view names every place a click on it opens a tab at`() {
+    // The crowded root is the dump that draws all three kinds of cell at once: objects, a pile of the
+    // instances of one class, and the children a rectangle had no room to subdivide into.
+    HeapExplorer.open(testFolder.crowdedRootHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val cells = TreemapPresentation.of(tree, TreemapLayout(), VIEWPORT).cells
+
+      // Which is what lets a tab be named as it opens rather than by a read that lands a beat later. The
+      // two have to agree, or a tab would be renamed the moment anything else asked what to call it.
+      val places = cells.map { Place.of(it.cell) }.distinct()
+      assertThat(places.map { cells.titleOf(it) })
+        .isEqualTo(places.map { tree.titleOf(it) })
+      // Not the label alone: a strip of a dozen instances of one class is only one you can pick out of if
+      // each tab says which instance it is.
+      val tile = tree.instancesOf("Tile").first()
+      assertThat(cells.titleOf(Place.Object(tile.objectId)))
+        .isEqualTo("Tile ${hexObjectId(tile.objectId)}")
+      // And nothing at all for a place no cell of this view stands for, which is what has the window fall
+      // back to reading the heap dump for a tab opened from a list or from the chain.
+      assertThat(cells.titleOf(Place.Object(NO_SUCH_OBJECT_ID))).isNull()
+    }
+  }
+
   @Test fun `a cache that evicts is not what keeps an image in memory`() {
     HeapExplorer.open(testFolder.coilCachedImageHeapDump(alsoShownByATile = true)).use { explorer ->
       val tree = explorer.tree
@@ -641,6 +664,9 @@ class HeapExplorerTest {
     private const val CACHE_ENTRY_LABEL = "RealStrongMemoryCache\$InternalValue"
 
     private val VIEWPORT = TreemapRect(left = 0.0, top = 0.0, right = 800.0, bottom = 600.0)
+
+    /** An address no heap dump the tests write has an object at. */
+    private const val NO_SUCH_OBJECT_ID = -1L
 
     /** Matches `MAX_FIELDS` in [HeapDominatorTreemap], which isn't public. */
     private const val MAX_FIELDS_SHOWN = 500

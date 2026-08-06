@@ -103,6 +103,23 @@ class TabStripTest {
     }
   }
 
+  @Test fun `a tab opened from the view is named without reading the heap dump for it`() {
+    explorerUiTest {
+      openHeapDump()
+      // The window's first tab is named by a read of its own, there being no view yet to have drawn it.
+      val readsBefore = logged.count { it.startsWith(NAMING_READ) }
+
+      middleClickTheArray()
+
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { tabs().fetchSemanticsNodes().size == 2 }
+      tab(tabTitleOfTheArray()).assertIsDisplayed()
+      // Named from the rectangle that was clicked, which the view labelled when it laid the tree out. A
+      // read to name it would land a beat after the tab is on the strip, however small a read it is, and
+      // the placeholder it replaces is what someone watching sees as the tab flickering.
+      assertThat(logged.filter { it.startsWith(NAMING_READ) }).hasSize(readsBefore)
+    }
+  }
+
   @Test fun `middle clicking an object opens it in a tab behind the one being read`() {
     explorerUiTest {
       openHeapDump()
@@ -201,6 +218,9 @@ class TabStripTest {
 
     /** Opening a heap dump and laying the tree out both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
+
+    /** What the window logs when it has to read the heap dump to find out what to call a tab. */
+    private const val NAMING_READ = "Reading what to call"
 
     /** An `adb` that answers as if nothing were plugged in, so no test here reaches a real device. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

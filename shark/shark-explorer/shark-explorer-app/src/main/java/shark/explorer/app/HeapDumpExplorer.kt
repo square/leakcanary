@@ -52,6 +52,7 @@ import shark.explorer.ObjectDominator
 import shark.explorer.ObjectList
 import shark.explorer.ObjectListFilter
 import shark.explorer.Place
+import shark.explorer.PresentedCell
 import shark.explorer.RadialLayout
 import shark.explorer.RadialPresentation
 import shark.explorer.RootPath
@@ -180,6 +181,24 @@ internal fun HeapDumpExplorer(
     )
   }
 
+  // What each tab is called, for the tabs the window couldn't name itself. A label is cheap enough to draw
+  // on every rectangle of the map, so naming a strip of them is one small read — but it is still a read,
+  // and reads queue on the heap dump's one thread.
+  //
+  // Which is why this goes in ahead of the effect that lays the view out: opening a tab asks for both, and
+  // the layout is the larger by orders of magnitude. Named after it, a tab would show its placeholder for
+  // as long as laying the tree out takes, which on a real dump is what someone sees as a flicker.
+  val unnamedPlaces = tabs.tabs.map { it.place }.filter { it.title == null && it !in placeTitles }
+  LaunchedEffect(session, unnamedPlaces) {
+    if (unnamedPlaces.isEmpty()) {
+      return@LaunchedEffect
+    }
+    val named = session.read("what to call ${unnamedPlaces.size} tabs") { explorer ->
+      unnamedPlaces.associateWith { explorer.tree.titleOf(it) }
+    }
+    placeTitles = placeTitles + named
+  }
+
   // Resizing, going to an object and switching shape all lay the tree out again, which reads the heap dump
   // for every visible label. All of it ends up here, on the heap dump's thread. Keyed on the request rather
   // than on the place, so that typing into a list doesn't lay the map out again and the map of the tab
@@ -285,20 +304,6 @@ internal fun HeapDumpExplorer(
     }
     delay(HOVER_SETTLE_MILLIS)
     session.describing(hoveredPlace) { hoveredDetails = it }
-  }
-
-  // What each tab is called. A label is cheap enough to draw on every rectangle of the map, so naming a
-  // strip of them is one small read — but it is still a read, which is why a tab opened in the background
-  // is named a beat after it appears rather than not at all.
-  val unnamedPlaces = tabs.tabs.map { it.place }.filter { it.title == null && it !in placeTitles }
-  LaunchedEffect(session, unnamedPlaces) {
-    if (unnamedPlaces.isEmpty()) {
-      return@LaunchedEffect
-    }
-    val named = session.read("what to call ${unnamedPlaces.size} tabs") { explorer ->
-      unnamedPlaces.associateWith { explorer.tree.titleOf(it) }
-    }
-    placeTitles = placeTitles + named
   }
 
   // The panel shows the bitmap it describes as big as the panel is wide, so its pixels are read again at
@@ -409,6 +414,12 @@ internal fun HeapDumpExplorer(
    * does the same thing" has to mean to be true.
    */
   val open: (Place, OpenIn) -> Unit = { destination, openIn ->
+    // Named before the tab exists, from the view the click came from: the read that names tabs is a beat
+    // behind however small it is, and a tab that opens under a placeholder is one whose title, and width,
+    // change as you watch. Everything a view draws is named already, which is most of what is ever clicked.
+    view.presentation.cells.titleOf(destination)?.let { title ->
+      placeTitles = placeTitles + (destination to title)
+    }
     tabs = when (openIn) {
       OpenIn.CURRENT_TAB -> tabs.goTo(destination)
       OpenIn.NEW_TAB -> tabs.open(destination, inBackground = true)
@@ -1102,6 +1113,16 @@ internal sealed interface ViewPresentation {
   data class Radial(val presentation: RadialPresentation) : ViewPresentation
 
   data class Stack(val presentation: StackPresentation) : ViewPresentation
+
+  /**
+   * What was drawn and what it was named, whatever shape it came out as: every place a click on the view
+   * leads to, already named. See [titleOf].
+   */
+  val cells: List<PresentedCell<*>> get() = when (this) {
+    is Treemap -> presentation.cells
+    is Radial -> presentation.cells
+    is Stack -> presentation.cells
+  }
 }
 
 /** What a laid out view amounts to, for the log: one that drew nothing at all says so here. */
