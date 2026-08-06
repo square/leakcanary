@@ -77,6 +77,25 @@ class TabStripTest {
     }
   }
 
+  @Test fun `tabs that no longer fit across the window go on a line of their own`() {
+    explorerUiTest {
+      openHeapDump()
+
+      repeat(TABS_PAST_ONE_LINE) { screenButton(Place.OBJECTS_LABEL).performClick() }
+
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        tabs().fetchSemanticsNodes().size == TABS_PAST_ONE_LINE + 1
+      }
+      // Every tab still readable and still on screen, rather than squeezed to nothing or scrolled off the
+      // edge: which class and which instance of it is the whole of what a tab is for, and a tab you have
+      // to go looking for is one you may as well not have opened.
+      waitForIdle()
+      val bounds = tabs().fetchSemanticsNodes().map { it.boundsInRoot }
+      assertThat(bounds.map { it.top }.distinct()).hasSizeGreaterThan(1)
+      assertThat(bounds).allMatch { it.right <= WINDOW_WIDTH.value }
+    }
+  }
+
   @Test fun `clicking an object inside a tab moves that tab rather than opening one`() {
     explorerUiTest {
       openHeapDump()
@@ -100,6 +119,23 @@ class TabStripTest {
       // of if each tab says which instance it is.
       waitUntilAtLeastOneExists(hasText(tabTitleOfTheArray()), OPEN_TIMEOUT_MILLIS)
       tab(tabTitleOfTheArray()).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `a tab opened from the view is named without reading the heap dump for it`() {
+    explorerUiTest {
+      openHeapDump()
+      // The window's first tab is named by a read of its own, there being no view yet to have drawn it.
+      val readsBefore = logged.count { it.startsWith(NAMING_READ) }
+
+      middleClickTheArray()
+
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { tabs().fetchSemanticsNodes().size == 2 }
+      tab(tabTitleOfTheArray()).assertIsDisplayed()
+      // Named from the rectangle that was clicked, which the view labelled when it laid the tree out. A
+      // read to name it would land a beat after the tab is on the strip, however small a read it is, and
+      // the placeholder it replaces is what someone watching sees as the tab flickering.
+      assertThat(logged.filter { it.startsWith(NAMING_READ) }).hasSize(readsBefore)
     }
   }
 
@@ -201,6 +237,16 @@ class TabStripTest {
 
     /** Opening a heap dump and laying the tree out both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
+
+    /** What the window logs when it has to read the heap dump to find out what to call a tab. */
+    private const val NAMING_READ = "Reading what to call"
+
+    /**
+     * Enough tabs off the bar that they can't all fit across a window, whose width a UI test fixes at
+     * [WINDOW_WIDTH]. A tab named after the object list is one of the narrower ones there is, so this is
+     * comfortably past what a line holds rather than exactly it.
+     */
+    private const val TABS_PAST_ONE_LINE = 20
 
     /** An `adb` that answers as if nothing were plugged in, so no test here reaches a real device. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

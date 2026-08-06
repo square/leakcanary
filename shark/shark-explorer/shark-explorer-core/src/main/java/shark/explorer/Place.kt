@@ -146,3 +146,36 @@ fun HeapDominatorTreemap.titleOf(place: Place): String = when (place) {
   is Place.Leaks -> place.title
   is Place.Starred -> place.title
 }
+
+/**
+ * What a tab opened at [place] is called, from the name a view already drew there, or null for a place
+ * none of these cells stands for.
+ *
+ * The same answer [titleOf] gives, and not a heap dump read: a cell was named when the view was laid out,
+ * so a tab opened by clicking one can be named as it opens instead of a beat later. A beat later is a tab
+ * whose title, and with it its width, change in front of whoever opened it — which is a flicker, and every
+ * cell of every view is one a click opens a tab at.
+ */
+fun List<PresentedCell<*>>.titleOf(place: Place): String? =
+  firstOrNull { Place.of(it.cell) == place }?.title()
+
+/**
+ * What a tab open where this cell leads is called.
+ *
+ * A cell is labelled with a class name and nothing else, because that is all a rectangle has room for. A
+ * tab has room for which instance of it this is, and needs it — see [titleOf].
+ */
+private fun PresentedCell<*>.title(): String {
+  val place = Place.of(cell)
+  // Only one object of the heap dump has an address to be named by: a pile of them is named by how many
+  // it holds, and the whole heap dump is no object at all.
+  return if (
+    place is Place.Object &&
+    content is CellContent.Object &&
+    place.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID
+  ) {
+    "$label ${hexObjectId(place.objectId)}"
+  } else {
+    label
+  }
+}
