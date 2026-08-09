@@ -1,6 +1,9 @@
 package shark.explorer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -19,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
@@ -30,6 +34,7 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.Place
@@ -166,6 +171,68 @@ class TabStripTest {
     }
   }
 
+  @Test fun `right clicking a tab copies a link to where that tab is`() {
+    val copied = mutableListOf<String>()
+    explorerUiTest {
+      openHeapDump(copyToClipboard = { copied += it })
+
+      tab(HeapDominatorTreemap.ROOT_LABEL).performMouseInput { rightClick() }
+      onNodeWithText(COPY_LINK).performClick()
+
+      // The window rather than the heap dump, because the same dump open twice is two places to be —
+      // and the tab's own place, so that following it lands where it was copied from. See [DeepLink].
+      assertThat(copied).containsExactly(DeepLink(WINDOW_ID, Place.wholeHeapDump()).toUri())
+    }
+  }
+
+  @Test fun `a tab copied and followed leads back to the object it was on`() {
+    val copied = mutableListOf<String>()
+    explorerUiTest {
+      openHeapDump(copyToClipboard = { copied += it })
+      clickTheArray()
+      waitUntilAtLeastOneExists(hasText(tabTitleOfTheArray()), OPEN_TIMEOUT_MILLIS)
+
+      tab(tabTitleOfTheArray()).performMouseInput { rightClick() }
+      onNodeWithText(COPY_LINK).performClick()
+
+      // Where a link is copied from is wherever the tab has been moved to, not where it opened: a tab is
+      // read in, and the object worth sending someone is the one being looked at when they are sent it.
+      assertThat(DeepLink.parse(copied.single()).place).isEqualTo(Place.Object(payloadObjectId))
+    }
+  }
+
+  @Test fun `right clicking a button on the bar copies a link to the screen it opens`() {
+    val copied = mutableListOf<String>()
+    explorerUiTest {
+      openHeapDump(copyToClipboard = { copied += it })
+
+      screenButton(Place.LEAKS_LABEL).performMouseInput { rightClick() }
+      onNodeWithText(COPY_LINK).performClick()
+
+      // A button opens a screen nobody has been to yet, and a link to it is that screen as it opens: no
+      // tab has to be opened first to have something to copy.
+      assertThat(copied).containsExactly(DeepLink(WINDOW_ID, Place.Leaks()).toUri())
+      // And nothing was opened by asking for the link, which a menu that clicked the button would have.
+      assertThat(tabs().fetchSemanticsNodes()).hasSize(1)
+    }
+  }
+
+  @Test fun `a link opens the place it names in a tab of its own, in front`() {
+    explorerUiTest {
+      var asked by mutableStateOf(emptyList<Place>())
+      openHeapDump(linkedPlaces = { asked }, onLinkedPlaceOpened = { asked = asked - it })
+
+      asked = listOf(Place.Starred)
+
+      // Always another tab, never the one open: a link is somewhere else to look, and closing what
+      // someone was reading to show them it is the one thing a link should not do.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { tabs().fetchSemanticsNodes().size == 2 }
+      tab(Place.STARRED_LABEL).assertIsSelected()
+      // And taken as it opens, so that the next frame doesn't open it again.
+      assertThat(asked).isEmpty()
+    }
+  }
+
   /** Clicks the array, which covers almost the whole treemap, with the given mouse button. */
   private fun ComposeUiTest.clickTheArray(button: MouseButton = MouseButton.Primary) {
     val view = onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
@@ -194,13 +261,25 @@ class TabStripTest {
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
-  private fun ComposeUiTest.openHeapDump() {
+  private fun ComposeUiTest.openHeapDump(
+    /** Read inside the composition, so that a test can ask for a place once the window is up. */
+    linkedPlaces: () -> List<Place> = { emptyList() },
+    onLinkedPlaceOpened: (Place) -> Unit = {},
+    copyToClipboard: (String) -> Unit = {}
+  ) {
+    // Written before the composition rather than in it: every recomposition would write it again, and
+    // the second one fails rather than returning the file the window is already reading.
+    val heapDumpFile = testHeapDump()
     setContent {
       MaterialTheme {
         ExplorerApp(
-          heapDumpFile = testHeapDump(),
+          heapDumpFile = heapDumpFile,
           onHeapDumpChosen = { _, _ -> },
-          deviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
+          deviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB),
+          deepLinkId = WINDOW_ID,
+          linkedPlaces = linkedPlaces(),
+          onLinkedPlaceOpened = onLinkedPlaceOpened,
+          copyToClipboard = copyToClipboard
         )
       }
     }
@@ -247,6 +326,9 @@ class TabStripTest {
      * comfortably past what a line holds rather than exactly it.
      */
     private const val TABS_PAST_ONE_LINE = 20
+
+    /** What a link copied here names this window by, fixed so that the copied link can be spelled out. */
+    private const val WINDOW_ID = "abcd2345"
 
     /** An `adb` that answers as if nothing were plugged in, so no test here reaches a real device. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

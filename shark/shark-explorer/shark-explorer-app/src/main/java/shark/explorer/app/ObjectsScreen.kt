@@ -58,6 +58,8 @@ internal fun ObjectsScreen(
   isListing: Boolean,
   onFilterChange: (ObjectListFilter) -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
+  /** Puts a link to a row's object on the clipboard, beside opening it. See [OpenTarget]. */
+  onCopyLink: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -77,7 +79,7 @@ internal fun ObjectsScreen(
       HorizontalDivider()
       LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
         items(list.entries, key = { it.objectId }) { entry ->
-          ObjectRow(entry, stronglyReachableByteCount, onOpen)
+          ObjectRow(entry, stronglyReachableByteCount, onOpen, onCopyLink)
         }
       }
     }
@@ -191,55 +193,59 @@ private fun HeaderCell(
 private fun ObjectRow(
   entry: ObjectListEntry,
   stronglyReachableByteCount: Long,
-  onOpen: (Long, OpenIn) -> Unit
+  onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
-  Row(
-    Modifier.fillMaxWidth()
-      .openable { openIn -> onOpen(entry.objectId, openIn) }
-      .padding(horizontal = 12.dp, vertical = 4.dp),
-    horizontalArrangement = Arrangement.spacedBy(8.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(entry.strength)))
-    Column(Modifier.weight(1f)) {
-      Text(
-        entry.classNameText(),
-        style = MaterialTheme.typography.bodyMedium,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
-      )
-      entry.headline?.let { headline ->
+  val open: (OpenIn) -> Unit = { openIn -> onOpen(entry.objectId, openIn) }
+  OpenTarget(open, { onCopyLink(entry.objectId) }) {
+    Row(
+      Modifier.fillMaxWidth()
+        .openable(open)
+        .padding(horizontal = 12.dp, vertical = 4.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(entry.strength)))
+      Column(Modifier.weight(1f)) {
         Text(
-          headline,
-          style = MaterialTheme.typography.bodySmall,
-          color = MUTED_TEXT,
+          entry.classNameText(),
+          style = MaterialTheme.typography.bodyMedium,
           maxLines = 1,
           overflow = TextOverflow.Ellipsis
         )
+        entry.headline?.let { headline ->
+          Text(
+            headline,
+            style = MaterialTheme.typography.bodySmall,
+            color = MUTED_TEXT,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+          )
+        }
       }
-    }
-    Text(
-      formatByteSize(entry.shallowSize),
-      Modifier.width(SIZE_COLUMN_WIDTH),
-      style = MaterialTheme.typography.bodySmall,
-      textAlign = TextAlign.End
-    )
-    // The share under the size rather than beside it: the column is as wide as a size and no wider,
-    // and a table's numbers only line up while every cell in the column is the same shape.
-    Column(Modifier.width(SIZE_COLUMN_WIDTH)) {
       Text(
-        formatByteSize(entry.retainedSize),
-        Modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.bodyMedium,
+        formatByteSize(entry.shallowSize),
+        Modifier.width(SIZE_COLUMN_WIDTH),
+        style = MaterialTheme.typography.bodySmall,
         textAlign = TextAlign.End
       )
-      Text(
-        formatPercentOfTotal(entry.retainedSize, stronglyReachableByteCount),
-        Modifier.fillMaxWidth(),
-        style = MaterialTheme.typography.labelSmall,
-        color = MUTED_TEXT,
-        textAlign = TextAlign.End
-      )
+      // The share under the size rather than beside it: the column is as wide as a size and no wider,
+      // and a table's numbers only line up while every cell in the column is the same shape.
+      Column(Modifier.width(SIZE_COLUMN_WIDTH)) {
+        Text(
+          formatByteSize(entry.retainedSize),
+          Modifier.fillMaxWidth(),
+          style = MaterialTheme.typography.bodyMedium,
+          textAlign = TextAlign.End
+        )
+        Text(
+          formatPercentOfTotal(entry.retainedSize, stronglyReachableByteCount),
+          Modifier.fillMaxWidth(),
+          style = MaterialTheme.typography.labelSmall,
+          color = MUTED_TEXT,
+          textAlign = TextAlign.End
+        )
+      }
     }
   }
 }

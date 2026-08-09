@@ -32,6 +32,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
@@ -43,6 +44,7 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
@@ -204,6 +206,24 @@ class ExplorerAppTest {
       assertThat(after.left).isGreaterThan(before.left)
       assertThat(after.top).isEqualTo(before.top)
       assertThat(after.contains(pointerAt(TREEMAP_X + POINTER_STEP, TREEMAP_Y))).isFalse()
+    }
+  }
+
+  @Test fun `the map's menu copies a link to the rectangle under the pointer`() {
+    val copied = mutableListOf<String>()
+    explorerUiTest {
+      openHeapDump(copyToClipboard = { copied += it })
+      hoverView(TREEMAP_X, TREEMAP_Y)
+      // The card naming the rectangle, which is how a test knows the pointer has settled on one: the menu
+      // acts on what is hovered, and nothing is until then.
+      waitUntilAtLeastOneExists(hasText(hexObjectId(payloadObjectId)), OPEN_TIMEOUT_MILLIS)
+
+      onRoot().performMouseInput { rightClick(pointerAt(TREEMAP_X, TREEMAP_Y)) }
+      onNodeWithText(COPY_LINK).performClick()
+
+      // Beside opening the rectangle in a tab of its own, which is the menu's other item: a link is the
+      // same move made somewhere else, so wherever one is offered so is the other.
+      assertThat(copied).containsExactly(DeepLink(WINDOW_ID, Place.Object(payloadObjectId)).toUri())
     }
   }
 
@@ -768,6 +788,7 @@ class ExplorerAppTest {
   private fun ComposeUiTest.setExplorerContent(
     heapDumpFile: File? = null,
     chooseHeapDumpFile: () -> File? = { null },
+    copyToClipboard: (String) -> Unit = {},
     // An `adb` that is connected to nothing, rather than the one on this machine: a test that shells out
     // has whatever devices happen to be plugged in to answer for.
     deviceHeapDumps: DeviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
@@ -776,17 +797,22 @@ class ExplorerAppTest {
       var shown: File? by remember { mutableStateOf(heapDumpFile) }
       ExplorerApp(
         heapDumpFile = shown,
+        deepLinkId = WINDOW_ID,
         // No pixels to keep track of: nothing here takes a dump off a device, which is the only way
         // any come with one.
         onHeapDumpChosen = { file, _ -> shown = file },
+        copyToClipboard = copyToClipboard,
         chooseHeapDumpFile = chooseHeapDumpFile,
         deviceHeapDumps = deviceHeapDumps
       )
     }
   }
 
-  private fun ComposeUiTest.openHeapDump(heapDumpFile: File = testHeapDump()) {
-    setExplorerContent(heapDumpFile)
+  private fun ComposeUiTest.openHeapDump(
+    heapDumpFile: File = testHeapDump(),
+    copyToClipboard: (String) -> Unit = {}
+  ) {
+    setExplorerContent(heapDumpFile, copyToClipboard = copyToClipboard)
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
   }
 
@@ -986,6 +1012,9 @@ class ExplorerAppTest {
 
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
+
+    /** What a link copied here names this window by, fixed so that the copied link can be spelled out. */
+    private const val WINDOW_ID = "abcd2345"
 
     /** How the log says a treemap was laid out, and what it calls the node at the top of the tree. */
     private const val TREEMAP_LAID_OUT = "Read the treemap rooted at"

@@ -4,6 +4,8 @@ import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Test
+import shark.explorer.DeepLink
+import shark.explorer.Place
 
 /** What a command line means, without launching anything: see [ExplorerArguments]. */
 class ExplorerArgumentsTest {
@@ -57,9 +59,35 @@ class ExplorerArgumentsTest {
       .hasMessageContaining("--titel=$TITLE")
   }
 
+  @Test fun `a link on the command line is a place to go and not a heap dump to open`() {
+    val arguments = ExplorerArguments.parse(listOf(LINK))
+
+    // Which is how Windows and Linux deliver one: the OS starts a process with the link on its command
+    // line, and a link taken for a path would be a window saying that file could not be read.
+    assertThat(arguments.deepLinks).containsExactly(DeepLink("abcd2345", Place.Starred))
+    assertThat(arguments.heapDumpFiles).isEmpty()
+  }
+
+  @Test fun `heap dumps and links can be asked for together`() {
+    val arguments = ExplorerArguments.parse(listOf("--title=$TITLE", FIRST_PATH, LINK))
+
+    assertThat(arguments.heapDumpFiles).containsExactly(File(FIRST_PATH))
+    assertThat(arguments.deepLinks).containsExactly(DeepLink("abcd2345", Place.Starred))
+    assertThat(arguments.titlePrefix).isEqualTo(TITLE)
+  }
+
+  @Test fun `a link nobody can read says what is wrong with it`() {
+    // Rather than being taken for a path, which would report a heap dump that could not be found and send
+    // whoever typed it looking for a file.
+    assertThatThrownBy { ExplorerArguments.parse(listOf("shark://abcd2345/dominators")) }
+      .isInstanceOf(IllegalArgumentException::class.java)
+      .hasMessageContaining("is no place")
+  }
+
   companion object {
     private const val FIRST_PATH = "first.hprof"
     private const val SECOND_PATH = "dumps/second.hprof"
     private const val TITLE = "Hover previews"
+    private const val LINK = "shark://abcd2345/starred"
   }
 }

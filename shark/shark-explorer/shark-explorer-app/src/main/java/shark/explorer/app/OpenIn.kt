@@ -43,21 +43,44 @@ internal enum class OpenIn {
 }
 
 /**
- * Whatever it wraps is a way to an object, with the gestures a browser has taught everyone.
+ * Whatever it wraps is a way to a place, with the gestures a browser has taught everyone.
  *
  * The right click menu is here rather than beside the click handling because it takes a composable to
  * draw, and it is what makes the gesture discoverable: a reader who has never tried ⌘ clicking a
  * rectangle finds the same thing spelled out in words.
+ *
+ * **Copying a link sits beside opening a tab wherever there is one of these**, because they are the same
+ * thought a step apart: a place worth a tab of its own is a place worth sending to someone. See
+ * [shark.explorer.DeepLink].
  */
 @Composable
 internal fun OpenTarget(
   onOpen: (OpenIn) -> Unit,
+  onCopyLink: () -> Unit,
   content: @Composable () -> Unit
 ) {
   ContextMenuArea(
-    items = { listOf(ContextMenuItem(OPEN_IN_NEW_TAB) { onOpen(OpenIn.NEW_TAB) }) },
+    items = {
+      listOf(
+        ContextMenuItem(OPEN_IN_NEW_TAB) { onOpen(OpenIn.NEW_TAB) },
+        ContextMenuItem(COPY_LINK, onCopyLink)
+      )
+    },
     content = content
   )
+}
+
+/**
+ * Whatever it wraps names a place that is already open, or that a click opens with no choice about where.
+ *
+ * A tab and a button on the bar: nothing to offer about which tab, and still a place to link to.
+ */
+@Composable
+internal fun CopyLinkTarget(
+  onCopyLink: () -> Unit,
+  content: @Composable () -> Unit
+) {
+  ContextMenuArea(items = { listOf(ContextMenuItem(COPY_LINK, onCopyLink)) }, content = content)
 }
 
 /**
@@ -118,3 +141,12 @@ private fun PointerEvent.openIn(): OpenIn = when {
 
 /** What the right click menu on anything naming an object offers. */
 internal const val OPEN_IN_NEW_TAB = "Open in a new tab"
+
+/**
+ * And what it offers beside it, everywhere: a `shark://` link to that same place, on the clipboard.
+ *
+ * "Copy link" rather than "Copy link to this object" or "…to this tab", because it is the same item on a
+ * rectangle, a row, a field, a button and a tab, and a menu that renames it per surface reads as five
+ * different things rather than as the one thing it is.
+ */
+internal const val COPY_LINK = "Copy link"

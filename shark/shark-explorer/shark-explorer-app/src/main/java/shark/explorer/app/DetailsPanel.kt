@@ -60,6 +60,8 @@ internal fun DetailsPanel(
   bitmap: ImageBitmap?,
   isStarred: Boolean,
   onOpen: (Long, OpenIn) -> Unit,
+  /** Puts a link to a field's object on the clipboard, beside opening it. See [OpenTarget]. */
+  onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit,
   modifier: Modifier = Modifier
@@ -90,6 +92,7 @@ internal fun DetailsPanel(
           bitmap = bitmap,
           isStarred = isStarred,
           onOpen = onOpen,
+          onCopyLink = onCopyLink,
           onListInstances = onListInstances,
           onToggleStar = onToggleStar
         )
@@ -155,6 +158,7 @@ private fun ObjectDetails(
   bitmap: ImageBitmap?,
   isStarred: Boolean,
   onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit
 ) {
@@ -194,7 +198,7 @@ private fun ObjectDetails(
       Text(LIST_INSTANCES)
     }
   }
-  Fields(summary, onOpen)
+  Fields(summary, onOpen, onCopyLink)
 }
 
 /**
@@ -244,14 +248,15 @@ internal fun Hint(
 @Composable
 private fun Fields(
   summary: HeapObjectSummary,
-  onInspect: (Long, OpenIn) -> Unit
+  onInspect: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
   if (summary.fields.isEmpty()) {
     return
   }
   Text("Fields", style = MaterialTheme.typography.labelSmall)
   summary.fields.forEach { field ->
-    Inspectable("${field.name} = ${field.value}", field.inspectableObjectId, onInspect)
+    Inspectable("${field.name} = ${field.value}", field.inspectableObjectId, onInspect, onCopyLink)
   }
   if (summary.hiddenFieldCount > 0) {
     Text(
@@ -266,17 +271,21 @@ private fun Fields(
 internal fun Inspectable(
   text: String,
   objectId: Long?,
-  onInspect: (Long, OpenIn) -> Unit
+  onInspect: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
   if (objectId == null) {
     Text(text, style = MaterialTheme.typography.bodySmall)
   } else {
-    Text(
-      text,
-      Modifier.openable { openIn -> onInspect(objectId, openIn) },
-      style = MaterialTheme.typography.bodySmall,
-      color = LINK_COLOR
-    )
+    val open: (OpenIn) -> Unit = { openIn -> onInspect(objectId, openIn) }
+    OpenTarget(open, { onCopyLink(objectId) }) {
+      Text(
+        text,
+        Modifier.openable(open),
+        style = MaterialTheme.typography.bodySmall,
+        color = LINK_COLOR
+      )
+    }
   }
 }
 

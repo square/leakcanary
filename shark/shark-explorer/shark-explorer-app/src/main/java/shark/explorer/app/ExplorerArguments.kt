@@ -1,9 +1,11 @@
 package shark.explorer.app
 
 import java.io.File
+import shark.explorer.DeepLink
 
 /**
- * What the command line asked this run to do: which heap dumps to open, and what to call its windows.
+ * What the command line asked this run to do: which heap dumps to open, what to call its windows, and
+ * which links to follow.
  *
  * Plain state parsed from the arguments, so what a command line means is unit tested rather than found
  * out by launching the app.
@@ -19,7 +21,12 @@ internal data class ExplorerArguments(
    * for a piece of work can say which work it is: "the window titled *Hover previews* is the one with the
    * change in it".
    */
-  val titlePrefix: String?
+  val titlePrefix: String?,
+  /**
+   * Places to go to, in the order they were named. How Windows and Linux deliver a link — the OS starts a
+   * process per one — and how a link is followed by hand on any of the three. See [DeepLink].
+   */
+  val deepLinks: List<DeepLink> = emptyList()
 ) {
 
   companion object {
@@ -34,6 +41,7 @@ internal data class ExplorerArguments(
     fun parse(args: List<String>): ExplorerArguments {
       var titlePrefix: String? = null
       val heapDumpFiles = mutableListOf<File>()
+      val deepLinks = mutableListOf<DeepLink>()
       val remaining = ArrayDeque(args)
       while (remaining.isNotEmpty()) {
         val argument = remaining.removeFirst()
@@ -45,6 +53,12 @@ internal data class ExplorerArguments(
           }
           argument.startsWith("$TITLE_OPTION=") -> argument.substringAfter('=')
           argument.startsWith("-") -> throw IllegalArgumentException("Unknown option $argument. $USAGE")
+          // Ahead of taking it for a path, and by its scheme rather than by anything about this app's
+          // state: a link is what Windows and Linux put on the command line to deliver one.
+          DeepLink.looksLikeOne(argument) -> {
+            deepLinks += DeepLink.parse(argument)
+            titlePrefix
+          }
           else -> {
             heapDumpFiles += File(argument)
             titlePrefix
@@ -52,13 +66,18 @@ internal data class ExplorerArguments(
         }
       }
       require(titlePrefix != "") { "$TITLE_OPTION was given nothing to call the windows. $USAGE" }
-      return ExplorerArguments(heapDumpFiles = heapDumpFiles, titlePrefix = titlePrefix)
+      return ExplorerArguments(
+        heapDumpFiles = heapDumpFiles,
+        titlePrefix = titlePrefix,
+        deepLinks = deepLinks
+      )
     }
 
     private const val TITLE_OPTION = "--title"
 
     /** Shown with whatever was wrong, so that the message says what to type instead. */
-    private const val USAGE =
-      "Usage: shark-explorer [$TITLE_OPTION=\"<window title prefix>\"] [<heap dump>…]"
+    private val USAGE =
+      "Usage: shark-explorer [$TITLE_OPTION=\"<window title prefix>\"] [<heap dump>…] " +
+        "[${DeepLink.SCHEME}://<window>/<place>…]"
   }
 }

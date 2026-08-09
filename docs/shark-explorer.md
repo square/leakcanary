@@ -55,8 +55,8 @@ a few seconds.
   clickable, which is also the way back out.
 * **Everything naming an object is a way to it**, and the same three clicks work everywhere: click to go
   there in this tab, middle click or ⌘/Ctrl click to open it in a tab behind this one, right click for a
-  menu that says so. The buttons along the top always open a new tab, and every tab can be closed —
-  including the last, which leaves the heap dump open and the buttons ready.
+  menu offering both that and a link to the object. The buttons along the top always open a new tab, and
+  every tab can be closed — including the last, which leaves the heap dump open and the buttons ready.
 * **The three panes are resizable, and each folds away to a button.** A chain thirty steps long or a
   details panel of forty fields is sometimes worth the whole window.
 * **Shape** switches between rectangles and rings. A ring has room for fewer children, so it groups the
@@ -67,6 +67,36 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
+
+## Link to a tab
+
+**Right click and pick "Copy link"** to get a `shark://` URL of wherever that is. Paste it anywhere links
+are clickable — a chat message, an issue, a note to yourself — and clicking it brings Shark Explorer to
+the front and opens that place in a new tab.
+
+It sits beside "open in a new tab" everywhere that offers one: a tab, a button along the top, a rectangle
+of the map, a row of the object list or of the leaks, a step of a chain, a field of the details panel, a
+starred object. Wherever the window will take you somewhere, it will also hand you the link to it.
+
+```
+shark://vugs93jp/object?id=0x7f2a4b18
+shark://vugs93jp/objects?query=Bitmap&exact=true
+shark://vugs93jp/leaks
+```
+
+Anywhere a tab can be is a link: an object, the object list with its search and filters filled in, the
+leaks with the same groups unfolded, the starred objects. So "look at this" is a URL rather than a
+paragraph of directions, which is also how a tool or an agent that has read your heap dump can point you
+straight at what it found.
+
+The part after `shark://` is **the window, not the heap dump** — the same dump open twice is two windows,
+and a link leads to the one it was copied from. Which means a link works while that window is open and
+stops working once it is closed or the app is restarted; following one then opens an empty window saying
+so. A link never replaces what you were reading: it always opens a tab of its own.
+
+Links reach the app from an installed build — the installer is what tells the OS that `shark://` is this
+app's. A copy run from source can still be linked to from another one, but the OS won't start it for a
+link.
 
 ## Reporting a problem
 

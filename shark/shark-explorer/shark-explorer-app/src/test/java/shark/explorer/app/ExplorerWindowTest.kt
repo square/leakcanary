@@ -4,6 +4,8 @@ import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
+import shark.explorer.DeepLink
+import shark.explorer.Place
 
 /**
  * How many windows the app has and which heap dump each one shows. No heap dump is read here: a window
@@ -116,6 +118,87 @@ class ExplorerWindowTest {
       .containsExactly("$TITLE · ${FIRST_DUMP.name}", "$TITLE · ${SECOND_DUMP.name}")
   }
 
+  @Test fun `every window answers to an id of its own`() {
+    val windows = explorerWindows(opening(FIRST_DUMP, FIRST_DUMP))
+
+    // The whole reason a link names a window rather than a heap dump: the same dump open twice is two
+    // places to be, and a link has to lead to the one it was copied from.
+    assertThat(windows.map { it.deepLinkId }).doesNotHaveDuplicates()
+  }
+
+  @Test fun `a link goes to the window it names and to no other`() {
+    val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
+    val (first, second) = windows
+
+    windows.open(DeepLink(second.deepLinkId, Place.Starred))
+
+    assertThat(second.linkedPlaces).containsExactly(Place.Starred)
+    assertThat(first.linkedPlaces).isEmpty()
+    assertThat(windows).hasSize(2)
+  }
+
+  @Test fun `a place a link asked for is dropped once a tab has opened it`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+    val window = windows.single()
+    windows.open(DeepLink(window.deepLinkId, Place.Leaks()))
+
+    window.linkedPlaceOpened(Place.Leaks())
+
+    // Otherwise every recomposition would open the tab again, which is what a link asked for once looking
+    // like a link followed forever would be.
+    assertThat(window.linkedPlaces).isEmpty()
+  }
+
+  @Test fun `two links are two tabs, in the order they arrived`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+    val window = windows.single()
+
+    windows.open(DeepLink(window.deepLinkId, Place.Starred))
+    windows.open(DeepLink(window.deepLinkId, Place.Leaks()))
+
+    assertThat(window.linkedPlaces).containsExactly(Place.Starred, Place.Leaks())
+  }
+
+  @Test fun `a link to a window that has gone opens one saying so`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    windows.open(DeepLink(CLOSED_WINDOW_ID, Place.Starred))
+
+    // Rather than nothing at all, which is the one answer that can't be told from the app having failed
+    // to start — and a link is usually followed from somewhere that can't see either way.
+    assertThat(windows).hasSize(2)
+    assertThat(windows.last().deepLinkProblem).contains(CLOSED_WINDOW_ID)
+    assertThat(windows.last().heapDumpFile).isNull()
+    assertThat(logged).anyMatch { CLOSED_WINDOW_ID in it }
+  }
+
+  @Test fun `a window opened by a link that found nothing lands beside the others`() {
+    val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
+
+    windows.open(DeepLink(CLOSED_WINDOW_ID, Place.Starred))
+
+    assertThat(windows.map { it.cascade }).doesNotHaveDuplicates()
+  }
+
+  @Test fun `a window that gets a heap dump stops saying a link found nothing`() {
+    val windows = explorerWindows(noHeapDumps())
+    windows.open(DeepLink(CLOSED_WINDOW_ID, Place.Starred))
+    val empty = windows.last()
+
+    windows.openHeapDump(empty, FIRST_DUMP)
+
+    // The message was about this window having nothing in it, and now it has something in it.
+    assertThat(empty.deepLinkProblem).isNull()
+  }
+
+  @Test fun `a run knows which windows are its own`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    // What another run of this app asks before handing a link over. See [DeepLinkPeers].
+    assertThat(windows.holds(windows.single().deepLinkId)).isTrue()
+    assertThat(windows.holds(CLOSED_WINDOW_ID)).isFalse()
+  }
+
   private fun noHeapDumps(titlePrefix: String? = null) =
     ExplorerArguments(heapDumpFiles = emptyList(), titlePrefix = titlePrefix)
 
@@ -129,5 +212,8 @@ class ExplorerWindowTest {
     private val FIRST_DUMP = File("first.hprof")
     private val SECOND_DUMP = File("second.hprof")
     private const val TITLE = "Hover previews"
+
+    /** Shaped like one this run could have handed out, and belonging to no window of it. */
+    private const val CLOSED_WINDOW_ID = "qrst6789"
   }
 }

@@ -35,12 +35,15 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.BitmapCounts
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapLeaks
@@ -100,6 +103,13 @@ internal fun HeapDumpExplorer(
   deviceHeapDumps: DeviceHeapDumps,
   /** Already fetched off the device, when the dump was taken with the pixels asked for in the same go. */
   fetchedBitmapPixels: NativeBitmapPixels? = null,
+  /** What a link to one of these tabs names this window by. See [DeepLink]. */
+  deepLinkId: String = remember { DeepLink.newWindowId() },
+  /** Places a link has asked for, opened as tabs. See [ExplorerWindow.linkedPlaces]. */
+  linkedPlaces: List<Place> = emptyList(),
+  onLinkedPlaceOpened: (Place) -> Unit = {},
+  /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
+  copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
   modifier: Modifier = Modifier
 ) {
   var tabs by remember { mutableStateOf(Tabs.opening(Place.wholeHeapDump())) }
@@ -179,6 +189,17 @@ internal fun HeapDumpExplorer(
       radialLayout = radialLayout,
       stackLayout = stackLayout
     )
+  }
+
+  // A link that arrived is a tab, always a new one and always in front: following a link is asking to be
+  // somewhere else, and it must not throw away the tab it was followed from. One per run of this effect
+  // rather than a loop over the list, so that a link arriving while another is being opened is queued
+  // behind it rather than racing it.
+  LaunchedEffect(linkedPlaces) {
+    val linked = linkedPlaces.firstOrNull() ?: return@LaunchedEffect
+    SharkLog.d { "A link asked this window for $linked" }
+    tabs = tabs.open(linked)
+    onLinkedPlaceOpened(linked)
   }
 
   // What each tab is called, for the tabs the window couldn't name itself. A label is cheap enough to draw
@@ -442,6 +463,21 @@ internal fun HeapDumpExplorer(
    * been reading all along — there is no second hit test to run for it.
    */
   val openHovered: (OpenIn) -> Unit = { openIn -> hovered?.place?.let { open(it, openIn) } }
+  /**
+   * Where every "copy link" in this window ends up, for the same reason [open] is one function: a link to a
+   * rectangle, a row, a field, a button and a tab is one thing, and five of them would drift.
+   */
+  val copyLink: (Place) -> Unit = { destination ->
+    val link = DeepLink(deepLinkId, destination).toUri()
+    // In the log as well as on the clipboard, so that a link someone reports as not working can be compared
+    // against the one this window actually handed out.
+    SharkLog.d { "Copied $link" }
+    copyToClipboard(link)
+  }
+  /** The same, for everything that names an object by its id. */
+  val copyObjectLink: (Long) -> Unit = { objectId -> copyLink(Place.Object(objectId)) }
+  /** And for the view's right click menu, which is on whatever the pointer is on. */
+  val copyHoveredLink: () -> Unit = { hovered?.place?.let { copyLink(it) } }
 
   if (showsBitmapsFromDevice) {
     BitmapsFromDeviceDialog(
@@ -465,17 +501,16 @@ internal fun HeapDumpExplorer(
     ScreenBar(
       starredCount = favourites.size,
       bitmapCounts = bitmapCounts,
-      onShowWholeHeapDump = { openInNewTab(Place.wholeHeapDump()) },
-      onListObjects = { openInNewTab(Place.Objects()) },
-      onShowLeaks = { openInNewTab(Place.Leaks()) },
-      onShowStarred = { openInNewTab(Place.Starred) },
+      onOpen = openInNewTab,
+      onCopyLink = copyLink,
       onFetchBitmaps = { showsBitmapsFromDevice = true }
     )
     TabStrip(
       tabs = tabs,
       titleOf = { it.title ?: placeTitles[it] ?: NAMING_TAB },
       onSelect = { id -> tabs = tabs.select(id) },
-      onClose = { id -> tabs = tabs.close(id) }
+      onClose = { id -> tabs = tabs.close(id) },
+      onCopyLink = copyLink
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
       HistoryArrows(
@@ -501,6 +536,7 @@ internal fun HeapDumpExplorer(
           favourites = favourites,
           sizes = sizes,
           onOpen = openObject,
+          onCopyLink = copyObjectLink,
           onReplacePlace = { tabs = tabs.replacingCurrent(it) },
           onRemoveStar = { objectId -> favourites = favourites.filterNot { it.objectId == objectId } },
           modifier = Modifier.fillMaxSize()
@@ -517,7 +553,8 @@ internal fun HeapDumpExplorer(
             ways = detourWays,
             chosenWays = chosenWays,
             onChooseWay = { detour, way -> chosenWays = chosenWays + (detour to way) },
-            onOpen = openObject
+            onOpen = openObject,
+            onCopyLink = copyObjectLink
           )
           ViewPane(
             panes = panes,
@@ -540,6 +577,7 @@ internal fun HeapDumpExplorer(
             onHover = onHover,
             onClick = onClickCell,
             onOpenHovered = openHovered,
+            onCopyHoveredLink = copyHoveredLink,
             onMeasured = { viewportSize = it }
           )
           DetailsPane(
@@ -549,6 +587,7 @@ internal fun HeapDumpExplorer(
             bitmap = describedBitmap,
             isStarred = favourites.any { it.objectId == describedSummary?.objectId },
             onOpen = openObject,
+            onCopyLink = copyObjectLink,
             onListInstances = { className ->
               open(
                 Place.Objects(
@@ -593,6 +632,22 @@ internal fun HeapDumpExplorer(
 }
 
 /**
+ * Puts [text] on the system clipboard, through AWT.
+ *
+ * AWT's clipboard rather than Compose's, because this is one call from an event handler rather than
+ * something a composable has to hold: Compose's is a composition local and a suspending write, both of
+ * which would have to be threaded down to the tab that is being copied.
+ */
+internal fun copyTextToClipboard(text: String) {
+  try {
+    Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
+  } catch (throwable: Throwable) {
+    // A headless JVM and a desktop with no clipboard both land here, and neither is worth a dialog.
+    SharkLog.d(throwable) { "Could not put \"$text\" on the clipboard" }
+  }
+}
+
+/**
  * Which cell of the view to outline, which is only ever the pile of objects a rectangle had no room for.
  *
  * An object's own view is rooted at the object, so outlining it would be outlining the edge of the window:
@@ -614,7 +669,8 @@ private fun RowScope.ChainPane(
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  onOpen: (Long, OpenIn) -> Unit
+  onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
   if (panes.isFolded(Pane.CHAIN)) {
     FoldedPane(Pane.CHAIN) { panes.toggleFold(Pane.CHAIN) }
@@ -634,6 +690,7 @@ private fun RowScope.ChainPane(
       chosenWays = chosenWays,
       onChooseWay = onChooseWay,
       onOpen = onOpen,
+      onCopyLink = onCopyLink,
       modifier = Modifier.weight(1f).fillMaxWidth()
     )
   }
@@ -666,6 +723,8 @@ private fun RowScope.ViewPane(
   onClick: (LayoutCell<Long>, OpenIn) -> Unit,
   /** Where the right click menu over the view leads, which is whatever the pointer is on. */
   onOpenHovered: (OpenIn) -> Unit,
+  /** And what that menu copies a link to, which is the same rectangle. */
+  onCopyHoveredLink: () -> Unit,
   onMeasured: (IntSize) -> Unit
 ) {
   if (panes.isFolded(Pane.VIEW)) {
@@ -691,7 +750,7 @@ private fun RowScope.ViewPane(
     Box(Modifier.weight(1f).fillMaxWidth()) {
       // The one gesture the views can't read themselves: a right click is the menu's, and the menu is what
       // makes middle clicking a rectangle findable by someone who has never tried it.
-      OpenTarget(onOpenHovered) {
+      OpenTarget(onOpenHovered, onCopyHoveredLink) {
         TreeScreen(
           view = view,
           stronglyReachableByteCount = sizes.stronglyReachableByteCount,
@@ -726,6 +785,7 @@ private fun RowScope.DetailsPane(
   bitmap: ImageBitmap?,
   isStarred: Boolean,
   onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit
 ) {
@@ -744,6 +804,7 @@ private fun RowScope.DetailsPane(
       bitmap = bitmap,
       isStarred = isStarred,
       onOpen = onOpen,
+      onCopyLink = onCopyLink,
       onListInstances = onListInstances,
       onToggleStar = onToggleStar,
       modifier = Modifier.weight(1f).fillMaxWidth()
@@ -784,6 +845,7 @@ private fun ListPlace(
   favourites: List<Favourite>,
   sizes: HeapSizes,
   onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit,
   onReplacePlace: (Place) -> Unit,
   onRemoveStar: (Long) -> Unit,
   modifier: Modifier = Modifier
@@ -798,6 +860,7 @@ private fun ListPlace(
       // rather than walking back through what was typed into it.
       onFilterChange = { filter -> onReplacePlace(place.copy(filter = filter)) },
       onOpen = onOpen,
+      onCopyLink = onCopyLink,
       modifier = modifier
     )
     is Place.Leaks -> LeaksScreen(
@@ -814,12 +877,14 @@ private fun ListPlace(
         )
       },
       onOpen = onOpen,
+      onCopyLink = onCopyLink,
       modifier = modifier
     )
     is Place.Starred -> StarredScreen(
       favourites = favourites,
       stronglyReachableByteCount = sizes.stronglyReachableByteCount,
       onOpen = onOpen,
+      onCopyLink = onCopyLink,
       onRemove = onRemoveStar,
       modifier = modifier
     )
@@ -871,10 +936,9 @@ private fun DescribedObject(selection: Selection?) {
 private fun ScreenBar(
   starredCount: Int,
   bitmapCounts: BitmapCounts,
-  onShowWholeHeapDump: () -> Unit,
-  onListObjects: () -> Unit,
-  onShowLeaks: () -> Unit,
-  onShowStarred: () -> Unit,
+  onOpen: (Place) -> Unit,
+  /** A link to the screen a button leads to, from the right click menu on it. See [CopyLinkTarget]. */
+  onCopyLink: (Place) -> Unit,
   onFetchBitmaps: () -> Unit
 ) {
   Row(
@@ -882,26 +946,45 @@ private fun ScreenBar(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    TextButton(onClick = onShowWholeHeapDump) {
-      Text(HeapDominatorTreemap.ROOT_LABEL)
-    }
-    TextButton(onClick = onListObjects) {
-      Text(Place.OBJECTS_LABEL)
-    }
+    ScreenButton(Place.wholeHeapDump(), HeapDominatorTreemap.ROOT_LABEL, onOpen, onCopyLink)
+    ScreenButton(Place.Objects(), Place.OBJECTS_LABEL, onOpen, onCopyLink)
     // Beside the list of every object, because it is the same list with the answer already found in it:
     // the objects that shouldn't be there, gathered into the leaks they are instances of.
-    TextButton(onClick = onShowLeaks) {
-      Text(Place.LEAKS_LABEL)
-    }
-    TextButton(onClick = onShowStarred, enabled = starredCount > 0) {
-      Text("$STARRED_GLYPH $starredCount starred")
-    }
+    ScreenButton(Place.Leaks(), Place.LEAKS_LABEL, onOpen, onCopyLink)
+    ScreenButton(
+      place = Place.Starred,
+      label = "$STARRED_GLYPH $starredCount starred",
+      onOpen = onOpen,
+      onCopyLink = onCopyLink,
+      isEnabled = starredCount > 0
+    )
     // Only when there are bitmaps the dump has no pixels for, because that's the only thing a device can
     // add: pixels the dump carries are already on the map by the time this bar is read.
     if (bitmapCounts.withoutImageCount > 0) {
       TextButton(onClick = onFetchBitmaps) {
         Text("$FETCH_BITMAPS ${bitmapCountText(bitmapCounts.withoutImageCount)}")
       }
+    }
+  }
+}
+
+/**
+ * One button of the bar: a screen it always opens a tab of its own on, and a link to that screen.
+ *
+ * No "open in a new tab" in its menu, unlike everything else that leads somewhere: this is the one kind of
+ * way to a place that has no other tab to open in.
+ */
+@Composable
+private fun ScreenButton(
+  place: Place,
+  label: String,
+  onOpen: (Place) -> Unit,
+  onCopyLink: (Place) -> Unit,
+  isEnabled: Boolean = true
+) {
+  CopyLinkTarget({ onCopyLink(place) }) {
+    TextButton(onClick = { onOpen(place) }, enabled = isEnabled) {
+      Text(label)
     }
   }
 }

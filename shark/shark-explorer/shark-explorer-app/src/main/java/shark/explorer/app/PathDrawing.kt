@@ -71,17 +71,21 @@ import shark.explorer.hexObjectId
 @Composable
 internal fun PathRootRow(
   nextStrength: ReachabilityStrength?,
-  onOpen: (Long, OpenIn) -> Unit
+  onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     NodeGutter(kind = null, incoming = null, outgoing = nextStrength, endsInArrow = nextStrength != null)
     Column(Modifier.padding(bottom = PathDetail.FULL.rowSpacing)) {
-      Text(
-        HeapDominatorTreemap.ROOT_LABEL,
-        Modifier.openable { openIn -> onOpen(HeapDominatorTreemap.ROOT_OBJECT_ID, openIn) },
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Bold
-      )
+      val open: (OpenIn) -> Unit = { openIn -> onOpen(HeapDominatorTreemap.ROOT_OBJECT_ID, openIn) }
+      OpenTarget(open, { onCopyLink(HeapDominatorTreemap.ROOT_OBJECT_ID) }) {
+        Text(
+          HeapDominatorTreemap.ROOT_LABEL,
+          Modifier.openable(open),
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = FontWeight.Bold
+        )
+      }
     }
   }
 }
@@ -125,6 +129,7 @@ internal fun PathStepRow(
   /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
   stronglyReachableByteCount: Long,
   onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit,
   role: PathRole = PathRole.STEP,
   detail: PathDetail = PathDetail.FULL,
   /** What hangs under the object, which is where a stretch of the chain below it is switched. */
@@ -156,7 +161,8 @@ internal fun PathStepRow(
         typeName = step.kind.typeName,
         objectId = step.objectId,
         // Folded objects are drawn nowhere on the map: a string's characters are counted inside the string.
-        onOpen = if (step.isInspectable) ({ openIn -> onOpen(step.objectId, openIn) }) else null
+        onOpen = if (step.isInspectable) ({ openIn -> onOpen(step.objectId, openIn) }) else null,
+        onCopyLink = { onCopyLink(step.objectId) }
       )
     } else {
       BriefStepLine(step, stronglyReachableByteCount)
@@ -357,9 +363,28 @@ internal fun ObjectIdentity(
   objectId: Long?,
   modifier: Modifier = Modifier,
   /** Where clicking it goes, or null for a name that is already what the window is showing. */
-  onOpen: ((OpenIn) -> Unit)? = null
+  onOpen: ((OpenIn) -> Unit)? = null,
+  /** Put on the clipboard by the menu beside "open in a new tab", so only where there is one. */
+  onCopyLink: () -> Unit = {}
 ) {
-  Column(if (onOpen == null) modifier else modifier.openable(onOpen)) {
+  if (onOpen == null) {
+    ObjectIdentityLines(className, typeName, objectId, modifier)
+    return
+  }
+  OpenTarget(onOpen, onCopyLink) {
+    ObjectIdentityLines(className, typeName, objectId, modifier.openable(onOpen))
+  }
+}
+
+/** The lines themselves, which are the same whether or not this name leads anywhere. */
+@Composable
+private fun ObjectIdentityLines(
+  className: String,
+  typeName: String?,
+  objectId: Long?,
+  modifier: Modifier
+) {
+  Column(modifier) {
     Text(
       // One line of text rather than two words side by side: what the object is reads as one phrase, and
       // anything that has to find this line by what it says — a test, a screen reader — finds one of it.
