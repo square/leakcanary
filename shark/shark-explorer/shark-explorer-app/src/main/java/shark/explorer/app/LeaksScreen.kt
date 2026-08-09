@@ -56,6 +56,8 @@ internal fun LeaksScreen(
   expandedGroups: Set<String>,
   onToggleGroup: (String) -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
+  /** Puts a link to a row's object on the clipboard, beside opening it. See [OpenTarget]. */
+  onCopyLink: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -92,7 +94,8 @@ internal fun LeaksScreen(
               LeakingObjectRow(
                 leakingObject = group.objects.first(),
                 isLast = !hasMore,
-                onOpen = onOpen
+                onOpen = onOpen,
+                onCopyLink = onCopyLink
               )
             }
             if (hasMore) {
@@ -111,7 +114,8 @@ internal fun LeaksScreen(
                     LeakingObjectRow(
                       leakingObject = leakingObject,
                       isLast = index == group.objects.size - 2,
-                      onOpen = onOpen
+                      onOpen = onOpen,
+                      onCopyLink = onCopyLink
                     )
                   }
                 }
@@ -292,57 +296,65 @@ private fun LeakingObjectRow(
   leakingObject: LeakingObject,
   /** Whether it closes the leak it is in, which is where the rule down the objects stops. */
   isLast: Boolean,
-  onOpen: (Long, OpenIn) -> Unit
+  onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).background(INSTANCE_BACKGROUND)) {
     SectionBar()
     Spacer(Modifier.width(INSTANCE_INSET - SECTION_BAR_WIDTH))
     InstanceRule(isLast)
     Column(Modifier.weight(1f).padding(start = 8.dp, end = 12.dp, bottom = 4.dp)) {
-      Row(
-        Modifier.fillMaxWidth().openable { openIn -> onOpen(leakingObject.objectId, openIn) }
-          .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-      ) {
-        Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(leakingObject.strength)))
-        Column(Modifier.weight(1f)) {
-          Text(
-            leakingObject.identityText(),
-            style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-          )
-          leakingObject.headline?.let { headline ->
+      val open: (OpenIn) -> Unit = { openIn -> onOpen(leakingObject.objectId, openIn) }
+      OpenTarget(open, { onCopyLink(leakingObject.objectId) }) {
+        Row(
+          Modifier.fillMaxWidth().openable(open).padding(vertical = 2.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(leakingObject.strength)))
+          Column(Modifier.weight(1f)) {
             Text(
-              headline,
+              leakingObject.identityText(),
               style = MaterialTheme.typography.bodySmall,
-              color = MUTED_TEXT,
               maxLines = 1,
               overflow = TextOverflow.Ellipsis
             )
+            leakingObject.headline?.let { headline ->
+              Text(
+                headline,
+                style = MaterialTheme.typography.bodySmall,
+                color = MUTED_TEXT,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+              )
+            }
+            // Why *this* object shouldn't be here, which the inspector that recognized it read off the object
+            // itself: two objects of one leak can be leaking for reasons that don't read the same.
+            leakingObject.leakingReason?.let { reason ->
+              Text(
+                reason,
+                style = MaterialTheme.typography.bodySmall,
+                color = MUTED_TEXT,
+                maxLines = MAX_SUBTITLE_LINES,
+                overflow = TextOverflow.Ellipsis
+              )
+            }
           }
-          // Why *this* object shouldn't be here, which the inspector that recognized it read off the object
-          // itself: two objects of one leak can be leaking for reasons that don't read the same.
-          leakingObject.leakingReason?.let { reason ->
-            Text(
-              reason,
-              style = MaterialTheme.typography.bodySmall,
-              color = MUTED_TEXT,
-              maxLines = MAX_SUBTITLE_LINES,
-              overflow = TextOverflow.Ellipsis
-            )
-          }
+          Text(
+            formatByteSize(leakingObject.retainedSize),
+            Modifier.width(SIZE_COLUMN_WIDTH),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.End
+          )
         }
-        Text(
-          formatByteSize(leakingObject.retainedSize),
-          Modifier.width(SIZE_COLUMN_WIDTH),
-          style = MaterialTheme.typography.bodySmall,
-          textAlign = TextAlign.End
-        )
       }
       leakingObject.watcher?.let { watcher ->
-        WatcherRow(watcher, alreadySaid = leakingObject.leakingReason.orEmpty(), onOpen = onOpen)
+        WatcherRow(
+          watcher = watcher,
+          alreadySaid = leakingObject.leakingReason.orEmpty(),
+          onOpen = onOpen,
+          onCopyLink = onCopyLink
+        )
       }
     }
   }
@@ -379,21 +391,23 @@ private fun WatcherRow(
    * inspector built out of the watcher's own description — so printing it again is printing it twice.
    */
   alreadySaid: String,
-  onOpen: (Long, OpenIn) -> Unit
+  onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
-  Column(
-    Modifier.fillMaxWidth().openable { openIn -> onOpen(watcher.weakReferenceObjectId, openIn) }
-      .padding(bottom = 2.dp)
-  ) {
-    Text(watcher.watchText(), style = MaterialTheme.typography.bodySmall, color = LINK_COLOR)
-    if (watcher.description.isNotEmpty() && watcher.description !in alreadySaid) {
-      Text(
-        watcher.description,
-        style = MaterialTheme.typography.bodySmall,
-        color = MUTED_TEXT,
-        maxLines = MAX_SUBTITLE_LINES,
-        overflow = TextOverflow.Ellipsis
-      )
+  val objectId = watcher.weakReferenceObjectId
+  val open: (OpenIn) -> Unit = { openIn -> onOpen(objectId, openIn) }
+  OpenTarget(open, { onCopyLink(objectId) }) {
+    Column(Modifier.fillMaxWidth().openable(open).padding(bottom = 2.dp)) {
+      Text(watcher.watchText(), style = MaterialTheme.typography.bodySmall, color = LINK_COLOR)
+      if (watcher.description.isNotEmpty() && watcher.description !in alreadySaid) {
+        Text(
+          watcher.description,
+          style = MaterialTheme.typography.bodySmall,
+          color = MUTED_TEXT,
+          maxLines = MAX_SUBTITLE_LINES,
+          overflow = TextOverflow.Ellipsis
+        )
+      }
     }
   }
 }

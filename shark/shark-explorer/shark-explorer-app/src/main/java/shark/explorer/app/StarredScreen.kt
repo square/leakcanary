@@ -33,6 +33,8 @@ internal fun StarredScreen(
   /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
   stronglyReachableByteCount: Long,
   onOpen: (Long, OpenIn) -> Unit,
+  /** Puts a link to a starred object on the clipboard, beside opening it. See [OpenTarget]. */
+  onCopyLink: (Long) -> Unit,
   onRemove: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -48,7 +50,7 @@ internal fun StarredScreen(
       favourites.forEach { favourite ->
         Row(verticalAlignment = Alignment.CenterVertically) {
           Column(Modifier.weight(1f)) {
-            Inspectable(favourite.label, favourite.objectId, onOpen)
+            Inspectable(favourite.label, favourite.objectId, onOpen, onCopyLink)
             Text(favourite.className, style = MaterialTheme.typography.bodySmall)
             SelectionContainer {
               Text(hexObjectId(favourite.objectId), style = MaterialTheme.typography.bodySmall)

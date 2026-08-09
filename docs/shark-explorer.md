@@ -55,8 +55,8 @@ a few seconds.
   clickable, which is also the way back out.
 * **Everything naming an object is a way to it**, and the same three clicks work everywhere: click to go
   there in this tab, middle click or ⌘/Ctrl click to open it in a tab behind this one, right click for a
-  menu that says so. The buttons along the top always open a new tab, and every tab can be closed —
-  including the last, which leaves the heap dump open and the buttons ready.
+  menu offering both that and a link to the object. The buttons along the top always open a new tab, and
+  every tab can be closed — including the last, which leaves the heap dump open and the buttons ready.
 * **The three panes are resizable, and each folds away to a button.** A chain thirty steps long or a
   details panel of forty fields is sometimes worth the whole window.
 * **Shape** switches between rectangles and rings. A ring has room for fewer children, so it groups the
@@ -70,9 +70,13 @@ a few seconds.
 
 ## Link to a tab
 
-**Right click a tab and pick "Copy link to this tab"** to get a `shark://` URL of wherever that tab is.
-Paste it anywhere links are clickable — a chat message, an issue, a note to yourself — and clicking it
-brings Shark Explorer to the front and opens that place in a new tab.
+**Right click and pick "Copy link"** to get a `shark://` URL of wherever that is. Paste it anywhere links
+are clickable — a chat message, an issue, a note to yourself — and clicking it brings Shark Explorer to
+the front and opens that place in a new tab.
+
+It sits beside "open in a new tab" everywhere that offers one: a tab, a button along the top, a rectangle
+of the map, a row of the object list or of the leaks, a step of a chain, a field of the details panel, a
+starred object. Wherever the window will take you somewhere, it will also hand you the link to it.
 
 ```
 shark://vugs93jp/object?id=0x7f2a4b18

@@ -17,10 +17,13 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilExactlyOneExists
 import java.io.File
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -29,6 +32,7 @@ import shark.ValueHolder.ReferenceHolder
 import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapObjectKind
 import shark.explorer.Place
@@ -124,11 +128,47 @@ class ObjectsScreenTest {
     }
   }
 
-  private fun ComposeUiTest.openHeapDump() {
+  @Test fun `a listed object can be opened in a tab of its own from its menu`() {
+    explorerUiTest {
+      openHeapDump()
+      listObjects()
+
+      onNodeWithText("java.lang.Object[] array").performMouseInput { rightClick() }
+      onNodeWithText(OPEN_IN_NEW_TAB).performClick()
+
+      // The gesture ⌘ clicking a row already had, spelled out in words: a row of a list is a way to an
+      // object like a rectangle of the map, so it answers the same menu.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
+        onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+          .fetchSemanticsNodes().size == 3
+      }
+    }
+  }
+
+  @Test fun `a listed object's menu copies a link to it`() {
+    val copied = mutableListOf<String>()
+    explorerUiTest {
+      openHeapDump(copyToClipboard = { copied += it })
+      listObjects()
+
+      onNodeWithText("java.lang.Object[] array").performMouseInput { rightClick() }
+      onNodeWithText(COPY_LINK).performClick()
+
+      // Beside "open in a new tab" wherever that is, this row included: the two are the same thought a
+      // step apart, and a link is how the object leaves this window at all.
+      assertThat(copied)
+        .containsExactly(DeepLink(WINDOW_ID, Place.Object(payloadObjectId)).toUri())
+    }
+  }
+
+  private fun ComposeUiTest.openHeapDump(copyToClipboard: (String) -> Unit = {}) {
+    val heapDumpFile = testHeapDump()
     setContent {
       MaterialTheme {
         ExplorerApp(
-          heapDumpFile = testHeapDump(),
+          heapDumpFile = heapDumpFile,
+          deepLinkId = WINDOW_ID,
+          copyToClipboard = copyToClipboard,
           // Nothing here opens a second heap dump, and which window one would land in is
           // `ExplorerWindowTest`'s.
           onHeapDumpChosen = { _, _ -> },
@@ -184,6 +224,9 @@ class ObjectsScreenTest {
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
 
     private const val TREEMAP_LAID_OUT = "Read the treemap rooted at"
+
+    /** What a link copied here names this window by, fixed so that the copied link can be spelled out. */
+    private const val WINDOW_ID = "abcd2345"
 
     /** An `adb` that answers as if nothing were plugged in, so no test here reaches a real device. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

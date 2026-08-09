@@ -71,6 +71,8 @@ internal fun RootPathPanel(
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
+  /** Puts a link to a step's object on the clipboard, beside opening it. See [OpenTarget]. */
+  onCopyLink: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val summary = (selection as? Selection.Object)?.summary
@@ -115,7 +117,8 @@ internal fun RootPathPanel(
       PathRootRow(
         nextStrength = drawn?.path?.steps?.firstOrNull()?.step?.strength
           ?: cutTail?.firstOrNull()?.step?.strength,
-        onOpen = onOpen
+        onOpen = onOpen,
+        onCopyLink = onCopyLink
       )
       if (drawn != null) {
         RootPathTrace(
@@ -124,7 +127,8 @@ internal fun RootPathPanel(
           ways = ways,
           chosenWays = chosenWays,
           onChooseWay = onChooseWay,
-          onOpen = onOpen
+          onOpen = onOpen,
+          onCopyLink = onCopyLink
         )
       } else {
         noChainText(selection, summary, isWholeHeapDump, rootPath, hasTail = cutTail != null)?.let {
@@ -176,7 +180,8 @@ private fun RootPathTrace(
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  onOpen: (Long, OpenIn) -> Unit
+  onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
 ) {
   val steps = drawn.path.steps
   Column(Modifier.fillMaxWidth()) {
@@ -195,6 +200,7 @@ private fun RootPathTrace(
         nextStrength = next?.step?.strength,
         stronglyReachableByteCount = stronglyReachableByteCount,
         onOpen = onOpen,
+        onCopyLink = onCopyLink,
         role = when {
           // The object the details panel is about, whatever the pointer has added below it.
           next == null -> PathRole.TARGET
@@ -236,6 +242,7 @@ private fun HoveredTail(
         stronglyReachableByteCount = stronglyReachableByteCount,
         // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
         onOpen = { _, _ -> },
+        onCopyLink = {},
         role = when {
           // The end of a cut tail is the only object being described here, since the chain above it isn't
           // the way to it; the end of one that runs on is described by the card at the pointer instead.

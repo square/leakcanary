@@ -5,8 +5,6 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
-import androidx.compose.foundation.ContextMenuArea
-import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.background
@@ -118,8 +116,8 @@ private fun TabView(
     ) + fadeIn(tween(TAB_OPEN_MILLIS))
   ) {
     // Where a tab is, is a place, and a place is a link — so the way to hand this tab to someone else is
-    // on the tab itself, next to the only other thing a tab does.
-    ContextMenuArea(items = { listOf(ContextMenuItem(COPY_LINK_TO_TAB, onCopyLink)) }) {
+    // on the tab itself. The same item as on everything else that names a place: see [CopyLinkTarget].
+    CopyLinkTarget(onCopyLink) {
       Row(
         Modifier
           .background(
@@ -171,14 +169,6 @@ internal const val NO_TAB_OPEN =
 
 /** What closes a tab, on the tab: its own click target, so a test presses it rather than the tab. */
 internal const val CLOSE_TAB = "✕"
-
-/**
- * What the right click menu on a tab offers.
- *
- * "Link" rather than "URL" because what it copies is one: it goes to this tab of this window, and following
- * it puts the reader where this tab is rather than in front of the heap dump it belongs to.
- */
-internal const val COPY_LINK_TO_TAB = "Copy link to this tab"
 
 /** Wide enough for a class name and an address, short enough that ten tabs are all still on the strip. */
 private val MAX_TAB_WIDTH = 220.dp

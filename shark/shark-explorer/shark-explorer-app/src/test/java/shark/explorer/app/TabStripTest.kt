@@ -177,7 +177,7 @@ class TabStripTest {
       openHeapDump(copyToClipboard = { copied += it })
 
       tab(HeapDominatorTreemap.ROOT_LABEL).performMouseInput { rightClick() }
-      onNodeWithText(COPY_LINK_TO_TAB).performClick()
+      onNodeWithText(COPY_LINK).performClick()
 
       // The window rather than the heap dump, because the same dump open twice is two places to be —
       // and the tab's own place, so that following it lands where it was copied from. See [DeepLink].
@@ -193,11 +193,27 @@ class TabStripTest {
       waitUntilAtLeastOneExists(hasText(tabTitleOfTheArray()), OPEN_TIMEOUT_MILLIS)
 
       tab(tabTitleOfTheArray()).performMouseInput { rightClick() }
-      onNodeWithText(COPY_LINK_TO_TAB).performClick()
+      onNodeWithText(COPY_LINK).performClick()
 
       // Where a link is copied from is wherever the tab has been moved to, not where it opened: a tab is
       // read in, and the object worth sending someone is the one being looked at when they are sent it.
       assertThat(DeepLink.parse(copied.single()).place).isEqualTo(Place.Object(payloadObjectId))
+    }
+  }
+
+  @Test fun `right clicking a button on the bar copies a link to the screen it opens`() {
+    val copied = mutableListOf<String>()
+    explorerUiTest {
+      openHeapDump(copyToClipboard = { copied += it })
+
+      screenButton(Place.LEAKS_LABEL).performMouseInput { rightClick() }
+      onNodeWithText(COPY_LINK).performClick()
+
+      // A button opens a screen nobody has been to yet, and a link to it is that screen as it opens: no
+      // tab has to be opened first to have something to copy.
+      assertThat(copied).containsExactly(DeepLink(WINDOW_ID, Place.Leaks()).toUri())
+      // And nothing was opened by asking for the link, which a menu that clicked the button would have.
+      assertThat(tabs().fetchSemanticsNodes()).hasSize(1)
     }
   }
 
