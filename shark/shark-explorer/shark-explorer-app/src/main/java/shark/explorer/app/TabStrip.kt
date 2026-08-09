@@ -5,6 +5,8 @@ import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.PointerMatcher
 import androidx.compose.foundation.background
@@ -52,6 +54,8 @@ internal fun TabStrip(
   titleOf: (Place) -> String,
   onSelect: (Int) -> Unit,
   onClose: (Int) -> Unit,
+  /** Puts a link to where the tab is on the clipboard. See [shark.explorer.DeepLink]. */
+  onCopyLink: (Place) -> Unit,
   modifier: Modifier = Modifier
 ) {
   if (tabs.tabs.isEmpty()) {
@@ -72,7 +76,8 @@ internal fun TabStrip(
           title = titleOf(tab.place),
           isSelected = tab.id == tabs.selectedId,
           onSelect = { onSelect(tab.id) },
-          onClose = { onClose(tab.id) }
+          onClose = { onClose(tab.id) },
+          onCopyLink = { onCopyLink(tab.place) }
         )
       }
     }
@@ -96,7 +101,8 @@ private fun TabView(
   title: String,
   isSelected: Boolean,
   onSelect: () -> Unit,
-  onClose: () -> Unit
+  onClose: () -> Unit,
+  onCopyLink: () -> Unit
 ) {
   // Starting closed and opening on the first composition, which is what makes this animate on the way in:
   // a tab that was already open when the strip drew it has nothing to animate.
@@ -111,41 +117,45 @@ private fun TabView(
       expandFrom = Alignment.Start
     ) + fadeIn(tween(TAB_OPEN_MILLIS))
   ) {
-    Row(
-      Modifier
-        .background(
-          if (isSelected) {
-            MaterialTheme.colorScheme.surface
-          } else {
-            MaterialTheme.colorScheme.surfaceVariant
-          }
+    // Where a tab is, is a place, and a place is a link — so the way to hand this tab to someone else is
+    // on the tab itself, next to the only other thing a tab does.
+    ContextMenuArea(items = { listOf(ContextMenuItem(COPY_LINK_TO_TAB, onCopyLink)) }) {
+      Row(
+        Modifier
+          .background(
+            if (isSelected) {
+              MaterialTheme.colorScheme.surface
+            } else {
+              MaterialTheme.colorScheme.surfaceVariant
+            }
+          )
+          // Middle clicking a tab closes it, which is the other half of middle clicking opening one.
+          .onClick(matcher = PointerMatcher.mouse(PointerButton.Tertiary)) { onClose() }
+          // Selectable rather than clickable, because a strip of these is a set with one of them on: it
+          // is also what tells a tab apart from the button and the chain row that lead to the same place.
+          .selectable(selected = isSelected, role = Role.Tab) { onSelect() }
+          .padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)
+          .widthIn(max = MAX_TAB_WIDTH),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Text(
+          title,
+          style = MaterialTheme.typography.bodySmall,
+          fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          modifier = Modifier.weight(1f, fill = false)
         )
-        // Middle clicking a tab closes it, which is the other half of middle clicking opening one.
-        .onClick(matcher = PointerMatcher.mouse(PointerButton.Tertiary)) { onClose() }
-        // Selectable rather than clickable, because a strip of these is a set with one of them on: it
-        // is also what tells a tab apart from the button and the chain row that lead to the same place.
-        .selectable(selected = isSelected, role = Role.Tab) { onSelect() }
-        .padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)
-        .widthIn(max = MAX_TAB_WIDTH),
-      horizontalArrangement = Arrangement.spacedBy(4.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Text(
-        title,
-        style = MaterialTheme.typography.bodySmall,
-        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.weight(1f, fill = false)
-      )
-      // Its own click target rather than a modifier on the tab, so that closing a tab is never
-      // selecting it first: a strip where closing the fourth tab shows you the fourth tab is a strip
-      // that fights back.
-      Text(
-        CLOSE_TAB,
-        Modifier.clickable { onClose() }.padding(horizontal = 2.dp),
-        style = MaterialTheme.typography.bodySmall
-      )
+        // Its own click target rather than a modifier on the tab, so that closing a tab is never
+        // selecting it first: a strip where closing the fourth tab shows you the fourth tab is a strip
+        // that fights back.
+        Text(
+          CLOSE_TAB,
+          Modifier.clickable { onClose() }.padding(horizontal = 2.dp),
+          style = MaterialTheme.typography.bodySmall
+        )
+      }
     }
   }
 }
@@ -161,6 +171,14 @@ internal const val NO_TAB_OPEN =
 
 /** What closes a tab, on the tab: its own click target, so a test presses it rather than the tab. */
 internal const val CLOSE_TAB = "✕"
+
+/**
+ * What the right click menu on a tab offers.
+ *
+ * "Link" rather than "URL" because what it copies is one: it goes to this tab of this window, and following
+ * it puts the reader where this tab is rather than in front of the heap dump it belongs to.
+ */
+internal const val COPY_LINK_TO_TAB = "Copy link to this tab"
 
 /** Wide enough for a class name and an address, short enough that ten tabs are all still on the strip. */
 private val MAX_TAB_WIDTH = 220.dp

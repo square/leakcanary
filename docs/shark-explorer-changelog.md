@@ -19,3 +19,6 @@ uses, without the one for a newly recognized library leak:
 ## Unreleased
 
 * ✨ Initial release.
+* ✨ Right click a tab to copy a `shark://` link to it. Clicking one brings the app to the front and
+  opens that place in a new tab — an object, a filtered object list, the leaks with the same groups
+  unfolded. See [Link to a tab](shark-explorer.md#link-to-a-tab).

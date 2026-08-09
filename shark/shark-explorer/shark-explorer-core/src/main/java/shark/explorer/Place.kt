@@ -83,7 +83,7 @@ sealed interface Place {
   }
 
   /** The objects starred so far, kept so that two of them can be compared. */
-  object Starred : Place {
+  data object Starred : Place {
 
     override val title: String get() = STARRED_LABEL
 

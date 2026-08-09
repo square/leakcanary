@@ -35,12 +35,15 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.BitmapCounts
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapLeaks
@@ -100,6 +103,13 @@ internal fun HeapDumpExplorer(
   deviceHeapDumps: DeviceHeapDumps,
   /** Already fetched off the device, when the dump was taken with the pixels asked for in the same go. */
   fetchedBitmapPixels: NativeBitmapPixels? = null,
+  /** What a link to one of these tabs names this window by. See [DeepLink]. */
+  deepLinkId: String = remember { DeepLink.newWindowId() },
+  /** Places a link has asked for, opened as tabs. See [ExplorerWindow.linkedPlaces]. */
+  linkedPlaces: List<Place> = emptyList(),
+  onLinkedPlaceOpened: (Place) -> Unit = {},
+  /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
+  copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
   modifier: Modifier = Modifier
 ) {
   var tabs by remember { mutableStateOf(Tabs.opening(Place.wholeHeapDump())) }
@@ -179,6 +189,17 @@ internal fun HeapDumpExplorer(
       radialLayout = radialLayout,
       stackLayout = stackLayout
     )
+  }
+
+  // A link that arrived is a tab, always a new one and always in front: following a link is asking to be
+  // somewhere else, and it must not throw away the tab it was followed from. One per run of this effect
+  // rather than a loop over the list, so that a link arriving while another is being opened is queued
+  // behind it rather than racing it.
+  LaunchedEffect(linkedPlaces) {
+    val linked = linkedPlaces.firstOrNull() ?: return@LaunchedEffect
+    SharkLog.d { "A link asked this window for $linked" }
+    tabs = tabs.open(linked)
+    onLinkedPlaceOpened(linked)
   }
 
   // What each tab is called, for the tabs the window couldn't name itself. A label is cheap enough to draw
@@ -475,7 +496,14 @@ internal fun HeapDumpExplorer(
       tabs = tabs,
       titleOf = { it.title ?: placeTitles[it] ?: NAMING_TAB },
       onSelect = { id -> tabs = tabs.select(id) },
-      onClose = { id -> tabs = tabs.close(id) }
+      onClose = { id -> tabs = tabs.close(id) },
+      onCopyLink = { place ->
+        val link = DeepLink(deepLinkId, place).toUri()
+        // In the log as well as on the clipboard, so that a link someone reports as not working can be
+        // compared against the one this window actually handed out.
+        SharkLog.d { "Copied $link" }
+        copyToClipboard(link)
+      }
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
       HistoryArrows(
@@ -589,6 +617,22 @@ internal fun HeapDumpExplorer(
         }
       }
     }
+  }
+}
+
+/**
+ * Puts [text] on the system clipboard, through AWT.
+ *
+ * AWT's clipboard rather than Compose's, because this is one call from an event handler rather than
+ * something a composable has to hold: Compose's is a composition local and a suspending write, both of
+ * which would have to be threaded down to the tab that is being copied.
+ */
+internal fun copyTextToClipboard(text: String) {
+  try {
+    Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
+  } catch (throwable: Throwable) {
+    // A headless JVM and a desktop with no clipboard both land here, and neither is worth a dialog.
+    SharkLog.d(throwable) { "Could not put \"$text\" on the clipboard" }
   }
 }
 

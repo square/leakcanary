@@ -68,6 +68,32 @@ a few seconds.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
 
+## Link to a tab
+
+**Right click a tab and pick "Copy link to this tab"** to get a `shark://` URL of wherever that tab is.
+Paste it anywhere links are clickable — a chat message, an issue, a note to yourself — and clicking it
+brings Shark Explorer to the front and opens that place in a new tab.
+
+```
+shark://vugs93jp/object?id=0x7f2a4b18
+shark://vugs93jp/objects?query=Bitmap&exact=true
+shark://vugs93jp/leaks
+```
+
+Anywhere a tab can be is a link: an object, the object list with its search and filters filled in, the
+leaks with the same groups unfolded, the starred objects. So "look at this" is a URL rather than a
+paragraph of directions, which is also how a tool or an agent that has read your heap dump can point you
+straight at what it found.
+
+The part after `shark://` is **the window, not the heap dump** — the same dump open twice is two windows,
+and a link leads to the one it was copied from. Which means a link works while that window is open and
+stops working once it is closed or the app is restarted; following one then opens an empty window saying
+so. A link never replaces what you were reading: it always opens a tab of its own.
+
+Links reach the app from an installed build — the installer is what tells the OS that `shark://` is this
+app's. A copy run from source can still be linked to from another one, but the OS won't start it for a
+link.
+
 ## Reporting a problem
 
 Bug reports go to the [LeakCanary issue tracker](https://github.com/square/leakcanary/issues). Every run

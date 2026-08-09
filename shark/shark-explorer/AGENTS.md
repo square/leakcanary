@@ -151,6 +151,47 @@ of the run. Nothing downloads or installs. Three things about it that reading th
 `UpdateNotice` is one per run rather than per window, so dismissing the bar in one window clears it in all
 of them.
 
+## A `shark://` link never reaches a run from Gradle, and that is not a bug in the code
+
+`DeepLink` is the URL, `DeepLinkScheme` is the OS end of it and `DeepLinkPeers` is how a link crosses
+from one run of this app to another. What reading them won't tell you is that **none of it can be tried
+from `run` or `runNamed`**, on any platform, and the reason is different on each:
+
+- **macOS delivers to a bundle identity.** A JVM launched from a shell script — which is what `runNamed`'s
+  generated bundle is — registers with LaunchServices as `net.java.openjdk.java` whatever the wrapper's
+  `Info.plist` says. Measured with `lsappinfo find pid=<pid>`. Only a launcher `jpackage` built gets its
+  own `CFBundleIdentifier`, and the Apple Event carrying the URL goes to the identity, so a `runNamed`
+  process is handed nothing however well its plist declares the scheme.
+- **Windows and Linux are registered at runtime**, by `DeepLinkScheme.registerWithTheOs`, and it declines
+  for a run whose executable is `java` — registering that would tell the OS to open links with a JVM and
+  no classpath.
+
+So the loop for anything about links is a package, not a compile:
+
+```bash
+./gradlew :shark:shark-explorer:shark-explorer-app:createDistributable
+cp -R "shark/shark-explorer/shark-explorer-app/build/compose/binaries/main/app/Shark Explorer.app" \
+  ~/Applications/
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+  -f ~/Applications/"Shark Explorer.app"
+open -a ~/Applications/"Shark Explorer.app" --args --title="Links" path/to/dump.hprof
+grep "Windows of this run" ~/.shark-explorer/logs/$(ls -t ~/.shark-explorer/logs | head -1)
+open "shark://<the id that printed>/leaks"
+```
+
+**Read the result in the log rather than off the screen.** Following a link raises the app over whatever
+the person at the machine was doing, so a screenshot to check it worked costs them their window and shows
+you theirs. `The OS handed this run`, `A link asked window <id> for <place>` and `A link asked this window
+for <place>` are the three lines that say a link was delivered, routed and opened as a tab.
+
+A run from source is still *reachable*: every run publishes a loopback port under `~/.shark-explorer/runs`,
+and the installed app hands on any link naming a window it doesn't have. That is what makes a link to a
+`./gradlew run` window work — the installed app is the courier, so there has to be one.
+
+**Deliberately not single instance.** Several explorers open at once is how this app is used, so a run
+holding a link asks each of the others in turn rather than the second run handing its command line to the
+first and exiting.
+
 ## Gradle facts that aren't visible from these build scripts
 
 - **`shark-explorer-app` is excluded by name** from the repo-wide Java 8 target in the root

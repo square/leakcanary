@@ -128,6 +128,28 @@ compose.desktop {
         // and the Managed Software Center entry are both keyed on this, so it has to be a name Square
         // owns, and changing it after the first release is a migration for everyone who installed one.
         bundleID = "com.squareup.leakcanary.shark-explorer"
+        // What makes `shark://` links reach this app on macOS: LaunchServices reads the scheme out of
+        // the installed bundle, and hands a click on one to the running process as an Apple Event,
+        // which java.awt.Desktop turns into the handler DeepLinkScheme installs. See DeepLink.
+        //
+        // Only a bundle jpackage built has this, and that is the trap: a JVM launched by `run` or
+        // `runNamed` registers as net.java.openjdk.java whatever its wrapper says, so no link ever
+        // arrives there. Try links against `createDistributable`, per shark/shark-explorer/AGENTS.md.
+        infoPlist {
+          extraKeysRawXml = """
+            <key>CFBundleURLTypes</key>
+            <array>
+              <dict>
+                <key>CFBundleURLName</key>
+                <string>com.squareup.leakcanary.shark-explorer.link</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                  <string>shark</string>
+                </array>
+              </dict>
+            </array>
+          """.trimIndent()
+        }
       }
       windows {
         iconFile.set(project.file("icons/shark-explorer-icon.ico"))

@@ -38,9 +38,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.CommandLineAdb
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapSizes
 import shark.explorer.NativeBitmapPixels
+import shark.explorer.Place
 import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
@@ -48,6 +50,13 @@ import shark.explorer.jdwp.JdwpBitmaps
 import shark.explorer.jdwp.JdwpGc
 
 fun main(args: Array<String>) {
+  // A command line that is nothing but links is a courier: Windows and Linux deliver a link by starting a
+  // process with it, so this is most of the runs of this app on those two. Answered before anything else
+  // and without opening a log file — one file per link would push out every run worth reading, and the
+  // last 20 is what a bug report attaches. See [SessionLog].
+  if (deliveredToAnotherRun(args)) {
+    return
+  }
   // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
   // stdout as well as in the window — and in a file, so that a session someone reports on can be read
   // back after it. See [installLogging].
@@ -66,9 +75,43 @@ fun main(args: Array<String>) {
     // reads as one on the line above.
     SharkLog.d { "Read that as $arguments" }
     nameThisRun(arguments.titlePrefix ?: APP_NAME)
-    // Heap dump paths on the command line open straight away, which is how this is usually run.
-    explorerApplication(arguments)
+    val windows = explorerWindows(arguments)
+    // Both before the first window, so that a link arriving while the heap dumps are still opening is one
+    // the window queues rather than one that lands on an app not listening yet.
+    DeepLinkScheme.takeUrisFromTheOs(windows)
+    DeepLinkScheme.registerWithTheOs()
+    DeepLinkPeers.listen(windows).use {
+      // Whatever no other run claimed, which for a link naming a window that has gone is an empty window
+      // saying so. Ours to answer for now: nobody else is going to.
+      DeepLinkPeers.deliver(arguments.deepLinks).forEach { windows.open(it) }
+      // Heap dump paths on the command line open straight away, which is how this is usually run.
+      explorerApplication(windows)
+    }
   }
+}
+
+/**
+ * Hands a command line of nothing but links to the runs that have those windows, and says whether every
+ * one of them was taken.
+ *
+ * False for anything else on the command line, for a link nobody claimed and for a link that doesn't
+ * parse — all three are a run that has something to show, and the full path below shows it, with a log
+ * file and a window rather than from here.
+ */
+private fun deliveredToAnotherRun(args: Array<String>): Boolean {
+  if (args.isEmpty() || !args.all { DeepLink.looksLikeOne(it) }) {
+    return false
+  }
+  val links = args.map {
+    try {
+      DeepLink.parse(it)
+    } catch (invalidLink: IllegalArgumentException) {
+      // Left to the full path, which has somewhere to say this: a courier has no window and, on Windows,
+      // no console either.
+      return false
+    }
+  }
+  return DeepLinkPeers.deliver(links).isEmpty()
 }
 
 /**
@@ -94,8 +137,7 @@ private fun nameThisRun(name: String) {
 }
 
 /** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
-private fun explorerApplication(arguments: ExplorerArguments) = application {
-  val windows = remember { explorerWindows(arguments) }
+private fun explorerApplication(windows: ExplorerWindows) = application {
   val updateNotice = remember { UpdateNotice() }
   // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
   // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
@@ -123,6 +165,12 @@ private fun explorerApplication(arguments: ExplorerArguments) = application {
           position = cascadedPosition(window.cascade)
         )
       ) {
+        // The OS window this one came out as, which is the one thing following a link needs and Compose
+        // keeps no state for: raising a window is AWT's, not the composition's. See [ExplorerWindow].
+        DisposableEffect(this.window) {
+          window.attachTo(this@Window.window)
+          onDispose {}
+        }
         MaterialTheme {
           ExplorerApp(
             heapDumpFile = window.heapDumpFile,
@@ -130,7 +178,11 @@ private fun explorerApplication(arguments: ExplorerArguments) = application {
             onHeapDumpChosen = { file, fetchedPixels ->
               windows.openHeapDump(window, file, fetchedPixels)
             },
-            updateNotice = updateNotice
+            updateNotice = updateNotice,
+            deepLinkId = window.deepLinkId,
+            linkedPlaces = window.linkedPlaces,
+            onLinkedPlaceOpened = { place -> window.linkedPlaceOpened(place) },
+            deepLinkProblem = window.deepLinkProblem
           )
         }
       }
@@ -156,6 +208,20 @@ internal fun ExplorerApp(
    * that a test only gets the bar when it is what the test is about.
    */
   updateNotice: UpdateNotice = remember { UpdateNotice() },
+  /** What a link to a place in this window names it by. See [shark.explorer.DeepLink]. */
+  deepLinkId: String = remember { DeepLink.newWindowId() },
+  /** Places a link has asked this window for, which its tabs open. See [ExplorerWindow.linkedPlaces]. */
+  linkedPlaces: List<Place> = emptyList(),
+  onLinkedPlaceOpened: (Place) -> Unit = {},
+  /**
+   * Why this window has no heap dump, for one a link opened because the window it named had gone.
+   *
+   * Shown where "open an Android heap dump" would be, rather than as a dialog: the window is empty either
+   * way, and the two buttons above are what to do about it in both cases.
+   */
+  deepLinkProblem: String? = null,
+  /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
+  copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
@@ -242,6 +308,10 @@ internal fun ExplorerApp(
         sizes = currentState.sizes,
         deviceHeapDumps = deviceHeapDumps,
         fetchedBitmapPixels = currentState.bitmapPixels,
+        deepLinkId = deepLinkId,
+        linkedPlaces = linkedPlaces,
+        onLinkedPlaceOpened = onLinkedPlaceOpened,
+        copyToClipboard = copyToClipboard,
         modifier = Modifier.weight(1f)
       )
     } else {
@@ -253,7 +323,13 @@ internal fun ExplorerApp(
           if (currentState is HeapDumpState.Opening) {
             CircularProgressIndicator()
           }
-          Text(currentState.centerMessage(), style = MaterialTheme.typography.bodyLarge)
+          // A window a link opened to say the window it named has gone says that instead of the invitation
+          // to open a heap dump: it was opened to carry a message, and the invitation is under it anyway.
+          Text(
+            deepLinkProblem?.takeIf { currentState is HeapDumpState.None }
+              ?: currentState.centerMessage(),
+            style = MaterialTheme.typography.bodyLarge
+          )
         }
       }
     }

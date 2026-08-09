@@ -102,7 +102,10 @@ private class Loggers(private val loggers: List<SharkLog.Logger>) : SharkLog.Log
 }
 
 /**
- * Where the log files go: under the user's home directory rather than beside the heap dump or in the
- * working directory, so that every run writes to the same place however it was started.
+ * Where this app keeps what it writes: under the user's home directory rather than beside the heap dump or
+ * in the working directory, so that every run reads and writes the same place however it was started.
  */
-private val LOG_DIRECTORY = File(System.getProperty("user.home"), ".shark-explorer/logs")
+internal val SHARK_EXPLORER_DIRECTORY = File(System.getProperty("user.home"), ".shark-explorer")
+
+/** One file per run. See [SessionLog]. */
+private val LOG_DIRECTORY = File(SHARK_EXPLORER_DIRECTORY, "logs")
