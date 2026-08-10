@@ -189,7 +189,11 @@ the only part that is words, and it is what makes the other two findable.
 seconds reading, and the bar above is one click from a tab again — closing tabs is never closing the dump,
 which is the window's, see above. A tab's history is its own rather than the window's, or the back arrow
 would walk out of the tab being read. And a tab id is counted up rather than reused, so a tab closed and
-another opened are two tabs rather than one that changed its mind.
+another opened are two tabs rather than one that changed its mind. **Right clicking an arrow lists that
+history**, nearest first, because reading a heap dump is a dozen moves down into something and one move back
+out: `NavigationHistory.backEntries` and `goBack(steps)` are that list and the click on the fourth entry of
+it, and a click on an entry the history has since moved past is clamped rather than refused, the list and the
+history being the same value one recomposition apart.
 
 **A tab's name is a read of the heap dump**, class name plus address, because a strip of a dozen instances
 of one class is only one you can pick out of if each tab says which instance it is. So the strip scrolls

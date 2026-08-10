@@ -27,3 +27,5 @@ uses, without the one for a newly recognized library leak:
   that have one. Class names, addresses and `shark://` links written in a note become links back into
   the window, shortened to read as prose, and GitHub URLs are shortened the way GitHub shortens them.
   See [Take notes](shark-explorer.md#take-notes).
+* ✨ Right click ← or → for the list of everywhere that arrow leads, so going back four moves is one
+  click rather than four.

@@ -68,6 +68,37 @@ class NavigationHistoryTest {
     assertThat(history.goBack().goBack().current).isEqualTo("root")
   }
 
+  /** What the right click menus on the arrows list, which is why the order they are in is part of it. */
+  @Test fun `everywhere it has been is listed nearest first`() {
+    val history = NavigationHistory("root").goTo("a").goTo("b").goTo("c").goBack()
+
+    assertThat(history.backEntries).containsExactly("a", "root")
+    assertThat(history.forwardEntries).containsExactly("c")
+  }
+
+  @Test fun `a history that has been nowhere lists nowhere`() {
+    val history = NavigationHistory("root")
+
+    assertThat(history.backEntries).isEmpty()
+    assertThat(history.forwardEntries).isEmpty()
+  }
+
+  /** Picking the third entry of a back list is going back three moves, which the arrow does one at a time. */
+  @Test fun `it goes back and forward several moves at once`() {
+    val history = NavigationHistory("root").goTo("a").goTo("b").goTo("c")
+
+    assertThat(history.goBack(3).current).isEqualTo("root")
+    assertThat(history.goBack(3).goForward(2).current).isEqualTo("b")
+  }
+
+  /** The list a click came from and the history it came from are the same value one recomposition apart. */
+  @Test fun `going further than it has been lands at the end of it`() {
+    val history = NavigationHistory("root").goTo("a")
+
+    assertThat(history.goBack(9).current).isEqualTo("root")
+    assertThat(history.goForward(9).current).isEqualTo("a")
+  }
+
   @Test fun `a history has to be somewhere`() {
     assertThatThrownBy { NavigationHistory<String>(entries = emptyList(), index = 0) }
       .isInstanceOf(IllegalArgumentException::class.java)

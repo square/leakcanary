@@ -133,6 +133,31 @@ class TabsTest {
     assertThat(tabs.close(404)).isEqualTo(tabs)
   }
 
+  /** What the right click menu on an arrow lists, and what picking one out of it does. */
+  @Test fun `the tab on screen says everywhere it has been`() {
+    val tabs = Tabs.opening(WHOLE_HEAP_DUMP).goTo(objectAt(1)).goTo(objectAt(2))
+
+    assertThat(tabs.backPlaces).containsExactly(objectAt(1), WHOLE_HEAP_DUMP)
+    assertThat(tabs.forwardPlaces).isEmpty()
+    assertThat(tabs.goBack(2).place).isEqualTo(WHOLE_HEAP_DUMP)
+    assertThat(tabs.goBack(2).goForward(2).place).isEqualTo(objectAt(2))
+  }
+
+  /** Each tab has a history of its own, so what the arrows offer is the history of the one on screen. */
+  @Test fun `the other tabs histories are not on offer`() {
+    val tabs = Tabs.opening(WHOLE_HEAP_DUMP).goTo(objectAt(1)).open(objectAt(2))
+
+    assertThat(tabs.backPlaces).isEmpty()
+  }
+
+  @Test fun `a window with no tab open has been nowhere`() {
+    val tabs = Tabs.opening(WHOLE_HEAP_DUMP).close(0)
+
+    assertThat(tabs.backPlaces).isEmpty()
+    assertThat(tabs.forwardPlaces).isEmpty()
+    assertThat(tabs.goBack(1)).isEqualTo(tabs)
+  }
+
   @Test fun `a selected tab has to be one of the tabs`() {
     assertThatThrownBy {
       Tabs(tabs = emptyList(), selectedId = 0, nextId = 1)

@@ -64,6 +64,15 @@ data class Tabs(
   val canGoForward: Boolean get() = selected?.history?.canGoForward == true
 
   /**
+   * Where the back arrow leads, the nearest first, so that going back four moves is one click rather than
+   * four. See [NavigationHistory.backEntries].
+   */
+  val backPlaces: List<Place> get() = selected?.history?.backEntries.orEmpty()
+
+  /** And where the forward arrow leads. */
+  val forwardPlaces: List<Place> get() = selected?.history?.forwardEntries.orEmpty()
+
+  /**
    * Opens [place] in a tab of its own, beside the one it was opened from.
    *
    * Beside rather than at the end, the way a browser does it, so that the tabs opened while reading one
@@ -128,6 +137,11 @@ data class Tabs(
   fun goBack(): Tabs = mapSelected { it.goBack() }
 
   fun goForward(): Tabs = mapSelected { it.goForward() }
+
+  /** Back [steps] moves at once, which is what picking one out of [backPlaces] asks for. */
+  fun goBack(steps: Int): Tabs = mapSelected { it.goBack(steps) }
+
+  fun goForward(steps: Int): Tabs = mapSelected { it.goForward(steps) }
 
   private fun mapSelected(
     ifNoTabIsOpen: () -> Tabs = { this },

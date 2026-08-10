@@ -57,6 +57,9 @@ a few seconds.
   there in this tab, middle click or ⌘/Ctrl click to open it in a tab behind this one, right click for a
   menu offering both that and a link to the object. The buttons along the top always open a new tab, and
   every tab can be closed — including the last, which leaves the heap dump open and the buttons ready.
+* **← and → walk the tab's own history**, so a tab you wandered off in is one click from where it was.
+  **Right click either arrow** for the list of everywhere it leads: picking the fourth entry is one click
+  rather than four.
 * **The three panes are resizable, and each folds away to a button.** A chain thirty steps long or a
   details panel of forty fields is sometimes worth the whole window.
 * **Shape** switches between rectangles and rings. A ring has room for fewer children, so it groups the

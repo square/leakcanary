@@ -1,5 +1,7 @@
 package shark.explorer.app
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -232,7 +234,11 @@ internal fun HeapDumpExplorer(
   // Which is why this goes in ahead of the effect that lays the view out: opening a tab asks for both, and
   // the layout is the larger by orders of magnitude. Named after it, a tab would show its placeholder for
   // as long as laying the tree out takes, which on a real dump is what someone sees as a flicker.
-  val unnamedPlaces = tabs.tabs.map { it.place }.filter { it.title == null && it !in placeTitles }
+  // Every place of every history rather than just the one each tab is on, because the right click menus on
+  // the history arrows list them by name: a menu entry called "Naming this tab…" is a move nobody will make.
+  val unnamedPlaces = tabs.tabs.flatMap { it.history.entries }
+    .filter { it.title == null && it !in placeTitles }
+    .distinct()
   LaunchedEffect(session, unnamedPlaces) {
     if (unnamedPlaces.isEmpty()) {
       return@LaunchedEffect
@@ -582,11 +588,12 @@ internal fun HeapDumpExplorer(
     )
     Row(verticalAlignment = Alignment.CenterVertically) {
       HistoryArrows(
-        canGoBack = tabs.canGoBack,
-        canGoForward = tabs.canGoForward,
+        // Named the way the tabs are, since these are the same places under another name.
+        back = tabs.backPlaces.map { it.title ?: placeTitles[it] ?: NAMING_TAB },
+        forward = tabs.forwardPlaces.map { it.title ?: placeTitles[it] ?: NAMING_TAB },
         // A move undone is a place again, and the panes follow it: there is nothing else to put back.
-        onBack = { tabs = tabs.goBack() },
-        onForward = { tabs = tabs.goForward() }
+        onBack = { steps -> tabs = tabs.goBack(steps) },
+        onForward = { steps -> tabs = tabs.goForward(steps) }
       )
       // Which object the tab is on, beside the arrows that moved to it: above the panes rather than in
       // one, because it is the one thing that is as true of a list of objects as of the map.
@@ -1175,16 +1182,53 @@ private fun TreeScreen(
 /** Back and forward through the moves made in this tab. See [shark.explorer.NavigationHistory]. */
 @Composable
 private fun HistoryArrows(
-  canGoBack: Boolean,
-  canGoForward: Boolean,
-  onBack: () -> Unit,
-  onForward: () -> Unit
+  /** Where back leads, one click first. See [Tabs.backPlaces]. */
+  back: List<String>,
+  forward: List<String>,
+  /** How many moves at once, which is 1 for a click on the arrow itself. */
+  onBack: (Int) -> Unit,
+  onForward: (Int) -> Unit
 ) {
-  TextButton(onClick = onBack, enabled = canGoBack) {
-    Text(BACK_ARROW)
+  HistoryArrow(BACK_ARROW, back, onBack)
+  HistoryArrow(FORWARD_ARROW, forward, onForward)
+}
+
+/**
+ * One arrow: a click is one move, and a right click is the list of them.
+ *
+ * Which is the browser gesture, and it is worth having here for the browser's reason: a tab that has walked
+ * twenty objects down a chain is one where getting back to where the walk started is twenty clicks and a
+ * guess about which of them it was. The list says where each one lands, by the name the tab strip uses.
+ */
+@Composable
+private fun HistoryArrow(
+  arrow: String,
+  places: List<String>,
+  onGo: (Int) -> Unit
+) {
+  if (places.isEmpty()) {
+    // Nowhere to go, so nothing to right click either: an empty menu under the pointer reads as the window
+    // having lost the history rather than as there being none.
+    TextButton(onClick = {}, enabled = false) {
+      Text(arrow)
+    }
+    return
   }
-  TextButton(onClick = onForward, enabled = canGoForward) {
-    Text(FORWARD_ARROW)
+  ContextMenuArea(
+    items = {
+      // The nearest few rather than all of them, because the menu is drawn where the pointer is and one
+      // taller than the window has entries that cannot be reached. Everything past them is still one click
+      // of the arrow at a time away.
+      places.take(HISTORY_MENU_LIMIT).mapIndexed { index, title ->
+        ContextMenuItem(title) { onGo(index + 1) }
+      }
+    }
+  ) {
+    Hint("$HISTORY_MENU_HINT ${places.first()}") {
+      TextButton(onClick = { onGo(1) }) {
+        Text(arrow)
+      }
+    }
   }
 }
 
@@ -1431,6 +1475,16 @@ private const val HOVER_SETTLE_MILLIS = 100L
 
 /** What a tab is called for the beat between it being opened and the heap dump having named it. */
 private const val NAMING_TAB = "…"
+
+/**
+ * How many of the places behind an arrow its menu lists.
+ *
+ * Enough for the walk anyone takes in one go, few enough that the menu fits under the pointer on a window
+ * that isn't full height.
+ */
+private const val HISTORY_MENU_LIMIT = 15
+
+private const val HISTORY_MENU_HINT = "Right click for everywhere this leads. One click:"
 
 internal const val BACK_ARROW = "←"
 internal const val FORWARD_ARROW = "→"
