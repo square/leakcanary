@@ -17,6 +17,32 @@ fun hexObjectId(objectId: Long): String {
 }
 
 /**
+ * The same address, written so that it reads back as the same [Long] — for the files this app keeps between
+ * runs. See [LeakStatusFile].
+ *
+ * The one thing [hexObjectId] gives up to be recognisable is exactly what a file can't: it prints a
+ * sign-widened id as the 32 bit address it is, and `0xffff8000` is then two ids, the negative one of a 32 bit
+ * dump and the positive one a 64 bit dump could have. So a file that meant to carry one object's address and
+ * is read back against another dump — or the same dump on a machine that reads it the other way — would name
+ * an object nobody chose. This is all 16 digits of it for such an id, and identical to [hexObjectId] for every
+ * other, which is every object of every 64 bit dump below the 8 exabyte mark.
+ */
+internal fun exactHexObjectId(objectId: Long): String = "0x${java.lang.Long.toHexString(objectId)}"
+
+/** And back, or null for text that is no address at all. See [exactHexObjectId]. */
+internal fun objectIdOfHex(text: String): Long? {
+  if (!text.startsWith(HEX_PREFIX)) {
+    return null
+  }
+  return try {
+    // Unsigned, since an address that fills all 64 bits is a number no signed Long holds.
+    java.lang.Long.parseUnsignedLong(text.substring(HEX_PREFIX.length), HEX_RADIX)
+  } catch (notAnAddress: NumberFormatException) {
+    null
+  }
+}
+
+/**
  * How a node of a [HeapDominatorTreemap] reads in a message: the address of an object, or which pile of
  * objects it is.
  *
@@ -31,3 +57,6 @@ fun nodeIdText(nodeId: Long): String = when {
 }
 
 private const val LOW_32_BITS = 0xFFFFFFFFL
+
+private const val HEX_PREFIX = "0x"
+private const val HEX_RADIX = 16

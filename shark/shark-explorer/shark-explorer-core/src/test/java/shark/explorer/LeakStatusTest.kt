@@ -83,6 +83,60 @@ class LeakStatusTest {
   @Test fun `a path with no objects has no statuses`() {
     assertThat(leakStatusesOf(emptyList())).isEmpty()
   }
+
+  @Test fun `a status set by hand wins over the inspector that disagreed with it`() {
+    val statuses = leakStatusesOf(
+      listOf(unknown("Holder"), setByHand(leaking("Activity"), NOT_LEAKING, "kept for one more frame"))
+    )
+
+    assertThat(statuses.last().status).isEqualTo(NOT_LEAKING)
+    assertThat(statuses.last().reason)
+      .isEqualTo("set by hand — kept for one more frame. Conflicts with Activity#mDestroyed is true")
+  }
+
+  @Test fun `a status set by hand on an object nothing knew about has only its own reason`() {
+    val statuses = leakStatusesOf(listOf(setByHand(unknown("Cache"), LEAKING, "this cache is unbounded")))
+
+    assertThat(statuses.single().status).isEqualTo(LEAKING)
+    assertThat(statuses.single().reason).isEqualTo("set by hand — this cache is unbounded")
+  }
+
+  @Test fun `an object set to unknown by hand overrules both sides of what was known about it`() {
+    val statuses = leakStatusesOf(
+      listOf(unknown("Holder"), setByHand(conflicted("Activity"), UNKNOWN, "the inspectors are both wrong"))
+    )
+
+    assertThat(statuses.last().status).isEqualTo(UNKNOWN)
+    assertThat(statuses.last().reason).isEqualTo(
+      "set by hand — the inspectors are both wrong. Conflicts with Activity#mDestroyed is false and " +
+        "Activity#mDestroyed is true"
+    )
+  }
+
+  @Test fun `what a hand set decides the objects above and below it, like any other status`() {
+    val statuses = leakStatusesOf(
+      listOf(
+        unknown("Thread"),
+        setByHand(unknown("Presenter"), LEAKING, "this screen was closed"),
+        unknown("View")
+      )
+    )
+
+    assertThat(statuses.map { it.status }).containsExactly(UNKNOWN, LEAKING, LEAKING)
+    assertThat(statuses.last().reason).isEqualTo("Presenter↑ is leaking")
+  }
+
+  @Test fun `the path overruling a status set by hand says what it overruled`() {
+    // Someone said nothing is known about this object, and the path then reads it off the leaking object
+    // above: the status is the path's, and what they typed is what the reason records.
+    val statuses = leakStatusesOf(
+      listOf(leaking("Activity"), setByHand(unknown("View"), UNKNOWN, "no idea what this is"))
+    )
+
+    assertThat(statuses.last().status).isEqualTo(LEAKING)
+    assertThat(statuses.last().reason)
+      .isEqualTo("Activity↑ is leaking. Conflicts with set by hand — no idea what this is")
+  }
 }
 
 private fun unknown(simpleClassName: String) = inspected(simpleClassName)
@@ -107,3 +161,15 @@ private fun inspected(
   leakingReasons: Set<String> = emptySet(),
   notLeakingReasons: Set<String> = emptySet()
 ) = InspectedPathObject(simpleClassName, leakingReasons, notLeakingReasons)
+
+/** The same object with someone's own answer on it. The object id is only what the reason is filed under. */
+private fun setByHand(
+  inspected: InspectedPathObject,
+  status: LeakStatus,
+  reason: String
+) = InspectedPathObject(
+  simpleClassName = inspected.simpleClassName,
+  leakingReasons = inspected.leakingReasons,
+  notLeakingReasons = inspected.notLeakingReasons,
+  setByHand = LeakStatusOverride(objectId = 0x42, status = status, reason = reason)
+)

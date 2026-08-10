@@ -21,10 +21,28 @@ enum class LeakStatus {
   LEAKING
 }
 
+/**
+ * How a status is named where it is read: on a chain, in the reason another object gives, in the row above
+ * the panes.
+ *
+ * In this module rather than in the window, because the reasons worked out here are sentences that name
+ * statuses — a status set by hand says which status it was set from — and two spellings of "not leaking"
+ * would show up in one line of one window.
+ */
+val LeakStatus.statusText: String
+  get() = when (this) {
+    LeakStatus.NOT_LEAKING -> "Not leaking"
+    LeakStatus.UNKNOWN -> "Unknown"
+    LeakStatus.LEAKING -> "Leaking"
+  }
+
 /** What one object of a path is, and why. See [LeakStatus]. */
 internal class LeakStatusAndReason(
   val status: LeakStatus,
-  /** In words, e.g. `Activity#mDestroyed is true`. Null for [LeakStatus.UNKNOWN]. */
+  /**
+   * In words, e.g. `Activity#mDestroyed is true`. Null for [LeakStatus.UNKNOWN], unless a hand set it: an
+   * object someone said nothing is known about has a reason for that too.
+   */
   val reason: String?
 )
 
@@ -33,7 +51,12 @@ internal class InspectedPathObject(
   /** For naming it in another object's reason: `MainActivity↓ is not leaking`. */
   val simpleClassName: String,
   val leakingReasons: Set<String>,
-  val notLeakingReasons: Set<String>
+  val notLeakingReasons: Set<String>,
+  /**
+   * What someone reading this heap dump decided this object is, which wins over the reasons above it.
+   * Null for every object nobody has said anything about, which is all of them to start with.
+   */
+  val setByHand: LeakStatusOverride? = null
 )
 
 /**
@@ -52,6 +75,11 @@ internal class InspectedPathObject(
  * answers to the same question. One rule of it is left out — **the object a path ends at is not forced to
  * be leaking**. A leak trace ends where the leak is, so forcing it is right there; a path here ends
  * wherever the reader clicked, and calling whatever that was leaking would be the window inventing leaks.
+ *
+ * A status someone set by hand is what that object is — see [setByHandStatus] — and then these two rules
+ * run over it like over any other: what an object is decides what the objects above and below it are, and
+ * that is as true of an object a person recognized as of one an inspector did. Which is what makes two
+ * statuses set by hand able to disagree, and [leakStatusConflictsWith] what finds it before they do.
  */
 internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatusAndReason> {
   if (objects.isEmpty()) {
@@ -83,7 +111,9 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
     statuses[index] = LeakStatusAndReason(
       status = LeakStatus.NOT_LEAKING,
       reason = when (statuses[index].status) {
-        LeakStatus.UNKNOWN -> "$nextNotLeakingName is not leaking"
+        // With a reason of its own only when a hand gave it one, which the path is then overruling: an
+        // object someone said nothing is known about is one of the two statuses this can disagree with.
+        LeakStatus.UNKNOWN -> "$nextNotLeakingName is not leaking".conflicting(reason)
         LeakStatus.NOT_LEAKING -> "$nextNotLeakingName is not leaking and $reason"
         LeakStatus.LEAKING -> "$nextNotLeakingName is not leaking. Conflicts with $reason"
       }
@@ -97,7 +127,7 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
     statuses[index] = LeakStatusAndReason(
       status = LeakStatus.LEAKING,
       reason = when (statuses[index].status) {
-        LeakStatus.UNKNOWN -> "$previousLeakingName is leaking"
+        LeakStatus.UNKNOWN -> "$previousLeakingName is leaking".conflicting(reason)
         LeakStatus.LEAKING -> "$previousLeakingName is leaking and $reason"
         // No object below the first leaking one is left not leaking: the first leaking index is reset
         // past every object that isn't, and the loop above turned the rest into not leaking already.
@@ -111,13 +141,23 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
   return statuses
 }
 
+/** The same sentence with what it is overruling recorded after it, when there is anything to record. */
+private fun String.conflicting(overruled: String?): String =
+  if (overruled == null) this else "$this. Conflicts with $overruled"
+
 /**
  * What the inspectors said about one object, on its own, and what an object both sides recognize is:
  * still needed, unless it is the object the path is about.
+ *
+ * Unless a hand set it, in which case that is the answer and the inspectors are what it is recorded as
+ * disagreeing with. See [setByHandStatus].
  */
 private fun InspectedPathObject.ownStatus(leakingWins: Boolean): LeakStatusAndReason {
   val notLeaking = notLeakingReasons.joinToString(" and ").takeIf { notLeakingReasons.isNotEmpty() }
   val leaking = leakingReasons.joinToString(" and ").takeIf { leakingReasons.isNotEmpty() }
+  if (setByHand != null) {
+    return setByHandStatus(setByHand, leaking = leaking, notLeaking = notLeaking)
+  }
   return when {
     leaking != null && notLeaking != null -> if (leakingWins) {
       LeakStatusAndReason(LeakStatus.LEAKING, "$leaking. Conflicts with $notLeaking")
@@ -129,3 +169,42 @@ private fun InspectedPathObject.ownStatus(leakingWins: Boolean): LeakStatusAndRe
     else -> LeakStatusAndReason(LeakStatus.UNKNOWN, null)
   }
 }
+
+/**
+ * What an object someone set the status of by hand is: whatever they said, whoever says otherwise.
+ *
+ * **Overriding always wins**, which is the one place this differs from how two inspectors disagreeing is
+ * settled: there the object being still needed wins, because two inspectors are two pieces of the same
+ * automated reading and the safer of them is the one to believe. A hand is not that — someone who has read
+ * the heap dump and typed a reason knows something the inspectors don't, and a rule that weighed the two
+ * would mean a status that can't be changed to the one the inspectors already picked.
+ *
+ * So the inspectors become the record of what was overruled, the way a conflict between two of them is
+ * recorded, and the reason is the one that was typed.
+ */
+private fun setByHandStatus(
+  setByHand: LeakStatusOverride,
+  leaking: String?,
+  notLeaking: String?
+): LeakStatusAndReason {
+  val overruled = when (setByHand.status) {
+    LeakStatus.LEAKING -> notLeaking
+    LeakStatus.NOT_LEAKING -> leaking
+    // Both of them, since saying nothing is known about an object overrules anything that claimed to know.
+    LeakStatus.UNKNOWN -> listOfNotNull(notLeaking, leaking).joinToString(" and ").takeIf { it.isNotEmpty() }
+  }
+  return LeakStatusAndReason(
+    status = setByHand.status,
+    reason = "$SET_BY_HAND${setByHand.reason}".conflicting(overruled)
+  )
+}
+
+/**
+ * In front of the reason someone typed, wherever their status is read.
+ *
+ * Because the reason is the whole of what a chain says about an object, and a status a hand set has to be
+ * readable as one there: half the objects of a chain are green or red because of an inspector, and which of
+ * them is there because someone decided so is the difference between reading the heap dump and reading
+ * someone's conclusion about it.
+ */
+internal const val SET_BY_HAND = "set by hand — "

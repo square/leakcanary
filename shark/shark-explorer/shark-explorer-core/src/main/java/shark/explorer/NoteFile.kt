@@ -2,17 +2,13 @@ package shark.explorer
 
 import java.io.File
 import java.io.IOException
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
 
 /**
  * Where the notes about one heap dump are kept: a directory of this app's own, named after the dump, holding
  * one markdown file per place written about.
  *
- * **Not beside the heap dump**, which is the tempting place and the wrong one. A dump is opened from
- * wherever it came from — a directory pulled off a device, a temporary file, a read only mount, a checkout
- * of this repository — and writing into all of those means littering some of them and failing on the rest.
- * A directory under [root] always works and is always found again.
+ * Under [root] rather than beside the heap dump, and named [heapDumpFileKey] the way everything this app
+ * keeps about a dump is.
  *
  * Markdown on disk, and readable on its own, because a note about a leak outlives the window it was written
  * in: it gets pasted into an issue, read by an agent, or opened in an editor months later. A format only
@@ -31,7 +27,7 @@ class NoteDirectory(
 ) {
 
   /** The directory itself, shown in the window so that the notes can be found without this app. */
-  val directory: File = File(root, directoryNameFor(heapDumpFile))
+  val directory: File = File(root, heapDumpFileKey(heapDumpFile))
 
   /** Where what is written about [place] is kept. */
   fun noteFile(place: Place): NoteFile = NoteFile(File(directory, "${place.noteKey()}$NOTES_SUFFIX"))
@@ -49,34 +45,6 @@ class NoteDirectory(
       .toSet()
 
   companion object {
-
-    /**
-     * The dump's file name, and the directory it is in as a hash: `large-dump.hprof-1f3a9c0b`.
-     *
-     * The name first because these directories are read by people and listed by name, and a hash of the
-     * directory after it because two dumps called `large-dump.hprof` from two runs of the same app are two
-     * investigations. Which way round to solve that is the whole choice here — a path flattened into a
-     * directory name would be unreadable and would hit the 255 character limit, and the name alone would
-     * silently merge the notes of every dump ever called `heap.hprof`.
-     *
-     * [normalizedPath] rather than the path as given, because `./heap.hprof` is how a heap dump gets typed
-     * on a command line and it is the same dump as `heap.hprof`.
-     */
-    private fun directoryNameFor(heapDumpFile: File): String {
-      val heapDump = normalizedPath(heapDumpFile)
-      return "${heapDump.name}-${Integer.toHexString(heapDump.parent.orEmpty().hashCode())}"
-    }
-
-    /**
-     * One spelling of a heap dump's path, so that two ways of naming one file are one set of notes.
-     *
-     * Absolute, since the notes outlive the working directory the app was started in, and with the `.` and
-     * `..` steps taken out, since `./heap.hprof` and `heap.hprof` are what the same dump gets called on a
-     * command line. Not the canonical path: that resolves symlinks, which means asking the filesystem and
-     * getting a different answer once the dump has been deleted.
-     */
-    private fun normalizedPath(heapDumpFile: File): File = heapDumpFile.absoluteFile.normalize()
-
     private const val NOTES_SUFFIX = ".md"
   }
 }
@@ -130,27 +98,8 @@ class NoteFile internal constructor(
    * save leaves the last note rather than half of one. The one thing in this app nobody else has a copy
    * of is what someone typed into it.
    *
-   * Nothing written is nothing kept: a note cleared out deletes the file rather than leaving an empty one
-   * behind for the next run to find and mark a tab with.
+   * A note cleared out deletes the file rather than leaving an empty one behind for the next run to find
+   * and mark a tab with. See [writeWholeFile].
    */
-  fun write(text: String) {
-    if (text.isEmpty()) {
-      if (file.isFile && !file.delete()) {
-        throw IOException("Could not delete $file, which is what an empty note is")
-      }
-      return
-    }
-    val directory = file.parentFile
-    if (!directory.isDirectory && !directory.mkdirs()) {
-      throw IOException("Could not create $directory to keep notes in")
-    }
-    val partial = File(directory, "${file.name}$PARTIAL_SUFFIX")
-    partial.writeText(text)
-    Files.move(partial.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
-  }
-
-  companion object {
-    /** A save in flight, which is never the file a note is read from. */
-    private const val PARTIAL_SUFFIX = ".partial"
-  }
+  fun write(text: String) = writeWholeFile(file, text)
 }
