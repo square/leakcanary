@@ -30,18 +30,19 @@ import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
+import shark.explorer.HeapDominatorTreemap
 import shark.explorer.NoteDirectory
 import shark.explorer.Place
 import shark.explorer.hexObjectId
 
 /**
- * The note kept about a tab, and what makes it worth keeping: the names in it lead back into the window it
- * was written in, and it is there again the next time that tab is.
+ * The note kept about the object a tab is on, and what makes it worth keeping: the names in it lead back into
+ * the window it was written in, and it is there again the next time that object is.
  *
  * The markdown itself is `NoteTest` in `shark-explorer-core`, and where a note is kept is `NoteFileTest`,
  * which is where anything about what a note means or is filed under belongs. What is only true here is what
- * saving and cancelling do, that a saved note is drawn with its links going where they say, that the note
- * belongs to the tab it was written on, and that what was saved is on disk.
+ * saving and cancelling do, that a saved note is drawn with its links going where they say, that a note is
+ * about the object its tab is on rather than about the tab, and that what was saved is on disk.
  */
 @OptIn(ExperimentalTestApi::class)
 class NoteSectionTest {
@@ -55,8 +56,8 @@ class NoteSectionTest {
   /** The object id of the holder in [testHeapDump], recorded as the dump is written. */
   private var holderObjectId = 0L
 
-  /** Which is what keeps notes from costing a strip of window on every tab nobody has written about. */
-  @Test fun `a tab nobody has written about is a button in the row and nothing more`() {
+  /** Which is what keeps notes from costing a strip of window on every object nobody has written about. */
+  @Test fun `an object nobody has written about is a button under the title and nothing more`() {
     explorerUiTest {
       openHeapDump()
 
@@ -222,14 +223,14 @@ class NoteSectionTest {
     }
   }
 
-  /** The whole of what a note being on a tab means: it is the tab's, and it is there when the tab is. */
-  @Test fun `a note belongs to the tab it was written on`() {
+  /** Which is what a note being about an object means: another object's tab is another note. */
+  @Test fun `a note is only about what the tab it was written on is on`() {
     explorerUiTest {
       openHeapDump()
       startNote()
       write("Written about the heap dump")
       save()
-      // Marked on the tab, which is how a reader who moves away knows the note went with the tab rather
+      // Marked on the tab, which is how a reader who moves away knows the note went with the object rather
       // than with the window.
       waitUntilAtLeastOneExists(hasText(NOTE_MARK), RENDER_TIMEOUT_MILLIS)
       waitUntilAtLeastOneExists(
@@ -252,6 +253,30 @@ class NoteSectionTest {
         hasText("Written about the heap dump", substring = true),
         RENDER_TIMEOUT_MILLIS
       )
+    }
+  }
+
+  /** The other half of that, and the reason a note is filed under the object: two tabs on one are one note. */
+  @Test fun `two tabs on one object are one note`() {
+    explorerUiTest {
+      openHeapDump()
+      // The heap dump as an object, opened a second time: the buttons along the top always open a new tab, so
+      // this is two tabs on one object without there being two of anything else.
+      onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and isButton()).performClick()
+      waitUntil(timeoutMillis = RENDER_TIMEOUT_MILLIS) {
+        onAllNodes(isTab()).fetchSemanticsNodes().size == 2
+      }
+      startNote()
+      write("Written on the second tab")
+      save()
+      waitUntilAtLeastOneExists(hasText("Written on the second tab"), RENDER_TIMEOUT_MILLIS)
+
+      onAllNodes(isTab())[0].performClick()
+
+      // The note the other tab wrote, without a save having to be read back off the disk for it: the notepad
+      // is the object's and both tabs are writing on it.
+      waitUntilAtLeastOneExists(hasText("Written on the second tab"), RENDER_TIMEOUT_MILLIS)
+      onNodeWithText(NOTE_BUTTON).assertDoesNotExist()
     }
   }
 

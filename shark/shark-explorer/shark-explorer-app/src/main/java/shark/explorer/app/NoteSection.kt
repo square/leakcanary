@@ -2,6 +2,7 @@ package shark.explorer.app
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,16 +44,19 @@ import shark.explorer.NoteStyle
 import shark.explorer.hexObjectId
 
 /**
- * What has been written about the tab on screen, between the row that says where the tab is and the panes
- * that read it.
+ * What has been written about the object the tab is on, between the row that names it and the panes that read
+ * it.
  *
  * There rather than at the foot of the window, because a note is about the whole of what the tab is showing:
  * under the title it is about, above everything it describes. At the bottom it would read as a note on
  * whichever pane happened to be above it.
  *
+ * **A note is the object's, not the tab's**, so two tabs on one object are one note and show each other's
+ * writing as it is typed — `Place.noteKey` and [PlaceNotes] are the two halves of that.
+ *
  * **Not there at all until there is something to show**, which is what keeps a section that is on every tab
- * from taking room it has not earned: most tabs are never written about, and the way to start one is
- * [AddNoteButton] in the row above. So there are two states here rather than three:
+ * from taking room it has not earned: most objects are never written about, and the way to start one is
+ * [AddNoteButton] under the title. So there are two states here rather than three:
  *
  * - **Writing**: a plain text box with save and cancel. Plain, because markdown is what gets typed here and
  *   a box that reformats it as you go is a box arguing with you.
@@ -106,9 +110,9 @@ internal fun NoteSection(
 }
 
 /**
- * The button that starts a note, for the row that says where the tab is.
+ * The button that starts a note, drawn under the title that says what the tab is on.
  *
- * In that row rather than in the section, and gone as soon as there is a note, so that a tab nobody has
+ * Under it rather than in the section, and gone as soon as there is a note, so that an object nobody has
  * written about spends no window on saying so. A note carries its own way back into the box — see
  * [WrittenNote] — which is why there is never one of each on screen.
  *
@@ -124,10 +128,16 @@ internal fun AddNoteButton(
     return
   }
   Hint(WRITE_NOTE_HINT) {
-    // At the size every other button in the bars above is, rather than the small one [WrittenNote] uses: this
-    // is the only thing in the window that says notes exist, and it was the smallest text in a row of them.
-    TextButton(onClick = { notes.edit() }, modifier = modifier, enabled = notes.isRead) {
-      Text(NOTE_BUTTON)
+    // Small, and with no padding of its own around the label, because it hangs under the title on every tab
+    // that has no note: what it costs there should be a line of window rather than a row of one, and it
+    // should start where the title above it starts.
+    TextButton(
+      onClick = { notes.edit() },
+      modifier = modifier.height(ADD_NOTE_HEIGHT),
+      enabled = notes.isRead,
+      contentPadding = PaddingValues(horizontal = 0.dp)
+    ) {
+      Text(NOTE_BUTTON, style = MaterialTheme.typography.bodySmall)
     }
   }
 }
@@ -304,7 +314,7 @@ private fun headingStyle(level: Int): TextStyle = when (level) {
   else -> MaterialTheme.typography.titleMedium
 }
 
-/** What starts a note about this tab, in the row that says where the tab is. See [AddNoteButton]. */
+/** What starts a note about what the tab is on, under the title saying what that is. See [AddNoteButton]. */
 internal const val NOTE_BUTTON = "✎ Add Note"
 
 /** And what opens the one that is already there. */
@@ -317,19 +327,23 @@ internal const val CANCEL_NOTE = "Cancel"
 /** What marks a tab that has a note, in front of its title on the strip. */
 internal const val NOTE_MARK = "✎"
 
-internal const val NOTE_MARK_HINT = "This tab has a note."
+internal const val NOTE_MARK_HINT = "There is a note about what this tab is on."
 
 /** What the editor is called, which is also how a test finds it: there is no other text field here. */
-internal const val NOTE_EDITOR_DESCRIPTION = "The note about this tab, as markdown."
+internal const val NOTE_EDITOR_DESCRIPTION = "The note about what this tab is on, as markdown."
 
-private const val WRITE_NOTE_HINT =
-  "Write a note about this tab, in markdown, kept between runs. A class name, an address like 0x1234 and a " +
-    "shark:// link to a tab all turn into a way back into this window, and http links open in a browser."
+/**
+ * Short, because what a note can do is the box's business rather than this button's: a tooltip is read while
+ * deciding whether to click, and by then everything about markdown and links is a paragraph in the way. It is
+ * in [NOTE_PLACEHOLDER] instead, which is on screen exactly while it is worth reading.
+ */
+private const val WRITE_NOTE_HINT = "Write a note about what this tab is on, kept between runs."
 
 private const val EDIT_NOTE_HINT = "Change what this note says."
 
 private const val NOTE_PLACEHOLDER =
-  "Markdown. Class names, 0x addresses and shark:// links become links into this heap dump."
+  "Markdown. Class names, 0x addresses and shark:// links become links into this heap dump, and http links " +
+    "open in a browser."
 
 private const val SAVED_IN = "Saved in"
 
@@ -344,6 +358,9 @@ private val MARKER_WIDTH = 24.dp
 
 /** Enough for a few lines while writing, so that the panes under it keep the window. */
 private val EDITOR_HEIGHT = 120.dp
+
+/** A line under the title rather than a button beside it. See [AddNoteButton]. */
+private val ADD_NOTE_HEIGHT = 20.dp
 
 /** And how much of it a long note gets before it scrolls instead of pushing the panes down. */
 private val MAX_NOTE_HEIGHT = 160.dp

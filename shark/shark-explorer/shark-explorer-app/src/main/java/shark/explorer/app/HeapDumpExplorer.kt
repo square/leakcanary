@@ -443,12 +443,12 @@ internal fun HeapDumpExplorer(
     isListing = false
   }
 
-  // Which tabs have been written about, once per run of the app: a directory listing rather than a note
+  // Which objects have been written about, once per run of the app: a directory listing rather than a note
   // opened per tab, since what it answers is a question about the whole strip. See [HeapDumpNotes.list].
   LaunchedEffect(notes) { notes.list() }
 
-  // And what this tab's note says, once per run of the app. Here rather than in the section that draws it,
-  // because a tab nobody has written about has no section at all until the read says whether it has one.
+  // And what the note about this one says, once per run of the app. Here rather than in the section that draws
+  // it, because an object nobody has written about has no section at all until the read says it has none.
   LaunchedEffect(tabNote?.notes) { tabNote?.notes?.read() }
 
   // What a note means, whenever there is a new one to mean anything: reading the markdown is in memory and
@@ -604,16 +604,15 @@ internal fun HeapDumpExplorer(
       VerticalDivider(Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
       // Which object the tab is on, beside the arrows that moved to it: above the panes rather than in
       // one, because it is the one thing that is as true of a list of objects as of the map.
-      Box(Modifier.weight(1f)) {
+      Column(Modifier.weight(1f)) {
         DescribedObject(details?.selection)
-      }
-      // At the end of the title's side of that rule, and only until there is a note: the two of them are one
-      // region, so what the button will be a note about is what it is grouped with, while the arrows keep
-      // theirs. Read left to right it is still the subject before what to do about it, and it stays at the
-      // window's edge rather than moving with a title that changes on every click. Once there is a note it is
-      // under this row and carries the way back into it, so there is never one of each. See [AddNoteButton].
-      if (tabNote != null) {
-        AddNoteButton(tabNote.notes)
+        // Under the title, and only until there is a note: the note will be about what the title names, and
+        // this is where it will appear, so the button is where its own result goes. Small, since that costs a
+        // line of every tab nobody has written about. Once there is a note it is here instead and carries the
+        // way back into the box, so there is never one of each. See [AddNoteButton].
+        if (tabNote != null) {
+          AddNoteButton(tabNote.notes)
+        }
       }
     }
     // Under the title it is about and above everything that describes it, so that what it is a note about is
