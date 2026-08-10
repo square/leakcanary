@@ -692,17 +692,22 @@ Zooming, resizing and switching shape move the rectangles rather than the pointe
 follows at all, so each view remembers where the pointer is and works out what it is on again whenever it
 is laid out anew.
 
-## A note belongs to the object, and the names in it are links
+## A note belongs to the place, and the names in it are links
 
-Every object takes a note, rather than the notes being a screen of their own. A note is written while reading
-an object and it is about that object, so it belongs where the object is: a note you have to leave the object
-to write is one written about however much of it you can still remember, and a note that isn't in front of you
-when you come back to the object is one you forgot you had.
+Every place takes a note, rather than the notes being a screen of their own. A note is written while reading an
+object and it is about that object, so it belongs where the object is: a note you have to leave the object to
+write is one written about however much of it you can still remember, and a note that isn't in front of you when
+you come back to the object is one you forgot you had.
 
-**The object's, not the tab's**, and the distinction is worth stating because every surface of this is drawn on
-a tab: two tabs on one object are one note, and both show what the other is typing, since `ExplorerNotes` hands
-out one `PlaceNotes` per place per run. A tab is a way of looking at an object and there can be several at once;
-what a note is about is the object.
+**The place's, not the tab's**, and the distinction is worth stating because every surface of this is drawn on a
+tab: two tabs on one place are one note, and both show what the other is typing, since `ExplorerNotes` hands out
+one `PlaceNotes` per place per run. A tab is a way of looking at a place and there can be several at once; what
+a note is about is the place.
+
+**And a place, not an object** — the word matters in the other direction too. Three of the keys are lists rather
+than objects, one is a group of objects, and the tab a window opens with is the whole dump; "a note per object"
+reads as if the object list and the leaks had none. The user facing word for it is *location*, since `Place` is
+this codebase's rather than anybody else's.
 
 **Between the row that says where the tab is and the panes that read it**, because a note is about the whole
 of what the tab is showing: under the title it is about, above everything that describes it. At the foot of
@@ -723,12 +728,12 @@ object like any other — so there is somewhere to write the story that isn't ab
 screen for it.
 
 **Two states and no fold**: writing is a plain box with save and cancel, written is the note as it means, and
-there is no third state, because an object nobody has written about has no section at all. What starts one is a
+there is no third state, because a place nobody has written about has no section at all. What starts one is a
 button under the title (`AddNoteButton`), which goes away as soon as there is a note — one way in on screen
-at a time, and nothing spent on the objects that will never have one, which is most of them. A note that exists
+at a time, and nothing spent on the places that will never have one, which is most of them. A note that exists
 is simply on screen, so there is nothing to fold and nothing to remember folding: a note behind a button is a
 note nobody remembers is there. The strip marks a tab that has one with a `✎` for the same reason — what makes
-notes worth writing is the window saying which objects you have already worked something out about. Which tabs
+notes worth writing is the window saying where you have already worked something out. Which tabs
 those are is one directory listing (`NoteDirectory.keysWithNotes`) rather than a file opened per tab, since it
 is a question about the whole strip.
 

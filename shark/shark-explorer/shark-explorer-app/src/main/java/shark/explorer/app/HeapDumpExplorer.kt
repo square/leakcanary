@@ -443,12 +443,12 @@ internal fun HeapDumpExplorer(
     isListing = false
   }
 
-  // Which objects have been written about, once per run of the app: a directory listing rather than a note
+  // Which places have been written about, once per run of the app: a directory listing rather than a note
   // opened per tab, since what it answers is a question about the whole strip. See [HeapDumpNotes.list].
   LaunchedEffect(notes) { notes.list() }
 
   // And what the note about this one says, once per run of the app. Here rather than in the section that draws
-  // it, because an object nobody has written about has no section at all until the read says it has none.
+  // it, because a place nobody has written about has no section at all until the read says it has none.
   LaunchedEffect(tabNote?.notes) { tabNote?.notes?.read() }
 
   // What a note means, whenever there is a new one to mean anything: reading the markdown is in memory and

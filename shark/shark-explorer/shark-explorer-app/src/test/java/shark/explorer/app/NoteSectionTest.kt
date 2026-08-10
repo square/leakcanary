@@ -36,13 +36,13 @@ import shark.explorer.Place
 import shark.explorer.hexObjectId
 
 /**
- * The note kept about the object a tab is on, and what makes it worth keeping: the names in it lead back into
- * the window it was written in, and it is there again the next time that object is.
+ * The note kept about where a tab is, and what makes it worth keeping: the names in it lead back into the
+ * window it was written in, and it is there again the next time a tab is there.
  *
  * The markdown itself is `NoteTest` in `shark-explorer-core`, and where a note is kept is `NoteFileTest`,
  * which is where anything about what a note means or is filed under belongs. What is only true here is what
  * saving and cancelling do, that a saved note is drawn with its links going where they say, that a note is
- * about the object its tab is on rather than about the tab, and that what was saved is on disk.
+ * about the place its tab is on rather than about the tab, and that what was saved is on disk.
  */
 @OptIn(ExperimentalTestApi::class)
 class NoteSectionTest {
@@ -56,8 +56,8 @@ class NoteSectionTest {
   /** The object id of the holder in [testHeapDump], recorded as the dump is written. */
   private var holderObjectId = 0L
 
-  /** Which is what keeps notes from costing a strip of window on every object nobody has written about. */
-  @Test fun `an object nobody has written about is a button under the title and nothing more`() {
+  /** Which is what keeps notes from costing a strip of window on every place nobody has written about. */
+  @Test fun `a place nobody has written about is a button under the title and nothing more`() {
     explorerUiTest {
       openHeapDump()
 
@@ -223,8 +223,8 @@ class NoteSectionTest {
     }
   }
 
-  /** Which is what a note being about an object means: another object's tab is another note. */
-  @Test fun `a note is only about what the tab it was written on is on`() {
+  /** Which is what a note being about a place means: a tab somewhere else is another note. */
+  @Test fun `a note is only about the place the tab it was written on is at`() {
     explorerUiTest {
       openHeapDump()
       startNote()
@@ -256,12 +256,12 @@ class NoteSectionTest {
     }
   }
 
-  /** The other half of that, and the reason a note is filed under the object: two tabs on one are one note. */
-  @Test fun `two tabs on one object are one note`() {
+  /** The other half of that, and the reason a note is filed under the place: two tabs on one are one note. */
+  @Test fun `two tabs on one place are one note`() {
     explorerUiTest {
       openHeapDump()
-      // The heap dump as an object, opened a second time: the buttons along the top always open a new tab, so
-      // this is two tabs on one object without there being two of anything else.
+      // The whole heap dump, opened a second time: the buttons along the top always open a new tab, so this is
+      // two tabs on one place without there being two of anything else.
       onNode(hasText(HeapDominatorTreemap.ROOT_LABEL) and isButton()).performClick()
       waitUntil(timeoutMillis = RENDER_TIMEOUT_MILLIS) {
         onAllNodes(isTab()).fetchSemanticsNodes().size == 2
@@ -274,7 +274,7 @@ class NoteSectionTest {
       onAllNodes(isTab())[0].performClick()
 
       // The note the other tab wrote, without a save having to be read back off the disk for it: the notepad
-      // is the object's and both tabs are writing on it.
+      // is the place's and both tabs are writing on it.
       waitUntilAtLeastOneExists(hasText("Written on the second tab"), RENDER_TIMEOUT_MILLIS)
       onNodeWithText(NOTE_BUTTON).assertDoesNotExist()
     }

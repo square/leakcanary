@@ -44,18 +44,19 @@ import shark.explorer.NoteStyle
 import shark.explorer.hexObjectId
 
 /**
- * What has been written about the object the tab is on, between the row that names it and the panes that read
- * it.
+ * What has been written about where the tab is, between the row that says so and the panes that read it.
  *
  * There rather than at the foot of the window, because a note is about the whole of what the tab is showing:
  * under the title it is about, above everything it describes. At the bottom it would read as a note on
  * whichever pane happened to be above it.
  *
- * **A note is the object's, not the tab's**, so two tabs on one object are one note and show each other's
- * writing as it is typed — `Place.noteKey` and [PlaceNotes] are the two halves of that.
+ * **A note belongs to the place, not to the tab**, so two tabs on one place are one note and show each other's
+ * writing as it is typed — `Place.noteKey` and [PlaceNotes] are the two halves of that. A place here is a
+ * location in the heap dump rather than an object: an object, a group of smaller ones, the object list, the
+ * leaks, the starred objects.
  *
  * **Not there at all until there is something to show**, which is what keeps a section that is on every tab
- * from taking room it has not earned: most objects are never written about, and the way to start one is
+ * from taking room it has not earned: most places are never written about, and the way to start one is
  * [AddNoteButton] under the title. So there are two states here rather than three:
  *
  * - **Writing**: a plain text box with save and cancel. Plain, because markdown is what gets typed here and
@@ -112,7 +113,7 @@ internal fun NoteSection(
 /**
  * The button that starts a note, drawn under the title that says what the tab is on.
  *
- * Under it rather than in the section, and gone as soon as there is a note, so that an object nobody has
+ * Under it rather than in the section, and gone as soon as there is a note, so that a place nobody has
  * written about spends no window on saying so. A note carries its own way back into the box — see
  * [WrittenNote] — which is why there is never one of each on screen.
  *

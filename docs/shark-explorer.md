@@ -70,7 +70,7 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
-* Every object takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
+* Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
 
 ## Link to a tab
 
@@ -104,19 +104,20 @@ link.
 
 ## Take notes
 
-**✎ Add Note**, under the title saying what the tab is on, starts a markdown note about **that object** —
-or about the list of leaks, the object list, the starred objects, or the heap dump as a whole on the tab a
-window opens with. Type into the box, press **Save**, and the note is drawn where the box was; **Cancel**
-throws what you typed away. It is there again the next time you open that object, and the tab strip puts a ✎
-on the tabs whose object has one.
+**✎ Add Note**, under the title saying where the tab is, starts a markdown note about **that location** —
+an object, the object list, the leaks, the starred objects, or the heap dump as a whole on the tab a window
+opens with. Type into the box, press **Save**, and the note is drawn where the box was; **Cancel** throws what
+you typed away. It is there again the next time you are at that location, and the tab strip puts a ✎ on the
+tabs whose location has one.
 
-A note is the **object's**, not the tab's: two tabs on one object are one note, and so are two windows on one
-heap dump. Which is why writing about an object you got to twice is adding to what you already wrote rather
-than starting again beside it, and why the same is true of the note you left there last week.
+A note belongs to the **location**, not to the tab: two tabs on one location are one note, and so are two
+windows on one heap dump. Which is why writing about an object you got to twice adds to what you already wrote
+rather than starting again beside it, and why the same is true of the note you left there last week. To throw a
+note away, open it, delete the text and **Save**: an empty note is no note, and the ✎ comes off the tab.
 
 The note appears under that row and above the panes, because it is about the whole of what the tab is showing.
-On an object nobody has written about there is nothing there at all — only the button, which goes away once
-there is a note, since the note carries its own **✎ Edit**.
+Where nobody has written anything there is nothing there at all — only the button, which goes away once there
+is a note, since the note carries its own **✎ Edit**.
 
 The notes live in `~/.shark-explorer/notes`, one directory per heap dump and one `.md` file per tab, so a
 note can be opened in an editor, pasted into an issue, or read by an agent without going through this app.
@@ -139,8 +140,8 @@ Headings, lists, quotes, `code`, **bold**, *italic*, fenced code blocks and `[li
 all work, and **one line is one line**: no blank line needed between two of them, the way a comment box on
 GitHub reads markdown. Nothing inside a fenced code block is linked or shortened.
 
-A note is filed under what its tab is *about* rather than how it is arranged, so searching in the object list
-or unfolding a leak stays on the same note rather than starting a new one.
+A location is *where* you are rather than how it is arranged, so searching in the object list, unfolding a leak
+or resizing the window stays on the same note rather than starting a new one.
 
 Since a `shark://` link names a window, a link written into a note stops working once that window is closed
 — see above. Copy one for the tab you want to come back to *while you are writing about it*, and it will
