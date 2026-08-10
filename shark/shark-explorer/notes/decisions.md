@@ -661,6 +661,13 @@ itself: on that row the name is what the whole window is about, while everywhere
 mention of an object among others. At body size it read as one more label in a bar of them, and a window
 whose subject is the smallest question on screen is one you have to hunt for the answer in.
 
+**That row is two things with a rule between them**: how the tab got here — the arrows — and what it is on,
+which is the title and, at the end of it, what the notes offer. Without the rule it is one undifferentiated
+strip of controls, and a button at the far end of that reads as belonging to the window rather than to the
+object named beside it; with it, the grouping is what says which, and nothing has to be labelled to say so.
+`IntrinsicSize.Min` on the row is what makes the rule as tall as the row itself, the title being one line on
+the whole heap dump and three on an object.
+
 **An address is printed as hex, everywhere.** A decimal object id matches nothing: `hexObjectId` is what
 `shark-cli`, a leak trace and every other tool print, so it is what can be pasted between them.
 
@@ -722,6 +729,15 @@ is a question about the whole strip.
 
 Which is also why **the window reads the file rather than the section**: whether there is a section at all is
 the answer to that read, so a section that started it could only ever appear after itself.
+
+**Why the button is at the end of that row**, of the four places it could be: before the title puts the action
+ahead of its subject, and makes the title's own position depend on whether a note exists. Hugging the end of
+the title moves it on every click, the title being the object the tab is on — a control that moves is one you
+have to look for, and a control at an edge is one you learn once. Under the title reads best, since it is
+where the note itself will appear, but it is a row of window spent on every tab, which is the whole thing
+being avoided. The end of the row keeps the reading order, keeps one position whatever the title says, and
+costs nothing: leading subject, trailing action. It is drawn at the size of the buttons above it rather than
+smaller, too — the one thing on screen that says notes exist should not be the smallest text in the row.
 
 **What makes a note worth keeping is that the names in it lead back into the window.** A note is mostly made
 of things out of the heap dump — a class, an address, a link to the tab you were on — and typing those out

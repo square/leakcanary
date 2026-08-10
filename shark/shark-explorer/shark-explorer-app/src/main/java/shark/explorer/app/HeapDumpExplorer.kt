@@ -5,12 +5,14 @@ import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -19,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -587,7 +590,9 @@ internal fun HeapDumpExplorer(
       onClose = { id -> tabs = tabs.close(id) },
       onCopyLink = copyLink
     )
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    // Two things in one row, and a rule between them: how the tab got here, then what it is on. The height is
+    // the taller of the two so that the rule is as tall as the row whether the title is one line or three.
+    Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
       HistoryArrows(
         // Named the way the tabs are, since these are the same places under another name.
         back = tabs.backPlaces.map { it.title ?: placeTitles[it] ?: NAMING_TAB },
@@ -596,14 +601,17 @@ internal fun HeapDumpExplorer(
         onBack = { steps -> tabs = tabs.goBack(steps) },
         onForward = { steps -> tabs = tabs.goForward(steps) }
       )
+      VerticalDivider(Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
       // Which object the tab is on, beside the arrows that moved to it: above the panes rather than in
       // one, because it is the one thing that is as true of a list of objects as of the map.
       Box(Modifier.weight(1f)) {
         DescribedObject(details?.selection)
       }
-      // At the far end of the row, and only until there is a note: a tab nobody has written about is a tab
-      // that spends nothing on notes. Once there is one, the note itself is under this row and carries the
-      // way back into it. See [AddNoteButton].
+      // At the end of the title's side of that rule, and only until there is a note: the two of them are one
+      // region, so what the button will be a note about is what it is grouped with, while the arrows keep
+      // theirs. Read left to right it is still the subject before what to do about it, and it stays at the
+      // window's edge rather than moving with a title that changes on every click. Once there is a note it is
+      // under this row and carries the way back into it, so there is never one of each. See [AddNoteButton].
       if (tabNote != null) {
         AddNoteButton(tabNote.notes)
       }

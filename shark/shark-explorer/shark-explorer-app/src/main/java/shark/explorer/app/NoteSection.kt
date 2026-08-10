@@ -124,8 +124,10 @@ internal fun AddNoteButton(
     return
   }
   Hint(WRITE_NOTE_HINT) {
+    // At the size every other button in the bars above is, rather than the small one [WrittenNote] uses: this
+    // is the only thing in the window that says notes exist, and it was the smallest text in a row of them.
     TextButton(onClick = { notes.edit() }, modifier = modifier, enabled = notes.isRead) {
-      Text(NOTE_BUTTON, style = MaterialTheme.typography.bodySmall)
+      Text(NOTE_BUTTON)
     }
   }
 }
