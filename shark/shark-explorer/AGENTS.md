@@ -67,6 +67,23 @@ found, and the search for every way an object is held runs for the object clicke
 question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md` has the
 numbers on the biggest dump in the repo, including how long a chain gets there.
 
+## A leaking status set by hand is an argument to every read, never state of the tree
+
+Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
+are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
+`rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots` — rather than something the tree holds.
+It has to be that way round for the reason above: the tree is read from one thread and the window composed
+on another, so overrides in the tree would draw a chain from one set of them and the row above it from
+another.
+
+**The parameter defaults to `LeakStatusOverrides.NONE`**, so a new read that forgets it compiles and answers
+with the dump's own reading — which looks right, and is wrong the moment anybody has set a status. Thread it
+through, and key the `LaunchedEffect` that asks on the overrides, which is what makes setting one redraw.
+
+`findLeaks()` is the one read that means it: it takes no overrides, because a leak is named by
+`LeakTrace.leakFingerprint` and reading it through somebody's own statuses would print fingerprints that no
+longer match LeakCanary's for the same leak. `notes/decisions.md` has the rest.
+
 ## A heap dump can have `android.os.Build` and not the fields Shark reads off it
 
 `AndroidBuildMirror.fromHeapGraph` reads `MANUFACTURER`, `ID` and `VERSION.SDK_INT` with `!!`, and nearly

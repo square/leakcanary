@@ -821,6 +821,98 @@ inside it, a file per `noteKey` rather than one document with a section per plac
 the note that was typed into, nothing has to be parsed back out of a document that also holds somebody's own
 headings, and the listing is the index.
 
+## A leaking status is the heap dump's answer until a hand overrules it
+
+Every chain already carried a `LeakStatus` per object, worked out by Shark's inspectors and then propagated
+along the chain — everything above an object still needed is still needed, everything a leaking object holds
+is leaking. Two things were added to that: the status of the object a tab is *on*, said where the tab says
+which object, and the ability to overrule it.
+
+**The banner is under the title, above the panes**, for the reason the note button is: it is about the whole
+of what the tab is showing, and the title is what it is about. In the colours the chain beside it uses
+(`LeakStatus.background` and `textColor` are shared with `PathDrawing` rather than copied), because it is the
+same answer read in one place instead of a dozen — a reader who has learnt the green and the red on a chain
+reads them here for free.
+
+**Loud for the two statuses that mean something, quiet for the third.** Most of a heap dump is objects
+nothing knows either way about, so a shaded, bold `Unknown` on every tab would be a banner nobody reads by
+the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
+`TARGET_SHAPE`, the shape the chain marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
+status it is doesn't rest on colour alone.
+
+**From the last step of the chain when there is one**, and from the object's own reading until the walk up to
+the GC roots lands, since the chain's answer is the one with the objects above and below taken into account.
+So the banner can say `Unknown` for a beat and then say `Leaking` — the panes filling in, not the window
+changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no object of it,
+and there is nothing to inspect or decide about.
+
+**Overriding always wins**, which is the one place this differs from how two inspectors disagreeing is
+settled. There, the object still being needed wins, because two inspectors are two halves of the same
+automated reading and the safer one is the one to believe. A hand is not that: someone who has read the code
+knows what the inspectors can't, and weighing the two would mean a status that can't be set to the one an
+inspector already picked. So `setByHandStatus` takes the reason someone typed and keeps the inspectors as the
+record of what was overruled, exactly the way a conflict between two inspectors is recorded.
+
+**A status without a reason is not a status.** `LeakStatusOverride` throws on a blank one and the dialog's
+button is disabled until there is one. A status set by hand overrules the heap dump, so without the why it is
+an assertion the next reader — a colleague, an agent, the same person in a month — has no way to check, and
+one of those makes every other status in the dump worth less. `SET_BY_HAND` marks the reason wherever it is
+read, so a green object somebody decided about is never mistaken for one an inspector recognized.
+
+**Nothing is recomputed, because nothing is cached.** The statuses of a chain are worked out on every read of
+it, so a status set by hand is an argument to the read rather than something to invalidate:
+`summarize`, `rootPathTo`, `independentPathsBetween` and `independentPathsFromRoots` take a
+`LeakStatusOverrides`, and the window's `LaunchedEffect`s are keyed on it — which is why that class has value
+equality. **A value rather than state on the tree**, because the tree is read from one thread while the
+window is composed on another: overrides living in the tree would mean a chain drawn from one set of them and
+the row above it from another, with no way to tell. The cost of that choice is that a new question about a
+path has to take the parameter or it silently answers with the dump's own reading, which looks right.
+
+**`findLeaks()` is deliberately not read through them.** It is Shark's own answer, and a leak's name is
+`LeakTrace.leakFingerprint` of the suspect stretch — the last object still needed down to the first one
+leaking — so reading it through statuses somebody set would produce fingerprints that no longer match the
+ones LeakCanary prints for the same leak. The list of leaks is what the dump says; the banner is what anyone
+reading it has concluded.
+
+**Two statuses set by hand can contradict each other, and the contradiction is shown rather than settled.**
+The propagation rules are what make it possible: a leaking object above forces everything it holds to be
+leaking, and an object still needed below forces everything holding it to be needed. So two hand-set statuses
+disagree exactly when one of the objects reaches the other, which is `HeapDominatorTreemap.reaches` —
+one walk up `ReferrerIndex` per status already set, a question somebody asked rather than one the pointer
+asks. `leakStatusConflictsWith` answers it before anything is written, and the dialog then lists every one of
+them by name, with the reason it was given, because whoever is about to overrule it is the only person who
+can weigh the two.
+
+- **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
+  `NOT_LEAKING` propagates upwards only and `LEAKING` downwards only, so the pair that can disagree is
+  always those two, and agreeing with the new status is the same as being flipped.
+- **Flipped, not taken off**, so that what somebody typed is still in the file: the solved reason says which
+  status it was, what it said, and that this is why it changed.
+- **A status of `UNKNOWN` set by hand conflicts with nothing.** Nobody claiming to know overrules nobody, so
+  it is never one of the statuses a new one has to be settled against — though it can still be overruled by
+  the chain, and the reason then records what it was.
+- **Nothing is written until the choice is made**, which is what makes "Undo" free, and the write is one
+  `LeakStatusFile.write` of the lot rather than one per status: a save that stopped half way through would
+  leave a heap dump whose statuses contradict each other, which is the one state this step exists to
+  prevent. It runs `NonCancellable` because the dialog closes as soon as it has.
+
+**One tab separated file per heap dump, in `~/.shark-explorer/leak-statuses`.** Named after the dump the way
+its notes are, and beside them rather than next to the dump, for the same reason: dumps come from device
+pulls, temporary files and read only mounts. A file rather than a directory of files, which is the opposite
+of the notes — a note is a document somebody edits and a status is three fields the window writes, and every
+question here is about all of them at once. Columns named in a comment at the top, the reason's newlines and
+tabs escaped, the lines sorted by address, so that the file reads as evidence: two runs that set the same
+statuses write the same file, and a line of it can be pasted into an issue. A line that can't be read is
+skipped with a log line rather than thrown over — it is hand editable on purpose, and one typo must not be a
+heap dump whose other statuses have gone. Addresses are written with `exactHexObjectId`, not `hexObjectId`,
+since the latter gives up exactly what a file can't.
+
+**Nothing is applied that wasn't written**, which is also the opposite of the notes beside it: a status only
+this process knows about is a chain explained by a reason that will be gone next run. And nothing is saved
+before the file has been read — an empty set of statuses, written out because the disk was slow, is every
+status of that heap dump deleted — which is what the disabled button and the check in
+`HeapDumpLeakStatuses.save` are both for.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real
