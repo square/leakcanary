@@ -12,4 +12,9 @@ dependencies {
   testImplementation(libs.junit)
   testImplementation(libs.assertjCore)
   testImplementation(projects.shark.sharkHprofTest)
+  // So that the owner rule about dependency injection singletons is tested against the providers Dagger
+  // and Metro really build, rather than against this repo's idea of them. Runtimes only — no annotation
+  // processor and no compiler plugin run here, see DependencyInjectionOwnerTest.
+  testImplementation(libs.dagger.runtime)
+  testImplementation(libs.metro.runtime)
 }

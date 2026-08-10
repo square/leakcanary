@@ -63,13 +63,14 @@ internal fun RootPathPanel(
   hoveredRootPath: RootPath?,
   /** The node the map is rooted at, which is where a hovered chain starts when it isn't below this one. */
   rootNodeId: Long,
+  /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
+  stronglyReachableByteCount: Long,
   /** The ways each stretch of the chain could run, by [shark.explorer.RootPathDetour.fromIndex]. */
   ways: Map<Int, List<RootPathWay>>,
   /** Which of them is drawn, for the stretches the reader has switched. */
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  coloring: CellColoring,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val summary = (selection as? Selection.Object)?.summary
@@ -119,10 +120,10 @@ internal fun RootPathPanel(
       if (drawn != null) {
         RootPathTrace(
           drawn = drawn,
+          stronglyReachableByteCount = stronglyReachableByteCount,
           ways = ways,
           chosenWays = chosenWays,
           onChooseWay = onChooseWay,
-          coloring = coloring,
           onOpen = onOpen
         )
       } else {
@@ -131,10 +132,18 @@ internal fun RootPathPanel(
         }
       }
       if (tail != null) {
-        HoveredTail(steps = tail, isCut = false, coloring = coloring)
+        HoveredTail(
+          steps = tail,
+          isCut = false,
+          stronglyReachableByteCount = stronglyReachableByteCount
+        )
       } else if (cutTail != null) {
         // Nothing above it on screen is what holds it, so the end of it is the object being described here.
-        HoveredTail(steps = cutTail, isCut = true, coloring = coloring)
+        HoveredTail(
+          steps = cutTail,
+          isCut = true,
+          stronglyReachableByteCount = stronglyReachableByteCount
+        )
       }
     }
   }
@@ -163,11 +172,11 @@ private fun noChainText(
 @Composable
 private fun RootPathTrace(
   drawn: DrawnRootPath,
+  stronglyReachableByteCount: Long,
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
-  coloring: CellColoring,
-  onOpen: (Long) -> Unit
+  onOpen: (Long, OpenIn) -> Unit
 ) {
   val steps = drawn.path.steps
   Column(Modifier.fillMaxWidth()) {
@@ -184,7 +193,7 @@ private fun RootPathTrace(
         // How this step points at the next one, which is what the next step was reached through.
         reference = next?.step?.reference,
         nextStrength = next?.step?.strength,
-        coloring = coloring,
+        stronglyReachableByteCount = stronglyReachableByteCount,
         onOpen = onOpen,
         role = when {
           // The object the details panel is about, whatever the pointer has added below it.
@@ -210,7 +219,7 @@ private fun HoveredTail(
   steps: List<RootPathStep>,
   /** Whether it runs on from the chain above or starts somewhere else, which the dots say. */
   isCut: Boolean,
-  coloring: CellColoring
+  stronglyReachableByteCount: Long
 ) {
   Column(Modifier.fillMaxWidth()) {
     if (isCut) {
@@ -224,9 +233,9 @@ private fun HoveredTail(
         step = step.step,
         reference = next?.step?.reference,
         nextStrength = next?.step?.strength,
-        coloring = coloring,
+        stronglyReachableByteCount = stronglyReachableByteCount,
         // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
-        onOpen = {},
+        onOpen = { _, _ -> },
         role = when {
           // The end of a cut tail is the only object being described here, since the chain above it isn't
           // the way to it; the end of one that runs on is described by the card at the pointer instead.

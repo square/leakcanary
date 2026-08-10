@@ -157,7 +157,7 @@ class RadialViewTest {
     }
   }
 
-  /** What [shark.explorer.HeapDominatorTreemap.presentRadial] does, for a tree that isn't a heap dump. */
+  /** What [shark.explorer.RadialPresentation.of] does, for a tree that isn't a heap dump. */
   private fun TreemapTree<Long>.present(
     layout: RadialLayout<Long> = RadialLayout()
   ): RadialPresentation {
@@ -230,11 +230,12 @@ private fun RadialUnderTest(
       RadialView(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
+        shading = LeakShading.NONE,
         selected = selected,
         hovered = hovered,
-        onClick = {
-          selected = SelectedCell.of(it.subject)
-          onClick(it)
+        onClick = { cell, _ ->
+          selected = SelectedCell.of(cell.subject)
+          onClick(cell)
         },
         // Only which sector, as in [TreemapViewTest]: where the pointer is on it is the card's business.
         onHover = { pointedAt ->

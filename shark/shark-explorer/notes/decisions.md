@@ -152,6 +152,62 @@ for before starting over.
 The memory cost is per window and it isn't small — a tree, a graph and an index each — so N windows on
 large dumps is N times the numbers in `dominator-tree.md`.
 
+## An object is a place, and everything in the window is derived from it
+
+Where a tab is, is **one value**: a `Place` in `shark-explorer-core` — an object, the pile of smaller
+objects left out of one, the object list with its filter, the leaks, the starred. Everything drawn is a
+function of it. The map is laid out at `place.viewRootObjectId`, the chain pane walks up to a GC root from
+that same object, the details panel summarises it, the tab is named after it. Nothing else is stored.
+
+Before this there were two coordinates — which screen the window was on, and a path the treemap had zoomed
+along — and a dozen places that set one, the other, or both. What that cost was not the lines: it was that
+a click on a rectangle, a row of a list, a field in the panel and a step of the chain each set them
+slightly differently, so which panes agreed with each other depended on which of the four you had used.
+Collapsing to one value is what makes **every way to an object the same move**, which is the whole point:
+`Place.of(cell)` for a rectangle, `Place.Object(id)` everywhere else, and one `open` in
+`HeapDumpExplorer` that the four of them go through.
+
+**The second coordinate could go because it was never independent.** In a dominator tree the way down to an
+object is unique, so the map root *is* the object — there is no path worth storing, and `TreemapNavigation`,
+which stored one, is gone. What replaced going back out along it is the chain pane, which was already
+drawing that path for a different reason.
+
+**Which tab a click means is the click's own answer, not the target's** — `OpenIn`, decided in `OpenIn.kt`
+and nowhere else. A plain click moves the tab being read, the way following a link moves a browser tab; a
+middle click, a ⌘ or Ctrl click, and `Open in a new tab` from the right click menu open one **behind** what
+is being read, because opening a tab that way is parking somewhere to come back to. The buttons on the bar
+are the exception twice over: they always open a tab rather than moving one, and they open it in front,
+since pressing one is asking to be somewhere else. Two lists of objects filtered differently are two useful
+tabs, which is why the bar never reuses the tab of the same name.
+
+The gestures are read twice because the views draw their cells rather than composing them: `Modifier.openable`
+for anything composed, `detectOpenPresses` for the three views, both in `OpenIn.kt` so that a middle click on
+a rectangle, on a ring, on a row of the stack and on a row of a list mean one thing. The right click menu is
+the only part that is words, and it is what makes the other two findable.
+
+**Every tab is closeable, the last one included.** A window with no tab still holds the heap dump it spent
+seconds reading, and the bar above is one click from a tab again — closing tabs is never closing the dump,
+which is the window's, see above. A tab's history is its own rather than the window's, or the back arrow
+would walk out of the tab being read. And a tab id is counted up rather than reused, so a tab closed and
+another opened are two tabs rather than one that changed its mind.
+
+**A tab's name is a read of the heap dump**, class name plus address, because a strip of a dozen instances
+of one class is only one you can pick out of if each tab says which instance it is. So the strip scrolls
+rather than shrinking its tabs to nothing, and a tab shows a placeholder for the moment before the read
+comes back.
+
+**Three things in the window can say `Whole heap dump` at once** — the button on the bar, the tab, and the
+top row of every chain — and they are three different moves: open a tab there, go to that tab, go there in
+this tab. What tells them apart, to a screen reader and to a test, is the role: `Role.Button` on the bar,
+`Role.Tab` on the strip, and no role at all on a row that navigates, which is a link rather than a button.
+An assertion that means one of them says which.
+
+**The three panes are resizable against the map and each foldable to nothing** (`Panes.kt`). Folding leaves
+the button that unfolds it and nothing else, and folding the map is allowed too: a chain 30 steps long and
+a details panel of 40 fields are each worth the whole window sometimes, and the map is the pane that can
+always be got back to by unfolding. Widths are the window's rather than the tab's — a reader who has
+widened the chain has widened it for the investigation, not for one object.
+
 ## Going back to the live device, through the `adb` command line
 
 Reaching into the process that wrote the heap dump — which is the only place a native bitmap's pixels
@@ -281,7 +337,7 @@ The card used to be drawn for `Selection.Object` alone, which meant pointing at 
 name is incomplete answered nothing at all.
 
 Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
-pointer is on. Nothing is read when the pointer leaves, and nothing on the map screen is blanked as the
+pointer is on. Nothing is read when the pointer leaves, and nothing beside the map is blanked as the
 next cell is read, so a sweep across the map doesn't flicker.
 
 Clicking selecting in place was the first version, with a double click to go anywhere. It went because the
@@ -313,26 +369,25 @@ plainest way the object is held; the marked steps are the rectangles it sits ins
 chain to the picture. On the production dump the longest one is 34 steps, two of them views and the rest
 RxJava plumbing — which is why it is cut at 20 and cut at the root end.
 
-It sits **on the far side of the view from the details panel**, and only on the map screen: chain, view,
-details, left to right — where the object came from, where it is, what it is keeping alive. A chain and the
-details are both tall columns, so one pane holding both would always have one of them scrolled off, and
-putting them either side of the map makes what was clicked and how it is held one answer around the thing
-they are about rather than the window's two outer edges. Neither pane is drawn on the other screens: a list
-of objects wants the width of the window more than it wants either of them.
+It sits **on the far side of the view from the details panel**: chain, view, details, left to right — where
+the object came from, where it is, what it is keeping alive. A chain and the details are both tall columns,
+so one pane holding both would always have one of them scrolled off, and putting them either side of the map
+makes what was clicked and how it is held one answer around the thing they are about rather than the
+window's two outer edges. Neither pane is drawn for a tab on a list: a list of objects wants the width of
+the window more than it wants either of them, and there is no one object for them to be about.
 
 **Every object of the chain is clickable, and that's how you get back out.** The ringed steps are the
-rectangles the map is drawn inside, in the order it zoomed through them, so a click on one is a zoom back
-out to it — `TreemapNavigation.zoomInto` of a node already on the path truncates rather than appends. A row
-of breadcrumbs above the view used to be the way out; it went because it said a subset of what this pane
-says, in a strip that couldn't hold a class name. **The whole heap dump is the top row of every chain**, for
-the same reason: the way back to the screen the window opens on belongs where the chain says the whole heap
-is, and a chain of the whole heap dump is that one row and nothing else.
+objects the one being read sits inside, so a click on one is the way back out to it — the same move as
+clicking its rectangle, since a chain step and a rectangle are both just an object to go to. A row of
+breadcrumbs above the view used to be the way out; it went because it said a subset of what this pane says,
+in a strip that couldn't hold a class name. **The whole heap dump is the top row of every chain**, for the
+same reason: the way back to where the window opens belongs where the chain says the whole heap is, and a
+chain of the whole heap dump is that one row and nothing else.
 
-**The screen bar has a button of the same name, which is not a duplicate of that row.** The chain is drawn
-for the rectangle clicked, on the map screen only, so until something has been clicked, and from a list of
-objects, that row isn't there — and the way back to the top of the tree is the one move that has to be
-available whatever the window is showing. Hence a button beside the other screens rather than a second one
-above the map: leaving the map and going back to the top of it are the same kind of move.
+**The bar above has a button of the same name, and it is not a duplicate of that row.** The row goes to the
+whole heap dump *in this tab*, keeping the trail that led here on the back arrow; the button opens a tab on
+it, leaving this one where it is. A tab on a list has no chain pane at all, so the button is also the only
+one of the two available whatever a tab is showing.
 
 **The pointer's chain is drawn onto the end of the clicked one.** The rectangle under the pointer is inside
 the one the window is describing, so the chain holding it *is* this chain plus a few steps — and drawing it
@@ -383,6 +438,207 @@ Each stretch is searched separately, `independentPathsBetween` for one below an 
 than an object. Both are asked once per click, after the chain arrives, because the chain is what says where
 the stretches are.
 
+## The leaks are the explorer's own paths, not a leak trace
+
+The `Leaks` screen finds the objects that shouldn't be in memory the two ways Shark finds them — the
+`KeyedWeakReference`s LeakCanary left behind (`WatchedObjects`), and a pass over every instance with
+`AndroidObjectInspectors.appLeakingObjectFilters` — and then answers everything else about them **with the
+same code the rest of the window uses**: `HeapDominatorTreemap.rootPathTo`, the function that draws the
+chain beside the map. No path here comes from `RealLeakTracerFactory` or the shortest path finder — though
+what a leak is *called* does, since the chain is handed to a `LeakTrace` to be hashed, see below.
+
+Two reasons, and the second is the one that decided it.
+
+- A `LeakTraceObject` carries no object id, and a row you can't click is a dead end. Everything on this
+  screen is an object to open.
+- **A list that ranked leaks by one path and then showed another when a row is clicked is two answers to
+  one question.** So the path is found once: which section a leak is in comes off that path — unreachable
+  when `strengthOf` says so, a library leak when one of the path's own references carries a
+  `LibraryLeakPattern`, the app's own otherwise — and clicking the row shows that path.
+
+One walk up per object found, which on the 38 MB dump is 48 objects and **328 ms** with the index and the
+candidates already paid for. That is what a walk *down* from the roots at open time would replace, and it
+would replace it with work every dump does whether or not anyone opens this screen.
+
+**The leaks are found as the heap dump opens**, not when something asks for them, and the map opens with
+them shaded — a heap dump is opened to see what shouldn't be in memory, and a map that shows it only once a
+box is ticked is a map that hides it. They ride along with the pass that builds `ReferrerIndex`, which
+already ran on the read thread as soon as the map was up, so the map is still the first thing drawn and the
+shading lands a moment later. Which is also why `CellColoring.DEFAULT` greys the strengths: that is what
+`withLeaks` does either way, since a red shade over a map of pastels is one more pastel. On a dump whose
+leaks retain almost nothing the map is then all grey — `unloaded_classes-stripped`, 4 objects out of
+332,905 — and on one where they retain something it opens with the leak drawn as a red block.
+
+**A leak is a reference, not a class**, and what groups the app's own leaks is the leak fingerprint
+LeakCanary prints under one — `LeakTrace.leakFingerprint`, a SHA-1 of the suspect stretch of the chain,
+from the last object known to still be needed down to the first one that shouldn't be there. Three things
+it deliberately leaves out. **The class of what leaked**, because two objects reached through one bad
+reference are one thing to fix whatever they are. **Everything below the first leaking object**, because
+that is what the leak is *holding* rather than why — an activity and a bitmap eight references under it are
+the same leak. **Which slot of an array an object landed in**, because that changes between two dumps of the
+same app and a leak has to be the same leak in both.
+
+It is computed by handing the chain to Shark rather than by applying that rule again here (`LeakFingerprint`
+builds the `LeakTrace` the chain amounts to and reads its hash), because a leak fingerprint is only worth
+printing if it is the same string as the one in a LeakCanary report of the same leak, and the rule for which
+references count is subtle enough that writing it twice means finding out later that the two differ. That
+was not a guess: this screen grouped by a rule of its own first, and it took four rounds of comparing
+against LeakCanary to find every way the two differed. Library leaks are hashed the way `LibraryLeak` hashes
+one, off the pattern they were recognized by. What the row is *named* after is still spelled here — the
+first reference of the suspect stretch, `Holder.activity`, by the class declaring the field so that the name
+is a string that is also on the chain drawn for it, where the leak fingerprint uses the class of the object.
+Which is why the name is no substitute for the leak fingerprint and both are on the row.
+
+**The row is named after both ends of that stretch**, in one line: `MortarScope.tearDowns → … →
+QueueService.f$0`, and just `Holder.activity` when the two ends are the same reference, which is most
+leaks. The first end is the reference that shouldn't be holding — **which is what LeakCanary calls a leak**,
+`ApplicationLeak.shortDescription` being `suspectReferenceSubpath.first()` — and the last is the one that
+points straight at what leaked, which is where to look on the chain to see it.
+
+One line rather than two, because a second line that repeats the first whenever the stretch is one
+reference reads as the row having two names. Both ends because either alone leaves rows that can't be told
+apart: on `unloaded_classes-stripped` both app leaks start at `MediaStateMachine.observer` and end at
+different references, and on a dump where two leaks are held by the same field it is the other way round.
+
+**The row above them is the leak and the rows under it are the objects**, so the first object is always
+shown and the rest are behind one row saying how many there are. Which is the shape of the thing: fifty
+leaked instances of a screen are one reference to stop holding, and a list that scrolls for a minute to get
+past them says the opposite — but a leak drawn with nothing under it says what shouldn't be holding without
+ever saying what it is holding. The name ends on an arrow for the same reason: what the last reference
+points at is the row underneath.
+
+**Why an object is leaking is on the object, not on the leak.** An inspector reads it off the object —
+`Activity#mDestroyed is true` — so two objects of one group can be leaking for reasons that don't read the
+same, and a group has no business printing one of them as its own. What is left on the leak's row is what
+is true of all of them: the references, the hash of them, how many objects and what they retain.
+
+**A leak that can only be reached through another leak is dropped from the list**
+(`foldedIntoWhatHoldsThem`). A leaked activity holds a leaked window which holds a leaked view tree, and
+every one of those is an object an inspector recognizes, and there is one thing to fix. Nothing is lost by
+it: they are all still on the map, shaded as leaking, and opening one draws a chain that runs through the
+leak it went under.
+
+**Only reached through, rather than "some other leak dominates it"**, which is what this used to ask. A
+leak is a reference that shouldn't be there, not an object. An object held two ways, each of them through a
+different leak, has no leaking dominator and survived that rule as a leak of its own — but both of the
+references holding it are already on the list, fixing them takes it with them, and there is nothing about
+it to add. `HeapLeaksTest` has that heap dump: a window two destroyed activities hold, which neither of
+them dominates, since letting go of one leaves the other holding it.
+
+It costs no second walk. `rootPathSearch` puts a leaking referrer in its last-resort queue (the third tier
+below), so the chain it comes back with runs through another leak only when every chain does — the question
+is answered by the chain the row already leads to. Which also makes a folded leak one whose own chain says,
+on it, which leak holds it and why. Measured over the ten real dumps here, the two rules are
+indistinguishable: same leaks, same leak fingerprints, same object counts on all ten. It is the tier that
+made them agree — before it, the chain rule listed three objects on `compose_leak` where dominance listed
+six.
+
+**The leaks are checked against LeakCanary's own analysis of the same heap dump, by leak fingerprint.**
+`HeapAnalyzer` with `FilteringLeakingObjectFinder(appLeakingObjectFilters)` and
+`AndroidObjectInspectors.appDefaults` — the "every leak in the dump" analysis `shark-cli analyze` runs, not
+the retained-since-the-last-dump one — against this screen. `LeakFingerprintTest` is that check on
+synthetic dumps, one per difference that used to break it; the sweep over the ten real Android dumps in
+this repo is worth re-running by hand after touching any of this, and it stands at **8 of the 10 dumps
+agreeing exactly, 12 of the 15 leaks**. It is what found everything on this page: the counts alone matched
+three rounds before the leak fingerprints did, because two chains can be different and the same length.
+
+**Two dumps still differ, and neither is a tie-break nobody can explain.**
+
+`compose_leak.hprof` — six objects hold `DefaultMainActivityScopeProvider`, two of them entries of the same
+`MortarScope.tearDowns` `HashSet`, and the two tools take different ones. Both are deterministic and the
+orders are unrelated. **LeakCanary walks down**, so when it dequeues the set it enqueues the entries in the
+order Shark's `HashSet` reader reads the table, and the first of them claims the provider: that is
+`ActivityDelegateNotifier`, third in the table. **The explorer walks up**, and `ReferrerIndex` yields the
+referrers of an object most recently indexed first, so of the two it reaches the one further down the heap
+dump: `DemoRootWithGatekeepersWorkflowProvider`, object index 31516 against 31263. Everything else about the
+two ten-step chains is identical. Bucket order isn't stable across two dumps of one app either, so neither
+answer is the right one — but a walk up cannot see a walk down's order, and the only way to break it the
+same way is to walk down: one prioritized BFS from the GC roots at open time, filling a parent-per-object
+array that every chain is then read out of. Every tie would then break the way a leak trace breaks it, since
+it would be the same walk in the same direction; a chain becomes a pointer chase up the array rather than a
+search per hover; and it is one int per object, against `ReferrerIndex`'s two per reference. What it isn't
+is a tie-break: it is a second traversal at open time, reading objects in BFS order where building the index
+is a sequential scan of the dump, and `ReferrerIndex` still has to exist for "every way this is held".
+
+`unloaded_classes-stripped.hprof` — two leaks, the same count as LeakCanary, and two leak fingerprints
+that differ by their prefix. What is left is **an owner rule**:
+`InternalLeakCanary.resumedActivity → HomeActivity` is weakened, because an `Activity` is owned by the
+`ActivityThread$ActivityClientRecord` that holds it, so the explorer can't walk LeakCanary's ten-step
+prefix and takes an eleven-step one from a static `MediaStateMachine` instead. That alone makes every leak
+fingerprint on this dump differ, whatever else is fixed.
+
+The fold was never the reason here — `BrowserToolbarView` is above both the leaking `CoordinatorLayout` and
+the leaking `BrowserFragment`, and the layout is above nothing. This dump used to come out as **one** group,
+from a tie broken by a rule rather than by an order. Below `BrowserToolbarView` there are two
+four-step ways to the fragment: `container → CoordinatorLayout → SparseArray → Object[] →` it, and
+`interactor → BrowserInteractor → DefaultBrowserToolbarController → lambda →` it. The explorer took the
+first, so the fragment's chain ran through a leaking object, and a suspect stretch stops at the first
+leaking object — so the fragment hashed to the layout's leak fingerprint and joined its group. LeakCanary
+can't take that way at all, because **its phase 1 treats a leaking object as a leaf**.
+
+**Where the two used to differ, and what closed it** — five rounds, in the order they were found:
+
+- The suspect stretch ran past the first leaking object, and kept array indices, and named a reference by
+  the class declaring the field rather than the class of the object. Three ways of grouping too finely.
+- The fold looked at the twenty drawn steps of a chain rather than all of it, so a leak held by another one
+  far above it stayed on the list.
+- **Collections were read the way they are built.** `ArrayList.elementData → Object[] → [3]` where a leak
+  trace says `ArrayList[x]`, and worse for a `HashMap`. `DataStructureReferenceReader` adds Shark's own
+  readers for the dozen structures it knows, the way `ViewChildReferenceReader` adds a `ViewGroup`'s
+  children: additively, so the table stays a node of the tree, and the dominator tree takes it back out of
+  the middle. Costs about 11% of the time it takes to open a dump — 1.72 s against 1.55 s on the 38 MB one
+  — for reading a collection's contents twice, which is what `ChainingInstanceReferenceReader` pays too.
+- **The path search had no low priority queue.** It took `Thread.<local variable>` where LeakCanary took
+  `AsyncTask.SERIAL_EXECUTOR`, which is a truthful answer to "what holds this" and a useless one — an object
+  is on a stack because a method is running, and there is nothing to fix. `RootPathSearch` now puts off a
+  stack frame, a known library leak and the arrays ART hangs off a class exactly as
+  `PrioritizingShortestPathFinder` does, read in the other direction, and `ReferrerIndex` carries
+  `Reference.isLowPriority` in the top bit of each edge to answer it.
+- **A reference into an object that shouldn't be in memory wasn't put off**, so a chain took it where there
+  was a way round, and the object it led to hashed to the leak fingerprint of the leak on the way. That is
+  the third tier in `RootPathSearch`'s queue, on the same two queues as a stack frame and for the same reason:
+  a path through a dead object explains what holds an object about as well as a running method does. Where
+  every way is a leak the chain still runs through one, which is what the fold above then drops. It reads as
+  a different rule in LeakCanary — its phase 1 makes a leaking object a leaf, so the way round is the only
+  path it can find at all — and breaks the same ties the same way.
+
+  **It costs the pass that finds those objects, moved earlier**: they are needed before the first chain
+  rather than when the Leaks screen is opened, which on the 38 MB dump is 296 ms once, paid by the first
+  chain (963 ms against 627 ms) and by nothing after it. Two thousand chains take 1381 ms with the tier and
+  1348 ms without, which is noise — the extra tier is one array read per referrer.
+
+**Shark's library leak matchers are added to the reference reader the tree is built from**
+(`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would
+drop references, and every object has to stay a node of the tree exactly once. A `LibraryLeakReferenceMatcher`
+sets `Reference.isLowPriority` and `LazyDetails.matchedLibraryLeak` and nothing else, so the tree is the
+same tree with the known leaks of it named, and the first of the two is what keeps a chain off a known
+leaking reference while there is another way to the object.
+
+**A leaking object's status is on every path, not only on the ones that turn out to be leaks.** Every step
+of every chain carries a `LeakStatus`, worked out by `leakStatusesOf` from what the inspectors said about
+the objects above and below it — Shark's own rule, minus the one that forces the last object of a leak
+trace to be leaking, because a path here ends wherever the reader clicked. Green behind an object meant to
+be alive, red behind one meant to be gone, and the reason in words underneath.
+
+**The boxes above a view colour that view and nothing else.** A swatch beside an object — a step of a chain,
+a row of a list, the details panel, the card at the pointer — is `objectStrengthColor`, off the strength
+alone, while `legendColor` greys what the boxes have switched off. Greying a strength is a way of reading the
+picture the view draws, and a line naming one object is not that picture: greyed there it would read as
+saying something about the object. And `Leaking` unticks every strength, `withLeaks` / `withStrengths` being
+the one place that is decided — a red shade over a map of pastels is one more pastel, and grey underneath is
+what leaves the few objects that shouldn't be there as the only colour on screen.
+
+**The treemap shades leaks without laying anything out again.** "Anything dominated by a dead node is dead"
+is the whole rule, and cells arrive parent before child, so `CellColors.of` propagates it in one pass over
+the cells it was already given. The one thing that pass can't know is whether the node the view is *rooted*
+at is itself below a leak, which is one small read — `isBelowLeakingObject` — per view. There is no colour
+for the objects that are meant to be alive: a treemap draws what retains what, and most of a heap dump is
+objects nothing knows either way about. The chain says which is which, object by object.
+
+Finding the leaks is a pass over every instance plus a walk up to the GC roots per object found, so it runs
+once per heap dump, behind a screen someone asked for, and is capped at the largest
+`MAX_LEAKING_OBJECTS` objects with a log line when it truncates.
+
 ## Which object it is, said the same way everywhere
 
 Four surfaces name an object: a step of a chain, the card at the pointer, the bar above the map, a row of the
@@ -392,9 +648,9 @@ lines on one should not have to learn where they are again on the next. The pack
 what keeps a row from wrapping in a pane 300 dp wide.
 
 **Which object it is lives above the map, not in the details panel.** It is a different question from the
-rest of that panel — which object, as against what that object holds — and it's the one line worth having on
-the screens that have no panel. So the panel names no object of its own: it starts with the star and the
-numbers.
+rest of that panel — which object, as against what that object holds — and it is what the tab strip and the
+chain are both about, so it belongs between them. So the panel names no object of its own: it starts with
+the star and the numbers.
 
 **An address is printed as hex, everywhere.** A decimal object id matches nothing: `hexObjectId` is what
 `shark-cli`, a leak trace and every other tool print, so it is what can be pasted between them.

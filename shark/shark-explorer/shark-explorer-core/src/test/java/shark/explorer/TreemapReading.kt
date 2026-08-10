@@ -5,10 +5,47 @@ package shark.explorer
 internal fun HeapDominatorTreemap.findByLabel(label: String): HeapObjectSummary =
   allSummaries().single { it.label == label }
 
+/**
+ * The instances of one class, by simple name, found the way the window's object list finds them: through
+ * the index. Which is what the tests of a dump of a real JVM have to use, [allSummaries] reading every
+ * object of the dump out of the heap dump file.
+ */
+internal fun HeapDominatorTreemap.instancesOf(simpleClassName: String): List<ObjectListEntry> =
+  listObjects(
+    ObjectListFilter(
+      query = simpleClassName,
+      isExactMatch = true,
+      kinds = setOf(HeapObjectKind.INSTANCE)
+    )
+  ).entries
+
+internal fun HeapDominatorTreemap.onlyInstanceOf(simpleClassName: String): ObjectListEntry =
+  instancesOf(simpleClassName).single()
+
+/** Every object the tree has between [objectId] and its root, nearest first. */
+internal fun HeapDominatorTreemap.dominatorLabelsOf(objectId: Long): List<String> {
+  val labels = mutableListOf<String>()
+  var dominator = dominatorOf(objectId)
+  while (dominator != null) {
+    labels += dominator.label
+    dominator = if (dominator.kind == DominatorKind.OBJECT) dominatorOf(dominator.nodeId) else null
+  }
+  return labels
+}
+
 /** Every object of the tree, walked past the groups, which stand for objects rather than being one. */
-internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> {
+internal fun HeapDominatorTreemap.allSummaries(): List<HeapObjectSummary> = summariesBelow(root)
+
+/**
+ * Every object the tree draws below [node], however deep and not counting [node] itself: what the tree
+ * says it retains, spelled out.
+ */
+internal fun HeapDominatorTreemap.descendantsOf(node: Long): List<HeapObjectSummary> =
+  children(node).flatMap { child -> summariesBelow(child) }
+
+private fun HeapDominatorTreemap.summariesBelow(from: Long): List<HeapObjectSummary> {
   val summaries = mutableListOf<HeapObjectSummary>()
-  val toVisit = ArrayDeque(listOf(root))
+  val toVisit = ArrayDeque(listOf(from))
   while (toVisit.isNotEmpty()) {
     val node = toVisit.removeFirst()
     if (groupOrNull(node) == null) {

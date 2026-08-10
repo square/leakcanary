@@ -78,7 +78,7 @@ class ReferrerIndexTest {
 
   private fun ReferrerIndex.referrersOf(objectId: Long): List<Long> {
     val referrers = mutableListOf<Long>()
-    forEachReferrer(indexOf(objectId)) { referrers += objectIdAt(it) }
+    forEachReferrer(indexOf(objectId)) { referrer, _ -> referrers += objectIdAt(referrer) }
     return referrers
   }
 

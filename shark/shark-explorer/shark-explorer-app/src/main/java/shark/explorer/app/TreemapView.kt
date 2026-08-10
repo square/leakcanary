@@ -1,7 +1,6 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -54,6 +53,8 @@ import shark.explorer.TreemapPresentation
 internal fun TreemapView(
   presentation: TreemapPresentation,
   coloring: CellColoring,
+  /** Which of the objects drawn are leaking, for the colouring that shades them. */
+  shading: LeakShading,
   selected: SelectedCell?,
   /** The pixels read for the bitmaps of this presentation so far, by object id. */
   bitmapImages: Map<Long, ImageBitmap>,
@@ -61,8 +62,8 @@ internal fun TreemapView(
   hovered: SelectedCell?,
   /** The rectangle the pointer moved onto and where it is, or null when it moved onto none or left. */
   onHover: (PointedAt?) -> Unit,
-  /** The rectangle pressed, which is where the window goes. */
-  onClick: (LayoutCell<Long>) -> Unit,
+  /** The rectangle pressed, which is where the window goes, and which tab it asked for. */
+  onClick: (LayoutCell<Long>, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
@@ -71,8 +72,8 @@ internal fun TreemapView(
   val dots = remember(density) { pileDots(density) }
   // Measuring a few hundred labels is the one part of drawing that isn't cheap, so it happens when
   // the presentation changes and never on a redraw.
-  val cells = remember(presentation, coloring, bitmapImages, textMeasurer, density, dots) {
-    val colors = CellColors.of(coloring, presentation.cells)
+  val cells = remember(presentation, coloring, shading, bitmapImages, textMeasurer, density, dots) {
+    val colors = CellColors.of(coloring, presentation.cells, shading)
     presentation.cells.map { presented ->
       presented.measure(
         colors = colors,
@@ -121,11 +122,9 @@ internal fun TreemapView(
           }
         }
         .pointerInput(presentation, cells, edgeGrab) {
-          detectTapGestures(
-            // On press rather than on tap, which is immediate: with nothing waiting for a second click,
-            // a tap handler would still hold every click for the double click window.
-            onPress = { offset -> presentation.cellAt(offset, cells, edgeGrab)?.let(onClick) }
-          )
+          detectOpenPresses { offset, openIn ->
+            presentation.cellAt(offset, cells, edgeGrab)?.let { cell -> onClick(cell, openIn) }
+          }
         }
     ) {
       // Fills first and outlines after, all of them: a child covers every pixel of its parent, so a

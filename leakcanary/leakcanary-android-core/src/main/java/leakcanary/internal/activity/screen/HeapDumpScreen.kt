@@ -48,9 +48,9 @@ internal class HeapDumpScreen(
             activity.title = resources.getString(R.string.leak_canary_analysis_deleted_title)
           }
         } else {
-          val signatures = heapAnalysis.allLeaks.map { it.signature }
+          val leakFingerprints = heapAnalysis.allLeaks.map { it.leakFingerprint }
             .toSet()
-          val leakReadStatus = LeakTable.retrieveLeakReadStatuses(db, signatures)
+          val leakReadStatus = LeakTable.retrieveLeakReadStatuses(db, leakFingerprints)
           val heapDumpFileExist = heapAnalysis.heapDumpFile.exists()
           updateUi { onSuccessRetrieved(heapAnalysis, leakReadStatus, heapDumpFileExist) }
         }
@@ -113,7 +113,7 @@ internal class HeapDumpScreen(
 
           val leak = leaks[position - 2]
 
-          val isNew = !leakReadStatus.getValue(leak.signature)
+          val isNew = !leakReadStatus.getValue(leak.leakFingerprint)
 
           countView.isEnabled = isNew
           countView.text = leak.leakTraces.size.toString()
@@ -150,7 +150,7 @@ internal class HeapDumpScreen(
 
     listView.setOnItemClickListener { _, _, position, _ ->
       if (position > LEAK_TITLE) {
-        goTo(LeakScreen(leaks[position - 2].signature, analysisId))
+        goTo(LeakScreen(leaks[position - 2].leakFingerprint, analysisId))
       }
     }
   }

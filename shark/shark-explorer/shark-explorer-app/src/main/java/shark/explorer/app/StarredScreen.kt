@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import shark.explorer.HeapObjectSummary
 import shark.explorer.ObjectDominator
 import shark.explorer.formatByteSize
+import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.hexObjectId
 
 /**
@@ -29,7 +30,9 @@ import shark.explorer.hexObjectId
 @Composable
 internal fun StarredScreen(
   favourites: List<Favourite>,
-  onOpen: (Long) -> Unit,
+  /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
+  stronglyReachableByteCount: Long,
+  onOpen: (Long, OpenIn) -> Unit,
   onRemove: (Long) -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -51,7 +54,7 @@ internal fun StarredScreen(
               Text(hexObjectId(favourite.objectId), style = MaterialTheme.typography.bodySmall)
             }
             Text(
-              "Retained ${formatByteSize(favourite.retainedSize)} · " +
+              "Retained ${formatByteSizeOfTotal(favourite.retainedSize, stronglyReachableByteCount)} · " +
                 "shallow ${formatByteSize(favourite.shallowSize)} · " +
                 "dominated by ${favourite.dominatorLabel}",
               style = MaterialTheme.typography.bodySmall

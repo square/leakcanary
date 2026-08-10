@@ -410,7 +410,7 @@ class LeakStatusTest {
     assertThat(leakTrace.referencePathElementIsSuspect(2)).isTrue()
   }
 
-  @Test fun sameLeakTraceSameSignature() {
+  @Test fun sameLeakTraceSameLeakFingerprint() {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -422,7 +422,7 @@ class LeakStatusTest {
         }
       }
     }
-    val hash1 = computeSignature(notLeaking = "Class1", leaking = "Class3")
+    val hash1 = computeLeakFingerprint(notLeaking = "Class1", leaking = "Class3")
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -434,11 +434,11 @@ class LeakStatusTest {
         }
       }
     }
-    val hash2 = computeSignature(notLeaking = "Class1", leaking = "Class3")
+    val hash2 = computeLeakFingerprint(notLeaking = "Class1", leaking = "Class3")
     assertThat(hash1).isEqualTo(hash2)
   }
 
-  @Test fun differentLeakTraceDifferentSignature() {
+  @Test fun differentLeakTraceDifferentLeakFingerprint() {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -450,7 +450,7 @@ class LeakStatusTest {
         }
       }
     }
-    val hash1 = computeSignature(notLeaking = "Class1", leaking = "Class3")
+    val hash1 = computeLeakFingerprint(notLeaking = "Class1", leaking = "Class3")
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -462,11 +462,11 @@ class LeakStatusTest {
         }
       }
     }
-    val hash2 = computeSignature(notLeaking = "Class1", leaking = "Class3")
+    val hash2 = computeLeakFingerprint(notLeaking = "Class1", leaking = "Class3")
     assertThat(hash1).isNotEqualTo(hash2)
   }
 
-  @Test fun sameCausesSameSignature() {
+  @Test fun sameCausesSameLeakFingerprint() {
     hprofFile.dump {
       "GcRoot" clazz {
         staticField["staticField1"] = "Class1" instance {
@@ -478,7 +478,7 @@ class LeakStatusTest {
         }
       }
     }
-    val hash1 = computeSignature(notLeaking = "Class1", leaking = "Class3")
+    val hash1 = computeLeakFingerprint(notLeaking = "Class1", leaking = "Class3")
 
     hprofFile.dump {
       "GcRoot" clazz {
@@ -491,7 +491,7 @@ class LeakStatusTest {
         }
       }
     }
-    val hash2 = computeSignature(notLeaking = "Class1", leaking = "Class3")
+    val hash2 = computeLeakFingerprint(notLeaking = "Class1", leaking = "Class3")
     assertThat(hash1).isEqualTo(hash2)
   }
 
@@ -554,7 +554,7 @@ class LeakStatusTest {
     }
   }
 
-  private fun computeSignature(
+  private fun computeLeakFingerprint(
     notLeaking: String,
     leaking: String
   ): String {
@@ -566,6 +566,6 @@ class LeakStatusTest {
       "Expecting 1 retained instance in ${analysis.applicationLeaks}"
     }
     val leak = analysis.applicationLeaks[0]
-    return leak.signature
+    return leak.leakFingerprint
   }
 }

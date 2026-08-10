@@ -110,7 +110,8 @@ class RealLeakTracerFactory constructor(
 
     val (applicationLeaks, libraryLeaks) = buildLeakTraces(
       shortestPaths, inspectedObjectsByPath, pathFindingResults.retainedSizes,
-      pathFindingResults.subLeakedObjectsByLeakedObject
+      pathFindingResults.subLeakedObjectsByLeakedObject,
+      pathFindingResults.alsoRetainingLeakingObjectsByLeakedObject
     )
     return LeaksAndUnreachableObjects(applicationLeaks, libraryLeaks, unreachableObjects)
   }
@@ -213,6 +214,7 @@ class RealLeakTracerFactory constructor(
     inspectedObjectsByPath: List<List<InspectedObject>>,
     retainedSizes: LongObjectMap<Retained>?,
     subLeakedObjectsByLeakedObject: LongObjectMap<LongArray>,
+    alsoRetainingLeakingObjectsByLeakedObject: LongObjectMap<LongArray>,
   ): Pair<List<ApplicationLeak>, List<LibraryLeak>> {
     listener.onEvent(StartedBuildingLeakTraces)
 
@@ -231,14 +233,15 @@ class RealLeakTracerFactory constructor(
         inspectedObjects, retainedSizes, leakingNodeIndex
       ).toMutableList()
 
-      subLeakedObjectsByLeakedObject[leakingObjectId]?.let { subLeakedObjectIds ->
+      val relatedLabels = relatedLeakingObjectLabels(
+        subLeakedObjectIds = subLeakedObjectsByLeakedObject[leakingObjectId],
+        alsoRetainingObjectIds = alsoRetainingLeakingObjectsByLeakedObject[leakingObjectId]
+      )
+      if (relatedLabels.isNotEmpty()) {
         val leakingObject = leakTraceObjects[leakingNodeIndex]
-        val labels = leakingObject.labels.toMutableSet()
-        subLeakedObjectIds.forEach { subLeakedObjectId ->
-          val className = recordClassName(graph.findObjectById(subLeakedObjectId))
-          labels += "Also retains leaking object ${subLeakedObjectId.asObjectIdString()} ($className)"
-        }
-        leakTraceObjects[leakingNodeIndex] = leakingObject.copy(labels = labels)
+        leakTraceObjects[leakingNodeIndex] = leakingObject.copy(
+          labels = leakingObject.labels + relatedLabels
+        )
       }
 
       val referencePath = buildReferencePath(shortestPath, leakTraceObjects)
@@ -250,11 +253,11 @@ class RealLeakTracerFactory constructor(
 
       val firstLibraryLeakMatcher = shortestPath.firstLibraryLeakMatcher()
       if (firstLibraryLeakMatcher != null) {
-        val signature: String = firstLibraryLeakMatcher.pattern.toString().createSHA1Hash()
-        libraryLeaksMap.getOrPut(signature) { firstLibraryLeakMatcher to mutableListOf() }
+        val leakFingerprint: String = firstLibraryLeakMatcher.pattern.toString().createSHA1Hash()
+        libraryLeaksMap.getOrPut(leakFingerprint) { firstLibraryLeakMatcher to mutableListOf() }
           .second += leakTrace
       } else {
-        applicationLeaksMap.getOrPut(leakTrace.signature) { mutableListOf() } += leakTrace
+        applicationLeaksMap.getOrPut(leakTrace.leakFingerprint) { mutableListOf() } += leakTrace
       }
     }
     val applicationLeaks = applicationLeaksMap.map { (_, leakTraces) ->
@@ -478,6 +481,51 @@ class RealLeakTracerFactory constructor(
       }
     }
     return status to reason
+  }
+
+  /**
+   * Labels naming the leaking objects related to the leaking object of a leak trace: the ones it
+   * retains that have no leak trace of their own, and the ones that also retain it.
+   *
+   * One label per class name rather than one per object, since a leaking object can be related to
+   * dozens of others and a label each would bury the rest of the leak trace.
+   */
+  private fun FindLeakInput.relatedLeakingObjectLabels(
+    subLeakedObjectIds: LongArray?,
+    alsoRetainingObjectIds: LongArray?
+  ): List<String> {
+    val subLeakedLabels = groupByClassName(subLeakedObjectIds).map { (className, objectIds) ->
+      if (objectIds.size == 1) {
+        "Also retains leaking object ${objectIds.single().asObjectIdString()} ($className)"
+      } else {
+        "Also retains ${objectIds.size} leaking $className objects"
+      }
+    }
+    // The path this leaking object is reached through isn't in any leak trace: it disappears when
+    // that other leak is fixed, while the path reported here survives fixing every other leak.
+    val alsoRetainingLabels =
+      groupByClassName(alsoRetainingObjectIds).map { (className, objectIds) ->
+        if (objectIds.size == 1) {
+          "Also retained by leaking object ${objectIds.single().asObjectIdString()} ($className), which has its own" +
+            " leak trace"
+        } else {
+          "Also retained by ${objectIds.size} leaking $className objects, which have their own" +
+            " leak traces"
+        }
+      }
+    return subLeakedLabels + alsoRetainingLabels
+  }
+
+  private fun FindLeakInput.groupByClassName(objectIds: LongArray?): Map<String, List<Long>> {
+    if (objectIds == null) {
+      return emptyMap()
+    }
+    val objectIdsByClassName = linkedMapOf<String, MutableList<Long>>()
+    objectIds.forEach { objectId ->
+      val className = recordClassName(graph.findObjectById(objectId))
+      objectIdsByClassName.getOrPut(className) { mutableListOf() } += objectId
+    }
+    return objectIdsByClassName
   }
 
   private fun recordClassName(

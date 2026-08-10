@@ -1,3 +1,8 @@
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import org.gradle.api.tasks.options.Option
 import org.gradle.process.ExecOperations
@@ -21,6 +26,18 @@ kotlin {
   compilerOptions.jvmTarget = JVM_17
 }
 
+/**
+ * The app's own version, from `SHARK_EXPLORER_VERSION` rather than the repo wide `VERSION_NAME`: the
+ * explorer is released on its own tags, and jpackage would reject `VERSION_NAME` anyway. See
+ * `gradle.properties`.
+ */
+val explorerVersion = property("SHARK_EXPLORER_VERSION").toString()
+
+// Overrides the repo wide version the root build script sets from VERSION_NAME, so that the jar inside a
+// packaged app is named after the app's version rather than after LeakCanary's. Same reasoning the root
+// script gives for shark-cli, whose zip is named after the version too.
+version = explorerVersion
+
 dependencies {
   implementation(projects.shark.sharkExplorer.sharkExplorerCore)
   // Reads the bitmaps of a live process off the Android versions whose heap dumps can't carry them.
@@ -42,6 +59,23 @@ dependencies {
 // matching by name rather than tasks.named().
 tasks.withType<JavaExec>().matching { it.name == "run" }.configureEach {
   workingDir = rootProject.projectDir
+}
+
+/**
+ * Writes the version onto the classpath, which is how [shark.explorer.app.SharkExplorerVersion] reads it.
+ *
+ * A generated resource rather than a jar manifest attribute, because `run` and the tests put class
+ * directories on the classpath rather than the jar, so `Package.getImplementationVersion()` is null for
+ * every way this app is launched while being worked on — and the update check would then only be
+ * exercisable from a packaged build.
+ */
+val writeVersionResource by tasks.registering(WriteProperties::class) {
+  destinationFile = layout.buildDirectory.file("generated/version/shark-explorer-version.properties")
+  property("version", explorerVersion)
+}
+
+sourceSets.main {
+  resources.srcDir(writeVersionResource.map { it.destinationFile.get().asFile.parentFile })
 }
 
 /** Shared by the Compose plugin's `run` and by `runNamed`, which launches the same classes itself. */
@@ -72,8 +106,15 @@ compose.desktop {
 
     nativeDistributions {
       targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+      // The app's visible name, and also the name of the `.app`, and therefore the name of the zip
+      // Block's signing service is handed. A space in it used to break the reply that service sends
+      // back, which is why this was one word until squareup/tf-mobuild-workers#1365 shipped. See
+      // docs/releasing-shark-explorer.md.
       packageName = "Shark Explorer"
-      packageVersion = "1.0.0"
+      // Each format validates this against rules of its own, and `gradle.properties` records which ones
+      // and what they leave possible. `3.0-alpha-10` satisfies none of them, which is the whole reason
+      // this app has a version line of its own.
+      packageVersion = explorerVersion
 
       // Each platform takes a different container, all three rendered from the one SVG by
       // icons/render-icons.sh.
@@ -83,6 +124,10 @@ compose.desktop {
       // it the process shows the default Java icon.
       macOS {
         iconFile.set(macOsIconFile)
+        // Set here rather than left to default, which is the main class's package. Notarization history
+        // and the Managed Software Center entry are both keyed on this, so it has to be a name Square
+        // owns, and changing it after the first release is a migration for everyone who installed one.
+        bundleID = "com.squareup.leakcanary.shark-explorer"
       }
       windows {
         iconFile.set(project.file("icons/shark-explorer-icon.ico"))
@@ -92,9 +137,85 @@ compose.desktop {
         iconFile.set(project.file("src/main/resources/shark-explorer-icon.png"))
       }
 
-      // What `shark-explorer-jdwp` attaches to a live app with. jlink leaves out every module it
-      // doesn't detect a use of, and it detects no use of one reached through `Bootstrap`.
-      modules("jdk.jdi")
+      // The JDK modules jlink puts in the packaged runtime, which are only the ones listed here: the
+      // plugin detects nothing by itself. `suggestRuntimeModules` is where this list came from and the
+      // task to re-run when the dependencies change.
+      //
+      // A module missing here is a `NoClassDefFoundError` that only a packaged build hits, because `run`
+      // has the whole JDK on hand — which is how `java.net.http` went missing for as long as it did. The
+      // update check is the only thing that fetches anything, so a packaged app logged "Could not fetch
+      // …/latest.properties" once at startup and then never mentioned a new version again. `jdk.jdi` is
+      // what `shark-explorer-jdwp` attaches to a live app with.
+      modules("java.instrument", "java.net.http", "jdk.jdi", "jdk.unsupported")
+    }
+  }
+}
+
+/*
+ * Deletes the dylibs left inside the packaged app's own jars, which is what makes a macOS build
+ * notarizable.
+ *
+ * `skiko-awt-runtime-macos-arm64` ships both architectures' dylibs, 21 and 22 MB. Compose extracts the one
+ * it is packaging for into the app directory — where the launcher's `-Dskiko.library.path=$APPDIR` makes
+ * it the copy that loads — and leaves the other architecture's dylib inside the jar. Nothing loads that
+ * one. Nothing signing the bundle reaches it either: a signer walks files, and this is an entry in a zip.
+ *
+ * Apple's notary service does open jars, so it is the one Mach-O in the bundle that arrives unsigned, and
+ * one is enough. It refused this app over
+ * `skiko-awt-runtime-macos-arm64-*.jar/libskiko-macos-x64.dylib` — "The binary is not signed with a valid
+ * Developer ID certificate" — while every file a signer can see was signed correctly, which is why no
+ * local check found it. See docs/releasing-shark-explorer.md.
+ *
+ * Done to the app image and not to the jar this module resolves, because `run` and the tests load skiko
+ * out of that jar, and the image is the first point where only one architecture is still in play. Every
+ * package format is rendered from this image, so stripping it here covers the DMG.
+ */
+// Matched by name rather than with tasks.named(), because the Compose plugin registers this one late too.
+tasks.matching { it.name == "createDistributable" }.configureEach {
+  // Read at configuration time: a task action reaching back into the project is what the configuration
+  // cache forbids, and this needs nothing else from it.
+  val appImage = layout.buildDirectory.dir("compose/binaries/main/app").get().asFile
+  doLast {
+    appImage.walkTopDown().filter { it.isFile && it.extension == "jar" }.forEach { jar ->
+      // The `.sha256` beside each one goes too: skiko checks the hash of the copy it loads, which is the
+      // extracted one, and a hash of a file that is gone is not worth carrying.
+      val bundledDylibs = ZipFile(jar).use { zip ->
+        zip.entries().asSequence()
+          .map { it.name }
+          .filter { it.endsWith(".dylib") || it.endsWith(".dylib.sha256") }
+          .toSet()
+      }
+      if (bundledDylibs.isEmpty()) return@forEach
+
+      // The extracted copy, which has to be there for deleting the rest to be safe. `$APPDIR` is this
+      // directory, so beside the jar is the only place it counts as extracted to.
+      val extracted = jar.parentFile.walk().maxDepth(1).filter { it.extension == "dylib" }.toList()
+      if (extracted.isEmpty()) {
+        throw GradleException(
+          "${jar.name} holds ${bundledDylibs.joinToString()} and no dylib sits beside it, so these " +
+            "are the only copies and deleting them would leave nothing to load. Compose extracting " +
+            "the packaged architecture's dylib into the app directory is what makes this safe, and it " +
+            "has stopped doing that. Check what createDistributable produces before touching this."
+        )
+      }
+
+      val stripped = File(jar.parentFile, "${jar.name}.stripped")
+      ZipFile(jar).use { zip ->
+        ZipOutputStream(stripped.outputStream().buffered()).use { out ->
+          // In the order they were in, so the manifest stays the first entry.
+          zip.entries().asSequence().filter { it.name !in bundledDylibs }.forEach { entry ->
+            out.putNextEntry(ZipEntry(entry.name))
+            zip.getInputStream(entry).use { it.copyTo(out) }
+            out.closeEntry()
+          }
+        }
+      }
+      val freed = jar.length() - stripped.length()
+      Files.move(stripped.toPath(), jar.toPath(), REPLACE_EXISTING)
+      logger.lifecycle(
+        "Stripped ${bundledDylibs.joinToString()} out of ${jar.name}, ${freed / 1024 / 1024} MB, " +
+          "leaving ${extracted.joinToString { it.name }} to load."
+      )
     }
   }
 }

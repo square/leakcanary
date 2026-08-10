@@ -1,7 +1,8 @@
 # Shark Explorer — agent guide
 
-A desktop app that renders a heap dump's dominator tree as a navigable treemap, or as rings around a
-centre. The long term goal is a YourKit-style heap explorer; these are the first surfaces.
+A desktop app that renders a heap dump's dominator tree as a navigable treemap, as rings around a
+centre, or as a stack of rows the way a profiler draws a call tree. The long term goal is a YourKit-style
+heap explorer; these are the first surfaces.
 
 This file is scoped to `shark/shark-explorer/`. It only records things an agent would get wrong by
 reading the source alone — everything else is in the code. Keep it that way.
@@ -66,6 +67,19 @@ steps read out, and the search for every way an object is held runs for the obje
 A new question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md`
 has the numbers on the biggest dump in the repo.
 
+## A heap dump can have `android.os.Build` and not the fields Shark reads off it
+
+`AndroidBuildMirror.fromHeapGraph` reads `MANUFACTURER`, `ID` and `VERSION.SDK_INT` with `!!`, and nearly
+every one of Shark's library leak patterns decides whether it applies by asking it. Those patterns are
+filtered against the graph when a `ReferenceReader` is *created*, which in the explorer is while the
+dominator tree is being built — so a dump that has the class and not the fields throws a bare NPE from
+under everything, and what you see is a window that spins for ever and never draws a tree.
+
+Real dumps have all three. Synthetic ones written with the `dump { }` DSL have whatever the fixture wrote,
+which is why `ReferenceStrengthReader.recordsAndroidBuild` checks the fields rather than the class, and
+why the test fixtures that write an `android.os.Build` write `ID` too even though nothing in the window
+shows it.
+
 ## Every run writes a log file
 
 `installLogging()` in `shark-explorer-app` points `SharkLog` at stdout **and** at
@@ -88,6 +102,54 @@ what was being read and how long it took. What that makes readable:
 
 Which is also the rule for new code here: **anything the UI swallows or falls back from gets a
 `SharkLog.d` line saying so.** The file is only worth reading if it's complete.
+
+## This app has its own version line, and no number of it can mean "alpha"
+
+`SHARK_EXPLORER_VERSION` in `gradle.properties`, not the repo wide `VERSION_NAME`, and the two are released
+independently — `shark-explorer-*` tags against `v*` tags. See `docs/releasing-shark-explorer.md`.
+
+It isn't only a preference. Every installer format validates the version, and what they leave between them,
+each measured by building it, is **`MAJOR.MINOR.PATCH` with MAJOR from 1 to 255**, MINOR up to 255, PATCH up
+to 65535:
+
+- `3.0-alpha-10` — `Illegal version for 'Dmg'`, and for `Msi`. No qualifiers, in any format.
+- `0.1.0` — fails `createDistributable`, and **not through the version validation the other two trip**:
+  the Compose plugin accepts it and jpackage then reports `Bundler Mac Application Image skipped because
+  of a configuration problem: The first number in an app-version cannot be zero or negative`. So the
+  message says "skipped", is only in `build/compose/logs/createDistributable/jpackage-*-err.txt`, and the
+  Gradle failure above it names no version at all.
+- `2026.8.0` and `256.0.0` — `Illegal version for 'Msi'`, whose fields cap at 255.255.65535.
+
+So `0.x` is not available and neither is a calendar version, and "this is an alpha" is said by the release
+being a prerelease titled that way. Don't try to encode it in the number, and don't split it across
+`macOS.packageVersion` and `macOS.packageBuildVersion` either: the user visible one is
+`CFBundleShortVersionString`, which is also the field Munki compares for Managed Software Center updates,
+so pinning it would freeze updates for everyone who installed from there.
+
+**The version reaches the app as a generated resource**, `shark-explorer-version.properties`, written by
+`writeVersionResource` and read by `SharkExplorerVersion`. Not the jar manifest: `run` and the tests put
+class directories on the classpath rather than the jar, so `Package.getImplementationVersion()` is null for
+every way this app is launched while being worked on, and the update check would only be exercisable from a
+packaged build. `SharkExplorerVersionTest` exists because a broken wiring here fails silently — the version
+becomes `unknown`, the check declines to run, and no window ever mentions an update.
+
+## The update check reports and nothing else
+
+`UpdateCheck` fetches one file and, if it names a later version, `UpdateNotice` puts a bar in every window
+of the run. Nothing downloads or installs. Three things about it that reading the code won't tell you:
+
+- **`releases/latest` is the wrong release.** This repository publishes LeakCanary libraries on `v*` tags
+  and the explorer on `shark-explorer-*` tags, and GitHub has one "latest" pointer per repository, so that
+  endpoint answers with whichever line released last. Verified: it returns `v3.0-alpha-9`.
+- **The unauthenticated GitHub API allows 60 requests an hour per IP**, and Block's shared egress can
+  exhaust that on other people's runs. A release asset download is unmetered, which is why the manifest is
+  one.
+- **The manifest is written by `promote-shark-explorer.yml` and nothing else**, so publishing a release and
+  offering it to everyone are two separate acts. `UpdateCheckTest` pins the manifest format from this side,
+  because the workflow writes it in bash and nothing else keeps the two agreeing.
+
+`UpdateNotice` is one per run rather than per window, so dismissing the bar in one window clears it in all
+of them.
 
 ## Gradle facts that aren't visible from these build scripts
 
@@ -155,9 +217,9 @@ variable AWT reads at that same moment: a run given `-Xdock:name=X` and a run th
 time. So the run task passes no name and an IDE run configuration needs none either, and
 `java.awt.Taskbar` is no help — its API is icon, badge, menu and progress, and no name.
 
-**A packaged app ignores the property and keeps its bundle's name.** `Shark Explorer.app` launched with
-`--title="Packaged with a title"` logs that title and is still called `Shark Explorer` by macOS, because
-jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
+**A packaged app ignores the property and keeps its bundle's name.** The `.app` launched with
+`--title="Packaged with a title"` logs that title and is still called whatever `packageName` made the
+bundle, because jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
 bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it until
 something names it.
 
@@ -191,6 +253,17 @@ tiles.
   the logging section.
 - **Relaunching a title while a window of that title is open** is the one thing to avoid: the bundle is
   rewritten in place, and that window is reading it.
+
+**And a Gradle build of any kind kills every explorer window already open.** `run` and `runNamed` both
+put the module jars on the classpath rather than a copy of them, and a JVM reads a jar's index once and
+then trusts it, so recompiling under a live window makes every class that window hasn't happened to load
+yet disappear. What that looks like is the window dying on the next pointer move with
+`NoClassDefFoundError: shark/explorer/TreemapPoint`, a `ClassNotFoundException` under it, and a stack
+trace through code nobody has touched — the class is in the source and in the jar, which is exactly what
+makes it read like a real bug in whatever was being worked on. Measured: a window launched at 16:42, a
+`shark-explorer-core:check` rewriting that jar at 16:46, and the first hover after it gone. So **launch
+the window you are handing over last**, after everything that builds — and when one dies this way, check
+the jar's mtime against the process start before believing the stack trace.
 
 [dock-bug]: https://bugs.openjdk.org/browse/JDK-8173753
 
@@ -304,17 +377,27 @@ numbers belong in `notes/bitmaps.md`.
 - **Hovering takes two moves.** A view describes what the pointer *moved* onto and ignores the enter that
   comes with a pointer arriving, so a single injected `moveTo` reports nothing hovered. `hover()` in
   `ExplorerUiTest.kt` moves twice; `notes/decisions.md` says why the views read events that way.
+- **An injected scroll only lands after a `waitForIdle()`.** `performMouseInput { scroll(n) }` on the
+  stack does scroll it, but the offset is still 0 in the same breath, because the scroll is animated and
+  the frame hasn't run — so reading it, or the callback it fires, right after the injection says nothing
+  happened. Which reads exactly like a wheel a headless test can't deliver, and cost an afternoon of
+  looking for one. **How far one notch scrolls is the platform's**, ten pixels with no AWT wheel event
+  behind the pointer event to say otherwise, so a test scrolls by notches and reads the pixels back off
+  `SemanticsProperties.VerticalScrollAxisRange` rather than asserting a number of its own.
 - **Each shape draws into a single `Canvas`, so there are no per-cell semantics nodes.** UI
   tests can't find cells by tag, and **not by label either** — a cell's label is painted text, so no
   assertion and no wait can reach it. Test layout and hit testing as pure functions in
   `shark-explorer-core`, and have UI tests drive coordinates with `performMouseInput` and assert on what
   is written outside the view: the chain pane and the details panel either side of it, and the card that
   follows the pointer, whose text is real text and so can be found and its bounds read.
-- **A clickable block naming an object is one semantics node**, because `Modifier.clickable` merges its
-  descendants, so a step of the chain is found by any one of the three lines it prints. The same object is
-  usually named in more than one place at once — a step of the chain, the bar above the map, the details
-  panel — so an assertion about it either counts `onAllNodesWithText` matches or picks the one it means
-  with `hasClickAction()`. `onNodeWithText` failing with "found 2" is that, not a duplicated composable.
+- **A block naming an object is one semantics node**, because `Modifier.openable` merges its descendants,
+  so a step of the chain is found by any one of the three lines it prints. The same name is usually in the
+  window several times at once — a step of the chain, a tab, a button on the bar, the details panel — so
+  `onNodeWithText` failing with "found 2" is that, not a duplicated composable. **Tell them apart by the
+  role, not by `hasClickAction()`**, since all of them have one: `Role.Button` is the bar, `Role.Tab` is
+  the strip, and no role at all is a row that navigates, which is a link rather than a button. The
+  `isTab()` and `isButton()` matchers in the test files are that, and `openable` deliberately sets no role
+  so that the third case exists.
 - **A UI test knows the map is drawn through `waitForTheTree`**, which waits for the view's
   `contentDescription` with nothing left spinning, because the drawn map itself adds no text to the
   window. Where "the map *moved*" is the point rather than "the map is there", wait on the log line
@@ -342,6 +425,13 @@ numbers belong in `notes/bitmaps.md`.
 - **A click is a fraction of the view, never of the window.** `ExplorerAppTest.viewBounds` measures the
   view by its `contentDescription`, and every press helper is relative to that. Window fractions break
   the moment anything above the view changes height, which is a change to the top bar away.
+- **A test about `java.lang.ref` strengths needs a dump of a real JVM, taken without collecting first.**
+  `JvmReferenceStrengthTest` writes one with `HotSpotDiagnosticMXBean.dumpHeap(path, live = false)`,
+  because the collection a heap dump normally begins with clears a weak referent nothing else holds and,
+  since JDK 9, a phantom one — so the strengths the test is about would be missing from a dump taken the
+  usual way. That leaves it fragile in a way its KDoc explains: anything allocated between its
+  `System.gc()` and the dump can trigger a collection that clears the lot. It doesn't replace the
+  `dump { }` cases either, ART's reference classes and the lists it keeps them on not being HotSpot's.
 - Build test heap dumps with the `hprofFile.dump { }` DSL from `shark-hprof-test` rather than
   checking in binary fixtures or hand-writing hprof bytes. A dump with bitmaps in it is `BitmapDumps.kt`
   in `shark-explorer-core`'s tests — the `"a.b.C" instance { }` shorthand declares a class per instance,
@@ -365,6 +455,8 @@ Design decisions and findings, kept current as the work proceeds:
   treemap
 - `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and the two ways
   the ones that don't are fetched off the device
+- `notes/dependency-injection.md` — what Dagger and Metro leave in a heap dump, why the owner rule is
+  about the provider rather than the component, and how to dump really generated code
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

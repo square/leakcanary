@@ -1,5 +1,11 @@
 # Releasing LeakCanary
 
+!!! note
+    This is the process for the LeakCanary and Shark **libraries**, on `v*` tags. **Shark Explorer, the
+    desktop app, is released separately** on `shark-explorer-*` tags and is not part of anything below —
+    see [Releasing Shark Explorer](releasing-shark-explorer.md). The `shark-cli` zip attached in this
+    process is the command line tool, not the app.
+
 ## Prerequisites
 
 Publishing to Maven Central is fully automated: the

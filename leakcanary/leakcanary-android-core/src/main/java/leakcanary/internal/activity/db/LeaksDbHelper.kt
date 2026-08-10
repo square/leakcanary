@@ -17,7 +17,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   override fun onCreate(db: SQLiteDatabase) {
     db.execSQL(HeapAnalysisTable.create)
     db.execSQL(LeakTable.create)
-    db.execSQL(LeakTable.createSignatureIndex)
+    db.execSQL(LeakTable.createLeakFingerprintIndex)
     db.execSQL(LeakTraceTable.create)
   }
 
@@ -78,6 +78,35 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
         }
       }
     }
+    if (oldVersion < 26) {
+      // The leak.signature column is now leak.fingerprint. ALTER TABLE RENAME COLUMN needs SQLite
+      // 3.25, i.e. API 30, so the table is copied over instead: the procedure SQLite documents for
+      // changing a schema, which is create, copy, drop, rename. leak.id is preserved because
+      // leak_trace.leak_id points to it.
+      db.inTransaction {
+        db.execSQL("DROP INDEX IF EXISTS leak_signature")
+        db.execSQL(
+          """
+          CREATE TABLE leak_new
+          (
+          id INTEGER PRIMARY KEY,
+          fingerprint TEXT UNIQUE,
+          short_description TEXT,
+          is_library_leak INTEGER,
+          is_read INTEGER
+          )"""
+        )
+        db.execSQL(
+          """
+          INSERT INTO leak_new (id, fingerprint, short_description, is_library_leak, is_read)
+          SELECT id, signature, short_description, is_library_leak, is_read
+          FROM leak"""
+        )
+        db.execSQL(LeakTable.drop)
+        db.execSQL("ALTER TABLE leak_new RENAME TO leak")
+        db.execSQL(LeakTable.createLeakFingerprintIndex)
+      }
+    }
   }
 
   private fun List<LeakTrace>.fixNullReferenceOwningClassName(): List<LeakTrace> {
@@ -116,7 +145,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   }
 
   companion object {
-    internal const val VERSION = 25
+    internal const val VERSION = 26
     internal const val DATABASE_NAME = "leaks.db"
   }
 }

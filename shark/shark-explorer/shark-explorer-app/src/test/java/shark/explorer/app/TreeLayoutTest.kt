@@ -46,7 +46,7 @@ class TreeLayoutTest {
     explorerUiTest {
       openHeapDump()
 
-      settleTheHeapDumpThread()
+      settleTheHeapDumpThread(ViewShape.TREEMAP)
     }
 
     assertThat(treeLayoutsOf(ViewShape.TREEMAP)).hasSize(1)
@@ -62,10 +62,23 @@ class TreeLayoutTest {
       openHeapDump()
 
       shapeOption(ViewShape.RADIAL).performClick()
-      settleTheHeapDumpThread()
+      settleTheHeapDumpThread(ViewShape.RADIAL)
     }
 
     assertThat(treeLayoutsOf(ViewShape.RADIAL)).hasSize(1)
+    assertThat(treeLayoutsOf(ViewShape.TREEMAP)).hasSize(1)
+  }
+
+  /** And a stack, whose thresholds are its own again, so it is a view of its own again too. */
+  @Test fun `switching to a stack lays the tree out once more`() {
+    explorerUiTest {
+      openHeapDump()
+
+      shapeOption(ViewShape.STACK).performClick()
+      settleTheHeapDumpThread(ViewShape.STACK)
+    }
+
+    assertThat(treeLayoutsOf(ViewShape.STACK)).hasSize(1)
     assertThat(treeLayoutsOf(ViewShape.TREEMAP)).hasSize(1)
   }
 
@@ -76,12 +89,20 @@ class TreeLayoutTest {
    *
    * Pointing at a cell is the read to wait for rather than clicking one, because a click goes to what it
    * landed on, and going somewhere lays the tree out again — which is the very thing being counted.
+   *
+   * Where the pointer goes depends on [shape], because a point that is a cell of one shape is empty in
+   * another: the middle of the view is a rectangle and it is a ring, and it is well past the last row of a
+   * stack three rows deep.
    */
-  private fun ComposeUiTest.settleTheHeapDumpThread() {
-    val view = onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
-    onRoot().performMouseInput {
-      hover(Offset(view.left + view.width * CELL_X, view.top + view.height * CELL_Y))
+  private fun ComposeUiTest.settleTheHeapDumpThread(shape: ViewShape) {
+    val cell = when (shape) {
+      ViewShape.TREEMAP, ViewShape.RADIAL -> {
+        val view = onNodeWithContentDescription(VIEW_DESCRIPTION).fetchSemanticsNode().boundsInRoot
+        Offset(view.left + view.width * CELL_X, view.top + view.height * CELL_Y)
+      }
+      ViewShape.STACK -> stackRow(CELL_ROW, CELL_X)
     }
+    onRoot().performMouseInput { hover(cell) }
     waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { logged.any { it.startsWith(HOVER_READ) } }
   }
 
@@ -132,6 +153,9 @@ class TreeLayoutTest {
      */
     private const val CELL_X = 0.45f
     private const val CELL_Y = 0.55f
+
+    /** The row of a stack that holds a cell to point at, counting from the one across the top. */
+    private const val CELL_ROW = 1
 
     private const val PAYLOAD_LENGTH = 4096
 

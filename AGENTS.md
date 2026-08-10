@@ -42,6 +42,11 @@ Java 8 have to be able to use the artifacts.
 ./gradlew siteDokka                   # regenerate docs/api
 ```
 
+`docs/api/` — the `siteDokka` output — is git ignored, not committed. The release process
+regenerates it just before publishing the site (see `docs/releasing.md`), so a public API change
+means updating the ABI dump and nothing else. If you do run `siteDokka`, don't edit what it writes;
+fix the KDoc in the source.
+
 Instrumentation tests need a device or emulator and only cover `leakcanary-android`,
 `leakcanary-android-core`, `leakcanary-android-instrumentation` and `leakcanary-android-test`. CI
 runs them on one emulator per major Android release, from the minSdk to the newest API level with a
@@ -67,9 +72,6 @@ from KGP and therefore exist *only on the JVM modules* — they silently skip ev
 module, which is most of the published ones. A green `updateLegacyAbi` means less than half the repo
 was covered.
 
-**`docs/api/` is generated.** It's Dokka output committed to the repo, produced by
-`./gradlew siteDokka`. Never hand-edit those files; fix the KDoc in the source instead.
-
 **Some dependency versions are deliberately old.** The `compileOnly` AndroidX versions in
 `gradle/libs.versions.toml` are pinned to the *lowest* version LeakCanary supports, so that apps
 resolve to their own newer version without needing a resolution strategy. The inline comments say
@@ -83,6 +85,22 @@ before adjusting the expected values, and say in the PR why the new number is co
 **detekt runs on pre-push and in CI**, config at `config/detekt-config.yml`. The hook installs itself
 via the `assemble` and `clean` tasks, so a fresh clone gets it after the first build. Run `detekt`
 before pushing rather than discovering it at push time.
+
+**`gh pr merge --auto` does not wait for CI here — it merges on the spot.** Auto-merge is enabled on
+the repo, but `main` is deliberately left unprotected, so there are no required status checks for
+auto-merge to gate on. GitHub sees a mergeable pull request with nothing to wait for and merges
+immediately, exiting zero and printing nothing, which reads exactly like it armed. Nothing in the
+repo will stop a merge while CI is red — `main` is open on purpose — so waiting for green is your
+job, not the platform's. Wait explicitly and let the exit code decide:
+
+```bash
+gh pr checks <number> --watch --fail-fast && gh pr merge <number> --merge
+```
+
+`gh pr checks` exits zero only once every check has passed, so the `&&` is what makes this safe;
+`--fail-fast` returns as soon as one fails instead of sitting through the rest. A run takes 9 to 13
+minutes, nearly all of it the emulator matrix, so start that command detached — a foreground call
+that gives up at ten minutes will usually be killed just before the last emulator reports.
 
 ## Changelog
 

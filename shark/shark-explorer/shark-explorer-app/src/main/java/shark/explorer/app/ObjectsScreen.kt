@@ -1,7 +1,6 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +40,7 @@ import shark.explorer.ObjectListEntry
 import shark.explorer.ObjectListFilter
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
+import shark.explorer.formatPercentOfTotal
 
 /**
  * Every object of the heap dump as a list, largest first, filtered by class name and kind.
@@ -52,11 +52,12 @@ import shark.explorer.formatObjectCount
 @Composable
 internal fun ObjectsScreen(
   list: ObjectList,
+  /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
+  stronglyReachableByteCount: Long,
   filter: ObjectListFilter,
   isListing: Boolean,
-  coloring: CellColoring,
   onFilterChange: (ObjectListFilter) -> Unit,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -76,7 +77,7 @@ internal fun ObjectsScreen(
       HorizontalDivider()
       LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
         items(list.entries, key = { it.objectId }) { entry ->
-          ObjectRow(entry, coloring, onOpen)
+          ObjectRow(entry, stronglyReachableByteCount, onOpen)
         }
       }
     }
@@ -189,17 +190,17 @@ private fun HeaderCell(
 @Composable
 private fun ObjectRow(
   entry: ObjectListEntry,
-  coloring: CellColoring,
-  onOpen: (Long) -> Unit
+  stronglyReachableByteCount: Long,
+  onOpen: (Long, OpenIn) -> Unit
 ) {
   Row(
     Modifier.fillMaxWidth()
-      .clickable { onOpen(entry.objectId) }
+      .openable { openIn -> onOpen(entry.objectId, openIn) }
       .padding(horizontal = 12.dp, vertical = 4.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, entry.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(entry.strength)))
     Column(Modifier.weight(1f)) {
       Text(
         entry.classNameText(),
@@ -223,12 +224,23 @@ private fun ObjectRow(
       style = MaterialTheme.typography.bodySmall,
       textAlign = TextAlign.End
     )
-    Text(
-      formatByteSize(entry.retainedSize),
-      Modifier.width(SIZE_COLUMN_WIDTH),
-      style = MaterialTheme.typography.bodyMedium,
-      textAlign = TextAlign.End
-    )
+    // The share under the size rather than beside it: the column is as wide as a size and no wider,
+    // and a table's numbers only line up while every cell in the column is the same shape.
+    Column(Modifier.width(SIZE_COLUMN_WIDTH)) {
+      Text(
+        formatByteSize(entry.retainedSize),
+        Modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.End
+      )
+      Text(
+        formatPercentOfTotal(entry.retainedSize, stronglyReachableByteCount),
+        Modifier.fillMaxWidth(),
+        style = MaterialTheme.typography.labelSmall,
+        color = MUTED_TEXT,
+        textAlign = TextAlign.End
+      )
+    }
   }
 }
 

@@ -13,16 +13,16 @@ internal object LeakTable {
         CREATE TABLE leak
         (
         id INTEGER PRIMARY KEY,
-        signature TEXT UNIQUE,
+        fingerprint TEXT UNIQUE,
         short_description TEXT,
         is_library_leak INTEGER,
         is_read INTEGER
         )"""
 
   @Language("RoomSql")
-  const val createSignatureIndex = """
-        CREATE INDEX leak_signature
-        on leak (signature)
+  const val createLeakFingerprintIndex = """
+        CREATE INDEX leak_fingerprint
+        on leak (fingerprint)
     """
 
   @Language("RoomSql")
@@ -34,7 +34,7 @@ internal object LeakTable {
     leak: Leak
   ): Long {
     val values = ContentValues()
-    values.put("signature", leak.signature)
+    values.put("fingerprint", leak.leakFingerprint)
     values.put("short_description", leak.shortDescription)
     values.put("is_library_leak", if (leak is LibraryLeak) 1 else 0)
     values.put("is_read", 0)
@@ -42,10 +42,12 @@ internal object LeakTable {
     db.insertWithOnConflict("leak", null, values, SQLiteDatabase.CONFLICT_IGNORE)
 
     val leakId =
-      db.rawQuery("SELECT id from leak WHERE signature = '${leak.signature}' LIMIT 1", null)
+      db.rawQuery(
+        "SELECT id from leak WHERE fingerprint = '${leak.leakFingerprint}' LIMIT 1", null
+      )
         .use { cursor ->
           if (cursor.moveToFirst()) cursor.getLong(0) else throw IllegalStateException(
-            "No id found for leak with signature '${leak.signature}'"
+            "No id found for leak with fingerprint '${leak.leakFingerprint}'"
           )
         }
 
@@ -64,30 +66,30 @@ internal object LeakTable {
 
   fun retrieveLeakReadStatuses(
     db: SQLiteDatabase,
-    signatures: Set<String>
+    leakFingerprints: Set<String>
   ): Map<String, Boolean> {
     return db.rawQuery(
       """
       SELECT
-      signature
+      fingerprint
       , is_read
       FROM leak
-      WHERE signature IN (${signatures.joinToString { "'$it'" }})
+      WHERE fingerprint IN (${leakFingerprints.joinToString { "'$it'" }})
     """, null
     )
       .use { cursor ->
         val leakReadStatuses = mutableMapOf<String, Boolean>()
         while (cursor.moveToNext()) {
-          val signature = cursor.getString(0)
+          val leakFingerprint = cursor.getString(0)
           val isRead = cursor.getInt(1) == 1
-          leakReadStatuses[signature] = isRead
+          leakReadStatuses[leakFingerprint] = isRead
         }
         leakReadStatuses
       }
   }
 
   class AllLeaksProjection(
-    val signature: String,
+    val leakFingerprint: String,
     val shortDescription: String,
     val createdAtTimeMillis: Long,
     val leakTraceCount: Int,
@@ -101,7 +103,7 @@ internal object LeakTable {
     return db.rawQuery(
       """
           SELECT
-          l.signature
+          l.fingerprint
           , MIN(l.short_description)
           , MAX(h.created_at_time_millis) as created_at_time_millis
           , COUNT(*) as leak_trace_count
@@ -118,7 +120,7 @@ internal object LeakTable {
         val all = mutableListOf<AllLeaksProjection>()
         while (cursor.moveToNext()) {
           val group = AllLeaksProjection(
-            signature = cursor.getString(0),
+            leakFingerprint = cursor.getString(0),
             shortDescription = cursor.getString(1),
             createdAtTimeMillis = cursor.getLong(2),
             leakTraceCount = cursor.getInt(3),
@@ -133,10 +135,10 @@ internal object LeakTable {
 
   fun markAsRead(
     db: SQLiteDatabase,
-    signature: String
+    leakFingerprint: String
   ) {
     val values = ContentValues().apply { put("is_read", 1) }
-    db.update("leak", values, "signature = ?", arrayOf(signature))
+    db.update("leak", values, "fingerprint = ?", arrayOf(leakFingerprint))
   }
 
   class LeakProjection(
@@ -153,9 +155,9 @@ internal object LeakTable {
     val createdAtTimeMillis: Long
   )
 
-  fun retrieveLeakBySignature(
+  fun retrieveLeakByFingerprint(
     db: SQLiteDatabase,
-    signature: String
+    leakFingerprint: String
   ): LeakProjection? {
     return db.rawQuery(
       """
@@ -170,9 +172,9 @@ internal object LeakTable {
           FROM leak_trace lt
           LEFT JOIN leak l on lt.leak_id = l.id
           LEFT JOIN heap_analysis h ON lt.heap_analysis_id = h.id
-          WHERE l.signature = ?
+          WHERE l.fingerprint = ?
           ORDER BY h.created_at_time_millis DESC
-          """, arrayOf(signature)
+          """, arrayOf(leakFingerprint)
     )
       .use { cursor ->
         return if (cursor.moveToFirst()) {

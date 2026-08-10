@@ -29,6 +29,9 @@ workManager = "2.7.0"
 detekt = "1.23.8"
 dokka = "2.2.0"
 hilt = "2.60.1"
+# Metro's runtime, used by no module's production code. Only the Shark explorer's tests depend on it,
+# to build the very providers a generated Metro graph builds — see DependencyInjectionOwnerTest.
+metro = "1.4.0"
 sqldelight = "2.3.2"
 androidMinSdk = "24"
 androidCompileSdk = "36"
@@ -52,6 +55,12 @@ kotlin-abi-tools = { module = "org.jetbrains.kotlin:abi-tools", version.ref = "k
 
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
+
+# The two dependency injection runtimes the explorer has an owner rule about, on the test classpath of
+# shark-explorer-core and nowhere else. Runtimes only: neither annotation processor nor compiler plugin
+# runs in this build, see DependencyInjectionOwnerTest.
+dagger-runtime = { module = "com.google.dagger:dagger", version.ref = "hilt" }
+metro-runtime = { module = "dev.zacsweers.metro:runtime-jvm", version.ref = "metro" }
 
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 

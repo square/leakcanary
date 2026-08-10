@@ -44,7 +44,15 @@ internal enum class ViewShape(val displayName: String) {
    * its share of what the ring inside it retains. Nesting reads as distance from the middle, which
    * says more about the shape of the tree than a treemap does and less about exact sizes.
    */
-  RADIAL("Radial")
+  RADIAL("Radial"),
+
+  /**
+   * A row per level, roots at the top, the way a profiler draws a call tree upside down: a block's
+   * width is its share of the heap and its depth is how far down the screen it is. The one shape that
+   * doesn't spend area on nesting, so the deep end of a chain is drawn and named at full size — and
+   * therefore the one shape taller than the window, which is why it scrolls.
+   */
+  STACK("Stack")
 }
 
 /**
@@ -167,9 +175,28 @@ internal val EDGE_GRAB = 4.dp
 internal val MIN_SUBDIVIDE_ARC_LENGTH = 40.dp
 internal val MIN_DRAW_ARC_LENGTH = 3.dp
 
+/**
+ * How tall one row of the stack is: a line of [LABEL_STYLE] with [LABEL_PADDING] above and below it,
+ * since a row holds a name and nothing else.
+ */
+internal val STACK_ROW_HEIGHT = 18.dp
+
+/**
+ * And how wide a block has to be for the row under it to say anything, and to be drawn at all.
+ *
+ * Both smaller than the treemap's floors, because a level of a stack costs no width: a block half as
+ * wide as another still gets a full row for its children, so subdividing further is worth it for longer
+ * than it is in a picture where nesting eats area.
+ */
+internal val MIN_SUBDIVIDE_STACK_WIDTH = 6.dp
+internal val MIN_DRAW_STACK_WIDTH = 2.dp
+
 internal val LABEL_PADDING = 3.dp
 internal val MIN_LABEL_WIDTH = 24.dp
 internal val MIN_LABEL_HEIGHT = 13.dp
+
+/** How far apart two pieces of text on one cell have to be to read as two. See [StackView]. */
+internal val LABEL_GAP = 8.dp
 internal const val BORDER_WIDTH = 1f
 internal const val SELECTION_WIDTH = 3f
 

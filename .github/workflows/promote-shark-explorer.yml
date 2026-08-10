@@ -1,0 +1,98 @@
+# Tells every running Shark Explorer that a release exists, which is a separate act from publishing it.
+#
+# The app reads one file — the `latest.properties` asset of the rolling `shark-explorer-latest` release —
+# and this workflow is the only thing that writes it. So a release can be published, installed, and tried
+# before anybody else is told about it, and a release that turns out to be bad is never announced rather
+# than announced and withdrawn.
+#
+# Run it by hand: `gh workflow run promote-shark-explorer.yml -f version=1.0.0`.
+#
+# Why a file on the release download CDN rather than the GitHub API, which would need no promotion step at
+# all: `releases/latest` answers with the newest release of *either* line, and this repository releases
+# LeakCanary on `v*` tags too, so it is usually the wrong one. The unauthenticated API also allows 60
+# requests an hour per IP, which a shared corporate egress can exhaust, while a release asset is an
+# ordinary unmetered download. See UpdateCheck.kt.
+name: Promote Shark Explorer
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'The released version to start offering, e.g. 1.0.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    if: github.repository == 'square/leakcanary'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # A release nobody can download is not one to point at, so this is checked before the tag moves.
+      - name: Check that the release exists and has its macOS builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          assets="$(gh release view "shark-explorer-$VERSION" --json assets --jq '.assets[].name')"
+          echo "$assets"
+          for arch in arm64 x64; do
+            echo "$assets" | grep -qx "Shark-Explorer-$VERSION-macos-$arch.dmg" || {
+              echo "::error::shark-explorer-$VERSION has no macOS $arch DMG, so there is nothing to promote."
+              exit 1
+            }
+          done
+
+      - name: Write the manifest and move the rolling release onto it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          ROLLING_TAG: shark-explorer-latest
+        run: |
+          set -euo pipefail
+          # Read by shark.explorer.app.parseReleaseManifest. Properties rather than JSON so that the app
+          # parses it with java.util.Properties and needs no JSON dependency for this one file.
+          cat > latest.properties <<EOF
+          # Which Shark Explorer release is currently being offered to running copies of the app.
+          # Written by .github/workflows/promote-shark-explorer.yml. Read by the app on startup.
+          version=$VERSION
+          releaseUrl=https://github.com/${GITHUB_REPOSITORY}/releases/tag/shark-explorer-$VERSION
+          EOF
+          cat latest.properties
+
+          # One rolling release rather than a tag per promotion. `--clobber` because the asset is replaced
+          # every time, and the release is created only the first time this ever runs.
+          if ! gh release view "$ROLLING_TAG" >/dev/null 2>&1; then
+            gh release create "$ROLLING_TAG" \
+              --title "Shark Explorer update manifest" \
+              --notes "Not a release. Holds the one file running copies of Shark Explorer read to find out whether a newer release exists. Written by promote-shark-explorer.yml." \
+              --prerelease
+          fi
+          gh release upload "$ROLLING_TAG" latest.properties --clobber
+
+      # The app fetches this exact URL, so fetching it here is the check that promotion worked. The CDN
+      # serves the previous asset for a moment after an upload, hence retrying rather than asserting once.
+      - name: Check that the app's URL now serves the new version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          url="https://github.com/${GITHUB_REPOSITORY}/releases/download/shark-explorer-latest/latest.properties"
+          for attempt in $(seq 1 10); do
+            served="$(curl -fsSL "$url" | sed -n 's/^version=//p' || true)"
+            if [[ "$served" == "$VERSION" ]]; then
+              echo "$url serves version=$VERSION"
+              exit 0
+            fi
+            echo "Attempt $attempt: $url serves '${served:-nothing}', waiting"
+            sleep 15
+          done
+          echo "::error::$url did not serve version=$VERSION"
+          exit 1

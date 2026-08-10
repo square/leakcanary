@@ -34,6 +34,7 @@ import java.io.File
 import java.util.UUID
 import kotlin.random.Random
 import kotlin.reflect.KClass
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 
 class HprofWriterHelper constructor(
@@ -351,6 +352,12 @@ class HprofWriterHelper constructor(
 
   fun primitiveByteArray(array: ByteArray): Long {
     val arrayDump = ByteArrayDump(id, 1, array)
+    writer.write(arrayDump)
+    return arrayDump.id
+  }
+
+  fun primitiveIntArray(array: IntArray): Long {
+    val arrayDump = IntArrayDump(id, 1, array)
     writer.write(arrayDump)
     return arrayDump.id
   }

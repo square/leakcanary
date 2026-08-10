@@ -4,7 +4,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +34,7 @@ import shark.explorer.HeapObjectSummary
 import shark.explorer.ObjectGroupKind
 import shark.explorer.ObjectGroupSummary
 import shark.explorer.formatByteSize
+import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.formatObjectCount
 
 /**
@@ -54,11 +54,12 @@ import shark.explorer.formatObjectCount
 @Composable
 internal fun DetailsPanel(
   selection: Selection?,
+  /** What a retained size here is a share of. See [shark.explorer.HeapSizes.stronglyReachableByteCount]. */
+  stronglyReachableByteCount: Long,
   /** The selected object's pixels, when it's a bitmap anything has the pixels of. */
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  coloring: CellColoring,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit,
   modifier: Modifier = Modifier
@@ -79,14 +80,15 @@ internal fun DetailsPanel(
             "Held by ${selection.parentLabel}. $GROUP_EXPLANATION",
             style = MaterialTheme.typography.bodySmall
           )
-          Detail("Retained", formatByteSize(selection.byteCount))
+          Detail("Retained", formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount))
         }
-        is Selection.ObjectGroup -> ObjectGroupDetails(selection.summary, coloring)
+        is Selection.ObjectGroup ->
+          ObjectGroupDetails(selection.summary, stronglyReachableByteCount)
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
+          stronglyReachableByteCount = stronglyReachableByteCount,
           bitmap = bitmap,
           isStarred = isStarred,
-          coloring = coloring,
           onOpen = onOpen,
           onListInstances = onListInstances,
           onToggleStar = onToggleStar
@@ -120,7 +122,7 @@ internal sealed interface Selection {
 @Composable
 private fun ObjectGroupDetails(
   summary: ObjectGroupSummary,
-  coloring: CellColoring
+  stronglyReachableByteCount: Long
 ) {
   Text(summary.title(), style = MaterialTheme.typography.titleMedium)
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
@@ -128,10 +130,10 @@ private fun ObjectGroupDetails(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
     Text(summary.explanation(), style = MaterialTheme.typography.bodySmall)
   }
-  Detail("Retained together", formatByteSize(summary.retainedSize))
+  Detail("Retained together", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
   Detail("Objects", formatObjectCount(summary.objectCount))
 }
 
@@ -149,10 +151,10 @@ private fun ObjectGroupSummary.explanation(): String = when (kind) {
 @Composable
 private fun ObjectDetails(
   summary: HeapObjectSummary,
+  stronglyReachableByteCount: Long,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  coloring: CellColoring,
-  onOpen: (Long) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit
 ) {
@@ -173,11 +175,14 @@ private fun ObjectDetails(
     horizontalArrangement = Arrangement.spacedBy(6.dp),
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Box(Modifier.size(SWATCH_SIZE).background(legendColor(coloring, summary.strength)))
+    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
     Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
-  Detail("Retained", formatByteSize(summary.retainedSize))
+  Detail("Retained", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
   Detail("Retained objects", summary.retainedCount.toString())
+  // No share of the total on the shallow size: what one object is made of on its own is never a
+  // meaningful fraction of a heap dump, and a second percentage in the column would only dilute the
+  // one that says something.
   Detail("Shallow", formatByteSize(summary.shallowSize))
   Detail("Dominates", "${summary.dominatedObjectCount} objects")
   summary.inspectorLabels.forEach { label ->
@@ -239,7 +244,7 @@ internal fun Hint(
 @Composable
 private fun Fields(
   summary: HeapObjectSummary,
-  onInspect: (Long) -> Unit
+  onInspect: (Long, OpenIn) -> Unit
 ) {
   if (summary.fields.isEmpty()) {
     return
@@ -261,14 +266,14 @@ private fun Fields(
 internal fun Inspectable(
   text: String,
   objectId: Long?,
-  onInspect: (Long) -> Unit
+  onInspect: (Long, OpenIn) -> Unit
 ) {
   if (objectId == null) {
     Text(text, style = MaterialTheme.typography.bodySmall)
   } else {
     Text(
       text,
-      Modifier.clickable { onInspect(objectId) },
+      Modifier.openable { openIn -> onInspect(objectId, openIn) },
       style = MaterialTheme.typography.bodySmall,
       color = LINK_COLOR
     )

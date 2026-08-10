@@ -1,7 +1,7 @@
 -- import kotlin.Boolean;
 
 CREATE TABLE leak (
-  signature TEXT PRIMARY KEY,
+  fingerprint TEXT PRIMARY KEY,
   short_description TEXT NOT NULL,
   -- When this is a boolean MIN(l.is_library_leak) fails compilation.
   -- is_library_leak INTEGER AS Boolean NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE leak (
 
 insert:
 INSERT OR IGNORE INTO leak (
-signature,
+fingerprint,
 short_description,
 is_library_leak
 )
@@ -20,24 +20,24 @@ VALUES (?, ?, ?);
 
 retrieveLeakReadStatuses:
 SELECT
-l.signature
+l.fingerprint
 , l.is_read
 FROM leak_trace lt
-JOIN leak l ON lt.leak_signature = l.signature
+JOIN leak l ON lt.leak_fingerprint = l.fingerprint
 WHERE lt.heap_analysis_id = :heap_analysis_id
 GROUP BY 1, 2
 ;
 
 retrieveAllLeaks:
 SELECT
-l.signature
+l.fingerprint
 , MIN(l.short_description)
 , MAX(h.created_at_time_millis) AS created_at_time_max_millis
 , COUNT(*)  AS leak_trace_count
 , MIN(l.is_library_leak) AS is_library_leak
 , MAX(l.is_read) AS is_read
 FROM leak_trace lt
-JOIN leak l ON lt.leak_signature = l.signature
+JOIN leak l ON lt.leak_fingerprint = l.fingerprint
 JOIN heap_analysis h ON lt.heap_analysis_id = h.id
 GROUP BY 1
 ORDER BY leak_trace_count DESC, created_at_time_max_millis DESC;
@@ -45,4 +45,4 @@ ORDER BY leak_trace_count DESC, created_at_time_max_millis DESC;
 markAsRead:
 UPDATE leak
 SET is_read = 1
-WHERE signature = :signature;
+WHERE fingerprint = :fingerprint;

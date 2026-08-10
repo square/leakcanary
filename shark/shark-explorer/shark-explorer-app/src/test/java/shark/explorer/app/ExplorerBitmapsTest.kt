@@ -1,11 +1,13 @@
 package shark.explorer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
@@ -24,7 +26,7 @@ import shark.dump
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
-import shark.explorer.ExplorerScreen
+import shark.explorer.Place
 
 /**
  * Covers what the window does about a bitmap: shows the picture when the heap dump has the pixels, and
@@ -41,7 +43,7 @@ class ExplorerBitmapsTest {
   @Test fun `a bitmap the heap dump has the pixels of is shown`() {
     runComposeUiTest {
       openHeapDump(bitmapHeapDump(hasPixels = true))
-      screenButton(ExplorerScreen.OBJECTS_LABEL).performClick()
+      screenButton(Place.OBJECTS_LABEL).performClick()
       waitUntilAtLeastOneExists(hasText(BITMAP_ROW), OPEN_TIMEOUT_MILLIS)
 
       onNodeWithText(BITMAP_ROW).performClick()
@@ -111,9 +113,15 @@ class ExplorerBitmapsTest {
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
   }
 
-  /** A button on the row of screens an open heap dump can be read through. */
+  /**
+   * A button on the row of screens an open heap dump can be read through, as against the tab of the same
+   * name that clicking it opens. See [ExplorerAppTest] for why the role is what tells them apart.
+   */
   private fun ComposeUiTest.screenButton(label: String): SemanticsNodeInteraction =
-    onNode(hasText(label) and hasClickAction())
+    onNode(hasText(label) and isButton())
+
+  private fun isButton(): SemanticsMatcher =
+    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
   private fun bitmapHeapDump(hasPixels: Boolean): File =
     testFolder.newFile("bitmap-$hasPixels.hprof").apply { writeBitmapHeapDump(hasPixels) }

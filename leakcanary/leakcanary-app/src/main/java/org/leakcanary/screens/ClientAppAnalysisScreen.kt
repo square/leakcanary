@@ -97,7 +97,7 @@ class ClientAppAnalysisViewModel @Inject constructor(
   fun onLeakClicked(leak: Leak) {
     val currentScreen =
       navigator.currentScreenState.value.destination as ClientAppAnalysisDestination
-    navigator.goTo(Destination.LeakDestination(leak.signature, currentScreen.analysisId))
+    navigator.goTo(Destination.LeakDestination(leak.leakFingerprint, currentScreen.analysisId))
   }
 }
 
@@ -191,7 +191,7 @@ enum class HeaderCardLink {
           )
         }
         items(leaks) { leak ->
-          val isNew = !state.details.leakReadStatusMap.getValue(leak.signature)
+          val isNew = !state.details.leakReadStatusMap.getValue(leak.leakFingerprint)
 
           LeakItem(leak, isNew, onLeakClicked = {
             viewModel.onLeakClicked(leak)

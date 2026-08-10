@@ -91,7 +91,7 @@ class HeapExplorerTest {
     HeapExplorer.open(testFolder.pixelBitmapHeapDump()).use { explorer ->
       val tree = explorer.tree
       val bitmap = tree.findByLabel("Bitmap")
-      val presented = tree.present(TreemapLayout(), VIEWPORT)
+      val presented = TreemapPresentation.of(tree, TreemapLayout(), VIEWPORT)
         .cells
         .single { (it.cell.subject as? CellSubject.Node)?.node == bitmap.objectId }
 
@@ -188,17 +188,40 @@ class HeapExplorerTest {
     }
   }
 
-  @Test fun `the paths to a starred object lead back to where the treemap draws it`() {
+  @Test fun `a tab is named after the object it is open on`() {
     HeapExplorer.open(testFolder.cachedPayloadHeapDump()).use { explorer ->
       val tree = explorer.tree
       val view = tree.findByLabel("View")
-      val tile = tree.findByLabel("Tile")
 
-      // What clicking a step of a path does: the treemap zooms to where that object is drawn, however
-      // deep in the tree the heap dump's own references led.
-      assertThat(tree.pathToOpen(view.objectId)).containsExactly(tree.root, tile.objectId)
-      assertThat(tree.pathToOpen(tile.objectId)).containsExactly(tree.root, tile.objectId)
-      assertThat(tree.pathToOpen(tree.root)).containsExactly(tree.root)
+      // Which class and which instance of it, because a strip of a dozen instances of one class is only
+      // a strip you can pick out of if the address is on it.
+      assertThat(tree.titleOf(Place.Object(view.objectId)))
+        .isEqualTo("View ${hexObjectId(view.objectId)}")
+      // The whole heap dump is no object, so it has no address to be named by.
+      assertThat(tree.titleOf(Place.wholeHeapDump())).isEqualTo(HeapDominatorTreemap.ROOT_LABEL)
+    }
+  }
+
+  @Test fun `a laid out view names every place a click on it opens a tab at`() {
+    // The crowded root is the dump that draws all three kinds of cell at once: objects, a pile of the
+    // instances of one class, and the children a rectangle had no room to subdivide into.
+    HeapExplorer.open(testFolder.crowdedRootHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val cells = TreemapPresentation.of(tree, TreemapLayout(), VIEWPORT).cells
+
+      // Which is what lets a tab be named as it opens rather than by a read that lands a beat later. The
+      // two have to agree, or a tab would be renamed the moment anything else asked what to call it.
+      val places = cells.map { Place.of(it.cell) }.distinct()
+      assertThat(places.map { cells.titleOf(it) })
+        .isEqualTo(places.map { tree.titleOf(it) })
+      // Not the label alone: a strip of a dozen instances of one class is only one you can pick out of if
+      // each tab says which instance it is.
+      val tile = tree.instancesOf("Tile").first()
+      assertThat(cells.titleOf(Place.Object(tile.objectId)))
+        .isEqualTo("Tile ${hexObjectId(tile.objectId)}")
+      // And nothing at all for a place no cell of this view stands for, which is what has the window fall
+      // back to reading the heap dump for a tab opened from a list or from the chain.
+      assertThat(cells.titleOf(Place.Object(NO_SUCH_OBJECT_ID))).isNull()
     }
   }
 
@@ -268,6 +291,58 @@ class HeapExplorerTest {
       assertThat(tree.dominatorOf(image.objectId)!!.label).isEqualTo("SuccessResult")
       assertThat(tree.independentPathsBelowDominator(image.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("image → BitmapImage"))
+    }
+  }
+
+  @Test fun `a value nothing but a cache with a map of them holds is reachable at the cache strength`() {
+    HeapExplorer.open(testFolder.mapCachedPayloadsHeapDump(alsoHeldByATile = false)).use { explorer ->
+      // One payload per cache and not a byte more: the framework's LruCache, and Glide's as the subclass
+      // an app really has.
+      assertThat(explorer.sizes.byteCountByStrength.getValue(CACHE)).isEqualTo(2 * PAYLOAD_BYTE_SIZE)
+
+      val tree = explorer.tree
+      listOf("LruCache", "LruResourceCache").forEach { cacheLabel ->
+        val below = tree.descendantsOf(tree.findByLabel(cacheLabel).objectId)
+        // Everything between the cache and what it caches is the cache's own bookkeeping, and stays held
+        // strongly by it: the map, the array of buckets, both entries of the chain and their keys. Cutting
+        // at the value an entry holds rather than at the map is what leaves them there.
+        assertThat(below.filter { it.strength == STRONG }.map { it.label })
+          .describedAs(cacheLabel)
+          .contains("LinkedHashMap", "HashMap\$Node[]", "LinkedHashMap\$Entry")
+        // And the one thing below it that isn't bookkeeping is the payload, which nothing else holds.
+        assertThat(below.filter { it.strength == CACHE }.map { it.label })
+          .describedAs(cacheLabel)
+          .containsExactly("Object[]")
+        // Held that one way and no other: a map is read as the entries you put in it, so it points at the
+        // payload itself as well as through the entry, and both of those references have to be the cache's
+        // rather than one of them keeping the payload strongly held.
+        val cached = below.single { it.strength == CACHE }
+        assertThat(tree.independentPathsBelowDominator(cached.objectId).paths.map { it.stepLabels() })
+          .describedAs(cacheLabel)
+          .containsExactly(listOf("value → Object[]"))
+      }
+    }
+  }
+
+  @Test fun `a reference from a cache with a map of them is not a way of holding what it caches`() {
+    HeapExplorer.open(testFolder.mapCachedPayloadsHeapDump(alsoHeldByATile = true)).use { explorer ->
+      val tree = explorer.tree
+      val cached = tree.descendantsOf(tree.findByLabel("Tile").objectId).single()
+
+      // A cache entry points at the payload as squarely as the tile does, and the panel still shows the
+      // reference as one of the entry's fields. What it isn't is a reason the payload is in memory, so the
+      // payload is the tile's, and held as firmly as the tile is.
+      assertThat(cached.strength).isEqualTo(STRONG)
+      assertThat(tree.independentPathsBelowDominator(cached.objectId).paths.map { it.stepLabels() })
+        .containsExactly(listOf("resource → Object[]"))
+      assertThat(tree.descendantsOf(tree.findByLabel("LruResourceCache").objectId).map { it.label })
+        .describedAs("what the cache is left retaining")
+        .doesNotContain("Object[]")
+      assertThat(
+        tree.allSummaries()
+          .filter { it.label == "LinkedHashMap\$Entry" }
+          .flatMap { entry -> entry.fields.map { "${it.name} = ${it.value}" } }
+      ).contains("value = Object[]")
     }
   }
 
@@ -363,6 +438,22 @@ class HeapExplorerTest {
     }
   }
 
+  @Test fun `a chain goes the long way round rather than through a stack frame`() {
+    HeapExplorer.open(testFolder.onAStackAndInAFieldHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val path = tree.rootPathTo(payload.objectId)
+
+      // A local variable of a running method is one step from the payload and two fields are three, and the
+      // shorter one is no answer to what holds it: the object is there because a method is running. Which
+      // is the rule LeakCanary's own path finder follows, so that a chain here is the chain a leak trace
+      // shows for the same object.
+      assertThat(path.stepLabels())
+        .containsExactly("Owner", "holder → Holder", "payload → Object[]")
+    }
+  }
+
   @Test fun `a chain too long to read leaves out the steps nearest the gc root`() {
     HeapExplorer.open(testFolder.longChainHeapDump()).use { explorer ->
       val tree = explorer.tree
@@ -421,7 +512,6 @@ class HeapExplorerTest {
     val dump = testFolder.highAddressHeapDump()
     HeapExplorer.open(dump.file).use { explorer ->
       val tree = explorer.tree
-      val holder = tree.findByLabel("Holder")
 
       // The premise: a 4 byte id that far up the address space reads back negative. Which the tree's own
       // ids have to stay clear of, or the biggest objects of a 32 bit Android dump — its bitmaps and their
@@ -434,9 +524,9 @@ class HeapExplorerTest {
       assertThat(tree.summarize(dump.payloadObjectId).className).isEqualTo("java.lang.Object[]")
       assertThat(tree.rootPathTo(dump.payloadObjectId).stepLabels())
         .containsExactly("Holder", "payload → Object[]")
-      // And zooming to it lands on what holds it, rather than back at the root.
-      assertThat(tree.pathToOpen(dump.payloadObjectId))
-        .containsExactly(tree.root, holder.objectId)
+      // And a tab opened on it is named after it, rather than after a pile this tree has never heard of.
+      assertThat(tree.titleOf(Place.Object(dump.payloadObjectId)))
+        .isEqualTo("Object[] ${hexObjectId(dump.payloadObjectId)}")
     }
   }
 
@@ -550,7 +640,7 @@ class HeapExplorerTest {
     HeapExplorer.open(testFolder.crowdedRootHeapDump()).use { explorer ->
       val tree = explorer.tree
       val group = tree.classGroup().nodeId
-      val presented = tree.present(TreemapLayout(), VIEWPORT)
+      val presented = TreemapPresentation.of(tree, TreemapLayout(), VIEWPORT)
         .cells
         .single { (it.cell.subject as? CellSubject.Node)?.node == group }
 
@@ -574,6 +664,9 @@ class HeapExplorerTest {
     private const val CACHE_ENTRY_LABEL = "RealStrongMemoryCache\$InternalValue"
 
     private val VIEWPORT = TreemapRect(left = 0.0, top = 0.0, right = 800.0, bottom = 600.0)
+
+    /** An address no heap dump the tests write has an object at. */
+    private const val NO_SUCH_OBJECT_ID = -1L
 
     /** Matches `MAX_FIELDS` in [HeapDominatorTreemap], which isn't public. */
     private const val MAX_FIELDS_SHOWN = 500

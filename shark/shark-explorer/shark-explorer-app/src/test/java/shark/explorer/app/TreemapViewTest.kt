@@ -307,7 +307,7 @@ class TreemapViewTest {
     }
   }
 
-  /** What [shark.explorer.HeapDominatorTreemap.present] does, for a tree that isn't a heap dump. */
+  /** What [shark.explorer.TreemapPresentation.of] does, for a tree that isn't a heap dump. */
   private fun TreemapTree<Long>.present(
     layout: TreemapLayout<Long> = TreemapLayout()
   ): TreemapPresentation {
@@ -410,12 +410,13 @@ private fun TreemapUnderTest(
       TreemapView(
         presentation = presentation,
         coloring = CellColoring.DEFAULT,
+        shading = LeakShading.NONE,
         selected = selected,
         bitmapImages = bitmapImages,
         hovered = hovered,
-        onClick = {
-          selected = SelectedCell.of(it.subject)
-          onClick(it)
+        onClick = { cell, _ ->
+          selected = SelectedCell.of(cell.subject)
+          onClick(cell)
         },
         // Only which cell, since where the pointer is on it is the card's business rather than the view's.
         onHover = { pointedAt ->

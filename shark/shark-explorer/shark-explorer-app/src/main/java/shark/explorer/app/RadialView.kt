@@ -1,7 +1,6 @@
 package shark.explorer.app
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -46,20 +45,22 @@ import shark.explorer.RadialPresentation
 internal fun RadialView(
   presentation: RadialPresentation,
   coloring: CellColoring,
+  /** Which of the objects drawn are leaking, for the colouring that shades them. */
+  shading: LeakShading,
   selected: SelectedCell?,
   /** The sector the pointer is on, which is outlined more lightly than the selected one. */
   hovered: SelectedCell?,
   /** The sector the pointer moved onto and where it is, or null when it moved onto none or left. */
   onHover: (PointedAt?) -> Unit,
-  /** The sector pressed, which is where the window goes. */
-  onClick: (LayoutCell<Long>) -> Unit,
+  /** The sector pressed, which is where the window goes, and which tab it asked for. */
+  onClick: (LayoutCell<Long>, OpenIn) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val textMeasurer = rememberTextMeasurer()
   val density = LocalDensity.current
   val center = presentation.layout.center.let { Offset(it.x.toFloat(), it.y.toFloat()) }
-  val sectors = remember(presentation, coloring, textMeasurer, density) {
-    val colors = CellColors.of(coloring, presentation.cells)
+  val sectors = remember(presentation, coloring, shading, textMeasurer, density) {
+    val colors = CellColors.of(coloring, presentation.cells, shading)
     presentation.cells.map { it.measure(center, colors, textMeasurer, density) }
   }
   // As in [TreemapView]: the rings move under the pointer without a pointer event to say so.
@@ -90,9 +91,9 @@ internal fun RadialView(
           }
         }
         .pointerInput(presentation) {
-          detectTapGestures(
-            onPress = { offset -> presentation.cellAt(offset)?.let(onClick) }
-          )
+          detectOpenPresses { offset, openIn ->
+            presentation.cellAt(offset)?.let { cell -> onClick(cell, openIn) }
+          }
         }
     ) {
       sectors.forEach { sector -> drawSector(sector) }

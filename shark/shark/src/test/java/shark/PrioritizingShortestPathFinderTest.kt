@@ -26,8 +26,63 @@ class PrioritizingShortestPathFinderTest {
     val leakingObject = leakTraces.single().leakingObject
     assertThat(leakingObject.className).isEqualTo("Parent")
     assertThat(leakingObject.labels).contains(
-      "Also retains leaking object $childObjectId (Child)"
+      "Also retains leaking object ${childObjectId.asObjectIdString()} (Child)"
     )
+  }
+
+  @Test fun `leaking objects of the same class are reported in a single label`() {
+    val heapDump = dump {
+      "GcRoot" clazz {
+        staticField["shortestPath"] = "Parent" watchedInstance {
+          field["firstChild"] = "Child" watchedInstance {}
+          field["secondChild"] = "Child" watchedInstance {}
+        }
+      }
+    }
+
+    val analysis = heapDump.checkForLeaks<HeapAnalysisSuccess>()
+
+    // One label rather than one per object id: a leaking object can retain dozens of others, and
+    // a label each would bury the rest of the leak trace.
+    val leakTraces = analysis.applicationLeaks.flatMap { it.leakTraces }
+    assertThat(leakTraces).hasSize(1)
+    assertThat(leakTraces.single().leakingObject.labels).contains(
+      "Also retains 2 leaking Child objects"
+    )
+  }
+
+  @Test fun `leaking object also reachable without going through another leaking object gets its own leak trace`() {
+    var parentObjectId = 0L
+    val heapDump = dump {
+      val child = "Child" watchedInstance {}
+      "GcRoot" clazz {
+        staticField["shortestPath"] = ("Parent" watchedInstance {
+          field["child"] = child
+        }).also { parentObjectId = it.value }
+        staticField["otherPath"] = "Holder" instance {
+          field["child"] = child
+        }
+      }
+    }
+
+    val analysis = heapDump.checkForLeaks<HeapAnalysisSuccess>(computeRetainedHeapSize = true)
+
+    // Fixing the Parent leak wouldn't free Child, since Child is also reachable through Holder,
+    // so Child is a leak of its own, reported with the path that doesn't go through Parent.
+    val leakTraces = analysis.applicationLeaks.flatMap { it.leakTraces }
+      .associateBy { it.leakingObject.className }
+    assertThat(leakTraces.keys).containsOnly("Parent", "Child")
+    assertThat(leakTraces.getValue("Child").referencePath.map { it.referenceName })
+      .containsExactly("otherPath", "child")
+
+    // Only Child says so: the path it's reached through isn't in either leak trace, and Parent has
+    // its own path to explain rather than the leaking objects it happens to also retain.
+    assertThat(leakTraces.getValue("Child").leakingObject.labels).contains(
+      "Also retained by leaking object ${parentObjectId.asObjectIdString()} (Parent), which has its own leak trace"
+    )
+    assertThat(leakTraces.getValue("Parent").leakingObject.labels).noneMatch {
+      it.startsWith("Also retain")
+    }
   }
 
   @Test fun `traversal stops once all leaking objects are found when not computing sizes`() {

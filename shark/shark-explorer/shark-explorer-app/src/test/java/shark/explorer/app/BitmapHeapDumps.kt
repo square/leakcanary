@@ -55,12 +55,19 @@ internal fun File.writeBitmapHeapDump(hasPixels: Boolean) {
   }
 }
 
-/** What `android.os.Build` looks like in a dump, which is how the explorer knows which device to go to. */
+/**
+ * What `android.os.Build` looks like in a dump, which is how the explorer knows which device to go to.
+ *
+ * `ID` is here for none of that: Shark's library leak patterns are matched against an
+ * `AndroidBuildMirror`, which reads it whether or not a pattern is about it, so a dump without it is one
+ * the explorer can't name a known library leak in. See `ReferenceStrengthReader`.
+ */
 internal fun HprofWriterHelper.androidBuild() {
   "android.os.Build" clazz {
     staticField["FINGERPRINT"] = string(FINGERPRINT)
     staticField["MANUFACTURER"] = string(MANUFACTURER)
     staticField["MODEL"] = string(MODEL)
+    staticField["ID"] = string(BUILD_ID)
   }
   "android.os.Build\$VERSION" clazz {
     staticField["SDK_INT"] = IntHolder(SDK_INT)
@@ -91,6 +98,7 @@ internal const val FINGERPRINT = "google/tokay/tokay:16/BP31.250610.004/13698546
 internal const val MANUFACTURER = "Google"
 internal const val MODEL = "Pixel 9"
 internal const val SDK_INT = 36
+internal const val BUILD_ID = "BP31.250610.004"
 
 /** What the dialogs say the heap dump came from, off the `android.os.Build` written into it. */
 internal const val DUMP_ORIGIN = "$MANUFACTURER $MODEL · API $SDK_INT"
