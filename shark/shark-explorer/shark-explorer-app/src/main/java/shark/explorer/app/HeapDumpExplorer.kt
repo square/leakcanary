@@ -35,6 +35,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import java.awt.Toolkit
@@ -835,21 +836,20 @@ private fun RowScope.ViewPane(
     return
   }
   Column(paneWidth(panes, Pane.VIEW).fillMaxHeight()) {
-    // The fold control sits in the row of controls rather than in a header of its own: the view already
-    // has a strip above it, and two thin rows would be one more than the picture can spare.
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      FoldButton(Pane.VIEW) { panes.toggleFold(Pane.VIEW) }
-      ViewControls(
-        sizes = sizes,
-        shape = shape,
-        coloring = coloring,
-        leakCount = leaks?.objectCount,
-        isFindingLeaks = isFindingLeaks,
-        onColoringChange = onColoringChange,
-        onShapeChange = onShapeChange,
-        modifier = Modifier.weight(1f)
-      )
-    }
+    // Named like the two panes either side of it, and for the same reason: left to right the three of them
+    // are three questions about the object, and a middle one that didn't say which question it answers left
+    // the other two reading as a pair.
+    PaneHeader(Pane.VIEW) { panes.toggleFold(Pane.VIEW) }
+    ViewControls(
+      sizes = sizes,
+      shape = shape,
+      coloring = coloring,
+      leakCount = leaks?.objectCount,
+      isFindingLeaks = isFindingLeaks,
+      onColoringChange = onColoringChange,
+      onShapeChange = onShapeChange,
+      modifier = Modifier.fillMaxWidth()
+    )
     Box(Modifier.weight(1f).fillMaxWidth()) {
       // The one gesture the views can't read themselves: a right click is the menu's, and the menu is what
       // makes middle clicking a rectangle findable by someone who has never tried it.
@@ -1005,6 +1005,9 @@ private fun ListPlace(
  */
 @Composable
 private fun DescribedObject(selection: Selection?) {
+  // Larger than the same name is anywhere else in the window, because here it is a title rather than a
+  // mention: everything under it — three panes or a list, and the note — is about this object.
+  val titleStyle = MaterialTheme.typography.titleMedium
   when (selection) {
     null -> Unit
     // Selectable so it can be copied out: an object id is how you point something else — a script, a
@@ -1013,16 +1016,19 @@ private fun DescribedObject(selection: Selection?) {
       ObjectIdentity(
         className = selection.summary.className,
         typeName = selection.summary.kind?.typeName,
-        objectId = selection.summary.objectId
+        objectId = selection.summary.objectId,
+        nameStyle = titleStyle
       )
     }
     is Selection.ObjectGroup -> Text(
       selection.summary.className ?: HeapDominatorTreemap.UNREACHABLE_LABEL,
-      style = MaterialTheme.typography.bodyMedium
+      style = titleStyle,
+      fontWeight = FontWeight.Bold
     )
     is Selection.Group -> Text(
       "${selection.nodeCount} smaller objects",
-      style = MaterialTheme.typography.bodyMedium
+      style = titleStyle,
+      fontWeight = FontWeight.Bold
     )
   }
 }

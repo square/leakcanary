@@ -656,6 +656,11 @@ rest of that panel — which object, as against what that object holds — and i
 chain are both about, so it belongs between them. So the panel names no object of its own: it starts with
 the star and the numbers.
 
+**And it is set in a title there**, `nameStyle` being how `ObjectIdentity` takes a style it doesn't pick
+itself: on that row the name is what the whole window is about, while everywhere else the same lines are a
+mention of an object among others. At body size it read as one more label in a bar of them, and a window
+whose subject is the smallest question on screen is one you have to hunt for the answer in.
+
 **An address is printed as hex, everywhere.** A decimal object id matches nothing: `hexObjectId` is what
 `shark-cli`, a leak trace and every other tool print, so it is what can be pasted between them.
 
