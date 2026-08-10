@@ -47,6 +47,7 @@ import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
+import shark.explorer.statusText
 
 /**
  * How a chain of objects is drawn: a column of them with a line running through it, what each one is on
@@ -662,23 +663,19 @@ private val BADGE_LETTER_COLOR = Color.White
  * line naming it, and the lines a row is made of already mean things by their colour. Faint enough that a
  * column of them still reads as a chain: the shade says where along the chain something went wrong, and
  * the reason under the object says what.
+ *
+ * Reachable from outside this drawing, because the row above the panes says what the object the whole window
+ * is about is in these same colours: what a status looks like is one thing, whether it is being read on a
+ * chain or over the panes. See [LeakStatusBanner].
  */
-private val LeakStatus.background: Color?
+internal val LeakStatus.background: Color?
   get() = when (this) {
     LeakStatus.NOT_LEAKING -> ALIVE_BACKGROUND
     LeakStatus.UNKNOWN -> null
     LeakStatus.LEAKING -> LEAKING_BACKGROUND
   }
 
-/** How the reason line names the status it is the reason for. */
-private val LeakStatus.statusText: String
-  get() = when (this) {
-    LeakStatus.NOT_LEAKING -> "Not leaking"
-    LeakStatus.UNKNOWN -> "Unknown"
-    LeakStatus.LEAKING -> "Leaking"
-  }
-
-private val LeakStatus.textColor: Color
+internal val LeakStatus.textColor: Color
   get() = when (this) {
     LeakStatus.NOT_LEAKING -> ALIVE_TEXT
     LeakStatus.UNKNOWN -> MUTED_TEXT
@@ -695,8 +692,8 @@ private val LEAKING_TEXT = Color(0xFFC62828)
 
 /** What the object the panel is describing is drawn behind, which is the end of the chain. */
 private val TARGET_BACKGROUND = Color(0x1A2196F3)
-private val TARGET_SHAPE = RoundedCornerShape(4.dp)
-private val TARGET_PADDING = 4.dp
+internal val TARGET_SHAPE = RoundedCornerShape(4.dp)
+internal val TARGET_PADDING = 4.dp
 
 /** The purple LeakCanary draws a leak trace in, which this is the same shape as. */
 private val CONNECTOR_COLOR = Color(0xFF7E57C2)

@@ -57,6 +57,7 @@ import shark.explorer.HeapLeaks
 import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
 import shark.explorer.LayoutCell
+import shark.explorer.LeakStatusOverrides
 import shark.explorer.NativeBitmapPixels
 import shark.explorer.Note
 import shark.explorer.NoteLink
@@ -78,6 +79,7 @@ import shark.explorer.TreemapRect
 import shark.explorer.detours
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
+import shark.explorer.leakStatusConflictsWith
 import shark.explorer.nodeIdText
 import shark.explorer.referencesOf
 import shark.explorer.titleOf
@@ -115,6 +117,8 @@ internal fun HeapDumpExplorer(
   fetchedBitmapPixels: NativeBitmapPixels? = null,
   /** What has been written about the places of this heap dump, shared with every other window on it. */
   notes: HeapDumpNotes,
+  /** And what has been decided about its objects by hand, shared the same way. See [LeakStatusBanner]. */
+  leakStatuses: HeapDumpLeakStatuses,
   /** What a link to one of these tabs names this window by. See [DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked for, opened as tabs. See [ExplorerWindow.linkedPlaces]. */
@@ -186,6 +190,10 @@ internal fun HeapDumpExplorer(
       subject = current.title ?: placeTitles[current] ?: NAMING_TAB
     )
   }
+  /** Which objects of this heap dump have a status someone set, which is what every chain is read with. */
+  val overrides = leakStatuses.overrides
+  /** Whether the dialog that sets one is open, for the object the tab is on. */
+  var setsLeakStatus by remember { mutableStateOf(false) }
 
   // Nothing is under the pointer while a list is showing: the view isn't there, so the rectangle it was on
   // last is neither where the pointer is now nor what the tab is about.
@@ -197,6 +205,31 @@ internal fun HeapDumpExplorer(
   // details of the cell before it belong to a rectangle the pointer has left.
   val hoveredCellDetails = hoveredDetails?.takeIf { it.place == hoveredPlace }
   val describedSummary = (details?.selection as? Selection.Object)?.summary
+  /**
+   * Whether the object the tab is on is leaking, for the row above the panes and the dialog that changes it.
+   *
+   * From the last step of the chain when there is one, because that is the status with everything above and
+   * below the object taken into account, and from the object's own reading until the walk up to the GC roots
+   * lands — or for good, for an object nothing reaches. So this can say `Unknown` for a beat and then say
+   * `Leaking`, which is the panes filling in rather than the window changing its mind.
+   *
+   * Nothing for the whole heap dump, which is no object of it: there is nothing to inspect and nothing to
+   * decide about.
+   */
+  val describedLeakStatus = describedSummary
+    ?.takeIf { it.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID }
+    ?.let { summary ->
+      val onChain = details?.rootPath?.steps?.lastOrNull()?.step
+        ?.takeIf { it.objectId == summary.objectId }
+      ObjectLeakStatus(
+        objectId = summary.objectId,
+        objectName = summary.className.substringAfterLast('.') +
+          summary.kind?.let { " ${it.typeName}" }.orEmpty(),
+        status = onChain?.leakStatus ?: summary.leakStatus,
+        reason = onChain?.leakStatusReason ?: summary.leakStatusReason,
+        setByHand = overrides[summary.objectId]
+      )
+    }
 
   val treemapLayout = rememberTreemapLayout()
   val radialLayout = rememberRadialLayout()
@@ -339,25 +372,31 @@ internal fun HeapDumpExplorer(
   // What the tab is on, which is one read of the heap dump per move. Keyed on the place, so that nothing
   // else clears the panes — and because the place is the whole of where the tab is, there is no second
   // piece of state for this to fall out of step with.
-  LaunchedEffect(session, place) {
+  //
+  // And on the statuses set by hand, because they are half of what a chain says: setting one is asking the
+  // window to read the heap dump through it, which is this read again.
+  LaunchedEffect(session, place, overrides) {
+    // Whatever was being decided was being decided about the object this is leaving, and a dialog that
+    // outlived the tab it was opened from would set a status on an object nobody is looking at.
+    setsLeakStatus = false
     if (place == null || place.viewRootObjectId == null) {
       details = null
       return@LaunchedEffect
     }
-    session.describing(place) { details = it }
+    session.describing(place, overrides) { details = it }
   }
 
   // The same for the cell under the pointer, once it has stayed on one long enough to be looking at it.
   // Without that wait, a sweep across the map would ask about every rectangle it crossed: the reads that
   // are no longer wanted do get called off, but only where they next read the heap dump.
-  LaunchedEffect(session, hoveredPlace) {
+  LaunchedEffect(session, hoveredPlace, overrides) {
     if (hoveredPlace == null) {
       // Whatever was read for the last cell stays where it is: nothing is waiting for it, and the panes
       // are showing the tab's own place again anyway.
       return@LaunchedEffect
     }
     delay(HOVER_SETTLE_MILLIS)
-    session.describing(hoveredPlace) { hoveredDetails = it }
+    session.describing(hoveredPlace, overrides) { hoveredDetails = it }
   }
 
   // The panel shows the bitmap it describes as big as the panel is wide, so its pixels are read again at
@@ -395,9 +434,9 @@ internal fun HeapDumpExplorer(
       detours.associate { detour ->
         val from = detour.fromObjectId
         val found = if (from == null) {
-          explorer.tree.independentPathsFromRoots(detour.toObjectId)
+          explorer.tree.independentPathsFromRoots(detour.toObjectId, overrides)
         } else {
-          explorer.tree.independentPathsBetween(from, detour.toObjectId)
+          explorer.tree.independentPathsBetween(from, detour.toObjectId, overrides)
         }
         detour.fromIndex to path.waysOf(detour, found)
       }
@@ -446,6 +485,11 @@ internal fun HeapDumpExplorer(
   // Which places have been written about, once per run of the app: a directory listing rather than a note
   // opened per tab, since what it answers is a question about the whole strip. See [HeapDumpNotes.list].
   LaunchedEffect(notes) { notes.list() }
+
+  // And what has been decided about this heap dump's objects by hand, also once per run: one small file,
+  // read before anything is drawn from it, because a chain read without it would be the heap dump's own
+  // answer where someone has already recorded another. See [HeapDumpLeakStatuses].
+  LaunchedEffect(leakStatuses) { leakStatuses.read() }
 
   // And what the note about this one says, once per run of the app. Here rather than in the section that draws
   // it, because a place nobody has written about has no section at all until the read says it has none.
@@ -574,6 +618,22 @@ internal fun HeapDumpExplorer(
     )
   }
 
+  if (setsLeakStatus && describedLeakStatus != null) {
+    LeakStatusDialog(
+      status = describedLeakStatus,
+      // A walk up the references per status already set, which is a read of the heap dump like any other —
+      // and one asked for, so it is not on the path the pointer takes. See [leakStatusConflictsWith].
+      onFindConflicts = { override ->
+        session.read("what setting ${hexObjectId(override.objectId)} to ${override.status} disagrees with") {
+          it.tree.leakStatusConflictsWith(override, overrides)
+        }
+      },
+      onSet = { override, solved -> leakStatuses.set(override, solved) },
+      onClear = { leakStatuses.clear(describedLeakStatus.objectId) },
+      onDismiss = { setsLeakStatus = false }
+    )
+  }
+
   Column(modifier) {
     ScreenBar(
       starredCount = favourites.size,
@@ -606,6 +666,17 @@ internal fun HeapDumpExplorer(
       // one, because it is the one thing that is as true of a list of objects as of the map.
       Column(Modifier.weight(1f)) {
         DescribedObject(details?.selection)
+        // Directly under the name of the object, because it is the other half of what the tab is about: which
+        // object, and whether it should still be here. In the colours the chain beside it draws a status in,
+        // since it is the same answer read in one place rather than a dozen. See [LeakStatusBanner].
+        if (describedLeakStatus != null) {
+          LeakStatusBanner(
+            status = describedLeakStatus,
+            isRead = leakStatuses.isRead,
+            problem = leakStatuses.problem,
+            onChange = { setsLeakStatus = true }
+          )
+        }
         // Under the title, and only until there is a note: the note will be about what the title names, and
         // this is where it will appear, so the button is where its own result goes. Small, since that costs a
         // line of every tab nobody has written about. Once there is a note it is here instead and carries the
@@ -1416,6 +1487,8 @@ private class PlaceDetails(
  */
 private suspend fun HeapDumpSession.describing(
   place: Place,
+  /** The statuses set by hand, which decide half of what the chain and the row above the panes say. */
+  overrides: LeakStatusOverrides,
   onDetails: (PlaceDetails) -> Unit
 ) {
   val placeDetails = read(place.description()) { explorer ->
@@ -1425,7 +1498,7 @@ private suspend fun HeapDumpSession.describing(
         val group = tree.groupOrNull(place.objectId)
         when {
           group != null -> Selection.ObjectGroup(group)
-          place.objectId in tree -> Selection.Object(tree.summarize(place.objectId))
+          place.objectId in tree -> Selection.Object(tree.summarize(place.objectId, overrides))
           // Which is why the panel goes back to saying nothing is selected.
           else -> {
             SharkLog.d {
@@ -1456,7 +1529,7 @@ private suspend fun HeapDumpSession.describing(
   onDetails(placeDetails)
   val objectId = (placeDetails.selection as? Selection.Object)?.summary?.objectId ?: return
   val rootPath = read("what holds ${hexObjectId(objectId)}") { explorer ->
-    explorer.tree.rootPathTo(objectId)
+    explorer.tree.rootPathTo(objectId, overrides)
   }
   onDetails(
     PlaceDetails(
