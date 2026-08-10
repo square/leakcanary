@@ -139,6 +139,9 @@ private fun nameThisRun(name: String) {
 /** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
 private fun explorerApplication(windows: ExplorerWindows) = application {
   val updateNotice = remember { UpdateNotice() }
+  // One notepad per place for the whole run, so that a heap dump open in two windows is one set of notes
+  // rather than two that overwrite each other. See [ExplorerNotes].
+  val notes = remember { ExplorerNotes() }
   // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
   // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
   LaunchedEffect(updateNotice) {
@@ -179,7 +182,11 @@ private fun explorerApplication(windows: ExplorerWindows) = application {
               windows.openHeapDump(window, file, fetchedPixels)
             },
             updateNotice = updateNotice,
+            notes = notes,
             deepLinkId = window.deepLinkId,
+            // The same way a link arriving from the OS is followed, which is what makes a `shark://` link
+            // written in a note work wherever it is read from.
+            followDeepLink = { link -> DeepLinkPeers.follow(link, windows) },
             linkedPlaces = window.linkedPlaces,
             onLinkedPlaceOpened = { place -> window.linkedPlaceOpened(place) },
             deepLinkProblem = window.deepLinkProblem
@@ -208,11 +215,21 @@ internal fun ExplorerApp(
    * that a test only gets the bar when it is what the test is about.
    */
   updateNotice: UpdateNotice = remember { UpdateNotice() },
+  /**
+   * The notes of every heap dump this run has open, shared with every other window. Its own by default, so
+   * that a test writes into a directory it was given rather than into the notes of whoever is running it.
+   */
+  notes: ExplorerNotes = remember { ExplorerNotes() },
   /** What a link to a place in this window names it by. See [shark.explorer.DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked this window for, which its tabs open. See [ExplorerWindow.linkedPlaces]. */
   linkedPlaces: List<Place> = emptyList(),
   onLinkedPlaceOpened: (Place) -> Unit = {},
+  /**
+   * Where a `shark://` link written in the notes goes. Only the application knows, since routing one is a
+   * question about every window of the run, so a window composed without it says so in the log.
+   */
+  followDeepLink: (DeepLink) -> Unit = { link -> SharkLog.d { "Nothing here to follow $link with" } },
   /**
    * Why this window has no heap dump, for one a link opened because the window it named had gone.
    *
@@ -222,6 +239,8 @@ internal fun ExplorerApp(
   deepLinkProblem: String? = null,
   /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
   copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
+  /** Overridden by tests, which have no browser to open a link written in the notes in. */
+  openUrl: (String) -> Unit = ::openInBrowser,
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
@@ -308,9 +327,12 @@ internal fun ExplorerApp(
         sizes = currentState.sizes,
         deviceHeapDumps = deviceHeapDumps,
         fetchedBitmapPixels = currentState.bitmapPixels,
+        notes = notes.of(currentState.session.heapDumpFile),
         deepLinkId = deepLinkId,
         linkedPlaces = linkedPlaces,
         onLinkedPlaceOpened = onLinkedPlaceOpened,
+        followDeepLink = followDeepLink,
+        openUrl = openUrl,
         copyToClipboard = copyToClipboard,
         modifier = Modifier.weight(1f)
       )

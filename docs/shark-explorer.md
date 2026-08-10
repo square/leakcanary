@@ -67,6 +67,7 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
+* Every tab takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
 
 ## Link to a tab
 
@@ -97,6 +98,47 @@ so. A link never replaces what you were reading: it always opens a tab of its ow
 Links reach the app from an installed build — the installer is what tells the OS that `shark://` is this
 app's. A copy run from source can still be linked to from another one, but the OS won't start it for a
 link.
+
+## Take notes
+
+**✎ Add Note**, at the end of the row that says where the tab is, starts a markdown note about the tab you
+are on — this object, this list of leaks, or the heap dump itself on the tab a window opens with. Type into
+the box, press **Save**, and the note is drawn where the box was; **Cancel** throws what you typed away. It
+is there again the next time you open that tab, and the tab strip puts a ✎ on the tabs you have written
+about.
+
+A note appears under that row and above the panes, because it is about the whole of what the tab is showing.
+On a tab nobody has written about there is nothing there at all — only the button, which goes away once
+there is a note, since the note carries its own **✎ Edit**.
+
+The notes live in `~/.shark-explorer/notes`, one directory per heap dump and one `.md` file per tab, so a
+note can be opened in an editor, pasted into an issue, or read by an agent without going through this app.
+
+You type plain markdown — nothing is reformatted as you go — and once it is saved, **anything in it that
+this heap dump recognises becomes a way back into the window**:
+
+| What you write | What it reads as | What clicking it does |
+| --- | --- | --- |
+| `com.example.MyApp$Cache` | `MyApp$Cache` | Opens that class in a new tab |
+| `0x7f2a4b18` | `Cache instance (0x7f2a4b18)` | Opens that object in a new tab |
+| `shark://vugs93jp/leaks` | `Leaks` | Follows the link, like clicking it anywhere else |
+| `https://github.com/square/leakcanary/issues/2841` | `square/leakcanary#2841` | Opens it in your browser |
+
+A name or an address this dump has nothing for is left exactly as you typed it: a class this heap dump has
+never heard of is a class you wrote about, not a broken link. Which is also how the notes stay readable
+outside the app — nothing is rewritten on disk, only on screen.
+
+Headings, lists, quotes, `code`, **bold**, *italic*, fenced code blocks and `[links](https://example.com)`
+all work, and **one line is one line**: no blank line needed between two of them, the way a comment box on
+GitHub reads markdown. Nothing inside a fenced code block is linked or shortened.
+
+A note is filed under what its tab is *about* rather than how it is arranged: searching in the object list
+or unfolding a leak stays on the same note, and the same object opened in two tabs, or in two windows, is
+one note rather than two saving over each other.
+
+Since a `shark://` link names a window, a link written into a note stops working once that window is closed
+— see above. Copy one for the tab you want to come back to *while you are writing about it*, and it will
+take you there for as long as that window is open.
 
 ## Reporting a problem
 

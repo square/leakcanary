@@ -477,6 +477,10 @@ numbers belong in `notes/bitmaps.md`.
   checking in binary fixtures or hand-writing hprof bytes. A dump with bitmaps in it is `BitmapDumps.kt`
   in `shark-explorer-core`'s tests — the `"a.b.C" instance { }` shorthand declares a class per instance,
   so two bitmaps built that way are two `android.graphics.Bitmap` classes, which no real dump has.
+- **A UI test that opens a note must pass an `ExplorerNotes` over a temporary directory.** `ExplorerApp`'s
+  default keeps notes in `~/.shark-explorer/notes`, so a test taking it writes into the notes of whoever is
+  running it. A window that never opens one only lists that directory to see which tabs to mark, which is
+  why the tests that don't touch notes need no directory of their own.
 - **A UI test must pass a `DeviceHeapDumps` built on a fake `Adb`.** `ExplorerApp`'s default shells out to
   the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for — and the
   window can dump the heap of a real process. `FakeAdb` matches command prefixes, because the remote dump

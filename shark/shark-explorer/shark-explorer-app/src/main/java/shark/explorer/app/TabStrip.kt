@@ -50,6 +50,8 @@ internal fun TabStrip(
   tabs: Tabs,
   /** What each tab is called, which for an object is a read of the heap dump. See [Tabs]. */
   titleOf: (Place) -> String,
+  /** Whether each tab has a note, which puts a mark on it. See [NoteSection]. */
+  hasNote: (Place) -> Boolean,
   onSelect: (Int) -> Unit,
   onClose: (Int) -> Unit,
   /** Puts a link to where the tab is on the clipboard. See [shark.explorer.DeepLink]. */
@@ -72,6 +74,7 @@ internal fun TabStrip(
       key(tab.id) {
         TabView(
           title = titleOf(tab.place),
+          hasNote = hasNote(tab.place),
           isSelected = tab.id == tabs.selectedId,
           onSelect = { onSelect(tab.id) },
           onClose = { onClose(tab.id) },
@@ -97,6 +100,7 @@ internal fun TabStrip(
 @Composable
 private fun TabView(
   title: String,
+  hasNote: Boolean,
   isSelected: Boolean,
   onSelect: () -> Unit,
   onClose: () -> Unit,
@@ -137,6 +141,13 @@ private fun TabView(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
       ) {
+        // In front of the title, and only on the tabs that have one: what makes a note worth writing is
+        // that the strip says which objects you have already worked something out about.
+        if (hasNote) {
+          Hint(NOTE_MARK_HINT) {
+            Text(NOTE_MARK, style = MaterialTheme.typography.bodySmall)
+          }
+        }
         Text(
           title,
           style = MaterialTheme.typography.bodySmall,

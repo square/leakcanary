@@ -39,6 +39,7 @@ import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import shark.SharkLog
@@ -51,6 +52,8 @@ import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
 import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
+import shark.explorer.Note
+import shark.explorer.NoteLink
 import shark.explorer.ObjectDominator
 import shark.explorer.ObjectList
 import shark.explorer.ObjectListFilter
@@ -70,6 +73,7 @@ import shark.explorer.detours
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
 import shark.explorer.nodeIdText
+import shark.explorer.referencesOf
 import shark.explorer.titleOf
 import shark.explorer.waysOf
 
@@ -103,11 +107,20 @@ internal fun HeapDumpExplorer(
   deviceHeapDumps: DeviceHeapDumps,
   /** Already fetched off the device, when the dump was taken with the pixels asked for in the same go. */
   fetchedBitmapPixels: NativeBitmapPixels? = null,
+  /** What has been written about the places of this heap dump, shared with every other window on it. */
+  notes: HeapDumpNotes,
   /** What a link to one of these tabs names this window by. See [DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked for, opened as tabs. See [ExplorerWindow.linkedPlaces]. */
   linkedPlaces: List<Place> = emptyList(),
   onLinkedPlaceOpened: (Place) -> Unit = {},
+  /**
+   * Where a `shark://` link written in the notes goes, which is wherever it names: this window, another
+   * window of this run, another run of the app, or nowhere. See [DeepLinkPeers.follow].
+   */
+  followDeepLink: (DeepLink) -> Unit = { link -> SharkLog.d { "Nothing here to follow $link with" } },
+  /** Overridden by tests, which have no browser. */
+  openUrl: (String) -> Unit = ::openInBrowser,
   /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
   copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
   modifier: Modifier = Modifier
@@ -157,6 +170,16 @@ internal fun HeapDumpExplorer(
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
   /** What each tab is called, by the place it is on. Only grows: a place is named once and stays named. */
   var placeTitles by remember { mutableStateOf(emptyMap<Place, String>()) }
+  /**
+   * The note about the tab on screen, and null once the last tab has been closed — which is the one state
+   * with no tab to write about.
+   */
+  val tabNote = place?.let { current ->
+    TabNote(
+      notes = notes.of(current),
+      subject = current.title ?: placeTitles[current] ?: NAMING_TAB
+    )
+  }
 
   // Nothing is under the pointer while a list is showing: the view isn't there, so the rectangle it was on
   // last is neither where the pointer is now nor what the tab is about.
@@ -410,6 +433,34 @@ internal fun HeapDumpExplorer(
     isListing = false
   }
 
+  // Which tabs have been written about, once per run of the app: a directory listing rather than a note
+  // opened per tab, since what it answers is a question about the whole strip. See [HeapDumpNotes.list].
+  LaunchedEffect(notes) { notes.list() }
+
+  // And what this tab's note says, once per run of the app. Here rather than in the section that draws it,
+  // because a tab nobody has written about has no section at all until the read says whether it has one.
+  LaunchedEffect(tabNote?.notes) { tabNote?.notes?.read() }
+
+  // What a note means, whenever there is a new one to mean anything: reading the markdown is in memory and
+  // cheap, and asking the heap dump what the names in it stand for is a read, so it only happens for a note
+  // that mentions something. Once per save rather than per keystroke, since a draft being typed is drawn as
+  // the text it is. See [Note].
+  LaunchedEffect(session, tabNote?.notes) {
+    val notepad = tabNote?.notes ?: return@LaunchedEffect
+    snapshotFlow { notepad.text }.collectLatest { text ->
+      val parsed = Note.of(text)
+      notepad.parsed(parsed)
+      val mentions = parsed.mentions
+      if (mentions.isEmpty) {
+        return@collectLatest
+      }
+      val references = session.read("what the note on ${tabNote.subject} mentions") { explorer ->
+        explorer.tree.referencesOf(mentions)
+      }
+      notepad.parsed(parsed.resolvedWith(references))
+    }
+  }
+
   // Whether the map is rooted inside a leak, which the cells themselves can't say: a rectangle is drawn
   // inside the one that dominates it, so a view rooted below a leaking object has every rectangle of it
   // leaking and not one of them in the list. A walk up the dominators, so it follows where the map is.
@@ -478,6 +529,22 @@ internal fun HeapDumpExplorer(
   val copyObjectLink: (Long) -> Unit = { objectId -> copyLink(Place.Object(objectId)) }
   /** And for the view's right click menu, which is on whatever the pointer is on. */
   val copyHoveredLink: () -> Unit = { hovered?.place?.let { copyLink(it) } }
+  /**
+   * Where a link written in the notes goes: out to a browser, into whichever window a `shark://` link
+   * names, or to an object of this heap dump.
+   *
+   * An object opens a tab in front, like a button on the bar rather than like a row of a list: the notes
+   * are what the reader is working from, and replacing them with the object they just linked to would take
+   * away the thing they are reading. A `shark://` link is followed the way one arriving from outside the
+   * app is, which is the whole point of it being the same link.
+   */
+  val followNoteLink: (NoteLink) -> Unit = { link ->
+    when (link) {
+      is NoteLink.Web -> openUrl(link.url)
+      is NoteLink.Deep -> followDeepLink(link.deepLink)
+      is NoteLink.Object -> openInNewTab(Place.Object(link.objectId))
+    }
+  }
 
   if (showsBitmapsFromDevice) {
     BitmapsFromDeviceDialog(
@@ -508,6 +575,7 @@ internal fun HeapDumpExplorer(
     TabStrip(
       tabs = tabs,
       titleOf = { it.title ?: placeTitles[it] ?: NAMING_TAB },
+      hasNote = { notes.hasNote(it) },
       onSelect = { id -> tabs = tabs.select(id) },
       onClose = { id -> tabs = tabs.close(id) },
       onCopyLink = copyLink
@@ -522,7 +590,23 @@ internal fun HeapDumpExplorer(
       )
       // Which object the tab is on, beside the arrows that moved to it: above the panes rather than in
       // one, because it is the one thing that is as true of a list of objects as of the map.
-      DescribedObject(details?.selection)
+      Box(Modifier.weight(1f)) {
+        DescribedObject(details?.selection)
+      }
+      // At the far end of the row, and only until there is a note: a tab nobody has written about is a tab
+      // that spends nothing on notes. Once there is one, the note itself is under this row and carries the
+      // way back into it. See [AddNoteButton].
+      if (tabNote != null) {
+        AddNoteButton(tabNote.notes)
+      }
+    }
+    // Under the title it is about and above everything that describes it, so that what it is a note about is
+    // the whole of what this tab is showing rather than whichever pane it happens to sit against.
+    if (tabNote != null) {
+      NoteSection(
+        notes = tabNote.notes,
+        onLink = followNoteLink
+      )
     }
     Box(Modifier.weight(1f)) {
       when {
@@ -630,6 +714,18 @@ internal fun HeapDumpExplorer(
     }
   }
 }
+
+/**
+ * The note about the tab on screen: what has been written in it, and what to call the tab it is about.
+ *
+ * One value rather than two, because both are the same question — which tab is on screen — asked by the
+ * section and by the read that works out what the names in it mean. See [NoteSection].
+ */
+private data class TabNote(
+  val notes: PlaceNotes,
+  /** What the log calls the tab, since a read of the heap dump is logged with what it was for. */
+  val subject: String
+)
 
 /**
  * Puts [text] on the system clipboard, through AWT.

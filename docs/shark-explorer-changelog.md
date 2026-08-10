@@ -23,3 +23,7 @@ uses, without the one for a newly recognized library leak:
   `shark://` link to it, beside opening it in a new tab. Clicking one brings the app to the front and
   opens that place in a new tab: an object, a filtered object list, the leaks with the same groups
   unfolded. See [Link to a tab](shark-explorer.md#link-to-a-tab).
+* ✨ **Notes**: every tab takes a markdown note, kept between runs, and the tab strip marks the tabs
+  that have one. Class names, addresses and `shark://` links written in a note become links back into
+  the window, shortened to read as prose, and GitHub URLs are shortened the way GitHub shortens them.
+  See [Take notes](shark-explorer.md#take-notes).
