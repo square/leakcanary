@@ -189,7 +189,11 @@ the only part that is words, and it is what makes the other two findable.
 seconds reading, and the bar above is one click from a tab again — closing tabs is never closing the dump,
 which is the window's, see above. A tab's history is its own rather than the window's, or the back arrow
 would walk out of the tab being read. And a tab id is counted up rather than reused, so a tab closed and
-another opened are two tabs rather than one that changed its mind.
+another opened are two tabs rather than one that changed its mind. **Right clicking an arrow lists that
+history**, nearest first, because reading a heap dump is a dozen moves down into something and one move back
+out: `NavigationHistory.backEntries` and `goBack(steps)` are that list and the click on the fourth entry of
+it, and a click on an entry the history has since moved past is clamped rather than refused, the list and the
+history being the same value one recomposition apart.
 
 **A tab's name is a read of the heap dump**, class name plus address, because a strip of a dozen instances
 of one class is only one you can pick out of if each tab says which instance it is. So the strip scrolls
@@ -652,6 +656,18 @@ rest of that panel — which object, as against what that object holds — and i
 chain are both about, so it belongs between them. So the panel names no object of its own: it starts with
 the star and the numbers.
 
+**And it is set in a title there**, `nameStyle` being how `ObjectIdentity` takes a style it doesn't pick
+itself: on that row the name is what the whole window is about, while everywhere else the same lines are a
+mention of an object among others. At body size it read as one more label in a bar of them, and a window
+whose subject is the smallest question on screen is one you have to hunt for the answer in.
+
+**That row is two things with a rule between them**: how the tab got here — the arrows — and what it is on,
+which is the title with what the notes offer under it. Without the rule it is one undifferentiated strip of
+controls, and anything at the end of that reads as belonging to the window rather than to the object named
+beside it; with it, the grouping is what says which, and nothing has to be labelled to say so.
+`IntrinsicSize.Min` on the row is what makes the rule as tall as the row itself, the title being one line on
+the whole heap dump and three on an object, with or without a button under it.
+
 **An address is printed as hex, everywhere.** A decimal object id matches nothing: `hexObjectId` is what
 `shark-cli`, a leak trace and every other tool print, so it is what can be pasted between them.
 
@@ -675,6 +691,120 @@ cannot be what tells the two apart. Which is also why hovering in a test is two 
 Zooming, resizing and switching shape move the rectangles rather than the pointer, and no pointer event
 follows at all, so each view remembers where the pointer is and works out what it is on again whenever it
 is laid out anew.
+
+## A note belongs to the place, and the names in it are links
+
+Every place takes a note, rather than the notes being a screen of their own. A note is written while reading an
+object and it is about that object, so it belongs where the object is: a note you have to leave the object to
+write is one written about however much of it you can still remember, and a note that isn't in front of you when
+you come back to the object is one you forgot you had.
+
+**The place's, not the tab's**, and the distinction is worth stating because every surface of this is drawn on a
+tab: two tabs on one place are one note, and both show what the other is typing, since `ExplorerNotes` hands out
+one `PlaceNotes` per place per run. A tab is a way of looking at a place and there can be several at once; what
+a note is about is the place.
+
+**And a place, not an object** — the word matters in the other direction too. Three of the keys are lists rather
+than objects, one is a group of objects, and the tab a window opens with is the whole dump; "a note per object"
+reads as if the object list and the leaks had none. The user facing word for it is *location*, since `Place` is
+this codebase's rather than anybody else's.
+
+**Between the row that says where the tab is and the panes that read it**, because a note is about the whole
+of what the tab is showing: under the title it is about, above everything that describes it. At the foot of
+the window it read as a note on whichever pane happened to be above it, which is a note about the details
+panel or about the chain rather than about the object.
+
+**Filed under what the tab is about, not under the tab.** `Place.noteKey()` is the whole of that distinction.
+A place carries the state of its screen as well as its subject — what the object list is filtered to, which
+leaks are unfolded, how many objects a pile of small ones stands for at this window width — and all of that
+changes while reading. Keyed on the place itself, a note would follow the search box: typing a letter into it
+would be moving to a different notepad, and the note just written would be filed under a half typed query
+nobody will run again. So one note per object, one for the object list however it is filtered, one for the
+leaks however they are unfolded. It also means a tab is not an identity a note can hang off: two tabs on one
+object are one note, which is the same reason two windows on one dump are.
+
+The note about the heap dump as a whole goes on the tab a window opens with, which is the whole dump as an
+object like any other — so there is somewhere to write the story that isn't about one object without adding a
+screen for it.
+
+**Two states and no fold**: writing is a plain box with save and cancel, written is the note as it means, and
+there is no third state, because a place nobody has written about has no section at all. What starts one is a
+button under the title (`AddNoteButton`), which goes away as soon as there is a note — one way in on screen
+at a time, and nothing spent on the places that will never have one, which is most of them. A note that exists
+is simply on screen, so there is nothing to fold and nothing to remember folding: a note behind a button is a
+note nobody remembers is there. The strip marks a tab that has one with a `✎` for the same reason — what makes
+notes worth writing is the window saying where you have already worked something out. Which tabs
+those are is one directory listing (`NoteDirectory.keysWithNotes`) rather than a file opened per tab, since it
+is a question about the whole strip.
+
+Which is also why **the window reads the file rather than the section**: whether there is a section at all is
+the answer to that read, so a section that started it could only ever appear after itself.
+
+**What a note can do is said in the box, not in the tooltip on the button.** A tooltip is read while deciding
+whether to click, and a paragraph about markdown, class names, addresses and `shark://` links is in the way of
+that decision; the same paragraph is exactly what is wanted once the box is open and empty, which is where the
+placeholder is. So the button's hint says what clicking it does and stops.
+
+**Why the button is under the title**, of the four places it could be: before the title puts the action ahead
+of its subject, and makes the title's own position depend on whether a note exists. Hugging the end of the
+title moves it on every click, the title being the object the tab is on. At the far end of the row it keeps one
+position, but it is then as far from the title as the window is wide, and it read as the window's button rather
+than as this object's. Under the title it is where its own result goes — the note opens exactly there — and it
+reads in the order it happens: this object, then write about it.
+
+What that costs is a line of every tab nobody has written about, which is why it is drawn small: `bodySmall` at
+`ADD_NOTE_HEIGHT`, with no padding of its own, so that it starts where the title starts and adds a line rather
+than a row. A `TextButton` still, rather than a clickable line of text, because it is an action and the role is
+what a screen reader and a test tell it by.
+
+**What makes a note worth keeping is that the names in it lead back into the window.** A note is mostly made
+of things out of the heap dump — a class, an address, a link to the tab you were on — and typing those out
+again as prose is what makes notes not worth writing. So `Note.of(text)` leaves every dotted name and every
+`0x…` as a `NoteMention`, `HeapDominatorTreemap.referencesOf` asks the dump what they are, and
+`Note.resolvedWith` turns the ones it recognises into links shortened to read as prose. What it doesn't
+recognise stays exactly as typed: a class this dump has never heard of is a class somebody wrote about.
+
+- **Parsed and resolved on save.** The box takes plain text while it is being typed — markdown is what gets
+  typed there, and a box that reformats it as you go is a box arguing with you — so there is nothing to draw
+  until there is something saved, and the resolve, which is a heap dump read, is one per save rather than one
+  per pause in the typing. It only runs at all for a note that mentions something.
+- **Resolving is idempotent**, because a note is resolved again every time the dump answers: what is drawn is
+  built from the mention rather than from what the span is showing now.
+- **An address is two `Long`s.** A 32 bit dump's ids are four bytes widened by sign, so `0x82182c00` is
+  either that or the negative id `hexObjectId` prints as `0x82182c00`, and only the dump says which.
+- **A `shark://` link keeps its link and gains a name.** Resolving a mention never replaces a link that is
+  already there, so a link to an object reads as that object and still leads to the window it names —
+  followed exactly the way one arriving from the OS is, which is what makes the same link work in a note, a
+  chat message and an issue. A note outlives the window, so most of them are dead links a run later: that is
+  the honest answer, and it is the same empty window a stale link opens anywhere else.
+- **Inline code is still read for mentions, a fenced block is not.** `` `com.example.Thing` `` is how anyone
+  who writes markdown writes a class name; a fenced block is quoted rather than written.
+- **One line is one block.** No two-space line endings, no blank line above a list. A note is written in
+  lines, and this is how GitHub's comment box reads them.
+
+**One notepad per place per run, not per window.** The same dump open in two windows is how two views of it
+are compared, and two notepads over one file would have each window saving over the other's note with neither
+ever showing the loss. `ExplorerNotes` is one per run, hands out one `HeapDumpNotes` per dump and one
+`PlaceNotes` per place, so typing in one window shows up in the other.
+
+**Saving is a button, and the draft is the run's.** Nothing is written until save, and cancel throws the draft
+away: a box with those two buttons under it is a promise about which of the two happens, and an autosave with
+a cancel button beside it is neither. What an autosave was covering is the typing somebody clicked away from,
+which is why the draft lives in `PlaceNotes` — the run's notepad for that place — rather than in the section:
+leaving the tab half way through a sentence and coming back finds the sentence. A draft is not filed when the
+window closes either, which is the answer cancel gives and the same one. Nothing is saved until the file has
+been read — an empty notepad because the disk was slow, written out, is a note deleted — and the button that
+starts a note is disabled until then for the same reason. The save itself is `NonCancellable`, since the
+section that asked for it is gone the moment the draft is.
+
+**Markdown files in `~/.shark-explorer/notes`, a directory per dump.** Not beside the heap dump: dumps are
+opened from device pulls, temporary files, read only mounts and checkouts of this repository, so writing there
+means littering some and failing on the rest. Markdown, because a note about a leak ends up in an issue or
+read by an agent more often than it is read here again. The directory is the dump's name plus a hash of the
+directory it was in, since two runs of one app produce two `heap.hprof`s and they are two investigations;
+inside it, a file per `noteKey` rather than one document with a section per place, so that a save touches only
+the note that was typed into, nothing has to be parsed back out of a document that also holds somebody's own
+headings, and the listing is the index.
 
 ## Testing split
 

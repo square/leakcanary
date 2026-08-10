@@ -57,6 +57,9 @@ a few seconds.
   there in this tab, middle click or ⌘/Ctrl click to open it in a tab behind this one, right click for a
   menu offering both that and a link to the object. The buttons along the top always open a new tab, and
   every tab can be closed — including the last, which leaves the heap dump open and the buttons ready.
+* **← and → walk the tab's own history**, so a tab you wandered off in is one click from where it was.
+  **Right click either arrow** for the list of everywhere it leads: picking the fourth entry is one click
+  rather than four.
 * **The three panes are resizable, and each folds away to a button.** A chain thirty steps long or a
   details panel of forty fields is sometimes worth the whole window.
 * **Shape** switches between rectangles and rings. A ring has room for fewer children, so it groups the
@@ -67,6 +70,7 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
+* Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
 
 ## Link to a tab
 
@@ -97,6 +101,51 @@ so. A link never replaces what you were reading: it always opens a tab of its ow
 Links reach the app from an installed build — the installer is what tells the OS that `shark://` is this
 app's. A copy run from source can still be linked to from another one, but the OS won't start it for a
 link.
+
+## Take notes
+
+**✎ Add Note**, under the title saying where the tab is, starts a markdown note about **that location** —
+an object, the object list, the leaks, the starred objects, or the heap dump as a whole on the tab a window
+opens with. Type into the box, press **Save**, and the note is drawn where the box was; **Cancel** throws what
+you typed away. It is there again the next time you are at that location, and the tab strip puts a ✎ on the
+tabs whose location has one.
+
+A note belongs to the **location**, not to the tab: two tabs on one location are one note, and so are two
+windows on one heap dump. Which is why writing about an object you got to twice adds to what you already wrote
+rather than starting again beside it, and why the same is true of the note you left there last week. To throw a
+note away, open it, delete the text and **Save**: an empty note is no note, and the ✎ comes off the tab.
+
+The note appears under that row and above the panes, because it is about the whole of what the tab is showing.
+Where nobody has written anything there is nothing there at all — only the button, which goes away once there
+is a note, since the note carries its own **✎ Edit**.
+
+The notes live in `~/.shark-explorer/notes`, one directory per heap dump and one `.md` file per tab, so a
+note can be opened in an editor, pasted into an issue, or read by an agent without going through this app.
+
+You type plain markdown — nothing is reformatted as you go — and once it is saved, **anything in it that
+this heap dump recognises becomes a way back into the window**:
+
+| What you write | What it reads as | What clicking it does |
+| --- | --- | --- |
+| `com.example.MyApp$Cache` | `MyApp$Cache` | Opens that class in a new tab |
+| `0x7f2a4b18` | `Cache instance (0x7f2a4b18)` | Opens that object in a new tab |
+| `shark://vugs93jp/leaks` | `Leaks` | Follows the link, like clicking it anywhere else |
+| `https://github.com/square/leakcanary/issues/2841` | `square/leakcanary#2841` | Opens it in your browser |
+
+A name or an address this dump has nothing for is left exactly as you typed it: a class this heap dump has
+never heard of is a class you wrote about, not a broken link. Which is also how the notes stay readable
+outside the app — nothing is rewritten on disk, only on screen.
+
+Headings, lists, quotes, `code`, **bold**, *italic*, fenced code blocks and `[links](https://example.com)`
+all work, and **one line is one line**: no blank line needed between two of them, the way a comment box on
+GitHub reads markdown. Nothing inside a fenced code block is linked or shortened.
+
+A location is *where* you are rather than how it is arranged, so searching in the object list, unfolding a leak
+or resizing the window stays on the same note rather than starting a new one.
+
+Since a `shark://` link names a window, a link written into a note stops working once that window is closed
+— see above. Copy one for the tab you want to come back to *while you are writing about it*, and it will
+take you there for as long as that window is open.
 
 ## Reporting a problem
 

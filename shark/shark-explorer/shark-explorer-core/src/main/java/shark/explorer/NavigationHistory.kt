@@ -34,6 +34,30 @@ data class NavigationHistory<T>(
   val canGoForward: Boolean get() = index < entries.lastIndex
 
   /**
+   * Everywhere this has been before [current], the most recent first.
+   *
+   * In that order because it is the order the back arrow visits them in, which is what a list of them is
+   * read as: the first entry is one click back, the second is two.
+   */
+  val backEntries: List<T> get() = entries.take(index).asReversed()
+
+  /** And everywhere it went after, the nearest first, for the same reason. */
+  val forwardEntries: List<T> get() = entries.drop(index + 1)
+
+  /**
+   * Goes back [steps] moves at once, for a click on the third entry of a back list rather than three clicks
+   * on the arrow.
+   *
+   * Clamped rather than checked, because the list a click came from and the history it came from are the
+   * same value one recomposition apart.
+   */
+  fun goBack(steps: Int): NavigationHistory<T> = copy(index = (index - steps).coerceAtLeast(0))
+
+  /** And forward, the same way. */
+  fun goForward(steps: Int): NavigationHistory<T> =
+    copy(index = (index + steps).coerceAtMost(entries.lastIndex))
+
+  /**
    * Records [entry] as where the view is now, which is what makes it the place the back arrow returns to
    * next.
    *

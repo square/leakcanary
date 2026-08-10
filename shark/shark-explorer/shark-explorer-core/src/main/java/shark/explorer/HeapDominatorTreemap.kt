@@ -334,9 +334,9 @@ class HeapDominatorTreemap internal constructor(
     }
     val classId = graph.findClassByName(className)?.objectId
     if (classId == null) {
-      // Which leaves every object of that class as a rectangle of its own under the root rather than
-      // gathered with its siblings, so it's worth a line saying so.
-      SharkLog.d { "No class named $className in the heap dump, so nothing groups by it" }
+      // Worth a line whoever asked: nothing gathers under a class the dump hasn't got, so every object of
+      // it is a rectangle of its own under the root, and a name written in a note goes unlinked.
+      SharkLog.d { "No class named $className in the heap dump" }
     }
     classIdByName[className] = classId
     return classId
@@ -378,6 +378,29 @@ class HeapDominatorTreemap internal constructor(
     is HeapInstance -> instanceClassSimpleName
     is HeapObjectArray -> arrayClassSimpleName
     is HeapPrimitiveArray -> arrayClassName
+  }
+
+  /**
+   * The class object [className] names, or null for a name this heap dump has no class for.
+   *
+   * Which is how something written down elsewhere — a note, a leak trace, a bug report — is turned into a
+   * place in this window. Looked up once per name, see the memo in [classIdOf], but the first look is two
+   * scans over every string of the dump, so this belongs on the heap dump's thread.
+   */
+  fun classObjectIdOrNull(className: String): Long? = classIdOf(className)
+
+  /**
+   * What sits at [objectId], as `MainActivity instance`, or null for an address this heap dump has no
+   * object at.
+   *
+   * The simple class name and the kind, which is how every list and path here names an object, so that an
+   * address read out of one of them can be recognised again wherever it was written down. No node of the
+   * tree is needed, so this answers for an object the tree has no rectangle for — an uncollected one, or
+   * an object of another dump whose address happens to be one of ours.
+   */
+  fun objectNameOrNull(objectId: Long): String? {
+    val heapObject = graph.findObjectByIdOrNull(objectId) ?: return null
+    return "${heapObject.className().substringAfterLast('.')} ${heapObject.kind().typeName}"
   }
 
   /**

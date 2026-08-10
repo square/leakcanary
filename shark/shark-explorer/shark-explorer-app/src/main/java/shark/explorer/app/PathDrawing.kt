@@ -362,17 +362,24 @@ internal fun ObjectIdentity(
   /** Null for the whole heap dump, which is no object and has no address. */
   objectId: Long?,
   modifier: Modifier = Modifier,
+  /**
+   * What the first line is drawn at, which is the body of the text everywhere but one.
+   *
+   * The row above the panes says which object the whole window is about, so there it is a title — see
+   * `DescribedObject`. The grey lines under it stay as they are: what they are for is being skipped.
+   */
+  nameStyle: TextStyle? = null,
   /** Where clicking it goes, or null for a name that is already what the window is showing. */
   onOpen: ((OpenIn) -> Unit)? = null,
   /** Put on the clipboard by the menu beside "open in a new tab", so only where there is one. */
   onCopyLink: () -> Unit = {}
 ) {
   if (onOpen == null) {
-    ObjectIdentityLines(className, typeName, objectId, modifier)
+    ObjectIdentityLines(className, typeName, objectId, nameStyle, modifier)
     return
   }
   OpenTarget(onOpen, onCopyLink) {
-    ObjectIdentityLines(className, typeName, objectId, modifier.openable(onOpen))
+    ObjectIdentityLines(className, typeName, objectId, nameStyle, modifier.openable(onOpen))
   }
 }
 
@@ -382,6 +389,7 @@ private fun ObjectIdentityLines(
   className: String,
   typeName: String?,
   objectId: Long?,
+  nameStyle: TextStyle?,
   modifier: Modifier
 ) {
   Column(modifier) {
@@ -392,7 +400,7 @@ private fun ObjectIdentityLines(
         append(className.substringAfterLast('.'))
         typeName?.let { withStyle(MUTED_SPAN) { append(" $it") } }
       },
-      style = MaterialTheme.typography.bodyMedium,
+      style = nameStyle ?: MaterialTheme.typography.bodyMedium,
       fontWeight = FontWeight.Bold
     )
     // Only where there is a package to read past: for a name that has none the two lines would be the same

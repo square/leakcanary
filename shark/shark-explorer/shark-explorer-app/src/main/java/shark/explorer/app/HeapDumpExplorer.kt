@@ -1,14 +1,18 @@
 package shark.explorer.app
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -17,6 +21,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -33,12 +38,14 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import shark.SharkLog
@@ -51,6 +58,8 @@ import shark.explorer.HeapObjectKind
 import shark.explorer.HeapSizes
 import shark.explorer.LayoutCell
 import shark.explorer.NativeBitmapPixels
+import shark.explorer.Note
+import shark.explorer.NoteLink
 import shark.explorer.ObjectDominator
 import shark.explorer.ObjectList
 import shark.explorer.ObjectListFilter
@@ -70,6 +79,7 @@ import shark.explorer.detours
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
 import shark.explorer.nodeIdText
+import shark.explorer.referencesOf
 import shark.explorer.titleOf
 import shark.explorer.waysOf
 
@@ -103,11 +113,20 @@ internal fun HeapDumpExplorer(
   deviceHeapDumps: DeviceHeapDumps,
   /** Already fetched off the device, when the dump was taken with the pixels asked for in the same go. */
   fetchedBitmapPixels: NativeBitmapPixels? = null,
+  /** What has been written about the places of this heap dump, shared with every other window on it. */
+  notes: HeapDumpNotes,
   /** What a link to one of these tabs names this window by. See [DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked for, opened as tabs. See [ExplorerWindow.linkedPlaces]. */
   linkedPlaces: List<Place> = emptyList(),
   onLinkedPlaceOpened: (Place) -> Unit = {},
+  /**
+   * Where a `shark://` link written in the notes goes, which is wherever it names: this window, another
+   * window of this run, another run of the app, or nowhere. See [DeepLinkPeers.follow].
+   */
+  followDeepLink: (DeepLink) -> Unit = { link -> SharkLog.d { "Nothing here to follow $link with" } },
+  /** Overridden by tests, which have no browser. */
+  openUrl: (String) -> Unit = ::openInBrowser,
   /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
   copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
   modifier: Modifier = Modifier
@@ -157,6 +176,16 @@ internal fun HeapDumpExplorer(
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
   /** What each tab is called, by the place it is on. Only grows: a place is named once and stays named. */
   var placeTitles by remember { mutableStateOf(emptyMap<Place, String>()) }
+  /**
+   * The note about the tab on screen, and null once the last tab has been closed — which is the one state
+   * with no tab to write about.
+   */
+  val tabNote = place?.let { current ->
+    TabNote(
+      notes = notes.of(current),
+      subject = current.title ?: placeTitles[current] ?: NAMING_TAB
+    )
+  }
 
   // Nothing is under the pointer while a list is showing: the view isn't there, so the rectangle it was on
   // last is neither where the pointer is now nor what the tab is about.
@@ -209,7 +238,11 @@ internal fun HeapDumpExplorer(
   // Which is why this goes in ahead of the effect that lays the view out: opening a tab asks for both, and
   // the layout is the larger by orders of magnitude. Named after it, a tab would show its placeholder for
   // as long as laying the tree out takes, which on a real dump is what someone sees as a flicker.
-  val unnamedPlaces = tabs.tabs.map { it.place }.filter { it.title == null && it !in placeTitles }
+  // Every place of every history rather than just the one each tab is on, because the right click menus on
+  // the history arrows list them by name: a menu entry called "Naming this tab…" is a move nobody will make.
+  val unnamedPlaces = tabs.tabs.flatMap { it.history.entries }
+    .filter { it.title == null && it !in placeTitles }
+    .distinct()
   LaunchedEffect(session, unnamedPlaces) {
     if (unnamedPlaces.isEmpty()) {
       return@LaunchedEffect
@@ -410,6 +443,34 @@ internal fun HeapDumpExplorer(
     isListing = false
   }
 
+  // Which places have been written about, once per run of the app: a directory listing rather than a note
+  // opened per tab, since what it answers is a question about the whole strip. See [HeapDumpNotes.list].
+  LaunchedEffect(notes) { notes.list() }
+
+  // And what the note about this one says, once per run of the app. Here rather than in the section that draws
+  // it, because a place nobody has written about has no section at all until the read says it has none.
+  LaunchedEffect(tabNote?.notes) { tabNote?.notes?.read() }
+
+  // What a note means, whenever there is a new one to mean anything: reading the markdown is in memory and
+  // cheap, and asking the heap dump what the names in it stand for is a read, so it only happens for a note
+  // that mentions something. Once per save rather than per keystroke, since a draft being typed is drawn as
+  // the text it is. See [Note].
+  LaunchedEffect(session, tabNote?.notes) {
+    val notepad = tabNote?.notes ?: return@LaunchedEffect
+    snapshotFlow { notepad.text }.collectLatest { text ->
+      val parsed = Note.of(text)
+      notepad.parsed(parsed)
+      val mentions = parsed.mentions
+      if (mentions.isEmpty) {
+        return@collectLatest
+      }
+      val references = session.read("what the note on ${tabNote.subject} mentions") { explorer ->
+        explorer.tree.referencesOf(mentions)
+      }
+      notepad.parsed(parsed.resolvedWith(references))
+    }
+  }
+
   // Whether the map is rooted inside a leak, which the cells themselves can't say: a rectangle is drawn
   // inside the one that dominates it, so a view rooted below a leaking object has every rectangle of it
   // leaking and not one of them in the list. A walk up the dominators, so it follows where the map is.
@@ -478,6 +539,22 @@ internal fun HeapDumpExplorer(
   val copyObjectLink: (Long) -> Unit = { objectId -> copyLink(Place.Object(objectId)) }
   /** And for the view's right click menu, which is on whatever the pointer is on. */
   val copyHoveredLink: () -> Unit = { hovered?.place?.let { copyLink(it) } }
+  /**
+   * Where a link written in the notes goes: out to a browser, into whichever window a `shark://` link
+   * names, or to an object of this heap dump.
+   *
+   * An object opens a tab in front, like a button on the bar rather than like a row of a list: the notes
+   * are what the reader is working from, and replacing them with the object they just linked to would take
+   * away the thing they are reading. A `shark://` link is followed the way one arriving from outside the
+   * app is, which is the whole point of it being the same link.
+   */
+  val followNoteLink: (NoteLink) -> Unit = { link ->
+    when (link) {
+      is NoteLink.Web -> openUrl(link.url)
+      is NoteLink.Deep -> followDeepLink(link.deepLink)
+      is NoteLink.Object -> openInNewTab(Place.Object(link.objectId))
+    }
+  }
 
   if (showsBitmapsFromDevice) {
     BitmapsFromDeviceDialog(
@@ -508,21 +585,43 @@ internal fun HeapDumpExplorer(
     TabStrip(
       tabs = tabs,
       titleOf = { it.title ?: placeTitles[it] ?: NAMING_TAB },
+      hasNote = { notes.hasNote(it) },
       onSelect = { id -> tabs = tabs.select(id) },
       onClose = { id -> tabs = tabs.close(id) },
       onCopyLink = copyLink
     )
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    // Two things in one row, and a rule between them: how the tab got here, then what it is on. The height is
+    // the taller of the two so that the rule is as tall as the row whether the title is one line or three.
+    Row(Modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.CenterVertically) {
       HistoryArrows(
-        canGoBack = tabs.canGoBack,
-        canGoForward = tabs.canGoForward,
+        // Named the way the tabs are, since these are the same places under another name.
+        back = tabs.backPlaces.map { it.title ?: placeTitles[it] ?: NAMING_TAB },
+        forward = tabs.forwardPlaces.map { it.title ?: placeTitles[it] ?: NAMING_TAB },
         // A move undone is a place again, and the panes follow it: there is nothing else to put back.
-        onBack = { tabs = tabs.goBack() },
-        onForward = { tabs = tabs.goForward() }
+        onBack = { steps -> tabs = tabs.goBack(steps) },
+        onForward = { steps -> tabs = tabs.goForward(steps) }
       )
+      VerticalDivider(Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
       // Which object the tab is on, beside the arrows that moved to it: above the panes rather than in
       // one, because it is the one thing that is as true of a list of objects as of the map.
-      DescribedObject(details?.selection)
+      Column(Modifier.weight(1f)) {
+        DescribedObject(details?.selection)
+        // Under the title, and only until there is a note: the note will be about what the title names, and
+        // this is where it will appear, so the button is where its own result goes. Small, since that costs a
+        // line of every tab nobody has written about. Once there is a note it is here instead and carries the
+        // way back into the box, so there is never one of each. See [AddNoteButton].
+        if (tabNote != null) {
+          AddNoteButton(tabNote.notes)
+        }
+      }
+    }
+    // Under the title it is about and above everything that describes it, so that what it is a note about is
+    // the whole of what this tab is showing rather than whichever pane it happens to sit against.
+    if (tabNote != null) {
+      NoteSection(
+        notes = tabNote.notes,
+        onLink = followNoteLink
+      )
     }
     Box(Modifier.weight(1f)) {
       when {
@@ -632,6 +731,18 @@ internal fun HeapDumpExplorer(
 }
 
 /**
+ * The note about the tab on screen: what has been written in it, and what to call the tab it is about.
+ *
+ * One value rather than two, because both are the same question — which tab is on screen — asked by the
+ * section and by the read that works out what the names in it mean. See [NoteSection].
+ */
+private data class TabNote(
+  val notes: PlaceNotes,
+  /** What the log calls the tab, since a read of the heap dump is logged with what it was for. */
+  val subject: String
+)
+
+/**
  * Puts [text] on the system clipboard, through AWT.
  *
  * AWT's clipboard rather than Compose's, because this is one call from an event handler rather than
@@ -732,21 +843,20 @@ private fun RowScope.ViewPane(
     return
   }
   Column(paneWidth(panes, Pane.VIEW).fillMaxHeight()) {
-    // The fold control sits in the row of controls rather than in a header of its own: the view already
-    // has a strip above it, and two thin rows would be one more than the picture can spare.
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      FoldButton(Pane.VIEW) { panes.toggleFold(Pane.VIEW) }
-      ViewControls(
-        sizes = sizes,
-        shape = shape,
-        coloring = coloring,
-        leakCount = leaks?.objectCount,
-        isFindingLeaks = isFindingLeaks,
-        onColoringChange = onColoringChange,
-        onShapeChange = onShapeChange,
-        modifier = Modifier.weight(1f)
-      )
-    }
+    // Named like the two panes either side of it, and for the same reason: left to right the three of them
+    // are three questions about the object, and a middle one that didn't say which question it answers left
+    // the other two reading as a pair.
+    PaneHeader(Pane.VIEW) { panes.toggleFold(Pane.VIEW) }
+    ViewControls(
+      sizes = sizes,
+      shape = shape,
+      coloring = coloring,
+      leakCount = leaks?.objectCount,
+      isFindingLeaks = isFindingLeaks,
+      onColoringChange = onColoringChange,
+      onShapeChange = onShapeChange,
+      modifier = Modifier.fillMaxWidth()
+    )
     Box(Modifier.weight(1f).fillMaxWidth()) {
       // The one gesture the views can't read themselves: a right click is the menu's, and the menu is what
       // makes middle clicking a rectangle findable by someone who has never tried it.
@@ -902,6 +1012,9 @@ private fun ListPlace(
  */
 @Composable
 private fun DescribedObject(selection: Selection?) {
+  // Larger than the same name is anywhere else in the window, because here it is a title rather than a
+  // mention: everything under it — three panes or a list, and the note — is about this object.
+  val titleStyle = MaterialTheme.typography.titleMedium
   when (selection) {
     null -> Unit
     // Selectable so it can be copied out: an object id is how you point something else — a script, a
@@ -910,16 +1023,19 @@ private fun DescribedObject(selection: Selection?) {
       ObjectIdentity(
         className = selection.summary.className,
         typeName = selection.summary.kind?.typeName,
-        objectId = selection.summary.objectId
+        objectId = selection.summary.objectId,
+        nameStyle = titleStyle
       )
     }
     is Selection.ObjectGroup -> Text(
       selection.summary.className ?: HeapDominatorTreemap.UNREACHABLE_LABEL,
-      style = MaterialTheme.typography.bodyMedium
+      style = titleStyle,
+      fontWeight = FontWeight.Bold
     )
     is Selection.Group -> Text(
       "${selection.nodeCount} smaller objects",
-      style = MaterialTheme.typography.bodyMedium
+      style = titleStyle,
+      fontWeight = FontWeight.Bold
     )
   }
 }
@@ -1079,16 +1195,53 @@ private fun TreeScreen(
 /** Back and forward through the moves made in this tab. See [shark.explorer.NavigationHistory]. */
 @Composable
 private fun HistoryArrows(
-  canGoBack: Boolean,
-  canGoForward: Boolean,
-  onBack: () -> Unit,
-  onForward: () -> Unit
+  /** Where back leads, one click first. See [Tabs.backPlaces]. */
+  back: List<String>,
+  forward: List<String>,
+  /** How many moves at once, which is 1 for a click on the arrow itself. */
+  onBack: (Int) -> Unit,
+  onForward: (Int) -> Unit
 ) {
-  TextButton(onClick = onBack, enabled = canGoBack) {
-    Text(BACK_ARROW)
+  HistoryArrow(BACK_ARROW, back, onBack)
+  HistoryArrow(FORWARD_ARROW, forward, onForward)
+}
+
+/**
+ * One arrow: a click is one move, and a right click is the list of them.
+ *
+ * Which is the browser gesture, and it is worth having here for the browser's reason: a tab that has walked
+ * twenty objects down a chain is one where getting back to where the walk started is twenty clicks and a
+ * guess about which of them it was. The list says where each one lands, by the name the tab strip uses.
+ */
+@Composable
+private fun HistoryArrow(
+  arrow: String,
+  places: List<String>,
+  onGo: (Int) -> Unit
+) {
+  if (places.isEmpty()) {
+    // Nowhere to go, so nothing to right click either: an empty menu under the pointer reads as the window
+    // having lost the history rather than as there being none.
+    TextButton(onClick = {}, enabled = false) {
+      Text(arrow)
+    }
+    return
   }
-  TextButton(onClick = onForward, enabled = canGoForward) {
-    Text(FORWARD_ARROW)
+  ContextMenuArea(
+    items = {
+      // The nearest few rather than all of them, because the menu is drawn where the pointer is and one
+      // taller than the window has entries that cannot be reached. Everything past them is still one click
+      // of the arrow at a time away.
+      places.take(HISTORY_MENU_LIMIT).mapIndexed { index, title ->
+        ContextMenuItem(title) { onGo(index + 1) }
+      }
+    }
+  ) {
+    Hint("$HISTORY_MENU_HINT ${places.first()}") {
+      TextButton(onClick = { onGo(1) }) {
+        Text(arrow)
+      }
+    }
   }
 }
 
@@ -1335,6 +1488,16 @@ private const val HOVER_SETTLE_MILLIS = 100L
 
 /** What a tab is called for the beat between it being opened and the heap dump having named it. */
 private const val NAMING_TAB = "…"
+
+/**
+ * How many of the places behind an arrow its menu lists.
+ *
+ * Enough for the walk anyone takes in one go, few enough that the menu fits under the pointer on a window
+ * that isn't full height.
+ */
+private const val HISTORY_MENU_LIMIT = 15
+
+private const val HISTORY_MENU_HINT = "Right click for everywhere this leads. One click:"
 
 internal const val BACK_ARROW = "←"
 internal const val FORWARD_ARROW = "→"
