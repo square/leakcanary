@@ -61,8 +61,9 @@ enum class LeakKind(
    */
   val strength: ReachabilityStrength? = null,
   /**
-   * What a group of these says instead of a chain of references, since being on the way out is the whole
-   * of what they have in common. Null for the two sections whose groups say it with references.
+   * What a group of these says when there is no reference to name it after, which is [UNREACHABLE] and
+   * nothing else: every other section's groups are a reference, and a reference says what a sentence
+   * would have.
    */
   val subtitle: String? = null
 ) {
@@ -84,26 +85,21 @@ enum class LeakKind(
     "Softly reachable",
     "Objects a soft reference is the last thing holding, which the virtual machine clears when it wants " +
       "the memory back. So they stay until memory runs short, and then go without the app doing anything.",
-    strength = ReachabilityStrength.SOFT,
-    subtitle = "A soft reference is the only thing left holding these: the next collection that needs the " +
-      "room takes them."
+    strength = ReachabilityStrength.SOFT
   ),
 
   WEAK(
     "Weakly reachable",
     "Objects a weak reference is the last thing holding. The next garbage collection clears it and takes " +
       "them, whether or not memory is short.",
-    strength = ReachabilityStrength.WEAK,
-    subtitle = "A weak reference is the only thing left holding these: the next collection takes them."
+    strength = ReachabilityStrength.WEAK
   ),
 
   FINALIZER(
     "Waiting to be finalized",
     "Objects whose class has a `finalize()` method, reachable only from the queue of objects waiting for " +
       "it to run. They survive one more collection at least, and longer if finalization is backed up.",
-    strength = ReachabilityStrength.FINALIZER,
-    subtitle = "Only the finalizer queue still holds these: they go once `finalize()` has run, and " +
-      "finalizing one can make it reachable again."
+    strength = ReachabilityStrength.FINALIZER
   ),
 
   PHANTOM(
@@ -111,9 +107,7 @@ enum class LeakKind(
     "Objects already finalized and out of the app's reach, held only so that a `Cleaner` or a phantom " +
       "reference gets to run. On Android that is nearly always a `Cleaner` freeing native memory, which " +
       "the runtime drains on its own.",
-    strength = ReachabilityStrength.PHANTOM,
-    subtitle = "Nothing in the app can reach these any more: they are held until a `Cleaner` or a phantom " +
-      "reference has had its turn."
+    strength = ReachabilityStrength.PHANTOM
   ),
 
   UNREACHABLE(
@@ -153,6 +147,10 @@ data class LeakSection(
  * rather than as fifty: the app's own leaks by the references between what still holds the object and the
  * object itself, which is the part of the chain the leak is in, and the library ones by the known
  * reference they were recognized by.
+ *
+ * The sections whose objects are on their way out are grouped by the one reference the collector hasn't
+ * cleared yet, for the same reason: one `Cleaner` that still has its referent is one row and a screen's
+ * worth of views under it, rather than a row per view saying nothing about what they have in common.
  */
 data class LeakGroup(
   /**
@@ -167,11 +165,15 @@ data class LeakGroup(
    * `LeakFingerprint.kt`.
    */
   val leakFingerprint: String,
-  /** What the leak is: the class of the objects leaking, or the reference a library leak is known by. */
+  /**
+   * What the leak is: the reference it is, the pattern a library leak is known by, or the class of the
+   * objects leaking for the one section that has no reference to name a group after.
+   */
   val title: String,
   /**
    * The references the leak *is*, as `Foo.bar` each: from the one that shouldn't be holding any more down
-   * to the one that points straight at what leaked.
+   * to the one that points straight at what leaked. A single reference for a leak on its way out, that one
+   * being what still holds it rather than what shouldn't.
    *
    * The stretch of the chain [leakFingerprint] hashes, which is what makes these objects one leak, and
    * the same for every object in the group. Both ends are worth reading — the first says what to stop

@@ -878,10 +878,10 @@ class HeapDominatorTreemap internal constructor(
     // Which section it goes in, when that is decided by how firmly it is held rather than by what holds
     // it: everything the collector clears on its own, from a soft reference down to nothing at all.
     val goingKind = LeakKind.ofOrNull(strength)
-    // Nothing holds an unreachable object, so there is no chain to it to read. Everything else has one,
-    // and it is read even for the sections a strength names, whose groups are not named after it: what a
-    // chain is for there is which other leak holds this object, which is what keeps one leaked screen's
-    // worth of objects to one row rather than to nine.
+    // Nothing holds an unreachable object, so there is no chain to it to read. Everything else has one, and
+    // every section needs it: it says which reference a leak is named after, and which other leak holds
+    // this object, the second being what keeps one leaked screen's worth of objects to one row rather than
+    // to nine.
     val pathObjectIds = if (strength == ReachabilityStrength.UNREACHABLE) {
       emptyList()
     } else {
@@ -910,10 +910,9 @@ class HeapDominatorTreemap internal constructor(
     // Everything the chain runs through on the way down to it, which is what says whether it is a leak of
     // its own or one more thing another leak is holding. See [foldedIntoWhatHoldsThem].
     val heldThrough = pathObjectIds.dropLast(1)
-    // A section a strength names, or an object nothing reaches: either way what it has in common with the
-    // rest of its section is how firmly it is held, so its class is what tells two of them apart. Which is
-    // also what keeps the chain out of the name — a phantom reachable view named after the static pool of
-    // canvases forty `Cleaner.prev` links above it is a leak named after none of its own doing.
+    // A section a strength names, or an object nothing reaches: either way there is nothing to fix for these
+    // to go, so what LeakCanary would call the leak — the reference that shouldn't be holding any more — is
+    // not what tells two of them apart. What does is the reference that hasn't let go yet.
     if (goingKind != null || steps.isEmpty()) {
       // A reachable object with no chain means the roots this walk started from aren't the roots the tree
       // was built from, which is the mismatch `gcRootLabelOf` logs. Listed as unreachable, since that is
@@ -924,15 +923,31 @@ class HeapDominatorTreemap internal constructor(
             "($strength), so it is listed as unreachable"
         }
       }
+      // The first reference of the chain holding no more firmly than the object itself, which is the one the
+      // collector hasn't got to yet: everything below it is in memory because that one reference still is,
+      // so the collection that clears it takes the lot. So it is what a group of these is, the way a
+      // suspect stretch of references is what an app's own leak is — one `Cleaner` that still has its
+      // referent, holding a screen's worth of views.
+      //
+      // Null when nothing holds the object at all, which is what leaves an unreachable leak named after its
+      // class: there is no reference left to name it after.
+      val weakenedBy = steps.firstOrNull { it.strength >= strength }?.reference?.genericLabel()
+      if (weakenedBy == null && steps.isNotEmpty()) {
+        SharkLog.d {
+          "Nothing on the chain to ${hexObjectId(objectId)} holds it as weakly as $strength does, so it is " +
+            "listed under its class rather than under the reference that hasn't let go"
+        }
+      }
       return FoundLeak(
         kind = kind,
-        // Its class and how firmly it is held, since there is no chain to hash and nothing else tells two
-        // of these apart — and the same class in two of these sections is two leaks, not one. LeakCanary
-        // has no leak fingerprint to match here: it reports what a GC root reaches, and as far as it is
-        // concerned none of these is reached.
-        leakFingerprint = "${leakingObject.className} ${kind.name}".sha1Hex(),
-        title = simpleClassName,
-        suspectPath = emptyList(),
+        // And how firmly, since the same reference in two of these sections is two leaks, not one.
+        // LeakCanary has no leak fingerprint to match here: it reports what a GC root reaches, and as far
+        // as it is concerned none of these is reached.
+        leakFingerprint = "${weakenedBy ?: leakingObject.className} ${kind.name}".sha1Hex(),
+        title = weakenedBy ?: simpleClassName,
+        suspectPath = listOfNotNull(weakenedBy),
+        // Which is only ever the one section whose groups are named after a class, since a class name says
+        // nothing about why the object is still in memory and a reference says all of it.
         subtitle = kind.subtitle,
         heldThrough = heldThrough,
         leakingObject = leakingObject

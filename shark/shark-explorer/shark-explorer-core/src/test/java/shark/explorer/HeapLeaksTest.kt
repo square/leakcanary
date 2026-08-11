@@ -141,28 +141,41 @@ class HeapLeaksTest {
     }
   }
 
-  @Test fun `a leak on its way out is named after its class rather than after a cleaner list`() {
+  @Test fun `a leak on its way out is named after the reference that hasn't let go`() {
     HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
       val group = explorer.tree.findLeaks().sectionOf(PHANTOM).groups.single()
 
-      // What holds it is a Cleaner on a static list, which is where it lives rather than why it is still
-      // here, so there is no chain to name it after and the section says what being in it means.
-      assertThat(group.title).isEqualTo(ACTIVITY_CLASS_NAME.substringAfterLast('.'))
-      assertThat(group.suspectPath).isEmpty()
-      assertThat(group.subtitle).isEqualTo(PHANTOM.subtitle)
+      // Which is the whole of why the object is still in memory: clear that one reference and it goes. Not
+      // the class of what leaked, which says nothing about why it is here, and not the static list the
+      // `Cleaner` is on, which is where the `Cleaner` lives rather than what it is holding.
+      assertThat(group.title).isEqualTo("Cleaner.referent")
+      assertThat(group.suspectPath).containsExactly("Cleaner.referent")
+      // Nothing for a sentence to add to that, unlike the one section named after a class.
+      assertThat(group.subtitle).isNull()
     }
   }
 
-  @Test fun `the same class in two of the sections on their way out is two leaks`() {
+  @Test fun `objects each waiting on a cleaner of their own are one leak`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump(activityCount = 3)).use { explorer ->
+      val section = explorer.tree.findLeaks().sectionOf(PHANTOM)
+
+      // Three `Cleaner`s, so three chains and no object holding another — and one row, because what these
+      // have in common is the kind of reference still holding them and not which instance of it.
+      assertThat(section.groups).hasSize(1)
+      assertThat(section.objectCount).isEqualTo(3)
+    }
+  }
+
+  @Test fun `an object on its way out and one already collected are two leaks`() {
     HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
       val phantom = explorer.tree.findLeaks().sectionOf(PHANTOM).groups.single()
 
-      // The fingerprint is what tells one leak from another, and a class name alone would make a phantom
-      // reachable activity and an unreachable one the same leak found twice.
+      // The same class of object, meant to be gone in both dumps, and two different answers to why it is
+      // still here — so two leaks, which is the section being part of the fingerprint.
       HeapExplorer.open(testFolder.collectedActivityHeapDump()).use { collected ->
         val unreachable = collected.tree.findLeaks().sectionOf(UNREACHABLE).groups.single()
 
-        assertThat(phantom.title).isEqualTo(unreachable.title)
+        assertThat(phantom.objects.single().className).isEqualTo(unreachable.objects.single().className)
         assertThat(phantom.leakFingerprint).isNotEqualTo(unreachable.leakFingerprint)
       }
     }
