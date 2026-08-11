@@ -231,11 +231,17 @@ private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf
   ReachabilityStrength.UNREACHABLE
 )
 
-/** What the checkbox that shades the objects that shouldn't be in memory says, before their count. */
-internal const val LEAKING = "Leaking"
+/**
+ * What the checkbox that shades the objects that leaked says, before their count.
+ *
+ * The same word the panel and every chain call one of them, because it shades exactly the objects they call
+ * that: two spellings of one status, one of them over the map and the other beside it, would read as two
+ * different things being shaded.
+ */
+internal const val LEAKING = "Leaked"
 
 /** And while the pass over the heap dump that finds them runs, which is what ticking it starts. */
-internal const val FINDING_LEAKS = "Leaking: looking…"
+internal const val FINDING_LEAKS = "Leaked: looking…"
 
 internal const val LEAKING_HINT =
   "Shade the objects that shouldn't be in memory, and everything they hold with them — anything a " +

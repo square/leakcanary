@@ -211,8 +211,8 @@ internal fun HeapDumpExplorer(
    *
    * From the last step of the chain when there is one, because that is the status with everything above and
    * below the object taken into account, and from the object's own reading until the walk up to the GC roots
-   * lands — or for good, for an object nothing reaches. So this can say `Nobody knows` for a beat and then
-   * say `Shouldn't be here`, which is the panes filling in rather than the window changing its mind.
+   * lands — or for good, for an object nothing reaches. So this can say `Unknown` for a beat and then say
+   * `Leaked`, which is the panes filling in rather than the window changing its mind.
    *
    * Nothing for the whole heap dump, which is no object of it: there is nothing to inspect and nothing to
    * decide about.

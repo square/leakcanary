@@ -595,7 +595,7 @@ private const val MILLIS_PER_SECOND = 1000L
 private const val LOOKING_FOR_LEAKS = "Going through the heap dump…"
 
 /** No full stop, since what is on their way out is said after it on the same line. */
-private const val NOTHING_LEAKING = "Nothing in this heap dump is leaking"
+private const val NOTHING_LEAKING = "Nothing in this heap dump leaked"
 private const val NONE_FOUND = "none"
 
 private const val LEAK = "leak"

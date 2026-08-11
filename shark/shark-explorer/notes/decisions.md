@@ -837,19 +837,25 @@ it uses (`LeakStatus.background` and `textColor` are shared with `PathDrawing` r
 it is the same answer read in one place instead of a dozen — a reader who has learnt the green and the red on
 a chain reads them here for free.
 
-**Under a header, because the panel labels every line**, and the header is the question the statuses answer:
-"Should it be here?". A question rather than a noun like the `Retained` and `Shallow` beside it, since this
-is the one line of the panel that is a judgement rather than a measurement.
+**Under a header, because the panel labels every line**: `Verdict`, one word like the `Retained` and
+`Shallow` beside it. It is the one line of the panel that is a judgement rather than a measurement, which is
+also what says the pencil beside it is allowed to disagree with it.
 
-**"Leaking" and "Not leaking" became "Shouldn't be here" and "Meant to be here"**, with `Unknown` becoming
-"Nobody knows". LeakCanary's leak traces say `Leaking: YES / NO / UNKNOWN`, and matching them was the case
-for keeping the old words — but calling an *object* leaking reads as that object leaking something as easily
-as being the thing left behind, and this repo's own rule is that a leak is a reference rather than an object.
-What the inspectors actually answer is whether the object is supposed to still be in memory, which is what
-these say, in the words the module's own prose already used. One `LeakStatus.statusText` is where they live,
-so the chain, the panel, the dialog and the reasons propagated along a chain (`Activity↓ is meant to be
-here`) all say the same thing. The identifiers didn't move: `LeakStatus`, `LEAKING`, `leakStatusesOf` stay
-Shark's names, because the code is where matching `shark.LeakTraceObject.LeakingStatus` matters.
+**"Leaking" and "Not leaking" became "Leaked" and "Needed"**, `Unknown` staying `Unknown`. LeakCanary's leak
+traces say `Leaking: YES / NO / UNKNOWN`, and matching them was the case for keeping the old words — but
+calling an *object* leaking reads as that object leaking something as easily as being the thing left behind,
+and this repo's own rule is that a leak is a reference rather than an object. `Leaked` is that rule in the
+tense: the object leaked, and the leak is the reference still holding it. `Needed` is what an inspector
+actually recognizes — something still needs this object.
+
+The first attempt at those two was `Shouldn't be here` and `Meant to be here`, taken from the module's own
+prose, and it was rejected on sight for the reason a status has to be read a dozen times down one chain:
+**a status is a label, not a sentence.** The header carries the question so the labels don't have to, which
+is also why they can be one word each. One `LeakStatus.statusText` is where they live, so the chain, the
+panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a chain
+(`Activity↓ is needed`) all say the same thing. The identifiers didn't move: `LeakStatus`, `LEAKING`,
+`leakStatusesOf` stay Shark's names, because the code is where matching
+`shark.LeakTraceObject.LeakingStatus` matters.
 
 **A pencil, left of the status, rather than a "Set by hand…" button.** It is what changes the answer, so it
 belongs where the eye already is, and a text button pushed the reason onto a second line of a 320dp panel.
@@ -857,13 +863,13 @@ Disabled until the statuses have been read off disk, which is the same rule the 
 
 **From the last step of the chain when there is one**, and from the object's own reading until the walk up to
 the GC roots lands, since the chain's answer is the one with the objects above and below taken into account.
-So the panel can say `Nobody knows` for a beat and then say `Shouldn't be here` — the panes filling in, not
-the window changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no
+So the panel can say `Unknown` for a beat and then say `Leaked` — the panes filling in, not the window
+changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no
 object of it, and there is nothing to inspect or decide about.
 
 **Loud for the two statuses that mean something, quiet for the third.** Most of a heap dump is objects
-nothing knows either way about, so a shaded, bold `Nobody knows` on every object would be a line nobody reads
-by the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
+nothing knows either way about, so a shaded, bold `Unknown` on every object would be a line nobody reads by
+the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
 `TARGET_SHAPE`, the shape the chain marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
 status it is doesn't rest on colour alone.
 

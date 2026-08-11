@@ -972,7 +972,7 @@ class HeapDominatorTreemap internal constructor(
   private val leakingCandidateIds: Set<Long> by lazy {
     val startNanos = System.nanoTime()
     val ids = leakingObjectIds(watchers)
-    SharkLog.d { "Found ${ids.size} objects that shouldn't be here in ${millisSince(startNanos)} ms" }
+    SharkLog.d { "Found ${ids.size} objects that leaked in ${millisSince(startNanos)} ms" }
     ids
   }
 

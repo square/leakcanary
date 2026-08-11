@@ -70,8 +70,8 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
-* **Whether the object a tab is on is meant to still be in memory is the first thing "What it is" says**,
-  and you can overrule it — see [Say what should be here](#say-what-should-be-here).
+* **Whether the object a tab is on leaked is the first thing "What it is" says**, and you can overrule it —
+  see [Say what leaked](#say-what-leaked).
 * Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
 
 ## Link to a tab
@@ -149,18 +149,18 @@ Since a `shark://` link names a window, a link written into a note stops working
 — see above. Copy one for the tab you want to come back to *while you are writing about it*, and it will
 take you there for as long as that window is open.
 
-## Say what should be here
+## Say what leaked
 
-At the top of **What it is**, under the object's name, the window answers **Should it be here?** —
-`✗ Shouldn't be here`, `✓ Meant to be here`, or a quiet `? Nobody knows` — with the reason under it, in the
-same colours the chain on the left uses. Most objects in a heap dump are `Nobody knows`, which is why that
-one is drawn small: the two that mean something are the ones worth seeing across the room. This is the same
-answer a LeakCanary leak trace prints as `Leaking: YES`, `NO` and `UNKNOWN`, said about the object rather
-than about the leak.
+At the top of **What it is**, under the object's name, is the **Verdict** on it — `✗ Leaked`, `✓ Needed`, or
+a quiet `? Unknown` — with the reason under it, in the same colours the chain on the left uses. Most objects
+in a heap dump are `Unknown`, which is why that one is drawn small: the two that mean something are the ones
+worth seeing across the room. This is the same answer a LeakCanary leak trace prints as `Leaking: YES`, `NO`
+and `UNKNOWN`, said about the object rather than about the leak — an object *leaked*, and a leak is the
+reference still holding it.
 
 The reason is the whole of the answer, because half of these are about another object: an activity is red
 because its own `mDestroyed` is true, and the view under it is red because the activity is. `Activity↑
-shouldn't be here` is the chain saying so.
+leaked` is the chain saying so.
 
 **The pencil beside it** overrules it. Pick one of the three statuses, type why, and **Set the status**:
 
@@ -171,15 +171,14 @@ shouldn't be here` is the chain saying so.
   less. What you overruled is kept beside your reason rather than thrown away.
 * **It reads as yours**, wherever it appears: `set by hand — the cache is bounded, this is fine`, in the
   panel and on every chain that runs through the object.
-* **Everything below an object that shouldn't be here shouldn't be here either, and everything above one
-  that is meant to be here is meant to be here too**, so a status you set changes what the objects around it
-  read as. Which is why setting one is usually enough to make a whole chain make sense.
+* **Everything a leaked object holds has leaked too, and everything holding a needed one is needed too**, so
+  a verdict you set changes what the objects around it read as. Which is why setting one is usually enough to
+  make a whole chain make sense.
 * **The pencil again** on an object you have already decided about, and **Take it off** to hand it back to
   the heap dump.
 
-Because a status propagates along the chain, two of them can contradict each other: an object marked as one
-that shouldn't be here, holding one marked as meant to be here, cannot both be read off the chain between
-them. When what you are setting does that, **the window lists every status it disagrees with before writing
+Because a verdict propagates along the chain, two of them can contradict each other: an object marked as
+leaked, holding one marked as needed, cannot both be read off the chain between them. When what you are setting does that, **the window lists every status it disagrees with before writing
 anything** — what the object is, which side of yours it is on, the reason it was given, and what it would
 become. **Keep this and flip those** keeps yours and sets them to the opposite status, with what they said
 kept as part of the new reason; **Undo** leaves the heap dump exactly as it was. Nothing is written until you
@@ -190,9 +189,9 @@ named at the top — so they can be read, edited, diffed or pasted into an issue
 there again the next time you open that dump.
 
 **The Leaks screen follows what you set**, because a status changes which objects are leaks and not only how
-one of them reads: marking something as one that shouldn't be here makes it a leak, and whatever it holds
-stops being one — it is only still in memory because of the object you named, and that is the thing to fix.
-Marking a leak as meant to be here takes it off the list. The one thing this costs is that a leak's
+one of them reads: marking something as leaked makes it a leak, and whatever it holds stops being one — it is
+only still in memory because of the object you named, and that is the thing to fix. Marking a leak as needed
+takes it off the list. The one thing this costs is that a leak's
 fingerprint matches the one LeakCanary reports only while nothing has been set by hand, since the fingerprint
 is the stretch of chain your status has just moved.
 

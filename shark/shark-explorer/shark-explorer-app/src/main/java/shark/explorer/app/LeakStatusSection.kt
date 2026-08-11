@@ -44,8 +44,8 @@ import shark.explorer.statusText
  * answer, and a reader who has learnt the green and the red on one surface reads them on the other.
  *
  * **Loud for the two statuses that mean something and quiet for the third**: a heap dump is mostly objects
- * nothing knows either way about, so shouting "Nobody knows" on every object would be a line nobody reads by
- * the time it says something. Which is also why the reason is here rather than in a tooltip: the status is a
+ * nothing knows either way about, so shouting `Unknown` on every object would be a line nobody reads by the
+ * time it says something. Which is also why the reason is here rather than in a tooltip: the status is a
  * conclusion, and half the objects on a chain are green or red because of what another object is.
  */
 @Composable
@@ -63,8 +63,8 @@ internal fun LeakStatusDetail(
 ) {
   val isKnown = status.status != LeakStatus.UNKNOWN
   Column(modifier.fillMaxWidth()) {
-    // The question, the way every other line of this panel names what is under it. Which is what makes the
-    // two answers that matter readable on their own: they are answers to a question that is on screen.
+    // Named the way every other line of this panel is, because one word over a status is what lets the
+    // status itself be one word: a label nobody reads twice, on a line that repeats down a whole chain.
     Text(STATUS_LABEL, style = MaterialTheme.typography.labelSmall)
     Row(
       Modifier.fillMaxWidth(),
@@ -81,8 +81,8 @@ internal fun LeakStatusDetail(
           color = if (isRead) LINK_COLOR else MaterialTheme.colorScheme.outline
         )
       }
-      // The status behind its own shade, the way a step of a chain is drawn, so that the object being one
-      // that shouldn't be there is something you see before reading anything.
+      // The status behind its own shade, the way a step of a chain is drawn, so that the object having
+      // leaked is something you see before reading anything.
       Text(
         "${status.status.glyph} ${status.status.statusText}",
         Modifier.then(
@@ -404,15 +404,15 @@ private val LeakStatus.glyph: String
   }
 
 /**
- * What the panel calls the line, which is the question the three statuses answer.
+ * What the panel calls the line, in one word like every other label in that panel.
  *
- * A question rather than a noun, unlike every other label in that panel, because this is the one line of it
- * that is a conclusion rather than a measurement — and the answers are only readable on a chain, where no
- * label fits, if they are answers to something.
+ * A verdict rather than a measurement, which is the difference between this line and the rest of them: a
+ * number is read off the heap dump, and this is what somebody — an inspector or a reader — made of it. Which
+ * is also what says the pencil beside it is allowed to disagree.
  */
-internal const val STATUS_LABEL = "Should it be here?"
+internal const val STATUS_LABEL = "Verdict"
 
-internal fun statusDialogTitle(objectName: String) = "Should $objectName be here?"
+internal fun statusDialogTitle(objectName: String) = "Verdict on $objectName"
 
 /** What opens the dialog, set or not: the same mark the app writes a note with. */
 internal const val EDIT_STATUS_GLYPH = "✎"
@@ -435,8 +435,7 @@ private const val WRITING_STATUS = "Keeping it…"
 private const val NOW_LABEL = "Now:"
 
 private const val SET_STATUS_HINT =
-  "Say whether this object should be here, whatever the heap dump says. Kept between runs, and the reason " +
-    "with it."
+  "Say whether this object leaked, whatever the heap dump says. Kept between runs, and the reason with it."
 
 private const val CHANGE_STATUS_HINT = "Change or take off the status set by hand for this object."
 
@@ -452,10 +451,9 @@ private const val CONFLICT_ONE = "status set by hand cannot be true alongside"
 private const val CONFLICT_MANY = "statuses set by hand cannot be true alongside"
 
 private const val CONFLICT_EXPLANATION =
-  "Everything held by an object that shouldn't be here shouldn't be here either, and everything holding " +
-    "one that is meant to be here is meant to be here too — so these and the status being set contradict " +
-    "each other. Keeping this one flips them to the opposite status, with what they said kept as part of " +
-    "the new reason."
+  "Everything a leaked object holds has leaked too, and everything holding a needed one is needed too — so " +
+    "these and the status being set contradict each other. Keeping this one flips them to the opposite " +
+    "status, with what they said kept as part of the new reason."
 
 private const val CONFLICT_ABOVE = "holds it"
 private const val CONFLICT_BELOW = "is held by it"
