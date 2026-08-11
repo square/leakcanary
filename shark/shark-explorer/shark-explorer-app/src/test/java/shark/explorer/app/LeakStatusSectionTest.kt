@@ -34,15 +34,16 @@ import shark.explorer.LeakStatusFile
 import shark.explorer.LeakStatusOverride
 import shark.explorer.LeakStatusOverrides
 import shark.explorer.Place
+import shark.explorer.hexObjectId
 import shark.explorer.statusText
 
 /**
- * Whether the object a tab is on should still be in memory, said where the tab says which object, and
- * changed by hand from there.
+ * Whether the object a tab is on is meant to be in memory, said at the top of the panel that says what the
+ * object is, and changed by hand from there.
  *
  * What the statuses mean and how two of them disagree is `LeakStatusTest` and `HeapLeakStatusTest` in
  * `shark-explorer-core`, and where they are kept is `LeakStatusFileTest`. What is only true here is that the
- * banner says what the heap dump says, that changing one asks for the reason before it writes anything, and
+ * panel says what the heap dump says, that changing one asks for the reason before it writes anything, and
  * that a status which cannot be true alongside another is shown rather than settled quietly.
  */
 @OptIn(ExperimentalTestApi::class)
@@ -59,23 +60,24 @@ class LeakStatusSectionTest {
 
   private lateinit var heapDump: LeakyChainHeapDump
 
-  @Test fun `an object the inspectors say should be gone says so above the panes`() {
+  @Test fun `an object the inspectors say should be gone says so in the panel`() {
     explorerUiTest {
       openHeapDump { it.activityObjectId }
 
-      onNode(banner(LeakStatus.LEAKING)).assertIsDisplayed()
+      onNodeWithText(STATUS_LABEL).assertIsDisplayed()
+      onNode(shows(LeakStatus.LEAKING)).assertIsDisplayed()
       // And why, because a status is a conclusion and half of them are about another object. The reason as
-      // the banner has it, which is what the chain beside it prefixes with the status.
+      // the panel has it, which is what the chain beside it prefixes with the status.
       onNodeWithText(DESTROYED_REASON).assertIsDisplayed()
     }
   }
 
-  /** Quietly, because most of a heap dump is this and a banner that shouted it would be read by nobody. */
+  /** Quietly, because most of a heap dump is this and a line that shouted it would be read by nobody. */
   @Test fun `an object nothing knows either way about says that`() {
     explorerUiTest {
       openHeapDump { it.holderObjectId }
 
-      onNode(banner(LeakStatus.UNKNOWN)).assertIsDisplayed()
+      onNode(shows(LeakStatus.UNKNOWN)).assertIsDisplayed()
     }
   }
 
@@ -84,12 +86,12 @@ class LeakStatusSectionTest {
     explorerUiTest {
       openHeapDump()
 
-      onNodeWithText(SET_STATUS_BUTTON).assertDoesNotExist()
-      onNode(banner(LeakStatus.UNKNOWN)).assertDoesNotExist()
+      onNodeWithText(EDIT_STATUS_GLYPH).assertDoesNotExist()
+      onNode(shows(LeakStatus.UNKNOWN)).assertDoesNotExist()
     }
   }
 
-  @Test fun `a status set by hand is what the banner says, and it is on disk`() {
+  @Test fun `a status set by hand is what the panel says, and it is on disk`() {
     explorerUiTest {
       openHeapDump { it.activityObjectId }
       changeStatus()
@@ -98,7 +100,7 @@ class LeakStatusSectionTest {
       write(TYPED_REASON)
       set()
 
-      waitUntilAtLeastOneExists(banner(LeakStatus.NOT_LEAKING), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(LeakStatus.NOT_LEAKING), SAVE_TIMEOUT_MILLIS)
       // Marked as somebody's rather than the heap dump's, which is the difference between reading the dump
       // and reading a conclusion about it, and with what it overruled after it.
       onNodeWithText("$SET_BY_HAND$TYPED_REASON. Conflicts with $DESTROYED_REASON").assertIsDisplayed()
@@ -130,14 +132,14 @@ class LeakStatusSectionTest {
       choose(LeakStatus.NOT_LEAKING)
       write("this screen is deliberately kept")
       set()
-      waitUntilAtLeastOneExists(banner(LeakStatus.NOT_LEAKING), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(LeakStatus.NOT_LEAKING), SAVE_TIMEOUT_MILLIS)
 
       // Which is the one thing only the dialog of a status already set offers.
-      onNode(hasText(CHANGE_STATUS_BUTTON) and isButton()).performClick()
+      changeStatus()
       onNode(hasText(CLEAR_STATUS) and isButton()).performClick()
 
       // And the heap dump says what it said about the object again.
-      waitUntilAtLeastOneExists(banner(LeakStatus.LEAKING), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(LeakStatus.LEAKING), SAVE_TIMEOUT_MILLIS)
       waitUntil(timeoutMillis = SAVE_TIMEOUT_MILLIS) { statusFile().read().isEmpty }
     }
   }
@@ -156,7 +158,7 @@ class LeakStatusSectionTest {
       // overrule it is the only person who can weigh the two, and only if they can read it.
       waitUntilAtLeastOneExists(hasText("$HOLDER_NAME $CONFLICT_ABOVE"), SAVE_TIMEOUT_MILLIS)
       onNodeWithText("${LeakStatus.LEAKING.statusText}: $HOLDER_REASON").assertIsDisplayed()
-      onNodeWithText("$CONFLICT_BECOMES ${LeakStatus.NOT_LEAKING.statusText.lowercase()}")
+      onNodeWithText("$CONFLICT_BECOMES ${LeakStatus.NOT_LEAKING.statusText}")
         .assertIsDisplayed()
       // And nothing written while the question is open, which is what makes undoing it free.
       assertThat(statusFile().read().all.map { it.status }).containsExactly(LeakStatus.LEAKING)
@@ -206,6 +208,25 @@ class LeakStatusSectionTest {
   }
 
   /**
+   * The other half of setting a status: the leaks are read through them, so the list changes rather than
+   * only the colour of one object. See [shark.explorer.HeapDominatorTreemap.findLeaks].
+   */
+  @Test fun `an object set to leaking by hand is what the leaks screen lists`() {
+    explorerUiTest {
+      // Nothing is wrong with the holder as far as the heap dump is concerned: without this the list is the
+      // destroyed activity it holds.
+      openHeapDump(setAlready = { holderIsLeaking() })
+
+      screenButton(Place.LEAKS_LABEL).performClick()
+
+      waitUntilAtLeastOneExists(namesObject(heapDump.holderObjectId), OPEN_TIMEOUT_MILLIS)
+      // And the activity is not on it any more: it is only still in memory because of the holder, so the
+      // holder is the one thing to fix and the activity is listed under it.
+      assertThat(onAllNodes(namesObject(heapDump.activityObjectId)).fetchSemanticsNodes()).isEmpty()
+    }
+  }
+
+  /**
    * Opens the window on the heap dump, on a tab showing [objectId] the way a link to that object does, or on
    * the heap dump itself when it is null.
    *
@@ -237,8 +258,8 @@ class LeakStatusSectionTest {
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
     if (place != null) {
       // The panes describe the object a little after the tab opens, since describing it is a read of the heap
-      // dump: the button that changes its status is the first thing that says they have.
-      waitUntilAtLeastOneExists(hasText(SET_STATUS_BUTTON), OPEN_TIMEOUT_MILLIS)
+      // dump: the pencil that changes its status is the first thing that says they have.
+      waitUntilAtLeastOneExists(hasText(EDIT_STATUS_GLYPH), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -249,10 +270,10 @@ class LeakStatusSectionTest {
    * has been read, which is what keeps a save from deleting statuses still on their way off the disk.
    */
   private fun ComposeUiTest.changeStatus() {
-    val button = (hasText(SET_STATUS_BUTTON) or hasText(CHANGE_STATUS_BUTTON)) and isButton()
-    waitUntilAtLeastOneExists(button and isEnabled(), RENDER_TIMEOUT_MILLIS)
-    onNode(button).performClick()
-    onNodeWithText(STATUS_DIALOG_TITLE, substring = true).assertIsDisplayed()
+    val pencil = hasText(EDIT_STATUS_GLYPH) and hasClickAction()
+    waitUntilAtLeastOneExists(pencil and isEnabled(), RENDER_TIMEOUT_MILLIS)
+    onNode(pencil).performClick()
+    onNodeWithText(statusDialogTitle(ACTIVITY_NAME)).assertIsDisplayed()
   }
 
   /** Picks one of the three statuses, by the row it is on rather than by the mark beside it. */
@@ -270,10 +291,8 @@ class LeakStatusSectionTest {
 
   private fun ComposeUiTest.setButton() = onNode(hasText(SAVE_STATUS) and isButton())
 
-  /** The banner above the panes, which is the glyph and the status and nothing else. */
-  private fun bannerText(status: LeakStatus) = "${status.glyphOf()} ${status.statusText}"
-
-  private fun banner(status: LeakStatus) = hasText(bannerText(status))
+  /** The status at the top of the panel, which is the glyph and the status and nothing else. */
+  private fun shows(status: LeakStatus) = hasText("${status.glyphOf()} ${status.statusText}")
 
   /** Repeated from the section rather than shared: a glyph is one of the words the window says. */
   private fun LeakStatus.glyphOf() = when (this) {
@@ -299,6 +318,12 @@ class LeakStatusSectionTest {
 
   private fun statusFile() = LeakStatusFile(statusesRoot, heapDump.file)
 
+  /** A row of the leaks screen, which names the object it is about by its address. */
+  private fun namesObject(objectId: Long) = hasText(hexObjectId(objectId), substring = true)
+
+  /** A button on the row of screens an open heap dump can be read through. See [ExplorerAppTest]. */
+  private fun ComposeUiTest.screenButton(label: String) = onNode(hasText(label) and isButton())
+
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
@@ -321,7 +346,10 @@ class LeakStatusSectionTest {
     /** What the inspector says about the destroyed activity, which is what a hand overrules. */
     private const val DESTROYED_REASON = "Activity#mDestroyed is true"
 
-    /** What the object holding the leaking one is called where the dialog names it. */
+    /** What the object the tab is on is called where the dialog names it. */
+    private const val ACTIVITY_NAME = "MainActivity instance"
+
+    /** And what the object holding it is called, where the dialog names that one. */
     private const val HOLDER_NAME = "Holder instance"
 
     /** And what it was given as its reason, which the dialog has to show to be overruled. */
@@ -330,7 +358,7 @@ class LeakStatusSectionTest {
     /** What the dialog says about a status set on an object that holds the one being changed. */
     private const val CONFLICT_ABOVE = "holds it"
 
-    private const val CONFLICT_BECOMES = "Would become"
+    private const val CONFLICT_BECOMES = "Would become:"
 
     /** An `adb` connected to nothing, so that a test doesn't answer for whatever is plugged in. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

@@ -825,26 +825,47 @@ headings, and the listing is the index.
 
 Every chain already carried a `LeakStatus` per object, worked out by Shark's inspectors and then propagated
 along the chain — everything above an object still needed is still needed, everything a leaking object holds
-is leaking. Two things were added to that: the status of the object a tab is *on*, said where the tab says
-which object, and the ability to overrule it.
+is leaking. Two things were added to that: the status of the object a tab is *on*, said in the panel that
+says what the object is, and the ability to overrule it.
 
-**The banner is under the title, above the panes**, for the reason the note button is: it is about the whole
-of what the tab is showing, and the title is what it is about. In the colours the chain beside it uses
-(`LeakStatus.background` and `textColor` are shared with `PathDrawing` rather than copied), because it is the
-same answer read in one place instead of a dozen — a reader who has learnt the green and the red on a chain
-reads them here for free.
+**At the top of "What it is", under the object's name and above its size.** It went under the tab's title
+first, beside the note button, and that was the wrong pane: the title row is about the tab, and this is a
+conclusion about the object — the panel below it holds the evidence the conclusion was drawn from, so the
+answer belongs at the head of that column rather than in a row of its own. Above the bitmap preview too, so
+that a screenshot several hundred pixels tall can't push it out of the panel. In the colours the chain beside
+it uses (`LeakStatus.background` and `textColor` are shared with `PathDrawing` rather than copied), because
+it is the same answer read in one place instead of a dozen — a reader who has learnt the green and the red on
+a chain reads them here for free.
 
-**Loud for the two statuses that mean something, quiet for the third.** Most of a heap dump is objects
-nothing knows either way about, so a shaded, bold `Unknown` on every tab would be a banner nobody reads by
-the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
-`TARGET_SHAPE`, the shape the chain marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
-status it is doesn't rest on colour alone.
+**Under a header, because the panel labels every line**, and the header is the question the statuses answer:
+"Should it be here?". A question rather than a noun like the `Retained` and `Shallow` beside it, since this
+is the one line of the panel that is a judgement rather than a measurement.
+
+**"Leaking" and "Not leaking" became "Shouldn't be here" and "Meant to be here"**, with `Unknown` becoming
+"Nobody knows". LeakCanary's leak traces say `Leaking: YES / NO / UNKNOWN`, and matching them was the case
+for keeping the old words — but calling an *object* leaking reads as that object leaking something as easily
+as being the thing left behind, and this repo's own rule is that a leak is a reference rather than an object.
+What the inspectors actually answer is whether the object is supposed to still be in memory, which is what
+these say, in the words the module's own prose already used. One `LeakStatus.statusText` is where they live,
+so the chain, the panel, the dialog and the reasons propagated along a chain (`Activity↓ is meant to be
+here`) all say the same thing. The identifiers didn't move: `LeakStatus`, `LEAKING`, `leakStatusesOf` stay
+Shark's names, because the code is where matching `shark.LeakTraceObject.LeakingStatus` matters.
+
+**A pencil, left of the status, rather than a "Set by hand…" button.** It is what changes the answer, so it
+belongs where the eye already is, and a text button pushed the reason onto a second line of a 320dp panel.
+Disabled until the statuses have been read off disk, which is the same rule the button had.
 
 **From the last step of the chain when there is one**, and from the object's own reading until the walk up to
 the GC roots lands, since the chain's answer is the one with the objects above and below taken into account.
-So the banner can say `Unknown` for a beat and then say `Leaking` — the panes filling in, not the window
-changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no object of it,
-and there is nothing to inspect or decide about.
+So the panel can say `Nobody knows` for a beat and then say `Shouldn't be here` — the panes filling in, not
+the window changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no
+object of it, and there is nothing to inspect or decide about.
+
+**Loud for the two statuses that mean something, quiet for the third.** Most of a heap dump is objects
+nothing knows either way about, so a shaded, bold `Nobody knows` on every object would be a line nobody reads
+by the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
+`TARGET_SHAPE`, the shape the chain marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
+status it is doesn't rest on colour alone.
 
 **Overriding always wins**, which is the one place this differs from how two inspectors disagreeing is
 settled. There, the object still being needed wins, because two inspectors are two halves of the same
@@ -859,20 +880,32 @@ an assertion the next reader — a colleague, an agent, the same person in a mon
 one of those makes every other status in the dump worth less. `SET_BY_HAND` marks the reason wherever it is
 read, so a green object somebody decided about is never mistaken for one an inspector recognized.
 
-**Nothing is recomputed, because nothing is cached.** The statuses of a chain are worked out on every read of
-it, so a status set by hand is an argument to the read rather than something to invalidate:
-`summarize`, `rootPathTo`, `independentPathsBetween` and `independentPathsFromRoots` take a
-`LeakStatusOverrides`, and the window's `LaunchedEffect`s are keyed on it — which is why that class has value
-equality. **A value rather than state on the tree**, because the tree is read from one thread while the
-window is composed on another: overrides living in the tree would mean a chain drawn from one set of them and
-the row above it from another, with no way to tell. The cost of that choice is that a new question about a
-path has to take the parameter or it silently answers with the dump's own reading, which looks right.
+**A status set by hand is an argument to every read, not state of the tree.** The statuses of a chain are
+worked out on every read of it, so `summarize`, `rootPathTo`, `independentPathsBetween`,
+`independentPathsFromRoots`, `findLeaks` and `isBelowLeakingObject` all take a `LeakStatusOverrides`, and the
+window's `LaunchedEffect`s are keyed on it — which is why that class has value equality. **A value rather
+than state on the tree**, because the tree is read from one thread while the window is composed on another:
+overrides living in the tree would mean a chain drawn from one set of them and the row above it from another,
+with no way to tell. The cost of that choice is that a new question about a path has to take the parameter or
+it silently answers with the dump's own reading, which looks right.
 
-**`findLeaks()` is deliberately not read through them.** It is Shark's own answer, and a leak's name is
-`LeakTrace.leakFingerprint` of the suspect stretch — the last object still needed down to the first one
-leaking — so reading it through statuses somebody set would produce fingerprints that no longer match the
-ones LeakCanary prints for the same leak. The list of leaks is what the dump says; the banner is what anyone
-reading it has concluded.
+**The list of leaks is read through them too, which is the part that is easy to get wrong.** A chain is only
+redrawn; the leaks are a *different list*. Mark an object leaking halfway up a chain and it becomes a leak,
+and whatever it was holding drops off — that object is now only in memory because of this one, which is the
+rule `foldedIntoWhatHoldsThem` already applied to what the inspectors found. Mark an object the inspectors
+recognized as still needed and it leaves the list entirely, and what it was holding can become a leak of its
+own. So the candidate set is the dump's own minus everything set to anything but `LEAKING` plus everything
+set to it, `RootPathSearch` goes round what a hand marked exactly as it goes round what the inspectors did —
+otherwise a leak would be grouped by a chain that disagrees with the statuses drawn on it — and the answer is
+worked out per set of statuses and kept until the next one, since a status is set by hand and this is
+seconds. The window asks again by keying that `LaunchedEffect` on the overrides like the rest.
+
+**The price is the fingerprints.** A leak's name is `LeakTrace.leakFingerprint` of the suspect stretch — the
+last object still needed down to the first one that shouldn't be there — so reading the list through
+somebody's statuses moves both ends of that stretch and produces fingerprints that no longer match the ones
+LeakCanary prints for the same leak. That is the deal: they match while nothing is set by hand, and moving
+that stretch is the whole point of setting one. The alternative, a leaks screen that ignores what the reader
+has established, is a screen that goes on listing an object they have already explained.
 
 **Two statuses set by hand can contradict each other, and the contradiction is shown rather than settled.**
 The propagation rules are what make it possible: a leaking object above forces everything it holds to be

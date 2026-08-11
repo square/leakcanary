@@ -70,8 +70,8 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
-* **Whether the object a tab is on should still be in memory is said under its name**, and you can overrule
-  it — see [Say what is leaking](#say-what-is-leaking).
+* **Whether the object a tab is on is meant to still be in memory is the first thing "What it is" says**,
+  and you can overrule it — see [Say what should be here](#say-what-should-be-here).
 * Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
 
 ## Link to a tab
@@ -149,46 +149,52 @@ Since a `shark://` link names a window, a link written into a note stops working
 — see above. Copy one for the tab you want to come back to *while you are writing about it*, and it will
 take you there for as long as that window is open.
 
-## Say what is leaking
+## Say what should be here
 
-Under the title saying where the tab is, **the window says whether that object should still be in memory** —
-`✗ Leaking`, `✓ Not leaking`, or a quiet `? Unknown` — with the reason beside it, in the same colours the chain
-on the left uses. Most objects in a heap dump are `Unknown`, which is why that one is drawn small: the two
-that mean something are the ones worth seeing across the room.
+At the top of **What it is**, under the object's name, the window answers **Should it be here?** —
+`✗ Shouldn't be here`, `✓ Meant to be here`, or a quiet `? Nobody knows` — with the reason under it, in the
+same colours the chain on the left uses. Most objects in a heap dump are `Nobody knows`, which is why that
+one is drawn small: the two that mean something are the ones worth seeing across the room. This is the same
+answer a LeakCanary leak trace prints as `Leaking: YES`, `NO` and `UNKNOWN`, said about the object rather
+than about the leak.
 
 The reason is the whole of the answer, because half of these are about another object: an activity is red
-because its own `mDestroyed` is true, and the view under it is red because the activity is. `Activity↑ is
-leaking` is the chain saying so.
+because its own `mDestroyed` is true, and the view under it is red because the activity is. `Activity↑
+shouldn't be here` is the chain saying so.
 
-**Set by hand…** overrules it. Pick one of the three statuses, type why, and **Set the status**:
+**The pencil beside it** overrules it. Pick one of the three statuses, type why, and **Set the status**:
 
 * **Your answer wins**, whatever the inspectors said. Overruling is the point — an inspector reads a field,
   you read the code, and a cache that is meant to hold what it holds is not something a field can say.
 * **The reason is required.** A status with no reason is one nobody who reads your heap dump next — a
   colleague, an agent, you in a month — can check, and one of those makes every other status in it worth
   less. What you overruled is kept beside your reason rather than thrown away.
-* **It reads as yours**, wherever it appears: `set by hand — the cache is bounded, this is fine`, on the
-  banner and on every chain that runs through the object.
-* **Everything below a leaking object is leaking, and everything above one that is still needed is still
-  needed**, so a status you set changes what the objects around it read as. Which is why setting one is
-  usually enough to make a whole chain make sense.
-* **Change…** on an object you have already decided about, and **Take it off** to hand it back to the heap
-  dump.
+* **It reads as yours**, wherever it appears: `set by hand — the cache is bounded, this is fine`, in the
+  panel and on every chain that runs through the object.
+* **Everything below an object that shouldn't be here shouldn't be here either, and everything above one
+  that is meant to be here is meant to be here too**, so a status you set changes what the objects around it
+  read as. Which is why setting one is usually enough to make a whole chain make sense.
+* **The pencil again** on an object you have already decided about, and **Take it off** to hand it back to
+  the heap dump.
 
-Because a status propagates along the chain, two of them can contradict each other: an object marked leaking
-that holds one marked still needed cannot both be read off the chain between them. When what you are setting
-does that, **the window lists every status it disagrees with before writing anything** — what the object is,
-which side of yours it is on, the reason it was given, and what it would become. **Keep this and flip those**
-keeps yours and sets them to the opposite status, with what they said kept as part of the new reason; **Undo**
-leaves the heap dump exactly as it was. Nothing is written until you pick one.
+Because a status propagates along the chain, two of them can contradict each other: an object marked as one
+that shouldn't be here, holding one marked as meant to be here, cannot both be read off the chain between
+them. When what you are setting does that, **the window lists every status it disagrees with before writing
+anything** — what the object is, which side of yours it is on, the reason it was given, and what it would
+become. **Keep this and flip those** keeps yours and sets them to the opposite status, with what they said
+kept as part of the new reason; **Undo** leaves the heap dump exactly as it was. Nothing is written until you
+pick one.
 
 The statuses live in `~/.shark-explorer/leak-statuses`, one tab separated file per heap dump, with the columns
 named at the top — so they can be read, edited, diffed or pasted into an issue without this app, and they are
 there again the next time you open that dump.
 
-The **Leaks** screen is not read through them. It is what the heap dump says, so that the leaks it lists and
-the names it gives them match what LeakCanary reports for the same leak; the status under a title is what
-whoever read the dump has concluded.
+**The Leaks screen follows what you set**, because a status changes which objects are leaks and not only how
+one of them reads: marking something as one that shouldn't be here makes it a leak, and whatever it holds
+stops being one — it is only still in memory because of the object you named, and that is the thing to fix.
+Marking a leak as meant to be here takes it off the list. The one thing this costs is that a leak's
+fingerprint matches the one LeakCanary reports only while nothing has been set by hand, since the fingerprint
+is the stretch of chain your status has just moved.
 
 ## Reporting a problem
 

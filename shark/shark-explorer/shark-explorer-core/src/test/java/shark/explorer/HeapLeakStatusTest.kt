@@ -141,7 +141,7 @@ class HeapLeakStatusTest {
       // Solving it flips the one already set, and the reason says that this is why.
       assertThat(conflict.solved.status).isEqualTo(NOT_LEAKING)
       assertThat(conflict.solved.reason)
-        .contains("below this can be not leaking", "Was leaking: this screen was closed")
+        .contains("below this can be \"Meant to be here\"", "Was \"Shouldn't be here\": this screen was closed")
     }
   }
 
@@ -159,7 +159,7 @@ class HeapLeakStatusTest {
       assertThat(conflict.existing.objectId).isEqualTo(dump.windowObjectId)
       assertThat(conflict.isAbove).isFalse()
       assertThat(conflict.solved.status).isEqualTo(LEAKING)
-      assertThat(conflict.solved.reason).contains("above this can be leaking")
+      assertThat(conflict.solved.reason).contains("above this can be \"Shouldn't be here\"")
     }
   }
 
@@ -215,6 +215,71 @@ class HeapLeakStatusTest {
       )
 
       assertThat(conflicts).isEmpty()
+    }
+  }
+
+  @Test fun `an object set to leaking is a leak, and what it holds is folded under it`() {
+    val dump = testFolder.nestedLeaksHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      val holderObjectId = explorer.tree.findByLabel(HOLDER_CLASS_NAME.substringAfterLast('.')).objectId
+      // Nothing is wrong with the holder as far as the heap dump is concerned: the destroyed activity it
+      // holds is the leak, and the window under that is folded into it.
+      assertThat(explorer.tree.findLeaks().leakingObjectIds).containsExactly(dump.activityObjectId)
+
+      val leaks = explorer.tree.findLeaks(
+        overrides(holderObjectId, LEAKING, "this cache is never emptied")
+      )
+
+      // The activity is now only in memory because of an object that shouldn't be there, which is the one
+      // thing to fix — so it is listed under the holder rather than beside it.
+      assertThat(leaks.leakingObjectIds).containsExactly(holderObjectId)
+    }
+  }
+
+  @Test fun `an object set to meant to be here is no longer a leak, and what it held becomes one`() {
+    val dump = testFolder.nestedLeaksHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      val leaks = explorer.tree.findLeaks(
+        overrides(dump.activityObjectId, NOT_LEAKING, "kept for one more frame on purpose")
+      )
+
+      // What the activity was holding is still a destroyed window, and nothing above it is a leak any
+      // more, so it stops being one leak's collateral and becomes the leak.
+      assertThat(leaks.leakingObjectIds).containsExactly(dump.windowObjectId)
+    }
+  }
+
+  /** The list is read through them, so taking a status off has to give the heap dump's answer back. */
+  @Test fun `the leaks are what the heap dump says again once a status is taken off`() {
+    val dump = testFolder.nestedLeaksHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      explorer.tree.findLeaks(overrides(dump.activityObjectId, NOT_LEAKING, "kept on purpose"))
+
+      assertThat(explorer.tree.findLeaks().leakingObjectIds).containsExactly(dump.activityObjectId)
+    }
+  }
+
+  /** A chain goes round what shouldn't be in memory, and a hand saying it should be is what decides that. */
+  @Test fun `a chain stops going round an object once a hand says it is meant to be here`() {
+    val dump = testFolder.leakAlsoHeldAnotherWayHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      // The window is held another way as well, so the chain to it gives up a step to avoid the destroyed
+      // activity.
+      assertThat(explorer.tree.rootPathTo(dump.windowObjectId).steps.map { it.step.objectId })
+        .doesNotContain(dump.activityObjectId)
+
+      val path = explorer.tree.rootPathTo(
+        objectId = dump.windowObjectId,
+        overrides = overrides(dump.activityObjectId, NOT_LEAKING, "this screen is coming back")
+      )
+
+      // And takes the short way through it once there is nothing to avoid, which is the chain and the
+      // statuses drawn on it being the same answer.
+      assertThat(path.steps.map { it.step.objectId }).contains(dump.activityObjectId)
     }
   }
 

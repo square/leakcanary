@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,19 +37,19 @@ import shark.explorer.LeakStatusOverride
 import shark.explorer.statusText
 
 /**
- * What the object the tab is on is: leaking, still needed, or nothing known either way.
+ * Whether the object the tab is on is meant to be in memory, and the pencil that overrules the answer.
  *
- * Under the title that says which object, in the colours a chain draws a status in — because it is the same
- * answer. A chain says it about a dozen objects at once and this says it about the one the whole window is
- * about, so a reader who has learnt the green and the red on one surface reads them on the other.
+ * At the top of what the object is, under its name and above its size, because it is the conclusion the
+ * rest of that panel is the evidence for. In the colours a chain draws a status in — because it is the same
+ * answer, and a reader who has learnt the green and the red on one surface reads them on the other.
  *
  * **Loud for the two statuses that mean something and quiet for the third**: a heap dump is mostly objects
- * nothing knows either way about, so a banner that shouted "Unknown" on every tab would be a banner nobody
- * reads by the time it says something. Which is also why the reason is here rather than in a tooltip: the
- * status is a conclusion, and half the objects on a chain are green or red because of what another object is.
+ * nothing knows either way about, so shouting "Nobody knows" on every object would be a line nobody reads by
+ * the time it says something. Which is also why the reason is here rather than in a tooltip: the status is a
+ * conclusion, and half the objects on a chain are green or red because of what another object is.
  */
 @Composable
-internal fun LeakStatusBanner(
+internal fun LeakStatusDetail(
   status: ObjectLeakStatus,
   /**
    * Whether the statuses of this heap dump have been read off the disk, which is what makes changing one
@@ -64,13 +63,26 @@ internal fun LeakStatusBanner(
 ) {
   val isKnown = status.status != LeakStatus.UNKNOWN
   Column(modifier.fillMaxWidth()) {
+    // The question, the way every other line of this panel names what is under it. Which is what makes the
+    // two answers that matter readable on their own: they are answers to a question that is on screen.
+    Text(STATUS_LABEL, style = MaterialTheme.typography.labelSmall)
     Row(
       Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.spacedBy(6.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
-      // The status behind its own shade, the way a step of a chain is drawn, so that what the window is
-      // about being a leak is something you see before reading anything.
+      // Left of the answer rather than after it, because it is what changes that answer: reading the status
+      // and reaching for the pencil is one movement, and a pencil at the end of a wrapping line is not.
+      Hint(if (status.setByHand == null) SET_STATUS_HINT else CHANGE_STATUS_HINT) {
+        Text(
+          EDIT_STATUS_GLYPH,
+          Modifier.clickableRow(enabled = isRead, onClick = onChange).padding(horizontal = 2.dp),
+          style = MaterialTheme.typography.bodyMedium,
+          color = if (isRead) LINK_COLOR else MaterialTheme.colorScheme.outline
+        )
+      }
+      // The status behind its own shade, the way a step of a chain is drawn, so that the object being one
+      // that shouldn't be there is something you see before reading anything.
       Text(
         "${status.status.glyph} ${status.status.statusText}",
         Modifier.then(
@@ -89,30 +101,16 @@ internal fun LeakStatusBanner(
         color = status.status.textColor,
         fontWeight = if (isKnown) FontWeight.Bold else FontWeight.Normal
       )
-      // Why, which is most of the answer: an object is red because of what it is, or because of what
-      // something holding it is, and only the reason says which.
-      status.reason?.let { reason ->
-        Text(
-          reason,
-          Modifier.weight(1f),
-          style = MaterialTheme.typography.bodySmall,
-          color = status.status.textColor,
-          maxLines = REASON_LINES
-        )
-      }
-      Hint(if (status.setByHand == null) SET_STATUS_HINT else CHANGE_STATUS_HINT) {
-        TextButton(
-          onClick = onChange,
-          modifier = Modifier.height(STATUS_BUTTON_HEIGHT),
-          enabled = isRead,
-          contentPadding = PaddingValues(horizontal = 4.dp)
-        ) {
-          Text(
-            if (status.setByHand == null) SET_STATUS_BUTTON else CHANGE_STATUS_BUTTON,
-            style = MaterialTheme.typography.bodySmall
-          )
-        }
-      }
+    }
+    // Why, which is most of the answer: an object is red because of what it is, or because of what
+    // something holding it is, and only the reason says which. On its own line and whole, because this
+    // panel is a column narrow enough that any of these would wrap anyway.
+    status.reason?.let { reason ->
+      Text(
+        reason,
+        style = MaterialTheme.typography.bodySmall,
+        color = status.status.textColor
+      )
     }
     if (problem != null) {
       Text(
@@ -177,7 +175,7 @@ internal fun LeakStatusDialog(
 
   AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text("$STATUS_DIALOG_TITLE ${status.objectName}") },
+    title = { Text(statusDialogTitle(status.objectName)) },
     text = {
       Column(
         Modifier.heightIn(max = DIALOG_MAX_HEIGHT).verticalScroll(rememberScrollState()),
@@ -273,7 +271,7 @@ private fun ChoosingStatus(
 ) {
   // What it is now and why, so that overruling it is done while reading it rather than from memory.
   Text(
-    "${NOW_LABEL} ${status.status.statusText.lowercase()}${status.reason?.let { ": $it" }.orEmpty()}",
+    "$NOW_LABEL ${status.status.statusText}${status.reason?.let { " — $it" }.orEmpty()}",
     style = MaterialTheme.typography.bodySmall,
     color = status.status.textColor
   )
@@ -320,7 +318,7 @@ private fun Conflicts(
 ) {
   Text(
     "${conflicts.size} ${if (conflicts.size == 1) CONFLICT_ONE else CONFLICT_MANY} " +
-      "${requested.status.statusText.lowercase()}.",
+      "\"${requested.status.statusText}\".",
     style = MaterialTheme.typography.bodyMedium,
     fontWeight = FontWeight.Bold
   )
@@ -338,7 +336,7 @@ private fun Conflicts(
         color = conflict.existing.status.textColor
       )
       Text(
-        "$CONFLICT_BECOMES ${conflict.solved.status.statusText.lowercase()}",
+        "$CONFLICT_BECOMES ${conflict.solved.status.statusText}",
         style = MaterialTheme.typography.bodySmall,
         color = conflict.solved.status.textColor
       )
@@ -405,13 +403,19 @@ private val LeakStatus.glyph: String
     LeakStatus.LEAKING -> "✗"
   }
 
-internal const val STATUS_DIALOG_TITLE = "The leaking status of"
+/**
+ * What the panel calls the line, which is the question the three statuses answer.
+ *
+ * A question rather than a noun, unlike every other label in that panel, because this is the one line of it
+ * that is a conclusion rather than a measurement — and the answers are only readable on a chain, where no
+ * label fits, if they are answers to something.
+ */
+internal const val STATUS_LABEL = "Should it be here?"
 
-/** What starts one, on a tab whose object nobody has decided anything about. */
-internal const val SET_STATUS_BUTTON = "Set by hand…"
+internal fun statusDialogTitle(objectName: String) = "Should $objectName be here?"
 
-/** And what opens the one that was set, which is the only way to take it back off. */
-internal const val CHANGE_STATUS_BUTTON = "Change…"
+/** What opens the dialog, set or not: the same mark the app writes a note with. */
+internal const val EDIT_STATUS_GLYPH = "✎"
 
 internal const val SAVE_STATUS = "Set the status"
 internal const val CANCEL_STATUS = "Cancel"
@@ -428,10 +432,11 @@ internal const val CHECKING_CONFLICTS =
 
 private const val WRITING_STATUS = "Keeping it…"
 
-private const val NOW_LABEL = "Now"
+private const val NOW_LABEL = "Now:"
 
 private const val SET_STATUS_HINT =
-  "Say whether this object is leaking, whatever the heap dump says. Kept between runs, and the reason with it."
+  "Say whether this object should be here, whatever the heap dump says. Kept between runs, and the reason " +
+    "with it."
 
 private const val CHANGE_STATUS_HINT = "Change or take off the status set by hand for this object."
 
@@ -443,24 +448,19 @@ private const val REASON_PLACEHOLDER =
 /** What the box is called, which is also how a test finds it: there is no other text field in the dialog. */
 internal const val REASON_DESCRIPTION = "Why this object is being given that status."
 
-private const val CONFLICT_ONE = "status set by hand cannot be true with this one being"
-private const val CONFLICT_MANY = "statuses set by hand cannot be true with this one being"
+private const val CONFLICT_ONE = "status set by hand cannot be true alongside"
+private const val CONFLICT_MANY = "statuses set by hand cannot be true alongside"
 
 private const val CONFLICT_EXPLANATION =
-  "Everything a leaking object holds is leaking, and everything holding an object that is still needed is " +
-    "still needed too — so these and the status being set contradict each other. Keeping this one flips " +
-    "them to the opposite status, with what they said kept as part of the new reason."
+  "Everything held by an object that shouldn't be here shouldn't be here either, and everything holding " +
+    "one that is meant to be here is meant to be here too — so these and the status being set contradict " +
+    "each other. Keeping this one flips them to the opposite status, with what they said kept as part of " +
+    "the new reason."
 
 private const val CONFLICT_ABOVE = "holds it"
 private const val CONFLICT_BELOW = "is held by it"
 
-private const val CONFLICT_BECOMES = "Would become"
-
-/** As many lines of it as a reason takes, up to where the banner would be taking the panes' room. */
-private const val REASON_LINES = 2
-
-/** A line under the title rather than a row of its own, like the button that starts a note. */
-private val STATUS_BUTTON_HEIGHT = 20.dp
+private const val CONFLICT_BECOMES = "Would become:"
 
 /** Enough for the sentence someone is expected to type, and no more: the panes below keep the window. */
 private val REASON_HEIGHT = 90.dp

@@ -26,14 +26,20 @@ enum class LeakStatus {
  * the panes.
  *
  * In this module rather than in the window, because the reasons worked out here are sentences that name
- * statuses — a status set by hand says which status it was set from — and two spellings of "not leaking"
+ * statuses — a status set by hand says which status it was set from — and two spellings of one status
  * would show up in one line of one window.
+ *
+ * **Said about the object rather than about the leak**, which is why these are not LeakCanary's `Leaking:
+ * YES / NO / UNKNOWN`. A leak is a reference that shouldn't be there, and calling an object "leaking" reads
+ * as that object leaking something as easily as being the thing left behind — the ambiguity is in the word,
+ * not in the reader. What the inspectors actually answer is whether the object is supposed to still be in
+ * memory, so that is what these say, in the words the rest of this module already explains it in.
  */
 val LeakStatus.statusText: String
   get() = when (this) {
-    LeakStatus.NOT_LEAKING -> "Not leaking"
-    LeakStatus.UNKNOWN -> "Unknown"
-    LeakStatus.LEAKING -> "Leaking"
+    LeakStatus.NOT_LEAKING -> "Meant to be here"
+    LeakStatus.UNKNOWN -> "Nobody knows"
+    LeakStatus.LEAKING -> "Shouldn't be here"
   }
 
 /** What one object of a path is, and why. See [LeakStatus]. */
@@ -48,7 +54,7 @@ internal class LeakStatusAndReason(
 
 /** What Shark's inspectors made of one object of a path, before the path decides what it means. */
 internal class InspectedPathObject(
-  /** For naming it in another object's reason: `MainActivity↓ is not leaking`. */
+  /** For naming it in another object's reason: `MainActivity↓ is meant to be here`. */
   val simpleClassName: String,
   val leakingReasons: Set<String>,
   val notLeakingReasons: Set<String>,
@@ -113,9 +119,9 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
       reason = when (statuses[index].status) {
         // With a reason of its own only when a hand gave it one, which the path is then overruling: an
         // object someone said nothing is known about is one of the two statuses this can disagree with.
-        LeakStatus.UNKNOWN -> "$nextNotLeakingName is not leaking".conflicting(reason)
-        LeakStatus.NOT_LEAKING -> "$nextNotLeakingName is not leaking and $reason"
-        LeakStatus.LEAKING -> "$nextNotLeakingName is not leaking. Conflicts with $reason"
+        LeakStatus.UNKNOWN -> "$nextNotLeakingName is meant to be here".conflicting(reason)
+        LeakStatus.NOT_LEAKING -> "$nextNotLeakingName is meant to be here and $reason"
+        LeakStatus.LEAKING -> "$nextNotLeakingName is meant to be here. Conflicts with $reason"
       }
     )
   }
@@ -127,13 +133,13 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
     statuses[index] = LeakStatusAndReason(
       status = LeakStatus.LEAKING,
       reason = when (statuses[index].status) {
-        LeakStatus.UNKNOWN -> "$previousLeakingName is leaking".conflicting(reason)
-        LeakStatus.LEAKING -> "$previousLeakingName is leaking and $reason"
+        LeakStatus.UNKNOWN -> "$previousLeakingName shouldn't be here".conflicting(reason)
+        LeakStatus.LEAKING -> "$previousLeakingName shouldn't be here and $reason"
         // No object below the first leaking one is left not leaking: the first leaking index is reset
         // past every object that isn't, and the loop above turned the rest into not leaking already.
         LeakStatus.NOT_LEAKING -> error(
-          "${objects[index].simpleClassName} at $index is not leaking, below the leaking " +
-            "${objects[previousLeakingIndex].simpleClassName} at $previousLeakingIndex"
+          "${objects[index].simpleClassName} at $index is meant to be here, below " +
+            "${objects[previousLeakingIndex].simpleClassName} at $previousLeakingIndex, which shouldn't be"
         )
       }
     )

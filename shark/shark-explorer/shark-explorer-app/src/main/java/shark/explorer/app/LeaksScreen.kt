@@ -333,7 +333,7 @@ private fun MoreObjectsRow(
     Spacer(Modifier.width(INSTANCE_INSET - SECTION_BAR_WIDTH))
     InstanceRule(isLast = !isExpanded)
     Row(
-      Modifier.weight(1f).clickableRow(onToggle)
+      Modifier.weight(1f).clickableRow(onClick = onToggle)
         .padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
       horizontalArrangement = Arrangement.spacedBy(4.dp),
       verticalAlignment = Alignment.CenterVertically

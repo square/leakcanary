@@ -117,7 +117,7 @@ internal fun HeapDumpExplorer(
   fetchedBitmapPixels: NativeBitmapPixels? = null,
   /** What has been written about the places of this heap dump, shared with every other window on it. */
   notes: HeapDumpNotes,
-  /** And what has been decided about its objects by hand, shared the same way. See [LeakStatusBanner]. */
+  /** And what has been decided about its objects by hand, shared the same way. See [LeakStatusDetail]. */
   leakStatuses: HeapDumpLeakStatuses,
   /** What a link to one of these tabs names this window by. See [DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
@@ -206,12 +206,13 @@ internal fun HeapDumpExplorer(
   val hoveredCellDetails = hoveredDetails?.takeIf { it.place == hoveredPlace }
   val describedSummary = (details?.selection as? Selection.Object)?.summary
   /**
-   * Whether the object the tab is on is leaking, for the row above the panes and the dialog that changes it.
+   * Whether the object the tab is on is meant to be in memory, for the panel that says what it is and the
+   * dialog that overrules it.
    *
    * From the last step of the chain when there is one, because that is the status with everything above and
    * below the object taken into account, and from the object's own reading until the walk up to the GC roots
-   * lands — or for good, for an object nothing reaches. So this can say `Unknown` for a beat and then say
-   * `Leaking`, which is the panes filling in rather than the window changing its mind.
+   * lands — or for good, for an object nothing reaches. So this can say `Nobody knows` for a beat and then
+   * say `Shouldn't be here`, which is the panes filling in rather than the window changing its mind.
    *
    * Nothing for the whole heap dump, which is no object of it: there is nothing to inspect and nothing to
    * decide about.
@@ -450,14 +451,19 @@ internal fun HeapDumpExplorer(
   //
   // The leaks come with it, for the same reason and in the same breath: the map is shaded by them, so they
   // are what the window shows before anyone asks it anything, rather than what a checkbox goes looking for.
-  LaunchedEffect(session) {
+  //
+  // And again whenever a status is set by hand, because the list is read through those: marking something
+  // leaking halfway up a chain makes it a leak and takes what it was holding off the list, which is a
+  // different list rather than a different colour on the same one. See [HeapDominatorTreemap.findLeaks].
+  LaunchedEffect(session, overrides) {
     snapshotFlow { view }.first { it !== ViewState.EMPTY }
     val objectCount = session.read("the index of what points at what") { explorer ->
       explorer.tree.indexReferrers()
     }
     SharkLog.d { "Indexed what points at each of ${formatObjectCount(objectCount)}" }
+    isFindingLeaks = true
     leaks = session.read("the leaking objects of ${session.heapDumpFile.name}") { explorer ->
-      explorer.tree.findLeaks()
+      explorer.tree.findLeaks(overrides)
     }
     isFindingLeaks = false
   }
@@ -522,7 +528,7 @@ internal fun HeapDumpExplorer(
   LaunchedEffect(session, view.rootObjectId, leaks) {
     val rootNode = view.rootObjectId
     isRootLeaking = leaks != null && session.read("whether ${nodeIdText(rootNode)} is below a leak") {
-      it.tree.isBelowLeakingObject(rootNode)
+      it.tree.isBelowLeakingObject(rootNode, overrides)
     }
   }
 
@@ -666,17 +672,6 @@ internal fun HeapDumpExplorer(
       // one, because it is the one thing that is as true of a list of objects as of the map.
       Column(Modifier.weight(1f)) {
         DescribedObject(details?.selection)
-        // Directly under the name of the object, because it is the other half of what the tab is about: which
-        // object, and whether it should still be here. In the colours the chain beside it draws a status in,
-        // since it is the same answer read in one place rather than a dozen. See [LeakStatusBanner].
-        if (describedLeakStatus != null) {
-          LeakStatusBanner(
-            status = describedLeakStatus,
-            isRead = leakStatuses.isRead,
-            problem = leakStatuses.problem,
-            onChange = { setsLeakStatus = true }
-          )
-        }
         // Under the title, and only until there is a note: the note will be about what the title names, and
         // this is where it will appear, so the button is where its own result goes. Small, since that costs a
         // line of every tab nobody has written about. Once there is a note it is here instead and carries the
@@ -756,6 +751,10 @@ internal fun HeapDumpExplorer(
             sizes = sizes,
             bitmap = describedBitmap,
             isStarred = favourites.any { it.objectId == describedSummary?.objectId },
+            leakStatus = describedLeakStatus,
+            isLeakStatusRead = leakStatuses.isRead,
+            leakStatusProblem = leakStatuses.problem,
+            onChangeLeakStatus = { setsLeakStatus = true },
             onOpen = openObject,
             onCopyLink = copyObjectLink,
             onListInstances = { className ->
@@ -957,7 +956,10 @@ private fun RowScope.ViewPane(
   }
 }
 
-/** What the object is: its size, what the inspectors make of it, its fields. */
+/**
+ * What the object is: whether it is meant to be in memory, its size, what the inspectors make of it, and
+ * its fields.
+ */
 @Composable
 private fun RowScope.DetailsPane(
   panes: PanesState,
@@ -965,6 +967,10 @@ private fun RowScope.DetailsPane(
   sizes: HeapSizes,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
+  leakStatus: ObjectLeakStatus?,
+  isLeakStatusRead: Boolean,
+  leakStatusProblem: String?,
+  onChangeLeakStatus: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
@@ -984,6 +990,10 @@ private fun RowScope.DetailsPane(
       stronglyReachableByteCount = sizes.stronglyReachableByteCount,
       bitmap = bitmap,
       isStarred = isStarred,
+      leakStatus = leakStatus,
+      isLeakStatusRead = isLeakStatusRead,
+      leakStatusProblem = leakStatusProblem,
+      onChangeLeakStatus = onChangeLeakStatus,
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onListInstances = onListInstances,

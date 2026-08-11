@@ -71,18 +71,23 @@ numbers on the biggest dump in the repo, including how long a chain gets there.
 
 Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
 are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
-`rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots` — rather than something the tree holds.
-It has to be that way round for the reason above: the tree is read from one thread and the window composed
-on another, so overrides in the tree would draw a chain from one set of them and the row above it from
-another.
+`rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots`, `findLeaks`, `isBelowLeakingObject` —
+rather than something the tree holds. It has to be that way round for the reason above: the tree is read from
+one thread and the window composed on another, so overrides in the tree would draw a chain from one set of
+them and the row above it from another.
 
 **The parameter defaults to `LeakStatusOverrides.NONE`**, so a new read that forgets it compiles and answers
 with the dump's own reading — which looks right, and is wrong the moment anybody has set a status. Thread it
 through, and key the `LaunchedEffect` that asks on the overrides, which is what makes setting one redraw.
 
-`findLeaks()` is the one read that means it: it takes no overrides, because a leak is named by
-`LeakTrace.leakFingerprint` and reading it through somebody's own statuses would print fingerprints that no
-longer match LeakCanary's for the same leak. `notes/decisions.md` has the rest.
+**`findLeaks` is one of them, and the least obvious**: setting a status changes *which objects are leaks*,
+not only how one of them reads. Mark something leaking halfway up a chain and it becomes a leak, while
+whatever it holds drops off the list — that object is now only in memory because of this one, which is what
+`foldedIntoWhatHoldsThem` folds. The list is worked out again per set of statuses and kept until the next,
+and `RootPathSearch` goes round what a hand marked leaking exactly as it goes round what the inspectors did,
+so the chain a leak is grouped by and the statuses drawn on that chain are one answer. The price is that a
+`LeakGroup.leakFingerprint` only matches LeakCanary's for the same objects while nothing is set by hand;
+`notes/decisions.md` has the rest.
 
 ## A heap dump can have `android.os.Build` and not the fields Shark reads off it
 

@@ -481,8 +481,13 @@ private fun ReferenceLine(reference: PathReference) {
  * The hand is the whole of how it says so, rather than a colour: which object a step is, is drawn the same
  * way everywhere the window names one, and half of those places are nothing to click.
  */
-internal fun Modifier.clickableRow(onClick: () -> Unit): Modifier =
-  pointerHoverIcon(PointerIcon.Hand).clickable(onClick = onClick)
+internal fun Modifier.clickableRow(
+  /** Off while what the click would need hasn't been read yet, which leaves the row as plain text. */
+  enabled: Boolean = true,
+  onClick: () -> Unit
+): Modifier =
+  pointerHoverIcon(if (enabled) PointerIcon.Hand else PointerIcon.Default)
+    .clickable(enabled = enabled, onClick = onClick)
 
 /** The class the field is read on, with no dot before an array index: `Tile.view`, `Object[][3]`. */
 private fun PathReference.ownerPrefix(): String =
