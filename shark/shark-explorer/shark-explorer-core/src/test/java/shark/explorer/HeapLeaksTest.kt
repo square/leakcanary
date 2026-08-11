@@ -124,6 +124,31 @@ class HeapLeaksTest {
     }
   }
 
+  @Test fun `an object held only by a cleaner is on its way out rather than leaking`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val leaks = explorer.tree.findLeaks()
+
+      // Destroyed, so the inspectors say it shouldn't be here, and phantom reachable, so the runtime is
+      // already seeing to it and there is nothing for the app to fix. LeakCanary reports no leak in a
+      // dump like this one either.
+      assertThat(leaks.objectCount).isZero()
+    }
+  }
+
+  @Test fun `an object too weakly held to be a leak is still on the map`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val activity = tree.findByLabel(ACTIVITY_CLASS_NAME.substringAfterLast('.')).objectId
+
+      // Left where it was: which bytes haven't come back yet is what the map is for, and the leaks screen
+      // leaving an object out is not the tree losing it.
+      assertThat(tree.strengthOf(activity)).isEqualTo(ReachabilityStrength.PHANTOM)
+      assertThat(tree.dominatorOf(activity)!!.label).isEqualTo("Cleaner")
+      assertThat(tree.findLeaks().leakingObjectIds).doesNotContain(activity)
+      assertThat(tree.isBelowLeakingObject(activity)).isFalse()
+    }
+  }
+
   @Test fun `a leak held by a reference Shark knows is somebody else's`() {
     HeapExplorer.open(testFolder.libraryLeakHeapDump()).use { explorer ->
       val leaks = explorer.tree.findLeaks()

@@ -88,5 +88,19 @@ enum class ReachabilityStrength {
    * never queues anything into it — nothing reaches an unreachable object by definition. What's
    * unreachable is what the walk didn't reach.
    */
-  UNREACHABLE
+  UNREACHABLE;
+
+  /**
+   * Whether an object held no more firmly than this stays in memory until the app lets go of it, which
+   * is what makes it something to fix rather than something on its way out.
+   *
+   * True for [STRONG] and the three below it: a cache, a thread's storage and a stack frame are ordinary
+   * strong references as far as the garbage collector is concerned, so nothing but the app releases what
+   * they hold. False from [SOFT] down, where the collector clears the reference itself and the bytes come
+   * back with nothing in the app changing — which is why LeakCanary's analysis follows no soft, weak or
+   * phantom referent and so never reports an object those are the only way to.
+   *
+   * False for [UNREACHABLE] too, which is one step further along the same road: nothing holds it at all.
+   */
+  val onlyTheAppCanRelease: Boolean get() = this < SOFT
 }

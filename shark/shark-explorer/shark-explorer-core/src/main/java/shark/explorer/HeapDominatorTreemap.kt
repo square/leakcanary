@@ -825,7 +825,24 @@ class HeapDominatorTreemap internal constructor(
 
   private fun computeLeaks(): HeapLeaks {
     val startNanos = System.nanoTime()
-    val candidateIds = leakingCandidateIds
+    val candidateIds = leakingCandidateIds.filter { objectId ->
+      // A leak is an object the app is still holding. One whose strongest path is a soft, weak, finalizer
+      // or phantom reference is on its way out whatever the app does, so it belongs on the map, where it
+      // says which bytes haven't come back yet, and not on a list of things to go and fix. LeakCanary
+      // leaves the same objects out, one step later: its analysis follows none of those referents, so an
+      // object reachable no other way has no path from a GC root and never reaches a report.
+      val strength = strengthOf(objectId)
+      // Except an unreachable one, which is no more of a leak and is listed all the same, a section of
+      // gone objects being how a heap dump whose leaks were all collected says so.
+      strength.onlyTheAppCanRelease || strength == ReachabilityStrength.UNREACHABLE
+    }
+    val heldTooWeaklyCount = leakingCandidateIds.size - candidateIds.size
+    if (heldTooWeaklyCount > 0) {
+      SharkLog.d {
+        "$heldTooWeaklyCount of the ${leakingCandidateIds.size} objects that shouldn't be here are held " +
+          "no more firmly than the collector clears on its own, so they are not listed as leaks"
+      }
+    }
     // Largest first, and capped: the walk up to the GC roots per object is what this costs, and a heap
     // dump with thousands of leaking objects has a handful of leaks with thousands of instances each.
     val found = candidateIds

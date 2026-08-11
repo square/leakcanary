@@ -4,6 +4,7 @@ import java.io.File
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.StickyClass
 import shark.GcRoot.ThreadObject
 import shark.HprofWriterHelper
 import shark.ValueHolder.BooleanHolder
@@ -335,6 +336,28 @@ internal fun TemporaryFolder.collectedActivityHeapDump(): File {
     instance(activityClass(), fields = listOf(BooleanHolder(true)))
     val holder = "com.example.Holder" instance { }
     gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
+/**
+ * A heap dump where the only destroyed activity is one a `sun.misc.Cleaner` is the last holder of, which
+ * is what an activity looks like between the moment it stops being used and the moment the runtime gets
+ * to it: reachable, and only through a reference the collector clears on its own.
+ *
+ * Written the way the cleaner list really is, since being at the end of one is how a heap dump reaches
+ * this state at all — see [cleanerClass] and `HeapReachabilityTest`.
+ */
+internal fun TemporaryFolder.cleanerHeldActivityHeapDump(): File {
+  val file = newFile("cleaner-held-activity.hprof")
+  file.dump {
+    val firstId = reserveObjectId()
+    val classes = referenceClasses()
+    val cleanerClassId = cleanerClass(classes, firstCleaner = firstId)
+    val activity = instance(activityClass(), fields = listOf(BooleanHolder(true)))
+    val second = cleaner(cleanerClassId, referent = activity)
+    cleaner(cleanerClassId, next = second, objectId = firstId)
+    gcRoot(StickyClass(id = cleanerClassId))
   }
   return file
 }
