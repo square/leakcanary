@@ -12,7 +12,7 @@ import java.security.MessageDigest
  * is a list of objects to open and the explorer does the rest.
  */
 data class HeapLeaks(
-  /** In [LeakKind] order, all three of them, empty ones included: an empty section is an answer. */
+  /** In [LeakKind] order, all of them, empty ones included: an empty section is an answer. */
   val sections: List<LeakSection>
 ) {
 
@@ -32,16 +32,39 @@ data class HeapLeaks(
 }
 
 /**
- * Which of the three kinds of thing a leak is, which is what splits the screen into three.
+ * Which kind of thing a leak is, which is what splits the screen into sections.
  *
- * The split is what makes the list actionable: the app's own leaks are the ones to go and fix, the library
- * ones are somebody else's and are mostly there so they don't get mistaken for the app's, and the
- * unreachable objects are already gone and are here because their absence would read as nothing found.
+ * The split is what makes the list actionable, and it is a split in two halves. The first two are leaks to
+ * do something about: the app's own are the ones to go and fix, the library ones are somebody else's and
+ * are mostly there so they don't get mistaken for the app's. The rest are objects that shouldn't be in
+ * memory and are on their way out of it anyway, a section per way — the garbage collector clears every one
+ * of these strengths on its own, so nothing in the app has to change for the bytes to come back.
+ *
+ * LeakCanary reports none of that second half and can't tell one from another: its analysis follows no
+ * soft, weak or phantom referent, so everything below the rule here is an object no GC root reaches as far
+ * as it is concerned, and it drops the lot without saying so. Which is the reason to spell them out rather
+ * than leave them off — an object that was meant to be gone and is on its way is an answer, and it is a
+ * different answer from each of the others.
+ *
+ * **Declared in [ReachabilityStrength] order** after the first two, weakest last, which is the order the
+ * sections are drawn in.
  */
 enum class LeakKind(
   val title: String,
-  /** What being in this section means, since none of the three titles says it on its own. */
-  val explanation: String
+  /** What being in this section means, since not one of the titles says it on its own. */
+  val explanation: String,
+  /**
+   * How firmly the objects of this section are held, for the sections that are about that. Null for
+   * [APPLICATION] and [LIBRARY], which are about the reference that holds an object rather than how
+   * firmly: those two hold everything the app itself has to let go of, whether that is an ordinary
+   * reference, a cache, a thread's storage or a stack frame.
+   */
+  val strength: ReachabilityStrength? = null,
+  /**
+   * What a group of these says instead of a chain of references, since being on the way out is the whole
+   * of what they have in common. Null for the two sections whose groups say it with references.
+   */
+  val subtitle: String? = null
 ) {
 
   APPLICATION(
@@ -57,15 +80,63 @@ enum class LeakKind(
       "nothing to do about them but wait for a fix upstream."
   ),
 
+  SOFT(
+    "Softly reachable",
+    "Objects a soft reference is the last thing holding, which the virtual machine clears when it wants " +
+      "the memory back. So they stay until memory runs short, and then go without the app doing anything.",
+    strength = ReachabilityStrength.SOFT,
+    subtitle = "A soft reference is the only thing left holding these: the next collection that needs the " +
+      "room takes them."
+  ),
+
+  WEAK(
+    "Weakly reachable",
+    "Objects a weak reference is the last thing holding. The next garbage collection clears it and takes " +
+      "them, whether or not memory is short.",
+    strength = ReachabilityStrength.WEAK,
+    subtitle = "A weak reference is the only thing left holding these: the next collection takes them."
+  ),
+
+  FINALIZER(
+    "Waiting to be finalized",
+    "Objects whose class has a `finalize()` method, reachable only from the queue of objects waiting for " +
+      "it to run. They survive one more collection at least, and longer if finalization is backed up.",
+    strength = ReachabilityStrength.FINALIZER,
+    subtitle = "Only the finalizer queue still holds these: they go once `finalize()` has run, and " +
+      "finalizing one can make it reachable again."
+  ),
+
+  PHANTOM(
+    "Phantom reachable",
+    "Objects already finalized and out of the app's reach, held only so that a `Cleaner` or a phantom " +
+      "reference gets to run. On Android that is nearly always a `Cleaner` freeing native memory, which " +
+      "the runtime drains on its own.",
+    strength = ReachabilityStrength.PHANTOM,
+    subtitle = "Nothing in the app can reach these any more: they are held until a `Cleaner` or a phantom " +
+      "reference has had its turn."
+  ),
+
   UNREACHABLE(
     "Unreachable",
     "Objects that were meant to be gone and are: nothing reaches them any more, and the next garbage " +
       "collection would take them. Listed so that a heap dump whose leaks have all been collected doesn't " +
-      "read as a heap dump nothing looked at."
-  )
+      "read as a heap dump nothing looked at.",
+    strength = ReachabilityStrength.UNREACHABLE,
+    subtitle = "Nothing reaches these any more: the next garbage collection would take them."
+  );
+
+  companion object {
+    /**
+     * The section an object held this firmly belongs in, for the strengths that have one: everything from
+     * [ReachabilityStrength.SOFT] down, which is everything the garbage collector clears without the app
+     * doing anything. Null for the rest, whose objects are leaks and are named after what holds them.
+     */
+    fun ofOrNull(strength: ReachabilityStrength): LeakKind? =
+      values().firstOrNull { it.strength == strength }
+  }
 }
 
-/** One of the three parts of the leaks screen. See [LeakKind]. */
+/** One part of the leaks screen. See [LeakKind]. */
 data class LeakSection(
   val kind: LeakKind,
   /** Largest first, by what the objects in them retain together. */

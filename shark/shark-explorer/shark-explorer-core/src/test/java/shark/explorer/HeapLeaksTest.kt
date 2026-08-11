@@ -5,8 +5,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.explorer.LeakKind.APPLICATION
+import shark.explorer.LeakKind.FINALIZER
 import shark.explorer.LeakKind.LIBRARY
+import shark.explorer.LeakKind.PHANTOM
+import shark.explorer.LeakKind.SOFT
 import shark.explorer.LeakKind.UNREACHABLE
+import shark.explorer.LeakKind.WEAK
 
 class HeapLeaksTest {
 
@@ -124,28 +128,55 @@ class HeapLeaksTest {
     }
   }
 
-  @Test fun `an object held only by a cleaner is on its way out rather than leaking`() {
+  @Test fun `an object held only by a cleaner is listed as phantom reachable`() {
     HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
       val leaks = explorer.tree.findLeaks()
 
-      // Destroyed, so the inspectors say it shouldn't be here, and phantom reachable, so the runtime is
-      // already seeing to it and there is nothing for the app to fix. LeakCanary reports no leak in a
-      // dump like this one either.
-      assertThat(leaks.objectCount).isZero()
+      // Destroyed, so the inspectors say it shouldn't be here, and phantom reachable, so it is on its way
+      // out and none of the app's business. Which is a section of its own rather than an app leak.
+      val leaking = leaks.objectsOf(PHANTOM).single()
+      assertThat(leaking.className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaking.strength).isEqualTo(ReachabilityStrength.PHANTOM)
+      assertThat(leaks.objectsOf(APPLICATION)).isEmpty()
     }
   }
 
-  @Test fun `an object too weakly held to be a leak is still on the map`() {
+  @Test fun `a leak on its way out is named after its class rather than after a cleaner list`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val group = explorer.tree.findLeaks().sectionOf(PHANTOM).groups.single()
+
+      // What holds it is a Cleaner on a static list, which is where it lives rather than why it is still
+      // here, so there is no chain to name it after and the section says what being in it means.
+      assertThat(group.title).isEqualTo(ACTIVITY_CLASS_NAME.substringAfterLast('.'))
+      assertThat(group.suspectPath).isEmpty()
+      assertThat(group.subtitle).isEqualTo(PHANTOM.subtitle)
+    }
+  }
+
+  @Test fun `the same class in two of the sections on their way out is two leaks`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val phantom = explorer.tree.findLeaks().sectionOf(PHANTOM).groups.single()
+
+      // The fingerprint is what tells one leak from another, and a class name alone would make a phantom
+      // reachable activity and an unreachable one the same leak found twice.
+      HeapExplorer.open(testFolder.collectedActivityHeapDump()).use { collected ->
+        val unreachable = collected.tree.findLeaks().sectionOf(UNREACHABLE).groups.single()
+
+        assertThat(phantom.title).isEqualTo(unreachable.title)
+        assertThat(phantom.leakFingerprint).isNotEqualTo(unreachable.leakFingerprint)
+      }
+    }
+  }
+
+  @Test fun `an object on its way out is still on the map`() {
     HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
       val tree = explorer.tree
       val activity = tree.findByLabel(ACTIVITY_CLASS_NAME.substringAfterLast('.')).objectId
 
-      // Left where it was: which bytes haven't come back yet is what the map is for, and the leaks screen
-      // leaving an object out is not the tree losing it.
+      // Left where it was: which bytes haven't come back yet is what the map is for, and which section of
+      // the list an object is in says nothing about where the tree hangs it.
       assertThat(tree.strengthOf(activity)).isEqualTo(ReachabilityStrength.PHANTOM)
       assertThat(tree.dominatorOf(activity)!!.label).isEqualTo("Cleaner")
-      assertThat(tree.findLeaks().leakingObjectIds).doesNotContain(activity)
-      assertThat(tree.isBelowLeakingObject(activity)).isFalse()
     }
   }
 
@@ -256,12 +287,14 @@ class HeapLeaksTest {
     }
   }
 
-  @Test fun `a heap dump with nothing wrong in it has all three sections and no leak`() {
+  @Test fun `a heap dump with nothing wrong in it has every section and no leak`() {
     testFolder.openTestHeapDump().use { explorer ->
       val leaks = explorer.tree.findLeaks()
 
-      // All three of them, so that the screen says which kinds of leak were looked for and not found.
-      assertThat(leaks.sections.map { it.kind }).containsExactly(APPLICATION, LIBRARY, UNREACHABLE)
+      // Every one of them, so that the screen says which kinds of leak were looked for and not found: the
+      // two to do something about first, then the ways of being on the way out, weakest last.
+      assertThat(leaks.sections.map { it.kind })
+        .containsExactly(APPLICATION, LIBRARY, SOFT, WEAK, FINALIZER, PHANTOM, UNREACHABLE)
       assertThat(leaks.objectCount).isZero()
       assertThat(leaks.leakingObjectIds).isEmpty()
     }

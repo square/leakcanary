@@ -825,24 +825,7 @@ class HeapDominatorTreemap internal constructor(
 
   private fun computeLeaks(): HeapLeaks {
     val startNanos = System.nanoTime()
-    val candidateIds = leakingCandidateIds.filter { objectId ->
-      // A leak is an object the app is still holding. One whose strongest path is a soft, weak, finalizer
-      // or phantom reference is on its way out whatever the app does, so it belongs on the map, where it
-      // says which bytes haven't come back yet, and not on a list of things to go and fix. LeakCanary
-      // leaves the same objects out, one step later: its analysis follows none of those referents, so an
-      // object reachable no other way has no path from a GC root and never reaches a report.
-      val strength = strengthOf(objectId)
-      // Except an unreachable one, which is no more of a leak and is listed all the same, a section of
-      // gone objects being how a heap dump whose leaks were all collected says so.
-      strength.onlyTheAppCanRelease || strength == ReachabilityStrength.UNREACHABLE
-    }
-    val heldTooWeaklyCount = leakingCandidateIds.size - candidateIds.size
-    if (heldTooWeaklyCount > 0) {
-      SharkLog.d {
-        "$heldTooWeaklyCount of the ${leakingCandidateIds.size} objects that shouldn't be here are held " +
-          "no more firmly than the collector clears on its own, so they are not listed as leaks"
-      }
-    }
+    val candidateIds = leakingCandidateIds
     // Largest first, and capped: the walk up to the GC roots per object is what this costs, and a heap
     // dump with thousands of leaking objects has a handful of leaks with thousands of instances each.
     val found = candidateIds
@@ -892,8 +875,13 @@ class HeapDominatorTreemap internal constructor(
     watcher: WatchedObject?
   ): FoundLeak {
     val strength = strengthOf(objectId)
-    // Nothing holds it, so there is no chain to read and nothing to group by but its class: it is a leak
-    // that has already been collected, or that the collection before the dump was written got to.
+    // Which section it goes in, when that is decided by how firmly it is held rather than by what holds
+    // it: everything the collector clears on its own, from a soft reference down to nothing at all.
+    val goingKind = LeakKind.ofOrNull(strength)
+    // Nothing holds an unreachable object, so there is no chain to it to read. Everything else has one,
+    // and it is read even for the sections a strength names, whose groups are not named after it: what a
+    // chain is for there is which other leak holds this object, which is what keeps one leaked screen's
+    // worth of objects to one row rather than to nine.
     val pathObjectIds = if (strength == ReachabilityStrength.UNREACHABLE) {
       emptyList()
     } else {
@@ -922,16 +910,30 @@ class HeapDominatorTreemap internal constructor(
     // Everything the chain runs through on the way down to it, which is what says whether it is a leak of
     // its own or one more thing another leak is holding. See [foldedIntoWhatHoldsThem].
     val heldThrough = pathObjectIds.dropLast(1)
-    if (steps.isEmpty()) {
+    // A section a strength names, or an object nothing reaches: either way what it has in common with the
+    // rest of its section is how firmly it is held, so its class is what tells two of them apart. Which is
+    // also what keeps the chain out of the name — a phantom reachable view named after the static pool of
+    // canvases forty `Cleaner.prev` links above it is a leak named after none of its own doing.
+    if (goingKind != null || steps.isEmpty()) {
+      // A reachable object with no chain means the roots this walk started from aren't the roots the tree
+      // was built from, which is the mismatch `gcRootLabelOf` logs. Listed as unreachable, since that is
+      // what having no path from a GC root reads as, and said out loud rather than quietly.
+      val kind = goingKind ?: LeakKind.UNREACHABLE.also {
+        SharkLog.d {
+          "No chain from a GC root to ${hexObjectId(objectId)}, though the object is reachable " +
+            "($strength), so it is listed as unreachable"
+        }
+      }
       return FoundLeak(
-        kind = LeakKind.UNREACHABLE,
-        // Its class, since there is no chain to hash and nothing else to tell two of these apart. LeakCanary
-        // has no leak fingerprint to match here: it reports what a GC root reaches, and this is what none
-        // does.
-        leakFingerprint = leakingObject.className.sha1Hex(),
+        kind = kind,
+        // Its class and how firmly it is held, since there is no chain to hash and nothing else tells two
+        // of these apart — and the same class in two of these sections is two leaks, not one. LeakCanary
+        // has no leak fingerprint to match here: it reports what a GC root reaches, and as far as it is
+        // concerned none of these is reached.
+        leakFingerprint = "${leakingObject.className} ${kind.name}".sha1Hex(),
         title = simpleClassName,
         suspectPath = emptyList(),
-        subtitle = UNREACHABLE_LEAK_SUBTITLE,
+        subtitle = kind.subtitle,
         heldThrough = heldThrough,
         leakingObject = leakingObject
       )
@@ -1646,10 +1648,6 @@ class HeapDominatorTreemap internal constructor(
      * the way the chain spells it, and that is a string, not a module's API.
      */
     private const val LOCAL_VARIABLE = "<local variable>"
-
-    /** What the unreachable section says instead of a reason, since being gone is the whole of it. */
-    private const val UNREACHABLE_LEAK_SUBTITLE =
-      "Nothing reaches these any more: the next garbage collection would take them."
 
     /**
      * How many ways of holding an object [independentPathsBetween] spells out. Six chains is already more
