@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -36,13 +37,15 @@ import shark.explorer.LeakGroup
 import shark.explorer.LeakKind
 import shark.explorer.LeakSection
 import shark.explorer.LeakingObject
+import shark.explorer.Place
 import shark.explorer.WatchedObject
 import shark.explorer.formatByteSize
 import shark.explorer.hexObjectId
 
 /**
- * Every leaking object of the heap dump, in three parts: the app's own leaks, the ones in code it doesn't
- * control, and the objects that were meant to be gone and are.
+ * Every leaking object of the heap dump, in two halves: the leaks to do something about, which is the app's
+ * own and the ones in code it doesn't control, and under one folded heading the objects that shouldn't be in
+ * memory and are already leaving it.
  *
  * One row per leak rather than per object, because a leak with fifty instances is one thing to fix; the row
  * unfolds into them when there is more than one. Every row leads into the object explorer — a leak is a
@@ -77,50 +80,80 @@ internal fun LeaksScreen(
       }
       HorizontalDivider()
       LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
-        leaks.sections.forEachIndexed { sectionIndex, section ->
-          // Pinned while its own leaks scroll under it, which is what says they are its: a heading that
-          // scrolls away leaves a list of rows with nothing above them saying which of the three they are.
-          stickyHeader(key = section.kind.name) {
-            SectionHeader(section, isFirst = sectionIndex == 0)
+        leaks.leakSections.forEachIndexed { sectionIndex, section ->
+          leakSection(section, sectionIndex == 0, expandedGroups, onToggleGroup, onOpen, onCopyLink)
+        }
+        val onTheWayOut = leaks.onTheWayOutSections
+        val isOnTheWayOutExpanded = Place.Leaks.ON_THE_WAY_OUT in expandedGroups
+        // Not pinned, unlike the headings under it: what a heading is pinned for is the rows scrolling under
+        // it, and there are none of its own — it is a heading over headings, and each of those pins itself
+        // as it comes up.
+        item(key = Place.Leaks.ON_THE_WAY_OUT) {
+          OnTheWayOutHeader(
+            sections = onTheWayOut,
+            isExpanded = isOnTheWayOutExpanded,
+            onToggle = { onToggleGroup(Place.Leaks.ON_THE_WAY_OUT) }
+          )
+        }
+        if (isOnTheWayOutExpanded) {
+          onTheWayOut.forEachIndexed { sectionIndex, section ->
+            leakSection(section, sectionIndex == 0, expandedGroups, onToggleGroup, onOpen, onCopyLink)
           }
-          section.groups.forEach { group ->
-            val groupKey = section.kind.groupKey(group)
-            val isExpanded = groupKey in expandedGroups
-            val hasMore = group.objects.size > 1
-            item(key = groupKey) { GroupRow(group) }
-            // The first object always: a leak is a reference, and a reference with nothing under it says
-            // what shouldn't be holding without ever saying what it is holding.
-            item(key = "$groupKey ${group.objects.first().objectId}") {
-              LeakingObjectRow(
-                leakingObject = group.objects.first(),
-                isLast = !hasMore,
-                onOpen = onOpen,
-                onCopyLink = onCopyLink
-              )
-            }
-            if (hasMore) {
-              // The rest are one item each behind this, so that a leak with five hundred instances costs
-              // the list two rows until someone asks to see them.
-              item(key = "$groupKey $MORE_KEY") {
-                MoreObjectsRow(
-                  count = group.objects.size - 1,
-                  isExpanded = isExpanded,
-                  onToggle = { onToggleGroup(groupKey) }
-                )
-              }
-              if (isExpanded) {
-                group.objects.drop(1).forEachIndexed { index, leakingObject ->
-                  item(key = "$groupKey ${leakingObject.objectId}") {
-                    LeakingObjectRow(
-                      leakingObject = leakingObject,
-                      isLast = index == group.objects.size - 2,
-                      onOpen = onOpen,
-                      onCopyLink = onCopyLink
-                    )
-                  }
-                }
-              }
-            }
+        }
+      }
+    }
+  }
+}
+
+/** One part of the list: its heading, and a leak of it per row with the objects of that leak inside it. */
+private fun LazyListScope.leakSection(
+  section: LeakSection,
+  /** Whether it opens whatever it is under, where there is nothing above it to be told apart from. */
+  isFirst: Boolean,
+  expandedGroups: Set<String>,
+  onToggleGroup: (String) -> Unit,
+  onOpen: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit
+) {
+  // Pinned while its own leaks scroll under it, which is what says they are its: a heading that scrolls away
+  // leaves a list of rows with nothing above them saying which part they are.
+  stickyHeader(key = section.kind.name) {
+    SectionHeader(section, isFirst = isFirst)
+  }
+  section.groups.forEach { group ->
+    val groupKey = section.kind.groupKey(group)
+    val isExpanded = groupKey in expandedGroups
+    val hasMore = group.objects.size > 1
+    item(key = groupKey) { GroupRow(group) }
+    // The first object always: a leak is a reference, and a reference with nothing under it says
+    // what shouldn't be holding without ever saying what it is holding.
+    item(key = "$groupKey ${group.objects.first().objectId}") {
+      LeakingObjectRow(
+        leakingObject = group.objects.first(),
+        isLast = !hasMore,
+        onOpen = onOpen,
+        onCopyLink = onCopyLink
+      )
+    }
+    if (hasMore) {
+      // The rest are one item each behind this, so that a leak with five hundred instances costs
+      // the list two rows until someone asks to see them.
+      item(key = "$groupKey $MORE_KEY") {
+        MoreObjectsRow(
+          count = group.objects.size - 1,
+          isExpanded = isExpanded,
+          onToggle = { onToggleGroup(groupKey) }
+        )
+      }
+      if (isExpanded) {
+        group.objects.drop(1).forEachIndexed { index, leakingObject ->
+          item(key = "$groupKey ${leakingObject.objectId}") {
+            LeakingObjectRow(
+              leakingObject = leakingObject,
+              isLast = index == group.objects.size - 2,
+              onOpen = onOpen,
+              onCopyLink = onCopyLink
+            )
           }
         }
       }
@@ -129,7 +162,7 @@ internal fun LeaksScreen(
 }
 
 /**
- * What one of the three parts is, and how much of the heap dump is in it.
+ * What one part of the list is, and how much of the heap dump is in it.
  *
  * The gap and the rule are above it and nothing is below it, which is the whole of what says the leaks
  * under it are its: a heading the same distance from the section above and the one below belongs to
@@ -138,7 +171,7 @@ internal fun LeaksScreen(
 @Composable
 private fun SectionHeader(
   section: LeakSection,
-  /** Whether it opens the list, where there is nothing above to be told apart from. */
+  /** Whether it opens what it is under, where there is nothing above to be told apart from. */
   isFirst: Boolean
 ) {
   Column(
@@ -161,6 +194,61 @@ private fun SectionHeader(
         style = MaterialTheme.typography.bodySmall,
         color = MUTED_TEXT
       )
+    }
+  }
+}
+
+/**
+ * The heading over the half of the list nobody has to act on, and the one thing on this screen that hides
+ * rows rather than showing them.
+ *
+ * Folded to start with, and quieter than a section heading — no band, no bar down its rows, muted text —
+ * because the answer these sections give is that there is nothing to do: a screen that draws them like the
+ * app's own leaks says a heap dump with nothing wrong in it has five more kinds of problem. What it does say
+ * while folded is how many objects of each kind are in there, so that folding hides the rows and never the
+ * answer, and pressing it is what asks why they are still in memory.
+ */
+@Composable
+private fun OnTheWayOutHeader(
+  sections: List<LeakSection>,
+  isExpanded: Boolean,
+  onToggle: () -> Unit
+) {
+  Column(Modifier.fillMaxWidth().padding(top = SECTION_GAP)) {
+    HorizontalDivider(thickness = SECTION_RULE_WIDTH, color = SECTION_RULE_COLOR)
+    Column(
+      Modifier.fillMaxWidth()
+        .clickableRow(onToggle)
+        .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+      verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+      Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Text(
+          if (isExpanded) EXPANDED_ARROW else FOLDED_ARROW,
+          Modifier.width(TOGGLE_WIDTH),
+          style = MaterialTheme.typography.titleSmall,
+          color = MUTED_TEXT,
+          textAlign = TextAlign.Center
+        )
+        Text(
+          "${LeakKind.ON_THE_WAY_OUT_TITLE} · ${sections.summaryByKind()}",
+          style = MaterialTheme.typography.titleSmall,
+          color = MUTED_TEXT
+        )
+      }
+      // Only once it is open, since a paragraph is attention and what these sections are is not worth any
+      // until someone has asked for them.
+      if (isExpanded) {
+        Text(
+          LeakKind.ON_THE_WAY_OUT_EXPLANATION,
+          Modifier.padding(start = TOGGLE_WIDTH + 4.dp),
+          style = MaterialTheme.typography.bodySmall,
+          color = MUTED_TEXT
+        )
+      }
     }
   }
 }
@@ -422,9 +510,33 @@ private fun LeakSection.summary(): String = when {
     "$objectCount ${if (objectCount == 1) OBJECT else OBJECTS}"
 }
 
-private fun HeapLeaks.countText(): String = when (objectCount) {
-  0 -> NOTHING_LEAKING
-  else -> "$objectCount leaking ${if (objectCount == 1) OBJECT else OBJECTS}"
+/**
+ * What is in the folded half, per section: `3 phantom reachable, 2 unreachable`.
+ *
+ * Which sections rather than a count of the lot, because the sections are the answer — an object waiting to
+ * be finalized and one nothing reaches at all are both leaving, and only one of them has run any code yet.
+ */
+private fun List<LeakSection>.summaryByKind(): String =
+  filter { it.objectCount > 0 }
+    .joinToString { "${it.objectCount} ${it.kind.title.lowercase()}" }
+    .ifEmpty { NONE_FOUND }
+
+/**
+ * How many leaks there are to do something about, and then how many objects are on their way out.
+ *
+ * The two counts are kept apart for the same reason the list is: a dump whose leaks have all been collected
+ * is a dump with nothing to fix, and one number over both halves says the opposite.
+ */
+private fun HeapLeaks.countText(): String {
+  val leaking = when (leakingObjectCount) {
+    0 -> NOTHING_LEAKING
+    else -> "$leakingObjectCount leaking ${if (leakingObjectCount == 1) OBJECT else OBJECTS}"
+  }
+  val onTheWayOut = onTheWayOutSections.sumOf { it.objectCount }
+  return when (onTheWayOut) {
+    0 -> leaking
+    else -> "$leaking · $onTheWayOut ${LeakKind.ON_THE_WAY_OUT_TITLE.lowercase()}"
+  }
 }
 
 private fun LeakGroup.objectCountText(): String =
@@ -482,7 +594,8 @@ private const val MILLIS_PER_SECOND = 1000L
 /** Shown while the pass over every object of the heap dump is still running. */
 private const val LOOKING_FOR_LEAKS = "Going through the heap dump…"
 
-private const val NOTHING_LEAKING = "Nothing in this heap dump is leaking."
+/** No full stop, since what is on their way out is said after it on the same line. */
+private const val NOTHING_LEAKING = "Nothing in this heap dump is leaking"
 private const val NONE_FOUND = "none"
 
 private const val LEAK = "leak"
@@ -508,7 +621,8 @@ internal const val NAME_HINT =
     "LeakCanary calls the leak, and the last is the one that points straight at what leaked, which is " +
     "where to look on the chain to see it. They are one reference for most leaks. Everything above the " +
     "first is the app working as intended and everything below the last is what the leak is holding, so " +
-    "neither is part of what makes this leak this leak."
+    "neither is part of what makes this leak this leak. For an object on its way out it is the one " +
+    "reference the collector hasn't cleared yet, which is the whole of why the object is still here."
 
 internal const val LEAK_FINGERPRINT_HINT =
   "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +

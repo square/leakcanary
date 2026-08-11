@@ -19,6 +19,15 @@ data class HeapLeaks(
   /** How many leaking objects there are, which is what the button leading here says. */
   val objectCount: Int get() = sections.sumOf { it.objectCount }
 
+  /** The sections that are leaks to do something about, which is the half of the screen that leads it. */
+  val leakSections: List<LeakSection> get() = sections.filter { !it.kind.isOnTheWayOut }
+
+  /** And the ones nobody has to do anything about. See [LeakKind.isOnTheWayOut]. */
+  val onTheWayOutSections: List<LeakSection> get() = sections.filter { it.kind.isOnTheWayOut }
+
+  /** How many objects are leaks to do something about, which is what the screen leads with. */
+  val leakingObjectCount: Int get() = leakSections.sumOf { it.objectCount }
+
   /** Every leaking object by id, which is what the treemap shades leaks from. */
   val leakingObjectIds: Set<Long>
     get() = sections.flatMapTo(mutableSetOf()) { section ->
@@ -119,6 +128,13 @@ enum class LeakKind(
     subtitle = "Nothing reaches these any more: the next garbage collection would take them."
   );
 
+  /**
+   * Whether it is one of the sections nobody has to do anything about, which is the second half of the
+   * screen and is drawn folded under one heading. True of exactly the sections a [strength] names: those
+   * are the objects the collector takes on its own.
+   */
+  val isOnTheWayOut: Boolean get() = strength != null
+
   companion object {
     /**
      * The section an object held this firmly belongs in, for the strengths that have one: everything from
@@ -127,6 +143,18 @@ enum class LeakKind(
      */
     fun ofOrNull(strength: ReachabilityStrength): LeakKind? =
       values().firstOrNull { it.strength == strength }
+
+    /**
+     * The one heading over every section that [isOnTheWayOut], since between them they are one answer: this
+     * object shouldn't be in memory, and nothing you do will get rid of it any sooner.
+     */
+    const val ON_THE_WAY_OUT_TITLE = "On their way out"
+
+    const val ON_THE_WAY_OUT_EXPLANATION =
+      "Objects that shouldn't be in memory and are already leaving it, a section per way out. None of " +
+        "these is a leak to fix — the garbage collector clears every one of them on its own, which is why " +
+        "LeakCanary reports none of them. They are here so that a destroyed object still on the map has an " +
+        "answer for why it is still there."
   }
 }
 
