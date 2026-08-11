@@ -62,10 +62,10 @@ stamped with a generation per walk rather than cleared at the end.
 
 **The pointer asks questions on that thread too**, because moving over a rectangle describes it. Which is
 why nothing is read until the pointer has been still for `HOVER_SETTLE_MILLIS`, and why what a hover asks
-for is capped and index-backed: a chain from a GC root is one walk over `ReferrerIndex` with at most 20
-steps read out, and the search for every way an object is held runs for the object clicked and no other.
-A new question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md`
-has the numbers on the biggest dump in the repo.
+for is index-backed: a chain from a GC root is one walk over `ReferrerIndex` and a read per step of what it
+found, and the search for every way an object is held runs for the object clicked and no other. A new
+question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md` has the
+numbers on the biggest dump in the repo, including how long a chain gets there.
 
 ## A heap dump can have `android.os.Build` and not the fields Shark reads off it
 

@@ -72,10 +72,9 @@ fun RootPath.waysOf(
   val ownSteps = steps.subList(detour.fromIndex, detour.toIndex + 1)
   val isHead = detour.fromObjectId == null
   val own = RootPathWay(
-    // Only a stretch off the top of the chain has a GC root above it to name, and only that one can have
-    // had steps left out: the rest start at an object the chain shows.
+    // Only a stretch off the top of the chain has a GC root above it to name: the rest start at an object
+    // the chain shows.
     gcRootLabel = if (isHead) gcRootLabel else null,
-    hiddenStepCount = if (isHead) hiddenStepCount else 0,
     steps = ownSteps
   )
   val ownObjectIds = ownSteps.map { it.step.objectId }
@@ -84,7 +83,6 @@ fun RootPath.waysOf(
     .map { path ->
       RootPathWay(
         gcRootLabel = path.gcRootLabel,
-        hiddenStepCount = path.hiddenStepCount,
         // Only the step this stretch arrives at can dominate the object: the rest are steps the chain
         // could have gone round, which is what made this a detour.
         steps = path.steps.mapIndexed { index, step ->
@@ -99,8 +97,6 @@ fun RootPath.waysOf(
 data class RootPathWay(
   /** Which GC root it starts at, for a stretch off the top of a chain. Null below an object. */
   val gcRootLabel: String?,
-  /** How many of its steps were left out to keep it readable, as on [RootPath.hiddenStepCount]. */
-  val hiddenStepCount: Int,
   val steps: List<RootPathStep>
 )
 
@@ -121,7 +117,6 @@ fun RootPath.drawnWith(
   val drawn = mutableListOf<RootPathStep>()
   val detourByRow = mutableMapOf<Int, RootPathDetour>()
   var gcRootLabel = this.gcRootLabel
-  var hiddenStepCount = this.hiddenStepCount
   var index = 0
   while (index < steps.size) {
     val detour = detourByFromIndex[index]
@@ -140,13 +135,12 @@ fun RootPath.drawnWith(
       drawn += way.steps
       if (detour.fromObjectId == null) {
         gcRootLabel = way.gcRootLabel
-        hiddenStepCount = way.hiddenStepCount
       }
     }
     index = detour.toIndex + 1
   }
   return DrawnRootPath(
-    path = RootPath(gcRootLabel = gcRootLabel, steps = drawn, hiddenStepCount = hiddenStepCount),
+    path = RootPath(gcRootLabel = gcRootLabel, steps = drawn),
     detourByRow = detourByRow
   )
 }

@@ -77,9 +77,7 @@ data class IndependentPath(
    */
   val gcRootLabel: String?,
   /** From the step below where the search started down to the object itself, which is the last step. */
-  val steps: List<PathStep>,
-  /** How many steps between where it started and [steps], left out to keep the chain readable. */
-  val hiddenStepCount: Int
+  val steps: List<PathStep>
 )
 
 /**

@@ -350,7 +350,7 @@ internal fun TemporaryFolder.onAStackAndInAFieldHeapDump(): File {
 
 /**
  * A heap dump where a payload is held at the end of a chain of [CHAIN_LINK_COUNT] objects, which is
- * longer than a chain is drawn.
+ * taller than the pane a chain is drawn in.
  */
 internal fun TemporaryFolder.longChainHeapDump(): File {
   val file = newFile("long-chain.hprof")
@@ -450,7 +450,7 @@ internal const val TILE_CLASS_NAME = "com.example.Tile"
 /** Past `MIN_CHILDREN_TO_GROUP_BY_CLASS` in [HeapDominatorTreemap], which is 200. */
 internal const val TILE_COUNT = 205
 
-/** Enough objects between a GC root and a payload that the chain to it has to be cut. */
+/** More objects between a GC root and a payload than a chain pane has the height to draw at once. */
 internal const val CHAIN_LINK_COUNT = 25
 
 /**

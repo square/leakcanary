@@ -370,8 +370,23 @@ list of what the treemap already draws, in a shape that couldn't hold more, and 
 Instead the chain is drawn the way a leak trace is (`PathDrawing.kt`): the shortest way a GC root reaches
 the object, one row per object, with the steps that dominate it marked. Shortest in steps, so it's the
 plainest way the object is held; the marked steps are the rectangles it sits inside, which is what ties the
-chain to the picture. On the production dump the longest one is 34 steps, two of them views and the rest
-RxJava plumbing — which is why it is cut at 20 and cut at the root end.
+chain to the picture.
+
+**All of it, however long.** A chain cut short answers "what holds this?" with a count of the steps that
+would have said, which is the one thing the pane exists not to do. Chains get long: 34 steps on the
+production dump, and the dumps in the repo go further — 499 on `large-dump.hprof`, 1,518 on
+`compose_leak.hprof`, both of them walks down a linked structure. What that costs, measured:
+
+- **Reading one is a heap dump read per step**, 6 ms for the 499 and 12 ms for the 1,518, against a
+  hover's budget of a hundred. Cheap because the walk that finds the chain is over `ReferrerIndex` and
+  only the steps of the chain it found are read.
+- **Drawing one is why the pane is a `LazyColumn`.** A `Column` with `verticalScroll` composes every row,
+  and a chain of 1,500 rows at four lines each never finished drawing at all — 60 s and still nothing on
+  screen. Lazy, the pane composes the seven rows it has the height for, so 20 steps and 500 steps are the
+  same 200 ms from the click to the chain being there.
+- **The stretches that could have run otherwise are still asked per chain**, and a chain that long has
+  almost none: the deep ones are linked lists, where every step dominates the object and so is a step the
+  chain had no choice about. One detour and 18 ms for the 499, none at all for the 1,518.
 
 It sits **on the far side of the view from the details panel**: chain, view, details, left to right — where
 the object came from, where it is, what it is keeping alive. A chain and the details are both tall columns,
@@ -584,8 +599,8 @@ can't take that way at all, because **its phase 1 treats a leaking object as a l
 
 - The suspect stretch ran past the first leaking object, and kept array indices, and named a reference by
   the class declaring the field rather than the class of the object. Three ways of grouping too finely.
-- The fold looked at the twenty drawn steps of a chain rather than all of it, so a leak held by another one
-  far above it stayed on the list.
+- The fold looked at the steps a chain drew, then cut at twenty, rather than all of it, so a leak held by
+  another one far above it stayed on the list.
 - **Collections were read the way they are built.** `ArrayList.elementData → Object[] → [3]` where a leak
   trace says `ArrayList[x]`, and worse for a `HashMap`. `DataStructureReferenceReader` adds Shark's own
   readers for the dozen structures it knows, the way `ViewChildReferenceReader` adds a `ViewGroup`'s

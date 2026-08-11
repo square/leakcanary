@@ -3,12 +3,16 @@ package shark.explorer.app
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -98,30 +102,39 @@ internal fun RootPathPanel(
   } else {
     null
   }
-  val scrollState = rememberScrollState()
+  val listState = rememberLazyListState()
   // The bottom of the chain is what a reader is looking at, so that is what the pane is scrolled to: opening
   // an object runs the chain down to it, and the last few steps are the ones that say how it is held. Every
   // time the chain grows, which is also the pointer moving from rectangle to rectangle.
   val bottomObjectId = (tail ?: cutTail)?.lastOrNull()?.step?.objectId ?: target
   LaunchedEffect(bottomObjectId) {
     if (bottomObjectId != null) {
-      snapshotFlow { scrollState.maxValue }.collect { scrollState.animateScrollTo(it) }
+      snapshotFlow { listState.layoutInfo.totalItemsCount }.collect { count ->
+        if (count > 0) {
+          listState.animateScrollToItem(count - 1)
+        }
+      }
     }
   }
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
-    Column(
-      Modifier.verticalScroll(scrollState).padding(12.dp),
-      verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-      // Where every chain starts, and the way back to the screen the window opens on.
-      PathRootRow(
-        nextStrength = drawn?.path?.steps?.firstOrNull()?.step?.strength
-          ?: cutTail?.firstOrNull()?.step?.strength,
-        onOpen = onOpen,
-        onCopyLink = onCopyLink
-      )
+    // A row per object, drawn only where the pane has the room for it: a chain is as long as the heap dump
+    // makes it, and the linked structures of a real one run to hundreds of steps — a pane that composed all
+    // of them would take a minute to draw a chain nobody has scrolled to yet.
+    LazyColumn(state = listState, contentPadding = PaddingValues(12.dp)) {
+      item {
+        // Where every chain starts, and the way back to the screen the window opens on.
+        Column {
+          PathRootRow(
+            nextStrength = drawn?.path?.steps?.firstOrNull()?.step?.strength
+              ?: cutTail?.firstOrNull()?.step?.strength,
+            onOpen = onOpen,
+            onCopyLink = onCopyLink
+          )
+          Spacer(Modifier.height(BLOCK_SPACING))
+        }
+      }
       if (drawn != null) {
-        RootPathTrace(
+        rootPathTrace(
           drawn = drawn,
           stronglyReachableByteCount = stronglyReachableByteCount,
           ways = ways,
@@ -132,18 +145,18 @@ internal fun RootPathPanel(
         )
       } else {
         noChainText(selection, summary, isWholeHeapDump, rootPath, hasTail = cutTail != null)?.let {
-          Text(it, style = MaterialTheme.typography.bodySmall)
+          item { Text(it, style = MaterialTheme.typography.bodySmall) }
         }
       }
       if (tail != null) {
-        HoveredTail(
+        hoveredTail(
           steps = tail,
           isCut = false,
           stronglyReachableByteCount = stronglyReachableByteCount
         )
       } else if (cutTail != null) {
         // Nothing above it on screen is what holds it, so the end of it is the object being described here.
-        HoveredTail(
+        hoveredTail(
           steps = cutTail,
           isCut = true,
           stronglyReachableByteCount = stronglyReachableByteCount
@@ -173,8 +186,7 @@ private fun noChainText(
 }
 
 /** The chain itself: the GC root at the top, the object the window is describing at the bottom. */
-@Composable
-private fun RootPathTrace(
+private fun LazyListScope.rootPathTrace(
   drawn: DrawnRootPath,
   stronglyReachableByteCount: Long,
   ways: Map<Int, List<RootPathWay>>,
@@ -184,32 +196,32 @@ private fun RootPathTrace(
   onCopyLink: (Long) -> Unit
 ) {
   val steps = drawn.path.steps
-  Column(Modifier.fillMaxWidth()) {
+  item {
     PathHeadRow(
-      label = drawn.path.headLabel(),
+      label = drawn.path.gcRootLabel.orEmpty(),
       reference = steps.first().step.reference,
       nextStrength = steps.first().step.strength,
       below = { WaysOfDetour(drawn, HEAD_INDEX, ways, chosenWays, onChooseWay) }
     )
-    steps.forEachIndexed { depth, step ->
-      val next = steps.getOrNull(depth + 1)
-      PathStepRow(
-        step = step.step,
-        // How this step points at the next one, which is what the next step was reached through.
-        reference = next?.step?.reference,
-        nextStrength = next?.step?.strength,
-        stronglyReachableByteCount = stronglyReachableByteCount,
-        onOpen = onOpen,
-        onCopyLink = onCopyLink,
-        role = when {
-          // The object the details panel is about, whatever the pointer has added below it.
-          next == null -> PathRole.TARGET
-          step.isDominator -> PathRole.DOMINATOR
-          else -> PathRole.STEP
-        },
-        below = { WaysOfDetour(drawn, depth, ways, chosenWays, onChooseWay) }
-      )
-    }
+  }
+  itemsIndexed(steps) { depth, step ->
+    val next = steps.getOrNull(depth + 1)
+    PathStepRow(
+      step = step.step,
+      // How this step points at the next one, which is what the next step was reached through.
+      reference = next?.step?.reference,
+      nextStrength = next?.step?.strength,
+      stronglyReachableByteCount = stronglyReachableByteCount,
+      onOpen = onOpen,
+      onCopyLink = onCopyLink,
+      role = when {
+        // The object the details panel is about, whatever the pointer has added below it.
+        next == null -> PathRole.TARGET
+        step.isDominator -> PathRole.DOMINATOR
+        else -> PathRole.STEP
+      },
+      below = { WaysOfDetour(drawn, depth, ways, chosenWays, onChooseWay) }
+    )
   }
 }
 
@@ -220,39 +232,41 @@ private fun RootPathTrace(
  * much each of those is worth, and everything else on a full row of the chain is four more lines of a pane
  * that is already the height of the window.
  */
-@Composable
-private fun HoveredTail(
+private fun LazyListScope.hoveredTail(
   steps: List<RootPathStep>,
   /** Whether it runs on from the chain above or starts somewhere else, which the dots say. */
   isCut: Boolean,
   stronglyReachableByteCount: Long
 ) {
-  Column(Modifier.fillMaxWidth()) {
-    if (isCut) {
-      // Not below the object shown, so the chain above isn't the way to this one: the dots are that said in
-      // the gutter, and the map itself is the rest of the answer.
-      PathCutRow(nextStrength = steps.first().step.strength)
+  item {
+    Column {
+      Spacer(Modifier.height(BLOCK_SPACING))
+      if (isCut) {
+        // Not below the object shown, so the chain above isn't the way to this one: the dots are that said
+        // in the gutter, and the map itself is the rest of the answer.
+        PathCutRow(nextStrength = steps.first().step.strength)
+      }
     }
-    steps.forEachIndexed { depth, step ->
-      val next = steps.getOrNull(depth + 1)
-      PathStepRow(
-        step = step.step,
-        reference = next?.step?.reference,
-        nextStrength = next?.step?.strength,
-        stronglyReachableByteCount = stronglyReachableByteCount,
-        // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
-        onOpen = { _, _ -> },
-        onCopyLink = {},
-        role = when {
-          // The end of a cut tail is the only object being described here, since the chain above it isn't
-          // the way to it; the end of one that runs on is described by the card at the pointer instead.
-          next == null && isCut -> PathRole.TARGET
-          step.isDominator -> PathRole.DOMINATOR
-          else -> PathRole.STEP
-        },
-        detail = PathDetail.BRIEF
-      )
-    }
+  }
+  itemsIndexed(steps) { depth, step ->
+    val next = steps.getOrNull(depth + 1)
+    PathStepRow(
+      step = step.step,
+      reference = next?.step?.reference,
+      nextStrength = next?.step?.strength,
+      stronglyReachableByteCount = stronglyReachableByteCount,
+      // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
+      onOpen = { _, _ -> },
+      onCopyLink = {},
+      role = when {
+        // The end of a cut tail is the only object being described here, since the chain above it isn't
+        // the way to it; the end of one that runs on is described by the card at the pointer instead.
+        next == null && isCut -> PathRole.TARGET
+        step.isDominator -> PathRole.DOMINATOR
+        else -> PathRole.STEP
+      },
+      detail = PathDetail.BRIEF
+    )
   }
 }
 
@@ -304,18 +318,6 @@ private fun WaysOfDetour(
   }
 }
 
-/**
- * Which GC root the chain starts at, and how many steps below it were left out.
- *
- * When steps were left out, the reference drawn under this row belongs to the last of the objects left out
- * rather than to the root, and the class it names is how the reader can tell.
- */
-private fun RootPath.headLabel(): String = if (hiddenStepCount == 0) {
-  gcRootLabel.orEmpty()
-} else {
-  "${gcRootLabel.orEmpty()}, then $ELLIPSIS $hiddenStepCount steps"
-}
-
 /** Shown until a rectangle has been clicked, which is what this pane draws a chain for. */
 internal const val NO_ROOT_PATH_YET = "Click a rectangle to see what holds it."
 
@@ -341,10 +343,11 @@ internal const val WAYS_FROM_HERE = "ways from here"
 internal const val PREVIOUS_WAY = "◂"
 internal const val NEXT_WAY = "▸"
 
-internal const val ELLIPSIS = "…"
-
 /** As wide as a class name plus what a step says about the object, and no wider: the map needs the room. */
 internal val ROOT_PATH_WIDTH = 300.dp
+
+/** Between the blocks of the pane — the whole heap dump, the chain, what the pointer added to it. */
+private val BLOCK_SPACING = 4.dp
 
 /** What the arrows for switching a stretch of the chain sit on, so they don't read as one of its objects. */
 private val WAYS_BACKGROUND = Color(0x14000000)

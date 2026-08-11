@@ -69,24 +69,22 @@ class RootPathDetourTest {
       .containsExactly(listOf(false, true), listOf(false, true))
   }
 
-  @Test fun `only a stretch off the top of a chain names a gc root and hides steps`() {
-    val path = chain(1L to ON_THE_WAY, 5L to DOMINATES, gcRootLabel = A_GC_ROOT, hiddenStepCount = 3)
+  @Test fun `only a stretch off the top of a chain names a gc root`() {
+    val path = chain(1L to ON_THE_WAY, 5L to DOMINATES, gcRootLabel = A_GC_ROOT)
     val detour = path.detours().single()
 
     val own = path.waysOf(detour, found = IndependentPaths.NONE).single()
 
     assertThat(own.gcRootLabel).isEqualTo(A_GC_ROOT)
-    assertThat(own.hiddenStepCount).isEqualTo(3)
   }
 
   @Test fun `a stretch below an object has no gc root of its own to name`() {
-    val path = chain(1L to DOMINATES, 3L to ON_THE_WAY, 5L to DOMINATES, hiddenStepCount = 3)
+    val path = chain(1L to DOMINATES, 3L to ON_THE_WAY, 5L to DOMINATES)
     val detour = path.detours().single()
 
     val own = path.waysOf(detour, found = IndependentPaths.NONE).single()
 
     assertThat(own.gcRootLabel).isNull()
-    assertThat(own.hiddenStepCount).isEqualTo(0)
   }
 
   @Test fun `a chain drawn with another way of a stretch is one chain of steps`() {
@@ -115,7 +113,6 @@ class RootPathDetourTest {
     val detour = path.detours().single()
     val other = RootPathWay(
       gcRootLabel = "GC root: thread object",
-      hiddenStepCount = 2,
       steps = listOf(RootPathStep(pathStep(2L), ON_THE_WAY), RootPathStep(pathStep(5L), DOMINATES))
     )
 
@@ -123,7 +120,6 @@ class RootPathDetourTest {
 
     assertThat(drawn.path.steps.objectIds()).containsExactly(2L, 5L)
     assertThat(drawn.path.gcRootLabel).isEqualTo("GC root: thread object")
-    assertThat(drawn.path.hiddenStepCount).isEqualTo(2)
   }
 
   @Test fun `a chain drawn with its own ways is the chain itself`() {
@@ -137,7 +133,6 @@ class RootPathDetourTest {
   /** One way the search found, as it hands them back: no GC root below an object, and nothing marked. */
   private fun foundPath(vararg objectIds: Long) = IndependentPath(
     gcRootLabel = null,
-    steps = objectIds.map { pathStep(it) },
-    hiddenStepCount = 0
+    steps = objectIds.map { pathStep(it) }
   )
 }

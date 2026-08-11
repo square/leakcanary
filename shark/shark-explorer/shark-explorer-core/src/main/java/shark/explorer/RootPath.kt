@@ -16,13 +16,11 @@ data class RootPath(
    */
   val gcRootLabel: String?,
   /** From the GC rooted object down to the object itself, which is the last step. */
-  val steps: List<RootPathStep>,
-  /** How many steps between the GC root and [steps] were left out to keep the chain readable. */
-  val hiddenStepCount: Int
+  val steps: List<RootPathStep>
 ) {
   companion object {
     /** No chain: nothing the tree was built from reaches the object. */
-    val NONE = RootPath(gcRootLabel = null, steps = emptyList(), hiddenStepCount = 0)
+    val NONE = RootPath(gcRootLabel = null, steps = emptyList())
   }
 }
 
