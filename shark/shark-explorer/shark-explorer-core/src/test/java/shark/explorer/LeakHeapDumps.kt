@@ -4,8 +4,10 @@ import java.io.File
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.StickyClass
 import shark.GcRoot.ThreadObject
 import shark.HprofWriterHelper
+import shark.ValueHolder
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
@@ -338,6 +340,37 @@ internal fun TemporaryFolder.collectedActivityHeapDump(): File {
   }
   return file
 }
+
+/**
+ * A heap dump where every destroyed activity is one a `sun.misc.Cleaner` of its own is the last holder of,
+ * which is what an activity looks like between the moment it stops being used and the moment the runtime
+ * gets to it: reachable, and only through a reference the collector clears on its own.
+ *
+ * Written the way the cleaner list really is, since being at the end of one is how a heap dump reaches
+ * this state at all — see [cleanerClass] and `HeapReachabilityTest`. [activityCount] is how many entries
+ * of that list still have their referent, which is how many objects are waiting on a `Cleaner`.
+ */
+internal fun TemporaryFolder.cleanerHeldActivityHeapDump(activityCount: Int = 1): File {
+  val file = newFile("cleaner-held-activity-$activityCount.hprof")
+  file.dump {
+    val firstId = reserveObjectId()
+    val classes = referenceClasses()
+    val cleanerClassId = cleanerClass(classes, firstCleaner = firstId)
+    val activityClassId = activityClass()
+    // The list from its end back to its head, since each entry has to be written before the one pointing
+    // at it, and the head is the one the static reaches.
+    val listHead = (1..activityCount).fold(NULL) { next, _ ->
+      val activity = instance(activityClassId, fields = listOf(BooleanHolder(true)))
+      cleaner(cleanerClassId, referent = activity, next = next)
+    }
+    cleaner(cleanerClassId, next = listHead, objectId = firstId)
+    gcRoot(StickyClass(id = cleanerClassId))
+  }
+  return file
+}
+
+/** No reference: the value a field of a heap dump holds when it points at nothing. */
+private val NULL = ReferenceHolder(ValueHolder.NULL_REFERENCE)
 
 /**
  * A heap dump where a destroyed activity is held by a reference Shark knows leaks in code an app doesn't

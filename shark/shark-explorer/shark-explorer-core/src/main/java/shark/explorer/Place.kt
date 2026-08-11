@@ -73,6 +73,10 @@ sealed interface Place {
     /**
      * Which leaks have been unfolded to show the objects in them, by [LeakGroup.leakFingerprint] and which
      * section the group is in: a leak of one class held two ways is two groups with one title.
+     *
+     * Plus [ON_THE_WAY_OUT] when the sections nobody has to act on have been unfolded, which is the one
+     * thing on the screen that starts folded. In the same set because it is the same kind of thing — what
+     * the reader has asked to see — so it is kept in a note and carried by a link like the rest of it.
      */
     val expandedGroups: Set<String> = emptySet()
   ) : Place {
@@ -80,6 +84,14 @@ sealed interface Place {
     override val title: String get() = LEAKS_LABEL
 
     override val viewRootObjectId: Long? get() = null
+
+    companion object {
+      /**
+       * Its key in [expandedGroups]. No group's is a single word, every one of those being a section and a
+       * hash, so this can't be mistaken for one.
+       */
+      const val ON_THE_WAY_OUT = "ON_THE_WAY_OUT"
+    }
   }
 
   /** The objects starred so far, kept so that two of them can be compared. */

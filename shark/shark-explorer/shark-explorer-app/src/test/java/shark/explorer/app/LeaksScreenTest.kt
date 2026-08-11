@@ -55,16 +55,37 @@ class LeaksScreenTest {
   /** The heap dump the window is opened on, and the objects of it these tests ask about. */
   private lateinit var heapDump: LeakyHeapDump
 
-  @Test fun `the leaks of a heap dump are listed in three parts`() {
+  @Test fun `the leaks to do something about are the list, and the rest are one folded heading`() {
     explorerUiTest {
       openLeaks()
 
-      // All three, however few of them were found: an empty part says that kind of leak was looked for.
-      LeakKind.values().forEach { kind ->
+      // Both parts, however few leaks were found: an empty part says that kind of leak was looked for.
+      leakKinds(onTheWayOut = false).forEach { kind ->
         onNodeWithText("${kind.title} ·", substring = true).assertIsDisplayed()
       }
       onNodeWithText(PRESENTER_LEAK_NAME, substring = true).assertIsDisplayed()
       onNodeWithText(ACTIVITY_LEAK_NAME, substring = true).assertIsDisplayed()
+      // And nothing of the sections nobody has to act on but the heading over them, since a screen that
+      // draws five more parts says a dump with two leaks in it has seven kinds of problem.
+      onNodeWithText(LeakKind.ON_THE_WAY_OUT_TITLE, substring = true).assertIsDisplayed()
+      leakKinds(onTheWayOut = true).forEach { kind ->
+        onNodeWithText("${kind.title} ·", substring = true).assertDoesNotExist()
+      }
+    }
+  }
+
+  @Test fun `pressing the heading over what is on its way out shows those parts`() {
+    explorerUiTest {
+      openLeaks()
+
+      onNodeWithText(LeakKind.ON_THE_WAY_OUT_TITLE, substring = true).performClick()
+
+      // One press for the lot, and what it opens with is what being on the way out means, which is the thing
+      // nobody had asked for while it was folded. How many of the parts under it are on screen is a matter of
+      // how tall the window is, so that there are five of them is `HeapLeaksTest`'s to say.
+      onNodeWithText(LeakKind.ON_THE_WAY_OUT_EXPLANATION).assertIsDisplayed()
+      onNodeWithText("${leakKinds(onTheWayOut = true).first().title} ·", substring = true)
+        .assertIsDisplayed()
     }
   }
 
@@ -271,6 +292,10 @@ class LeaksScreenTest {
   private fun ComposeUiTest.openTheRest() {
     onNodeWithText(LEAKING_THE_SAME_WAY, substring = true).performClick()
   }
+
+  /** The parts of the list on one side or the other of the fold. See [LeakKind.isOnTheWayOut]. */
+  private fun leakKinds(onTheWayOut: Boolean) =
+    LeakKind.values().filter { it.isOnTheWayOut == onTheWayOut }
 
   /** Everything on screen naming [objectId], which is how a list of objects says which ones they are. */
   private fun ComposeUiTest.nodesNaming(objectId: Long) =

@@ -5,8 +5,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.explorer.LeakKind.APPLICATION
+import shark.explorer.LeakKind.FINALIZER
 import shark.explorer.LeakKind.LIBRARY
+import shark.explorer.LeakKind.PHANTOM
+import shark.explorer.LeakKind.SOFT
 import shark.explorer.LeakKind.UNREACHABLE
+import shark.explorer.LeakKind.WEAK
 
 class HeapLeaksTest {
 
@@ -124,6 +128,71 @@ class HeapLeaksTest {
     }
   }
 
+  @Test fun `an object held only by a cleaner is listed as phantom reachable`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val leaks = explorer.tree.findLeaks()
+
+      // Destroyed, so the inspectors say it shouldn't be here, and phantom reachable, so it is on its way
+      // out and none of the app's business. Which is a section of its own rather than an app leak.
+      val leaking = leaks.objectsOf(PHANTOM).single()
+      assertThat(leaking.className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaking.strength).isEqualTo(ReachabilityStrength.PHANTOM)
+      assertThat(leaks.objectsOf(APPLICATION)).isEmpty()
+    }
+  }
+
+  @Test fun `a leak on its way out is named after the reference that hasn't let go`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val group = explorer.tree.findLeaks().sectionOf(PHANTOM).groups.single()
+
+      // Which is the whole of why the object is still in memory: clear that one reference and it goes. Not
+      // the class of what leaked, which says nothing about why it is here, and not the static list the
+      // `Cleaner` is on, which is where the `Cleaner` lives rather than what it is holding.
+      assertThat(group.title).isEqualTo("Cleaner.referent")
+      assertThat(group.suspectPath).containsExactly("Cleaner.referent")
+      // Nothing for a sentence to add to that, unlike the one section named after a class.
+      assertThat(group.subtitle).isNull()
+    }
+  }
+
+  @Test fun `objects each waiting on a cleaner of their own are one leak`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump(activityCount = 3)).use { explorer ->
+      val section = explorer.tree.findLeaks().sectionOf(PHANTOM)
+
+      // Three `Cleaner`s, so three chains and no object holding another — and one row, because what these
+      // have in common is the kind of reference still holding them and not which instance of it.
+      assertThat(section.groups).hasSize(1)
+      assertThat(section.objectCount).isEqualTo(3)
+    }
+  }
+
+  @Test fun `an object on its way out and one already collected are two leaks`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val phantom = explorer.tree.findLeaks().sectionOf(PHANTOM).groups.single()
+
+      // The same class of object, meant to be gone in both dumps, and two different answers to why it is
+      // still here — so two leaks, which is the section being part of the fingerprint.
+      HeapExplorer.open(testFolder.collectedActivityHeapDump()).use { collected ->
+        val unreachable = collected.tree.findLeaks().sectionOf(UNREACHABLE).groups.single()
+
+        assertThat(phantom.objects.single().className).isEqualTo(unreachable.objects.single().className)
+        assertThat(phantom.leakFingerprint).isNotEqualTo(unreachable.leakFingerprint)
+      }
+    }
+  }
+
+  @Test fun `an object on its way out is still on the map`() {
+    HeapExplorer.open(testFolder.cleanerHeldActivityHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val activity = tree.findByLabel(ACTIVITY_CLASS_NAME.substringAfterLast('.')).objectId
+
+      // Left where it was: which bytes haven't come back yet is what the map is for, and which section of
+      // the list an object is in says nothing about where the tree hangs it.
+      assertThat(tree.strengthOf(activity)).isEqualTo(ReachabilityStrength.PHANTOM)
+      assertThat(tree.dominatorOf(activity)!!.label).isEqualTo("Cleaner")
+    }
+  }
+
   @Test fun `a leak held by a reference Shark knows is somebody else's`() {
     HeapExplorer.open(testFolder.libraryLeakHeapDump()).use { explorer ->
       val leaks = explorer.tree.findLeaks()
@@ -231,12 +300,14 @@ class HeapLeaksTest {
     }
   }
 
-  @Test fun `a heap dump with nothing wrong in it has all three sections and no leak`() {
+  @Test fun `a heap dump with nothing wrong in it has every section and no leak`() {
     testFolder.openTestHeapDump().use { explorer ->
       val leaks = explorer.tree.findLeaks()
 
-      // All three of them, so that the screen says which kinds of leak were looked for and not found.
-      assertThat(leaks.sections.map { it.kind }).containsExactly(APPLICATION, LIBRARY, UNREACHABLE)
+      // Every one of them, so that the screen says which kinds of leak were looked for and not found: the
+      // two to do something about first, then the ways of being on the way out, weakest last.
+      assertThat(leaks.sections.map { it.kind })
+        .containsExactly(APPLICATION, LIBRARY, SOFT, WEAK, FINALIZER, PHANTOM, UNREACHABLE)
       assertThat(leaks.objectCount).isZero()
       assertThat(leaks.leakingObjectIds).isEmpty()
     }
