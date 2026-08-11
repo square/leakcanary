@@ -574,9 +574,9 @@ class HeapDominatorTreemap internal constructor(
    * both dominate [toObjectId] are only one of the ways the lower one is reached from the upper, and these
    * are the rest of them. See [RootPathDetour].
    *
-   * At most [MAX_INDEPENDENT_PATHS] of them, each at most [MAX_PATH_STEPS] steps long. The first call for
-   * a heap dump builds a [ReferrerIndex], which reads the whole dump; the paths themselves are then walks
-   * in memory, so the wait is once per dump rather than once per object.
+   * At most [MAX_INDEPENDENT_PATHS] of them, each spelled out whole. The first call for a heap dump builds
+   * a [ReferrerIndex], which reads the whole dump; the paths themselves are then walks in memory, so the
+   * wait is once per dump rather than once per object.
    */
   fun independentPathsBetween(
     fromObjectId: Long,
@@ -664,8 +664,8 @@ class HeapDominatorTreemap internal constructor(
    * those dominators, so they are always all on it.
    *
    * Cheap enough to ask as the pointer moves, once [indexReferrers] has been paid for: one breadth first
-   * walk over as much of the graph as it takes to reach a root, and only the steps that end up shown are
-   * read out of the heap dump. At most [MAX_ROOT_PATH_STEPS] of them.
+   * walk over as much of the graph as it takes to reach a root, then a read of the heap dump per step of
+   * the chain it found.
    */
   fun rootPathTo(objectId: Long): RootPath = rootPathAlong(rootPathObjectIdsTo(objectId))
 
@@ -703,38 +703,22 @@ class HeapDominatorTreemap internal constructor(
     return found.map { referrerIndex.objectIdAt(it) }
   }
 
-  /** The steps of [pathObjectIds] worth drawing, read out of the heap dump. See [rootPathTo]. */
+  /** The steps of [pathObjectIds], read out of the heap dump, with what dominates it marked. */
   private fun rootPathAlong(pathObjectIds: List<Long>): RootPath {
     if (pathObjectIds.isEmpty()) {
       return RootPath.NONE
     }
-    // Kept from the object up, like an independent path: what holds it directly is what a reader is
-    // after, and the plumbing between a GC root and an app's own objects rarely is.
-    val hiddenStepCount = (pathObjectIds.size - MAX_ROOT_PATH_STEPS).coerceAtLeast(0)
-    // One before the first shown step, when there is one: it names the field that step is held in.
-    val fromIndex = (hiddenStepCount - 1).coerceAtLeast(0)
-    val objectIds = pathObjectIds.subList(fromIndex, pathObjectIds.size)
     val dominatorIds = dominatorIdsOf(pathObjectIds.last())
-    val steps = objectIds.mapIndexedNotNull { index, stepObjectId ->
-      when {
-        index > 0 -> stepTo(stepObjectId, referrerId = objectIds[index - 1])
-        // The GC root's own object, which no field of the heap dump points at. Only when the whole chain
-        // is shown: otherwise this is the last of the objects left out, here to name that field.
-        hiddenStepCount == 0 -> step(stepObjectId, reference = null)
-        else -> null
-      }
-    }
     return RootPath(
       gcRootLabel = gcRootLabelOf(pathObjectIds.first()),
-      steps = steps.withLeakStatuses()
-        .map { RootPathStep(it, isDominator = it.objectId in dominatorIds) },
-      hiddenStepCount = hiddenStepCount
+      steps = stepsAlong(pathObjectIds)
+        .map { RootPathStep(it, isDominator = it.objectId in dominatorIds) }
     )
   }
 
   /**
-   * Every step of [pathObjectIds], read out of the heap dump, where [rootPathAlong] reads the last
-   * [MAX_ROOT_PATH_STEPS] of them. For the questions a leak asks of a chain, which are about all of it.
+   * Every step of [pathObjectIds], read out of the heap dump. What both a drawn chain and the questions a
+   * leak asks of one are built from, since both are about all of it.
    */
   private fun stepsAlong(pathObjectIds: List<Long>): List<PathStep> =
     pathObjectIds.mapIndexed { index, stepObjectId ->
@@ -1082,11 +1066,7 @@ class HeapDominatorTreemap internal constructor(
     }
     return IndependentPath(
       gcRootLabel = if (isBelowGroup) gcRootLabelOf(objectIds.first()) else null,
-      // Kept from the object up: what holds it directly is what a reader is looking for, and the
-      // plumbing between a GC root and an app's own objects rarely is. Cut before the statuses are
-      // worked out, so that a status is never explained by an object the chain doesn't show.
-      steps = steps.takeLast(MAX_PATH_STEPS).withLeakStatuses(),
-      hiddenStepCount = (steps.size - MAX_PATH_STEPS).coerceAtLeast(0)
+      steps = steps.withLeakStatuses()
     )
   }
 
@@ -1640,19 +1620,6 @@ class HeapDominatorTreemap internal constructor(
      * rather than by anything anyone would call an owner.
      */
     private const val MAX_INDEPENDENT_PATHS = 6
-
-    /** How many steps of one path are shown, counted from the object up. */
-    private const val MAX_PATH_STEPS = 15
-
-    /**
-     * And how many of a path from a GC root, counted the same way.
-     *
-     * Longer than an independent path's, because this one starts at a GC root rather than below the
-     * dominator, and shorter than the chains a real heap dump has: the way from a thread down to a list
-     * row is dozens of steps of framework plumbing, and each step shown is a read of the heap dump on the
-     * way to answering what the pointer is on.
-     */
-    private const val MAX_ROOT_PATH_STEPS = 20
 
     /** No object index, so it stands for an object one walk of [PathSearch] hasn't reached. */
     private const val NOT_REACHED = -1

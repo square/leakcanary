@@ -14,7 +14,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -324,7 +323,9 @@ class ExplorerAppTest {
       // The links are numbered from the payload out, so the last of them is the one just above it.
       waitUntilAtLeastOneExists(hasText("Link0 instance"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("Link0 instance").assertIsDisplayed()
-      onNodeWithText("Link${CHAIN_LINK_COUNT - 1} instance").assertIsNotDisplayed()
+      // Not merely off screen: the pane draws the rows it has the room for and no others, which is what
+      // lets it draw a chain of a thousand steps at all.
+      onNodeWithText("Link${CHAIN_LINK_COUNT - 1} instance").assertDoesNotExist()
     }
   }
 

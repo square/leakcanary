@@ -11,12 +11,10 @@ package shark.explorer
 /** A chain of objects by id, each of them either a dominator of the last one or only on the way to it. */
 internal fun chain(
   vararg steps: Pair<Long, Boolean>,
-  gcRootLabel: String? = A_GC_ROOT,
-  hiddenStepCount: Int = 0
+  gcRootLabel: String? = A_GC_ROOT
 ): RootPath = RootPath(
   gcRootLabel = gcRootLabel,
-  steps = steps.map { (objectId, isDominator) -> RootPathStep(pathStep(objectId), isDominator) },
-  hiddenStepCount = hiddenStepCount
+  steps = steps.map { (objectId, isDominator) -> RootPathStep(pathStep(objectId), isDominator) }
 )
 
 internal fun pathStep(objectId: Long): PathStep = PathStep(

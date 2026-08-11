@@ -317,10 +317,10 @@ internal fun PathCutRow(
 /**
  * How much a chain says about each of its objects.
  *
- * A chain from a GC root down to a bitmap of a real app runs through a dozen objects and can be cut at
- * twenty, and everything worth saying about each of them is four lines: that chain is taller than any
- * window. So a chain the reader is only glancing at says as little as still names the object, and the one
- * they stopped on says all of it.
+ * A chain from a GC root down to a bitmap of a real app runs through dozens of objects, and everything
+ * worth saying about each of them is four lines: that chain is taller than any window. So a chain the
+ * reader is only glancing at says as little as still names the object, and the one they stopped on says
+ * all of it.
  */
 internal enum class PathDetail(val rowSpacing: Dp) {
 

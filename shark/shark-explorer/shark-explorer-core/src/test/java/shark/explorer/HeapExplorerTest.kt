@@ -434,7 +434,6 @@ class HeapExplorerTest {
       assertThat(path.gcRootLabel).isEqualTo("GC root: JNI global reference")
       assertThat(path.stepLabels()).containsExactly("Holder", "payload → Object[]")
       assertThat(path.steps.map { it.isDominator }).containsExactly(true, false)
-      assertThat(path.hiddenStepCount).isZero()
     }
   }
 
@@ -454,19 +453,18 @@ class HeapExplorerTest {
     }
   }
 
-  @Test fun `a chain too long to read leaves out the steps nearest the gc root`() {
+  @Test fun `a chain longer than the pane it is drawn in is still the whole chain`() {
     HeapExplorer.open(testFolder.longChainHeapDump()).use { explorer ->
       val tree = explorer.tree
       val payload = tree.findByLabel("Object[]")
 
       val path = tree.rootPathTo(payload.objectId)
 
-      // What the reader is after is what holds the object, and the plumbing between a GC root and an app's
-      // own objects rarely is, so a chain past what fits is cut at the root end.
-      assertThat(path.hiddenStepCount).isEqualTo(CHAIN_LINK_COUNT + 1 - MAX_ROOT_PATH_STEPS_SHOWN)
-      assertThat(path.steps).hasSize(MAX_ROOT_PATH_STEPS_SHOWN)
-      // Named by the field it is held in even though the object holding it is one of the steps left out.
-      assertThat(path.stepLabels().first()).isEqualTo("next → Link18")
+      // Every object between the GC root and the payload, however many that is: a chain cut short is a
+      // reader asking what holds this and being handed a count of the steps that would have said.
+      assertThat(path.steps).hasSize(CHAIN_LINK_COUNT + 1)
+      // The GC rooted object itself, which no field of the heap dump points at, down to the payload.
+      assertThat(path.stepLabels().first()).isEqualTo("Link${CHAIN_LINK_COUNT - 1}")
       assertThat(path.stepLabels().last()).isEqualTo("next → Object[]")
     }
   }
@@ -670,9 +668,6 @@ class HeapExplorerTest {
 
     /** Matches `MAX_FIELDS` in [HeapDominatorTreemap], which isn't public. */
     private const val MAX_FIELDS_SHOWN = 500
-
-    /** Matches `MAX_ROOT_PATH_STEPS` in [HeapDominatorTreemap], which isn't public. */
-    private const val MAX_ROOT_PATH_STEPS_SHOWN = 20
 
     /** Object ids are 4 bytes in a dump built by the test DSL. */
     private const val PAYLOAD_BYTE_SIZE = PAYLOAD_ELEMENT_COUNT * 4L
