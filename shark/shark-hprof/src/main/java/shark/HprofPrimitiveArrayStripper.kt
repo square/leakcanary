@@ -54,7 +54,13 @@ import shark.PrimitiveType.SHORT
  */
 class HprofPrimitiveArrayStripper {
 
-  /** @see HprofPrimitiveArrayStripper */
+  /**
+   * [inputHprofFile] is read gzipped when its content is gzipped, and [outputHprofFile] is written
+   * gzipped when its name ends with ".gz", so stripping "app.hprof.gz" writes a gzipped
+   * "app-stripped.hprof.gz" by default.
+   *
+   * @see HprofPrimitiveArrayStripper
+   */
   fun stripPrimitiveArrays(
     inputHprofFile: File,
     /**
@@ -75,9 +81,17 @@ class HprofPrimitiveArrayStripper {
       ),
     deleteInputHprofFile: Boolean = false
   ): File {
+    val fileSinkProvider = StreamingSinkProvider {
+      outputHprofFile.outputStream().sink().buffer()
+    }
     stripPrimitiveArrays(
-      hprofSourceProvider = FileSourceProvider(inputHprofFile),
-      hprofSinkProvider = { outputHprofFile.outputStream().sink().buffer() },
+      hprofSourceProvider = FileSourceProvider(inputHprofFile).gunzipIfGzipped(),
+      hprofSinkProvider =
+        if (outputHprofFile.name.endsWith(GZIP_FILE_EXTENSION)) {
+          fileSinkProvider.gzip()
+        } else {
+          fileSinkProvider
+        },
       onDoneOpeningNewSources = {
         if (deleteInputHprofFile) {
           // Using the Unix trick of deleting the file as soon as all readers have opened it.
@@ -433,3 +447,5 @@ private const val REPLACEMENT_PATTERN_BYTE_SIZE = 8192
 
 /** '?', in UTF-8 and in the low byte of a UTF-16BE character alike. */
 private const val QUESTION_MARK_BYTE: Byte = 63
+
+private const val GZIP_FILE_EXTENSION = ".gz"

@@ -14,6 +14,9 @@ class StripHprofCommand : CliktCommand(
     |of the heap dump refers to. Those hold no runtime data in a heap dump from Android, but a heap
     |dump from a JVM also holds every string constant of every loaded class in them, so stripping a
     |JVM heap dump leaves the constants written in the code behind.
+    |
+    |A gzipped heap dump is read gzipped and written back gzipped, so "app.hprof.gz" gives you
+    |"app-stripped.hprof.gz".
     """.trimMargin()
 ) {
 
