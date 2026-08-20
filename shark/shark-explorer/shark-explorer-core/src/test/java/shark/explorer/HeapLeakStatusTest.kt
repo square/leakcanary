@@ -99,6 +99,30 @@ class HeapLeakStatusTest {
     }
   }
 
+  /**
+   * The other half of what a status decides: which reference the leak is, which is read off the objects
+   * either side of it and so is a hand's to change. See [PathReference.isFaulty].
+   */
+  @Test fun `a chain marks a faulty reference once a hand says an object is expected`() {
+    val dump = testFolder.nestedLeaksHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      // Nothing on this chain is known to belong in memory — a holder nothing knows either way about, then
+      // two destroyed objects — so the fault is at one of two steps and the chain marks neither.
+      assertThat(explorer.tree.rootPathTo(dump.windowObjectId).faultyReferences()).isEmpty()
+
+      val path = explorer.tree.rootPathTo(
+        objectId = dump.windowObjectId,
+        overrides = overrides(dump.activityObjectId, NOT_LEAKING, "kept for one more frame on purpose")
+      )
+
+      // And saying the activity belongs there is what leaves one step between the two verdicts: the window
+      // it is still holding is the leak, and there is now nothing else it could be. Named after the class
+      // that declares the field, which is the framework's `Activity` rather than the app's subclass of it.
+      assertThat(path.faultyReferences()).containsExactly("Activity.mWindow")
+    }
+  }
+
   @Test fun `an object holds the ones it reaches and not the other way round`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
@@ -294,6 +318,12 @@ class HeapLeakStatusTest {
     status: LeakStatus,
     reason: String
   ) = LeakStatusOverrides.of(listOf(override(objectId, status, reason)))
+
+  /** The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named. */
+  private fun RootPath.faultyReferences(): List<String> =
+    steps.mapNotNull { it.step.reference }
+      .filter { it.isFaulty }
+      .map { "${it.ownerClassName}.${it.name}" }
 
   companion object {
     /** An address no dump these tests write has an object at, since they start at 1. */

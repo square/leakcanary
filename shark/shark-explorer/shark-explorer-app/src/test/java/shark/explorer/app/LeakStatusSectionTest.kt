@@ -39,12 +39,13 @@ import shark.explorer.statusText
 
 /**
  * Whether the object a tab is on is meant to be in memory, said at the top of the panel that says what the
- * object is, and changed by hand from there.
+ * object is, changed by hand from there, and what the answer marks on the chain beside it.
  *
  * What the statuses mean and how two of them disagree is `LeakStatusTest` and `HeapLeakStatusTest` in
  * `shark-explorer-core`, and where they are kept is `LeakStatusFileTest`. What is only true here is that the
- * panel says what the heap dump says, that changing one asks for the reason before it writes anything, and
- * that a status which cannot be true alongside another is shown rather than settled quietly.
+ * panel says what the heap dump says, that changing one asks for the reason before it writes anything, that
+ * a status which cannot be true alongside another is shown rather than settled quietly, and that the chain
+ * says which reference the leak is.
  */
 @OptIn(ExperimentalTestApi::class)
 class LeakStatusSectionTest {
@@ -208,6 +209,34 @@ class LeakStatusSectionTest {
   }
 
   /**
+   * What the verdicts are for: they are about objects, and the thing to go and fix is the one reference going
+   * from an object that belongs in memory to one that doesn't.
+   *
+   * Both halves in one window, because they are one answer: the reference is marked from the verdicts either
+   * side of it, so a verdict set by hand is what puts the mark on the chain and what takes it off again.
+   */
+  @Test fun `the chain marks which reference the leak is, and a hand can take the mark off`() {
+    explorerUiTest {
+      // Set in a run before this one, and what leaves a single reference below it: with nothing on this
+      // chain known to belong in memory, the fault is at either of its two steps and neither is marked.
+      openHeapDump(setAlready = { holderIsExpected() }) { it.activityObjectId }
+
+      onNodeWithText("$FAULTY_STEP $FAULTY_REFERENCE").assertIsDisplayed()
+
+      changeStatus()
+      choose(LeakStatus.NOT_LEAKING)
+      write(TYPED_REASON)
+      set()
+
+      // Nothing on this chain is stuck any more, so there is no reference to point at — and the step is
+      // still drawn, which is the mark being about the leak rather than about the reference.
+      waitUntilAtLeastOneExists(hasText(TYPED_REASON, substring = true), SAVE_TIMEOUT_MILLIS)
+      onNodeWithText(FAULTY_REFERENCE, substring = true).assertDoesNotExist()
+      onNodeWithText(FAULTY_STEP).assertIsDisplayed()
+    }
+  }
+
+  /**
    * The other half of setting a status: the leaks are read through them, so the list changes rather than
    * only the colour of one object. See [shark.explorer.HeapDominatorTreemap.findLeaks].
    */
@@ -302,14 +331,22 @@ class LeakStatusSectionTest {
   }
 
   /** A status set on the holder in a run before the one under test, which is the file being there. */
-  private fun holderIsLeaking() {
+  private fun holderIsLeaking() = holderWasSetTo(LeakStatus.LEAKING, HOLDER_REASON)
+
+  /** And the other way: a holder that belongs in memory, with the activity below it still stuck. */
+  private fun holderIsExpected() = holderWasSetTo(LeakStatus.NOT_LEAKING, HOLDER_EXPECTED_REASON)
+
+  private fun holderWasSetTo(
+    status: LeakStatus,
+    reason: String
+  ) {
     statusFile().write(
       LeakStatusOverrides.of(
         listOf(
           LeakStatusOverride(
             objectId = heapDump.holderObjectId,
-            status = LeakStatus.LEAKING,
-            reason = HOLDER_REASON
+            status = status,
+            reason = reason
           )
         )
       )
@@ -352,8 +389,14 @@ class LeakStatusSectionTest {
     /** And what the object holding it is called, where the dialog names that one. */
     private const val HOLDER_NAME = "Holder instance"
 
+    /** The step of the chain that holds the destroyed activity, which is the reference to clear. */
+    private const val FAULTY_STEP = "Holder.activity"
+
     /** And what it was given as its reason, which the dialog has to show to be overruled. */
     private const val HOLDER_REASON = "this holder is the one to fix"
+
+    /** The reason for the other status a run before this one set on the holder. */
+    private const val HOLDER_EXPECTED_REASON = "this holder is the app's own cache"
 
     /** What the dialog says about a status set on an object that holds the one being changed. */
     private const val CONFLICT_ABOVE = "holds it"

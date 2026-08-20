@@ -1127,8 +1127,8 @@ class HeapDominatorTreemap internal constructor(
         leakingObject = leakingObject
       )
     }
-    // The whole of it, since the row is named after both ends: the faulty reference,
-    // which is what LeakCanary calls the leak, and the one the object that leaked hangs off.
+    // The whole of it, since the row is named after both ends: the reference LeakCanary
+    // calls the leak, and the one the object that leaked hangs off.
     val suspectSubpath = suspectSubpath(steps)
     // The first one on the way down, so a chain through two known leaks is named after the one nearest
     // the root, which is the one holding the other. A chain goes through a known leaking reference only
@@ -1155,7 +1155,7 @@ class HeapDominatorTreemap internal constructor(
       // objects reached through the same suspect stretch of references are two instances of one leak,
       // whatever their classes and however far below it they are.
       leakFingerprint = steps.leakFingerprint(),
-      // The faulty reference, which is the leak itself rather than one of the objects
+      // The top of the stretch, which is the leak itself rather than one of the objects
       // it left behind. Those are the rows under it, and each says what it is.
       title = suspectSubpath.firstOrNull() ?: simpleClassName,
       suspectPath = suspectSubpath,
@@ -1182,15 +1182,14 @@ class HeapDominatorTreemap internal constructor(
    * the way `LeakTrace.leakFingerprint` spells one: by the class that declares the field, so that the name
    * of a leak is a string that is also on the chain drawn for it. Which is why the name is no substitute
    * for the leak fingerprint and the two are both on the row.
+   *
+   * The stretch the chain marks the faulty reference in — see [faultyReferenceIndexOrNull] — so that where
+   * it is a single reference, which is most leaks, the name of a leak here and the mark on the chain someone
+   * opens from it are one reference said twice. Where it isn't, the row names the whole stretch and the chain
+   * marks nothing, since which of those references is at fault is exactly what isn't known.
    */
-  private fun suspectSubpath(steps: List<PathStep>): List<String> {
-    val lastNotLeaking = steps.indexOfLast { it.leakStatus == LeakStatus.NOT_LEAKING }
-    val firstLeaking = steps.indexOfFirst { it.leakStatus == LeakStatus.LEAKING }
-      .let { if (it == -1) steps.lastIndex else it }
-    return (lastNotLeaking + 1..firstLeaking)
-      .mapNotNull { steps[it].reference }
-      .map { it.genericLabel() }
-  }
+  private fun suspectSubpath(steps: List<PathStep>): List<String> =
+    steps.suspectReferenceIndexes().map { steps[it].reference!!.genericLabel() }
 
   /**
    * A reference spelled the way the chain pane spells it — `Tile.view`, `Object[][x]` — with an array index
@@ -1327,11 +1326,21 @@ class HeapDominatorTreemap internal constructor(
    */
   private fun List<InspectedStep>.withLeakStatuses(): List<PathStep> {
     val statuses = leakStatusesOf(map { it.inspected })
-    return mapIndexed { index, inspected ->
+    val steps = mapIndexed { index, inspected ->
       inspected.step.copy(
         leakStatus = statuses[index].status,
         leakStatusReason = statuses[index].reason
       )
+    }
+    // And which of its references the leak is, when the same statuses say: one step from an object expected
+    // to be in memory to a stuck one, which no step knows on its own. See [PathReference.isFaulty].
+    val faultyIndex = steps.faultyReferenceIndexOrNull() ?: return steps
+    return steps.mapIndexed { index, step ->
+      if (index == faultyIndex) {
+        step.copy(reference = step.reference!!.copy(isFaulty = true))
+      } else {
+        step
+      }
     }
   }
 

@@ -125,7 +125,23 @@ data class PathReference(
   val ownerClassName: String,
   val locationType: ReferenceLocationType,
   /** Set for the references Shark knows leak in code an app doesn't control, null for the rest. */
-  val libraryLeak: LibraryLeakPattern?
+  val libraryLeak: LibraryLeakPattern?,
+  /**
+   * Whether this is the reference the leak *is*: the one step of the path that goes from an object expected
+   * to be in memory to a stuck one.
+   *
+   * **The one thing on a chain that says where to go and change code.** A status is about an object, and
+   * every object below this reference reads as stuck because of it — so a reader following the statuses is
+   * being pointed at what a leak left behind, and this is being pointed at the leak. The same reference the
+   * leaks screen names a leak after, wherever a leak is a single reference. See
+   * [faultyReferenceIndexOrNull], which is where the rule and the three ways a path has no faulty reference
+   * are, and [LeakGroup.suspectPath].
+   *
+   * False for every reference of most paths of a heap dump, since it takes the two verdicts either side of
+   * one reference to be true. Worked out once the whole path is known, like [PathStep.leakStatus], for the
+   * same reason: the statuses of the objects either side of it are what decide it.
+   */
+  val isFaulty: Boolean = false
 )
 
 /**

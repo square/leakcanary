@@ -165,8 +165,20 @@ and only the garbage collector not having run keeps it here. The verdict means t
 
 The reason is the rest of the answer, because half of these are about another object: an activity is red
 because its own `mDestroyed` is true, and the view under it is red because the activity is. `Activity↑ is
-stuck` is the chain saying so — and it is also how you find the faulty reference, which is the step between
-the last `Expected` object and the first `Stuck` one.
+stuck` is the chain saying so.
+
+**The chain marks the faulty reference itself**: `Holder.activity · faulty reference`, in bold red, on the one
+step that goes from an `Expected` object straight to a `Stuck` one. It is the one line of a chain that says
+where to go and change code — the shades on the objects are what the leak left behind, this is the leak — and
+it is the same reference the Leaks screen names that leak after, so a row there and the chain you open from it
+name one thing.
+
+**A chain with no such step carries no mark**, which is deliberate: what would be marked would be a guess
+drawn as an answer. With objects nothing knows either way about between the two verdicts, the fault is at one
+of those steps and nothing on the chain says which. With nothing `Expected` above the stuck object at all,
+what holds it may be something that should have let go of it too, so the fault can be further up than the
+chain reaches. Overruling a verdict is what closes either gap: say what you know about one object in between,
+and the mark appears on the step that leaves.
 
 **The pencil beside it** overrules the verdict. Pick one of the three, type why, and **Set the verdict**:
 

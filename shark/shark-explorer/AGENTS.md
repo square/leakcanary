@@ -76,6 +76,19 @@ deliberately avoid "leak" on an object, since a leak is one faulty reference and
 leaking points readers at the wrong thing. `LeakStatus.statusText` is the only place the two meet, so change
 a word there and nowhere else. `notes/decisions.md` has why each word won.
 
+**Which reference the leak is, is decided once, over the whole path** — `faultyReferenceIndexOrNull`, called
+from `withLeakStatuses` — and carried on `PathReference.isFaulty` for the drawing to read. Working it out in
+the window from the steps on screen looks equivalent and isn't: a pane draws stretches of a chain
+(`stepsBelow`, `stepsAfter`, a swapped-in `RootPathWay`), so the object that ends the stretch can be above
+what it shows.
+
+**And it marks nothing unless one step crosses from `Expected` to `Stuck`.** `suspectReferenceIndexes`, the
+whole stretch between the two verdicts, is what a leak is *named* after — `suspectSubpath`, and Shark's leak
+fingerprint — so it is tempting to mark the top of it, which is what the first version did and what
+`notes/decisions.md` records as wrong: a chain whose objects all have no verdict got its top reference marked
+for being where the walk started. A longer stretch is a fault at one of several steps with nothing saying
+which, and nothing drawn is the answer for that.
+
 Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
 are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
 `rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots`, `findLeaks`, `isBelowLeakingObject` —

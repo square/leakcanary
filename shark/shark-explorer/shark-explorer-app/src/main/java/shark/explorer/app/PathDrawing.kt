@@ -457,6 +457,12 @@ private fun ReferenceLine(reference: PathReference) {
         ) {
           append(reference.displayName())
         }
+        // The one line of a chain that says where to go and change code, so it is the one thing on a
+        // chain drawn bold: the shades on the objects say what a leak left behind, and this says what the
+        // leak is. See [shark.explorer.PathReference.isFaulty].
+        if (reference.isFaulty) {
+          withStyle(FAULTY_REFERENCE_SPAN) { append(" $FAULTY_REFERENCE") }
+        }
         // Which is what makes a chain through a known leak readable as one: the objects below this
         // reference are held by code the app doesn't control, and this is the reference that does it.
         if (reference.libraryLeak != null) {
@@ -466,12 +472,16 @@ private fun ReferenceLine(reference: PathReference) {
       style = MaterialTheme.typography.bodySmall
     )
   }
-  // What is known about the leak is a paragraph, which belongs on hover rather than in the chain.
-  val description = reference.libraryLeak?.description?.takeIf { it.isNotEmpty() }
-  if (description == null) {
+  // Why this reference and not another, and what is known about a leak somebody else's code holds: both are
+  // paragraphs, so both belong on hover rather than in the chain.
+  val explanation = listOfNotNull(
+    FAULTY_REFERENCE_HINT.takeIf { reference.isFaulty },
+    reference.libraryLeak?.description?.takeIf { it.isNotEmpty() }
+  )
+  if (explanation.isEmpty()) {
     line()
   } else {
-    Hint(description, line)
+    Hint(explanation.joinToString("\n\n"), line)
   }
 }
 
@@ -628,6 +638,20 @@ private const val LOCAL_VARIABLE = "<local variable>"
 /** What a reference Shark knows leaks in code the app doesn't control says about itself. */
 internal const val LIBRARY_LEAK = "· known library leak"
 
+/**
+ * And what the reference the leak is says about itself, which is the one thing on a chain to go and fix.
+ *
+ * Two words rather than a sentence, in the red of the objects it left behind: a chain is read as a column
+ * of names, and this is the line to stop on.
+ */
+internal const val FAULTY_REFERENCE = "· faulty reference"
+
+/** Why this reference of the chain and not another, which is a paragraph and so sits on hover. */
+internal const val FAULTY_REFERENCE_HINT =
+  "The leak itself: what this reference is read on is expected to be in memory, what it points at should " +
+    "have been gone, so this is the one reference that should have been cleared. Everything under it is " +
+    "only still here because of it, and clearing this one is what would let all of it go."
+
 /** Wide enough for the line, its arrow head and a ring to sit clear of the text beside it. */
 private val GUTTER_WIDTH = 26.dp
 
@@ -720,6 +744,9 @@ private val MUTED_SPAN = SpanStyle(color = MUTED_TEXT, fontWeight = FontWeight.N
 
 /** And for the words saying a reference is a known library leak, in the red of the leaks it explains. */
 private val LIBRARY_LEAK_SPAN = SpanStyle(color = LEAKING_TEXT, fontWeight = FontWeight.Normal)
+
+/** The same red for the reference the leak is, bold: nothing else on a chain is the thing to fix. */
+private val FAULTY_REFERENCE_SPAN = SpanStyle(color = LEAKING_TEXT, fontWeight = FontWeight.Bold)
 
 /** The letter drawn in an object's circle, which is what kind of object it is. */
 private val HeapObjectKind.badgeLetter: String

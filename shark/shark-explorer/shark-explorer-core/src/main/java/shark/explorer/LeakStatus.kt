@@ -162,6 +162,63 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
   return statuses
 }
 
+/**
+ * Which references of a path the leak could be, as indexes into it: the stretch [leakStatusesOf] leaves in
+ * the middle, from the last object expected to be in memory down to the first stuck one.
+ *
+ * **What a leak is named after**, and what makes two objects instances of the same leak — the same stretch
+ * LeakCanary underlines in a leak trace and hashes into a leak fingerprint. The fault is at one of these
+ * references and the objects between them are the ones nothing knows either way about, so which one of them
+ * it is only reads off the path when there is a single one: that one is [faultyReferenceIndexOrNull], and
+ * narrowing a longer stretch to it is a person reading code, which is what setting a status by hand is for.
+ *
+ * Empty for a path with nothing stuck on it, which is most paths of a heap dump: the rules can point at a
+ * reference only once something below it is known not to belong. And the references of steps that have none
+ * are left out, which is the object a GC root reaches: a root holds its object through no field, so there is
+ * nothing there to have cleared.
+ */
+internal fun List<PathStep>.suspectReferenceIndexes(): List<Int> {
+  val firstStuck = indexOfFirst { it.leakStatus == LeakStatus.LEAKING }
+  if (firstStuck == -1) {
+    return emptyList()
+  }
+  // Never below the first stuck object: [leakStatusesOf] pushes that one past every object expected to be
+  // in memory, so the stretch between the two ends is never empty and never runs backwards.
+  val lastExpected = indexOfLast { it.leakStatus == LeakStatus.NOT_LEAKING }
+  return (lastExpected + 1..firstStuck).filter { this[it].reference != null }
+}
+
+/**
+ * Which reference of a path is **the faulty reference** — the one that should have been cleared — as an index
+ * into it, or null when the path doesn't say which one that is.
+ *
+ * The single reference that crosses from an object expected to be in memory to a stuck one: above it
+ * everything is legitimately held, below it everything is in memory only because of it, so that one
+ * reference is the whole of what there is to change in code.
+ *
+ * Null for most paths, and the three ways it is null are worth telling apart:
+ *
+ * - **Nothing stuck on the path.** There is no fault to point at, which is most of a heap dump.
+ * - **Nothing expected above the stuck object**, a chain of `Cleaner`s no inspector recognizes being the
+ *   shape of it. What holds the stuck object may be something that should have let go of it too, and then
+ *   the fault is further up than this path knows — so marking the top of the path would be naming a
+ *   reference for being where the walk stopped.
+ * - **Objects nothing is known about in between.** The fault is at one of those steps and the path doesn't
+ *   say which, so marking one of them would be a guess drawn as an answer. They are
+ *   [suspectReferenceIndexes], which is what a leak is named after, and a status set by hand is what turns
+ *   that stretch into a single reference.
+ */
+internal fun List<PathStep>.faultyReferenceIndexOrNull(): Int? {
+  val firstStuck = indexOfFirst { it.leakStatus == LeakStatus.LEAKING }
+  val lastExpected = indexOfLast { it.leakStatus == LeakStatus.NOT_LEAKING }
+  if (firstStuck == -1 || lastExpected == -1 || firstStuck != lastExpected + 1) {
+    return null
+  }
+  // A step below the first can still be missing its reference, when reading the referrer again doesn't find
+  // the reference the referrer index walked through — see `stepTo`. Nothing to mark then.
+  return firstStuck.takeIf { this[firstStuck].reference != null }
+}
+
 /** The same sentence with what it is overruling recorded after it, when there is anything to record. */
 private fun String.conflicting(overruled: String?): String =
   if (overruled == null) this else "$this. Conflicts with $overruled"

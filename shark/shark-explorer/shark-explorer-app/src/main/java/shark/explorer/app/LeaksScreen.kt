@@ -218,7 +218,7 @@ private fun OnTheWayOutHeader(
     HorizontalDivider(thickness = SECTION_RULE_WIDTH, color = SECTION_RULE_COLOR)
     Column(
       Modifier.fillMaxWidth()
-        .clickableRow(onToggle)
+        .clickableRow(onClick = onToggle)
         .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
       verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
@@ -622,7 +622,9 @@ internal const val NAME_HINT =
     "which is where to look on the chain to see it. They are one reference for most leaks. Everything " +
     "above the first is the app working as intended and everything below the last is what the leak is " +
     "holding, so neither is part of what makes this leak this leak. For an object on its way out it is " +
-    "the one reference the collector hasn't cleared yet, which is the whole of why it is still here."
+    "the one reference the collector hasn't cleared yet, which is the whole of why it is still here. Where " +
+    "a leak is a single reference, the chain drawn for an object under this row marks it, so the row and " +
+    "the step are one thing said twice."
 
 internal const val LEAK_FINGERPRINT_HINT =
   "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +

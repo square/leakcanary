@@ -94,6 +94,51 @@ class HeapLeaksTest {
     }
   }
 
+  @Test fun `the reference a leak is named after is the one its chain marks as the leak`() {
+    HeapExplorer.open(testFolder.applicationHoldsActivityHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val group = tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      val steps = tree.rootPathTo(group.objects.single().objectId).steps.map { it.step }
+
+      // One reference of the chain and no other, and the same string the row on the leaks screen is named
+      // by: whoever goes from that row to this chain is looking for the step they were just reading.
+      assertThat(group.title).isEqualTo(APPLICATION_LEAK_REFERENCE)
+      assertThat(steps.faultyReferences()).containsExactly(APPLICATION_LEAK_REFERENCE)
+    }
+  }
+
+  @Test fun `a chain with nothing expected above what is stuck marks no reference`() {
+    HeapExplorer.open(testFolder.destroyedActivitiesHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val group = tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      val steps = tree.rootPathTo(group.objects.first().objectId).steps.map { it.step }
+
+      // The leak is named after one reference and that reference is still not marked, because nothing above
+      // the activity is known to belong in memory: what holds it may be something that should have let go
+      // of it too, so the fault can be further up than this chain reaches. A mark on the top of it would be
+      // a reference named for being where the walk started.
+      assertThat(group.suspectPath).containsExactly("Holder.activity")
+      assertThat(steps.faultyReferences()).isEmpty()
+    }
+  }
+
+  @Test fun `a chain marks nothing where more than one reference could be the leak`() {
+    HeapExplorer.open(testFolder.applicationHoldsActivityThroughHolderHeapDump()).use { explorer ->
+      val tree = explorer.tree
+      val group = tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      val steps = tree.rootPathTo(group.objects.single().objectId).steps.map { it.step }
+
+      // Two references between the object expected to be in memory and the stuck one, with an object
+      // nothing knows either way about between them: the fault is at one of those two steps and the heap
+      // dump doesn't say which, so the row names both and the chain marks neither.
+      assertThat(group.suspectPath).containsExactly(APPLICATION_HOLDER_REFERENCE, "Holder.activity")
+      assertThat(steps.faultyReferences()).isEmpty()
+    }
+  }
+
   @Test fun `objects in two slots of one array are instances of one leak`() {
     HeapExplorer.open(testFolder.leaksInOneArrayHeapDump()).use { explorer ->
       val group = explorer.tree.findLeaks().sectionOf(APPLICATION).groups.single()
@@ -333,9 +378,27 @@ class HeapLeaksTest {
       assertThat(tree.findByLabel("Object[]").objectId).matches { !tree.isBelowLeakingObject(it) }
     }
   }
+
+  /** Which is most chains of a heap dump, and the whole of why the mark is worth reading on the few. */
+  @Test fun `a chain with nothing stuck on it marks no reference as the leak`() {
+    testFolder.openTestHeapDump().use { explorer ->
+      val tree = explorer.tree
+
+      val steps = tree.rootPathTo(tree.findByLabel("Object[]").objectId).steps.map { it.step }
+
+      assertThat(steps).isNotEmpty
+      assertThat(steps.faultyReferences()).isEmpty()
+    }
+  }
 }
 
 private fun HeapLeaks.sectionOf(kind: LeakKind): LeakSection = sections.single { it.kind == kind }
 
 private fun HeapLeaks.objectsOf(kind: LeakKind): List<LeakingObject> =
   sectionOf(kind).groups.flatMap { it.objects }
+
+/** The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named. */
+private fun List<PathStep>.faultyReferences(): List<String> =
+  mapNotNull { it.reference }
+    .filter { it.isFaulty }
+    .map { "${it.ownerClassName}.${it.name}" }

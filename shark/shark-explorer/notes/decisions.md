@@ -877,8 +877,33 @@ window.
 
 **"Faulty reference" is the name for the culprit**, the reference between the last `Expected` object and the
 first `Stuck` one, which is what `LeakGroup.suspectPath` starts at and what the leaks screen names each row
-after. Only prose so far — nothing on a chain marks that step yet, and marking it is the change that would
-actually put a reader's eye on the reference rather than on the objects.
+after. **And the chain marks it**: `Holder.activity · faulty reference`, bold, in the red of the objects it
+left behind, which is the change that actually puts a reader's eye on the reference rather than on the
+objects. `PathReference.isFaulty`, worked out in `withLeakStatuses`, and `suspectSubpath` names the leaks
+screen's rows off the same statuses — so where a leak is a single reference, a row there and the chain opened
+from it name one thing.
+
+**Only a single step between the two verdicts is marked.** `faultyReferenceIndexOrNull` asks for an `Expected`
+object with a `Stuck` one directly under it, and marks nothing otherwise. The first attempt marked the top of
+the suspect stretch instead, the way LeakCanary underlines all of it, and it was wrong in the case that
+matters: a chain of `Cleaner`s with no verdict on any object of it had its top reference marked, which is a
+reference named for being where the walk started rather than for anything read off the heap dump. Two shapes
+make the stretch longer than a step and neither supports a mark — objects nothing knows either way about in
+between, where the fault is at one of those steps and nothing says which; and nothing `Expected` above the
+stuck object at all, where what holds it may be something that should have let go too, so the fault can be
+further up than the path reaches. A guess drawn in the same bold red as an answer costs more than no mark,
+because being the one line to act on is the whole of what the mark is for. Shortening the stretch is what
+setting a verdict by hand does, and the mark appears when it becomes one step.
+
+**Which makes the mark the exception on a real dump.** Measured over every `shark-android` test dump: 2 of
+their 12 app leaks carry one — `MainActivity$Lol.foo` and `DvFragment.mRoot` — and the other ten have between
+1 and 13 objects nothing knows either way about between the two verdicts, `AsyncTask.SERIAL_EXECUTOR` with its
+four being the usual shape. That is the number to weigh if the rule is ever loosened: a rule that marked the
+top of the stretch would put a bold red line on all twelve, and ten of them would be pointing at a reference
+picked for being highest rather than for being wrong.
+
+**Nothing is marked on a chain with nothing stuck on it**, which is most chains in a heap dump. A leak is a
+reference the evidence points at, and there is no evidence until something below it is known not to belong.
 
 **A pencil, left of the status, rather than a "Set by hand…" button.** It is what changes the answer, so it
 belongs where the eye already is, and a text button pushed the reason onto a second line of a 320dp panel.

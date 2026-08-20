@@ -199,14 +199,14 @@ data class LeakGroup(
    */
   val title: String,
   /**
-   * The references the leak *is*, as `Foo.bar` each: from the faulty reference, the one that should have
+   * The references the leak *is*, as `Foo.bar` each: from the highest one that could be what should have
    * been cleared, down to the one that points straight at what is stuck. A single reference for a leak on
    * its way out, that one being what still holds it rather than what should have let go.
    *
    * The stretch of the chain [leakFingerprint] hashes, which is what makes these objects one leak, and
    * the same for every object in the group. Both ends are worth reading — the first says what to stop
-   * holding, the last says where on the chain to find what it left behind — and they are the same
-   * reference for a leak held one step below something expected, which is most leaks.
+   * holding, the last says where on the chain to find what it left behind — and where they are one
+   * reference, that reference is the faulty one and the chain marks it. See [PathReference.isFaulty].
    *
    * Empty for the leaks named some other way: a library leak is named by the pattern that recognized it,
    * and a leak nothing holds any more has no chain to read references off.
