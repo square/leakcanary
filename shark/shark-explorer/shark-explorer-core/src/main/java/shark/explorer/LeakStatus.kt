@@ -17,7 +17,14 @@ enum class LeakStatus {
   /** Nothing knows either way, which is most of a heap dump. */
   UNKNOWN,
 
-  /** Something knows this object should be gone: a destroyed activity, a watched object still there. */
+  /**
+   * Something knows this object should be gone: a destroyed activity, a watched object still there.
+   *
+   * **Including one nothing reaches any more**, which the leaks screen lists apart under
+   * [LeakKind.UNREACHABLE]. It was still expected to be gone, and what keeps it here is only that the
+   * garbage collector hasn't run — so this is the same verdict, said the same way, and where an object sits
+   * on that scale is what the leaks screen is for rather than what this says.
+   */
   LEAKING
 }
 
@@ -29,18 +36,24 @@ enum class LeakStatus {
  * statuses — a status set by hand says which status it was set from — and two spellings of one status
  * would show up in one line of one window.
  *
- * **One word each, said about the object rather than about the leak.** `Leaked` rather than LeakCanary's
- * `Leaking: YES`, because a leak is a reference that shouldn't be there and "leaking" reads as that object
- * leaking something as easily as being the thing left behind — the ambiguity is in the word, not in the
- * reader. `Needed` rather than `Not leaking`, since what an inspector recognizes is that something still
- * needs this object, and a status is read a dozen times down one chain: it has to be a label, not a
- * sentence.
+ * **One word each, and neither of the two built on "leak".** A leak is one faulty reference that should
+ * have been cleared, and everything under it is retained by that one mistake — so a word like `Leaking` or
+ * `Leaked` on twenty objects points a reader at the twenty rather than at the one thing to fix. `Stuck`
+ * says what is true of the object without accusing it: it should be gone and something is holding it,
+ * which is the question worth asking. `Expected` says its being in memory is legitimate at this point in
+ * the app's life, which is what an inspector actually recognizes.
+ *
+ * No heap analyser has a verdict like this to borrow words from — JProfiler classifies objects by
+ * reference type and by age, YourKit by reachability scope, and both leave the judgement to the reader,
+ * because neither has watched objects or framework inspectors to make it with. What JProfiler's prose asks
+ * is whether objects "are still legitimately on the heap or if a faulty reference keeps them alive", which
+ * is the same split these two words are, and where the **faulty reference** gets its name.
  */
 val LeakStatus.statusText: String
   get() = when (this) {
-    LeakStatus.NOT_LEAKING -> "Needed"
+    LeakStatus.NOT_LEAKING -> "Expected"
     LeakStatus.UNKNOWN -> "Unknown"
-    LeakStatus.LEAKING -> "Leaked"
+    LeakStatus.LEAKING -> "Stuck"
   }
 
 /** What one object of a path is, and why. See [LeakStatus]. */
@@ -55,7 +68,7 @@ internal class LeakStatusAndReason(
 
 /** What Shark's inspectors made of one object of a path, before the path decides what it means. */
 internal class InspectedPathObject(
-  /** For naming it in another object's reason: `MainActivity↓ is needed`. */
+  /** For naming it in another object's reason: `MainActivity↓ is expected`. */
   val simpleClassName: String,
   val leakingReasons: Set<String>,
   val notLeakingReasons: Set<String>,
@@ -75,7 +88,8 @@ internal class InspectedPathObject(
  * below a leaking object is leaking, because the only thing keeping it in memory is an object that
  * shouldn't be there. So the inspectors have to recognize one object of a chain for the whole chain to
  * read, and what's left in the middle — between the last [LeakStatus.NOT_LEAKING] and the first
- * [LeakStatus.LEAKING] — is where the leak is.
+ * [LeakStatus.LEAKING] — is where the **faulty reference** is: the one reference that should have been
+ * cleared, and the whole of what there is to fix.
  *
  * This is [shark.RealLeakTracerFactory]'s algorithm, kept in step with it deliberately: a chain here and
  * a LeakCanary leak trace of the same objects that disagreed about which of them are leaking would be two
@@ -120,9 +134,9 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
       reason = when (statuses[index].status) {
         // With a reason of its own only when a hand gave it one, which the path is then overruling: an
         // object someone said nothing is known about is one of the two statuses this can disagree with.
-        LeakStatus.UNKNOWN -> "$nextNotLeakingName is needed".conflicting(reason)
-        LeakStatus.NOT_LEAKING -> "$nextNotLeakingName is needed and $reason"
-        LeakStatus.LEAKING -> "$nextNotLeakingName is needed. Conflicts with $reason"
+        LeakStatus.UNKNOWN -> "$nextNotLeakingName is expected".conflicting(reason)
+        LeakStatus.NOT_LEAKING -> "$nextNotLeakingName is expected and $reason"
+        LeakStatus.LEAKING -> "$nextNotLeakingName is expected. Conflicts with $reason"
       }
     )
   }
@@ -134,13 +148,13 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
     statuses[index] = LeakStatusAndReason(
       status = LeakStatus.LEAKING,
       reason = when (statuses[index].status) {
-        LeakStatus.UNKNOWN -> "$previousLeakingName leaked".conflicting(reason)
-        LeakStatus.LEAKING -> "$previousLeakingName leaked and $reason"
+        LeakStatus.UNKNOWN -> "$previousLeakingName is stuck".conflicting(reason)
+        LeakStatus.LEAKING -> "$previousLeakingName is stuck and $reason"
         // No object below the first leaking one is left not leaking: the first leaking index is reset
         // past every object that isn't, and the loop above turned the rest into not leaking already.
         LeakStatus.NOT_LEAKING -> error(
-          "${objects[index].simpleClassName} at $index is needed, below " +
-            "${objects[previousLeakingIndex].simpleClassName} at $previousLeakingIndex, which leaked"
+          "${objects[index].simpleClassName} at $index is expected, below " +
+            "${objects[previousLeakingIndex].simpleClassName} at $previousLeakingIndex, which is stuck"
         )
       }
     )

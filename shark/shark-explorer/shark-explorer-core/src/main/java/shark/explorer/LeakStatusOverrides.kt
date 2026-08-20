@@ -180,8 +180,8 @@ private fun LeakStatusOverride.solvedBy(
       "${hexObjectId(objectId)} is unknown, so it does not conflict with ${hexObjectId(override.objectId)}"
     )
   },
-  // Both statuses in quotes, because they are labels rather than words of the sentence: "can be needed"
-  // reads as a claim of the sentence and "can be \"Needed\"" as the status it is.
+  // Both statuses in quotes, because they are labels rather than words of the sentence: "can be expected"
+  // reads as a claim of the sentence and "can be \"Expected\"" as the status it is.
   reason = "so that $overrideName ${if (isAbove) "below" else "above"} this can be " +
     "\"${override.status.statusText}\", which it was set to. Was \"${status.statusText}\": $reason"
 )

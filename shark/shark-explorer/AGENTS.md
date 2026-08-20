@@ -67,7 +67,14 @@ found, and the search for every way an object is held runs for the object clicke
 question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md` has the
 numbers on the biggest dump in the repo, including how long a chain gets there.
 
-## A leaking status set by hand is an argument to every read, never state of the tree
+## A verdict set by hand is an argument to every read, never state of the tree
+
+**The window says `Verdict`, `Stuck`, `Expected` and "faulty reference"; the code says `LeakStatus`,
+`LEAKING`, `NOT_LEAKING` and `suspectPath`.** That's deliberate — the identifiers match
+`shark.LeakTraceObject.LeakingStatus` because they have to agree with Shark, and the words on screen
+deliberately avoid "leak" on an object, since a leak is one faulty reference and calling everything under it
+leaking points readers at the wrong thing. `LeakStatus.statusText` is the only place the two meet, so change
+a word there and nowhere else. `notes/decisions.md` has why each word won.
 
 Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
 are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,

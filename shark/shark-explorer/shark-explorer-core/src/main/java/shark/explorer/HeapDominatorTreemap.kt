@@ -895,7 +895,7 @@ class HeapDominatorTreemap internal constructor(
    *
    * The price is that a [LeakGroup.leakFingerprint] only matches the one LeakCanary computes for the same
    * objects while nothing is set by hand: the fingerprint hashes the stretch of chain between the last
-   * object still needed and the first that shouldn't be there, and moving either end is the point of
+   * expected object and the first stuck one, and moving either end is the point of
    * setting a status. Nothing else compares fingerprints across the two. See [LeakStatusOverride].
    *
    * Worked out again per set of statuses and kept until the next one, since a status is set by hand and
@@ -964,7 +964,7 @@ class HeapDominatorTreemap internal constructor(
   private val watchers: Map<Long, WatchedObject> by lazy { WatchedObjects.readFrom(graph) }
 
   /**
-   * The objects that shouldn't be in memory, before anything is known about how they are held.
+   * The objects that are stuck in memory, before anything is known about how they are held.
    *
    * Its own pass because both the leaks screen and every chain drawn in the window want it, and it costs a
    * read of every instance of the heap dump — see [leakingObjectIds] and [rootPathSearch].
@@ -972,7 +972,7 @@ class HeapDominatorTreemap internal constructor(
   private val leakingCandidateIds: Set<Long> by lazy {
     val startNanos = System.nanoTime()
     val ids = leakingObjectIds(watchers)
-    SharkLog.d { "Found ${ids.size} objects that leaked in ${millisSince(startNanos)} ms" }
+    SharkLog.d { "Found ${ids.size} stuck objects in ${millisSince(startNanos)} ms" }
     ids
   }
 
@@ -1062,7 +1062,7 @@ class HeapDominatorTreemap internal constructor(
       rootPathObjectIdsTo(objectId, overrides)
     }
     // The whole chain rather than the part of it a pane draws, since a leak is named and grouped by the
-    // stretch of it between the last object still needed and the first that shouldn't be there, and
+    // stretch of it between the last expected object and the first stuck one, and
     // cutting the top off a chain moves that stretch.
     val steps = stepsAlong(pathObjectIds, overrides)
     val target = steps.lastOrNull()
@@ -1127,7 +1127,7 @@ class HeapDominatorTreemap internal constructor(
         leakingObject = leakingObject
       )
     }
-    // The whole of it, since the row is named after both ends: the reference that shouldn't be holding,
+    // The whole of it, since the row is named after both ends: the faulty reference,
     // which is what LeakCanary calls the leak, and the one the object that leaked hangs off.
     val suspectSubpath = suspectSubpath(steps)
     // The first one on the way down, so a chain through two known leaks is named after the one nearest
@@ -1155,7 +1155,7 @@ class HeapDominatorTreemap internal constructor(
       // objects reached through the same suspect stretch of references are two instances of one leak,
       // whatever their classes and however far below it they are.
       leakFingerprint = steps.leakFingerprint(),
-      // The reference that shouldn't be holding, which is the leak itself rather than one of the objects
+      // The faulty reference, which is the leak itself rather than one of the objects
       // it left behind. Those are the rows under it, and each says what it is.
       title = suspectSubpath.firstOrNull() ?: simpleClassName,
       suspectPath = suspectSubpath,
@@ -1169,8 +1169,8 @@ class HeapDominatorTreemap internal constructor(
 
   /**
    * The suspect stretch of a chain, as `Class.field` per reference: how the last object known to still be
-   * needed reaches the first one that shouldn't be there. What a leak is named after, since the first of
-   * them is the reference that shouldn't be holding.
+   * expected reaches the first stuck one. What a leak is named after, since the first of them is the
+   * faulty reference.
    *
    * What everything leaking for one reason has in common. The references below the first leaking object are
    * left out because they are what the leak is holding rather than why: a leaked activity holds its window,
@@ -1226,7 +1226,7 @@ class HeapDominatorTreemap internal constructor(
    * that shouldn't be in memory — but there is one thing to fix, and it is the one nearest the GC roots:
    * let go of the activity and the other two go with it.
    *
-   * **A leak is a reference that shouldn't be there, not an object**, which is what makes this the right
+   * **A leak is a faulty reference, not an object**, which is what makes this the right
    * rule rather than "unless some other leak dominates it". An object held two ways, each of them through a
    * different leak, has no leaking dominator and would survive that rule as a leak of its own — but there
    * is nothing to fix about it that isn't already on the list twice over, and fixing both references takes

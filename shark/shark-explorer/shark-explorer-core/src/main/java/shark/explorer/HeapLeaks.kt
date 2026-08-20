@@ -3,7 +3,7 @@ package shark.explorer
 import java.security.MessageDigest
 
 /**
- * Every object of a heap dump that shouldn't be there, gathered into the leaks they are instances of. See
+ * Every stuck object of a heap dump, gathered into the leaks they are instances of. See
  * [HeapDominatorTreemap.findLeaks].
  *
  * The same answer LeakCanary's analysis gives, computed here instead so that every row keeps the object id
@@ -199,14 +199,14 @@ data class LeakGroup(
    */
   val title: String,
   /**
-   * The references the leak *is*, as `Foo.bar` each: from the one that shouldn't be holding any more down
-   * to the one that points straight at what leaked. A single reference for a leak on its way out, that one
-   * being what still holds it rather than what shouldn't.
+   * The references the leak *is*, as `Foo.bar` each: from the faulty reference, the one that should have
+   * been cleared, down to the one that points straight at what is stuck. A single reference for a leak on
+   * its way out, that one being what still holds it rather than what should have let go.
    *
    * The stretch of the chain [leakFingerprint] hashes, which is what makes these objects one leak, and
    * the same for every object in the group. Both ends are worth reading — the first says what to stop
    * holding, the last says where on the chain to find what it left behind — and they are the same
-   * reference for a leak held one step below something still needed, which is most leaks.
+   * reference for a leak held one step below something expected, which is most leaks.
    *
    * Empty for the leaks named some other way: a library leak is named by the pattern that recognized it,
    * and a leak nothing holds any more has no chain to read references off.
@@ -237,7 +237,7 @@ internal fun String.sha1Hex(): String =
   MessageDigest.getInstance("SHA-1").digest(toByteArray(Charsets.UTF_8))
     .joinToString(separator = "") { byte -> "%02x".format(byte) }
 
-/** One object that shouldn't be in memory. See [LeakGroup]. */
+/** One object that is stuck in memory. See [LeakGroup]. */
 data class LeakingObject(
   val objectId: Long,
   /** Fully qualified class name, or array type. */

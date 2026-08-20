@@ -841,21 +841,44 @@ a chain reads them here for free.
 `Shallow` beside it. It is the one line of the panel that is a judgement rather than a measurement, which is
 also what says the pencil beside it is allowed to disagree with it.
 
-**"Leaking" and "Not leaking" became "Leaked" and "Needed"**, `Unknown` staying `Unknown`. LeakCanary's leak
-traces say `Leaking: YES / NO / UNKNOWN`, and matching them was the case for keeping the old words — but
-calling an *object* leaking reads as that object leaking something as easily as being the thing left behind,
-and this repo's own rule is that a leak is a reference rather than an object. `Leaked` is that rule in the
-tense: the object leaked, and the leak is the reference still holding it. `Needed` is what an inspector
-actually recognizes — something still needs this object.
+**"Leaking" and "Not leaking" became `Stuck` and `Expected`**, `Unknown` staying `Unknown`, and **no word
+built on "leak" is allowed on an object**. A leak is one faulty reference that should have been cleared, and
+everything under it is retained by that one mistake — so `Leaking` or `Leaked` on twenty objects points a
+reader at the twenty rather than at the one thing to fix. `Stuck` names the object's situation without
+accusing it, and it is the only candidate that asks a question rather than closing one: something is holding
+this, what? `Expected` says its presence in memory is legitimate at this point in the app's life. The pair is
+deliberately not antonyms — an object in use can't be collected either, so the good side has to answer a
+different question than "can it leave".
 
-The first attempt at those two was `Shouldn't be here` and `Meant to be here`, taken from the module's own
-prose, and it was rejected on sight for the reason a status has to be read a dozen times down one chain:
-**a status is a label, not a sentence.** The header carries the question so the labels don't have to, which
-is also why they can be one word each. One `LeakStatus.statusText` is where they live, so the chain, the
-panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a chain
-(`Activity↓ is needed`) all say the same thing. The identifiers didn't move: `LeakStatus`, `LEAKING`,
-`leakStatusesOf` stay Shark's names, because the code is where matching
+**No other analyser has a verdict like this**, so there were no words to borrow. Checked: JProfiler
+classifies objects by reference type (strongly referenced, retained by soft references) and by age (`Mark
+Heap`, then "new" and "old" objects); YourKit by reachability scope (strong, softly, weakly reachable,
+unreachable, pending finalization); Eclipse MAT names places rather than objects (*leak suspect*,
+*accumulation point*, *keep-alive path*); dotMemory has *key retention paths*. None labels an object leaking,
+because none has watched objects or framework inspectors to do it with — they rank by size and leave the
+judgement to the reader. What they do share is the frame: JProfiler asks whether objects "are still
+legitimately on the heap or if a **faulty reference** keeps them alive", which is where the name for the
+culprit edge comes from, and YourKit defines a leak as objects "not needed anymore according to the
+application logic".
+
+Two attempts came before this one. `Shouldn't be here` / `Meant to be here` was rejected on sight —
+**a verdict is a label, not a sentence**, since it is read a dozen times down one chain. `Leaked` / `Needed`
+was rejected for the misdirection above. One `LeakStatus.statusText` is where the words live, so the chain,
+the panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a chain
+(`Activity↓ is expected`, `Activity↑ is stuck`) all say the same thing. The identifiers didn't move:
+`LeakStatus`, `LEAKING`, `leakStatusesOf` stay Shark's names, because the code is where matching
 `shark.LeakTraceObject.LeakingStatus` matters.
+
+**The verdict means the same thing on an unreachable object.** A watched object nothing reaches any more is
+`Stuck` like any other, even though what keeps it is the collector not having run rather than a faulty
+reference: it was expected to be gone. Where it sits on that scale is what the leaks screen's `Unreachable`
+section is for, and a fourth value would have made the verdict mean something different in one corner of the
+window.
+
+**"Faulty reference" is the name for the culprit**, the reference between the last `Expected` object and the
+first `Stuck` one, which is what `LeakGroup.suspectPath` starts at and what the leaks screen names each row
+after. Only prose so far — nothing on a chain marks that step yet, and marking it is the change that would
+actually put a reader's eye on the reference rather than on the objects.
 
 **A pencil, left of the status, rather than a "Set by hand…" button.** It is what changes the answer, so it
 belongs where the eye already is, and a text button pushed the reason onto a second line of a 320dp panel.
@@ -863,7 +886,7 @@ Disabled until the statuses have been read off disk, which is the same rule the 
 
 **From the last step of the chain when there is one**, and from the object's own reading until the walk up to
 the GC roots lands, since the chain's answer is the one with the objects above and below taken into account.
-So the panel can say `Unknown` for a beat and then say `Leaked` — the panes filling in, not the window
+So the panel can say `Unknown` for a beat and then say `Stuck` — the panes filling in, not the window
 changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no
 object of it, and there is nothing to inspect or decide about.
 

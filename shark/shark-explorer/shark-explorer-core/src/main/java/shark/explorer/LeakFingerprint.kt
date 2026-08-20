@@ -10,7 +10,7 @@ import shark.ReferenceLocationType
 
 /**
  * The leak fingerprint LeakCanary prints under a leak, computed for a chain the explorer found: a SHA-1 of
- * the stretch of the chain between the last object still needed and the first one that shouldn't be there,
+ * the stretch of the chain between the last expected object and the first stuck one,
  * spelled by the class of each object and the name of the reference out of it.
  *
  * **Shark's own [LeakTrace.leakFingerprint] rather than a rule of the same shape.** A leak fingerprint is

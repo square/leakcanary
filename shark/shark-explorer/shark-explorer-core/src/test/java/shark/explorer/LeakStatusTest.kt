@@ -23,7 +23,7 @@ class LeakStatusTest {
     assertThat(statuses.map { it.status })
       .containsExactly(NOT_LEAKING, NOT_LEAKING, NOT_LEAKING, UNKNOWN)
     // Named after the object that decided it, and which way along the path it is.
-    assertThat(statuses[0].reason).isEqualTo("Activity↓ is needed")
+    assertThat(statuses[0].reason).isEqualTo("Activity↓ is expected")
     assertThat(statuses[2].reason).isEqualTo("Activity#mDestroyed is false")
   }
 
@@ -33,7 +33,7 @@ class LeakStatusTest {
     )
 
     assertThat(statuses.map { it.status }).containsExactly(UNKNOWN, LEAKING, LEAKING, LEAKING)
-    assertThat(statuses[2].reason).isEqualTo("Activity↑ leaked")
+    assertThat(statuses[2].reason).isEqualTo("Activity↑ is stuck")
   }
 
   @Test fun `what is left between the two is where the leak is`() {
@@ -77,7 +77,7 @@ class LeakStatusTest {
 
     assertThat(statuses.map { it.status }).containsExactly(NOT_LEAKING, NOT_LEAKING, UNKNOWN)
     assertThat(statuses.first().reason)
-      .isEqualTo("Activity↓ is needed. Conflicts with Cache#entry is stale")
+      .isEqualTo("Activity↓ is expected. Conflicts with Cache#entry is stale")
   }
 
   @Test fun `a path with no objects has no statuses`() {
@@ -123,7 +123,7 @@ class LeakStatusTest {
     )
 
     assertThat(statuses.map { it.status }).containsExactly(UNKNOWN, LEAKING, LEAKING)
-    assertThat(statuses.last().reason).isEqualTo("Presenter↑ leaked")
+    assertThat(statuses.last().reason).isEqualTo("Presenter↑ is stuck")
   }
 
   @Test fun `the path overruling a status set by hand says what it overruled`() {
@@ -135,7 +135,7 @@ class LeakStatusTest {
 
     assertThat(statuses.last().status).isEqualTo(LEAKING)
     assertThat(statuses.last().reason)
-      .isEqualTo("Activity↑ leaked. Conflicts with set by hand — no idea what this is")
+      .isEqualTo("Activity↑ is stuck. Conflicts with set by hand — no idea what this is")
   }
 }
 

@@ -37,7 +37,7 @@ import shark.explorer.LeakStatusOverride
 import shark.explorer.statusText
 
 /**
- * Whether the object the tab is on is meant to be in memory, and the pencil that overrules the answer.
+ * The verdict on the object the tab is on, and the pencil that overrules it.
  *
  * At the top of what the object is, under its name and above its size, because it is the conclusion the
  * rest of that panel is the evidence for. In the colours a chain draws a status in — because it is the same
@@ -81,8 +81,8 @@ internal fun LeakStatusDetail(
           color = if (isRead) LINK_COLOR else MaterialTheme.colorScheme.outline
         )
       }
-      // The status behind its own shade, the way a step of a chain is drawn, so that the object having
-      // leaked is something you see before reading anything.
+      // The verdict behind its own shade, the way a step of a chain is drawn, so that an object being
+      // stuck is something you see before reading anything.
       Text(
         "${status.status.glyph} ${status.status.statusText}",
         Modifier.then(
@@ -379,7 +379,7 @@ private sealed interface Decision {
 }
 
 /**
- * The leaking status of the object a tab is on, from wherever the window knows it.
+ * The verdict on the object a tab is on, from wherever the window knows it.
  *
  * Which is either of two reads, and they answer slightly different questions: the last step of the chain from
  * a GC root, which is the status with the objects above and below it taken into account, or the object's own
@@ -417,7 +417,7 @@ internal fun statusDialogTitle(objectName: String) = "Verdict on $objectName"
 /** What opens the dialog, set or not: the same mark the app writes a note with. */
 internal const val EDIT_STATUS_GLYPH = "✎"
 
-internal const val SAVE_STATUS = "Set the status"
+internal const val SAVE_STATUS = "Set the verdict"
 internal const val CANCEL_STATUS = "Cancel"
 internal const val CLEAR_STATUS = "Take it off"
 
@@ -428,16 +428,16 @@ internal const val SOLVE_CONFLICTS = "Keep this and flip those"
 internal const val UNDO_STATUS = "Undo"
 
 internal const val CHECKING_CONFLICTS =
-  "Looking for statuses set by hand that this one could not be true alongside…"
+  "Looking for verdicts set by hand that this one could not be true alongside…"
 
 private const val WRITING_STATUS = "Keeping it…"
 
 private const val NOW_LABEL = "Now:"
 
 private const val SET_STATUS_HINT =
-  "Say whether this object leaked, whatever the heap dump says. Kept between runs, and the reason with it."
+  "Say whether this object is stuck, whatever the heap dump says. Kept between runs, and the reason with it."
 
-private const val CHANGE_STATUS_HINT = "Change or take off the status set by hand for this object."
+private const val CHANGE_STATUS_HINT = "Change or take off the verdict set by hand for this object."
 
 private const val REASON_LABEL = "Why"
 
@@ -445,15 +445,15 @@ private const val REASON_PLACEHOLDER =
   "What you know that the heap dump doesn't: whoever reads this next has only this sentence to go on."
 
 /** What the box is called, which is also how a test finds it: there is no other text field in the dialog. */
-internal const val REASON_DESCRIPTION = "Why this object is being given that status."
+internal const val REASON_DESCRIPTION = "Why this object is being given that verdict."
 
-private const val CONFLICT_ONE = "status set by hand cannot be true alongside"
-private const val CONFLICT_MANY = "statuses set by hand cannot be true alongside"
+private const val CONFLICT_ONE = "verdict set by hand cannot be true alongside"
+private const val CONFLICT_MANY = "verdicts set by hand cannot be true alongside"
 
 private const val CONFLICT_EXPLANATION =
-  "Everything a leaked object holds has leaked too, and everything holding a needed one is needed too — so " +
-    "these and the status being set contradict each other. Keeping this one flips them to the opposite " +
-    "status, with what they said kept as part of the new reason."
+  "Everything a stuck object holds is stuck too, and everything holding an expected one is expected too — " +
+    "so these and the verdict being set contradict each other. Keeping this one flips them to the opposite " +
+    "verdict, with what they said kept as part of the new reason."
 
 private const val CONFLICT_ABOVE = "holds it"
 private const val CONFLICT_BELOW = "is held by it"

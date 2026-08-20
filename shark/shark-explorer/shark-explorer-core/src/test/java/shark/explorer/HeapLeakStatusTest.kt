@@ -141,7 +141,7 @@ class HeapLeakStatusTest {
       // Solving it flips the one already set, and the reason says that this is why.
       assertThat(conflict.solved.status).isEqualTo(NOT_LEAKING)
       assertThat(conflict.solved.reason)
-        .contains("below this can be \"Needed\"", "Was \"Leaked\": this screen was closed")
+        .contains("below this can be \"Expected\"", "Was \"Stuck\": this screen was closed")
     }
   }
 
@@ -159,7 +159,7 @@ class HeapLeakStatusTest {
       assertThat(conflict.existing.objectId).isEqualTo(dump.windowObjectId)
       assertThat(conflict.isAbove).isFalse()
       assertThat(conflict.solved.status).isEqualTo(LEAKING)
-      assertThat(conflict.solved.reason).contains("above this can be \"Leaked\"")
+      assertThat(conflict.solved.reason).contains("above this can be \"Stuck\"")
     }
   }
 
@@ -237,7 +237,7 @@ class HeapLeakStatusTest {
     }
   }
 
-  @Test fun `an object set to needed is no longer a leak, and what it held becomes one`() {
+  @Test fun `an object set to expected is no longer a leak, and what it held becomes one`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapExplorer.open(dump.file).use { explorer ->
@@ -263,7 +263,7 @@ class HeapLeakStatusTest {
   }
 
   /** A chain goes round what shouldn't be in memory, and a hand saying it should be is what decides that. */
-  @Test fun `a chain stops going round an object once a hand says it is needed`() {
+  @Test fun `a chain stops going round an object once a hand says it is expected`() {
     val dump = testFolder.leakAlsoHeldAnotherWayHeapDump()
 
     HeapExplorer.open(dump.file).use { explorer ->

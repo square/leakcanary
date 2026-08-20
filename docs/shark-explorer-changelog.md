@@ -30,11 +30,11 @@ uses, without the one for a newly recognized library leak:
   See [Take notes](shark-explorer.md#take-notes).
 * ✨ Right click ← or → for the list of everywhere that arrow leads, so going back four moves is one
   click rather than four.
-* ✨ **Verdict**: whether the object a tab is on leaked — `✗ Leaked`, `✓ Needed` or `? Unknown` — is the first
-  thing the **What it is** panel says, in the same colours a chain uses, and the pencil beside it overrules
-  the verdict: a reason is required, kept with it, and what you overruled is recorded beside it. Where a
-  verdict you set contradicts another one, every verdict it disagrees with is listed with the reason it was
-  given, and keeping yours flips them. The **Leaks** screen follows what you set, since marking an object as
-  leaked makes it a leak and takes whatever it holds off the list. Kept between runs in
+* ✨ **Verdict**: whether the object a tab is on is stuck in memory — `✗ Stuck`, `✓ Expected` or `? Unknown`
+  — is the first thing the **What it is** panel says, in the same colours a chain uses, and the pencil beside
+  it overrules the verdict: a reason is required, kept with it, and what you overruled is recorded beside it.
+  Where a verdict you set contradicts another one, every verdict it disagrees with is listed with the reason
+  it was given, and keeping yours flips them. The **Leaks** screen follows what you set, since marking an
+  object as stuck makes it a leak and takes whatever it holds off the list. Kept between runs in
   `~/.shark-explorer/leak-statuses`, one file per heap dump.
-  See [Say what leaked](shark-explorer.md#say-what-leaked).
+  See [The verdict](shark-explorer.md#the-verdict).
