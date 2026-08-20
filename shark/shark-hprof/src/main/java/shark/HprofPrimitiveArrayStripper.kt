@@ -380,7 +380,8 @@ class HprofPrimitiveArrayStripper {
               }
 
               HEAP_DUMP_INFO.tag -> {
-                source.transfer(identifierByteSize + identifierByteSize)
+                // heapId, then heapNameStringId. The heap id is an Int, not an object id.
+                source.transfer(intByteSize + identifierByteSize)
               }
 
               else ->
