@@ -161,6 +161,15 @@ class HprofPrimitiveArrayStripper {
     val primitiveWrapperClassesByClassId = mutableMapOf<Long, PrimitiveWrapperClass>()
     var startedReadingHeapDump = false
 
+    // Arrays are replaced by repeating one of these over their content, so that replacing an array
+    // never needs a buffer the size of that array.
+    val zeroes = ByteArray(REPLACEMENT_PATTERN_BYTE_SIZE)
+    val utf8QuestionMarks = ByteArray(REPLACEMENT_PATTERN_BYTE_SIZE) { QUESTION_MARK_BYTE }
+    val utf16BeQuestionMarks =
+      ByteArray(REPLACEMENT_PATTERN_BYTE_SIZE) { index ->
+        if (index % 2 == 0) 0 else QUESTION_MARK_BYTE
+      }
+
     while (!source.exhausted()) {
       // type of the record
       val tag = source.transferUnsignedByte()
@@ -327,7 +336,7 @@ class HprofPrimitiveArrayStripper {
                   // a class declares its own fields ahead of the ones it inherits, so the value is
                   // at the start of the instance field values.
                   val valueByteSize = wrapperClass.valueType.byteSize
-                  source.overwrite(ByteArray(valueByteSize))
+                  source.overwriteRepeating(valueByteSize.toLong(), zeroes)
                   source.transfer(remainingBytesInInstance - valueByteSize)
                 } else {
                   source.transfer(remainingBytesInInstance)
@@ -351,28 +360,19 @@ class HprofPrimitiveArrayStripper {
                 source.transfer(identifierByteSize + intByteSize)
                 val arrayLength = source.transferInt()
                 val type = source.transferUnsignedByte()
-                when (val primitiveType = PrimitiveType.primitiveTypeByHprofType.getValue(type)) {
-                  CHAR -> {
-                    val byteArray =
-                      String(CharArray(arrayLength) { '?' }).toByteArray(Charsets.UTF_16BE)
-                    source.overwrite(byteArray)
+                val primitiveType = PrimitiveType.primitiveTypeByHprofType.getValue(type)
+                val replacement =
+                  when (primitiveType) {
+                    // Strings are stored as byte arrays and we can't distinguish between those and
+                    // random byte arrays, so we're updating all byte arrays the same way.
+                    BYTE -> utf8QuestionMarks
+                    CHAR -> utf16BeQuestionMarks
+                    else -> zeroes
                   }
-
-                  BYTE -> {
-                    source.overwrite(
-                      ByteArray(arrayLength) {
-                        // Strings are stored as byte arrays and we can't distinguish between those
-                        // and random byte arrays, so we're updating all byte arrays the same way.
-                        // Converts to '?' in UTF-8 for byte backed strings
-                        63
-                      }
-                    )
-                  }
-
-                  else -> {
-                    source.overwrite(ByteArray(arrayLength * primitiveType.byteSize) { 0 })
-                  }
-                }
+                source.overwriteRepeating(
+                  byteCount = arrayLength.toLong() * primitiveType.byteSize,
+                  pattern = replacement,
+                )
               }
 
               PRIMITIVE_ARRAY_NODATA.tag -> {
@@ -423,3 +423,12 @@ class HprofPrimitiveArrayStripper {
     val valueType: PrimitiveType
   )
 }
+
+/**
+ * Even, so that repeating a pattern of that size always lands on whole UTF-16 characters, and equal
+ * to the size of an Okio segment.
+ */
+private const val REPLACEMENT_PATTERN_BYTE_SIZE = 8192
+
+/** '?', in UTF-8 and in the low byte of a UTF-16BE character alike. */
+private const val QUESTION_MARK_BYTE: Byte = 63

@@ -42,6 +42,7 @@ public final class shark/CopyingSource {
 	public final fun getBytesRead ()J
 	public final fun indexOf (B)J
 	public final fun overwrite ([B)V
+	public final fun overwriteRepeating (J[B)V
 	public final fun transfer (I)V
 	public final fun transfer (J)V
 	public final fun transferByte ()B

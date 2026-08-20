@@ -90,5 +90,24 @@ class CopyingSource(
     sink.write(byteArray)
   }
 
+  /**
+   * Skips [byteCount] bytes of the source and writes [pattern] over and over in their place, until
+   * [byteCount] bytes have been written. This makes it possible to replace bytes without first
+   * allocating a byte array to hold all of them, however many there are.
+   *
+   * The last repetition is cut short when [byteCount] isn't a multiple of the size of [pattern], so
+   * a [pattern] longer than one byte should be one whose repetition divides [byteCount].
+   */
+  fun overwriteRepeating(byteCount: Long, pattern: ByteArray) {
+    bytesRead += byteCount
+    source.skip(byteCount)
+    var remainingByteCount = byteCount
+    while (remainingByteCount > 0) {
+      val writeByteCount = minOf(remainingByteCount, pattern.size.toLong()).toInt()
+      sink.write(pattern, 0, writeByteCount)
+      remainingByteCount -= writeByteCount
+    }
+  }
+
   fun exhausted() = source.exhausted()
 }
