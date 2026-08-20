@@ -59,6 +59,13 @@ internal fun DetailsPanel(
   /** The selected object's pixels, when it's a bitmap anything has the pixels of. */
   bitmap: ImageBitmap?,
   isStarred: Boolean,
+  /** Whether the selected object is meant to be in memory, and null when nothing is selected. */
+  leakStatus: ObjectLeakStatus?,
+  /** Whether the statuses set by hand have been read yet, which is what lets one be changed. */
+  isLeakStatusRead: Boolean,
+  /** What went wrong reading or writing them, shown under the status it is about. */
+  leakStatusProblem: String?,
+  onChangeLeakStatus: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   /** Puts a link to a field's object on the clipboard, beside opening it. See [OpenTarget]. */
   onCopyLink: (Long) -> Unit,
@@ -91,6 +98,10 @@ internal fun DetailsPanel(
           stronglyReachableByteCount = stronglyReachableByteCount,
           bitmap = bitmap,
           isStarred = isStarred,
+          leakStatus = leakStatus,
+          isLeakStatusRead = isLeakStatusRead,
+          leakStatusProblem = leakStatusProblem,
+          onChangeLeakStatus = onChangeLeakStatus,
           onOpen = onOpen,
           onCopyLink = onCopyLink,
           onListInstances = onListInstances,
@@ -157,6 +168,10 @@ private fun ObjectDetails(
   stronglyReachableByteCount: Long,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
+  leakStatus: ObjectLeakStatus?,
+  isLeakStatusRead: Boolean,
+  leakStatusProblem: String?,
+  onChangeLeakStatus: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
@@ -165,15 +180,26 @@ private fun ObjectDetails(
   Hint(if (isStarred) UNSTAR_HINT else STAR_HINT) {
     Text(
       if (isStarred) "$STARRED_GLYPH $STARRED" else "$UNSTARRED_GLYPH $NOT_STARRED",
-      Modifier.clickableRow(onToggleStar).padding(vertical = 2.dp),
+      Modifier.clickableRow(onClick = onToggleStar).padding(vertical = 2.dp),
       style = MaterialTheme.typography.bodyMedium
     )
   }
   summary.headline?.let { headline ->
     Text(headline, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
   }
-  // Right under the headline, which for a bitmap is its size and its format: the picture is what the
-  // bitmap is, and the sentence describing it stops just short of saying it.
+  // Above everything measured about the object, because it is the one line here that is a conclusion:
+  // the sizes and the fields below it are what it was concluded from. Above the picture of a bitmap too,
+  // so that a screenshot several hundred pixels tall can't push the conclusion out of the panel.
+  if (leakStatus != null) {
+    LeakStatusDetail(
+      status = leakStatus,
+      isRead = isLeakStatusRead,
+      problem = leakStatusProblem,
+      onChange = onChangeLeakStatus
+    )
+  }
+  // Under the headline, which for a bitmap is its size and its format: the picture is what the bitmap is,
+  // and the sentence describing it stops just short of saying it.
   BitmapPreview(bitmap)
   Row(
     horizontalArrangement = Arrangement.spacedBy(6.dp),

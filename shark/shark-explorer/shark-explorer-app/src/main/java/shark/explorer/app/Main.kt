@@ -142,6 +142,9 @@ private fun explorerApplication(windows: ExplorerWindows) = application {
   // One notepad per place for the whole run, so that a heap dump open in two windows is one set of notes
   // rather than two that overwrite each other. See [ExplorerNotes].
   val notes = remember { ExplorerNotes() }
+  // And one set of statuses set by hand per heap dump, for the same reason: a status is a conclusion about
+  // the dump rather than about a window, so both windows on one dump read the heap through the same ones.
+  val leakStatuses = remember { ExplorerLeakStatuses() }
   // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
   // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
   LaunchedEffect(updateNotice) {
@@ -183,6 +186,7 @@ private fun explorerApplication(windows: ExplorerWindows) = application {
             },
             updateNotice = updateNotice,
             notes = notes,
+            leakStatuses = leakStatuses,
             deepLinkId = window.deepLinkId,
             // The same way a link arriving from the OS is followed, which is what makes a `shark://` link
             // written in a note work wherever it is read from.
@@ -220,6 +224,11 @@ internal fun ExplorerApp(
    * that a test writes into a directory it was given rather than into the notes of whoever is running it.
    */
   notes: ExplorerNotes = remember { ExplorerNotes() },
+  /**
+   * The leaking statuses set by hand on every heap dump this run has open, shared the same way. Its own by
+   * default for the same reason: a test that took whoever is running it would rewrite their conclusions.
+   */
+  leakStatuses: ExplorerLeakStatuses = remember { ExplorerLeakStatuses() },
   /** What a link to a place in this window names it by. See [shark.explorer.DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked this window for, which its tabs open. See [ExplorerWindow.linkedPlaces]. */
@@ -328,6 +337,7 @@ internal fun ExplorerApp(
         deviceHeapDumps = deviceHeapDumps,
         fetchedBitmapPixels = currentState.bitmapPixels,
         notes = notes.of(currentState.session.heapDumpFile),
+        leakStatuses = leakStatuses.of(currentState.session.heapDumpFile),
         deepLinkId = deepLinkId,
         linkedPlaces = linkedPlaces,
         onLinkedPlaceOpened = onLinkedPlaceOpened,

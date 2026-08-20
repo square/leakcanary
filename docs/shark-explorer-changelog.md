@@ -30,3 +30,17 @@ uses, without the one for a newly recognized library leak:
   See [Take notes](shark-explorer.md#take-notes).
 * ✨ Right click ← or → for the list of everywhere that arrow leads, so going back four moves is one
   click rather than four.
+* ✨ **Verdict**: whether the object a tab is on is stuck in memory — `✗ Stuck`, `✓ Expected` or `? Unknown`
+  — is the first thing the **What it is** panel says, in the same colours a chain uses, and the pencil beside
+  it overrules the verdict: a reason is required, kept with it, and what you overruled is recorded beside it.
+  Where a verdict you set contradicts another one, every verdict it disagrees with is listed with the reason
+  it was given, and keeping yours flips them. The **Leaks** screen follows what you set, since marking an
+  object as stuck makes it a leak and takes whatever it holds off the list. Kept between runs in
+  `~/.shark-explorer/leak-statuses`, one file per heap dump.
+  See [The verdict](shark-explorer.md#the-verdict).
+* ✨ **The chain marks the faulty reference**: the one step going from an `Expected` object straight to a
+  `Stuck` one reads `Holder.activity · faulty reference`, which is the leak itself rather than one of the
+  objects it left behind, and the same reference the **Leaks** screen names that leak after. A chain whose
+  two verdicts are further apart than one step carries no mark, since which reference in between is at fault
+  is what isn't known — overrule a verdict in between and the mark appears.
+  See [The verdict](shark-explorer.md#the-verdict).

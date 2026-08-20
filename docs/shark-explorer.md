@@ -70,6 +70,8 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to.
+* **The verdict on the object a tab is on is the first thing "What it is" says** — `Stuck`, `Expected` or
+  `Unknown` — and you can overrule it, see [The verdict](#the-verdict).
 * Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
 
 ## Link to a tab
@@ -146,6 +148,70 @@ or resizing the window stays on the same note rather than starting a new one.
 Since a `shark://` link names a window, a link written into a note stops working once that window is closed
 — see above. Copy one for the tab you want to come back to *while you are writing about it*, and it will
 take you there for as long as that window is open.
+
+## The verdict
+
+At the top of **What it is**, under the object's name, is the **Verdict** on it — `✗ Stuck`, `✓ Expected`, or
+a quiet `? Unknown` — with the reason under it, in the same colours the chain on the left uses. Most objects
+in a heap dump are `Unknown`, which is why that one is drawn small: the two that mean something are the ones
+worth seeing across the room.
+
+`Stuck` says the object should be gone and something is holding it. `Expected` says its being in memory is
+legitimate at this point in the app's life. It is the same answer a LeakCanary leak trace prints as
+`Leaking: YES`, `NO` and `UNKNOWN`, in words that stop short of calling the object the leak — because
+**the leak is the faulty reference**, the one that should have been cleared, and everything under it is stuck
+by that single mistake. An object nothing reaches any more is `Stuck` as well: it was expected to be gone,
+and only the garbage collector not having run keeps it here. The verdict means the same thing everywhere.
+
+The reason is the rest of the answer, because half of these are about another object: an activity is red
+because its own `mDestroyed` is true, and the view under it is red because the activity is. `Activity↑ is
+stuck` is the chain saying so.
+
+**The chain marks the faulty reference itself**: `Holder.activity · faulty reference`, in bold red, on the one
+step that goes from an `Expected` object straight to a `Stuck` one. It is the one line of a chain that says
+where to go and change code — the shades on the objects are what the leak left behind, this is the leak — and
+it is the same reference the Leaks screen names that leak after, so a row there and the chain you open from it
+name one thing.
+
+**A chain with no such step carries no mark**, which is deliberate: what would be marked would be a guess
+drawn as an answer. With objects nothing knows either way about between the two verdicts, the fault is at one
+of those steps and nothing on the chain says which. With nothing `Expected` above the stuck object at all,
+what holds it may be something that should have let go of it too, so the fault can be further up than the
+chain reaches. Overruling a verdict is what closes either gap: say what you know about one object in between,
+and the mark appears on the step that leaves.
+
+**The pencil beside it** overrules the verdict. Pick one of the three, type why, and **Set the verdict**:
+
+* **Your answer wins**, whatever the inspectors said. Overruling is the point — an inspector reads a field,
+  you read the code, and a cache that is meant to hold what it holds is not something a field can say.
+* **The reason is required.** A verdict with no reason is one nobody who reads your heap dump next — a
+  colleague, an agent, you in a month — can check, and one of those makes every other verdict in it worth
+  less. What you overruled is kept beside your reason rather than thrown away.
+* **It reads as yours**, wherever it appears: `set by hand — the cache is bounded, this is fine`, in the
+  panel and on every chain that runs through the object.
+* **Everything a stuck object holds is stuck too, and everything holding an expected one is expected too**,
+  so a verdict you set changes what the objects around it read as. Which is why setting one is usually enough
+  to make a whole chain make sense.
+* **The pencil again** on an object you have already decided about, and **Take it off** to hand it back to
+  the heap dump.
+
+Because a verdict propagates along the chain, two of them can contradict each other: an object marked as
+stuck, holding one marked as expected, cannot both be read off the chain between them. When what you are
+setting does that, **the window lists every verdict it disagrees with before writing anything** — what the
+object is, which side of yours it is on, the reason it was given, and what it would become. **Keep this and
+flip those** keeps yours and sets them to the opposite verdict, with what they said kept as part of the new
+reason; **Undo** leaves the heap dump exactly as it was. Nothing is written until you pick one.
+
+The verdicts live in `~/.shark-explorer/leak-statuses`, one tab separated file per heap dump, with the columns
+named at the top — so they can be read, edited, diffed or pasted into an issue without this app, and they are
+there again the next time you open that dump.
+
+**The Leaks screen follows what you set**, because a verdict changes which objects are leaks and not only how
+one of them reads: marking something as stuck makes it a leak, and whatever it holds stops being one — it is
+only still in memory because of the object you named, and that is the thing to fix. Marking a leak as
+expected takes it off the list. The one thing this costs is that a leak's fingerprint matches the one
+LeakCanary reports only while nothing has been set by hand, since the fingerprint is the stretch of chain your
+verdict has just moved.
 
 ## Reporting a problem
 

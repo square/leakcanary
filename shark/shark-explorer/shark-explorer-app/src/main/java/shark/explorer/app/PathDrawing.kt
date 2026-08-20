@@ -47,6 +47,7 @@ import shark.explorer.ReachabilityStrength
 import shark.explorer.formatByteSizeOfTotal
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
+import shark.explorer.statusText
 
 /**
  * How a chain of objects is drawn: a column of them with a line running through it, what each one is on
@@ -456,6 +457,12 @@ private fun ReferenceLine(reference: PathReference) {
         ) {
           append(reference.displayName())
         }
+        // The one line of a chain that says where to go and change code, so it is the one thing on a
+        // chain drawn bold: the shades on the objects say what a leak left behind, and this says what the
+        // leak is. See [shark.explorer.PathReference.isFaulty].
+        if (reference.isFaulty) {
+          withStyle(FAULTY_REFERENCE_SPAN) { append(" $FAULTY_REFERENCE") }
+        }
         // Which is what makes a chain through a known leak readable as one: the objects below this
         // reference are held by code the app doesn't control, and this is the reference that does it.
         if (reference.libraryLeak != null) {
@@ -465,12 +472,16 @@ private fun ReferenceLine(reference: PathReference) {
       style = MaterialTheme.typography.bodySmall
     )
   }
-  // What is known about the leak is a paragraph, which belongs on hover rather than in the chain.
-  val description = reference.libraryLeak?.description?.takeIf { it.isNotEmpty() }
-  if (description == null) {
+  // Why this reference and not another, and what is known about a leak somebody else's code holds: both are
+  // paragraphs, so both belong on hover rather than in the chain.
+  val explanation = listOfNotNull(
+    FAULTY_REFERENCE_HINT.takeIf { reference.isFaulty },
+    reference.libraryLeak?.description?.takeIf { it.isNotEmpty() }
+  )
+  if (explanation.isEmpty()) {
     line()
   } else {
-    Hint(description, line)
+    Hint(explanation.joinToString("\n\n"), line)
   }
 }
 
@@ -480,8 +491,13 @@ private fun ReferenceLine(reference: PathReference) {
  * The hand is the whole of how it says so, rather than a colour: which object a step is, is drawn the same
  * way everywhere the window names one, and half of those places are nothing to click.
  */
-internal fun Modifier.clickableRow(onClick: () -> Unit): Modifier =
-  pointerHoverIcon(PointerIcon.Hand).clickable(onClick = onClick)
+internal fun Modifier.clickableRow(
+  /** Off while what the click would need hasn't been read yet, which leaves the row as plain text. */
+  enabled: Boolean = true,
+  onClick: () -> Unit
+): Modifier =
+  pointerHoverIcon(if (enabled) PointerIcon.Hand else PointerIcon.Default)
+    .clickable(enabled = enabled, onClick = onClick)
 
 /** The class the field is read on, with no dot before an array index: `Tile.view`, `Object[][3]`. */
 private fun PathReference.ownerPrefix(): String =
@@ -622,6 +638,20 @@ private const val LOCAL_VARIABLE = "<local variable>"
 /** What a reference Shark knows leaks in code the app doesn't control says about itself. */
 internal const val LIBRARY_LEAK = "· known library leak"
 
+/**
+ * And what the reference the leak is says about itself, which is the one thing on a chain to go and fix.
+ *
+ * Two words rather than a sentence, in the red of the objects it left behind: a chain is read as a column
+ * of names, and this is the line to stop on.
+ */
+internal const val FAULTY_REFERENCE = "· faulty reference"
+
+/** Why this reference of the chain and not another, which is a paragraph and so sits on hover. */
+internal const val FAULTY_REFERENCE_HINT =
+  "The leak itself: what this reference is read on is expected to be in memory, what it points at should " +
+    "have been gone, so this is the one reference that should have been cleared. Everything under it is " +
+    "only still here because of it, and clearing this one is what would let all of it go."
+
 /** Wide enough for the line, its arrow head and a ring to sit clear of the text beside it. */
 private val GUTTER_WIDTH = 26.dp
 
@@ -662,23 +692,19 @@ private val BADGE_LETTER_COLOR = Color.White
  * line naming it, and the lines a row is made of already mean things by their colour. Faint enough that a
  * column of them still reads as a chain: the shade says where along the chain something went wrong, and
  * the reason under the object says what.
+ *
+ * Reachable from outside this drawing, because the row above the panes says what the object the whole window
+ * is about is in these same colours: what a status looks like is one thing, whether it is being read on a
+ * chain or over the panes. See [LeakStatusBanner].
  */
-private val LeakStatus.background: Color?
+internal val LeakStatus.background: Color?
   get() = when (this) {
     LeakStatus.NOT_LEAKING -> ALIVE_BACKGROUND
     LeakStatus.UNKNOWN -> null
     LeakStatus.LEAKING -> LEAKING_BACKGROUND
   }
 
-/** How the reason line names the status it is the reason for. */
-private val LeakStatus.statusText: String
-  get() = when (this) {
-    LeakStatus.NOT_LEAKING -> "Not leaking"
-    LeakStatus.UNKNOWN -> "Unknown"
-    LeakStatus.LEAKING -> "Leaking"
-  }
-
-private val LeakStatus.textColor: Color
+internal val LeakStatus.textColor: Color
   get() = when (this) {
     LeakStatus.NOT_LEAKING -> ALIVE_TEXT
     LeakStatus.UNKNOWN -> MUTED_TEXT
@@ -695,8 +721,8 @@ private val LEAKING_TEXT = Color(0xFFC62828)
 
 /** What the object the panel is describing is drawn behind, which is the end of the chain. */
 private val TARGET_BACKGROUND = Color(0x1A2196F3)
-private val TARGET_SHAPE = RoundedCornerShape(4.dp)
-private val TARGET_PADDING = 4.dp
+internal val TARGET_SHAPE = RoundedCornerShape(4.dp)
+internal val TARGET_PADDING = 4.dp
 
 /** The purple LeakCanary draws a leak trace in, which this is the same shape as. */
 private val CONNECTOR_COLOR = Color(0xFF7E57C2)
@@ -718,6 +744,9 @@ private val MUTED_SPAN = SpanStyle(color = MUTED_TEXT, fontWeight = FontWeight.N
 
 /** And for the words saying a reference is a known library leak, in the red of the leaks it explains. */
 private val LIBRARY_LEAK_SPAN = SpanStyle(color = LEAKING_TEXT, fontWeight = FontWeight.Normal)
+
+/** The same red for the reference the leak is, bold: nothing else on a chain is the thing to fix. */
+private val FAULTY_REFERENCE_SPAN = SpanStyle(color = LEAKING_TEXT, fontWeight = FontWeight.Bold)
 
 /** The letter drawn in an object's circle, which is what kind of object it is. */
 private val HeapObjectKind.badgeLetter: String

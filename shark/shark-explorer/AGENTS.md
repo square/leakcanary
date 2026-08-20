@@ -67,6 +67,48 @@ found, and the search for every way an object is held runs for the object clicke
 question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md` has the
 numbers on the biggest dump in the repo, including how long a chain gets there.
 
+## A verdict set by hand is an argument to every read, never state of the tree
+
+**The window says `Verdict`, `Stuck`, `Expected` and "faulty reference"; the code says `LeakStatus`,
+`LEAKING`, `NOT_LEAKING` and `suspectPath`.** That's deliberate — the identifiers match
+`shark.LeakTraceObject.LeakingStatus` because they have to agree with Shark, and the words on screen
+deliberately avoid "leak" on an object, since a leak is one faulty reference and calling everything under it
+leaking points readers at the wrong thing. `LeakStatus.statusText` is the only place the two meet, so change
+a word there and nowhere else. `notes/decisions.md` has why each word won.
+
+**Which reference the leak is, is decided once, over the whole path** — `faultyReferenceIndexOrNull`, called
+from `withLeakStatuses` — and carried on `PathReference.isFaulty` for the drawing to read. Working it out in
+the window from the steps on screen looks equivalent and isn't: a pane draws stretches of a chain
+(`stepsBelow`, `stepsAfter`, a swapped-in `RootPathWay`), so the object that ends the stretch can be above
+what it shows.
+
+**And it marks nothing unless one step crosses from `Expected` to `Stuck`.** `suspectReferenceIndexes`, the
+whole stretch between the two verdicts, is what a leak is *named* after — `suspectSubpath`, and Shark's leak
+fingerprint — so it is tempting to mark the top of it, which is what the first version did and what
+`notes/decisions.md` records as wrong: a chain whose objects all have no verdict got its top reference marked
+for being where the walk started. A longer stretch is a fault at one of several steps with nothing saying
+which, and nothing drawn is the answer for that.
+
+Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
+are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
+`rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots`, `findLeaks`, `isBelowLeakingObject` —
+rather than something the tree holds. It has to be that way round for the reason above: the tree is read from
+one thread and the window composed on another, so overrides in the tree would draw a chain from one set of
+them and the row above it from another.
+
+**The parameter defaults to `LeakStatusOverrides.NONE`**, so a new read that forgets it compiles and answers
+with the dump's own reading — which looks right, and is wrong the moment anybody has set a status. Thread it
+through, and key the `LaunchedEffect` that asks on the overrides, which is what makes setting one redraw.
+
+**`findLeaks` is one of them, and the least obvious**: setting a status changes *which objects are leaks*,
+not only how one of them reads. Mark something leaking halfway up a chain and it becomes a leak, while
+whatever it holds drops off the list — that object is now only in memory because of this one, which is what
+`foldedIntoWhatHoldsThem` folds. The list is worked out again per set of statuses and kept until the next,
+and `RootPathSearch` goes round what a hand marked leaking exactly as it goes round what the inspectors did,
+so the chain a leak is grouped by and the statuses drawn on that chain are one answer. The price is that a
+`LeakGroup.leakFingerprint` only matches LeakCanary's for the same objects while nothing is set by hand;
+`notes/decisions.md` has the rest.
+
 ## A heap dump can have `android.os.Build` and not the fields Shark reads off it
 
 `AndroidBuildMirror.fromHeapGraph` reads `MANUFACTURER`, `ID` and `VERSION.SDK_INT` with `!!`, and nearly

@@ -231,18 +231,24 @@ private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf
   ReachabilityStrength.UNREACHABLE
 )
 
-/** What the checkbox that shades the objects that shouldn't be in memory says, before their count. */
-internal const val LEAKING = "Leaking"
+/**
+ * What the checkbox that shades the stuck objects says, before their count.
+ *
+ * The same word the panel and every chain call one of them, because it shades exactly the objects they call
+ * that: two spellings of one verdict, one of them over the map and the other beside it, would read as two
+ * different things being shaded.
+ */
+internal const val LEAKING = "Stuck"
 
 /** And while the pass over the heap dump that finds them runs, which is what ticking it starts. */
-internal const val FINDING_LEAKS = "Leaking: looking…"
+internal const val FINDING_LEAKS = "Stuck: looking…"
 
 internal const val LEAKING_HINT =
-  "Shade the objects that shouldn't be in memory, and everything they hold with them — anything a " +
-    "leaking object dominates is only still there because it is. Greys the rest of the map, so that the " +
-    "shade is the only colour on it. There is no colour for the objects that are meant to be alive: a " +
-    "treemap draws what retains what, and most of a heap dump is objects nothing knows either way about. " +
-    "The chain beside the map says which is which, object by object."
+  "Shade the objects that are stuck in memory, and everything they hold with them — anything a stuck " +
+    "object dominates is only still there because it is. Greys the rest of the map, so that the shade is " +
+    "the only colour on it. There is no colour for the objects that are expected: a treemap draws what " +
+    "retains what, and most of a heap dump is objects nothing knows either way about. The chain beside " +
+    "the map says which is which, object by object."
 
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,

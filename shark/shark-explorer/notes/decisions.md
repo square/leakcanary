@@ -821,6 +821,185 @@ inside it, a file per `noteKey` rather than one document with a section per plac
 the note that was typed into, nothing has to be parsed back out of a document that also holds somebody's own
 headings, and the listing is the index.
 
+## A leaking status is the heap dump's answer until a hand overrules it
+
+Every chain already carried a `LeakStatus` per object, worked out by Shark's inspectors and then propagated
+along the chain — everything above an object still needed is still needed, everything a leaking object holds
+is leaking. Two things were added to that: the status of the object a tab is *on*, said in the panel that
+says what the object is, and the ability to overrule it.
+
+**At the top of "What it is", under the object's name and above its size.** It went under the tab's title
+first, beside the note button, and that was the wrong pane: the title row is about the tab, and this is a
+conclusion about the object — the panel below it holds the evidence the conclusion was drawn from, so the
+answer belongs at the head of that column rather than in a row of its own. Above the bitmap preview too, so
+that a screenshot several hundred pixels tall can't push it out of the panel. In the colours the chain beside
+it uses (`LeakStatus.background` and `textColor` are shared with `PathDrawing` rather than copied), because
+it is the same answer read in one place instead of a dozen — a reader who has learnt the green and the red on
+a chain reads them here for free.
+
+**Under a header, because the panel labels every line**: `Verdict`, one word like the `Retained` and
+`Shallow` beside it. It is the one line of the panel that is a judgement rather than a measurement, which is
+also what says the pencil beside it is allowed to disagree with it.
+
+**"Leaking" and "Not leaking" became `Stuck` and `Expected`**, `Unknown` staying `Unknown`, and **no word
+built on "leak" is allowed on an object**. A leak is one faulty reference that should have been cleared, and
+everything under it is retained by that one mistake — so `Leaking` or `Leaked` on twenty objects points a
+reader at the twenty rather than at the one thing to fix. `Stuck` names the object's situation without
+accusing it, and it is the only candidate that asks a question rather than closing one: something is holding
+this, what? `Expected` says its presence in memory is legitimate at this point in the app's life. The pair is
+deliberately not antonyms — an object in use can't be collected either, so the good side has to answer a
+different question than "can it leave".
+
+**No other analyser has a verdict like this**, so there were no words to borrow. Checked: JProfiler
+classifies objects by reference type (strongly referenced, retained by soft references) and by age (`Mark
+Heap`, then "new" and "old" objects); YourKit by reachability scope (strong, softly, weakly reachable,
+unreachable, pending finalization); Eclipse MAT names places rather than objects (*leak suspect*,
+*accumulation point*, *keep-alive path*); dotMemory has *key retention paths*. None labels an object leaking,
+because none has watched objects or framework inspectors to do it with — they rank by size and leave the
+judgement to the reader. What they do share is the frame: JProfiler asks whether objects "are still
+legitimately on the heap or if a **faulty reference** keeps them alive", which is where the name for the
+culprit edge comes from, and YourKit defines a leak as objects "not needed anymore according to the
+application logic".
+
+Two attempts came before this one. `Shouldn't be here` / `Meant to be here` was rejected on sight —
+**a verdict is a label, not a sentence**, since it is read a dozen times down one chain. `Leaked` / `Needed`
+was rejected for the misdirection above. One `LeakStatus.statusText` is where the words live, so the chain,
+the panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a chain
+(`Activity↓ is expected`, `Activity↑ is stuck`) all say the same thing. The identifiers didn't move:
+`LeakStatus`, `LEAKING`, `leakStatusesOf` stay Shark's names, because the code is where matching
+`shark.LeakTraceObject.LeakingStatus` matters.
+
+**The verdict means the same thing on an unreachable object.** A watched object nothing reaches any more is
+`Stuck` like any other, even though what keeps it is the collector not having run rather than a faulty
+reference: it was expected to be gone. Where it sits on that scale is what the leaks screen's `Unreachable`
+section is for, and a fourth value would have made the verdict mean something different in one corner of the
+window.
+
+**"Faulty reference" is the name for the culprit**, the reference between the last `Expected` object and the
+first `Stuck` one, which is what `LeakGroup.suspectPath` starts at and what the leaks screen names each row
+after. **And the chain marks it**: `Holder.activity · faulty reference`, bold, in the red of the objects it
+left behind, which is the change that actually puts a reader's eye on the reference rather than on the
+objects. `PathReference.isFaulty`, worked out in `withLeakStatuses`, and `suspectSubpath` names the leaks
+screen's rows off the same statuses — so where a leak is a single reference, a row there and the chain opened
+from it name one thing.
+
+**Only a single step between the two verdicts is marked.** `faultyReferenceIndexOrNull` asks for an `Expected`
+object with a `Stuck` one directly under it, and marks nothing otherwise. The first attempt marked the top of
+the suspect stretch instead, the way LeakCanary underlines all of it, and it was wrong in the case that
+matters: a chain of `Cleaner`s with no verdict on any object of it had its top reference marked, which is a
+reference named for being where the walk started rather than for anything read off the heap dump. Two shapes
+make the stretch longer than a step and neither supports a mark — objects nothing knows either way about in
+between, where the fault is at one of those steps and nothing says which; and nothing `Expected` above the
+stuck object at all, where what holds it may be something that should have let go too, so the fault can be
+further up than the path reaches. A guess drawn in the same bold red as an answer costs more than no mark,
+because being the one line to act on is the whole of what the mark is for. Shortening the stretch is what
+setting a verdict by hand does, and the mark appears when it becomes one step.
+
+**Which makes the mark the exception on a real dump.** Measured over every `shark-android` test dump: 2 of
+their 12 app leaks carry one — `MainActivity$Lol.foo` and `DvFragment.mRoot` — and the other ten have between
+1 and 13 objects nothing knows either way about between the two verdicts, `AsyncTask.SERIAL_EXECUTOR` with its
+four being the usual shape. That is the number to weigh if the rule is ever loosened: a rule that marked the
+top of the stretch would put a bold red line on all twelve, and ten of them would be pointing at a reference
+picked for being highest rather than for being wrong.
+
+**Nothing is marked on a chain with nothing stuck on it**, which is most chains in a heap dump. A leak is a
+reference the evidence points at, and there is no evidence until something below it is known not to belong.
+
+**A pencil, left of the status, rather than a "Set by hand…" button.** It is what changes the answer, so it
+belongs where the eye already is, and a text button pushed the reason onto a second line of a 320dp panel.
+Disabled until the statuses have been read off disk, which is the same rule the button had.
+
+**From the last step of the chain when there is one**, and from the object's own reading until the walk up to
+the GC roots lands, since the chain's answer is the one with the objects above and below taken into account.
+So the panel can say `Unknown` for a beat and then say `Stuck` — the panes filling in, not the window
+changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no
+object of it, and there is nothing to inspect or decide about.
+
+**Loud for the two statuses that mean something, quiet for the third.** Most of a heap dump is objects
+nothing knows either way about, so a shaded, bold `Unknown` on every object would be a line nobody reads by
+the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
+`TARGET_SHAPE`, the shape the chain marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
+status it is doesn't rest on colour alone.
+
+**Overriding always wins**, which is the one place this differs from how two inspectors disagreeing is
+settled. There, the object still being needed wins, because two inspectors are two halves of the same
+automated reading and the safer one is the one to believe. A hand is not that: someone who has read the code
+knows what the inspectors can't, and weighing the two would mean a status that can't be set to the one an
+inspector already picked. So `setByHandStatus` takes the reason someone typed and keeps the inspectors as the
+record of what was overruled, exactly the way a conflict between two inspectors is recorded.
+
+**A status without a reason is not a status.** `LeakStatusOverride` throws on a blank one and the dialog's
+button is disabled until there is one. A status set by hand overrules the heap dump, so without the why it is
+an assertion the next reader — a colleague, an agent, the same person in a month — has no way to check, and
+one of those makes every other status in the dump worth less. `SET_BY_HAND` marks the reason wherever it is
+read, so a green object somebody decided about is never mistaken for one an inspector recognized.
+
+**A status set by hand is an argument to every read, not state of the tree.** The statuses of a chain are
+worked out on every read of it, so `summarize`, `rootPathTo`, `independentPathsBetween`,
+`independentPathsFromRoots`, `findLeaks` and `isBelowLeakingObject` all take a `LeakStatusOverrides`, and the
+window's `LaunchedEffect`s are keyed on it — which is why that class has value equality. **A value rather
+than state on the tree**, because the tree is read from one thread while the window is composed on another:
+overrides living in the tree would mean a chain drawn from one set of them and the row above it from another,
+with no way to tell. The cost of that choice is that a new question about a path has to take the parameter or
+it silently answers with the dump's own reading, which looks right.
+
+**The list of leaks is read through them too, which is the part that is easy to get wrong.** A chain is only
+redrawn; the leaks are a *different list*. Mark an object leaking halfway up a chain and it becomes a leak,
+and whatever it was holding drops off — that object is now only in memory because of this one, which is the
+rule `foldedIntoWhatHoldsThem` already applied to what the inspectors found. Mark an object the inspectors
+recognized as still needed and it leaves the list entirely, and what it was holding can become a leak of its
+own. So the candidate set is the dump's own minus everything set to anything but `LEAKING` plus everything
+set to it, `RootPathSearch` goes round what a hand marked exactly as it goes round what the inspectors did —
+otherwise a leak would be grouped by a chain that disagrees with the statuses drawn on it — and the answer is
+worked out per set of statuses and kept until the next one, since a status is set by hand and this is
+seconds. The window asks again by keying that `LaunchedEffect` on the overrides like the rest.
+
+**The price is the fingerprints.** A leak's name is `LeakTrace.leakFingerprint` of the suspect stretch — the
+last object still needed down to the first one that shouldn't be there — so reading the list through
+somebody's statuses moves both ends of that stretch and produces fingerprints that no longer match the ones
+LeakCanary prints for the same leak. That is the deal: they match while nothing is set by hand, and moving
+that stretch is the whole point of setting one. The alternative, a leaks screen that ignores what the reader
+has established, is a screen that goes on listing an object they have already explained.
+
+**Two statuses set by hand can contradict each other, and the contradiction is shown rather than settled.**
+The propagation rules are what make it possible: a leaking object above forces everything it holds to be
+leaking, and an object still needed below forces everything holding it to be needed. So two hand-set statuses
+disagree exactly when one of the objects reaches the other, which is `HeapDominatorTreemap.reaches` —
+one walk up `ReferrerIndex` per status already set, a question somebody asked rather than one the pointer
+asks. `leakStatusConflictsWith` answers it before anything is written, and the dialog then lists every one of
+them by name, with the reason it was given, because whoever is about to overrule it is the only person who
+can weigh the two.
+
+- **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
+  `NOT_LEAKING` propagates upwards only and `LEAKING` downwards only, so the pair that can disagree is
+  always those two, and agreeing with the new status is the same as being flipped.
+- **Flipped, not taken off**, so that what somebody typed is still in the file: the solved reason says which
+  status it was, what it said, and that this is why it changed.
+- **A status of `UNKNOWN` set by hand conflicts with nothing.** Nobody claiming to know overrules nobody, so
+  it is never one of the statuses a new one has to be settled against — though it can still be overruled by
+  the chain, and the reason then records what it was.
+- **Nothing is written until the choice is made**, which is what makes "Undo" free, and the write is one
+  `LeakStatusFile.write` of the lot rather than one per status: a save that stopped half way through would
+  leave a heap dump whose statuses contradict each other, which is the one state this step exists to
+  prevent. It runs `NonCancellable` because the dialog closes as soon as it has.
+
+**One tab separated file per heap dump, in `~/.shark-explorer/leak-statuses`.** Named after the dump the way
+its notes are, and beside them rather than next to the dump, for the same reason: dumps come from device
+pulls, temporary files and read only mounts. A file rather than a directory of files, which is the opposite
+of the notes — a note is a document somebody edits and a status is three fields the window writes, and every
+question here is about all of them at once. Columns named in a comment at the top, the reason's newlines and
+tabs escaped, the lines sorted by address, so that the file reads as evidence: two runs that set the same
+statuses write the same file, and a line of it can be pasted into an issue. A line that can't be read is
+skipped with a log line rather than thrown over — it is hand editable on purpose, and one typo must not be a
+heap dump whose other statuses have gone. Addresses are written with `exactHexObjectId`, not `hexObjectId`,
+since the latter gives up exactly what a file can't.
+
+**Nothing is applied that wasn't written**, which is also the opposite of the notes beside it: a status only
+this process knows about is a chain explained by a reason that will be gone next run. And nothing is saved
+before the file has been read — an empty set of statuses, written out because the disk was slow, is every
+status of that heap dump deleted — which is what the disabled button and the check in
+`HeapDumpLeakStatuses.save` are both for.
+
 ## Testing split
 
 Headless `runComposeUiTest` on the JVM covers the UI, so there's no emulator in the loop — a real

@@ -67,6 +67,42 @@ internal fun TemporaryFolder.destroyedActivitiesHeapDump(): File {
 }
 
 /**
+ * A heap dump where the app's `Application` holds a destroyed activity: the object above the reference is one
+ * an inspector knows belongs in memory, the object below it one it knows shouldn't be.
+ *
+ * Which is the shape of a leak that takes no guessing — that one reference is the faulty one and no other
+ * reference of the chain can be — and so the one shape a chain marks. Every other dump here has objects
+ * nothing knows either way about between the GC root and the leak, which is the ordinary case. See
+ * [PathReference.isFaulty].
+ */
+internal fun TemporaryFolder.applicationHoldsActivityHeapDump(): File {
+  val file = newFile("application-holds-activity.hprof")
+  file.dump {
+    val activity = instance(activityClass(), fields = listOf(BooleanHolder(true)))
+    gcRoot(JniGlobal(id = applicationHolding(activity, "activity").value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
+/**
+ * The same leak with one object nothing knows either way about in between, so that the two verdicts are two
+ * references apart instead of one.
+ *
+ * The fault is at one of those two steps — the app should have let go of the holder, or the holder of the
+ * activity — and nothing in the heap dump says which, which is what LeakCanary underlines the whole stretch
+ * for and what a chain here marks none of.
+ */
+internal fun TemporaryFolder.applicationHoldsActivityThroughHolderHeapDump(): File {
+  val file = newFile("application-holds-activity-through-holder.hprof")
+  file.dump {
+    val activity = instance(activityClass(), fields = listOf(BooleanHolder(true)))
+    val holder = HOLDER_CLASS_NAME instance { field["activity"] = activity }
+    gcRoot(JniGlobal(id = applicationHolding(holder, "holder").value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
+/**
  * A heap dump where a destroyed activity holds a destroyed window: two objects that shouldn't be in memory,
  * and one of them only still there because the other is.
  *
@@ -403,6 +439,25 @@ private fun HprofWriterHelper.activityClass(): Long = clazz(
 )
 
 /**
+ * The app's own `Application`, holding [held] through a field named [fieldName], which is what the leaks of
+ * those dumps are named after.
+ *
+ * `android.app.Application` and nothing else is what the inspector recognizing it looks for, so the class it
+ * declares here has none of the fields a real one inherits.
+ */
+private fun HprofWriterHelper.applicationHolding(
+  held: ReferenceHolder,
+  fieldName: String
+): ReferenceHolder = instance(
+  clazz(
+    className = APPLICATION_CLASS_NAME,
+    superclassId = clazz(className = "android.app.Application"),
+    fields = listOf(fieldName to ReferenceHolder::class)
+  ),
+  fields = listOf(held)
+)
+
+/**
  * What `android.os.Build` looks like in a dump, which is what Shark matches its library leak patterns
  * against: a dump without the three fields `AndroidBuildMirror` reads is one no known library leak can be
  * recognized in. See `ReferenceStrengthReader`.
@@ -425,6 +480,14 @@ internal const val WATCHED_CLASS_NAME = "com.example.LeakingPresenter"
 internal const val ACTIVITY_CLASS_NAME = "com.example.MainActivity"
 
 internal const val HOLDER_CLASS_NAME = "com.example.Holder"
+
+internal const val APPLICATION_CLASS_NAME = "com.example.ExampleApplication"
+
+/** How a chain spells the one reference of [applicationHoldsActivityHeapDump], which is its whole leak. */
+internal const val APPLICATION_LEAK_REFERENCE = "ExampleApplication.activity"
+
+/** And the first of the two of [applicationHoldsActivityThroughHolderHeapDump], neither of which is marked. */
+internal const val APPLICATION_HOLDER_REFERENCE = "ExampleApplication.holder"
 
 /** How a chain names the class a field is read on, which is how a leak named after that field is spelled. */
 internal const val HOLDER_SIMPLE_CLASS_NAME = "Holder"

@@ -30,11 +30,13 @@ import shark.explorer.HeapLeaks
 import shark.explorer.HeapObjectKind
 import shark.explorer.LeakGroup
 import shark.explorer.LeakKind
+import shark.explorer.LeakStatus
 import shark.explorer.LeakSection
 import shark.explorer.LeakingObject
 import shark.explorer.Place
 import shark.explorer.ReachabilityStrength
 import shark.explorer.hexObjectId
+import shark.explorer.statusText
 
 /**
  * The screen listing what shouldn't be in memory, and the colouring that shades the map by it.
@@ -233,7 +235,8 @@ class LeaksScreenTest {
 
       onAllNodesWithText(listed)[0].performClick()
 
-      waitUntilAtLeastOneExists(hasText("$LEAKING: ", substring = true), OPEN_TIMEOUT_MILLIS)
+      val leaking = LeakStatus.LEAKING.statusText
+      waitUntilAtLeastOneExists(hasText("$leaking: ", substring = true), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText("mDestroyed", substring = true).fetchSemanticsNodes()).isNotEmpty()
     }
   }

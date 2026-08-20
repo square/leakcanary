@@ -218,7 +218,7 @@ private fun OnTheWayOutHeader(
     HorizontalDivider(thickness = SECTION_RULE_WIDTH, color = SECTION_RULE_COLOR)
     Column(
       Modifier.fillMaxWidth()
-        .clickableRow(onToggle)
+        .clickableRow(onClick = onToggle)
         .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
       verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
@@ -333,7 +333,7 @@ private fun MoreObjectsRow(
     Spacer(Modifier.width(INSTANCE_INSET - SECTION_BAR_WIDTH))
     InstanceRule(isLast = !isExpanded)
     Row(
-      Modifier.weight(1f).clickableRow(onToggle)
+      Modifier.weight(1f).clickableRow(onClick = onToggle)
         .padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
       horizontalArrangement = Arrangement.spacedBy(4.dp),
       verticalAlignment = Alignment.CenterVertically
@@ -416,8 +416,8 @@ private fun LeakingObjectRow(
                 overflow = TextOverflow.Ellipsis
               )
             }
-            // Why *this* object shouldn't be here, which the inspector that recognized it read off the object
-            // itself: two objects of one leak can be leaking for reasons that don't read the same.
+            // Why *this* object is stuck, which the inspector that recognized it read off the object
+            // itself: two objects of one leak can be stuck for reasons that don't read the same.
             leakingObject.leakingReason?.let { reason ->
               Text(
                 reason,
@@ -595,7 +595,7 @@ private const val MILLIS_PER_SECOND = 1000L
 private const val LOOKING_FOR_LEAKS = "Going through the heap dump…"
 
 /** No full stop, since what is on their way out is said after it on the same line. */
-private const val NOTHING_LEAKING = "Nothing in this heap dump is leaking"
+private const val NOTHING_LEAKING = "Nothing in this heap dump is stuck"
 private const val NONE_FOUND = "none"
 
 private const val LEAK = "leak"
@@ -605,7 +605,7 @@ private const val OBJECTS = "objects"
 
 /** What the row opening the rest of a leak says, since a bare count would read as a count of leaks. */
 internal const val MORE = "more"
-internal const val LEAKING_THE_SAME_WAY = "leaking the same way"
+internal const val LEAKING_THE_SAME_WAY = "stuck the same way"
 
 /** Its key in the list, which is one per leak and so can't be an object id. */
 private const val MORE_KEY = "more"
@@ -617,12 +617,14 @@ private const val WATCHED_GLYPH = "◉"
 internal const val LEAK_FINGERPRINT = "Leak fingerprint:"
 
 internal const val NAME_HINT =
-  "The references this leak is: the first is the one that shouldn't be holding any more, which is what " +
-    "LeakCanary calls the leak, and the last is the one that points straight at what leaked, which is " +
-    "where to look on the chain to see it. They are one reference for most leaks. Everything above the " +
-    "first is the app working as intended and everything below the last is what the leak is holding, so " +
-    "neither is part of what makes this leak this leak. For an object on its way out it is the one " +
-    "reference the collector hasn't cleared yet, which is the whole of why the object is still here."
+  "The references this leak is: the first is the faulty reference, the one that should have been cleared " +
+    "and what LeakCanary calls the leak, and the last is the one that points straight at what is stuck, " +
+    "which is where to look on the chain to see it. They are one reference for most leaks. Everything " +
+    "above the first is the app working as intended and everything below the last is what the leak is " +
+    "holding, so neither is part of what makes this leak this leak. For an object on its way out it is " +
+    "the one reference the collector hasn't cleared yet, which is the whole of why it is still here. Where " +
+    "a leak is a single reference, the chain drawn for an object under this row marks it, so the row and " +
+    "the step are one thing said twice."
 
 internal const val LEAK_FINGERPRINT_HINT =
   "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +
