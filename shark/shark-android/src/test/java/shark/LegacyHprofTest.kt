@@ -13,6 +13,14 @@ import shark.LegacyHprofTest.WRAPS_ACTIVITY.DESTROYED
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_ACTIVITY
 import shark.LegacyHprofTest.WRAPS_ACTIVITY.NOT_DESTROYED
 import shark.SharkLog.Logger
+import shark.ValueHolder.BooleanHolder
+import shark.ValueHolder.ByteHolder
+import shark.ValueHolder.CharHolder
+import shark.ValueHolder.DoubleHolder
+import shark.ValueHolder.FloatHolder
+import shark.ValueHolder.IntHolder
+import shark.ValueHolder.LongHolder
+import shark.ValueHolder.ShortHolder
 
 class LegacyHprofTest {
 
@@ -59,6 +67,31 @@ class LegacyHprofTest {
     assertThat(readThreadNames(sourceHprof)).contains("AsyncTask #1")
     assertThat(readThreadNames(strippedHprof)).allMatch { threadName ->
       threadName.all { character -> character == '?' }
+    }
+  }
+
+  @Test fun androidOStrippedWrapsZeroes() {
+    val stripper = HprofPrimitiveArrayStripper()
+    val sourceHprof = "leak_asynctask_o.hprof".classpathFile()
+    val strippedHprof = stripper.stripPrimitiveArrays(sourceHprof)
+
+    assertThat(readWrappedPrimitives(sourceHprof)).anyMatch { (className, value) ->
+      value != ZERO_VALUE_BY_WRAPPER_CLASS_NAME.getValue(className)
+    }
+    assertThat(readWrappedPrimitives(strippedHprof)).isNotEmpty.allMatch { (className, value) ->
+      value == ZERO_VALUE_BY_WRAPPER_CLASS_NAME.getValue(className)
+    }
+  }
+
+  private fun readWrappedPrimitives(hprofFile: File): List<Pair<String, ValueHolder>> {
+    return hprofFile.openHeapGraph().use { graph ->
+      ZERO_VALUE_BY_WRAPPER_CLASS_NAME.keys.flatMap { className ->
+        val wrapperClass = graph.findClassByName(className) ?: return@flatMap emptyList()
+        wrapperClass.instances.map { instance ->
+          className to instance[className, "value"]!!.value.holder
+        }
+          .toList()
+      }
     }
   }
 
@@ -272,5 +305,19 @@ class LegacyHprofTest {
     )
     println(analysis)
     return analysis as HeapAnalysisSuccess
+  }
+
+  companion object {
+    private val ZERO_VALUE_BY_WRAPPER_CLASS_NAME: Map<String, ValueHolder> =
+      mapOf(
+        "java.lang.Boolean" to BooleanHolder(false),
+        "java.lang.Byte" to ByteHolder(0),
+        "java.lang.Character" to CharHolder(0.toChar()),
+        "java.lang.Short" to ShortHolder(0),
+        "java.lang.Integer" to IntHolder(0),
+        "java.lang.Long" to LongHolder(0),
+        "java.lang.Float" to FloatHolder(0f),
+        "java.lang.Double" to DoubleHolder(0.0)
+      )
   }
 }

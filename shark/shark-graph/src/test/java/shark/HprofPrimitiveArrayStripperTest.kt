@@ -53,6 +53,38 @@ class HprofPrimitiveArrayStripperTest {
   }
 
   @Test
+  fun `wrapped primitive stripped when the wrapper class is dumped after its instances`() {
+    val sourceByteArray =
+      Buffer()
+        .apply {
+          writeRawTestHprof(
+            secretLongArray = longArrayOf(0xCAFE, 0xDAD),
+            secretCharArray = charArrayOf('P', 'Y'),
+            secretWrappedLong = 42,
+            wrapperClassDumpedAfterInstance = true,
+          )
+        }
+        .readByteArray()
+
+    val strippedBuffer = Buffer()
+    val stripper = HprofPrimitiveArrayStripper()
+    stripper.stripPrimitiveArrays(ByteArraySourceProvider(sourceByteArray), { strippedBuffer })
+
+    val expectedByteArray =
+      Buffer()
+        .apply {
+          writeRawTestHprof(
+            secretLongArray = longArrayOf(0, 0),
+            secretCharArray = charArrayOf('?', '?'),
+            secretWrappedLong = 0,
+            wrapperClassDumpedAfterInstance = true,
+          )
+        }
+        .readByteArray()
+    assertThat(strippedBuffer.readByteArray()).isEqualTo(expectedByteArray)
+  }
+
+  @Test
   fun `ByteArray based String content is replaced with question marks`() {
     val hprofFolder = testFolder.newFolder()
     val hprofFile = File(hprofFolder, "jvm_heap.hprof")
@@ -114,6 +146,11 @@ class HprofPrimitiveArrayStripperTest {
     secretLongArray: LongArray,
     secretCharArray: CharArray,
     secretWrappedLong: Byte,
+    /**
+     * Android walks the heap in memory order when it dumps it, so a class is often dumped after
+     * instances of that class.
+     */
+    wrapperClassDumpedAfterInstance: Boolean = false,
   ) {
     HprofWriter.openWriterFor(
         this,
@@ -152,7 +189,7 @@ class HprofPrimitiveArrayStripperTest {
             fields = emptyList(),
           )
         )
-        writer.write(
+        val wrapperClassDump =
           ClassDumpRecord(
             id = 2,
             stackTraceSerialNumber = 0,
@@ -164,7 +201,9 @@ class HprofPrimitiveArrayStripperTest {
             staticFields = emptyList(),
             fields = listOf(FieldRecord(3, PrimitiveType.LONG.hprofType)),
           )
-        )
+        if (!wrapperClassDumpedAfterInstance) {
+          writer.write(wrapperClassDump)
+        }
         writer.write(LongArrayDump(id = 4, stackTraceSerialNumber = 0, array = secretLongArray))
         writer.write(
           InstanceDumpRecord(
@@ -174,6 +213,9 @@ class HprofPrimitiveArrayStripperTest {
             fieldValues = byteArrayOf(0, 0, 0, 0, 0, 0, 0, secretWrappedLong),
           )
         )
+        if (wrapperClassDumpedAfterInstance) {
+          writer.write(wrapperClassDump)
+        }
         writer.write(CharArrayDump(id = 6, stackTraceSerialNumber = 0, array = secretCharArray))
       }
   }
