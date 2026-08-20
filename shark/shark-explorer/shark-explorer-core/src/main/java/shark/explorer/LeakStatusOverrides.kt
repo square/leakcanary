@@ -88,7 +88,8 @@ class LeakStatusOverrides private constructor(private val byObjectId: Map<Long, 
  * question about how the two objects are held rather than about either of them: everything a leaking object
  * holds is leaking, and everything holding an object that is still needed is still needed. So a leaking
  * object above and an object that is not leaking below are two statuses that cannot both be read off the
- * chain running through them, whichever of them a hand set. See [leakStatusConflictsWith].
+ * chain running through them, whichever of them a hand set. Above and below in the sense of [isAbove], which
+ * is not every pair one of which reaches the other. See [leakStatusConflictsWith].
  */
 class LeakStatusConflict(
   /** The status already set by hand, which the new one disagrees with. */
@@ -115,9 +116,9 @@ class LeakStatusConflict(
  * new one and flip the others to agree, or leave the heap dump as it was. Nothing is decided here — this
  * only says what the disagreements are.
  *
- * A walk up the referrers per status already set, which is what asking whether one object holds another
- * costs: see [HeapDominatorTreemap.reaches]. There are a handful of statuses in a heap dump, so this is a
- * handful of walks, and it belongs on the heap dump's thread like every other read.
+ * A walk up the referrers per status already set, which is what asking whether one object is above another
+ * costs: see [isAbove]. There are a handful of statuses in a heap dump, so this is a handful of walks, and it
+ * belongs on the heap dump's thread like every other read.
  */
 fun HeapDominatorTreemap.leakStatusConflictsWith(
   override: LeakStatusOverride,
@@ -132,12 +133,12 @@ fun HeapDominatorTreemap.leakStatusConflictsWith(
     // down here.
     val holdsIt = existing.status == LeakStatus.LEAKING &&
       override.status != LeakStatus.LEAKING &&
-      reaches(existing.objectId, override.objectId)
+      isAbove(aboveObjectId = existing.objectId, belowObjectId = override.objectId)
     // And an object below that is still needed forces everything holding it to be needed too, so it
     // disagrees with anything else up here.
     val heldByIt = existing.status == LeakStatus.NOT_LEAKING &&
       override.status != LeakStatus.NOT_LEAKING &&
-      reaches(override.objectId, existing.objectId)
+      isAbove(aboveObjectId = override.objectId, belowObjectId = existing.objectId)
     if (!holdsIt && !heldByIt) {
       return@mapNotNull null
     }
@@ -157,6 +158,38 @@ fun HeapDominatorTreemap.leakStatusConflictsWith(
       "${conflicts.size} of the ${overrides.all.size} statuses set by hand"
   }
   return conflicts
+}
+
+/**
+ * Whether [aboveObjectId] is above [belowObjectId]: it holds it, and is not held by it in turn.
+ *
+ * **Both directions, because objects that hold each other are ordinary in a heap dump** rather than a corner
+ * case: an `AsyncTask` holds the thread running it, that thread's stack frame holds the runnable the executor
+ * wrapped the task in, and that runnable holds the task — three objects each of which reaches the other two.
+ * [HeapDominatorTreemap.reaches] on its own answers yes whichever way it is asked about any of those pairs, so
+ * a conflict worked out from one direction of it is a conflict reported with whichever direction was asked
+ * first, which reads back to whoever set the status as the two objects the wrong way round.
+ *
+ * Neither of two objects on a loop is above the other. Which of them a chain shows first is decided by where
+ * that chain enters the loop, so the graph doesn't order them and a conflict between them would be one of two
+ * answers with nothing to pick between them. Nothing is lost by not reporting it: a chain that does put one
+ * above the other still records the disagreement, which is a reason reading `Conflicts with`.
+ */
+private fun HeapDominatorTreemap.isAbove(
+  aboveObjectId: Long,
+  belowObjectId: Long
+): Boolean {
+  if (!reaches(aboveObjectId, belowObjectId)) {
+    return false
+  }
+  if (reaches(belowObjectId, aboveObjectId)) {
+    SharkLog.d {
+      "${hexObjectId(aboveObjectId)} and ${hexObjectId(belowObjectId)} hold each other, so neither of them " +
+        "is above the other"
+    }
+    return false
+  }
+  return true
 }
 
 /**

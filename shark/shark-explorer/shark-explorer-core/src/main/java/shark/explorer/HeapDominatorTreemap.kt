@@ -762,9 +762,9 @@ class HeapDominatorTreemap internal constructor(
   /**
    * Whether [fromObjectId] holds [toObjectId], through any chain of the references this tree was built by.
    *
-   * What "above" and "below" mean when they are asked about two objects rather than about one chain: a
-   * status decides what the objects it holds are, so two statuses set by hand disagree exactly when one of
-   * the objects reaches the other. See [leakStatusConflictsWith].
+   * Half of what "above" and "below" mean when they are asked about two objects rather than about one chain:
+   * two objects of a heap dump often reach each other, and then neither is above the other, so a status set
+   * by hand is settled against another one by asking this both ways round. See `isAbove`.
    *
    * One walk up the referrers from [toObjectId], which on an object the whole heap dump holds is a walk over
    * everything above it — the same cost as asking every way an object is held. So this is for a question

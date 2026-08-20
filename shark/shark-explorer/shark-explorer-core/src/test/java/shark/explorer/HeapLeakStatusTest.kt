@@ -215,6 +215,93 @@ class HeapLeakStatusTest {
     }
   }
 
+  /**
+   * The loop of [taskHoldingItsOwnThreadHeapDump], which is what makes both of the next two questions
+   * questions: every pair of objects on it reaches the other, so reaching is not what says which is above.
+   */
+  @Test fun `objects that hold each other each reach the other`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      assertThat(explorer.tree.reaches(dump.wrapperObjectId, dump.taskObjectId)).isTrue()
+      assertThat(explorer.tree.reaches(dump.taskObjectId, dump.wrapperObjectId)).isTrue()
+    }
+  }
+
+  /**
+   * Which is the shape of the sample app's `AsyncTask` leak, and so the one every reader of it reaches: the
+   * runnable the executor is running belongs in memory and the task it holds does not, said in that order,
+   * with the faulty reference between them the whole point of saying it.
+   */
+  @Test fun `two statuses on objects that hold each other do not conflict`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      val conflicts = explorer.tree.leakStatusConflictsWith(
+        override = override(dump.taskObjectId, LEAKING, "this task should have been cancelled"),
+        overrides = overrides(dump.wrapperObjectId, NOT_LEAKING, "the executor is running this")
+      )
+
+      assertThat(conflicts).isEmpty()
+    }
+  }
+
+  /** And set in the other order, since the walk is from whichever of the two is already there. */
+  @Test fun `nor do they the other way round`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      val conflicts = explorer.tree.leakStatusConflictsWith(
+        override = override(dump.wrapperObjectId, NOT_LEAKING, "the executor is running this"),
+        overrides = overrides(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+      )
+
+      assertThat(conflicts).isEmpty()
+    }
+  }
+
+  /**
+   * The two of them read as a chain, which is why there was nothing to settle: the reference from the object
+   * that belongs in memory to the one that doesn't is the fault, and nothing else on the chain can be.
+   */
+  @Test fun `a status on each of them marks the reference between them instead`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      val path = explorer.tree.rootPathTo(
+        objectId = dump.activityObjectId,
+        overrides = LeakStatusOverrides.of(
+          listOf(
+            override(dump.wrapperObjectId, NOT_LEAKING, "the executor is running this"),
+            override(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+          )
+        )
+      )
+
+      assertThat(path.faultyReferences())
+        .containsExactly("${WRAPPER_CLASS_NAME.substringAfterLast('.')}.val\$r")
+    }
+  }
+
+  /**
+   * A loop is not a heap dump where nothing conflicts: an object below one is held by every object of it, so
+   * a status on it is settled against them the way any other pair is.
+   */
+  @Test fun `a status below a loop still conflicts with one on it`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      val conflicts = explorer.tree.leakStatusConflictsWith(
+        override = override(dump.activityObjectId, NOT_LEAKING, "this screen is coming back"),
+        overrides = overrides(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+      )
+
+      val conflict = conflicts.single()
+      assertThat(conflict.existing.objectId).isEqualTo(dump.taskObjectId)
+      assertThat(conflict.isAbove).isTrue()
+    }
+  }
+
   @Test fun `setting a status again on the same object disagrees with nothing`() {
     val dump = testFolder.nestedLeaksHeapDump()
 

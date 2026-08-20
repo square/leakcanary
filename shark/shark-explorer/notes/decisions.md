@@ -964,12 +964,21 @@ has established, is a screen that goes on listing an object they have already ex
 **Two statuses set by hand can contradict each other, and the contradiction is shown rather than settled.**
 The propagation rules are what make it possible: a leaking object above forces everything it holds to be
 leaking, and an object still needed below forces everything holding it to be needed. So two hand-set statuses
-disagree exactly when one of the objects reaches the other, which is `HeapDominatorTreemap.reaches` —
-one walk up `ReferrerIndex` per status already set, a question somebody asked rather than one the pointer
-asks. `leakStatusConflictsWith` answers it before anything is written, and the dialog then lists every one of
-them by name, with the reason it was given, because whoever is about to overrule it is the only person who
-can weigh the two.
+disagree when one of the objects is above the other, which is `HeapDominatorTreemap.reaches` asked **both ways
+round** — one walk up `ReferrerIndex` per status already set, a question somebody asked rather than one the
+pointer asks. `leakStatusConflictsWith` answers it before anything is written, and the dialog then lists every
+one of them by name, with the reason it was given, because whoever is about to overrule it is the only person
+who can weigh the two.
 
+- **Reaching each other is not being above each other**, and it is ordinary rather than exotic: the sample
+  app's `AsyncTask` leak is three objects on a loop — the task holds the thread running it through
+  `FutureTask.runner`, that thread's frame holds the runnable the executor wrapped the task in, and that
+  runnable holds the task. Asking `reaches` one way round there answers yes whichever pair and whichever
+  direction, so the first version reported the canonical case as a conflict and named the two objects the
+  wrong way round in it. Neither object on a loop is above the other — which one a chain shows first is
+  decided by where the chain enters the loop — so `isAbove` asks both directions and a loop is no conflict.
+  The chain still says so wherever it does put one above the other, which is a reason reading
+  `Conflicts with`.
 - **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
   `NOT_LEAKING` propagates upwards only and `LEAKING` downwards only, so the pair that can disagree is
   always those two, and agreeing with the new status is the same as being flipped.
