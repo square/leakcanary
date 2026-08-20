@@ -407,7 +407,8 @@ class HprofRecordReader internal constructor(
   }
 
   fun skipHeapDumpInfoRecord() {
-    skip(identifierByteSize + identifierByteSize)
+    // heapId, then heapNameStringId. The heap id is an Int, not an object id.
+    skip(INT_SIZE + identifierByteSize)
   }
 
   fun skip(byteCount: Int) {

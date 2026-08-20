@@ -46,10 +46,21 @@ import shark.PrimitiveType.SHORT
  *
  * Also updates all primitive wrapper instances to wrap 0 instead of their actual value, as an
  * additional safety measure.
+ *
+ * Everything else is copied over unchanged, which includes the string records holding the class,
+ * field and method names the rest of the heap dump refers to. Those hold no runtime data in a heap
+ * dump from Android, but a heap dump from a JVM also holds every string constant of every loaded
+ * class in them, so stripping a JVM heap dump leaves the constants written in the code behind.
  */
 class HprofPrimitiveArrayStripper {
 
-  /** @see HprofPrimitiveArrayStripper */
+  /**
+   * [inputHprofFile] is read gzipped when its content is gzipped, and [outputHprofFile] is written
+   * gzipped when its name ends with ".gz", so stripping "app.hprof.gz" writes a gzipped
+   * "app-stripped.hprof.gz" by default.
+   *
+   * @see HprofPrimitiveArrayStripper
+   */
   fun stripPrimitiveArrays(
     inputHprofFile: File,
     /**
@@ -70,9 +81,17 @@ class HprofPrimitiveArrayStripper {
       ),
     deleteInputHprofFile: Boolean = false
   ): File {
+    val fileSinkProvider = StreamingSinkProvider {
+      outputHprofFile.outputStream().sink().buffer()
+    }
     stripPrimitiveArrays(
-      hprofSourceProvider = FileSourceProvider(inputHprofFile),
-      hprofSinkProvider = { outputHprofFile.outputStream().sink().buffer() },
+      hprofSourceProvider = FileSourceProvider(inputHprofFile).gunzipIfGzipped(),
+      hprofSinkProvider =
+        if (outputHprofFile.name.endsWith(GZIP_FILE_EXTENSION)) {
+          fileSinkProvider.gzip()
+        } else {
+          fileSinkProvider
+        },
       onDoneOpeningNewSources = {
         if (deleteInputHprofFile) {
           // Using the Unix trick of deleting the file as soon as all readers have opened it.
@@ -111,16 +130,16 @@ class HprofPrimitiveArrayStripper {
     source.transfer(LONG.byteSize)
 
     val useForwardSlashClassPackageSeparator = versionName != ANDROID.versionString
-    val primitiveWrapperClassNameAndValueSizes =
+    val primitiveWrapperValueTypesByClassName =
       mapOf(
-          Boolean::class.javaObjectType.name to BOOLEAN.byteSize,
-          Char::class.javaObjectType.name to CHAR.byteSize,
-          Float::class.javaObjectType.name to FLOAT.byteSize,
-          Double::class.javaObjectType.name to DOUBLE.byteSize,
-          Byte::class.javaObjectType.name to BYTE.byteSize,
-          Short::class.javaObjectType.name to SHORT.byteSize,
-          Int::class.javaObjectType.name to INT.byteSize,
-          Long::class.javaObjectType.name to LONG.byteSize,
+          Boolean::class.javaObjectType.name to BOOLEAN,
+          Char::class.javaObjectType.name to CHAR,
+          Float::class.javaObjectType.name to FLOAT,
+          Double::class.javaObjectType.name to DOUBLE,
+          Byte::class.javaObjectType.name to BYTE,
+          Short::class.javaObjectType.name to SHORT,
+          Int::class.javaObjectType.name to INT,
+          Long::class.javaObjectType.name to LONG,
         )
         .mapKeys { (key, _) ->
           if (useForwardSlashClassPackageSeparator) {
@@ -152,10 +171,18 @@ class HprofPrimitiveArrayStripper {
     // Local ref optimizations
     val intByteSize = INT.byteSize
 
-    val primitiveWrapperStringIdsWithValueSize = mutableMapOf<Long, Int>()
-    val primitiveWrapperClassIdsWithValueSize = mutableMapOf<Long, Int>()
-    val primitiveWrapperClassValueFields = mutableMapOf<Long, PrimitiveWrapperValueField>()
-    var valueStringId = 0L
+    val primitiveWrapperClassesByNameStringId = mutableMapOf<Long, PrimitiveWrapperClass>()
+    val primitiveWrapperClassesByClassId = mutableMapOf<Long, PrimitiveWrapperClass>()
+    var startedReadingHeapDump = false
+
+    // Arrays are replaced by repeating one of these over their content, so that replacing an array
+    // never needs a buffer the size of that array.
+    val zeroes = ByteArray(REPLACEMENT_PATTERN_BYTE_SIZE)
+    val utf8QuestionMarks = ByteArray(REPLACEMENT_PATTERN_BYTE_SIZE) { QUESTION_MARK_BYTE }
+    val utf16BeQuestionMarks =
+      ByteArray(REPLACEMENT_PATTERN_BYTE_SIZE) { index ->
+        if (index % 2 == 0) 0 else QUESTION_MARK_BYTE
+      }
 
     while (!source.exhausted()) {
       // type of the record
@@ -173,11 +200,9 @@ class HprofPrimitiveArrayStripper {
           val id = source.transferId()
           val byteCount = length - identifierByteSize
           val string = source.transferUtf8(byteCount)
-          val size = primitiveWrapperClassNameAndValueSizes[string]
-          if (size != null) {
-            primitiveWrapperStringIdsWithValueSize[id] = size
-          } else if (string == "value") {
-            valueStringId = id
+          val valueType = primitiveWrapperValueTypesByClassName[string]
+          if (valueType != null) {
+            primitiveWrapperClassesByNameStringId[id] = PrimitiveWrapperClass(string, valueType)
           }
         }
 
@@ -188,14 +213,22 @@ class HprofPrimitiveArrayStripper {
           // stackTraceSerialNumber
           source.transfer(intByteSize)
           val classNameStringId = source.transferId()
-          val size = primitiveWrapperStringIdsWithValueSize[classNameStringId]
-          if (size != null) {
-            primitiveWrapperClassIdsWithValueSize[id] = size
+          val wrapperClass = primitiveWrapperClassesByNameStringId[classNameStringId]
+          if (wrapperClass != null) {
+            check(!startedReadingHeapDump) {
+              "${wrapperClass.className} is loaded by a $LOAD_CLASS record that comes after the " +
+                "start of the heap dump. Zeroing out the value a primitive wrapper instance wraps " +
+                "needs the class id of the wrapper, which only that record provides, so any " +
+                "instance dumped before it would keep its value in the stripped heap dump. " +
+                "Please report this heap dump to https://github.com/square/leakcanary/issues"
+            }
+            primitiveWrapperClassesByClassId[id] = wrapperClass
           }
         }
 
         HEAP_DUMP.tag,
         HEAP_DUMP_SEGMENT.tag -> {
+          startedReadingHeapDump = true
           var previousTag = 0
           var previousTagPosition = 0L
           val bytesReadStart = source.bytesRead
@@ -234,7 +267,7 @@ class HprofPrimitiveArrayStripper {
               CLASS_DUMP.tag -> {
                 val id = source.transferId()
 
-                val size = primitiveWrapperClassIdsWithValueSize[id]
+                val wrapperClass = primitiveWrapperClassesByClassId[id]
 
                 val byteSize =
                   // stack trace serial number
@@ -275,15 +308,27 @@ class HprofPrimitiveArrayStripper {
                 }
 
                 val fieldCount = source.transferUnsignedShort()
-                var fieldPosition = 0
-                repeat(fieldCount) {
-                  val nameStringId = source.transferId()
+                var firstFieldType = 0
+                repeat(fieldCount) { fieldIndex ->
+                  // nameStringId
+                  source.transfer(identifierByteSize)
                   val type = source.transferUnsignedByte()
-                  if (size != null && nameStringId == valueStringId) {
-                    primitiveWrapperClassValueFields[id] =
-                      PrimitiveWrapperValueField(fieldPosition, size)
+                  if (fieldIndex == 0) {
+                    firstFieldType = type
                   }
-                  fieldPosition = typeSizes[type]
+                }
+
+                if (wrapperClass != null) {
+                  val valueType = wrapperClass.valueType
+                  check(fieldCount == 1 && firstFieldType == valueType.hprofType) {
+                    "Expected ${wrapperClass.className} to declare a single instance field of type " +
+                      "$valueType, found $fieldCount field(s) starting with hprof type " +
+                      "$firstFieldType. Stripping zeroes out the value a primitive wrapper wraps by " +
+                      "writing over the start of its instance field values, which is the wrong " +
+                      "place for this layout, so the wrapped values would be left in the stripped " +
+                      "heap dump. Please report this heap dump to " +
+                      "https://github.com/square/leakcanary/issues"
+                  }
                 }
               }
 
@@ -296,16 +341,17 @@ class HprofPrimitiveArrayStripper {
                 )
 
                 val classId = source.transferId()
-                val wrapperClassValueField = primitiveWrapperClassValueFields[classId]
+                val wrapperClass = primitiveWrapperClassesByClassId[classId]
 
                 val remainingBytesInInstance = source.transferInt()
 
-                if (wrapperClassValueField != null) {
-                  source.transfer(wrapperClassValueField.position)
-                  source.overwrite(ByteArray(wrapperClassValueField.byteSize))
-                  val written = wrapperClassValueField.byteSize + wrapperClassValueField.position
-                  val remaining = remainingBytesInInstance - written
-                  source.transfer(remaining)
+                if (wrapperClass != null) {
+                  // The value a primitive wrapper wraps is the only instance field it declares, and
+                  // a class declares its own fields ahead of the ones it inherits, so the value is
+                  // at the start of the instance field values.
+                  val valueByteSize = wrapperClass.valueType.byteSize
+                  source.overwriteRepeating(valueByteSize.toLong(), zeroes)
+                  source.transfer(remainingBytesInInstance - valueByteSize)
                 } else {
                   source.transfer(remainingBytesInInstance)
                 }
@@ -328,28 +374,19 @@ class HprofPrimitiveArrayStripper {
                 source.transfer(identifierByteSize + intByteSize)
                 val arrayLength = source.transferInt()
                 val type = source.transferUnsignedByte()
-                when (val primitiveType = PrimitiveType.primitiveTypeByHprofType.getValue(type)) {
-                  CHAR -> {
-                    val byteArray =
-                      String(CharArray(arrayLength) { '?' }).toByteArray(Charsets.UTF_16BE)
-                    source.overwrite(byteArray)
+                val primitiveType = PrimitiveType.primitiveTypeByHprofType.getValue(type)
+                val replacement =
+                  when (primitiveType) {
+                    // Strings are stored as byte arrays and we can't distinguish between those and
+                    // random byte arrays, so we're updating all byte arrays the same way.
+                    BYTE -> utf8QuestionMarks
+                    CHAR -> utf16BeQuestionMarks
+                    else -> zeroes
                   }
-
-                  BYTE -> {
-                    source.overwrite(
-                      ByteArray(arrayLength) {
-                        // Strings are stored as byte arrays and we can't distinguish between those
-                        // and random byte arrays, so we're updating all byte arrays the same way.
-                        // Converts to '?' in UTF-8 for byte backed strings
-                        63
-                      }
-                    )
-                  }
-
-                  else -> {
-                    source.overwrite(ByteArray(arrayLength * primitiveType.byteSize) { 0 })
-                  }
-                }
+                source.overwriteRepeating(
+                  byteCount = arrayLength.toLong() * primitiveType.byteSize,
+                  pattern = replacement,
+                )
               }
 
               PRIMITIVE_ARRAY_NODATA.tag -> {
@@ -357,7 +394,8 @@ class HprofPrimitiveArrayStripper {
               }
 
               HEAP_DUMP_INFO.tag -> {
-                source.transfer(identifierByteSize + identifierByteSize)
+                // heapId, then heapNameStringId. The heap id is an Int, not an object id.
+                source.transfer(intByteSize + identifierByteSize)
               }
 
               else ->
@@ -395,5 +433,19 @@ class HprofPrimitiveArrayStripper {
     }
   }
 
-  private class PrimitiveWrapperValueField(val position: Int, val byteSize: Int)
+  private class PrimitiveWrapperClass(
+    val className: String,
+    val valueType: PrimitiveType
+  )
 }
+
+/**
+ * Even, so that repeating a pattern of that size always lands on whole UTF-16 characters, and equal
+ * to the size of an Okio segment.
+ */
+private const val REPLACEMENT_PATTERN_BYTE_SIZE = 8192
+
+/** '?', in UTF-8 and in the low byte of a UTF-16BE character alike. */
+private const val QUESTION_MARK_BYTE: Byte = 63
+
+private const val GZIP_FILE_EXTENSION = ".gz"
