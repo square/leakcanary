@@ -568,16 +568,18 @@ three rounds before the leak fingerprints did, because two chains can be differe
 orders are unrelated. **LeakCanary walks down**, so when it dequeues the set it enqueues the entries in the
 order Shark's `HashSet` reader reads the table, and the first of them claims the provider: that is
 `ActivityDelegateNotifier`, third in the table. **The explorer walks up**, and `ReferrerIndex` yields the
-referrers of an object most recently indexed first, so of the two it reaches the one further down the heap
+referrers of an object highest object index first, so of the two it reaches the one further down the heap
 dump: `DemoRootWithGatekeepersWorkflowProvider`, object index 31516 against 31263. Everything else about the
 two ten-step chains is identical. Bucket order isn't stable across two dumps of one app either, so neither
 answer is the right one — but a walk up cannot see a walk down's order, and the only way to break it the
 same way is to walk down: one prioritized BFS from the GC roots at open time, filling a parent-per-object
 array that every chain is then read out of. Every tie would then break the way a leak trace breaks it, since
-it would be the same walk in the same direction; a chain becomes a pointer chase up the array rather than a
-search per hover; and it is one int per object, against `ReferrerIndex`'s two per reference. What it isn't
-is a tie-break: it is a second traversal at open time, reading objects in BFS order where building the index
-is a sequential scan of the dump, and `ReferrerIndex` still has to exist for "every way this is held".
+it would be the same walk in the same direction, and a chain becomes a pointer chase up the array rather
+than a search per hover. **It is no longer the cheaper of the two, though** — an int per object against the
+three to six bytes an object `ReferrerIndex` now holds (`referrer-index.md`), where the linked list it used
+to be was three times that. What it isn't is a tie-break: it is a second traversal at open time, reading
+objects in BFS order where building the index is a sequential scan of the dump, and `ReferrerIndex` still
+has to exist for "every way this is held".
 
 `unloaded_classes-stripped.hprof` — two leaks, the same count as LeakCanary, and two leak fingerprints
 that differ by their prefix. What is left is **an owner rule**:
@@ -612,7 +614,7 @@ can't take that way at all, because **its phase 1 treats a leaking object as a l
   is on a stack because a method is running, and there is nothing to fix. `RootPathSearch` now puts off a
   stack frame, a known library leak and the arrays ART hangs off a class exactly as
   `PrioritizingShortestPathFinder` does, read in the other direction, and `ReferrerIndex` carries
-  `Reference.isLowPriority` in the top bit of each edge to answer it.
+  `Reference.isLowPriority` in a bit beside each referrer to answer it.
 - **A reference into an object that shouldn't be in memory wasn't put off**, so a chain took it where there
   was a way round, and the object it led to hashed to the leak fingerprint of the leak on the way. That is
   the third tier in `RootPathSearch`'s queue, on the same two queues as a stack frame and for the same reason:
