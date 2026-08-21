@@ -2,6 +2,7 @@ package shark.explorer
 
 import androidx.collection.MutableIntList
 import java.util.Arrays
+import java.util.Locale
 import shark.HeapGraph
 import shark.HeapObject
 import shark.Reference
@@ -223,9 +224,11 @@ internal class ReferrerIndex private constructor(
         previousEdgeByEdge = previousEdgeByEdge
       ).also { index ->
         SharkLog.d {
+          val bytesPerReference = index.bytesHeld.toDouble() / maxOf(referenceCount, 1)
           "Indexed which objects point at which: ${formatObjectCount(objectCount)}, " +
-            "${formatObjectCount(referenceCount)} references, ${formatByteSize(index.bytesHeld)}, " +
-            "%.2f bytes a reference".format(index.bytesHeld.toDouble() / maxOf(referenceCount, 1))
+            String.format(Locale.US, "%,d references, ", referenceCount) +
+            "${formatByteSize(index.bytesHeld)}, " +
+            String.format(Locale.US, "%.2f bytes a reference", bytesPerReference)
         }
       }
     }
