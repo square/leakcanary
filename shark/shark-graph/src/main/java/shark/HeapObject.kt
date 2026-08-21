@@ -517,7 +517,7 @@ sealed class HeapObject {
     }
 
     override fun toString(): String {
-      return "instance @$objectId of $instanceClassName"
+      return "instance @${objectId.asObjectIdString()} of $instanceClassName"
     }
   }
 
