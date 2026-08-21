@@ -3,6 +3,7 @@ package shark
 import kotlin.random.Random
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.internal.ObjectIdEncoding
 import shark.internal.PagedUnsortedByteEntries
 import shark.internal.SortedBytesMaps
 import shark.internal.UnsortedByteEntries
@@ -43,10 +44,12 @@ class PagedSortedBytesMapTest {
     val bytesPerValue = 3
     val ids = distinctIds(500, longIdentifiers = true, random = random)
 
-    val reference = UnsortedByteEntries(bytesPerValue = bytesPerValue, longIdentifiers = true)
+    val reference = UnsortedByteEntries(
+      idEncoding = encodingFor(ids), bytesPerValue = bytesPerValue, longIdentifiers = true
+    )
     val paged = PagedUnsortedByteEntries(
-      bytesPerValue = bytesPerValue, longIdentifiers = true, entryCount = ids.size,
-      entriesPerPage = 1024
+      idEncoding = encodingFor(ids), bytesPerValue = bytesPerValue, longIdentifiers = true,
+      entryCount = ids.size, entriesPerPage = 1024
     )
     ids.forEach { id ->
       val refWriter = reference.append(id)
@@ -81,7 +84,8 @@ class PagedSortedBytesMapTest {
 
   @Test fun newBuilderUsesSingleArrayUnderLimit() {
     val builder = SortedBytesMaps.newBuilder(
-      bytesPerValue = 8, longIdentifiers = true, entryCount = 1_000
+      idEncoding = ObjectIdEncoding.WHOLE_IDS, bytesPerValue = 8, longIdentifiers = true,
+      entryCount = 1_000
     )
     assertThat(builder).isInstanceOf(UnsortedByteEntries::class.java)
   }
@@ -94,6 +98,7 @@ class PagedSortedBytesMapTest {
   ) {
     val desc = "longIds=$longIdentifiers bpv=$bytesPerValue epp=$entriesPerPage n=${ids.size}"
     val builder = PagedUnsortedByteEntries(
+      idEncoding = encodingFor(ids),
       bytesPerValue = bytesPerValue,
       longIdentifiers = longIdentifiers,
       entryCount = ids.size,
@@ -144,6 +149,17 @@ class PagedSortedBytesMapTest {
   }
 
   private fun valueByte(id: Long, i: Int): Byte = (id * 31 + i).toByte()
+
+  /** The keys an index of a heap dump holding exactly [ids] would be built with. */
+  private fun encodingFor(ids: List<Long>): ObjectIdEncoding {
+    var minId = Long.MAX_VALUE
+    var maxId = Long.MIN_VALUE
+    ids.forEach { id ->
+      minId = minOf(minId, id)
+      maxId = maxOf(maxId, id)
+    }
+    return ObjectIdEncoding.of(minId, maxId)
+  }
 
   private fun distinctIds(size: Int, longIdentifiers: Boolean, random: Random): List<Long> {
     val ids = LinkedHashSet<Long>(size)

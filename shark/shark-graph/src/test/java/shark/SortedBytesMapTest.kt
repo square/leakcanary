@@ -3,12 +3,13 @@ package shark
 import kotlin.random.Random
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.internal.ObjectIdEncoding
 import shark.internal.UnsortedByteEntries
 
 class SortedBytesMapTest {
 
   @Test fun writeAndReadLongValue() {
-    val unsortedEntries = UnsortedByteEntries(bytesPerValue = 8, longIdentifiers = false)
+    val unsortedEntries = newEntries(bytesPerValue = 8, ids = listOf(1))
     unsortedEntries.append(1)
       .apply {
         writeLong(Long.MIN_VALUE)
@@ -20,7 +21,7 @@ class SortedBytesMapTest {
 
   @Test fun writeAndReadTruncatedLongValue() {
     val maxUnsigned3Bytes = 0x00000FFFL
-    val unsortedMap = UnsortedByteEntries(bytesPerValue = 3, longIdentifiers = false)
+    val unsortedMap = newEntries(bytesPerValue = 3, ids = listOf(1))
     unsortedMap.append(1)
       .apply {
         writeTruncatedLong(maxUnsigned3Bytes, 3)
@@ -30,8 +31,38 @@ class SortedBytesMapTest {
     assertThat(array.readTruncatedLong(3)).isEqualTo(maxUnsigned3Bytes)
   }
 
+  /**
+   * Key bytes are sized from how far apart the ids are, so the same map has to round trip whether
+   * that takes a single byte or all eight.
+   */
+  @Test fun everyKeyWidthRoundTrips() {
+    for (keyByteCount in 1..8) {
+      val span = if (keyByteCount == 8) Long.MAX_VALUE else (1L shl (keyByteCount * 8)) - 1
+      val smallestId = -3L
+      val ids = listOf(smallestId, smallestId + span / 3, smallestId + span / 2, smallestId + span)
+      val desc = "$keyByteCount byte keys"
+
+      val unsortedEntries = newEntries(bytesPerValue = 1, ids = ids)
+      assertThat(encodingFor(ids).byteCount).`as`(desc).isEqualTo(keyByteCount)
+      ids.forEachIndexed { index, id ->
+        unsortedEntries.append(id).writeByte(index.toByte())
+      }
+      val map = unsortedEntries.moveToSortedMap()
+
+      assertThat(map.entrySequence().map { it.first }.toList()).`as`(desc).isEqualTo(ids.sorted())
+      ids.forEachIndexed { index, id ->
+        assertThat(map.keyAt(map.indexOf(id))).`as`("$desc keyAt $id").isEqualTo(id)
+        assertThat(map[id]!!.readByte()).`as`("$desc value of $id").isEqualTo(index.toByte())
+      }
+      // Ids on either side of the span are reported absent rather than clamped into it.
+      assertThat(smallestId - 1 in map).`as`("$desc below span").isFalse
+      assertThat(smallestId + span - 1 in map).`as`("$desc within span").isFalse
+    }
+  }
+
   @Test fun fourEntriesWithLongKey1ByteValueSorted() {
-    val unsortedEntries = UnsortedByteEntries(bytesPerValue = 1, longIdentifiers = true)
+    val unsortedEntries =
+      newEntries(bytesPerValue = 1, ids = listOf(42, 0, 3, Long.MAX_VALUE))
     unsortedEntries.append(42)
       .apply {
         writeByte(4)
@@ -65,7 +96,7 @@ class SortedBytesMapTest {
   }
 
   @Test fun fourEntriesWithLongKey3ByteValueSorted() {
-    val unsortedMap = UnsortedByteEntries(bytesPerValue = 3, longIdentifiers = true)
+    val unsortedMap = newEntries(bytesPerValue = 3, ids = listOf(42, 0, 3, Long.MAX_VALUE))
     unsortedMap.append(42)
       .apply {
         writeByte(4)
@@ -132,48 +163,49 @@ class SortedBytesMapTest {
     val random = Random(Long.MAX_VALUE)
 
     val bytesPerValue = 3
-    val longIdentifiers = false
 
+    // The ids of an Android heap dump: 4 byte, so a span of at most 4 bytes.
     val sourceEntryArray = Array(10000) {
       Entry(random.nextInt().toLong(), random.nextBytes(bytesPerValue))
     }
 
-    sortAndCompare(bytesPerValue, longIdentifiers, sourceEntryArray)
+    sortAndCompare(bytesPerValue, sourceEntryArray)
   }
 
   @Test fun largeRandomArrayLongKey3ByteValueSorted() {
     val random = Random(42)
 
     val bytesPerValue = 3
-    val longIdentifiers = true
 
+    // The ids of a JVM heap dump: 8 byte, but all within one heap's worth of address space.
+    val heapStart = 0x7f9c40000000L
     val sourceEntryArray = Array(10000) {
-      Entry(random.nextLong(), random.nextBytes(bytesPerValue))
+      Entry(heapStart + random.nextInt().toLong(), random.nextBytes(bytesPerValue))
     }
 
-    sortAndCompare(bytesPerValue, longIdentifiers, sourceEntryArray)
+    sortAndCompare(bytesPerValue, sourceEntryArray)
   }
 
   @Test fun largeRandomArrayLongKey7ByteValueSorted() {
     val random = Random(Long.MIN_VALUE)
 
     val bytesPerValue = 7
-    val longIdentifiers = true
 
+    // Ids spread over the whole 8 byte range, which no heap dump does but the encoding has to
+    // handle: it falls back to storing them whole.
     val sourceEntryArray = Array(10000) {
       Entry(random.nextLong(), random.nextBytes(bytesPerValue))
     }
 
-    sortAndCompare(bytesPerValue, longIdentifiers, sourceEntryArray)
+    sortAndCompare(bytesPerValue, sourceEntryArray)
   }
 
   private fun sortAndCompare(
     bytesPerValue: Int,
-    longIdentifiers: Boolean,
     sourceEntryArray: Array<Entry>
   ) {
     val unsortedEntries =
-      UnsortedByteEntries(bytesPerValue = bytesPerValue, longIdentifiers = longIdentifiers)
+      newEntries(bytesPerValue = bytesPerValue, ids = sourceEntryArray.map { it.key })
 
     sourceEntryArray.forEach { entry ->
       val subArray = unsortedEntries.append(entry.key)
@@ -198,5 +230,29 @@ class SortedBytesMapTest {
       .toTypedArray()
 
     assertThat(sortedEntryArray).isEqualTo(sourceEntryArray)
+  }
+
+  /**
+   * Entries keyed the way the indexes of a heap dump holding exactly [ids] would be. Only the keys
+   * are encoded, so `longIdentifiers` is left on: it sizes the ids written as *values*, which these
+   * tests write as longs or bytes instead.
+   */
+  private fun newEntries(
+    bytesPerValue: Int,
+    ids: List<Long>
+  ) = UnsortedByteEntries(
+    idEncoding = encodingFor(ids),
+    bytesPerValue = bytesPerValue,
+    longIdentifiers = true
+  )
+
+  private fun encodingFor(ids: List<Long>): ObjectIdEncoding {
+    var minId = Long.MAX_VALUE
+    var maxId = Long.MIN_VALUE
+    ids.forEach { id ->
+      minId = minOf(minId, id)
+      maxId = maxOf(maxId, id)
+    }
+    return ObjectIdEncoding.of(minId, maxId)
   }
 }

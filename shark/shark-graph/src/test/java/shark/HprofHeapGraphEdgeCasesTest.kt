@@ -2,6 +2,7 @@ package shark
 
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -10,6 +11,7 @@ import shark.GcRoot.StickyClass
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.HprofRecord.HeapDumpRecord.GcRootRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.ClassDumpRecord
+import shark.HprofRecord.HeapDumpRecord.ObjectRecord.InstanceDumpRecord
 import shark.HprofRecord.LoadClassRecord
 import shark.HprofRecord.StringRecord
 import shark.internal.HprofInMemoryIndex
@@ -225,6 +227,37 @@ class HprofHeapGraphEdgeCasesTest {
       val heapClass = graph.findClassByName(className)!!
       assertThat(heapClass.objectId).isEqualTo(42)
     }
+  }
+
+  /**
+   * An instance entry stores the index of its class rather than its class id, so a class id with no
+   * class dump record has no index to store and indexing can't carry on. Failing here rather than
+   * silently is deliberate: nothing downstream can read such an instance either, since its fields
+   * are laid out by a class that isn't in the heap dump.
+   */
+  @Test
+  fun `instance of a class that has no ClassDumpRecord fails indexing`() {
+    val notDumpedClassId = 43L
+
+    HprofWriter.openWriterFor(hprofFile).use { writer ->
+      val classNameRecord = StringRecord(1L, "com.example.SimpleClass")
+      writer.write(classNameRecord)
+      writer.writeClass(42, classNameRecord, rootClass = true)
+      writer.write(LoadClassRecord(1, notDumpedClassId, 1, classNameRecord.id))
+      writer.write(
+        InstanceDumpRecord(
+          id = 24L,
+          stackTraceSerialNumber = 1,
+          classId = notDumpedClassId,
+          fieldValues = ByteArray(0)
+        )
+      )
+    }
+
+    assertThatThrownBy { hprofFile.openHeapGraph().use { } }
+      .isInstanceOf(IllegalArgumentException::class.java)
+      .hasMessageContaining("0x2b")
+      .hasMessageContaining("no class dump record")
   }
 
   private fun HprofWriter.writeClass(

@@ -3,19 +3,21 @@ package shark.internal
 import shark.internal.aosp.ByteArrayTimSort
 
 /**
- * Wraps a byte array of entries where each entry is an id followed by bytes for the value.
- * `id` is a long if [longIdentifiers] is true and an int otherwise. Each entry has [bytesPerValue]
- * value bytes. Entries are appended into the array via [append]. Once done, the backing array
- * is sorted and turned into a [SortedBytesMap] by calling [moveToSortedMap].
+ * Wraps a byte array of entries where each entry is an id key stored the way [idEncoding] describes,
+ * followed by [bytesPerValue] bytes for the value. Entries are appended into the array via [append].
+ * Once done, the backing array is sorted and turned into a [SortedBytesMap] by calling
+ * [moveToSortedMap].
  */
 internal class UnsortedByteEntries(
+  private val idEncoding: ObjectIdEncoding,
   private val bytesPerValue: Int,
   private val longIdentifiers: Boolean,
   private val initialCapacity: Int = 4,
   private val growthFactor: Double = 2.0
 ) : SortedBytesMapBuilder {
 
-  private val bytesPerEntry = bytesPerValue + if (longIdentifiers) 8 else 4
+  private val bytesPerKey = idEncoding.byteCount
+  private val bytesPerEntry = bytesPerValue + bytesPerKey
 
   private var entries: ByteArray? = null
   private val subArray = MutableByteSubArray()
@@ -39,29 +41,24 @@ internal class UnsortedByteEntries(
     }
     assigned++
     subArrayIndex = 0
-    subArray.writeId(key)
+    subArray.writeTruncatedLong(idEncoding.encode(key), bytesPerKey)
     return subArray
   }
 
   override fun moveToSortedMap(): SortedBytesMap {
     if (assigned == 0) {
-      return ArraySortedBytesMap(longIdentifiers, bytesPerValue, ByteArray(0))
+      return ArraySortedBytesMap(idEncoding, longIdentifiers, bytesPerValue, ByteArray(0))
     }
     val entries = entries!!
-    // Sort entries by keys, which are ids of 4 or 8 bytes.
+    // Sorting on the encoded keys, which are offsets from the same base and so in the same order as
+    // the ids they encode.
+    val idEncoding = idEncoding
     ByteArrayTimSort.sort(entries, 0, assigned, bytesPerEntry) {
         entrySize, o1Array, o1Index, o2Array, o2Index ->
-      if (longIdentifiers) {
-        readLong(o1Array, o1Index * entrySize)
-          .compareTo(
-            readLong(o2Array, o2Index * entrySize)
-          )
-      } else {
-        readInt(o1Array, o1Index * entrySize)
-          .compareTo(
-            readInt(o2Array, o2Index * entrySize)
-          )
-      }
+      idEncoding.encodedKeyAt(o1Array, o1Index * entrySize)
+        .compareTo(
+          idEncoding.encodedKeyAt(o2Array, o2Index * entrySize)
+        )
     }
     val sortedEntries = if (entries.size > assigned * bytesPerEntry) {
       entries.copyOf(assigned * bytesPerEntry)
@@ -69,40 +66,8 @@ internal class UnsortedByteEntries(
     this.entries = null
     assigned = 0
     return ArraySortedBytesMap(
-      longIdentifiers, bytesPerValue, sortedEntries
+      idEncoding, longIdentifiers, bytesPerValue, sortedEntries
     )
-  }
-
-  private fun readInt(
-    array: ByteArray,
-    index: Int
-  ): Int {
-    var pos = index
-    return (array[pos++] and 0xff shl 24
-      or (array[pos++] and 0xff shl 16)
-      or (array[pos++] and 0xff shl 8)
-      or (array[pos] and 0xff))
-  }
-
-  @Suppress("NOTHING_TO_INLINE") // Syntactic sugar.
-  private inline infix fun Byte.and(other: Long): Long = toLong() and other
-
-  @Suppress("NOTHING_TO_INLINE") // Syntactic sugar.
-  private inline infix fun Byte.and(other: Int): Int = toInt() and other
-
-  private fun readLong(
-    array: ByteArray,
-    index: Int
-  ): Long {
-    var pos = index
-    return (array[pos++] and 0xffL shl 56
-      or (array[pos++] and 0xffL shl 48)
-      or (array[pos++] and 0xffL shl 40)
-      or (array[pos++] and 0xffL shl 32)
-      or (array[pos++] and 0xffL shl 24)
-      or (array[pos++] and 0xffL shl 16)
-      or (array[pos++] and 0xffL shl 8)
-      or (array[pos] and 0xffL))
   }
 
   private fun growEntries(newCapacity: Int) {

@@ -2,6 +2,7 @@ package shark.internal
 
 import java.util.EnumSet
 import kotlin.math.max
+import kotlin.math.min
 import shark.CancelSignal
 import shark.GcRoot
 import shark.GcRoot.StickyClass
@@ -85,6 +86,7 @@ internal class HprofInMemoryIndex private constructor(
   private val bytesForInstanceSize: Int,
   private val bytesForObjectArraySize: Int,
   private val bytesForPrimitiveArraySize: Int,
+  private val bytesForClassObjectIndex: Int,
   private val useForwardSlashClassPackageSeparator: Boolean,
   val classFieldsReader: ClassFieldsReader,
   private val classFieldsIndexSize: Int,
@@ -194,7 +196,7 @@ internal class HprofInMemoryIndex private constructor(
         val array = it.second
         val instance = IndexedInstance(
           position = array.readTruncatedLong(positionSize),
-          classId = array.readId(),
+          classId = array.readClassId(),
           recordSize = array.readTruncatedLong(bytesForInstanceSize)
         )
         id to instance
@@ -208,7 +210,7 @@ internal class HprofInMemoryIndex private constructor(
         val array = it.second
         val objectArray = IndexedObjectArray(
           position = array.readTruncatedLong(positionSize),
-          arrayClassId = array.readId(),
+          arrayClassId = array.readClassId(),
           recordSize = array.readTruncatedLong(bytesForObjectArraySize)
         )
         id to objectArray
@@ -353,7 +355,7 @@ internal class HprofInMemoryIndex private constructor(
       val array = instanceIndex.getAtIndex(shiftedIndex)
       return objectId to IndexedInstance(
         position = array.readTruncatedLong(positionSize),
-        classId = array.readId(),
+        classId = array.readClassId(),
         recordSize = array.readTruncatedLong(bytesForInstanceSize)
       )
     }
@@ -363,7 +365,7 @@ internal class HprofInMemoryIndex private constructor(
       val array = objectArrayIndex.getAtIndex(shiftedIndex)
       return objectId to IndexedObjectArray(
         position = array.readTruncatedLong(positionSize),
-        arrayClassId = array.readId(),
+        arrayClassId = array.readClassId(),
         recordSize = array.readTruncatedLong(bytesForObjectArraySize)
       )
     }
@@ -423,7 +425,7 @@ internal class HprofInMemoryIndex private constructor(
       val array = instanceIndex.getAtIndex(index)
       return classIndex.size + index to IndexedInstance(
         position = array.readTruncatedLong(positionSize),
-        classId = array.readId(),
+        classId = array.readClassId(),
         recordSize = array.readTruncatedLong(bytesForInstanceSize)
       )
     }
@@ -432,7 +434,7 @@ internal class HprofInMemoryIndex private constructor(
       val array = objectArrayIndex.getAtIndex(index)
       return classIndex.size + instanceIndex.size + index to IndexedObjectArray(
         position = array.readTruncatedLong(positionSize),
-        arrayClassId = array.readId(),
+        arrayClassId = array.readClassId(),
         recordSize = array.readTruncatedLong(bytesForObjectArraySize)
       )
     }
@@ -447,6 +449,16 @@ internal class HprofInMemoryIndex private constructor(
       )
     }
     return null
+  }
+
+  /**
+   * The class id an instance or object array entry refers to. Entries store the index of their
+   * class in [classIndex] rather than its class id, which costs [bytesForClassObjectIndex] bytes
+   * instead of the 4 or 8 of an id. [classIndex] is sorted by class id, so reading its key back is
+   * all it takes to resolve the index.
+   */
+  private fun ByteSubArray.readClassId(): Long {
+    return classIndex.keyAt(readTruncatedLong(bytesForClassObjectIndex).toInt())
   }
 
   private fun ByteSubArray.readClass(): IndexedClass {
@@ -489,8 +501,16 @@ internal class HprofInMemoryIndex private constructor(
 
   private class Builder(
     longIdentifiers: Boolean,
+    private val idEncoding: ObjectIdEncoding,
     maxPosition: Long,
-    classCount: Int,
+    /**
+     * The ids of every class dump record in the heap dump, ascending. An entry's class is stored as
+     * its index into this array rather than as its class id, which is [bytesForClassObjectIndex]
+     * bytes instead of 4 or 8. Sorting it the same way the class index sorts makes the index
+     * resolvable back to a class id by [HprofInMemoryIndex.readClassId], so this array is only
+     * needed while indexing and isn't retained by the built index.
+     */
+    private val sortedClassDumpIds: LongArray,
     instanceCount: Int,
     objectArrayCount: Int,
     primitiveArrayCount: Int,
@@ -509,6 +529,14 @@ internal class HprofInMemoryIndex private constructor(
     private val identifierSize = if (longIdentifiers) 8 else 4
     private val positionSize = byteSizeForUnsigned(maxPosition)
     private val classFieldsIndexSize = byteSizeForUnsigned(classFieldsTotalBytes.toLong())
+    private val classCount = sortedClassDumpIds.size
+
+    /**
+     * Bytes an instance or object array entry spends on the index of its class: 2 for the few
+     * thousand classes of a typical heap dump, 3 past 65536 classes.
+     */
+    private val bytesForClassObjectIndex =
+      max(1, byteSizeForUnsigned(max(0, classCount - 1).toLong()))
 
     /**
      * Map of string id to string
@@ -532,21 +560,25 @@ internal class HprofInMemoryIndex private constructor(
     private var classFieldsIndex = 0
 
     private val classIndex = SortedBytesMaps.newBuilder(
+      idEncoding = idEncoding,
       bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize + classFieldsIndexSize,
       longIdentifiers = longIdentifiers,
       entryCount = classCount
     )
     private val instanceIndex = SortedBytesMaps.newBuilder(
-      bytesPerValue = positionSize + identifierSize + bytesForInstanceSize,
+      idEncoding = idEncoding,
+      bytesPerValue = positionSize + bytesForClassObjectIndex + bytesForInstanceSize,
       longIdentifiers = longIdentifiers,
       entryCount = instanceCount
     )
     private val objectArrayIndex = SortedBytesMaps.newBuilder(
-      bytesPerValue = positionSize + identifierSize + bytesForObjectArraySize,
+      idEncoding = idEncoding,
+      bytesPerValue = positionSize + bytesForClassObjectIndex + bytesForObjectArraySize,
       longIdentifiers = longIdentifiers,
       entryCount = objectArrayCount
     )
     private val primitiveArrayIndex = SortedBytesMaps.newBuilder(
+      idEncoding = idEncoding,
       bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
       longIdentifiers = longIdentifiers,
       entryCount = primitiveArrayCount
@@ -580,6 +612,29 @@ internal class HprofInMemoryIndex private constructor(
     private fun lastClassFieldsShort() =
       ((classFieldBytes[classFieldsIndex - 2].toInt() and 0xff shl 8) or
         (classFieldBytes[classFieldsIndex - 1].toInt() and 0xff)).toShort()
+
+    private var lastClassId = 0L
+    private var lastClassObjectIndex = -1
+
+    /**
+     * The index of the class dump record of [classId] in [sortedClassDumpIds], which is what an
+     * instance or object array entry stores in place of the class id itself.
+     */
+    private fun classObjectIndexOf(classId: Long): Int {
+      // Consecutive records in a heap dump are often instances of the same class, so remembering
+      // the last one answers a good share of the lookups without a binary search.
+      if (lastClassObjectIndex >= 0 && classId == lastClassId) {
+        return lastClassObjectIndex
+      }
+      val index = sortedClassDumpIds.binarySearch(classId)
+      require(index >= 0) {
+        "Heap dump has an object of class 0x${classId.toString(16)} but no class dump record for " +
+          "that class, so the class of that object cannot be resolved."
+      }
+      lastClassId = classId
+      lastClassObjectIndex = index
+      return index
+    }
 
     override fun onHprofRecord(
       tag: HprofRecordTag,
@@ -785,7 +840,7 @@ internal class HprofInMemoryIndex private constructor(
           instanceIndex.append(id)
             .apply {
               writeTruncatedLong(bytesReadStart, positionSize)
-              writeId(classId)
+              writeTruncatedLong(classObjectIndexOf(classId).toLong(), bytesForClassObjectIndex)
               writeTruncatedLong(recordSize, bytesForInstanceSize)
             }
         }
@@ -802,7 +857,7 @@ internal class HprofInMemoryIndex private constructor(
           objectArrayIndex.append(id)
             .apply {
               writeTruncatedLong(bytesReadStart, positionSize)
-              writeId(arrayClassId)
+              writeTruncatedLong(classObjectIndexOf(arrayClassId).toLong(), bytesForClassObjectIndex)
               writeTruncatedLong(recordSize, bytesForObjectArraySize)
             }
         }
@@ -848,6 +903,19 @@ internal class HprofInMemoryIndex private constructor(
       val sortedPrimitiveArrayIndex = primitiveArrayIndex.moveToSortedMap()
       cancelSignal.throwIfCanceled()
       val sortedClassIndex = classIndex.moveToSortedMap()
+      // The class of an instance or object array is stored as its index into sortedClassDumpIds,
+      // and read back through sortedClassIndex, so the two have to agree entry for entry.
+      require(sortedClassIndex.size == classCount) {
+        "Class index has ${sortedClassIndex.size} entries instead of the $classCount class dump " +
+          "records counted on the first pass"
+      }
+      for (classObjectIndex in 0 until classCount) {
+        val classId = sortedClassIndex.keyAt(classObjectIndex)
+        require(classId == sortedClassDumpIds[classObjectIndex]) {
+          "Class index entry $classObjectIndex is class 0x${classId.toString(16)} but the class " +
+            "dump ids sorted that position to 0x${sortedClassDumpIds[classObjectIndex].toString(16)}"
+        }
+      }
       // Passing references to avoid copying the underlying data structures.
       return HprofInMemoryIndex(
         positionSize = positionSize,
@@ -863,6 +931,7 @@ internal class HprofInMemoryIndex private constructor(
         bytesForInstanceSize = bytesForInstanceSize,
         bytesForObjectArraySize = bytesForObjectArraySize,
         bytesForPrimitiveArraySize = bytesForPrimitiveArraySize,
+        bytesForClassObjectIndex = bytesForClassObjectIndex,
         useForwardSlashClassPackageSeparator = hprofHeader.version != ANDROID,
         classFieldsReader = ClassFieldsReader(identifierSize, classFieldBytes),
         classFieldsIndexSize = classFieldsIndexSize,
@@ -876,16 +945,6 @@ internal class HprofInMemoryIndex private constructor(
   }
 
   companion object {
-
-    private fun byteSizeForUnsigned(maxValue: Long): Int {
-      var value = maxValue
-      var byteCount = 0
-      while (value != 0L) {
-        value = value shr 8
-        byteCount++
-      }
-      return byteCount
-    }
 
     fun indexHprof(
       reader: StreamingHprofReader,
@@ -905,12 +964,25 @@ internal class HprofInMemoryIndex private constructor(
       var objectArrayCount = 0
       var primitiveArrayCount = 0
       var classFieldsTotalBytes = 0
+      var classDumpIds = LongArray(0)
+      // The range the object ids of this heap dump fall in, which is what the index keys are sized
+      // and based off, see [ObjectIdEncoding]. Every object dump record has to be looked at for
+      // this, so its id is read out of each rather than skipped over with the rest of the record.
+      var minObjectId = Long.MAX_VALUE
+      var maxObjectId = Long.MIN_VALUE
       val stickyClassGcRootIds = LongScatterSet()
       var stackFrameCount = 0
       var stackTraceCount = 0
       // The class serial numbers actually referenced by stack frames. Collected here so that the
       // second pass only records class names for this (tiny) subset rather than every class.
       val neededClassSerials = LongScatterSet()
+
+      fun HprofRecordReader.readObjectId(): Long {
+        val id = readId()
+        minObjectId = min(minObjectId, id)
+        maxObjectId = max(maxObjectId, id)
+        return id
+      }
 
       val bytesRead = reader.readRecords(
         EnumSet.of(
@@ -926,8 +998,18 @@ internal class HprofInMemoryIndex private constructor(
         val bytesReadStart = reader.bytesRead
         when (tag) {
           CLASS_DUMP -> {
+            // The ids of the classes that have a class dump record, collected here so that the
+            // second pass can replace the class id of every instance and object array with the
+            // index of its class, see [Builder.classObjectIndexOf].
+            if (classCount == classDumpIds.size) {
+              classDumpIds = classDumpIds.copyOf(max(4, classDumpIds.size * 2))
+            }
+            classDumpIds[classCount] = reader.readObjectId()
             classCount++
-            reader.skipClassDumpHeader()
+            // The rest of what skipClassDumpHeader() skips, minus the id read above: the stack
+            // trace serial number, 6 more ids, the instance size, then the constant pool.
+            reader.skip(INT.byteSize * 2 + hprofHeader.identifierByteSize * 6)
+            reader.skipClassDumpConstantPool()
             val bytesReadStaticFieldStart = reader.bytesRead
             reader.skipClassDumpStaticFields()
             reader.skipClassDumpFields()
@@ -936,17 +1018,35 @@ internal class HprofInMemoryIndex private constructor(
           }
           INSTANCE_DUMP -> {
             instanceCount++
-            reader.skipInstanceDumpRecord()
+            reader.readObjectId()
+            // The rest of what skipInstanceDumpRecord() skips, minus the id read above: the stack
+            // trace serial number, the class id, then the field values.
+            reader.skip(INT.byteSize + hprofHeader.identifierByteSize)
+            val remainingBytesInInstance = reader.readInt()
+            reader.skip(remainingBytesInInstance)
             maxInstanceSize = max(maxInstanceSize, reader.bytesRead - bytesReadStart)
           }
           OBJECT_ARRAY_DUMP -> {
             objectArrayCount++
-            reader.skipObjectArrayDumpRecord()
+            reader.readObjectId()
+            // The rest of what skipObjectArrayDumpRecord() skips, minus the id read above: the
+            // stack trace serial number, the array length, the class id, then the elements.
+            reader.skip(INT.byteSize)
+            val arrayLength = reader.readInt()
+            reader.skip(
+              hprofHeader.identifierByteSize + arrayLength.toLong() * hprofHeader.identifierByteSize
+            )
             maxObjectArraySize = max(maxObjectArraySize, reader.bytesRead - bytesReadStart)
           }
           PRIMITIVE_ARRAY_DUMP -> {
             primitiveArrayCount++
-            reader.skipPrimitiveArrayDumpRecord()
+            reader.readObjectId()
+            // The rest of what skipPrimitiveArrayDumpRecord() skips, minus the id read above: the
+            // stack trace serial number, the array length, the element type, then the elements.
+            reader.skip(INT.byteSize)
+            val arrayLength = reader.readInt()
+            val type = reader.readUnsignedByte()
+            reader.skip(arrayLength.toLong() * PrimitiveType.byteSizeByHprofType.getValue(type))
             maxPrimitiveArraySize = max(maxPrimitiveArraySize, reader.bytesRead - bytesReadStart)
           }
           ROOT_STICKY_CLASS -> {
@@ -979,10 +1079,17 @@ internal class HprofInMemoryIndex private constructor(
       val bytesForObjectArraySize = byteSizeForUnsigned(maxObjectArraySize)
       val bytesForPrimitiveArraySize = byteSizeForUnsigned(maxPrimitiveArraySize)
 
+      // Sorted so that the second pass can binary search a class id into its class index, and so
+      // that this order is the order the class index itself ends up sorted in, which is what makes
+      // the index resolvable back to a class id without a table of its own.
+      val sortedClassDumpIds = classDumpIds.copyOf(classCount)
+      sortedClassDumpIds.sort()
+
       val indexBuilderListener = Builder(
         longIdentifiers = hprofHeader.identifierByteSize == 8,
+        idEncoding = ObjectIdEncoding.of(minObjectId, maxObjectId),
         maxPosition = bytesRead,
-        classCount = classCount,
+        sortedClassDumpIds = sortedClassDumpIds,
         instanceCount = instanceCount,
         objectArrayCount = objectArrayCount,
         primitiveArrayCount = primitiveArrayCount,

@@ -41,20 +41,23 @@ internal object SortedBytesMaps {
   const val TARGET_BYTES_PER_PAGE: Long = 1L shl 30  // 1 GB
 
   fun newBuilder(
+    idEncoding: ObjectIdEncoding,
     bytesPerValue: Int,
     longIdentifiers: Boolean,
     entryCount: Int
   ): SortedBytesMapBuilder {
-    val bytesPerEntry = bytesPerValue + if (longIdentifiers) 8 else 4
+    val bytesPerEntry = bytesPerValue + idEncoding.byteCount
     val totalBytes = entryCount.toLong() * bytesPerEntry
     return if (totalBytes <= MAX_SINGLE_ARRAY_BYTES) {
       UnsortedByteEntries(
+        idEncoding = idEncoding,
         bytesPerValue = bytesPerValue,
         longIdentifiers = longIdentifiers,
         initialCapacity = entryCount
       )
     } else {
       PagedUnsortedByteEntries(
+        idEncoding = idEncoding,
         bytesPerValue = bytesPerValue,
         longIdentifiers = longIdentifiers,
         entryCount = entryCount,
