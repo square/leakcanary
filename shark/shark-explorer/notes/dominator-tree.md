@@ -2,8 +2,9 @@
 
 ## Which implementation to use
 
-`shark.HeapDominatorTree` — exact Lengauer–Tarjan with the simple link-eval, on `main` since
-PR #2870. `shark.ObjectDominators.buildDominatorTree` is a thin wrapper that also computes sizes.
+`shark.HeapDominatorTree` — exact, on `main` since PR #2870, computed with SEMI-NCA since the memory
+work in the section on cost below (Lengauer–Tarjan with the simple link-eval before that).
+`shark.ObjectDominators.buildDominatorTree` is a thin wrapper that also computes sizes.
 `shark.ApproximateDominatorTree` is the on device BFS approximation and must not be used here.
 
 Why exactness was worth it: the approximation updates dominators incrementally during BFS, so when a
@@ -493,7 +494,7 @@ is what the reader gets two different things out of:
 of them share their endpoints and nothing else. The most there can be is the *local vertex connectivity*
 of the two ends, by Menger's theorem, and for a stretch found this way there are always at least two — a
 single interior vertex common to every path would be a dominator, which is what the stretch being unmarked
-rules out. Not "semidominator", which Lengauer–Tarjan already uses for something else.
+rules out. Not "semidominator", which the dominator algorithm already uses for something else.
 
 Two caveats, which `WAYS_HINT` states in the UI rather than leaving to be discovered:
 
@@ -639,20 +640,123 @@ Where it went, measured before the two garbage fixes in the section above moved 
 Two things made that number much worse before they were found, both of them a `findClassByName` in a
 per-object loop: 49 s once, then 6.8 s once. Neither showed up as an obviously hot function — it's a
 method on `HeapGraph` that reads like a map lookup. **Time the steps before optimizing anything else
-here**; the walks and Lengauer–Tarjan are within a factor of two of each other and neither is the outlier
-you'd expect.
+here**; the walks and the dominator computation are within a factor of two of each other and neither is
+the outlier you'd expect.
 
 ## Memory cost
 
-Measured on a 193 MB heap dump (~983 K reachable objects, 2.5 M edges): **~48 MB peak** while
-building the predecessor lists, ~43 MB during Lengauer–Tarjan, ~13 MB once only the dominators and
-the id mapping remain. Only the predecessor structure scales with edge count; every other array is
-sized by node count.
+**28 bytes per object of the heap dump plus 4 per reference that isn't a DFS tree edge**, at the peak,
+which is while the immediate dominators are being computed. What survives the build is 12 bytes per
+object — an object index per DFS number, a DFS number per object index, and a dominator per DFS number
+— and that is what the tree costs for the rest of the session.
+
+Measured, including the graph and its index either way: on `large-dump.hprof` (39 MB, 271 K reachable
+objects) 37 MB at the peak and 31 MB after; on a generated 487 MB dump of 9.24 M reachable objects,
+484 MB and 308 MB.
 
 That's affordable on a phone but comfortable on desktop, which is part of why the explorer is a
 desktop app. For reference, the app sits at ~240 MB RSS with a 24 MB heap dump open, and at ~1.2 GB
 with the 287 MB production dump open — 504 K `DominatorNode`s, which is what the section below is
 about.
+
+### How to measure it, and what the numbers are
+
+**Peak heap used is not the metric** — a JVM with room to spare collects late, so the number reads as
+whatever the collector felt like. The metric is the **minimum heap ladder**: the smallest `-Xmx` at
+which the build still completes, bisected. Alongside it, the live heap after a full collection with
+only the finished tree and the graph still referenced, which is what the tree costs for the rest of
+the session.
+
+The workload that discriminates is a dump with millions of objects, which the repo has none of. A
+generated one, 487 MB, 9.25 M objects / 9.24 M reachable / 17.35 M references between them, from a JVM
+holding a wide shallow hierarchy — a back reference from each node to its parent, plus a pool of shared
+leaves several nodes each point at (`HotSpotDiagnosticMXBean.dumpHeap`, see the DSL note in the root
+`AGENTS.md`). Every change below is A/B'd against the previous implementation **inside one JVM
+process**, alternating them, with the immediate dominator of every reachable object compared: an
+identical relation over an identical object set is the whole correctness gate, since retained sizes and
+a node's children are functions of it and of shallow sizes. Discard the first round — C2 scalar replaces
+until the method is recompiled.
+
+**Check a generated workload's DFS depth before trusting a number off it**, which is the trap here and
+cost a full round of measurements. The first generated dump pointed each node's cross references forward
+to a nearby index, and that chains: its DFS path reached 3.69 M frames, 40% of its vertices, where a real
+Android dump of 271 K reachable objects reaches 4911 and one of 173 K reaches 1947. A frame is ~90 bytes
+of object headers and bookkeeping around the successor ids it holds, so that stack alone was ~350 MB and
+the peak of the whole analysis — a ladder on it moved for anything that made the DFS cheaper and not at
+all for the algorithm that runs after it, reporting SEMI-NCA as worth 7 MB against the 127 MB it is worth
+here. The shape above has every non tree reference pointing either up at an ancestor or at a sink,
+neither of which can extend a DFS path, and reaches 138.
+
+**Near its boundary the ladder is a coin toss, so a heap size only counts as passing when three
+consecutive runs of it complete.** Measured on that first workload: 1187 MB completed once in three
+attempts, and a single-run bisection reported a heap that then failed three times out of three. A single
+run per candidate reads as 60 MB better than the truth.
+
+| | Minimum heap | Live heap after build |
+| --- | --- | --- |
+| Vertex maps keyed by object id, the first version | 1025 MB | 522 MB |
+| Vertex maps keyed by `objectIndex` | 831 MB | 308 MB |
+| DFS tree edges left out of the predecessor lists | 712 MB | 308 MB |
+| Predecessors as a CSR rather than linked lists | 652 MB | 308 MB |
+| SEMI-NCA rather than Lengauer–Tarjan | **525 MB** | 308 MB |
+
+End to end, A/B'd in one JVM on that dump: 15.4 to 16.3 s against 19.4 to 19.9 s, with identical
+dominators for all 9,237,588 reachable objects.
+
+**Keying by `objectIndex` rather than by object id** is where the second row comes from.
+`HprofInMemoryIndex.objectIndexOrMinusOne` is a dense index over `[0, objectCount[`, so
+`dfsNumberByObjectIndex` is an `IntArray` sized once — 4 B per object of the dump — where a
+`MutableLongIntMap` of ids was ~23 B, and the DFS number to object mapping is 4 B rather than the 8 B
+an id needs. The price is a binary search per edge instead of a hash lookup, and that turns out to be
+free: the id was resolved to an index to get there, so the DFS then reads the object with
+`findObjectByIndex`, which is the half of `findObjectById` that isn't a binary search. Measured at
+19.2 s against 19.0 s for the same build. It's the trade `shark.internal.HeapObjectIdSet` already
+makes for the same reason. It is also the row that cuts what the finished tree holds, an id per DFS
+number having been two thirds of it.
+
+**Leaving the DFS tree edges out of the predecessor lists** is the third row, and it is more than half
+the edges: 9.24 M of the 17.35 M references on that dump are the one that discovered a vertex, and
+`dfsTreeParent` already holds those. The semidominator loop needs no list to recover what such an edge
+contributes — its candidate is the parent's own DFS number, because the loop runs in
+descending DFS order, so the parent is still unlinked, still labelled with itself, and its own
+semidominator hasn't been computed yet. Nothing about the sizes of the arrays changed; there are
+simply half as many entries in them, and half as much of the 1.5× overshoot `MutableIntList` leaves
+behind at its last growth.
+
+**The CSR is the smallest of the four, and its time win depends on the shape of the dump.** The
+dominator computation reads a vertex's predecessors exactly once, in descending DFS order, so reading
+them from one contiguous slice beats chasing a `next` pointer into a 32 MB array — worth 15% of the
+whole build on the first generated workload and nothing measurable on this one, 17.6 s either way. The
+edges have to be collected in discovery order first, neither the vertex count nor the edge count being
+known while the DFS runs, so they are counting sorted into slices at the end of it and the discovery
+order lists dropped there — which is the point at which it matters, since the dominator arrays are then
+allocated on top of whatever is left.
+
+**SEMI-NCA is the largest of the four, and it is memory only.** Phase 1 is the same semidominator
+computation; the immediate dominators then come from walking up the partially built dominator tree
+rather than from buckets, so it needs `semi`, `label` and one array that is the link-eval `ancestor`
+while phase 1 runs and the dominators afterwards — **three per vertex arrays where Lengauer–Tarjan
+needs six** — plus a `compressStack` grown from 1024 rather than sized at one entry per vertex, which
+was 37 MB to hold a path that never got past 14 deep. Georgiadis, Tarjan & Werneck, *Finding Dominators
+Revisited*, 2006, and what LLVM and `hprof-analyzer` both ship. No time difference on this dump: 15.9
+to 18.2 s against 16.7 to 19.6 s, overlapping.
+
+**Its phase 2 has an O(n²) worst case where Lengauer–Tarjan is O(m log n)**, which is the one thing to
+know before touching it. The ancestor walk is bounded by the height of the dominator tree, so the bad
+case is a deep chain whose bottom vertices are also referenced from near the root. Measured rather than
+assumed: on `large-dump.hprof`, 1.64 M steps for 271 K vertices, 6 per vertex, longest single walk 4770;
+on the first generated dump, 7.46 M steps for 9.26 M vertices, 0.8 per vertex, longest 14. Both loops
+call `cancelSignal.throwIfCanceled()`, so a pathological dump is a slow read that can be abandoned
+rather than a hang.
+
+**Delta encoding the CSR slices was measured against and not done.** Nothing asks for a vertex's
+predecessors twice or out of order, so a vbyte encoded CSR — what `hprof-analyzer`'s `pass2/model.rs`
+does at ~1.3 bytes an edge — would work as a per block reverse decode into a scratch buffer, and would
+take the 32 MB of slices to about 12 MB on this dump. That is 4% of the ladder, for a sort per vertex
+and a decoder, against three dominator arrays that are now 12 bytes per object between them. Not
+earning its place here yet — which is the opposite of how it came out for `ReferrerIndex`, where the
+same encoding shipped: that one is held for the whole session and read at random, so what it costs is
+what it is, where these slices live for the length of one build and are read once in order.
 
 ## Remaining inefficiency
 
