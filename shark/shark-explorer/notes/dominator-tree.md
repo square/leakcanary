@@ -505,10 +505,10 @@ Two caveats, which `WAYS_HINT` states in the UI rather than leaving to be discov
 
 **The search walks backwards, from the object towards what holds it**, which is the direction a heap dump
 can't answer in: it records a reference only in the direction it points. Hence `ReferrerIndex` — one pass
-over the dump, kept as a linked list per object (an int per object, two per reference, ~30 MB on a million
-object dump). That replaced a full pass per question plus a pass per fork level, which was 2.3 s per click
-on the 82 MB dump and 3.4 s when a holder was shared, with a walk in memory. The pass is paid once per
-session, lazily, on the first question about paths.
+over the dump, kept as a delta encoded byte slice per object, three to six bytes an object
+(`referrer-index.md`). That replaced a full pass per question plus a pass per fork level, which was 2.3 s
+per click on the 82 MB dump and 3.4 s when a holder was shared, with a walk in memory. The pass is paid
+once per session, lazily, on the first question about paths.
 
 **A path that loops back through the object isn't a way of holding it.** An `AppCompatImageView` has seven
 referrers, five of them helpers it created that point back at it. The walk never leaves the object it

@@ -538,6 +538,8 @@ Design decisions and findings, kept current as the work proceeds:
 
 - `notes/decisions.md` — stack and structure decisions, with rationale
 - `notes/dominator-tree.md` — dominator algorithm findings, memory/perf numbers
+- `notes/referrer-index.md` — how the referrer index is encoded, what it holds, and why the order it hands
+  referrers back in is not free to change
 - `notes/treemap-rendering.md` — adaptive depth model, the two shapes, bugs in the existing Android
   treemap
 - `notes/bitmaps.md` — which Android versions put a bitmap's pixels in the heap dump, and the two ways
