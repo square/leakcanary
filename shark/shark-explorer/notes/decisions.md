@@ -558,7 +558,7 @@ six.
 the retained-since-the-last-dump one — against this screen. `LeakFingerprintTest` is that check on
 synthetic dumps, one per difference that used to break it; the sweep over the ten real Android dumps in
 this repo is worth re-running by hand after touching any of this, and it stands at **8 of the 10 dumps
-agreeing exactly, 12 of the 15 leaks**. It is what found everything on this page: the counts alone matched
+agreeing exactly, 13 of the 15 leaks**. It is what found everything on this page: the counts alone matched
 three rounds before the leak fingerprints did, because two chains can be different and the same length.
 
 **Two dumps still differ, and neither is a tie-break nobody can explain.**
@@ -617,7 +617,7 @@ can't take that way at all, because **its phase 1 treats a leaking object as a l
   `Reference.isLowPriority` in a bit beside each referrer to answer it.
 - **A reference into an object that shouldn't be in memory wasn't put off**, so a chain took it where there
   was a way round, and the object it led to hashed to the leak fingerprint of the leak on the way. That is
-  the third tier in `RootPathSearch`'s queue, on the same two queues as a stack frame and for the same reason:
+  a queue of its own in `RootPathSearch`, walked after the plain one for the same reason a stack frame is:
   a path through a dead object explains what holds an object about as well as a running method does. Where
   every way is a leak the chain still runs through one, which is what the fold above then drops. It reads as
   a different rule in LeakCanary — its phase 1 makes a leaking object a leaf, so the way round is the only
@@ -627,6 +627,30 @@ can't take that way at all, because **its phase 1 treats a leaking object as a l
   rather than when the Leaks screen is opened, which on the 38 MB dump is 296 ms once, paid by the first
   chain (963 ms against 627 ms) and by nothing after it. Two thousand chains take 1381 ms with the tier and
   1348 ms without, which is noise — the extra tier is one array read per referrer.
+
+- **The two put-off kinds shared one queue, so between them the shorter way won**, and the shorter way to
+  nearly anything is a stack frame. Measured on `leak_asynctask_o.hprof`, marking `SerialExecutor$1`
+  `Expected` and `AsyncTask$3` `Stuck` — the two verdicts that make the chain name the faulty reference —
+  turned `AsyncTask.SERIAL_EXECUTOR → SerialExecutor$1 → AsyncTask$3 → MainActivity$2 → MainActivity` into
+  `Thread → <local variable> → MainActivity$2 → MainActivity`, the frame being two steps from the activity
+  where the executor is six. That chain has no `Expected` step on it, so nothing crosses to `Stuck` and no
+  reference is marked: the verdicts that identify the leak were what hid it. So the two kinds are now two
+  queues, a leak above a low priority reference, because **a leak is an answer and a stack frame is not** —
+  an object marked `Stuck` is a reader saying this is the thing to fix, and a frame answers "what holds
+  this" with "a method is running".
+
+  Costs one more int array the size of the dump, five in `RootPathSearch` now, and a `maxOf` per referrer.
+  A/B on the 38 MB dump, same sample and same JVM settings minutes apart: the 2000 chains to its 2000
+  largest objects, 1,713,405 steps and identical before and after, in 14.8–15.2 s ranked against 15.0–15.8 s
+  unranked. Reading the steps out of the dump dominates that number — 857 steps a chain here — so read it as
+  "no measurable cost" rather than as a measurement of the walk. The sweep below was re-run either side of
+  it and gives the same leak fingerprints on all ten dumps.
+
+  **What made it hard to see from the window is that nothing else offered the executor route.** The ways a
+  detour could have run are node-disjoint paths (`independentPathsFromRoots`), and the executor route
+  reaches `MainActivity$2` through `AsyncTask$3`, which the frame route already took — so it is not
+  independent of one and never reported as an alternative. It was on screen only because the chain itself
+  ran through it.
 
 **Shark's library leak matchers are added to the reference reader the tree is built from**
 (`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would
@@ -966,12 +990,21 @@ has established, is a screen that goes on listing an object they have already ex
 **Two statuses set by hand can contradict each other, and the contradiction is shown rather than settled.**
 The propagation rules are what make it possible: a leaking object above forces everything it holds to be
 leaking, and an object still needed below forces everything holding it to be needed. So two hand-set statuses
-disagree exactly when one of the objects reaches the other, which is `HeapDominatorTreemap.reaches` —
-one walk up `ReferrerIndex` per status already set, a question somebody asked rather than one the pointer
-asks. `leakStatusConflictsWith` answers it before anything is written, and the dialog then lists every one of
-them by name, with the reason it was given, because whoever is about to overrule it is the only person who
-can weigh the two.
+disagree when one of the objects is above the other, which is `HeapDominatorTreemap.reaches` asked **both ways
+round** — one walk up `ReferrerIndex` per status already set, a question somebody asked rather than one the
+pointer asks. `leakStatusConflictsWith` answers it before anything is written, and the dialog then lists every
+one of them by name, with the reason it was given, because whoever is about to overrule it is the only person
+who can weigh the two.
 
+- **Reaching each other is not being above each other**, and it is ordinary rather than exotic: the sample
+  app's `AsyncTask` leak is three objects on a loop — the task holds the thread running it through
+  `FutureTask.runner`, that thread's frame holds the runnable the executor wrapped the task in, and that
+  runnable holds the task. Asking `reaches` one way round there answers yes whichever pair and whichever
+  direction, so the first version reported the canonical case as a conflict and named the two objects the
+  wrong way round in it. Neither object on a loop is above the other — which one a chain shows first is
+  decided by where the chain enters the loop — so `isAbove` asks both directions and a loop is no conflict.
+  The chain still says so wherever it does put one above the other, which is a reason reading
+  `Conflicts with`.
 - **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
   `NOT_LEAKING` propagates upwards only and `LEAKING` downwards only, so the pair that can disagree is
   always those two, and agreeing with the new status is the same as being flipped.

@@ -366,6 +366,71 @@ internal fun TemporaryFolder.leakOnAStackAndInAFieldHeapDump(): File {
   return file
 }
 
+/**
+ * A heap dump shaped like the `AsyncTask` of the sample app, where three objects each hold the other two.
+ *
+ * What a real executor looks like while it is running something: the executor holds the runnable it wrapped
+ * the task in, that runnable holds the task, the task holds the thread running it — `FutureTask.runner` — and
+ * that thread's stack frame holds the runnable back. Which is a loop, and the objects on it are neither above
+ * nor below each other however far a walk up the referrers gets. See `isAbove`.
+ *
+ * The chains drawn through it all take the executor's field rather than a frame, since [RootPathSearch] puts
+ * a frame off, so what a reader sees is the wrapper above the task with the activity under both. **A frame
+ * holds the activity too**, as the running thread's frames do in `leak_asynctask_o.hprof`, which is what
+ * makes it the shorter way in the moment a status set by hand puts the way through the task off as well.
+ */
+internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump {
+  val file = newFile("task-holding-its-own-thread.hprof")
+  var wrapperObjectId = 0L
+  var taskObjectId = 0L
+  var activityObjectId = 0L
+  file.dump {
+    val thread = instance(
+      clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class)),
+      fields = listOf(string(WORKER_THREAD_NAME))
+    )
+    gcRoot(ThreadObject(id = thread.value, threadSerialNumber = 42, stackTraceSerialNumber = 0))
+    val activity = instance(activityClass(), fields = listOf(BooleanHolder(true)))
+    val task = instance(
+      clazz(
+        className = TASK_CLASS_NAME,
+        fields = listOf("this$0" to ReferenceHolder::class, "runner" to ReferenceHolder::class)
+      ),
+      fields = listOf(activity, thread)
+    )
+    val wrapper = instance(
+      clazz(className = WRAPPER_CLASS_NAME, fields = listOf("val\$r" to ReferenceHolder::class)),
+      fields = listOf(task)
+    )
+    // The runnable the thread is inside of, which is how the loop closes: a local variable of a method
+    // running on that thread is a Java frame GC root, read as a reference of the thread itself.
+    gcRoot(JavaFrame(id = wrapper.value, threadSerialNumber = 42, frameNumber = 0))
+    // And the activity the method it is running has a hold of, two steps from the thread where the
+    // executor's field is four.
+    gcRoot(JavaFrame(id = activity.value, threadSerialNumber = 42, frameNumber = 1))
+    val executor = instance(
+      clazz(className = EXECUTOR_CLASS_NAME, fields = listOf("mActive" to ReferenceHolder::class)),
+      fields = listOf(wrapper)
+    )
+    gcRoot(JniGlobal(id = executor.value, jniGlobalRefId = 0))
+    wrapperObjectId = wrapper.value
+    taskObjectId = task.value
+    activityObjectId = activity.value
+  }
+  return TaskLoopHeapDump(file, wrapperObjectId, taskObjectId, activityObjectId)
+}
+
+/** A [taskHoldingItsOwnThreadHeapDump] and the three objects of it a status gets set on. */
+internal class TaskLoopHeapDump(
+  val file: File,
+  /** The runnable the executor is running, which is on the loop and above the task on every chain. */
+  val wrapperObjectId: Long,
+  /** The task it wrapped, which is on the loop too and is what holds the activity. */
+  val taskObjectId: Long,
+  /** The destroyed activity under both of them, which is on no loop. */
+  val activityObjectId: Long
+)
+
 /** A heap dump where the only destroyed activity is one nothing points at any more. */
 internal fun TemporaryFolder.collectedActivityHeapDump(): File {
   val file = newFile("collected-activity.hprof")
@@ -480,6 +545,16 @@ internal const val WATCHED_CLASS_NAME = "com.example.LeakingPresenter"
 internal const val ACTIVITY_CLASS_NAME = "com.example.MainActivity"
 
 internal const val HOLDER_CLASS_NAME = "com.example.Holder"
+
+/** The three classes of [taskHoldingItsOwnThreadHeapDump], named the way the framework's own are. */
+internal const val EXECUTOR_CLASS_NAME = "android.os.AsyncTask\$SerialExecutor"
+
+internal const val WRAPPER_CLASS_NAME = "android.os.AsyncTask\$SerialExecutor\$1"
+
+internal const val TASK_CLASS_NAME = "android.os.AsyncTask\$3"
+
+/** And the thread it is running on, which a chain names when it walks through its stack. */
+private const val WORKER_THREAD_NAME = "AsyncTask #1"
 
 internal const val APPLICATION_CLASS_NAME = "com.example.ExampleApplication"
 
