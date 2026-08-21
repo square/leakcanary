@@ -2,6 +2,7 @@ package shark.internal
 
 import java.util.EnumSet
 import kotlin.math.max
+import kotlin.math.min
 import shark.CancelSignal
 import shark.GcRoot
 import shark.GcRoot.StickyClass
@@ -500,6 +501,7 @@ internal class HprofInMemoryIndex private constructor(
 
   private class Builder(
     longIdentifiers: Boolean,
+    private val idEncoding: ObjectIdEncoding,
     maxPosition: Long,
     /**
      * The ids of every class dump record in the heap dump, ascending. An entry's class is stored as
@@ -558,21 +560,25 @@ internal class HprofInMemoryIndex private constructor(
     private var classFieldsIndex = 0
 
     private val classIndex = SortedBytesMaps.newBuilder(
+      idEncoding = idEncoding,
       bytesPerValue = positionSize + identifierSize + 4 + bytesForClassSize + classFieldsIndexSize,
       longIdentifiers = longIdentifiers,
       entryCount = classCount
     )
     private val instanceIndex = SortedBytesMaps.newBuilder(
+      idEncoding = idEncoding,
       bytesPerValue = positionSize + bytesForClassObjectIndex + bytesForInstanceSize,
       longIdentifiers = longIdentifiers,
       entryCount = instanceCount
     )
     private val objectArrayIndex = SortedBytesMaps.newBuilder(
+      idEncoding = idEncoding,
       bytesPerValue = positionSize + bytesForClassObjectIndex + bytesForObjectArraySize,
       longIdentifiers = longIdentifiers,
       entryCount = objectArrayCount
     )
     private val primitiveArrayIndex = SortedBytesMaps.newBuilder(
+      idEncoding = idEncoding,
       bytesPerValue = positionSize + 1 + bytesForPrimitiveArraySize,
       longIdentifiers = longIdentifiers,
       entryCount = primitiveArrayCount
@@ -940,16 +946,6 @@ internal class HprofInMemoryIndex private constructor(
 
   companion object {
 
-    private fun byteSizeForUnsigned(maxValue: Long): Int {
-      var value = maxValue
-      var byteCount = 0
-      while (value != 0L) {
-        value = value shr 8
-        byteCount++
-      }
-      return byteCount
-    }
-
     fun indexHprof(
       reader: StreamingHprofReader,
       hprofHeader: HprofHeader,
@@ -969,12 +965,24 @@ internal class HprofInMemoryIndex private constructor(
       var primitiveArrayCount = 0
       var classFieldsTotalBytes = 0
       var classDumpIds = LongArray(0)
+      // The range the object ids of this heap dump fall in, which is what the index keys are sized
+      // and based off, see [ObjectIdEncoding]. Every object dump record has to be looked at for
+      // this, so its id is read out of each rather than skipped over with the rest of the record.
+      var minObjectId = Long.MAX_VALUE
+      var maxObjectId = Long.MIN_VALUE
       val stickyClassGcRootIds = LongScatterSet()
       var stackFrameCount = 0
       var stackTraceCount = 0
       // The class serial numbers actually referenced by stack frames. Collected here so that the
       // second pass only records class names for this (tiny) subset rather than every class.
       val neededClassSerials = LongScatterSet()
+
+      fun HprofRecordReader.readObjectId(): Long {
+        val id = readId()
+        minObjectId = min(minObjectId, id)
+        maxObjectId = max(maxObjectId, id)
+        return id
+      }
 
       val bytesRead = reader.readRecords(
         EnumSet.of(
@@ -996,7 +1004,7 @@ internal class HprofInMemoryIndex private constructor(
             if (classCount == classDumpIds.size) {
               classDumpIds = classDumpIds.copyOf(max(4, classDumpIds.size * 2))
             }
-            classDumpIds[classCount] = reader.readId()
+            classDumpIds[classCount] = reader.readObjectId()
             classCount++
             // The rest of what skipClassDumpHeader() skips, minus the id read above: the stack
             // trace serial number, 6 more ids, the instance size, then the constant pool.
@@ -1010,17 +1018,35 @@ internal class HprofInMemoryIndex private constructor(
           }
           INSTANCE_DUMP -> {
             instanceCount++
-            reader.skipInstanceDumpRecord()
+            reader.readObjectId()
+            // The rest of what skipInstanceDumpRecord() skips, minus the id read above: the stack
+            // trace serial number, the class id, then the field values.
+            reader.skip(INT.byteSize + hprofHeader.identifierByteSize)
+            val remainingBytesInInstance = reader.readInt()
+            reader.skip(remainingBytesInInstance)
             maxInstanceSize = max(maxInstanceSize, reader.bytesRead - bytesReadStart)
           }
           OBJECT_ARRAY_DUMP -> {
             objectArrayCount++
-            reader.skipObjectArrayDumpRecord()
+            reader.readObjectId()
+            // The rest of what skipObjectArrayDumpRecord() skips, minus the id read above: the
+            // stack trace serial number, the array length, the class id, then the elements.
+            reader.skip(INT.byteSize)
+            val arrayLength = reader.readInt()
+            reader.skip(
+              hprofHeader.identifierByteSize + arrayLength.toLong() * hprofHeader.identifierByteSize
+            )
             maxObjectArraySize = max(maxObjectArraySize, reader.bytesRead - bytesReadStart)
           }
           PRIMITIVE_ARRAY_DUMP -> {
             primitiveArrayCount++
-            reader.skipPrimitiveArrayDumpRecord()
+            reader.readObjectId()
+            // The rest of what skipPrimitiveArrayDumpRecord() skips, minus the id read above: the
+            // stack trace serial number, the array length, the element type, then the elements.
+            reader.skip(INT.byteSize)
+            val arrayLength = reader.readInt()
+            val type = reader.readUnsignedByte()
+            reader.skip(arrayLength.toLong() * PrimitiveType.byteSizeByHprofType.getValue(type))
             maxPrimitiveArraySize = max(maxPrimitiveArraySize, reader.bytesRead - bytesReadStart)
           }
           ROOT_STICKY_CLASS -> {
@@ -1061,6 +1087,7 @@ internal class HprofInMemoryIndex private constructor(
 
       val indexBuilderListener = Builder(
         longIdentifiers = hprofHeader.identifierByteSize == 8,
+        idEncoding = ObjectIdEncoding.of(minObjectId, maxObjectId),
         maxPosition = bytesRead,
         sortedClassDumpIds = sortedClassDumpIds,
         instanceCount = instanceCount,

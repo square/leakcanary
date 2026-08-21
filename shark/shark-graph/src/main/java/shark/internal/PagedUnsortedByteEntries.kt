@@ -8,11 +8,12 @@ import shark.internal.aosp.PagedByteArrayTimSort
  * (pre sized exactly from the known [entryCount], so no page ever grows), then sorted in place and
  * exposed as a [PagedSortedBytesMap].
  *
- * Because the whole logical entry list is sorted in place, the pages end up globally id sorted: page
- * 0 holds the smallest entries, page 1 the next, and so on. The pages are therefore the read map's
+ * Because the whole logical entry list is sorted in place, the pages end up globally key sorted: page
+ * 0 holds the smallest ids, page 1 the next, and so on. The pages are therefore the read map's
  * range partitioned segments, with no separate merge step or copy.
  */
 internal class PagedUnsortedByteEntries(
+  private val idEncoding: ObjectIdEncoding,
   bytesPerValue: Int,
   longIdentifiers: Boolean,
   entryCount: Int,
@@ -20,11 +21,14 @@ internal class PagedUnsortedByteEntries(
 ) : SortedBytesMapBuilder {
 
   private val entries = PagedByteArray(
-    bytesPerEntry = bytesPerValue + if (longIdentifiers) 8 else 4,
+    bytesPerEntry = bytesPerValue + idEncoding.byteCount,
     entriesPerPage = entriesPerPage,
     entryCount = entryCount,
+    idEncoding = idEncoding,
     longIdentifiers = longIdentifiers
   )
+
+  private val bytesPerKey = idEncoding.byteCount
 
   private var assigned = 0
 
@@ -36,7 +40,7 @@ internal class PagedUnsortedByteEntries(
     val page = entries.pages[entryIndex shr entries.pageShift]
     val base = (entryIndex and entries.pageMask) * entries.bytesPerEntry
     writer.reset(page, base)
-    writer.writeId(key)
+    writer.writeTruncatedLong(idEncoding.encode(key), bytesPerKey)
     return writer
   }
 

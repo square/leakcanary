@@ -13,14 +13,18 @@ internal class PagedSortedBytesMap(
   private val entries: PagedByteArray
 ) : SortedBytesMap {
 
+  private val idEncoding = entries.idEncoding
   private val longIdentifiers = entries.longIdentifiers
-  private val bytesPerKey = if (longIdentifiers) 8 else 4
+  private val bytesPerKey = entries.bytesPerKey
   private val bytesPerValue = entries.bytesPerEntry - bytesPerKey
   private val pageCount = entries.pages.size
 
-  /** Smallest id in each page (its first entry, since the whole array is id sorted). */
+  /**
+   * Smallest key in each page (its first entry, since the whole array is key sorted), encoded like
+   * the entries themselves so that a lookup compares encoded keys throughout.
+   */
   private val pageFirstKeys = LongArray(pageCount) { page ->
-    entries.readKey(page shl entries.pageShift)
+    entries.readEncodedKey(page shl entries.pageShift)
   }
 
   override val size = entries.entryCount
@@ -34,9 +38,10 @@ internal class PagedSortedBytesMap(
 
   override fun indexOf(key: Long): Int {
     if (pageCount == 0) return -1
-    val page = pageFor(key)
+    val encodedKey = idEncoding.encode(key)
+    val page = pageFor(encodedKey)
     val pageStart = page shl entries.pageShift
-    val local = binarySearchInPage(pageStart, entries.entriesInPage(page), key)
+    val local = binarySearchInPage(pageStart, entries.entriesInPage(page), encodedKey)
     return if (local < 0) local else pageStart + local
   }
 
@@ -46,14 +51,17 @@ internal class PagedSortedBytesMap(
     return ByteSubArray(page, valueIndex, bytesPerValue, longIdentifiers)
   }
 
-  override fun keyAt(index: Int): Long = entries.readKey(index)
+  override fun keyAt(index: Int): Long = idEncoding.decode(entries.readEncodedKey(index))
 
   override fun entrySequence(): Sequence<LongObjectPair<ByteSubArray>> {
     return (0 until size).asSequence()
       .map { keyIndex -> keyAt(keyIndex) to getAtIndex(keyIndex) }
   }
 
-  /** Index of the rightmost page whose first key is <= [key] (0 if [key] precedes every page). */
+  /**
+   * Index of the rightmost page whose first key is <= [key] (0 if [key] precedes every page). Both
+   * [key] and [pageFirstKeys] are encoded keys.
+   */
   private fun pageFor(key: Long): Int {
     var lo = 0
     var hi = pageCount - 1
@@ -68,6 +76,7 @@ internal class PagedSortedBytesMap(
     return lo
   }
 
+  /** Searches a single page for the encoded [key]. */
   private fun binarySearchInPage(
     pageStart: Int,
     count: Int,
@@ -77,7 +86,7 @@ internal class PagedSortedBytesMap(
     var hi = count - 1
     while (lo <= hi) {
       val mid = (lo + hi).ushr(1)
-      val midVal = entries.readKey(pageStart + mid)
+      val midVal = entries.readEncodedKey(pageStart + mid)
       when {
         midVal < key -> lo = mid + 1
         midVal > key -> hi = mid - 1

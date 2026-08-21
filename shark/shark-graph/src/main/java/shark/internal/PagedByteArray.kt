@@ -4,10 +4,11 @@ package shark.internal
  * Storage for a list of fixed size entries, split across several [ByteArray] pages so that the
  * total size can exceed the JVM's ~2 GB single-array limit ([Int.MAX_VALUE] bytes).
  *
- * Each entry is [bytesPerEntry] bytes (an id key followed by value bytes). A page holds exactly
- * [entriesPerPage] entries (the last page may hold fewer), and [entriesPerPage] is a power of two
- * so that resolving an entry index to (page, offset) is a shift and a mask. Entries never straddle
- * a page boundary, so a single entry is always fully contained in one page.
+ * Each entry is [bytesPerEntry] bytes: an id key stored the way [idEncoding] describes, followed by
+ * value bytes. A page holds exactly [entriesPerPage] entries (the last page may hold fewer), and
+ * [entriesPerPage] is a power of two so that resolving an entry index to (page, offset) is a shift
+ * and a mask. Entries never straddle a page boundary, so a single entry is always fully contained in
+ * one page.
  *
  * This is the paged counterpart of the single [ByteArray] backing [UnsortedByteEntries] /
  * [ArraySortedBytesMap], used only when a per-record-type index would otherwise exceed the single
@@ -18,6 +19,7 @@ internal class PagedByteArray(
   val bytesPerEntry: Int,
   val entriesPerPage: Int,
   val entryCount: Int,
+  val idEncoding: ObjectIdEncoding,
   val longIdentifiers: Boolean
 ) {
   init {
@@ -25,12 +27,15 @@ internal class PagedByteArray(
       "entriesPerPage must be a power of two, was $entriesPerPage"
     }
     require(entryCount >= 0) { "entryCount must be >= 0, was $entryCount" }
+    require(bytesPerEntry >= idEncoding.byteCount) {
+      "bytesPerEntry $bytesPerEntry cannot hold a ${idEncoding.byteCount} byte key"
+    }
   }
 
   val pageShift: Int = Integer.numberOfTrailingZeros(entriesPerPage)
   val pageMask: Int = entriesPerPage - 1
 
-  private val bytesPerKey = if (longIdentifiers) 8 else 4
+  val bytesPerKey = idEncoding.byteCount
 
   /**
    * The backing pages. All pages but the last hold [entriesPerPage] entries; the last page holds
@@ -48,13 +53,14 @@ internal class PagedByteArray(
   fun entriesInPage(page: Int): Int = minOf(entriesPerPage, entryCount - (page shl pageShift))
 
   /**
-   * Reads the id key of the entry at [entryIndex]. Int keys are sign extended, matching the
-   * comparison performed by [ArraySortedBytesMap].
+   * Reads the key of the entry at [entryIndex] as stored, i.e. as [ObjectIdEncoding.encode] turned
+   * its object id. Encoded keys sort in the same order as the ids they encode, so sorting and
+   * searching work on these directly; [PagedSortedBytesMap.keyAt] is what turns one back into an id.
    */
-  fun readKey(entryIndex: Int): Long {
+  fun readEncodedKey(entryIndex: Int): Long {
     val page = pages[entryIndex shr pageShift]
     val base = (entryIndex and pageMask) * bytesPerEntry
-    return if (longIdentifiers) page.readLong(base) else page.readInt(base).toLong()
+    return idEncoding.encodedKeyAt(page, base)
   }
 
   companion object {

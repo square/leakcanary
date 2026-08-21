@@ -4,8 +4,8 @@ import shark.internal.hppc.LongObjectPair
 import shark.internal.hppc.to
 
 /**
- * A read only map of `id` => `byte array` sorted by id, where `id` is a long if `longIdentifiers`
- * is true and an int otherwise. Each entry has a value byte array of a fixed size.
+ * A read only map of `id` => `byte array` sorted by id, where `id` is stored the way
+ * [ObjectIdEncoding] describes. Each entry has a value byte array of a fixed size.
  *
  * Instances are created by [SortedBytesMapBuilder.moveToSortedMap]. Two implementations exist:
  * [ArraySortedBytesMap], backed by a single [ByteArray], and [PagedSortedBytesMap], backed by
@@ -40,11 +40,12 @@ internal interface SortedBytesMap {
  * search to locate a specific entry by key.
  */
 internal class ArraySortedBytesMap(
+  private val idEncoding: ObjectIdEncoding,
   private val longIdentifiers: Boolean,
   private val bytesPerValue: Int,
   private val sortedEntries: ByteArray
 ) : SortedBytesMap {
-  private val bytesPerKey = if (longIdentifiers) 8 else 4
+  private val bytesPerKey = idEncoding.byteCount
   private val bytesPerEntry = bytesPerKey + bytesPerValue
 
   override val size = sortedEntries.size / bytesPerEntry
@@ -82,16 +83,18 @@ internal class ArraySortedBytesMap(
   private fun binarySearch(
     key: Long
   ): Int {
+    // Searching on encoded keys rather than decoding each probe: the two sort the same way.
+    val encodedKey = idEncoding.encode(key)
     val startIndex = 0
     val endIndex = size
     var lo = startIndex
     var hi = endIndex - 1
     while (lo <= hi) {
       val mid = (lo + hi).ushr(1)
-      val midVal = keyAt(mid)
+      val midVal = idEncoding.encodedKeyAt(sortedEntries, mid * bytesPerEntry)
       when {
-        midVal < key -> lo = mid + 1
-        midVal > key -> hi = mid - 1
+        midVal < encodedKey -> lo = mid + 1
+        midVal > encodedKey -> hi = mid - 1
         else -> return mid
       }
     }
@@ -99,11 +102,6 @@ internal class ArraySortedBytesMap(
   }
 
   override fun keyAt(index: Int): Long {
-    val keyIndex = index * bytesPerEntry
-    return if (longIdentifiers) {
-      sortedEntries.readLong(keyIndex)
-    } else {
-      sortedEntries.readInt(keyIndex).toLong()
-    }
+    return idEncoding.keyAt(sortedEntries, index * bytesPerEntry)
   }
 }

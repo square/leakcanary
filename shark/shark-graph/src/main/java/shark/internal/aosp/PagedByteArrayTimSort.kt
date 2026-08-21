@@ -24,9 +24,9 @@ import shark.internal.PagedByteArray.Companion.copyEntries
 /*
 This is the paged counterpart of [ByteArrayTimSort]: the same AOSP TimSort, but sorting a
 [PagedByteArray] in place instead of a single byte array, so that the sorted data can exceed the
-JVM's ~2 GB single-array limit. Entries are compared by their id key (the first bytes of each
-entry) and the temporary storage is itself a [PagedByteArray], so neither the data nor the scratch
-buffer is bound by the single-array limit.
+JVM's ~2 GB single-array limit. Entries are compared by their encoded id key (the first bytes of
+each entry) and the temporary storage is itself a [PagedByteArray], so neither the data nor the
+scratch buffer is bound by the single-array limit.
 
 Adapted from https://android.googlesource.com/platform/libcore/+/jb-mr2-release/luni/src/main/java/java/util/TimSort.java
 */
@@ -66,7 +66,9 @@ internal class PagedByteArrayTimSort private constructor(
   }
 
   private fun newScratch(entryCount: Int): PagedByteArray =
-    PagedByteArray(a.bytesPerEntry, a.entriesPerPage, maxOf(1, entryCount), a.longIdentifiers)
+    PagedByteArray(
+      a.bytesPerEntry, a.entriesPerPage, maxOf(1, entryCount), a.idEncoding, a.longIdentifiers
+    )
 
   private fun pushRun(
     runBase: Int,
@@ -516,7 +518,7 @@ internal class PagedByteArrayTimSort private constructor(
     aIndex: Int,
     bArray: PagedByteArray,
     bIndex: Int
-  ): Int = aArray.readKey(aIndex).compareTo(bArray.readKey(bIndex))
+  ): Int = aArray.readEncodedKey(aIndex).compareTo(bArray.readEncodedKey(bIndex))
 
   private fun doSort(
     lo: Int,

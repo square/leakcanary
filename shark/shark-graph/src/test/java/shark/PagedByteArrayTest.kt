@@ -2,6 +2,7 @@ package shark
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.internal.ObjectIdEncoding
 import shark.internal.PagedByteArray
 import shark.internal.PagedByteArray.Companion.copyEntries
 
@@ -52,29 +53,30 @@ class PagedByteArrayTest {
     }
   }
 
-  @Test fun readKeyReadsLongAndIntKeys() {
-    val longKeys = PagedByteArray(
-      bytesPerEntry = 8 + 2, entriesPerPage = 2, entryCount = 5, longIdentifiers = true
-    )
-    val intKeys = PagedByteArray(
-      bytesPerEntry = 4 + 2, entriesPerPage = 2, entryCount = 5, longIdentifiers = false
-    )
-    val sampleLongs = longArrayOf(0L, -1L, Long.MAX_VALUE, Long.MIN_VALUE, 42L)
-    val sampleInts = longArrayOf(0L, -1L, Int.MAX_VALUE.toLong(), Int.MIN_VALUE.toLong(), 42L)
-    for (i in 0 until 5) {
-      writeKey(longKeys, i, sampleLongs[i])
-      writeKey(intKeys, i, sampleInts[i])
-    }
-    for (i in 0 until 5) {
-      assertThat(longKeys.readKey(i)).isEqualTo(sampleLongs[i])
-      assertThat(intKeys.readKey(i)).isEqualTo(sampleInts[i])
+  /** Keys are as wide as [ObjectIdEncoding] made them, from a single byte up to all eight. */
+  @Test fun readEncodedKeyReadsEveryKeyWidth() {
+    for (keyByteCount in 1..8) {
+      val span = if (keyByteCount == 8) Long.MAX_VALUE else (1L shl (keyByteCount * 8)) - 1
+      val smallestId = -3L
+      val ids = longArrayOf(smallestId, smallestId + span / 2, smallestId + span)
+      val paged = PagedByteArray(
+        bytesPerEntry = keyByteCount + 2, entriesPerPage = 2, entryCount = ids.size,
+        idEncoding = ObjectIdEncoding.of(smallestId, smallestId + span), longIdentifiers = true
+      )
+      assertThat(paged.bytesPerKey).`as`("$keyByteCount byte keys").isEqualTo(keyByteCount)
+      ids.forEachIndexed { index, id -> writeEncodedKey(paged, index, id - smallestId) }
+      ids.forEachIndexed { index, id ->
+        assertThat(paged.idEncoding.decode(paged.readEncodedKey(index)))
+          .`as`("$keyByteCount byte keys, entry $index")
+          .isEqualTo(id)
+      }
     }
   }
 
   private fun newPagedInts(entriesPerPage: Int, entryCount: Int, base: Int = 0): PagedByteArray {
     val paged = PagedByteArray(
       bytesPerEntry = 4, entriesPerPage = entriesPerPage, entryCount = entryCount,
-      longIdentifiers = false
+      idEncoding = ObjectIdEncoding.of(0, 1), longIdentifiers = false
     )
     for (i in 0 until entryCount) {
       writeInt(paged, i, base + i)
@@ -103,11 +105,10 @@ class PagedByteArrayTest {
       (page[pos].toInt() and 0xff)
   }
 
-  private fun writeKey(paged: PagedByteArray, entryIndex: Int, key: Long) {
+  private fun writeEncodedKey(paged: PagedByteArray, entryIndex: Int, key: Long) {
     val page = paged.pages[entryIndex shr paged.pageShift]
     var pos = (entryIndex and paged.pageMask) * paged.bytesPerEntry
-    val keyBytes = if (paged.longIdentifiers) 8 else 4
-    var shift = (keyBytes - 1) * 8
+    var shift = (paged.bytesPerKey - 1) * 8
     while (shift >= 0) {
       page[pos++] = (key ushr shift).toByte()
       shift -= 8
