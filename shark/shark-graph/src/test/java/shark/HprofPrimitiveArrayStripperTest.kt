@@ -3,6 +3,7 @@ package shark
 import java.io.File
 import okio.Buffer
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -140,6 +141,45 @@ class HprofPrimitiveArrayStripperTest {
     val arrayOfZeros = IntArray(inMemorySecretArray.size)
     assertThat(strippedSecretArray).isEqualTo(arrayOfZeros)
     assertThat(strippedSecretListArray).isEqualTo(arrayOfZeros)
+  }
+
+  @Test
+  fun `heap dump naming a primitive wrapper class twice fails loudly`() {
+    val wrapperClassNames =
+      listOf(
+        "java.lang.Boolean",
+        "java.lang.Character",
+        "java.lang.Float",
+        "java.lang.Double",
+        "java.lang.Byte",
+        "java.lang.Short",
+        "java.lang.Integer",
+        "java.lang.Long",
+      )
+    val sourceByteArray =
+      Buffer()
+        .apply {
+          HprofWriter.openWriterFor(
+              this,
+              hprofHeader = HprofHeader(version = ANDROID, identifierByteSize = 4),
+            )
+            .use { writer ->
+              // One string record per primitive wrapper class, then one naming the last of them
+              // again: one id more than there are wrapper classes for the stripper to hold.
+              (wrapperClassNames + wrapperClassNames.last()).forEachIndexed { index, className ->
+                writer.write(StringRecord(id = index + 1L, string = className))
+              }
+            }
+        }
+        .readByteArray()
+
+    assertThatThrownBy {
+        HprofPrimitiveArrayStripper()
+          .stripPrimitiveArrays(ByteArraySourceProvider(sourceByteArray), { Buffer() })
+      }
+      .isInstanceOf(IllegalStateException::class.java)
+      .hasMessageContaining("Found 9 ids for the primitive wrapper classes")
+      .hasMessageContaining("at most 8 of them to find")
   }
 
   private fun Buffer.writeRawTestHprof(

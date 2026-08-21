@@ -171,8 +171,8 @@ class HprofPrimitiveArrayStripper {
     // Local ref optimizations
     val intByteSize = INT.byteSize
 
-    val primitiveWrapperClassesByNameStringId = mutableMapOf<Long, PrimitiveWrapperClass>()
-    val primitiveWrapperClassesByClassId = mutableMapOf<Long, PrimitiveWrapperClass>()
+    val primitiveWrapperClassesByNameStringId = PrimitiveWrapperClassesById()
+    val primitiveWrapperClassesByClassId = PrimitiveWrapperClassesById()
     var startedReadingHeapDump = false
 
     // Arrays are replaced by repeating one of these over their content, so that replacing an array
@@ -437,6 +437,47 @@ class HprofPrimitiveArrayStripper {
     val className: String,
     val valueType: PrimitiveType
   )
+
+  /**
+   * The primitive wrapper classes found so far, looked up by an id read from the heap dump.
+   *
+   * Scanning an array of ids instead of hashing them matters here: looking a class id up in a [Map]
+   * keyed by [Long] boxes the class id of every instance in the heap dump, which is hundreds of
+   * megabytes of garbage on a large one. There's one primitive wrapper class per [PrimitiveType],
+   * so a heap dump holds 8 ids to scan and they fit in a single cache line.
+   */
+  private class PrimitiveWrapperClassesById {
+    private val ids = LongArray(PrimitiveType.values().size)
+    private val wrapperClasses = arrayOfNulls<PrimitiveWrapperClass>(ids.size)
+    private var size = 0
+
+    operator fun set(
+      id: Long,
+      wrapperClass: PrimitiveWrapperClass
+    ) {
+      check(size < ids.size) {
+        "Found ${size + 1} ids for the primitive wrapper classes, the last of them $id for " +
+          "${wrapperClass.className}, when there is one wrapper class per primitive type and " +
+          "therefore at most ${ids.size} of them to find. Getting here takes a heap dump that " +
+          "holds the name of a wrapper class in two string records, or that loads one of those " +
+          "classes twice, and no runtime writes either: they dedupe the strings they dump, and " +
+          "these classes are loaded by the bootstrap class loader, once. Please report this heap " +
+          "dump to https://github.com/square/leakcanary/issues"
+      }
+      ids[size] = id
+      wrapperClasses[size] = wrapperClass
+      size++
+    }
+
+    operator fun get(id: Long): PrimitiveWrapperClass? {
+      for (index in 0 until size) {
+        if (ids[index] == id) {
+          return wrapperClasses[index]
+        }
+      }
+      return null
+    }
+  }
 }
 
 /**
