@@ -394,6 +394,28 @@ class HeapLeakStatusTest {
     }
   }
 
+  /**
+   * The way round a leak is only worth taking while it is a way anybody can read, and a running method's
+   * stack frame is not one: it says the object was in use when the dump was taken, which is nothing to fix.
+   * So a chain gives up going round rather than take a frame — see [RootPathSearch].
+   */
+  @Test fun `a chain runs through what shouldn't be in memory rather than through a stack frame`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapExplorer.open(dump.file).use { explorer ->
+      val path = explorer.tree.rootPathTo(
+        objectId = dump.activityObjectId,
+        overrides = overrides(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+      )
+
+      // The frame holding the activity is two steps from the thread where the executor's field is four, and
+      // it is the four that says what holds this activity: the task somebody has just said shouldn't be
+      // running.
+      assertThat(path.steps.map { it.step.objectId }).contains(dump.taskObjectId)
+      assertThat(path.steps.map { it.step.className }).doesNotContain("java.lang.Thread")
+    }
+  }
+
   private fun override(
     objectId: Long,
     status: LeakStatus,

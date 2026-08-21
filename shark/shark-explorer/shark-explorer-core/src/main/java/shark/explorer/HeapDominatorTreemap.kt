@@ -116,7 +116,7 @@ class HeapDominatorTreemap internal constructor(
   private val bitmaps = HeapBitmaps(graph)
 
   /**
-   * The walk up to the roots the tree was built from, kept between questions: it works over four arrays
+   * The walk up to the roots the tree was built from, kept between questions: it works over five arrays
    * the size of the heap dump, and the pointer moving across a treemap asks for one path per rectangle it
    * crosses. Built on first use, like the index it walks.
    *
@@ -132,7 +132,7 @@ class HeapDominatorTreemap internal constructor(
    * Which objects a chain is worth going round, by object index. See [RootPathSearch].
    *
    * The heap dump's own answer, with the statuses set by hand written over it, and edited in place rather
-   * than built again per read: [rootPathSearch] holds on to this array and four more the size of the heap
+   * than built again per read: [rootPathSearch] holds on to this array and five more the size of the heap
    * dump, so undoing a handful of ids costs nothing where building another walk costs the dump twice over.
    * Which is only sound because one thread reads the tree — see [rootPathSearchThrough].
    */

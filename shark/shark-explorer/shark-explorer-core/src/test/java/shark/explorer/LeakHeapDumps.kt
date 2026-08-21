@@ -374,8 +374,10 @@ internal fun TemporaryFolder.leakOnAStackAndInAFieldHeapDump(): File {
  * that thread's stack frame holds the runnable back. Which is a loop, and the objects on it are neither above
  * nor below each other however far a walk up the referrers gets. See `isAbove`.
  *
- * The chains drawn through it all take the executor's field rather than the frame, since [RootPathSearch]
- * puts a frame off, so what a reader sees is the wrapper above the task with the activity under both.
+ * The chains drawn through it all take the executor's field rather than a frame, since [RootPathSearch] puts
+ * a frame off, so what a reader sees is the wrapper above the task with the activity under both. **A frame
+ * holds the activity too**, as the running thread's frames do in `leak_asynctask_o.hprof`, which is what
+ * makes it the shorter way in the moment a status set by hand puts the way through the task off as well.
  */
 internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump {
   val file = newFile("task-holding-its-own-thread.hprof")
@@ -403,6 +405,9 @@ internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump
     // The runnable the thread is inside of, which is how the loop closes: a local variable of a method
     // running on that thread is a Java frame GC root, read as a reference of the thread itself.
     gcRoot(JavaFrame(id = wrapper.value, threadSerialNumber = 42, frameNumber = 0))
+    // And the activity the method it is running has a hold of, two steps from the thread where the
+    // executor's field is four.
+    gcRoot(JavaFrame(id = activity.value, threadSerialNumber = 42, frameNumber = 1))
     val executor = instance(
       clazz(className = EXECUTOR_CLASS_NAME, fields = listOf("mActive" to ReferenceHolder::class)),
       fields = listOf(wrapper)
