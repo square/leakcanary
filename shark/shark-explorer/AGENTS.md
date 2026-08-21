@@ -13,6 +13,7 @@ reading the source alone — everything else is in the code. Keep it that way.
 | --- | --- | --- |
 | `shark-explorer-core` | Heap dump → dominator tree → layout model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
 | `shark-explorer-jdwp` | Attaches to a live app as a debugger to read the pixels of its bitmaps. | **Imports `com.sun.jdi`, so it needs a JDK and can't be loaded on Android.** That's the whole reason it isn't in `core`. |
+| `shark-explorer-agent` | The MCP server a window answers agents through, and the `--mcp-stdio` pipe that reaches it. | **No Compose, Java 8 target, and desktop only** — it calls `ProcessHandle`. Has its own `AGENTS.md`. |
 | `shark-explorer-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
 
 `shark/shark-explorer/` itself holds no code, matching how `shark/` and `leakcanary/` are grouping

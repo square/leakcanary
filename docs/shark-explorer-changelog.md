@@ -38,6 +38,13 @@ uses, without the one for a newly recognized library leak:
   object as stuck makes it a leak and takes whatever it holds off the list. Kept between runs in
   `~/.shark-explorer/leak-statuses`, one file per heap dump.
   See [The verdict](shark-explorer.md#the-verdict).
+* ✨ **Hand a heap dump to an agent**: the window is an MCP server too, so an agent investigates the heap dump
+  you have open — the same tree, the same verdicts, the same notes — and `show` puts what it is looking at on
+  your screen. What it can be held to is the point: every call has to say why it was made and lands in the
+  run's log beside the reads it caused, a verdict needs a reason another reader can check exactly as yours
+  does, and reporting a root cause is refused until the chain names one faulty reference. Point any MCP client
+  at the installed app with `--mcp-stdio`.
+  See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
 * ✨ **The chain marks the faulty reference**: the one step going from an `Expected` object straight to a
   `Stuck` one reads `Holder.activity · faulty reference`, which is the leak itself rather than one of the
   objects it left behind, and the same reference the **Leaks** screen names that leak after. A chain whose

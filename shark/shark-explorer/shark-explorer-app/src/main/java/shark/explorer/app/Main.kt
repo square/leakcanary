@@ -33,6 +33,7 @@ import java.awt.FileDialog
 import java.awt.Frame
 import java.awt.GraphicsEnvironment
 import java.io.File
+import kotlin.system.exitProcess
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,6 +58,10 @@ fun main(args: Array<String>) {
   if (deliveredToAnotherRun(args)) {
     return
   }
+  // And a run asked to be a pipe between an agent and another run opens no window and, more to the point,
+  // installs no logging: stdout is the protocol in that mode, and one log line in the middle of it is a
+  // session the agent's client reports as broken. See [AgentStdioBridge].
+  agentBridgeExitCode(args)?.let { exitProcess(it) }
   // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
   // stdout as well as in the window — and in a file, so that a session someone reports on can be read
   // back after it. See [installLogging].
@@ -81,11 +86,15 @@ fun main(args: Array<String>) {
     DeepLinkScheme.takeUrisFromTheOs(windows)
     DeepLinkScheme.registerWithTheOs()
     DeepLinkPeers.listen(windows).use {
-      // Whatever no other run claimed, which for a link naming a window that has gone is an empty window
-      // saying so. Ours to answer for now: nobody else is going to.
-      DeepLinkPeers.deliver(arguments.deepLinks).forEach { windows.open(it) }
-      // Heap dump paths on the command line open straight away, which is how this is usually run.
-      explorerApplication(windows)
+      // Published before the first window too, so that an agent whose client started it while the heap
+      // dumps were still opening finds this run and waits for a dump rather than finding nothing.
+      listenForAgents(windows).use {
+        // Whatever no other run claimed, which for a link naming a window that has gone is an empty window
+        // saying so. Ours to answer for now: nobody else is going to.
+        DeepLinkPeers.deliver(arguments.deepLinks).forEach { windows.open(it) }
+        // Heap dump paths on the command line open straight away, which is how this is usually run.
+        explorerApplication(windows)
+      }
     }
   }
 }
@@ -187,6 +196,9 @@ private fun explorerApplication(windows: ExplorerWindows) = application {
             updateNotice = updateNotice,
             notes = notes,
             leakStatuses = leakStatuses,
+            // What this window has open, for the agent surface: a socket thread has to be able to find it,
+            // and it is a composable's state. See [ExplorerWindow.openHeapDump].
+            onHeapDumpOpen = { open -> window.openHeapDump = open },
             deepLinkId = window.deepLinkId,
             // The same way a link arriving from the OS is followed, which is what makes a `shark://` link
             // written in a note work wherever it is read from.
@@ -229,6 +241,12 @@ internal fun ExplorerApp(
    * default for the same reason: a test that took whoever is running it would rewrite their conclusions.
    */
   leakStatuses: ExplorerLeakStatuses = remember { ExplorerLeakStatuses() },
+  /**
+   * Where what this window has open is published, for everything that isn't drawing it — which today is an
+   * agent reaching in from outside the app. Called with the heap dump as it opens and with null as it
+   * closes. See [ExplorerWindow.openHeapDump].
+   */
+  onHeapDumpOpen: (WindowHeapDump?) -> Unit = {},
   /** What a link to a place in this window names it by. See [shark.explorer.DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked this window for, which its tabs open. See [ExplorerWindow.linkedPlaces]. */
@@ -292,8 +310,25 @@ internal fun ExplorerApp(
   val currentState = state
   // Closing the window is what ends the session: it's the only thing that takes this heap dump off
   // screen, since another one opens in a window of its own.
+  //
+  // And what is open is published here rather than from the effect that opens it, because this is the one
+  // place that also runs when it closes: a window whose dump has gone must stop being a window an agent can
+  // ask about, and it has to stop being one before the session is closed under it.
   DisposableEffect(currentState) {
-    onDispose { (currentState as? HeapDumpState.Open)?.session?.close() }
+    val open = currentState as? HeapDumpState.Open
+    onHeapDumpOpen(
+      open?.let {
+        WindowHeapDump(
+          session = it.session,
+          notes = notes.of(it.session.heapDumpFile),
+          leakStatuses = leakStatuses.of(it.session.heapDumpFile)
+        )
+      }
+    )
+    onDispose {
+      onHeapDumpOpen(null)
+      open?.session?.close()
+    }
   }
 
   if (takesHeapDump) {

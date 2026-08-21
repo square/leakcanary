@@ -1,0 +1,216 @@
+package shark.explorer.agent
+
+import java.io.BufferedReader
+import java.io.Closeable
+import java.io.File
+import java.io.InputStreamReader
+import java.io.OutputStreamWriter
+import java.io.PrintWriter
+import java.net.InetAddress
+import java.net.ServerSocket
+import java.net.Socket
+import java.net.SocketException
+import java.security.SecureRandom
+import java.util.Properties
+import kotlinx.coroutines.runBlocking
+import shark.SharkLog
+
+/**
+ * Where an agent reaches this run of the app, and how it finds out where that is.
+ *
+ * A loopback socket and a file naming it, which is the same shape as `DeepLinkPeers` and deliberately not
+ * the same socket: a link is one line delivered to whichever run owns a window, and this is a session held
+ * open for as long as an agent is working. Two features with two lifetimes on one port would mean a link
+ * arriving while an investigation is in flight, and an investigation ending when a link handler closed.
+ *
+ * **Every run publishes itself**, like the links do, because several explorers open at once is how this app
+ * is used. [AgentStdioBridge] is what picks one, and a run that was killed leaves a file that nothing
+ * answers on, which the next reader deletes.
+ *
+ * Loopback only, and a caller has to quote the token out of the file — which proves it can read the user's
+ * home directory, and therefore that it is the user. Worth spelling out what that is and isn't: this is
+ * enough to keep a web page or another machine out, and it is not a boundary between programs run by the
+ * same person. Anything that can read `~/.shark-explorer` can read any heap dump on the disk anyway.
+ */
+object AgentServer {
+
+  /**
+   * Publishes this run and answers agents until closed.
+   *
+   * Failing to listen is not a reason to refuse to start: the window works, and what stops working is
+   * agents being able to reach it — which the log then says, rather than a client that hangs with no
+   * explanation.
+   */
+  fun listen(
+    heapDumps: AgentHeapDumps,
+    /** Which build is answering, for the handshake. */
+    serverVersion: String,
+    /** Where the file naming this run goes, which is `~/.shark-explorer/agents` for the real app. */
+    directory: File
+  ): Closeable {
+    val serverSocket = try {
+      ServerSocket(ANY_FREE_PORT, BACKLOG, InetAddress.getLoopbackAddress())
+    } catch (throwable: Throwable) {
+      SharkLog.d(throwable) { "Could not listen for agents: no agent will be able to reach this run" }
+      return Closeable {}
+    }
+    val token = newToken()
+    val file = File(directory, "${ProcessHandle.current().pid()}$RUN_SUFFIX")
+    return try {
+      write(file, serverSocket.localPort, token)
+      SharkLog.d { "Answering agents on port ${serverSocket.localPort}, published as $file" }
+      val thread = Thread({ accept(serverSocket, token, heapDumps, serverVersion) }, THREAD_NAME).apply {
+        isDaemon = true
+        start()
+      }
+      Runtime.getRuntime().addShutdownHook(Thread { file.delete() })
+      Closeable {
+        file.delete()
+        serverSocket.close()
+        thread.interrupt()
+      }
+    } catch (throwable: Throwable) {
+      SharkLog.d(throwable) { "Could not publish this run at $file: no agent will find it" }
+      serverSocket.close()
+      Closeable {}
+    }
+  }
+
+  /** Every run of this app an agent could connect to, newest first, stale files cleared out on the way. */
+  internal fun publishedRuns(directory: File): List<PublishedRun> {
+    val files = directory.listFiles { file -> file.name.endsWith(RUN_SUFFIX) }.orEmpty()
+    return files.sortedByDescending { it.lastModified() }.mapNotNull { file -> read(file) }
+  }
+
+  private fun read(file: File): PublishedRun? {
+    val properties = Properties()
+    return try {
+      file.inputStream().use { properties.load(it) }
+      val port = properties.getProperty(PORT_PROPERTY)?.toIntOrNull()
+      val token = properties.getProperty(TOKEN_PROPERTY)
+      if (port == null || token == null) {
+        SharkLog.d { "$file says no port and token, so it names no run: deleting it" }
+        file.delete()
+        null
+      } else {
+        PublishedRun(file, file.name.removeSuffix(RUN_SUFFIX), port, token)
+      }
+    } catch (throwable: Throwable) {
+      SharkLog.d(throwable) { "Could not read $file, so no agent can be pointed at that run" }
+      null
+    }
+  }
+
+  private fun write(
+    file: File,
+    port: Int,
+    token: String
+  ) {
+    file.parentFile.mkdirs()
+    val properties = Properties().apply {
+      setProperty(PORT_PROPERTY, port.toString())
+      setProperty(TOKEN_PROPERTY, token)
+    }
+    file.outputStream().use { properties.store(it, "Where this Shark Explorer run answers agents") }
+    // Best effort, and only worth anything on a machine with more than one user on it: the token is what
+    // this is protecting, and a token nobody can read is a run no agent can reach.
+    file.setReadable(false, false)
+    file.setReadable(true, true)
+  }
+
+  private fun accept(
+    serverSocket: ServerSocket,
+    token: String,
+    heapDumps: AgentHeapDumps,
+    serverVersion: String
+  ) {
+    while (!serverSocket.isClosed) {
+      try {
+        val socket = serverSocket.accept()
+        // A thread per agent, because a session is held open for as long as the agent is working and two
+        // agents on one heap dump is a thing to allow rather than to serialise: what they would queue on
+        // is the heap dump's own thread, which is where reads belong anyway.
+        Thread({ serve(socket, token, heapDumps, serverVersion) }, THREAD_NAME).apply {
+          isDaemon = true
+          start()
+        }
+      } catch (closed: SocketException) {
+        // Which is what closing the socket out from under accept() looks like, and it is how this ends.
+        SharkLog.d { "Stopped answering agents: ${closed.message}" }
+        return
+      } catch (throwable: Throwable) {
+        SharkLog.d(throwable) { "An agent could not be accepted, carrying on listening" }
+      }
+    }
+  }
+
+  /**
+   * One connection: the token, then a JSON-RPC message per line until the agent goes away.
+   *
+   * **No read timeout**, unlike the link socket. An agent thinking, or waiting for the person at the
+   * machine, is a connection with nothing on it for minutes at a time, and a session dropped for being
+   * quiet is one that loses whatever it had concluded.
+   */
+  private fun serve(
+    socket: Socket,
+    token: String,
+    heapDumps: AgentHeapDumps,
+    serverVersion: String
+  ) {
+    socket.use {
+      val reader = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
+      val writer = PrintWriter(OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8), true)
+      val sentToken = reader.readLine()
+      if (sentToken != token) {
+        // Loopback only, so this is a stale file being read far more often than it is anything to worry
+        // about.
+        SharkLog.d { "An agent connected quoting the wrong token, so it was not listened to" }
+        writer.println(DECLINED)
+        return
+      }
+      writer.println(ACCEPTED)
+      val session = McpSession(AgentTools(heapDumps), serverVersion)
+      while (true) {
+        val line = reader.readLine() ?: break
+        if (line.isBlank()) {
+          continue
+        }
+        // Blocking on this thread rather than a scope of our own: a message is answered before the next is
+        // read, which is what an agent sends anyway, and the reads inside suspend onto the heap dump's
+        // thread where they belong.
+        val answer = runBlocking { session.answer(line) }
+        if (answer != null) {
+          writer.println(answer)
+        }
+      }
+      SharkLog.d { "An agent disconnected" }
+    }
+  }
+
+  private fun newToken(): String {
+    val bytes = ByteArray(TOKEN_BYTES)
+    SecureRandom().nextBytes(bytes)
+    return bytes.joinToString("") { "%02x".format(it) }
+  }
+
+  /** A run of the app that has published where it answers agents. See [publishedRuns]. */
+  internal class PublishedRun(
+    val file: File,
+    /** The process id, which is what the file is named after and what identifies a run to a person. */
+    val pid: String,
+    val port: Int,
+    val token: String
+  )
+
+  private const val ANY_FREE_PORT = 0
+  private const val BACKLOG = 8
+  private const val TOKEN_BYTES = 16
+
+  /** Beside the runs answering links, the notes and the logs, which is everything else this app keeps. */
+  internal const val RUN_SUFFIX = ".agent"
+  internal const val ACCEPTED = "OK"
+  internal const val DECLINED = "NO"
+  private const val PORT_PROPERTY = "port"
+  private const val TOKEN_PROPERTY = "token"
+  private const val THREAD_NAME = "shark-explorer-agents"
+}
