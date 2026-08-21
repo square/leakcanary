@@ -213,6 +213,114 @@ expected takes it off the list. The one thing this costs is that a leak's finger
 LeakCanary reports only while nothing has been set by hand, since the fingerprint is the stretch of chain your
 verdict has just moved.
 
+## Hand it to an agent
+
+The window is also an **[MCP](https://modelcontextprotocol.io) server**, so an agent — Claude Code, Cursor,
+whatever you use — investigates *the heap dump you have open* rather than one of its own. It reads the same
+tree, sets verdicts you watch appear, puts what it is looking at on your screen, and writes what it concluded
+into the notes where you and the next reader will find it.
+
+Point your client at the app itself:
+
+```json
+{
+  "mcpServers": {
+    "shark-explorer": {
+      "command": "/Applications/Shark Explorer.app/Contents/MacOS/Shark Explorer",
+      "args": ["--mcp-stdio"]
+    }
+  }
+}
+```
+
+That is the app's own launcher, and `--mcp-stdio` makes this copy of it a pipe to the window already open
+rather than a second window. Nothing else to install and no port to configure: it talks to the run that
+started most recently, says which one that was, and takes `--agent-run=<pid>` when several explorers are
+open. Open a heap dump before you start — with no window there is nothing to investigate, and it says so
+rather than waiting.
+
+Then ask for what you actually want. This is the whole prompt the session below was given:
+
+> A heap dump is open in Shark Explorer, which you can reach through its MCP tools. Something in it is
+> leaking. Find the root cause.
+
+**The method comes with the tools**, so it doesn't have to come from you. The handshake hands over what a
+leak is — one bad reference, the three zones of a chain, the rules that spread a verdict up and down it — and
+the order that finds it, which is [the LeakCanary
+method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it.
+
+| Tool | What it is |
+| --- | --- |
+| `open_heap_dumps` | Every window and what is open in it, with the method to follow. |
+| `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
+| `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
+| `describe_object` | What an object is: its class, fields, labels, size. |
+| `ways_held` | Every way an object is held, rather than the one chain. |
+| `find_objects` | The object list, by class name. |
+| `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
+| `take_note` | The notes, appended to. |
+| `show` | Opens a tab in your window and brings it to the front. |
+| `conclude` | The root cause, and the only way to finish. |
+
+**And the tools refuse.** That is the part worth knowing about, because it is what an agent's confidence
+cannot argue with:
+
+* **Every call has to say why it was made.** A call with none is refused — *describe_object needs `reason`,
+  and it was not given* — and so is one whose reason is blank. What that buys is the log below.
+* **A verdict needs a reason another reader can check**, exactly like one you typed, and it is kept with the
+  verdict in the same file as yours. A verdict that contradicts one already recorded is refused with the list
+  of what it disagrees with, the same way the window asks you.
+* **`conclude` is refused until the heap dump agrees that one reference is at fault** — one object above it
+  recorded as expected, the object below it recorded as stuck, and nothing unexplained in between. Reporting
+  a root cause before that gets this back:
+
+```
+Not concluded. 1 step(s) between the last NOT_LEAKING object and the first LEAKING one have no verdict, so the
+fault is at one of them and the chain doesn't say which: 0x12e9ed60 java.util.ArrayList. Until the chain names
+one reference, a root cause would be a guess about which of those steps is at fault. Read the objects in the
+unexplained stretch with describe_object, check whether anything else holds them with ways_held, and record
+what you can defend with set_verdict.
+```
+
+Nothing here judges the answer — no model is called and nothing is scored. It is the same rule the chain
+draws by, held to before an answer can be written down: an agent that has narrowed a chain to three
+unexplained steps cannot report a root cause, however sure it is, and what it gets instead is the three
+objects to go and read.
+
+**What it did is in the log**, in `~/.shark-explorer/logs`, one line per call with the reason it gave followed
+by the reads that call cost:
+
+```
+18:19:48.035 [shark-explorer-agents] An agent called chain_from_gc_root(object=0x12d368b8, window=zvphq4r3)
+  because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is true. Getting the
+  chain from a GC root to see every reference holding it and where the faulty one might be.
+18:19:48.038 [heap-dump-leak_asynctask_o.hprof] Reading the chain to 0x12d368b8, for an agent
+18:19:48.043 [heap-dump-leak_asynctask_o.hprof] Read the chain to 0x12d368b8, for an agent in 4 ms
+```
+
+So an investigation is something you can follow afterwards rather than a conclusion you have to trust — which
+is the other half of the point, since the path is the part a chat window throws away.
+
+**What it concluded is in the heap dump**, not only in your terminal. The verdicts are in
+`~/.shark-explorer/leak-statuses` with everyone else's, and `conclude` writes a **Root cause** note on the
+stuck object and opens that tab, so the answer is in the window beside the evidence and still there next week:
+
+> ## Root cause
+>
+> **Faulty reference:** `MainActivity$2.this$0`
+>
+> […] Because it is a non-static inner class, javac gives it a synthetic `this$0` field and assigns the
+> enclosing activity to it in the constructor. That field is final and written once at construction — no code
+> in the app or the framework can ever clear it. […]
+>
+> **Not checked:** I could not read the app's source. […] The "anonymous inner class" reading rests on the
+> class name `MainActivity$2`, the synthetic `this$0` field and Shark's inspector label, not on a line of
+> source.
+
+An agent's verdicts are verdicts like any other: they say `set by hand` on every chain that runs through the
+object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the
+last thing this surface is for — the disagreement is about a reason you can read, not about who said it.
+
 ## Reporting a problem
 
 Bug reports go to the [LeakCanary issue tracker](https://github.com/square/leakcanary/issues). Every run

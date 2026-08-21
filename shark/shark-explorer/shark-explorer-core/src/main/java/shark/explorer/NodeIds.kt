@@ -26,11 +26,16 @@ fun hexObjectId(objectId: Long): String {
  * is read back against another dump — or the same dump on a machine that reads it the other way — would name
  * an object nobody chose. This is all 16 digits of it for such an id, and identical to [hexObjectId] for every
  * other, which is every object of every 64 bit dump below the 8 exabyte mark.
+ *
+ * Public rather than internal because everything outside this app that names an object has to spell it this
+ * way and read it back with [objectIdOfHex]: the files this app keeps, and the agent surface, which hands
+ * addresses to a caller that will send them back. Two spellings of one address across those is the bug this
+ * function exists to prevent.
  */
-internal fun exactHexObjectId(objectId: Long): String = "0x${java.lang.Long.toHexString(objectId)}"
+fun exactHexObjectId(objectId: Long): String = "0x${java.lang.Long.toHexString(objectId)}"
 
 /** And back, or null for text that is no address at all. See [exactHexObjectId]. */
-internal fun objectIdOfHex(text: String): Long? {
+fun objectIdOfHex(text: String): Long? {
   if (!text.startsWith(HEX_PREFIX)) {
     return null
   }

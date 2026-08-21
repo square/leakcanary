@@ -197,6 +197,7 @@ val modulesWithoutPublicApi = listOf(
   "leakcanary-app-db",
   "leakcanary-app-service",
   "shark-cli",
+  "shark-explorer-agent",
   "shark-explorer-app",
   "shark-explorer-core",
   "shark-explorer-jdwp",

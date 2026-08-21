@@ -56,6 +56,16 @@ internal class ExplorerWindow(
   var deepLinkProblem: String? by mutableStateOf(deepLinkProblem)
 
   /**
+   * The heap dump this window has open, once it is open, for everything that isn't drawing the window.
+   *
+   * Which today is one thing: an agent reaching in from outside the app. Here for the same reason
+   * [linkedPlaces] is — a socket thread has to find a window, and what the window has open is a
+   * composable's state — and set by [ExplorerApp] as the session opens and closes. Null while a heap dump is
+   * being opened, for a window that has none, and for one whose dump failed to open.
+   */
+  var openHeapDump: WindowHeapDump? by mutableStateOf(null)
+
+  /**
    * Places a link has asked this window for and whose tabs are not open yet, oldest first.
    *
    * A list handed over rather than a call into the tabs, because a link arrives on whichever thread the OS

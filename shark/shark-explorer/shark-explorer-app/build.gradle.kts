@@ -42,6 +42,8 @@ dependencies {
   implementation(projects.shark.sharkExplorer.sharkExplorerCore)
   // Reads the bitmaps of a live process off the Android versions whose heap dumps can't carry them.
   implementation(projects.shark.sharkExplorer.sharkExplorerJdwp)
+  // What an agent asks this app's windows through, and the pipe that reaches them. See ExplorerAgents.kt.
+  implementation(projects.shark.sharkExplorer.sharkExplorerAgent)
 
   implementation(compose.desktop.currentOs)
   implementation(compose.material3)

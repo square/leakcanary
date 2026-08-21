@@ -64,6 +64,11 @@ metro-runtime = { module = "dev.zacsweers.metro:runtime-jvm", version.ref = "met
 
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
+# The JSON the Shark explorer's agent surface speaks, in shark-explorer-agent and nowhere else. The
+# runtime only, deliberately: the JsonElement API this uses needs no compiler plugin, and adding the
+# serialization plugin to the build would be a per-module opt-in nothing else here wants.
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.9.0" }
+
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 
