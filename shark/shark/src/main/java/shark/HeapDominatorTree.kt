@@ -201,21 +201,30 @@ class HeapDominatorTree private constructor(
     }
 
     /**
-     * Predecessors other than the DFS tree parent, as singly linked lists of edges:
-     * [predecessorHead] maps a DFS number to the index of its first edge in
-     * [predecessorDfsNumber] / [nextPredecessorEdge], and 0 means no more edges. Edge index 0 is
-     * therefore unused.
+     * Predecessors other than the DFS tree parent, one contiguous slice per vertex: the
+     * predecessors of the vertex numbered `w` are [predecessorDfsNumber] from
+     * `predecessorStart[w]` up to `predecessorStart[w + 1]`.
      *
      * The DFS tree edge into a vertex is left out because [dfsTreeParent] already holds it, and
      * there is one of those per vertex: on a heap dump with 9.26 M reachable objects and 17.3 M
      * references between them, that's 54% of the edges never stored.
+     *
+     * Both are built by [depthFirstSearch] and read by [LengauerTarjan], which is the only reader
+     * either has, and which asks for a vertex's predecessors exactly once.
      */
-    val predecessorHead = MutableIntList(graph.objectCount + 2).apply {
-      add(0)
-      add(0)
-    }
-    val predecessorDfsNumber = MutableIntList().apply { add(0) }
-    val nextPredecessorEdge = MutableIntList().apply { add(0) }
+    lateinit var predecessorStart: IntArray
+      private set
+
+    lateinit var predecessorDfsNumber: IntArray
+      private set
+
+    /**
+     * Every predecessor edge in the order the DFS found it, which is the only order available
+     * while neither the vertex count nor the edge count is known yet. Dropped by
+     * [buildPredecessorCsr] as soon as the slices above exist.
+     */
+    private var edgeSourceDfsNumber = MutableIntList()
+    private var edgeTargetDfsNumber = MutableIntList()
 
     val lastDfsNumber: Int
       get() = objectIndexByDfsNumber.size - 1
@@ -269,6 +278,38 @@ class HeapDominatorTree private constructor(
           stack.addLast(frame(dfsNumber, successorObjectIndex))
         }
       }
+      buildPredecessorCsr()
+    }
+
+    /**
+     * Counting sort of the edges the DFS found into one slice of predecessors per vertex, which
+     * then replaces them: an edge in a slice is 4 bytes where an edge in the discovery order lists
+     * is 8, and a [MutableIntList] holds up to half again as much as its size, so this hands
+     * [LengauerTarjan] about a third of what it would otherwise be allocating on top of.
+     */
+    private fun buildPredecessorCsr() {
+      val edgeCount = edgeTargetDfsNumber.size
+      // One more than the last DFS number, so that the last vertex has a slice end to read.
+      val start = IntArray(lastDfsNumber + 2)
+      for (edge in 0 until edgeCount) {
+        start[edgeTargetDfsNumber[edge]]++
+      }
+      // Now the end of each vertex's slice.
+      for (dfsNumber in 1..lastDfsNumber + 1) {
+        start[dfsNumber] += start[dfsNumber - 1]
+      }
+      val predecessors = IntArray(edgeCount)
+      // Filling each slice from its end back down turns every end into the start of that slice,
+      // which is what leaves `start` holding starts by the time this returns.
+      for (edge in edgeCount - 1 downTo 0) {
+        val target = edgeTargetDfsNumber[edge]
+        start[target]--
+        predecessors[start[target]] = edgeSourceDfsNumber[edge]
+      }
+      predecessorStart = start
+      predecessorDfsNumber = predecessors
+      edgeSourceDfsNumber = MutableIntList(0)
+      edgeTargetDfsNumber = MutableIntList(0)
     }
 
     private fun virtualRootFrame(): Frame {
@@ -312,7 +353,6 @@ class HeapDominatorTree private constructor(
       val dfsNumber = lastDfsNumber
       dfsNumberByObjectIndex[objectIndex] = dfsNumber
       dfsTreeParent.add(parentDfsNumber)
-      predecessorHead.add(0)
       return dfsNumber
     }
 
@@ -320,9 +360,8 @@ class HeapDominatorTree private constructor(
       from: Int,
       to: Int
     ) {
-      predecessorDfsNumber += from
-      nextPredecessorEdge += predecessorHead[to]
-      predecessorHead[to] = predecessorDfsNumber.size - 1
+      edgeSourceDfsNumber += from
+      edgeTargetDfsNumber += to
     }
   }
 
@@ -340,6 +379,10 @@ class HeapDominatorTree private constructor(
   ) {
 
     private val lastDfsNumber = graph.lastDfsNumber
+
+    private val predecessorStart = graph.predecessorStart
+
+    private val predecessorDfsNumber = graph.predecessorDfsNumber
 
     /** Semidominator of each vertex, initially the vertex itself. */
     private val semi = IntArray(lastDfsNumber + 1) { it }
@@ -371,13 +414,11 @@ class HeapDominatorTree private constructor(
         if (parent < semi[w]) {
           semi[w] = parent
         }
-        var edge = graph.predecessorHead[w]
-        while (edge != 0) {
-          val candidate = semi[eval(graph.predecessorDfsNumber[edge])]
+        for (edge in predecessorStart[w] until predecessorStart[w + 1]) {
+          val candidate = semi[eval(predecessorDfsNumber[edge])]
           if (candidate < semi[w]) {
             semi[w] = candidate
           }
-          edge = graph.nextPredecessorEdge[edge]
         }
         // Defer w until its semidominator's own dominator is known.
         nextInBucket[w] = bucketHead[semi[w]]
