@@ -11,9 +11,9 @@ import shark.ObjectDominators.DominatorNode
  * The dominator tree of every object reachable from the GC roots of a [HeapGraph]: object A
  * dominates object B when every path from a GC root to B goes through A.
  *
- * This is computed with Lengauer-Tarjan, which needs the whole graph up front: the tree holds one
- * entry per reachable object plus one per reference between reachable objects, so it's meant for
- * tools running on a workstation, not for the on device analysis.
+ * This is computed with SEMI-NCA, which needs the whole graph up front: the tree holds one entry per
+ * reachable object plus one per reference between reachable objects, so it's meant for tools running
+ * on a workstation, not for the on device analysis.
  */
 class HeapDominatorTree private constructor(
   /**
@@ -167,14 +167,14 @@ class HeapDominatorTree private constructor(
         graph = graph,
         objectIndexByDfsNumber = flowGraph.objectIndexByDfsNumber,
         dfsNumberByObjectIndex = flowGraph.dfsNumberByObjectIndex,
-        dominatorDfsNumberByDfsNumber = LengauerTarjan(flowGraph, graph.cancelSignal)
+        dominatorDfsNumberByDfsNumber = SemiNca(flowGraph, graph.cancelSignal)
           .computeImmediateDominators(),
       )
     }
   }
 
   /**
-   * The heap graph turned into the shape Lengauer-Tarjan needs: vertices numbered by DFS preorder
+   * The heap graph turned into the shape SEMI-NCA needs: vertices numbered by DFS preorder
    * from a virtual root, each with its DFS tree parent and its predecessors.
    */
   private class FlowGraph(
@@ -209,7 +209,7 @@ class HeapDominatorTree private constructor(
      * there is one of those per vertex: on a heap dump with 9.26 M reachable objects and 17.3 M
      * references between them, that's 54% of the edges never stored.
      *
-     * Both are built by [depthFirstSearch] and read by [LengauerTarjan], which is the only reader
+     * Both are built by [depthFirstSearch] and read by [SemiNca], which is the only reader
      * either has, and which asks for a vertex's predecessors exactly once.
      */
     lateinit var predecessorStart: IntArray
@@ -272,7 +272,7 @@ class HeapDominatorTree private constructor(
           continue
         }
         // This edge is the new vertex's DFS tree edge, which [dfsTreeParent] already holds, so it
-        // isn't added to the predecessor lists. See [LengauerTarjan.computeImmediateDominators].
+        // isn't added to the predecessor lists. See [SemiNca.computeSemidominators].
         val dfsNumber = newVertex(successorObjectIndex, parentDfsNumber = frame.dfsNumber)
         if (!frame.successorIsLeafObject[index]) {
           stack.addLast(frame(dfsNumber, successorObjectIndex))
@@ -285,7 +285,7 @@ class HeapDominatorTree private constructor(
      * Counting sort of the edges the DFS found into one slice of predecessors per vertex, which
      * then replaces them: an edge in a slice is 4 bytes where an edge in the discovery order lists
      * is 8, and a [MutableIntList] holds up to half again as much as its size, so this hands
-     * [LengauerTarjan] about a third of what it would otherwise be allocating on top of.
+     * [SemiNca] about a third of what it would otherwise be allocating on top of.
      */
     private fun buildPredecessorCsr() {
       val edgeCount = edgeTargetDfsNumber.size
@@ -366,14 +366,20 @@ class HeapDominatorTree private constructor(
   }
 
   /**
-   * Lengauer-Tarjan with the simple link-eval, ie path compression without union by rank, which
-   * runs in O(edges * log vertices).
+   * SEMI-NCA with the simple link-eval, ie path compression without union by rank.
    *
-   * See "A Fast Algorithm for Finding Dominators in a Flowgraph", Lengauer & Tarjan, 1979. Vertices
-   * are identified by their DFS number throughout, which is why `semi` holds DFS numbers and can be
-   * compared directly.
+   * Semidominators are computed exactly as Lengauer-Tarjan computes them, in
+   * O(edges * log vertices). The immediate dominators then follow from a nearest common ancestor
+   * walk over the part of the tree already built, rather than from Lengauer-Tarjan's buckets, and
+   * that is what makes this **three arrays per vertex where Lengauer-Tarjan needs six**: no bucket
+   * list, and the link-eval forest is dead by the time the dominators are wanted, so its array
+   * holds them.
+   *
+   * See "Finding Dominators Revisited", Georgiadis, Tarjan & Werneck, 2006, and the Lengauer &
+   * Tarjan 1979 paper it builds on. Vertices are identified by their DFS number throughout, which
+   * is why `semi` holds DFS numbers and can be compared directly.
    */
-  private class LengauerTarjan(
+  private class SemiNca(
     private val graph: FlowGraph,
     private val cancelSignal: CancelSignal
   ) {
@@ -390,20 +396,31 @@ class HeapDominatorTree private constructor(
     /** Vertex with the minimum semidominator on the path to the forest root of each vertex. */
     private val label = IntArray(lastDfsNumber + 1) { it }
 
-    /** Parent in the link-eval forest, 0 when the vertex is a forest root. */
-    private val ancestor = IntArray(lastDfsNumber + 1)
+    /**
+     * Parent in the link-eval forest while [computeSemidominators] runs, [NOT_LINKED] when the
+     * vertex is a forest root, then the immediate dominators once it's done.
+     *
+     * That [NOT_LINKED] is 0 and no vertex is numbered 0 is what makes the two uses fit one array:
+     * a vertex linked to the virtual root has a parent of [VIRTUAL_ROOT], which is 1, so "linked to
+     * the root of everything" and "not linked at all" are different values.
+     */
+    private val ancestorThenDominator = IntArray(lastDfsNumber + 1)
 
-    private val immediateDominator = IntArray(lastDfsNumber + 1)
-
-    /** Vertices whose semidominator is a given vertex, as singly linked lists. */
-    private val bucketHead = IntArray(lastDfsNumber + 1)
-    private val nextInBucket = IntArray(lastDfsNumber + 1)
-
-    private val compressStack = IntArray(lastDfsNumber + 1)
+    /**
+     * The path [compress] is walking up. Grown as needed rather than sized at one per vertex, since
+     * it is only ever as deep as the link-eval forest: on a 9.26 M vertex heap dump that's 37 MB
+     * held to store a path a few hundred long.
+     */
+    private var compressStack = IntArray(INITIAL_COMPRESS_STACK_SIZE)
 
     fun computeImmediateDominators(): IntArray {
-      // Nothing below reads the heap dump: it's all array work over a graph that's already been
-      // walked, and on a large heap dump it runs for seconds. So both loops ask as they go.
+      computeSemidominators()
+      return computeDominators()
+    }
+
+    private fun computeSemidominators() {
+      // Nothing here reads the heap dump: it's all array work over a graph that's already been
+      // walked, and on a large heap dump it runs for seconds. So it asks as it goes.
       for (w in lastDfsNumber downTo VIRTUAL_ROOT + 1) {
         cancelSignal.throwIfCanceled()
         val parent = graph.dfsTreeParent[w]
@@ -420,33 +437,36 @@ class HeapDominatorTree private constructor(
             semi[w] = candidate
           }
         }
-        // Defer w until its semidominator's own dominator is known.
-        nextInBucket[w] = bucketHead[semi[w]]
-        bucketHead[semi[w]] = w
-        ancestor[w] = parent
-
-        var v = bucketHead[parent]
-        bucketHead[parent] = 0
-        while (v != 0) {
-          val u = eval(v)
-          immediateDominator[v] = if (semi[u] < semi[v]) u else parent
-          v = nextInBucket[v]
-        }
+        ancestorThenDominator[w] = parent
       }
-      // Vertices whose immediate dominator was set to their semidominator's dominator need a
-      // second pass, in DFS order so that the dominator they point at is already final.
+    }
+
+    /**
+     * The immediate dominator of a vertex is its DFS tree parent, or the nearest dominator above
+     * that parent, whose DFS number is at most the vertex's semidominator's.
+     *
+     * Walking up in ascending DFS order is what makes that read only finished answers: the parent
+     * and every dominator above it have a lower DFS number than the vertex, so this loop wrote them
+     * already. And every link-eval parent it overwrites is dead, [computeSemidominators] having
+     * returned.
+     */
+    private fun computeDominators(): IntArray {
+      val dominator = ancestorThenDominator
       for (w in VIRTUAL_ROOT + 1..lastDfsNumber) {
         cancelSignal.throwIfCanceled()
-        if (immediateDominator[w] != semi[w]) {
-          immediateDominator[w] = immediateDominator[immediateDominator[w]]
+        var candidate = graph.dfsTreeParent[w]
+        // Never reads dominator[VIRTUAL_ROOT], which is why nothing has to be seeded: a
+        // semidominator is a DFS number, so it is at least VIRTUAL_ROOT, and the walk stops there.
+        while (candidate > semi[w]) {
+          candidate = dominator[candidate]
         }
+        dominator[w] = candidate
       }
-      immediateDominator[VIRTUAL_ROOT] = 0
-      return immediateDominator
+      return dominator
     }
 
     private fun eval(v: Int): Int {
-      if (ancestor[v] == 0) {
+      if (ancestorThenDominator[v] == NOT_LINKED) {
         return label[v]
       }
       compress(v)
@@ -455,20 +475,32 @@ class HeapDominatorTree private constructor(
 
     /** Flattens the link-eval forest path above [start], carrying the minimum label down. */
     private fun compress(start: Int) {
+      var stack = compressStack
       var stackSize = 0
       var v = start
-      while (ancestor[ancestor[v]] != 0) {
-        compressStack[stackSize++] = v
-        v = ancestor[v]
+      // Index 0 is no vertex and its ancestor stays NOT_LINKED, so this stops at a forest root.
+      while (ancestorThenDominator[ancestorThenDominator[v]] != NOT_LINKED) {
+        if (stackSize == stack.size) {
+          stack = stack.copyOf(stack.size * 2)
+          compressStack = stack
+        }
+        stack[stackSize++] = v
+        v = ancestorThenDominator[v]
       }
       while (stackSize > 0) {
-        v = compressStack[--stackSize]
-        val vAncestor = ancestor[v]
+        v = stack[--stackSize]
+        val vAncestor = ancestorThenDominator[v]
         if (semi[label[vAncestor]] < semi[label[v]]) {
           label[v] = label[vAncestor]
         }
-        ancestor[v] = ancestor[vAncestor]
+        ancestorThenDominator[v] = ancestorThenDominator[vAncestor]
       }
+    }
+
+    companion object {
+      private const val NOT_LINKED = 0
+
+      private const val INITIAL_COMPRESS_STACK_SIZE = 1024
     }
   }
 }
