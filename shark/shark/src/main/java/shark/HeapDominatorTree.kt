@@ -2,10 +2,8 @@
 
 package shark
 
-import androidx.collection.LongIntMap
-import androidx.collection.LongList
+import androidx.collection.IntList
 import androidx.collection.MutableIntList
-import androidx.collection.MutableLongIntMap
 import androidx.collection.MutableLongList
 import shark.ObjectDominators.DominatorNode
 
@@ -19,23 +17,24 @@ import shark.ObjectDominators.DominatorNode
  */
 class HeapDominatorTree private constructor(
   /**
-   * Vertices are identified by their 1 based DFS preorder number. Index 0 is unused, index 1 is
-   * the virtual root that dominates every GC root, and its object id is
-   * [ValueHolder.NULL_REFERENCE].
+   * The [HeapGraph] this was built for. Held to turn an `objectIndex` back into an object id, and
+   * for its [CancelSignal]: [buildNodes] spends most of its time walking arrays rather than reading
+   * the heap dump, so it has to ask about cancellation itself.
    */
-  private val objectIdByDfsNumber: LongList,
-  private val dfsNumberByObjectId: LongIntMap,
-  private val dominatorDfsNumberByDfsNumber: IntArray,
+  private val graph: HeapGraph,
   /**
-   * From the [HeapGraph] this was built for. Held because [buildNodes] spends most of its time
-   * walking arrays rather than reading the heap dump, so it has to ask this itself.
+   * Vertices are identified by their 1 based DFS preorder number, and each holds the `objectIndex`
+   * of its object. Index 0 is unused, index 1 is the virtual root that dominates every GC root,
+   * which is no object of the heap dump and therefore [NO_OBJECT_INDEX].
    */
-  private val cancelSignal: CancelSignal,
+  private val objectIndexByDfsNumber: IntList,
+  private val dfsNumberByObjectIndex: IntArray,
+  private val dominatorDfsNumberByDfsNumber: IntArray,
 ) {
 
   /** Number of objects reachable from the GC roots. */
   val reachableObjectCount: Int
-    get() = objectIdByDfsNumber.size - VIRTUAL_ROOT - 1
+    get() = objectIndexByDfsNumber.size - VIRTUAL_ROOT - 1
 
   /**
    * The id of the object that immediately dominates [objectId], or [ValueHolder.NULL_REFERENCE]
@@ -44,11 +43,26 @@ class HeapDominatorTree private constructor(
    * Throws [IllegalArgumentException] if [objectId] isn't reachable from the GC roots.
    */
   fun immediateDominatorOf(objectId: Long): Long {
-    val dfsNumber = dfsNumberByObjectId.getOrDefault(objectId, NOT_REACHABLE)
+    val objectIndex = graph.objectIndexOf(objectId)
+    val dfsNumber = if (objectIndex == NO_OBJECT_INDEX) {
+      NOT_REACHABLE
+    } else {
+      dfsNumberByObjectIndex[objectIndex]
+    }
     require(dfsNumber != NOT_REACHABLE && dfsNumber != VIRTUAL_ROOT) {
       "Object id $objectId is not reachable from the GC roots"
     }
-    return objectIdByDfsNumber[dominatorDfsNumberByDfsNumber[dfsNumber]]
+    return objectIdAt(dominatorDfsNumberByDfsNumber[dfsNumber])
+  }
+
+  /** The id of the object of the vertex numbered [dfsNumber]. */
+  private fun objectIdAt(dfsNumber: Int): Long {
+    val objectIndex = objectIndexByDfsNumber[dfsNumber]
+    return if (objectIndex == NO_OBJECT_INDEX) {
+      ValueHolder.NULL_REFERENCE
+    } else {
+      graph.findObjectByIndex(objectIndex).objectId
+    }
   }
 
   /**
@@ -56,7 +70,8 @@ class HeapDominatorTree private constructor(
    * [ValueHolder.NULL_REFERENCE] entry for the virtual root of the forest.
    */
   fun buildNodes(objectSizeCalculator: ObjectSizeCalculator): Map<Long, DominatorNode> {
-    val lastDfsNumber = objectIdByDfsNumber.size - 1
+    val cancelSignal = graph.cancelSignal
+    val lastDfsNumber = objectIndexByDfsNumber.size - 1
     // Both are Longs: the shallow size of one array can be more than 2 GB on its own, and retained
     // sizes accumulate up the tree, so at the root they add up to the whole reachable heap.
     val shallowSizes = LongArray(lastDfsNumber + 1)
@@ -64,7 +79,7 @@ class HeapDominatorTree private constructor(
     val retainedCounts = IntArray(lastDfsNumber + 1)
 
     for (dfsNumber in VIRTUAL_ROOT + 1..lastDfsNumber) {
-      val shallowSize = objectSizeCalculator.computeSize(objectIdByDfsNumber[dfsNumber])
+      val shallowSize = objectSizeCalculator.computeSize(objectIdAt(dfsNumber))
       shallowSizes[dfsNumber] = shallowSize
       retainedSizes[dfsNumber] = shallowSize
       retainedCounts[dfsNumber] = 1
@@ -73,15 +88,17 @@ class HeapDominatorTree private constructor(
     // The immediate dominator of a vertex always has a lower DFS number than that vertex, so
     // walking the vertices backwards means a vertex is done accumulating before it's added to its
     // own dominator.
-    val childrenByDominator = arrayOfNulls<MutableLongList>(lastDfsNumber + 1)
+    val childrenByDominator = arrayOfNulls<MutableIntList>(lastDfsNumber + 1)
     for (dfsNumber in lastDfsNumber downTo VIRTUAL_ROOT + 1) {
       cancelSignal.throwIfCanceled()
       val dominator = dominatorDfsNumberByDfsNumber[dfsNumber]
       retainedSizes[dominator] += retainedSizes[dfsNumber]
       retainedCounts[dominator] += retainedCounts[dfsNumber]
       val children = childrenByDominator[dominator]
-        ?: MutableLongList(1).also { childrenByDominator[dominator] = it }
-      children += objectIdByDfsNumber[dfsNumber]
+        ?: MutableIntList(1).also { childrenByDominator[dominator] = it }
+      // DFS numbers rather than object ids: half the memory, and the sort below reads a retained
+      // size by DFS number anyway.
+      children += dfsNumber
     }
 
     val nodes = HashMap<Long, DominatorNode>(lastDfsNumber)
@@ -91,12 +108,12 @@ class HeapDominatorTree private constructor(
       val dominatedObjectIds = if (children == null) {
         emptyList()
       } else {
-        val ids = ArrayList<Long>(children.size)
-        children.forEach { ids += it }
+        val childDfsNumbers = ArrayList<Int>(children.size)
+        children.forEach { childDfsNumbers += it }
         // Largest retained first.
-        ids.sortedByDescending { retainedSizes[dfsNumberByObjectId[it]] }
+        childDfsNumbers.sortedByDescending { retainedSizes[it] }.map { objectIdAt(it) }
       }
-      nodes[objectIdByDfsNumber[dfsNumber]] = DominatorNode(
+      nodes[objectIdAt(dfsNumber)] = DominatorNode(
         shallowSize = shallowSizes[dfsNumber],
         retainedSize = retainedSizes[dfsNumber],
         retainedCount = retainedCounts[dfsNumber],
@@ -112,6 +129,26 @@ class HeapDominatorTree private constructor(
 
     private const val NOT_REACHABLE = 0
 
+    /** The `objectIndex` of a vertex that is no object of the heap dump: the virtual root. */
+    private const val NO_OBJECT_INDEX = -1
+
+    /**
+     * The `objectIndex` of [objectId], dense over `[0, HeapGraph.objectCount[`, or
+     * [NO_OBJECT_INDEX] when the heap dump has no object with that id.
+     *
+     * Keying by that index rather than by object id is what lets every per object array here be an
+     * [IntArray] sized once, instead of a hash map that grows and rehashes. The price is a binary
+     * search per lookup, the same trade [shark.internal.HeapObjectIdSet] makes.
+     */
+    private fun HeapGraph.objectIndexOf(objectId: Long): Int {
+      return if (this is HprofHeapGraph) {
+        objectIndexOrMinusOne(objectId)
+      } else {
+        // Correct for any other HeapGraph implementation, at the cost of an allocation per lookup.
+        findObjectByIdOrNull(objectId)?.objectIndex ?: NO_OBJECT_INDEX
+      }
+    }
+
     /**
      * Builds the exact dominator tree of the objects of [graph] that are reachable from its GC
      * roots.
@@ -124,15 +161,14 @@ class HeapDominatorTree private constructor(
       referenceReader: ReferenceReader<HeapObject>,
       gcRootProvider: GcRootProvider,
     ): HeapDominatorTree {
-      val cancelSignal = graph.cancelSignal
       val flowGraph = FlowGraph(graph, referenceReader, gcRootProvider)
       flowGraph.depthFirstSearch()
       return HeapDominatorTree(
-        objectIdByDfsNumber = flowGraph.objectIdByDfsNumber,
-        dfsNumberByObjectId = flowGraph.dfsNumberByObjectId,
-        dominatorDfsNumberByDfsNumber = LengauerTarjan(flowGraph, cancelSignal)
+        graph = graph,
+        objectIndexByDfsNumber = flowGraph.objectIndexByDfsNumber,
+        dfsNumberByObjectIndex = flowGraph.dfsNumberByObjectIndex,
+        dominatorDfsNumberByDfsNumber = LengauerTarjan(flowGraph, graph.cancelSignal)
           .computeImmediateDominators(),
-        cancelSignal = cancelSignal,
       )
     }
   }
@@ -146,15 +182,17 @@ class HeapDominatorTree private constructor(
     private val referenceReader: ReferenceReader<HeapObject>,
     private val gcRootProvider: GcRootProvider,
   ) {
-    /** DFS number to object id. Index 0 unused, index [VIRTUAL_ROOT] is the virtual root. */
-    val objectIdByDfsNumber = MutableLongList(graph.objectCount + 2).apply {
-      add(ValueHolder.NULL_REFERENCE) // Unused index 0.
-      add(ValueHolder.NULL_REFERENCE) // The virtual root.
+    /**
+     * DFS number to `objectIndex`. Index 0 unused, index [VIRTUAL_ROOT] is the virtual root, which
+     * is no object of the heap dump. Sized once at the object count, which no DFS can exceed.
+     */
+    val objectIndexByDfsNumber = MutableIntList(graph.objectCount + 2).apply {
+      add(NO_OBJECT_INDEX) // Unused index 0.
+      add(NO_OBJECT_INDEX) // The virtual root.
     }
 
-    val dfsNumberByObjectId = MutableLongIntMap(graph.objectCount).apply {
-      put(ValueHolder.NULL_REFERENCE, VIRTUAL_ROOT)
-    }
+    /** `objectIndex` to DFS number, [NOT_REACHABLE] for an object no GC root reaches. */
+    val dfsNumberByObjectIndex = IntArray(graph.objectCount)
 
     /** DFS number to the DFS number of its DFS tree parent, 0 for the virtual root. */
     val dfsTreeParent = MutableIntList(graph.objectCount + 2).apply {
@@ -175,7 +213,7 @@ class HeapDominatorTree private constructor(
     val nextPredecessorEdge = MutableIntList().apply { add(0) }
 
     val lastDfsNumber: Int
-      get() = objectIdByDfsNumber.size - 1
+      get() = objectIndexByDfsNumber.size - 1
 
     /**
      * A vertex whose references have been read and that still has successors to descend into.
@@ -209,15 +247,20 @@ class HeapDominatorTree private constructor(
         }
         val index = frame.cursor++
         val successorObjectId = frame.successorObjectIds[index]
-        val knownDfsNumber = dfsNumberByObjectId.getOrDefault(successorObjectId, NOT_REACHABLE)
+        val successorObjectIndex = graph.objectIndexOf(successorObjectId)
+        require(successorObjectIndex != NO_OBJECT_INDEX) {
+          "Heap dump is corrupt: it has a reference to object id $successorObjectId, which is not " +
+            "an object of the heap dump"
+        }
+        val knownDfsNumber = dfsNumberByObjectIndex[successorObjectIndex]
         if (knownDfsNumber != NOT_REACHABLE) {
           addEdge(from = frame.dfsNumber, to = knownDfsNumber)
           continue
         }
-        val dfsNumber = newVertex(successorObjectId, parentDfsNumber = frame.dfsNumber)
+        val dfsNumber = newVertex(successorObjectIndex, parentDfsNumber = frame.dfsNumber)
         addEdge(from = frame.dfsNumber, to = dfsNumber)
         if (!frame.successorIsLeafObject[index]) {
-          stack.addLast(frame(dfsNumber, successorObjectId))
+          stack.addLast(frame(dfsNumber, successorObjectIndex))
         }
       }
     }
@@ -236,11 +279,13 @@ class HeapDominatorTree private constructor(
 
     private fun frame(
       dfsNumber: Int,
-      objectId: Long
+      objectIndex: Int
     ): Frame {
       val successorObjectIds = MutableLongList()
       val successorIsLeafObject = ArrayList<Boolean>()
-      referenceReader.read(graph.findObjectById(objectId)).forEach { reference ->
+      // By index rather than by id: the id was resolved to an index to get here, and looking the
+      // object up by index is the half of findObjectById that isn't a binary search.
+      referenceReader.read(graph.findObjectByIndex(objectIndex)).forEach { reference ->
         successorObjectIds += reference.valueObjectId
         successorIsLeafObject += reference.isLeafObject
       }
@@ -254,12 +299,12 @@ class HeapDominatorTree private constructor(
     }
 
     private fun newVertex(
-      objectId: Long,
+      objectIndex: Int,
       parentDfsNumber: Int
     ): Int {
-      objectIdByDfsNumber += objectId
+      objectIndexByDfsNumber += objectIndex
       val dfsNumber = lastDfsNumber
-      dfsNumberByObjectId.put(objectId, dfsNumber)
+      dfsNumberByObjectIndex[objectIndex] = dfsNumber
       dfsTreeParent.add(parentDfsNumber)
       predecessorHead.add(0)
       return dfsNumber
