@@ -9,7 +9,8 @@
 #
 # The packaged app rather than `./gradlew run`, for two reasons. It is what a person has installed, so the
 # command in the config is the command they would write; and a Gradle build of any kind kills a window
-# launched from source, which here would be every window this harness opened. See shark/shark-explorer/AGENTS.md.
+# launched from source, which here would be every window this harness opened. A copy of it, named after the
+# title, for two more — see `bundle_named_after_the_title` and shark/shark-explorer/AGENTS.md.
 
 set -euo pipefail
 
@@ -36,7 +37,9 @@ main() {
   echo "Building the app. jlink takes about a minute the first time."
   (cd "$REPO_ROOT" && ./gradlew --quiet :shark:shark-explorer:shark-explorer-app:createDistributable)
 
-  local app="$REPO_ROOT/$APP_PATH"
+  mkdir -p "$HARNESS_DIRECTORY"
+  local app
+  app="$(bundle_named_after_the_title)"
   local before
   before="$(published_runs)"
   echo "Opening $(basename "$heap_dump") in a window called \"$TITLE\"."
@@ -46,7 +49,6 @@ main() {
   pid="$(wait_for_new_run "$before")"
   local bridge="$app/Contents/MacOS/Shark Explorer"
 
-  mkdir -p "$HARNESS_DIRECTORY"
   write_mcp_config "$bridge" "$pid"
   write_prompt
 
@@ -70,6 +72,31 @@ Watch what it does, in the window and in the log:
 Every call is one line saying which tool, with which arguments, and the reason the agent gave for making
 it — then the reads that call cost. That log is the point of the exercise as much as the answer is.
 END
+}
+
+# The app to launch: a copy of the packaged one, named after the title, and it prints where it put it.
+#
+# Two things a copy fixes. **The dock reads the file name of the bundle a process was launched from** and
+# nothing else — so every window of the installed app is a tile called "Shark Explorer", and several
+# harness windows at once are indistinguishable on screen. Renaming the copy names the tile; the two plist
+# keys below name the menu bar, which for a real bundle comes from the plist rather than from `--title`.
+# Measured, all three names — see shark/shark-explorer/AGENTS.md.
+#
+# **And `build/compose` is not a safe place to launch from**: another Compose task deletes the app image,
+# and a window whose bundle has been deleted under it dies the way a window launched from source does. A
+# copy outside the build directory survives every build after it.
+#
+# `cp -c` clones rather than copies, so 240 MB of jlinked runtime costs 80 ms and no disk on APFS.
+bundle_named_after_the_title() {
+  local built="$REPO_ROOT/$APP_PATH"
+  local copy="$HARNESS_DIRECTORY/$TITLE.app"
+  rm -rf "$copy"
+  cp -Rc "$built" "$copy" 2>/dev/null || cp -R "$built" "$copy"
+  local plist="$copy/Contents/Info.plist"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleName $TITLE" "$plist" >/dev/null
+  /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string $TITLE" "$plist" >/dev/null 2>&1 ||
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $TITLE" "$plist" >/dev/null
+  echo "$copy"
 }
 
 write_mcp_config() {

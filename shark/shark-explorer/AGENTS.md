@@ -307,6 +307,21 @@ bundle, because jpackage gives it a real bundle. A run from Gradle has no bundle
 bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it until
 something names it.
 
+**And a bundle has three names, from three different places**, which is why one of them being right is no
+evidence about the others. Measured on a copy of the packaged app renamed and re-plisted a key at a time:
+
+| What a person sees | Where it comes from |
+| --- | --- |
+| The dock tile | The **file name** of the `.app`, and nothing else — see the next section. |
+| The menu bar next to the Apple logo | `CFBundleDisplayName`, else `CFBundleName`. |
+| `lsappinfo`, the app switcher | `CFBundleExecutable` — so it says `Shark_Explorer` for a renamed copy whose other two say the title. |
+
+So a packaged app can be renamed for a person to navigate by without being rebuilt: `cp -Rc` the app image
+(a clone, 80 ms and no disk on APFS), rename the `.app`, set those two plist keys.
+`shark-explorer-agent/harness/start-harness.sh` does exactly that, and **copies out of `build/compose`
+first** — another Compose task deletes that app image, and a window whose bundle was deleted under it dies
+the way a window launched from source does.
+
 ## The dock only reads a bundle's file name, so `runNamed` gives it one
 
 `-Xdock:name` has not named the dock since around macOS 10.9 — [JDK-8173753][dock-bug], still open,
@@ -547,6 +562,10 @@ Design decisions and findings, kept current as the work proceeds:
   the ones that don't are fetched off the device
 - `notes/dependency-injection.md` — what Dagger and Metro leave in a heap dump, why the owner rule is
   about the provider rather than the component, and how to dump really generated code
+- `notes/agent-surface.md` — what the MCP surface costs a client in tokens, measured, and why a CLI and a
+  skill are adapters over the same registry rather than second implementations
+- `notes/agent-eval.md` — the plan for scoring how well an agent solves a leak, with no model doing the
+  scoring
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.
