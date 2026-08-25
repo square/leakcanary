@@ -606,7 +606,8 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
   ): AgentTarget {
     val read = AgentArguments(name, arguments)
     val dump = read.orNull { resolvedDump(optionalString(WINDOW)) }
-    val place = read.orNull { placeOrNull(name) }
+    val named = read.orNull { namedPlaceOrNull() }
+    val place = named ?: if (name == LIST_LEAKS) Place.Leaks() else null
     return AgentTarget(
       windowId = dump?.windowId,
       heapDumpPath = dump?.heapDumpPath,
@@ -614,28 +615,32 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       // Named here, while the dump it is a place of is open, rather than by whoever reads the log
       // afterwards: a session is read in whichever window happens to be open, and a window that has
       // another heap dump cannot say what an address in this one stands for. See [agentPlaceTitle].
-      about = if (dump == null || place == null) {
+      //
+      // And only a place the call itself pointed at, so that the one place derived from the tool rather
+      // than from an argument goes unnamed: a row already reading "Listed the leaks" would otherwise say
+      // "Listed the leaks Leaks".
+      about = if (dump == null || named == null) {
         null
       } else {
-        dump.read("what to call ${placeText(place) ?: place} for the log") {
-          it.tree.agentPlaceTitle(place)
+        dump.read("what to call ${placeText(named) ?: named} for the log") {
+          it.tree.agentPlaceTitle(named)
         }
       }
     )
   }
 
   /**
-   * Which place of the heap dump a call is about, from what it was given rather than from which tool it is.
+   * Which place of the heap dump a call named, from what it was given rather than from which tool it is.
    *
    * By argument name, so that a tool added here is described by this without being listed in it: everything
    * about an object takes `object`, everything about a place takes `place`, and the search takes a class
-   * name. The one tool whose subject is in neither is the list of leaks, which takes nothing at all.
+   * name. The one tool whose subject is in none of them is the list of leaks, which takes nothing at all —
+   * see [target], which is where that one is filled in.
    */
-  private fun AgentArguments.placeOrNull(name: String): Place? = when {
+  private fun AgentArguments.namedPlaceOrNull(): Place? = when {
     optionalString(PLACE) != null -> place()
     optionalString(OBJECT) != null -> Place.Object(objectId(OBJECT))
     optionalString(CLASS_NAME) != null -> Place.Objects(ObjectListFilter(query = string(CLASS_NAME)))
-    name == LIST_LEAKS -> Place.Leaks()
     else -> null
   }
 
@@ -723,7 +728,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
 
-    /** Named because [placeOrNull] is the one description of a call that has to know which tool it is. */
+    /** Named because [target] is the one description of a call that has to know which tool it is. */
     const val LIST_LEAKS = "list_leaks"
 
     const val WINDOW = "window"

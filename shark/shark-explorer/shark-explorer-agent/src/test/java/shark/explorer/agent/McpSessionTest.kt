@@ -237,6 +237,18 @@ class McpSessionTest {
   }
 
   @Test
+  fun `a call that named no place is written down with somewhere to go and nothing to call it`() {
+    callTool("""{"name":"list_leaks","arguments":{"reason":"Starting with what the dump says."}}""")
+
+    val call = sessions().single().calls.single()
+    // The leaks screen to go to, and no name for it: the verb already says the whole of what this call did,
+    // so naming the place as well would read "Listed the leaks Leaks".
+    assertThat(call.verb).isEqualTo("Listed the leaks")
+    assertThat(call.place).isEqualTo(Place.Leaks())
+    assertThat(call.subject).isNull()
+  }
+
+  @Test
   fun `an address of no object of the heap dump is written down as the address`() {
     callTool("""{"name":"describe_object","arguments":{"object":"0xdeadbeef","reason":"Guessing."}}""")
 
