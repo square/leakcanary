@@ -26,12 +26,16 @@ internal class AgentTool(
   private val handler: suspend (AgentArguments) -> JsonObject
 ) {
 
+  /** Every argument this tool takes, which is the same list the schema publishes. See [onlyTakes]. */
+  private val takes: Set<String> = (schema[PROPERTIES] as? JsonObject)?.keys.orEmpty()
+
   suspend fun call(arguments: JsonObject): JsonObject {
     val read = AgentArguments(name, arguments)
     // Read before the handler and on every tool, so that a call with no reason is refused rather than
     // logged as a call whose reason was left blank. The schema asks for it and a client is free to ignore a
     // schema, so this is where "every call says why it was made" is a rule instead of a hope.
     read.reason
+    read.onlyTakes(takes)
     return handler(read)
   }
 }
@@ -101,6 +105,24 @@ internal class AgentArguments(
   ): Int {
     val text = optionalString(name) ?: return default
     return text.toIntOrNull() ?: throw wrongType(name, "a whole number", text)
+  }
+
+  /**
+   * Refuses an argument this tool doesn't take, naming the ones it does.
+   *
+   * Enforced here for the same reason `reason` is, and it matters more: an argument nobody reads is a call
+   * that answered about something else. Measured on a real dump — `find_objects` given `query`, which is
+   * what the window's own search box is called, matched nothing in particular and answered with the 30
+   * biggest objects out of 86,056, which reads exactly like an answer to the question asked.
+   */
+  fun onlyTakes(names: Set<String>) {
+    val unknown = (arguments.keys - names).sorted()
+    if (unknown.isNotEmpty()) {
+      throw AgentRefusal(
+        "$toolName does not take ${unknown.joinToString { "`$it`" }}. It takes " +
+          "${names.sorted().joinToString { "`$it`" }}, and nothing else."
+      )
+    }
   }
 
   fun objectId(name: String): Long = objectIdOf(name, string(name))
@@ -202,14 +224,19 @@ internal fun schema(vararg properties: Pair<String, AgentProperty>): JsonObject 
   val all = properties.toList() + (REASON to REASON_PROPERTY)
   return buildJsonObject {
     put("type", "object")
-    putJsonObject("properties") {
+    putJsonObject(PROPERTIES) {
       all.forEach { (name, property) -> put(name, property.schema) }
     }
     putJsonArray("required") {
       all.filter { it.second.isRequired }.forEach { add(it.first) }
     }
+    // Said to the client as well as enforced in [AgentTool.call], since a client that validates is one that
+    // can catch this before the call rather than after it.
+    put("additionalProperties", false)
   }
 }
+
+private const val PROPERTIES = "properties"
 
 private const val REASON = "reason"
 

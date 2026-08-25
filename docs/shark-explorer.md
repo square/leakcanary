@@ -320,6 +320,10 @@ cannot argue with:
 
 * **Every call has to say why it was made.** A call with none is refused — *describe_object needs `reason`,
   and it was not given* — and so is one whose reason is blank. What that buys is the log below.
+* **An argument a tool doesn't take is refused**, naming both it and the ones the tool does take. Which
+  matters more than it sounds: `find_objects` given `query`, the name of the window's own search box, would
+  otherwise match nothing in particular and answer with the biggest objects in the heap dump, and a list of
+  the wrong objects reads exactly like an answer.
 * **A verdict needs a reason another reader can check**, exactly like one you typed, and it is kept with the
   verdict in the same file as yours. A verdict that contradicts one already recorded is refused with the list
   of what it disagrees with, the same way the window asks you.

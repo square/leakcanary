@@ -459,6 +459,22 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `an argument the tool does not take is refused rather than ignored`() {
+    assertThatThrownBy { call("find_objects", "query" to HOLDER_CLASS_NAME) }
+      .isInstanceOf(AgentRefusal::class.java)
+      // Named both ways round, because the mistake is a name from somewhere else — `query` is what the
+      // window's own search box is called — and the fix is the name this tool uses.
+      .hasMessageContaining("`query`")
+      .hasMessageContaining("`className`")
+
+    // Which is worth refusing rather than ignoring because ignoring it answers: a filter nothing was read
+    // into matches the whole heap dump, and the largest objects in it read like a list of matches.
+    val matched = call("find_objects", "className" to HOLDER_CLASS_NAME)
+    assertThat(matched.text("matchCount")).isEqualTo("2")
+    assertThat(matched.text("totalCount").toInt()).isGreaterThan(2)
+  }
+
+  @Test
   fun `an address written as a decimal number is refused as one`() {
     assertThatThrownBy {
       call("describe_object", OBJECT to heapDump.activityObjectId.toString())
