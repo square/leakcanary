@@ -79,6 +79,7 @@ import shark.explorer.TreemapPresentation
 import shark.explorer.TreemapRect
 import shark.explorer.agent.AgentSession
 import shark.explorer.detours
+import shark.explorer.exactHexObjectId
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
 import shark.explorer.leakStatusConflictsWith
@@ -201,6 +202,12 @@ internal fun HeapDumpExplorer(
   var sessions by remember { mutableStateOf(emptyList<AgentSession>()) }
   /** What each tab is called, by the place it is on. Only grows: a place is named once and stays named. */
   var placeTitles by remember { mutableStateOf(emptyMap<Place, String>()) }
+  /**
+   * And what to call the places an agent asked about, which is the same question with one difference: an
+   * agent can name an address this heap dump has no object at, so this map answers for a place a tab could
+   * not be opened on. See [agentPlaceTitle].
+   */
+  var agentPlaceTitles by remember { mutableStateOf(emptyMap<Place, String>()) }
   /**
    * The note about the tab on screen, and null once the last tab has been closed — which is the one state
    * with no tab to write about.
@@ -528,6 +535,28 @@ internal fun HeapDumpExplorer(
     }
   }
 
+  // And what to call the objects those agents asked about, so that a row of a session names an object the
+  // way the tab it opens does — `MainActivity 0x12d368b8` — rather than as the bare address the agent wrote.
+  // The session file holds addresses on purpose: an address is what an agent said, and what it stands for is
+  // a read of the heap dump this window has open, which is the same read that names a tab. Which is why the
+  // sessions listed here are the ones that read this dump — the calls about another are left as written.
+  val unnamedAgentPlaces = (place as? Place.AgentLog)
+    ?.let { open -> sessions.firstOrNull { it.sessionId == open.sessionId } }
+    ?.calls.orEmpty()
+    .filter { it.heapDumpPath == null || it.heapDumpPath == session.heapDumpFile.absolutePath }
+    .mapNotNull { it.place }
+    .filter { it !in agentPlaceTitles }
+    .distinct()
+  LaunchedEffect(session, unnamedAgentPlaces) {
+    if (unnamedAgentPlaces.isEmpty()) {
+      return@LaunchedEffect
+    }
+    val named = session.read("what to call ${unnamedAgentPlaces.size} places an agent asked about") { explorer ->
+      unnamedAgentPlaces.associateWith { explorer.tree.agentPlaceTitle(it) }
+    }
+    agentPlaceTitles = agentPlaceTitles + named
+  }
+
   // And what has been decided about this heap dump's objects by hand, also once per run: one small file,
   // read before anything is drawn from it, because a chain read without it would be the heap dump's own
   // answer where someone has already recorded another. See [HeapDumpLeakStatuses].
@@ -739,6 +768,7 @@ internal fun HeapDumpExplorer(
           favourites = favourites,
           sessions = sessions,
           heapDumpFile = session.heapDumpFile,
+          agentPlaceTitles = agentPlaceTitles,
           onOpenHeapDump = onOpenHeapDump,
           sizes = sizes,
           onOpen = openObject,
@@ -1081,7 +1111,9 @@ private fun ListPlace(
   sessions: List<AgentSession>,
   /** Which heap dump this window has open, which is what decides where an agent's row leads. */
   heapDumpFile: File,
-  /** And where one about another heap dump leads: that dump. See [AgentLogScreen]. */
+  /** What this window calls the places those agents asked about. See [agentPlaceTitle]. */
+  agentPlaceTitles: Map<Place, String>,
+  /** And where a session or a row about another heap dump leads: that dump. See [AgentLogsScreen]. */
   onOpenHeapDump: (File, Place) -> Unit,
   sizes: HeapSizes,
   onOpen: (Long, OpenIn) -> Unit,
@@ -1133,14 +1165,17 @@ private fun ListPlace(
     )
     is Place.AgentLogs -> AgentLogsScreen(
       sessions = sessions,
+      heapDumpFile = heapDumpFile,
       onOpen = onOpenPlace,
       onCopyLink = onCopyPlaceLink,
+      onOpenHeapDump = onOpenHeapDump,
       modifier = modifier
     )
     is Place.AgentLog -> AgentLogScreen(
       // Null for a session that has been pushed out by newer ones, or one from another machine's link.
       session = sessions.firstOrNull { it.sessionId == place.sessionId },
       heapDumpFile = heapDumpFile,
+      placeTitles = agentPlaceTitles,
       onOpen = onOpenPlace,
       onCopyLink = onCopyPlaceLink,
       onOpenHeapDump = onOpenHeapDump,
@@ -1620,6 +1655,23 @@ private suspend fun HeapDumpSession.describing(
       rootPath = rootPath
     )
   )
+}
+
+/**
+ * What this window calls a place an agent asked about: the title a tab on it would have.
+ *
+ * The same [titleOf] the tabs are named by, so that a row of a session and the tab clicking it opens read the
+ * same — an agent and the person watching it are looking at one object, and two spellings of it would be two
+ * objects to them.
+ *
+ * With the one difference that makes this a function of its own: an agent can name an address this heap dump
+ * has no object at, which is a call it was refused and still a row worth reading. [titleOf] would throw on
+ * it, so the address is asked about first and stands for itself when it is nothing here.
+ */
+private fun HeapDominatorTreemap.agentPlaceTitle(place: Place): String = when (place) {
+  is Place.Object ->
+    if (objectNameOrNull(place.objectId) == null) exactHexObjectId(place.objectId) else titleOf(place)
+  else -> titleOf(place)
 }
 
 /** What the panes are being filled in for, for the log. See [HeapDumpSession.read]. */

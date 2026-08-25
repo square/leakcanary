@@ -23,7 +23,6 @@ import shark.explorer.leakLabel
 import shark.explorer.leakStatusConflictsWith
 import shark.explorer.nodeIdText
 import shark.explorer.outlineOf
-import shark.explorer.titleOf
 
 /**
  * Everything an agent can do to an open heap dump, as MCP tools.
@@ -593,54 +592,39 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     }
 
   /**
-   * Which window, which place and what to call it, for the log of the session the call was made in.
+   * Which window and which place a call was about, for the log of the session it was made in.
    *
    * Read off the arguments rather than out of the handler, so that a call that was refused is recorded
    * pointing at whatever it was asking about — which is most of what makes a refusal worth reading
    * afterwards. Nothing here refuses: this is a description of a call, and a call with an argument this
    * can't make sense of is one the handler is about to refuse with a message of its own.
    */
-  suspend fun target(
+  fun target(
     name: String,
     arguments: JsonObject
   ): AgentTarget {
     val read = AgentArguments(name, arguments)
     val dump = read.orNull { resolvedDump(optionalString(WINDOW)) }
-    val named = read.orNull { namedPlaceOrNull() }
-    val place = named ?: if (name == LIST_LEAKS) Place.Leaks() else null
+    val place = read.orNull { placeOrNull(name) }
     return AgentTarget(
       windowId = dump?.windowId,
       heapDumpPath = dump?.heapDumpPath,
-      place = place,
-      // Named here, while the dump it is a place of is open, rather than by whoever reads the log
-      // afterwards: a session is read in whichever window happens to be open, and a window that has
-      // another heap dump cannot say what an address in this one stands for. See [agentPlaceTitle].
-      //
-      // And only a place the call itself pointed at, so that the one place derived from the tool rather
-      // than from an argument goes unnamed: a row already reading "Listed the leaks" would otherwise say
-      // "Listed the leaks Leaks".
-      about = if (dump == null || named == null) {
-        null
-      } else {
-        dump.read("what to call ${placeText(named) ?: named} for the log") {
-          it.tree.agentPlaceTitle(named)
-        }
-      }
+      place = place
     )
   }
 
   /**
-   * Which place of the heap dump a call named, from what it was given rather than from which tool it is.
+   * Which place of the heap dump a call is about, from what it was given rather than from which tool it is.
    *
    * By argument name, so that a tool added here is described by this without being listed in it: everything
    * about an object takes `object`, everything about a place takes `place`, and the search takes a class
-   * name. The one tool whose subject is in none of them is the list of leaks, which takes nothing at all —
-   * see [target], which is where that one is filled in.
+   * name. The one tool whose subject is in neither is the list of leaks, which takes nothing at all.
    */
-  private fun AgentArguments.namedPlaceOrNull(): Place? = when {
+  private fun AgentArguments.placeOrNull(name: String): Place? = when {
     optionalString(PLACE) != null -> place()
     optionalString(OBJECT) != null -> Place.Object(objectId(OBJECT))
     optionalString(CLASS_NAME) != null -> Place.Objects(ObjectListFilter(query = string(CLASS_NAME)))
+    name == LIST_LEAKS -> Place.Leaks()
     else -> null
   }
 
@@ -728,7 +712,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
 
-    /** Named because [target] is the one description of a call that has to know which tool it is. */
+    /** Named because [placeOrNull] is the one description of a call that has to know which tool it is. */
     const val LIST_LEAKS = "list_leaks"
 
     const val WINDOW = "window"
@@ -779,7 +763,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
 }
 
 /**
- * What a call was about: which window, which heap dump, which place of it, and what that place is called.
+ * What a call was about: which window, which heap dump, and which place of it.
  *
  * Only for the session log, which is the one reader that needs this without needing the answer: a row of the
  * *Agent logs* screen is a verb, a subject and somewhere to go when it is clicked. See [AgentSessionCall].
@@ -787,27 +771,8 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
 internal class AgentTarget(
   val windowId: String?,
   val heapDumpPath: String?,
-  val place: Place?,
-  /** What the window calls [place] — `MainActivity 0x12d368b8` — read while the dump was open. */
-  val about: String?
+  val place: Place?
 )
-
-/**
- * What the window calls a place an agent asked about: the title a tab on it would have.
- *
- * The same [titleOf] the tabs are named by, so that a row of a session and the tab clicking it opens read
- * the same — an agent and the person watching it are looking at one object, and two spellings of it would
- * be two objects to them.
- *
- * With the one difference that makes this a function of its own: an agent can name an address the heap dump
- * has no object at, which is a call it was refused and still a row worth reading. [titleOf] would throw on
- * it, so the address is asked about first and stands for itself when it is nothing here.
- */
-private fun HeapDominatorTreemap.agentPlaceTitle(place: Place): String = when (place) {
-  is Place.Object ->
-    if (objectNameOrNull(place.objectId) == null) exactHexObjectId(place.objectId) else titleOf(place)
-  else -> titleOf(place)
-}
 
 /**
  * What the verdicts on a chain add up to: whether one reference is at fault, and what to say when none is.

@@ -70,13 +70,16 @@ a refusal nobody can follow up on is a dead end on the screen. `target` derives 
 *names* rather than from a second list of tool names — one exception, `list_leaks`, which takes no argument
 saying where it is.
 
-**And it is named here, not by whoever reads it.** `target` costs one extra read per call, `agentPlaceTitle`,
-because what an agent typed is an address and what the screen shows is `MainActivity 0x12d368b8` — and
-resolving an address means having *that* heap dump open. A session spans every dump that was open while it
-ran, and it is read afterwards in whichever window happens to be open, so a screen that resolved these itself
-could only name the calls about its own dump and every other row would stay a bare address. Which is exactly
-what it did, until this was recorded. `about` is null for a session written before that, and `subject` falls
-back to the address, so an old session still reads.
+**A session records addresses, and is read in the window of its heap dump.** What an agent types is
+`0x12d368b8` and what the screen shows is `MainActivity 0x12d368b8`, so somebody has to resolve it — and
+resolving an address means having *that* dump open. Which the reader does: the *Agent logs* screen of a window
+lists the sessions that read the dump it has open, `AgentSession.heapDumpPaths`, and the rest are opened in a
+window of theirs. So nothing here writes the name down. Recording it was tried and reverted: it put one extra
+heap dump read on every call to answer a question the reader already has the dump for.
+
+`heapDumpPath` per call rather than per session is what makes that work, and it is not redundant — an agent
+can open a second dump, and a call about one this window hasn't got is a row it leaves as the address, saying
+which file, and opens that dump when clicked.
 
 **One field comes off the answer instead: `outcome`.** What an agent asked is what it typed, and what it
 concluded is what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s

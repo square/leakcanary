@@ -15,7 +15,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.explorer.Place
 import shark.explorer.exactHexObjectId
-import shark.explorer.hexObjectId
 
 /**
  * What a client of this server gets back, as JSON-RPC rather than as Kotlin.
@@ -208,9 +207,7 @@ class McpSessionTest {
     assertThat(session.serverVersion).isEqualTo(SERVER_VERSION)
     val call = session.calls.single()
     assertThat(call.verb).isEqualTo("Described")
-    // The object as the window names a tab on it, not the address the agent typed: the screen reading this
-    // is in whichever window is open later, and naming an address takes the heap dump it is in.
-    assertThat(call.subject).isEqualTo("Holder ${hexObjectId(heapDump.holderObjectId)}")
+    assertThat(call.subject).isEqualTo(hex(heapDump.holderObjectId))
     assertThat(call.reason).isEqualTo("Checking whether the holder is the singleton it looks like.")
     assertThat(call.refusal).isNull()
     // Which is what makes the row clickable: the place, in the window the call was made against.
@@ -230,33 +227,21 @@ class McpSessionTest {
     assertThat(call.verb).isEqualTo("Concluded about")
     assertThat(call.refusal).contains("Not concluded")
     assertThat(call.reason).isEqualTo("I know what this is.")
-    // Refused, and still pointing at the object it was refused about, named: a refusal nobody can follow up
-    // on is the half of a session that is worth reading afterwards.
+    // Refused, and still pointing at the object it was refused about: a refusal nobody can follow up on is
+    // the half of a session that is worth reading afterwards.
     assertThat(call.place).isEqualTo(Place.Object(heapDump.activityObjectId))
-    assertThat(call.subject).isEqualTo("MainActivity ${hexObjectId(heapDump.activityObjectId)}")
   }
 
   @Test
-  fun `a call that named no place is written down with somewhere to go and nothing to call it`() {
+  fun `a call that named no place is written down with somewhere to go all the same`() {
     callTool("""{"name":"list_leaks","arguments":{"reason":"Starting with what the dump says."}}""")
 
+    // The leaks screen to go to, and nothing after the verb, which already says the whole of what this call
+    // did. The one place a call is about without naming it in an argument. See [AgentTools.target].
     val call = sessions().single().calls.single()
-    // The leaks screen to go to, and no name for it: the verb already says the whole of what this call did,
-    // so naming the place as well would read "Listed the leaks Leaks".
     assertThat(call.verb).isEqualTo("Listed the leaks")
     assertThat(call.place).isEqualTo(Place.Leaks())
     assertThat(call.subject).isNull()
-  }
-
-  @Test
-  fun `an address of no object of the heap dump is written down as the address`() {
-    callTool("""{"name":"describe_object","arguments":{"object":"0xdeadbeef","reason":"Guessing."}}""")
-
-    // A refusal, and a row of it still says what was asked about. There is nothing to name it after, so it
-    // stands for itself rather than making the call unrecordable.
-    val call = sessions().single().calls.single()
-    assertThat(call.refusal).contains("0xdeadbeef")
-    assertThat(call.subject).isEqualTo("0xdeadbeef")
   }
 
   @Test

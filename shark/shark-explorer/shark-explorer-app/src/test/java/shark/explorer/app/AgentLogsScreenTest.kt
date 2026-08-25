@@ -33,8 +33,9 @@ import shark.explorer.hexObjectId
  *
  * An investigation an agent ran and one a person ran are the same investigation: it reads this heap dump,
  * sets the verdicts they see and writes the same notes. So what it did is read here in words, and **a row
- * leads where the call went** — which is what these tests are about, including the row about a heap dump
- * this window hasn't got open, since a session can span every dump that was open while it ran.
+ * leads where the call went** — which is what these tests are about, along with the boundary of that: a
+ * window is one heap dump, so the agents listed in it are the ones that read that dump, and the rest are
+ * reached by opening theirs.
  */
 @OptIn(ExperimentalTestApi::class)
 class AgentLogsScreenTest {
@@ -107,7 +108,7 @@ class AgentLogsScreenTest {
     }
   }
 
-  @Test fun `a call about another heap dump names its object, and leads to that dump`() {
+  @Test fun `an agent that worked on another heap dump is listed apart, and opens in a window of that dump`() {
     val otherHeapDump = testFolder.newFile("another.hprof")
     var opened: Pair<File, Place>? = null
     explorerUiTest {
@@ -115,41 +116,50 @@ class AgentLogsScreenTest {
         sessions = listOf(session(calls = listOf(call(heapDumpPath = otherHeapDump.absolutePath)))),
         onOpenHeapDump = { file, place -> opened = file to place }
       )
-      onNodeWithText(CLIENT, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
 
-      // Named the same way as a row about this window's own dump, because the name was written down when
-      // the call was made — this window has never read that file and could not work it out.
-      val row = "Described ${activityName()} in ${otherHeapDump.name}"
-      waitUntilAtLeastOneExists(hasText(row), OPEN_TIMEOUT_MILLIS)
+      // Not among this window's agents, because a window is a heap dump and this one read another: its
+      // addresses are addresses of that file. Still reachable, since a dump handed to an agent is usually
+      // one nobody has open.
+      onNodeWithText(NO_AGENT_YET, substring = true).assertIsDisplayed()
+      onNodeWithText(OTHER_HEAP_DUMPS).assertIsDisplayed()
+      onNodeWithText(CLIENT, substring = true).performClick()
+    }
+
+    // Its own log, in a window of its own heap dump, rather than read here against the wrong one.
+    assertThat(opened).isEqualTo(otherHeapDump to Place.AgentLog(SESSION_ID))
+  }
+
+  @Test fun `a call that went on to another heap dump reads as the address, and leads to that dump`() {
+    val otherHeapDump = testFolder.newFile("another.hprof")
+    var opened: Pair<File, Place>? = null
+    explorerUiTest {
+      openAgentLogs(
+        sessions = listOf(
+          session(calls = listOf(call(), call(heapDumpPath = otherHeapDump.absolutePath)))
+        ),
+        onOpenHeapDump = { file, place -> opened = file to place }
+      )
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
+
+      // The address as the agent wrote it, and the file it means something in: this window has never read
+      // that dump, so what the number stands for there is not a question it can answer.
+      val row = "Described ${hex(activityObjectId())} in ${otherHeapDump.name}"
       onNodeWithText(row).performClick()
     }
 
-    // Not this window: an address is an address of one heap dump, so going there means opening that dump.
+    // Going there means opening that dump, where the same address is that dump's object.
     assertThat(opened).isEqualTo(otherHeapDump to Place.Object(activityObjectId()))
   }
 
   @Test fun `a call about a heap dump that has gone leads nowhere`() {
     explorerUiTest {
-      openAgentLogs(listOf(session(calls = listOf(call(heapDumpPath = "/dumps/deleted.hprof")))))
+      openAgentLogs(listOf(session(calls = listOf(call(), call(heapDumpPath = "/dumps/deleted.hprof")))))
       onNodeWithText(CLIENT, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
 
       // Still worth reading, and there is nothing to open: a session outlives the heap dumps it was about.
-      onNodeWithText("Described ${activityName()} in deleted.hprof").assertHasNoClickAction()
-    }
-  }
-
-  @Test fun `a session written before the app recorded names reads as the address the agent wrote`() {
-    explorerUiTest {
-      openAgentLogs(listOf(session(calls = listOf(call(about = null)))))
-      onNodeWithText(CLIENT, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
-
-      // Which is what every session on disk holds from before there was a name beside the address, and a
-      // row of one still leads to the object: this window has that heap dump open.
-      onNodeWithText("Described ${hex(activityObjectId())}").performClick()
-      waitUntilAtLeastOneExists(hasText("mDestroyed", substring = true), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("Described ${hex(activityObjectId())} in deleted.hprof").assertHasNoClickAction()
     }
   }
 
@@ -198,9 +208,6 @@ class AgentLogsScreenTest {
   private fun call(
     tool: String = "describe_object",
     heapDumpPath: String = heapDump.file.absolutePath,
-    // What the app wrote down for the object as the call was made, which is what a row reads as. Null for a
-    // session from a build that recorded only the address.
-    about: String? = activityName(),
     refusal: String? = null,
     outcome: String? = null
   ) = AgentSessionCall(
@@ -210,7 +217,6 @@ class AgentLogsScreenTest {
     windowId = "zvphq4r3",
     heapDumpPath = heapDumpPath,
     place = Place.Object(activityObjectId()),
-    about = about,
     arguments = mapOf("object" to hex(activityObjectId())),
     refusal = refusal,
     outcome = outcome,
@@ -243,7 +249,8 @@ class AgentLogsScreenTest {
     const val REASON = "Checking whether this activity is really destroyed."
     const val REFUSAL = "3 step(s) have no verdict"
     const val FAULTY_REFERENCE = "Holder.activity"
-    const val NO_AGENT_YET = "No agent has connected"
+    const val NO_AGENT_YET = "No agent has worked on this heap dump"
+    const val OTHER_HEAP_DUMPS = "Other heap dumps"
 
     val STARTED_AT: Instant = Instant.parse("2026-08-25T18:19:48.035Z")
 

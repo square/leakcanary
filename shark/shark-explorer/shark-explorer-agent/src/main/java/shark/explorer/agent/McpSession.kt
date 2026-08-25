@@ -151,8 +151,7 @@ internal class McpSession(
     // trying to learn and then what that cost. See [AgentTools].
     SharkLog.d { "An agent called $name${arguments.logLine()}" }
     // What the call is about, read before it is made rather than after: a refused call is recorded pointing
-    // at whatever it was asking about, which is most of what makes a refusal worth reading afterwards. And
-    // named here, while that heap dump is open, because nothing reading the session later can.
+    // at whatever it was asking about, which is most of what makes a refusal worth reading afterwards.
     val target = tools.target(name, arguments)
     val at = Instant.now()
     val startedAt = System.nanoTime()
@@ -211,7 +210,6 @@ internal class McpSession(
         windowId = target.windowId,
         heapDumpPath = target.heapDumpPath,
         place = target.place,
-        about = target.about,
         arguments = arguments.recorded(),
         refusal = refusal,
         outcome = outcome,

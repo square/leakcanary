@@ -38,7 +38,6 @@ class AgentSessionFileTest {
         tool = "describe_object",
         reason = "Reading the holder's fields.",
         place = Place.Object(OBJECT_ID),
-        about = "Holder 0x12d368b8",
         arguments = mapOf("object" to "0x12d368b8")
       )
     )
@@ -56,23 +55,6 @@ class AgentSessionFileTest {
     assertThat(call.heapDumpPath).isEqualTo("/dumps/leak.hprof")
     assertThat(call.arguments).containsEntry("object", "0x12d368b8")
     assertThat(call.millis).isEqualTo(12L)
-    // What the object is called, which the window that answered the agent wrote down: the screen reading
-    // this is in whichever window is open, and naming an address means having that heap dump.
-    assertThat(call.about).isEqualTo("Holder 0x12d368b8")
-    assertThat(call.subject).isEqualTo("Holder 0x12d368b8")
-  }
-
-  @Test
-  fun `a call with no name recorded is read as the address the agent wrote`() {
-    val file = AgentSessionFile.starting(directory, SERVER_VERSION)
-    file.called(
-      call(tool = "describe_object", place = Place.Object(OBJECT_ID), arguments = mapOf("object" to "0x12d368b8"))
-    )
-
-    // Which is every session written before the name was recorded beside the address, and the reason the
-    // screen asks for a subject rather than for a name: an old session still has rows worth reading.
-    assertThat(AgentSessionFile.sessionsIn(directory).single().calls.single().subject)
-      .isEqualTo("0x12d368b8")
   }
 
   @Test
@@ -176,7 +158,6 @@ class AgentSessionFileTest {
     tool: String,
     reason: String? = "Because.",
     place: Place? = null,
-    about: String? = null,
     arguments: Map<String, String> = emptyMap(),
     refusal: String? = null,
     outcome: String? = null
@@ -187,7 +168,6 @@ class AgentSessionFileTest {
     windowId = WINDOW_ID,
     heapDumpPath = "/dumps/leak.hprof",
     place = place,
-    about = about,
     arguments = arguments,
     refusal = refusal,
     outcome = outcome,

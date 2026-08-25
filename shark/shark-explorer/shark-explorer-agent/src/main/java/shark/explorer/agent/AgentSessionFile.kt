@@ -202,9 +202,6 @@ class AgentSessionFile private constructor(
       reason?.let { put(REASON_KEY, it) }
       windowId?.let { put(WINDOW_KEY, it) }
       heapDumpPath?.let { put(HEAP_DUMP_KEY, it) }
-      // What the object is called, and not only the address the agent wrote: naming it takes the heap dump
-      // it is in, and this is written while that dump is open. See [AgentSessionCall.about].
-      about?.let { put(ABOUT_KEY, it) }
       // As the link the window hands out for that place, which is the whole of what a row has to be
       // clickable: the place to go to, and a line the agent's human can paste anywhere. See [DeepLink].
       link()?.let { put(LINK_KEY, it) }
@@ -236,7 +233,6 @@ class AgentSessionFile private constructor(
         windowId = text(WINDOW_KEY),
         heapDumpPath = text(HEAP_DUMP_KEY),
         place = link?.let { placeOfLinkOrNull(it, file, lineNumber) },
-        about = text(ABOUT_KEY),
         arguments = this[ARGUMENTS_KEY]?.asStringMap().orEmpty(),
         refusal = text(REFUSAL_KEY),
         outcome = text(OUTCOME_KEY),
@@ -323,7 +319,6 @@ class AgentSessionFile private constructor(
     private const val REASON_KEY = "reason"
     private const val WINDOW_KEY = "window"
     private const val HEAP_DUMP_KEY = "heapDump"
-    private const val ABOUT_KEY = "about"
     private const val LINK_KEY = "link"
     private const val REFUSAL_KEY = "refused"
     private const val OUTCOME_KEY = "outcome"
@@ -347,6 +342,15 @@ class AgentSession(
 
   /** How many of the calls were refused, which is the one number a list of sessions is worth showing. */
   val refusedCount: Int get() = calls.count { it.refusal != null }
+
+  /**
+   * Which heap dumps it read, in the order it first read each of them.
+   *
+   * Usually one, and a session is not *bound* to one: an agent can open a second dump, and comparing two is
+   * a thing to do. Which is what the window listing these needs — a window is one heap dump, so the sessions
+   * it shows are the ones that read the dump it has open, and the rest are read in the window of theirs.
+   */
+  val heapDumpPaths: List<String> get() = calls.mapNotNull { it.heapDumpPath }.distinct()
 }
 
 /**
@@ -365,16 +369,6 @@ class AgentSessionCall(
   val windowId: String?,
   val heapDumpPath: String?,
   val place: Place?,
-  /**
-   * What [place] is called — `MainActivity 0x12d368b8` — as the window naming a tab on it would.
-   *
-   * Recorded rather than worked out on the way in, because working it out is a read of *that* heap dump: a
-   * session spans the dumps that were open while it ran, and it is read afterwards in whichever window
-   * happens to be open. So a screen that resolved these itself could only name the calls about its own dump,
-   * and every other row would stay the bare address an agent wrote — which is the one thing this screen
-   * exists to not show. Null for a call about no place, and for a session written before this was recorded.
-   */
-  val about: String?,
   /** The rest of the arguments, by name, with `reason` and `window` left out: they have fields of their own. */
   val arguments: Map<String, String>,
   /** Why the call was refused, and null for one that was answered. See [AgentRefusal]. */
@@ -410,21 +404,12 @@ class AgentSessionCall(
 val AgentSessionCall.verb: String get() = verbOfTool(tool, arguments) ?: tool.replace('_', ' ')
 
 /**
- * What the call was about, in the words the window uses for it: an object with its class name, a class name,
- * a place.
- *
- * Which is [AgentSessionCall.about] wherever there is one, so that a row and the tab clicking it opens are
- * recognisably one object. What the agent typed is the fallback, and it is what a call about a place of no
- * heap dump reads as — an address on its own, which is the whole of what a session held before the app
- * started writing the name beside it.
+ * What the call was about, in the words the window uses for it: an address, a class name, a place.
  *
  * Null for a call whose subject is the whole heap dump or the app itself, where the verb says all of it.
  */
 val AgentSessionCall.subject: String?
-  get() = about
-    ?: arguments[SUBJECT_OBJECT]
-    ?: arguments[SUBJECT_PLACE]
-    ?: arguments[SUBJECT_CLASS_NAME]
+  get() = arguments[SUBJECT_OBJECT] ?: arguments[SUBJECT_PLACE] ?: arguments[SUBJECT_CLASS_NAME]
 
 /**
  * What the answer to a call came to, as a couple of words, and null when the answer is data rather than a
