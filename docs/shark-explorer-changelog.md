@@ -59,6 +59,11 @@ uses, without the one for a newly recognized library leak:
   link names a window and this run has none. Notes and verdicts were never
   on the screen, so a heap dump investigated with no window opens in one later with all of it on.
   See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
+* ✨ **The method sends an agent to the code, at the version the heap dump is of.** Isolating the reference
+  says where the problem is and not how it happened, so the method that comes with the tools also says how to
+  work out which framework, app and library versions this dump is of — and what to ask for rather than guess,
+  since an app's own version number never reaches the heap.
+  See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
 * ✨ **An agent answers with links into the window.** `show` and `conclude` hand back the `shark://` link to
   what they put on screen, and the method the tools come with tells an agent to put those links in its reply —
   so a sentence in a chat window, a pull request comment or a bug report carries a way into the heap dump

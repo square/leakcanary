@@ -291,6 +291,14 @@ leak is — one bad reference, the three zones of a chain, the rules that spread
 the order that finds it, which is [the LeakCanary
 method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it.
 
+**Including the part that isn't in the heap dump at all.** Isolating the reference says *where* the problem
+is, not how it happened, and stopping there is the most common way an investigation fails — so the method
+sends an agent to the code, at the version this dump is of, and tells it how to work out which version that
+is: `android.os.Build$VERSION.SDK_INT` for the framework, the app's `ApplicationInfo` for its package, its
+APK path and its target SDK, the build file or the APK for a library's version, and a decompiler when there
+is no source to read. What it can't work out — the app's own version number is usually absent, since
+`BuildConfig` constants never reach the heap — it is told to ask you for rather than guess.
+
 **Everything the window can do, it can do** — there is no screen an agent can't reach and no button it can't
 press, because a surface with less than that is one whose answer is "ask your human to click something":
 

@@ -73,14 +73,43 @@ internal object AgentMethod {
        - `find_objects` on a class you have assumed something about. Two instances of a class you took for
          a singleton is the answer to a surprising number of leaks: the object on the chain is not the
          instance you think it is.
-       - Read the app's source for the field that holds the next step. A verdict you can point at a line of
-         code for is a verdict that survives review.
+       - Read the code that declares the field holding the next step, at the version this dump is of — see
+         below. A verdict you can point at a line of code for is a verdict that survives review.
     5. **Isolating the reference is not the root cause.** When one reference is left, you know *where* the
        problem is. You still do not know *how* it happened, and stopping here is the most common way an
        investigation fails. Keep going: what code assigns that field, what should have cleared it, and why
        didn't it? The answer is usually a sequence of events, not a line.
     6. **Say how to reproduce it**, or say that you couldn't work that out. A root cause nobody can trigger
        is a hypothesis.
+
+    ## Read the code, at the version the dump is of
+
+    The heap dump says what is held. Only the code says why, so an investigation that stays inside the heap
+    dump stops at the reference and calls that the root cause. Read what assigns the faulty field, and what
+    should have cleared it.
+
+    **Which copy of the code matters as much as reading it.** A class that changed between two versions is a
+    root cause nobody can reproduce and a fix that doesn't apply. The dump itself says which versions:
+
+    - **The OS.** `describe_object` on the `android.os.Build${'$'}VERSION` class: `SDK_INT` is the API level, with
+      `RELEASE`, `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the
+      build fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
+      under `sources/android-<SDK_INT>` — and not `main`, which is years ahead of any device.
+    - **The app.** Its `android.content.pm.ApplicationInfo` is in most dumps: `processName` and `dataDir`
+      name the app, `sourceDir` is the APK it was installed from, `minSdkVersion` is a field of its own,
+      `seInfo` often carries `targetSdkVersion=<n>`, and bit `0x2` of `flags` is `FLAG_DEBUGGABLE`. The app's
+      own version number usually is **not** there: `BuildConfig` constants are compiled into their call sites,
+      so the class is never loaded and never appears in a dump. Ask for it rather than guessing it.
+    - **The libraries.** A dependency's version isn't in the dump either. Ask for the build file or the
+      lockfile, or read the versions out of the APK at `sourceDir`, and then read that library at that tag. A
+      leak fixed two releases ago is worth finding out about before writing anything else.
+    - **Nothing to read?** Decompile. The APK is at `sourceDir` on the device the dump came from, the
+      dependencies are jars, and a decompiler answers most of what a verdict needs. Compiler-generated names
+      are evidence in themselves: `this${'$'}0` is an inner class holding what it was declared in, `val${'$'}x` is a
+      captured local, and neither can be cleared by any code anybody could write.
+
+    Then **say which version of what you read**. "Nothing clears this in onDestroy" about a class the app
+    doesn't ship is the confident wrong answer this section exists to stop.
 
     ## Rules you will be held to
 

@@ -9,13 +9,15 @@ Measured off `AgentTools.all` and `AgentMethod.INSTRUCTIONS`, one `tools/list` e
 
 | | Characters | ≈ tokens | Paid |
 | --- | --- | --- | --- |
-| Sixteen tool definitions | 18,880 | 4,720 | Every turn, while the server is connected |
-| The method | 5,065 | 1,270 | Handshake, and again with `open_heap_dumps` |
+| Sixteen tool definitions | 18,779 | 4,695 | Every turn, while the server is connected |
+| The method | 7,845 | 1,960 | Handshake, and again with `open_heap_dumps` |
 
-So the standing cost of this surface is **5 to 6 k tokens**, around 3% of a 200 k window. Parity took the
-tool count from eleven to sixteen and the definitions from 13,116 characters to 18,880 — **a fifth of the
+So the standing cost of this surface is **6 to 7 k tokens**, around 3% of a 200 k window. Parity took the
+tool count from eleven to sixteen and the definitions from 13,116 characters to 18,779 — **a fifth of the
 window's budget for the five tools that mean an agent never has to ask its human to click something**, which
-is the trade this surface exists to make. The published horror stories are still an order of magnitude worse:
+is the trade this surface exists to make. The method then grew by half again for the section on reading the
+code at the version the dump is of, which is the one part of the method the tools cannot enforce at all and
+the part that decides whether an answer is a root cause or a reference. The published horror stories are still an order of magnitude worse:
 GitHub's server is ~17.6 k tokens of definitions, and three servers together have been measured at 143 k. The
 mitigations that shipped in 2026 (Anthropic's tool search, code execution over MCP) are aimed at that scale.
 **This surface is not where a context window goes to die**, and a per-tool cost of ~300 tokens is what buys
@@ -33,7 +35,7 @@ descriptions that say when to reach for a tool. Re-measure it if the count doubl
 - **A skill** ([the open standard](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview),
   now read by Claude, Codex, Gemini CLI, Cursor and others) is the right home for *the method*, because
   progressive disclosure is exactly what the method wants: ~80 tokens of name and description at rest, the
-  1,240-token body loaded only for a session that is actually investigating a heap dump. Today every session
+  ~2 k-token body loaded only for a session that is actually investigating a heap dump. Today every session
   pays for it at the handshake whether it is investigating anything or not.
 
 ## So: one core, several adapters
