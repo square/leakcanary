@@ -158,7 +158,8 @@ object AgentServer {
   }
 
   /**
-   * One connection: the token, then a JSON-RPC message per line until the agent goes away.
+   * One connection: the token and optionally a session to join, then a JSON-RPC message per line until the
+   * agent goes away.
    *
    * **No read timeout**, unlike the link socket. An agent thinking, or waiting for the person at the
    * machine, is a connection with nothing on it for minutes at a time, and a session dropped for being
@@ -174,8 +175,8 @@ object AgentServer {
     socket.use {
       val reader = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
       val writer = PrintWriter(OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8), true)
-      val sentToken = reader.readLine()
-      if (sentToken != token) {
+      val handshake = reader.readLine().orEmpty().split(HANDSHAKE_SEPARATOR)
+      if (handshake.firstOrNull() != token) {
         // Loopback only, so this is a stale file being read far more often than it is anything to worry
         // about.
         SharkLog.d { "An agent connected quoting the wrong token, so it was not listened to" }
@@ -183,10 +184,10 @@ object AgentServer {
         return
       }
       writer.println(ACCEPTED)
-      // A file per accepted connection, so that two agents at one heap dump are two sessions to read rather
-      // than one file with both of their reasoning in it. Named before the handshake, since a client that
-      // connects and says nothing is itself worth a line on that screen.
-      val sessionFile = AgentSessionFile.starting(sessions, serverVersion)
+      // A file per accepted connection unless it asked to join one, so that two agents at one heap dump are
+      // two sessions to read rather than one file with both of their reasoning in it. Named before the
+      // handshake, since a client that connects and says nothing is itself worth a line on that screen.
+      val sessionFile = sessionFile(sessions, serverVersion, handshake.getOrNull(1))
       SharkLog.d { "An agent's session is being written to ${sessionFile.file}" }
       val session = McpSession(AgentTools(heapDumps), serverVersion, sessionFile)
       while (true) {
@@ -204,6 +205,30 @@ object AgentServer {
       }
       SharkLog.d { "An agent disconnected" }
     }
+  }
+
+  /**
+   * Where this connection's calls are written down: a session of its own, or the one it asked to join.
+   *
+   * A connection is a session for a client that holds one open, which is what MCP over the pipe is. A
+   * command line is a process per call, so it names the session its calls belong to instead — see
+   * [AgentCommandLine]. The name is checked here as well as there, because it becomes part of a file name and
+   * it arrived from another process; a name this cannot use is a session of its own and a line saying so,
+   * rather than a connection refused, since the calls themselves are none the worse for it.
+   */
+  private fun sessionFile(
+    sessions: File,
+    serverVersion: String,
+    name: String?
+  ): AgentSessionFile {
+    if (name == null) {
+      return AgentSessionFile.starting(sessions, serverVersion)
+    }
+    if (!AgentSessionFile.isSessionName(name)) {
+      SharkLog.d { "\"$name\" is no session name, so this connection was given a session of its own" }
+      return AgentSessionFile.starting(sessions, serverVersion)
+    }
+    return AgentSessionFile.continuing(sessions, serverVersion, name)
   }
 
   private fun newToken(): String {
@@ -232,6 +257,9 @@ object AgentServer {
   private const val SESSIONS_DIRECTORY = "sessions"
   internal const val ACCEPTED = "OK"
   internal const val DECLINED = "NO"
+
+  /** Between the token and the session a connection is joining, which is why a name has no spaces in it. */
+  private const val HANDSHAKE_SEPARATOR = ' '
   private const val PORT_PROPERTY = "port"
   private const val TOKEN_PROPERTY = "token"
   private const val THREAD_NAME = "shark-explorer-agents"

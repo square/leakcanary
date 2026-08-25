@@ -95,6 +95,39 @@ class AgentServerTest {
   }
 
   @Test
+  fun `two connections that name one session are one session`() {
+    listen()
+    val run = AgentServer.publishedRuns(directory).single()
+
+    connect(run, sessionName = "cli7").use { it.ask(PING) }
+    connect(run, sessionName = "cli7").use { it.ask(CALL_OPEN_HEAP_DUMPS) }
+
+    // What a command line needs of this end: a connection per call, and one file to read them in. A client
+    // that holds a connection open says nothing and gets a session of its own. See [AgentCommandLineTest].
+    val session = sessions().single()
+    assertThat(session.sessionId).isEqualTo("cli7")
+    assertThat(session.calls.map { it.tool }).containsExactly("open_heap_dumps")
+  }
+
+  @Test
+  fun `a session name that could be a path is not made into one`() {
+    listen()
+    val run = AgentServer.publishedRuns(directory).single()
+
+    connect(run, sessionName = "../../evil").use { client ->
+      // Served, because the calls are none the worse for the name: what it loses is being gathered with the
+      // others, and refusing the connection would lose the investigation instead.
+      assertThat(client.accepted).isTrue()
+      client.ask(CALL_OPEN_HEAP_DUMPS)
+    }
+
+    assertThat(sessions().single().sessionId).isNotEqualTo("../../evil")
+    assertThat(log).anyMatch { it.contains("is no session name") }
+    assertThat(temporaryFolder.root.walkTopDown().filter { it.name.endsWith(".jsonl") }.toList())
+      .hasSize(1)
+  }
+
+  @Test
   fun `closing a run takes it off the list`() {
     val listening = listen()
 
@@ -121,13 +154,19 @@ class AgentServerTest {
 
   private fun connect(
     run: AgentServer.PublishedRun,
-    token: String = run.token
-  ): TestClient = TestClient(run.port, token)
+    token: String = run.token,
+    sessionName: String? = null
+  ): TestClient = TestClient(run.port, token, sessionName)
+
+  private fun sessions(): List<AgentSession> =
+    AgentSessionFile.sessionsIn(AgentServer.sessionsDirectory(directory))
 
   /** An agent's end of the connection, as far as this test needs one: a token, then a line at a time. */
   private class TestClient(
     port: Int,
-    token: String
+    token: String,
+    /** The session this connection joins, which a command line names and a client holding one open doesn't. */
+    sessionName: String?
   ) : Closeable {
 
     private val socket = Socket(InetAddress.getLoopbackAddress(), port)
@@ -137,7 +176,7 @@ class AgentServerTest {
     val accepted: Boolean
 
     init {
-      toApp.println(token)
+      toApp.println(listOfNotNull(token, sessionName).joinToString(" "))
       accepted = fromApp.readLine() == AgentServer.ACCEPTED
     }
 
@@ -154,5 +193,9 @@ class AgentServerTest {
   private companion object {
 
     const val PING = """{"jsonrpc":"2.0","id":1,"method":"ping"}"""
+
+    const val CALL_OPEN_HEAP_DUMPS =
+      """{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"open_heap_dumps",""" +
+        """"arguments":{"reason":"Finding out what is open."}}}"""
   }
 }

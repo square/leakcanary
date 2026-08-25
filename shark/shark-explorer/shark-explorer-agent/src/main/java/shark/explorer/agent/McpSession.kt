@@ -17,10 +17,13 @@ import shark.SharkLog
 /**
  * One agent's connection to this app, spoken as [MCP](https://modelcontextprotocol.io).
  *
- * MCP rather than a command line or a protocol of ours, for one reason: **the app is already running and an
- * agent has to reach into it**. A CLI would have to open the heap dump again — seconds and hundreds of
- * megabytes per question, and answers about a dump nobody is looking at — while MCP is the one interface
- * every agent already has, so a client is configured once and nothing here ever calls a model.
+ * MCP rather than a protocol of ours because it is the one interface every agent already has: a client is
+ * configured once, discovers the tools and their schemas itself, and nothing here ever calls a model.
+ *
+ * What it has over [AgentCommandLine], which reaches the same run over the same socket, is that **a
+ * connection is a session**. One handshake for an investigation, the tools and the method arriving in band,
+ * and every call of it in one file for the *Agent logs* screen to draw. A command line has to be told which
+ * session it is joining to get the last of those, and nothing at all to get the first two.
  *
  * JSON-RPC 2.0, one message per line. That framing is stdio MCP's own, which is what lets the bridge in
  * [AgentStdioBridge] be a pipe and nothing more.

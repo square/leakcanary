@@ -23,6 +23,7 @@ being talked to by a program that is not this app.
 | `AgentServer.kt` | The loopback socket a run publishes, and the file that says where. |
 | `AgentStdioBridge.kt` | `--mcp-stdio`: the pipe an MCP client launches. |
 | `AgentStdioServer.kt` | And `--no-ui`: the same tools over this process's own stdio, for a run with no window. |
+| `AgentCommandLine.kt` | `--agent <tool> name=value …`: one call typed at a window, over the same socket. And `--agent-help`, generated from the registry. |
 | `harness/start-harness.sh` | Opens a window and prints the command that throws an agent at it. |
 | `harness/eval/run-eval.sh` | Throws an agent at a heap dump whose answer is known, and scores what it did. The dumps and the scoring are `shark-explorer-eval`. |
 
@@ -110,6 +111,30 @@ The app's own side of it — a window answering an agent — logs through `Shark
 reads as the reason for each call followed by the reads it caused. That is the artefact to ask for when
 somebody reports that an agent got it wrong.
 
+## Two adapters, and the handshake line that lets a shell have a session
+
+`--mcp-stdio` is a client holding a session open. `--agent <tool> name=value …` is one call typed at a window
+that is already up, and it is **argument translation and nothing else**: it builds a `tools/call` on the same
+socket, so a refusal it prints was thrown by the handler that would have refused an MCP client. Adding a rule
+to one adapter and not the other is the mistake this shape exists to make impossible — see
+`notes/agent-surface.md`, which also has what a call costs.
+
+**A process per call would otherwise be a session per call**, and a session is what somebody reads afterwards.
+So the handshake is `token[ sessionName]` on one line, `AgentSessionFile.continuing` appends to the newest file
+whose name carries that id, and a command line defaults to `cli<the shell's pid>` — an agent's calls come out
+of one shell the way its MCP calls come out of one connection. A client that says nothing gets a session of
+its own, which is what every MCP client does.
+
+**The name is checked at both ends**, because it becomes part of a file name: the command line refuses one
+that isn't letters and digits before calling anything, and `AgentServer` serves the connection anyway with a
+session of its own and a line in the log. Refusing the connection would lose the investigation to protect a
+file name; the calls are none the worse for it.
+
+**Exit codes are the second half of the answer.** 0 with JSON on stdout, 2 with the refusal on stderr, 1 when
+there was nothing to answer it. A refusal is not a failure of the command — it is what the surface said, and
+the message is the next thing to do — so a script can tell "it said no" from "nothing was there", and a shell
+keeping stdout for the JSON still shows the sentence.
+
 ## The transport, and why it is three things
 
 **A run publishes a loopback port and a token** to `~/.shark-explorer/agents/<pid>.agent`, and `--mcp-stdio`
@@ -196,6 +221,10 @@ the reads happen on the heap dump's thread and the tests run headless.
 
 ```bash
 ./gradlew :shark:shark-explorer:shark-explorer-agent:check   # test + detekt
+
+# What the surface is, from a shell, with nothing open and no Gradle. Then one call at a window.
+"Shark Explorer.app/Contents/MacOS/Shark Explorer" --agent-help
+"Shark Explorer.app/Contents/MacOS/Shark Explorer" --agent list_leaks window=<id> reason="Trying it"
 
 # The whole surface end to end, in a real window, with an agent that has never seen this repository.
 shark/shark-explorer/shark-explorer-agent/harness/start-harness.sh [heap-dump.hprof]

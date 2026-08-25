@@ -23,15 +23,37 @@ mitigations that shipped in 2026 (Anthropic's tool search, code execution over M
 **This surface is not where a context window goes to die**, and a per-tool cost of ~300 tokens is what buys
 descriptions that say when to reach for a tool. Re-measure it if the count doubles again.
 
+## What the command line costs, now that there is one
+
+`--agent <tool> name=value …` is a process per call, and the thing to know is what that *doesn't* cost.
+Measured against a packaged build with one window open on `leak_asynctask_o.hprof`:
+
+| | Measured | Paid |
+| --- | --- | --- |
+| One call, JVM start to JSON on stdout | 160–180 ms | Per call |
+| `--agent-help`, all sixteen tools | 13,391 characters, ≈3,350 tokens | Only when read |
+| `--agent-help <tool>`, one of them | ~1,200 characters, ≈300 tokens | Only when read |
+
+So the standing cost is nothing, and the whole surface as text is *smaller* than the `tools/list` definitions
+of it (13,391 against 18,779) because `reason` is explained once rather than sixteen times.
+
+**A call from a shell is not a slower call.** It reaches the same window over the loopback socket the run
+already publishes, so the heap dump is the one that was parsed and indexed once and the read queues on that
+window's own thread — the 170 ms is a JVM starting and a socket, not a heap dump being reopened. The
+process-per-call shape costs exactly one thing, and it isn't speed: **a connection can no longer be what
+gathers an investigation**, which is what `--agent-session=` and `AgentSessionFile.continuing` exist for. A
+call says which session it is one of, defaulting to `cli<the shell's pid>`, so a conversation's calls are one
+row of the *Agent logs* screen the way one held-open MCP connection is.
+
 ## What each shape is actually good at
 
-- **MCP** is the only one of the three that gets a *session*: a process already holding a parsed heap dump,
-  its indexes, the window a person is watching, and the verdicts set so far. Reopening `large-dump.hprof`
-  costs seconds and hundreds of megabytes, so a stateless call per question is not a smaller version of
-  this, it is a different and much slower tool. It is also the only shape a client discovers on its own.
-- **A CLI** is what an agent reaches for without being told, costs nothing until it is run, and pipes into
-  `grep`. Two things it would buy that MCP can't: the **no window open** case, and clients that speak no
-  MCP. What it must not be is a second implementation — see below.
+- **MCP** is the shape a client *discovers*: the tools, their schemas and every refusal arrive in band, so
+  nothing has to teach a model what this surface is. And a connection is a session for free. What it is not
+  is the only way to reach a live window — that was the assumption this note was written under, and it was
+  wrong.
+- **The command line** is what an agent reaches for without being configured, costs nothing until it is run,
+  pipes into `grep`, and is the only one of the two an agent whose client speaks no MCP can use. It pays for
+  the discovery MCP gets free: something has to tell it `--agent-help` exists, which is the skill's job.
 - **A skill** ([the open standard](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview),
   now read by Claude, Codex, Gemini CLI, Cursor and others) is the right home for *the method*, because
   progressive disclosure is exactly what the method wants: ~80 tokens of name and description at rest, the
@@ -45,21 +67,26 @@ The thing worth protecting is that **the enforcement is not in the transport**. 
 arguments in and JSON out, not a second copy of the rules:
 
 - `McpSession` — JSON-RPC over the socket. Exists.
-- A CLI adapter — one subcommand that names a tool and its arguments, printing the answer or the refusal, and
-  a `--agent-help` that prints the same descriptions the schema carries so nothing has to be written twice.
-  Talks to a published run when there is one, and opens a heap dump itself when there isn't.
+- `AgentCommandLine` — `--agent <tool> name=value …`, which turns a command line into one `tools/call` on that
+  same socket and prints what came back. Exists. It refuses nothing itself: every refusal it reports was
+  thrown by the handler that would have refused an MCP client. `--agent-help` is generated from the registry,
+  so a tool cannot be on one and missing from the other, and it is described through `NoHeapDumpToDescribe` —
+  a heap dump whose every method throws — which makes "printed, never called" hold rather than be a habit.
 - The skill — the method as `SKILL.md`, plus how to reach either adapter. Prose, not generated, and it points
   at `--agent-help` rather than listing tools that would go stale.
 
-What that leaves duplicated is argument parsing per adapter, which is tens of lines. What it must never
-become is two places that decide whether an investigation may conclude.
+What that leaves duplicated is argument parsing per adapter, which is tens of lines — and less than that
+here, because `AgentArguments` reads a number and a boolean out of text (the tools were written for a model,
+which sends `limit=30` as a string as often as not). So a command line sends every value as it was typed and
+the only shape needing a spelling of its own is a list, which is comma separated because a shell has no
+brackets. What it must never become is two places that decide whether an investigation may conclude.
 
 ## The judgement, in one line
 
-Keep MCP for the window somebody is watching, add the CLI for the window that isn't open yet, and move the
-method into a skill so it costs nothing until it is needed. The criticism of MCP is about surfaces ten times
-this size and about servers whose tools are one HTTP call each; ours is a session against a live process,
-which is the case that criticism still concedes.
+MCP for a client that can be configured, the command line for everything else, and the method in a skill so
+it costs nothing until it is needed — all three over one registry. The criticism of MCP is about surfaces ten
+times this size and about servers whose tools are one HTTP call each; ours is a session against a live
+process, which is the case that criticism still concedes.
 
 Sources worth reading before changing this: the [Milvus comparison of the three
 shapes](https://milvus.io/blog/is-mcp-dead-cli-and-skills-for-ai-agents.md), Anthropic's

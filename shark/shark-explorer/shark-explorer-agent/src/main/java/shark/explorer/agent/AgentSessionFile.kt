@@ -41,10 +41,10 @@ class AgentSessionFile private constructor(
   /** What this session is called, in the window and in the file. See [newSessionId]. */
   val sessionId: String,
   private val startedAt: Instant,
-  private val serverVersion: String
+  private val serverVersion: String,
+  /** Whether the file already says whose session it is, which a call joining one finds true. */
+  private var isHeaderWritten: Boolean
 ) {
-
-  private var isHeaderWritten = false
 
   /**
    * Says who connected, which is the handshake and therefore the first thing to land in the file.
@@ -124,8 +124,57 @@ class AgentSessionFile private constructor(
       directory.mkdirs()
       val name = FILE_NAME_PREFIX + FILE_NAME_TIME.format(startedAt) + "-$sessionId$FILE_NAME_SUFFIX"
       deleteOlderSessions(directory, keepSessionCount - 1)
-      return AgentSessionFile(File(directory, name), sessionId, startedAt, serverVersion)
+      return AgentSessionFile(
+        file = File(directory, name),
+        sessionId = sessionId,
+        startedAt = startedAt,
+        serverVersion = serverVersion,
+        isHeaderWritten = false
+      )
     }
+
+    /**
+     * The session called [sessionId] to add to, which is the newest file of that name or a new one.
+     *
+     * What a command line needs and a connection doesn't. An MCP client holds one connection open for a
+     * whole investigation, so a connection is a session; `--agent` is a process per call, so without this a
+     * morning's work would be thirty files and the *Agent logs* screen would list thirty agents where there
+     * was one. See [AgentCommandLine].
+     *
+     * The header is not written again, since a file with two of them is two sessions to whoever reads it —
+     * so the client, the protocol and the build in it are the ones from the call that started the session.
+     */
+    fun continuing(
+      directory: File,
+      serverVersion: String,
+      sessionId: String,
+      startedAt: Instant = Instant.now(),
+      keepSessionCount: Int = KEEP_SESSION_COUNT
+    ): AgentSessionFile {
+      val existing = directory.listFiles { file: File -> file.name.isSessionFile() }.orEmpty()
+        .filter { it.name.sessionIdOfName() == sessionId }
+        // Named after when it started, so the newest of them is a sort by name — the same one the window
+        // lists first. Several only happen for a session named again after the older one aged out.
+        .maxByOrNull { it.name }
+        ?: return starting(directory, serverVersion, startedAt, sessionId, keepSessionCount)
+      return AgentSessionFile(
+        file = existing,
+        sessionId = sessionId,
+        startedAt = startedAt,
+        serverVersion = serverVersion,
+        isHeaderWritten = true
+      )
+    }
+
+    /**
+     * Whether [name] can name a session, which is strict because it becomes part of a file name.
+     *
+     * Letters and digits, and no '-' in particular: a file is `agent-<when>-<id>.jsonl` and the id is read
+     * back out of it by splitting on the last one. Checked on both sides of the socket — the command line
+     * refuses a name it cannot use, and this end never names a file after something it was told.
+     */
+    fun isSessionName(name: String): Boolean = name.length in 1..MAX_SESSION_NAME_LENGTH &&
+      name.all { it.isAsciiLetterOrDigit() }
 
     /**
      * Every session written in [directory], newest first, with the calls of each in the order they were
@@ -298,6 +347,14 @@ class AgentSessionFile private constructor(
      * each and because "what did that agent do" is asked about an investigation rather than about a run.
      */
     const val KEEP_SESSION_COUNT = 100
+
+    /**
+     * How long a name a caller can give a session, which is enough for a word and a process id.
+     *
+     * A bound at all because it is part of a file name: the ids this hands out are eight characters, and a
+     * name nobody can read on the *Agent logs* screen is no better than one of those.
+     */
+    const val MAX_SESSION_NAME_LENGTH = 16
 
     private const val SESSION_ID_BYTES = 4
 

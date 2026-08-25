@@ -40,15 +40,8 @@ object AgentStdioBridge {
     /** Which run, by process id, or null for the one that started most recently. */
     pid: String? = null,
     /** How long to wait for a run to appear, for a client that launched this before the app was open. */
-    waitMillis: Long = DEFAULT_WAIT_MILLIS,
-    /**
-     * How to open a window to investigate in when no run of the app is open, and null to wait for one.
-     *
-     * Because the alternative is an agent whose only answer is "ask somebody to launch Shark Explorer", and
-     * a window opened here is a window the person at the machine can then watch — which is the whole reason
-     * this surface is a window rather than a library. Not called when a run was asked for by [pid]: that
-     * names a window, and opening a different one would be answering about the wrong heap dump.
-     */
+    waitMillis: Long = DEFAULT_RUN_WAIT_MILLIS,
+    /** How to open a window when no run of the app is open, and null to wait for one. See [waitForRun]. */
     openAWindow: (() -> Unit)? = null
   ): Int {
     val run = waitForRun(directory, pid, waitMillis, openAWindow) ?: return NOTHING_TO_TALK_TO
@@ -118,85 +111,9 @@ object AgentStdioBridge {
     return 0
   }
 
-  private fun waitForRun(
-    directory: File,
-    pid: String?,
-    waitMillis: Long,
-    openAWindow: (() -> Unit)?
-  ): AgentServer.PublishedRun? {
-    var waited = 0L
-    var deadline = waitMillis
-    var opened = false
-    // Naming a run names a window and therefore a heap dump, so opening a different one would be answering
-    // about the wrong dump: for that command line there is nothing to open, only something to wait for.
-    val opensAWindow = openAWindow != null && pid == null
-    while (true) {
-      val runs = AgentServer.publishedRuns(directory)
-      val run = if (pid == null) runs.firstOrNull() else runs.firstOrNull { it.pid == pid }
-      if (run == null && !opened && opensAWindow) {
-        say("No Shark Explorer is running, so one is being opened to investigate in.")
-        requireNotNull(openAWindow).invoke()
-        opened = true
-        // From here rather than from the start, because what is being waited for changed: a JVM starting,
-        // Compose coming up and a window appearing, rather than a file that may already be there.
-        deadline = waited + OPENING_WAIT_MILLIS
-      }
-      if (run != null) {
-        if (pid == null && runs.size > 1) {
-          // Which run an agent ends up in is worth saying rather than leaving to be worked out from what
-          // heap dump it finds open: several explorers at once is the normal way this app is used.
-          say(
-            "${runs.size} Shark Explorer runs are open; talking to ${run.pid}, the one that started most " +
-              "recently. Pass $PID_OPTION<pid> to pick another: " + runs.joinToString(", ") { it.pid }
-          )
-        }
-        return run
-      }
-      if (waited >= deadline) {
-        say(
-          if (pid == null && opened) {
-            "A Shark Explorer was started and has not published itself in " +
-              "${OPENING_WAIT_MILLIS / 1000} seconds, so something went wrong opening it. Its log is in " +
-              "the newest file under ~/.shark-explorer/logs."
-          } else if (pid == null) {
-            "No Shark Explorer is running, so there is no heap dump to investigate. Open one — every run " +
-              "of the app publishes itself in $directory — and start this again."
-          } else {
-            "No Shark Explorer run is $pid. Open runs: " +
-              AgentServer.publishedRuns(directory).joinToString(", ") { it.pid }.ifEmpty { "none" }
-          }
-        )
-        return null
-      }
-      Thread.sleep(POLL_MILLIS)
-      waited += POLL_MILLIS
-    }
-  }
-
-  /**
-   * On stderr, always, which is where an MCP client collects what a server has to say.
-   *
-   * Not through `SharkLog`: this process deliberately never installs the app's logging, since that writes
-   * to stdout and stdout is the protocol.
-   */
-  private fun say(message: String) {
-    System.err.println("[shark-explorer] $message")
-  }
-
   /** What the command line says to pick a run by process id. See `shark.explorer.app.ExplorerArguments`. */
   const val PID_OPTION = "--agent-run="
 
-  private const val DEFAULT_WAIT_MILLIS = 10_000L
-
-  /**
-   * How long a window opened from here is given to publish itself.
-   *
-   * Longer than [DEFAULT_WAIT_MILLIS] by a lot, because it covers a cold JVM, Compose starting and jlink's
-   * runtime being paged in — and because the alternative to waiting is telling an agent there is no window
-   * while one is in the middle of appearing.
-   */
-  private const val OPENING_WAIT_MILLIS = 60_000L
-  private const val POLL_MILLIS = 250L
   private const val CONNECT_TIMEOUT_MILLIS = 1_000
   private const val SHUTDOWN_MILLIS = 500L
 
@@ -206,3 +123,99 @@ object AgentStdioBridge {
    */
   private const val NOTHING_TO_TALK_TO = 1
 }
+
+/**
+ * The run of the app to talk to, opening one if there is none and nothing is open, and null for a machine
+ * where there was never going to be one.
+ *
+ * Out here rather than in [AgentStdioBridge] because both adapters ask this and the answer must not differ:
+ * picking a run when several are open, opening a window when none is, and giving up are one question, and a
+ * command line that chose a different run from the pipe would be a second surface. See [AgentCommandLine].
+ */
+internal fun waitForRun(
+  directory: File,
+  pid: String?,
+  waitMillis: Long,
+  /**
+   * How to open a window to investigate in when no run of the app is open, and null to wait for one.
+   *
+   * Because the alternative is an agent whose only answer is "ask somebody to launch Shark Explorer", and a
+   * window opened here is a window the person at the machine can then watch — which is the whole reason this
+   * surface is a window rather than a library. Not called when a run was asked for by [pid]: that names a
+   * window, and opening a different one would be answering about the wrong heap dump.
+   */
+  openAWindow: (() -> Unit)?
+): AgentServer.PublishedRun? {
+  var waited = 0L
+  var deadline = waitMillis
+  var opened = false
+  // Naming a run names a window and therefore a heap dump, so opening a different one would be answering
+  // about the wrong dump: for that command line there is nothing to open, only something to wait for.
+  val opensAWindow = openAWindow != null && pid == null
+  while (true) {
+    val runs = AgentServer.publishedRuns(directory)
+    val run = if (pid == null) runs.firstOrNull() else runs.firstOrNull { it.pid == pid }
+    if (run == null && !opened && opensAWindow) {
+      say("No Shark Explorer is running, so one is being opened to investigate in.")
+      requireNotNull(openAWindow).invoke()
+      opened = true
+      // From here rather than from the start, because what is being waited for changed: a JVM starting,
+      // Compose coming up and a window appearing, rather than a file that may already be there.
+      deadline = waited + OPENING_WAIT_MILLIS
+    }
+    if (run != null) {
+      if (pid == null && runs.size > 1) {
+        // Which run an agent ends up in is worth saying rather than leaving to be worked out from what heap
+        // dump it finds open: several explorers at once is the normal way this app is used.
+        say(
+          "${runs.size} Shark Explorer runs are open; talking to ${run.pid}, the one that started most " +
+            "recently. Pass ${AgentStdioBridge.PID_OPTION}<pid> to pick another: " +
+            runs.joinToString(", ") { it.pid }
+        )
+      }
+      return run
+    }
+    if (waited >= deadline) {
+      say(
+        if (pid == null && opened) {
+          "A Shark Explorer was started and has not published itself in " +
+            "${OPENING_WAIT_MILLIS / 1000} seconds, so something went wrong opening it. Its log is in " +
+            "the newest file under ~/.shark-explorer/logs."
+        } else if (pid == null) {
+          "No Shark Explorer is running, so there is no heap dump to investigate. Open one — every run " +
+            "of the app publishes itself in $directory — and start this again."
+        } else {
+          "No Shark Explorer run is $pid. Open runs: " +
+            AgentServer.publishedRuns(directory).joinToString(", ") { it.pid }.ifEmpty { "none" }
+        }
+      )
+      return null
+    }
+    Thread.sleep(POLL_MILLIS)
+    waited += POLL_MILLIS
+  }
+}
+
+/**
+ * On stderr, always: where an MCP client collects what a server has to say, and where a shell shows what a
+ * command is doing.
+ *
+ * Not through `SharkLog`: neither of these processes installs the app's logging, since that writes to stdout
+ * and stdout carries the protocol in one and the answer in the other.
+ */
+internal fun say(message: String) {
+  System.err.println("[shark-explorer] $message")
+}
+
+/**
+ * How long a window opened for an agent is given to publish itself.
+ *
+ * A lot longer than a wait for one that should already be there, because it covers a cold JVM, Compose
+ * starting and jlink's runtime being paged in — and because the alternative to waiting is telling an agent
+ * there is no window while one is in the middle of appearing.
+ */
+private const val OPENING_WAIT_MILLIS = 60_000L
+private const val POLL_MILLIS = 250L
+
+/** How long either adapter waits for a run that ought to be there already, before saying there is none. */
+internal const val DEFAULT_RUN_WAIT_MILLIS = 10_000L

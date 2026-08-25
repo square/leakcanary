@@ -14,6 +14,7 @@ import shark.explorer.HeapExplorer
 import shark.explorer.LeakStatusOverride
 import shark.explorer.LeakStatusOverrides
 import shark.explorer.Place
+import shark.explorer.agent.AgentCommandLine
 import shark.explorer.agent.AgentHeapDump
 import shark.explorer.agent.AgentHeapDumps
 import shark.explorer.agent.AgentRefusal
@@ -189,7 +190,7 @@ internal fun agentBridgeExitCode(args: Array<String>): Int? {
     return null
   }
   val arguments = try {
-    agentServerArguments(args)
+    windowArguments(args)
   } catch (invalidArguments: IllegalArgumentException) {
     // On stderr, where an MCP client collects a server's log, since there is no window and no console to
     // print a usage message to.
@@ -212,7 +213,49 @@ internal fun agentBridgeExitCode(args: Array<String>): Int? {
 }
 
 /**
- * The rest of the command line, once the three options that make this a server are off it.
+ * Whether this process was started to make one tool call from a shell, and what to exit with if it was.
+ *
+ * The other adapter over the same tools: `--mcp-stdio` is a client holding a session open, and this is an
+ * agent — or a person — typing one command at a window that is already up. See [AgentCommandLine].
+ *
+ * Answered before any logging is installed for the reason the pipe is: **stdout carries the answer**, and a
+ * log line in the middle of it is JSON that whatever ran this cannot parse.
+ */
+internal fun agentCommandExitCode(args: Array<String>): Int? {
+  val helpIndex = args.indexOf(AgentCommandLine.HELP_OPTION)
+  val callIndex = args.indexOf(AgentCommandLine.AGENT_OPTION)
+  if (helpIndex < 0 && callIndex < 0) {
+    return null
+  }
+  if (helpIndex >= 0) {
+    // On stdout, since this is the whole of what the command was run for. No window, no heap dump and no
+    // waiting: the tools are text this build carries.
+    println(AgentCommandLine.help(command = commandToRunThis(), toolName = args.toolNameAt(helpIndex)))
+    return 0
+  }
+  val toolName = args.toolNameAt(callIndex)
+  val arguments = try {
+    // Everything that isn't the call is the command line of the window this may have to open.
+    windowArguments(args, toolName)
+  } catch (invalidArguments: IllegalArgumentException) {
+    saidToTheClient(invalidArguments.message.orEmpty())
+    return UNREADABLE_COMMAND_LINE
+  }
+  return AgentCommandLine.run(
+    directory = AGENT_RUNS_DIRECTORY,
+    words = listOfNotNull(toolName) + args.filter { AgentCommandLine.isCallArgument(it) },
+    pid = args.optionValue(AgentStdioBridge.PID_OPTION),
+    sessionName = args.optionValue(AgentCommandLine.SESSION_OPTION)
+      ?: AgentCommandLine.defaultSessionName(),
+    // The same window a client that found nothing open gets, and here it is worth more: the next call from
+    // this shell finds that run published and talks to it, so one command line opening a window is what
+    // makes every command after it cheap.
+    openAWindow = relaunchCommand()?.let { command -> { openAnotherRun(command, arguments) } }
+  )
+}
+
+/**
+ * The rest of the command line, once the options that make this a server or a call are off it.
  *
  * Because what is left is an ordinary command line — heap dumps to open, a title to call their windows — and
  * it means the same thing: a client's configuration says which dump to investigate the way a terminal does.
@@ -220,11 +263,43 @@ internal fun agentBridgeExitCode(args: Array<String>): Int? {
  *
  * Throws [IllegalArgumentException] for a command line that doesn't read, like the parser it wraps.
  */
-internal fun agentServerArguments(args: Array<String>): ExplorerArguments = ExplorerArguments.parse(
-  args.filterNot {
-    it == MCP_STDIO_OPTION || it == NO_UI_OPTION || it.startsWith(AgentStdioBridge.PID_OPTION)
+internal fun windowArguments(
+  args: Array<String>,
+  /** The one word of a call that isn't `name=value`, and null for a command line that is no call. */
+  toolName: String? = null
+): ExplorerArguments = ExplorerArguments.parse(
+  args.filterNot { word ->
+    word.isAgentOption() || AgentCommandLine.isCallArgument(word) || (toolName != null && word == toolName)
   }
 )
+
+/**
+ * The word naming a tool at [index] of the command line, which is the one after the option.
+ *
+ * Positional because a call reads as a command — `--agent describe_object object=0x7205` — and null for an
+ * option that was given nothing, which is `--agent-help` on its own.
+ */
+private fun Array<String>.toolNameAt(index: Int): String? =
+  getOrNull(index + 1)?.takeIf { !it.startsWith("-") && !AgentCommandLine.isCallArgument(it) }
+
+private fun Array<String>.optionValue(option: String): String? =
+  firstOrNull { it.startsWith(option) }?.removePrefix(option)
+
+/** What a word of the command line has to be to reach an agent rather than a window. */
+private fun String.isAgentOption(): Boolean = this == MCP_STDIO_OPTION || this == NO_UI_OPTION ||
+  this == AgentCommandLine.AGENT_OPTION || this == AgentCommandLine.HELP_OPTION ||
+  startsWith(AgentStdioBridge.PID_OPTION) || startsWith(AgentCommandLine.SESSION_OPTION)
+
+/**
+ * What to type to run this app, for the examples in the help.
+ *
+ * The launcher of a packaged install, which is a path somebody can copy — and the generic name for a run
+ * from source, where the real command line is a JVM and a classpath nobody wants printed at them.
+ */
+private fun commandToRunThis(): String {
+  val launcher = launcherPathOrNull() ?: return "shark-explorer"
+  return if (' ' in launcher) "\"$launcher\"" else launcher
+}
 
 /**
  * Answers an agent's calls from this process, with no window anywhere.
