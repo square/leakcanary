@@ -36,6 +36,9 @@ class AgentStdioBridgeTest {
   private lateinit var window: FakeAgentHeapDump
   private val closeables = mutableListOf<Closeable>()
 
+  /** What the client would collect as this server's log. See [bridge]. */
+  private val said = ByteArrayOutputStream()
+
   @Before
   fun setUp() {
     directory = temporaryFolder.newFolder("agents")
@@ -70,6 +73,9 @@ class AgentStdioBridgeTest {
     assertThat(answers[0]).contains("\"id\":1").contains("shark-explorer")
     assertThat(answers[1]).contains("\"id\":2").contains(HOLDER_CLASS_NAME)
     assertThat(window.reads).isNotEmpty
+    // A session that ended the way every session ends — the client closing stdin — and stderr is where an
+    // MCP client collects a server's log, so a stack trace here is a client reporting a crash on every run.
+    assertThat(said.toString(Charsets.UTF_8.name())).doesNotContain("Exception")
   }
 
   @Test
@@ -77,6 +83,49 @@ class AgentStdioBridgeTest {
     val exitCode = runBridge()
 
     assertThat(exitCode).isEqualTo(NOTHING_TO_TALK_TO)
+  }
+
+  @Test
+  fun `a window is opened when there is none, and talked to once it publishes itself`() {
+    var opened = 0
+
+    val answers = bridge(
+      openAWindow = {
+        opened++
+        // The last thing a real one does as it comes up, and the only part of it this test needs: what the
+        // bridge is waiting for is a published run, not a display. Starting a process would be a jlink build
+        // and a screen, and the wait either side of it is this same wait.
+        closeables += AgentServer.listen(
+          heapDumps = FakeAgentHeapDumps(listOf(window)),
+          serverVersion = "1.2.3",
+          directory = directory
+        )
+      }
+    ) { send ->
+      send("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}""")
+    }
+
+    // Once, however long the window takes: an agent that waited through two of these would have two windows.
+    assertThat(opened).isEqualTo(1)
+    assertThat(answers).hasSize(1)
+    assertThat(answers[0]).contains("\"id\":1")
+  }
+
+  @Test
+  fun `a run asked for by pid is waited for rather than replaced with a new window`() {
+    var opened = 0
+
+    val exitCode = AgentStdioBridge.run(
+      directory,
+      pid = "999999",
+      waitMillis = 0L,
+      openAWindow = { opened++ }
+    )
+
+    // Naming a run names a window, and a heap dump: opening a different one would be answering confidently
+    // about the wrong dump, which is worse than saying that run has gone.
+    assertThat(exitCode).isEqualTo(NOTHING_TO_TALK_TO)
+    assertThat(opened).isZero
   }
 
   @Test
@@ -103,16 +152,23 @@ class AgentStdioBridgeTest {
    * for: closing it the moment the last message is written would be a race with the answer coming back, and a
    * test that lost it would be reporting the timing rather than the wiring.
    */
-  private fun bridge(session: (send: (String) -> Unit) -> Unit): List<String> {
+  private fun bridge(
+    openAWindow: (() -> Unit)? = null,
+    session: (send: (String) -> Unit) -> Unit
+  ): List<String> {
     val stdin = PipedOutputStream()
     val stdout = ByteArrayOutputStream()
     val previousIn = System.`in`
     val previousOut = System.out
+    val previousErr = System.err
     System.setIn(PipedInputStream(stdin))
     System.setOut(PrintStream(stdout, true, Charsets.UTF_8.name()))
+    // Taken over as well as stdout, because what a server says about itself is half of what a client shows
+    // when something goes wrong — and because a trace printed here is the thing one of these tests is about.
+    System.setErr(PrintStream(said, true, Charsets.UTF_8.name()))
     var sent = 0
     try {
-      val bridge = Thread({ runBridge() }, "bridge under test").apply {
+      val bridge = Thread({ runBridge(openAWindow) }, "bridge under test").apply {
         isDaemon = true
         start()
       }
@@ -129,12 +185,14 @@ class AgentStdioBridgeTest {
     } finally {
       System.setIn(previousIn)
       System.setOut(previousOut)
+      System.setErr(previousErr)
     }
     return stdout.toString(Charsets.UTF_8.name()).lines().filter { it.isNotBlank() }
   }
 
   /** Nothing waited for, since the run these tests are about is either already published or never will be. */
-  private fun runBridge(): Int = AgentStdioBridge.run(directory, pid = null, waitMillis = 0L)
+  private fun runBridge(openAWindow: (() -> Unit)? = null): Int =
+    AgentStdioBridge.run(directory, pid = null, waitMillis = 0L, openAWindow = openAWindow)
 
   private fun awaitLines(
     stdout: ByteArrayOutputStream,

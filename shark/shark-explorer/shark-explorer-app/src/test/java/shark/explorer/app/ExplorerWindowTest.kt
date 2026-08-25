@@ -1,11 +1,18 @@
 package shark.explorer.app
 
 import java.io.File
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Rule
 import org.junit.Test
+import shark.explorer.Adb
+import shark.explorer.AdbOutput
 import shark.explorer.DeepLink
+import shark.explorer.DeviceHeapDumps
 import shark.explorer.Place
+import shark.explorer.agent.AgentRefusal
 
 /**
  * How many windows the app has and which heap dump each one shows. No heap dump is read here: a window
@@ -199,6 +206,43 @@ class ExplorerWindowTest {
     assertThat(windows.holds(CLOSED_WINDOW_ID)).isFalse()
   }
 
+  @Test fun `an agent asking for a heap dump a window already has gets that window`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+    val window = windows.single()
+    // What a window says when its dump turns out not to be one, which is the one outcome a test can reach
+    // without a real heap dump: either way it ends the wait, and what this is about is which window waited.
+    window.openProblem = "Not a heap dump."
+
+    assertThatThrownBy { runBlocking { agentHeapDumps(windows).open(FIRST_DUMP.absoluteFile) } }
+      .isInstanceOf(AgentRefusal::class.java)
+
+    // A second window on it would be a second index of the same gigabyte, and a window nobody asked for —
+    // unlike the button above the map, where a person opening one dump twice is comparing two readings of it.
+    assertThat(windows).hasSize(1)
+    assertThat(logged).anyMatch { "already has" in it && window.deepLinkId in it }
+  }
+
+  @Test fun `an agent asking for a heap dump nobody has open gets a window of its own`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    // Nothing is composing these windows, so the dump never opens and the call never returns: what is being
+    // read here is the window it made on the way, which is the half of it that isn't the heap dump.
+    runBlocking {
+      withTimeoutOrNull(WAIT_MILLIS) { agentHeapDumps(windows).open(SECOND_DUMP.absoluteFile) }
+    }
+
+    assertThat(windows.map { it.heapDumpFile }).containsExactly(FIRST_DUMP, SECOND_DUMP.absoluteFile)
+    assertThat(logged).anyMatch { "An agent opened" in it && SECOND_DUMP.name in it }
+  }
+
+  /** The agent surface over these windows, with an `adb` that isn't there: nothing here reaches a device. */
+  private fun agentHeapDumps(windows: ExplorerWindows) = WindowAgentHeapDumps(
+    windows = windows,
+    deviceHeapDumps = DeviceHeapDumps(object : Adb {
+      override fun run(arguments: List<String>) = AdbOutput(exitCode = 1, text = "")
+    })
+  )
+
   private fun noHeapDumps(titlePrefix: String? = null) =
     ExplorerArguments(heapDumpFiles = emptyList(), titlePrefix = titlePrefix)
 
@@ -215,5 +259,8 @@ class ExplorerWindowTest {
 
     /** Shaped like one this run could have handed out, and belonging to no window of it. */
     private const val CLOSED_WINDOW_ID = "qrst6789"
+
+    /** Long enough for a window to be added and short enough not to be a pause anybody notices. */
+    private const val WAIT_MILLIS = 200L
   }
 }

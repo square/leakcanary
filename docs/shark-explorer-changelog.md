@@ -48,6 +48,13 @@ uses, without the one for a newly recognized library leak:
   picking the process off a device — because a surface with less than that answers "ask your human to click
   something". Point any MCP client at the installed app with `--mcp-stdio`.
   See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
+* ✨ **An agent no longer needs a window to have been opened for it.** With nothing running, `--mcp-stdio`
+  opens one — on the heap dump its command line named, if it named one — and leaves it open for whoever comes
+  back to it. And with `--no-ui`, the tools are served from that process with no window anywhere, for a build
+  server or a heap dump at the end of an ssh session: everything works the same except `show`, which says it
+  has nowhere to put a tab rather than answering that it showed you something. Notes and verdicts were never
+  on the screen, so a heap dump investigated with no window opens in one later with all of it on.
+  See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
 * ✨ **Agent logs**: every agent that has connected to the app is a row on a screen of its own, and opening
   one is everything that agent did — what each call did, which object it did it to, and the sentence it gave
   for making it, with the refusals in red. A row leads where the call went, so reading what an agent did and

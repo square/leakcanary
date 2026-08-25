@@ -8,6 +8,7 @@ import java.io.PrintWriter
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Standard input and output, wired to the run of the app an agent wants to talk to.
@@ -39,9 +40,18 @@ object AgentStdioBridge {
     /** Which run, by process id, or null for the one that started most recently. */
     pid: String? = null,
     /** How long to wait for a run to appear, for a client that launched this before the app was open. */
-    waitMillis: Long = DEFAULT_WAIT_MILLIS
+    waitMillis: Long = DEFAULT_WAIT_MILLIS,
+    /**
+     * How to open a window to investigate in when no run of the app is open, and null to wait for one.
+     *
+     * Because the alternative is an agent whose only answer is "ask somebody to launch Shark Explorer", and
+     * a window opened here is a window the person at the machine can then watch — which is the whole reason
+     * this surface is a window rather than a library. Not called when a run was asked for by [pid]: that
+     * names a window, and opening a different one would be answering about the wrong heap dump.
+     */
+    openAWindow: (() -> Unit)? = null
   ): Int {
-    val run = waitForRun(directory, pid, waitMillis) ?: return NOTHING_TO_TALK_TO
+    val run = waitForRun(directory, pid, waitMillis, openAWindow) ?: return NOTHING_TO_TALK_TO
     val socket = try {
       Socket().apply {
         connect(InetSocketAddress(InetAddress.getLoopbackAddress(), run.port), CONNECT_TIMEOUT_MILLIS)
@@ -67,17 +77,27 @@ object AgentStdioBridge {
       return NOTHING_TO_TALK_TO
     }
     say("Talking to Shark Explorer run ${run.pid}")
+    // Set before the socket is closed from this side, so that the read it interrupts knows it was us. Which is
+    // how *every* session that ends normally ends, so without this each one finishes with a stack trace on
+    // stderr — where an MCP client collects a server's log, and reads it as the server having crashed.
+    val ending = AtomicBoolean(false)
     // The app's answers on their own thread, because both directions are blocking reads and a client sends
     // its next message without waiting to be answered.
     val answers = Thread({
       val out = PrintWriter(OutputStreamWriter(System.out, Charsets.UTF_8), true)
-      while (true) {
-        val line = fromApp.readLine() ?: break
-        out.println(line)
+      try {
+        while (true) {
+          val line = fromApp.readLine() ?: break
+          out.println(line)
+        }
+        // The window closed, which ends the session: nothing is going to answer the client's next message.
+        say("Shark Explorer run ${run.pid} closed the connection")
+      } catch (throwable: Throwable) {
+        if (!ending.get()) {
+          say("Shark Explorer run ${run.pid} stopped answering: $throwable")
+        }
       }
-      // The window closed, which ends the session: nothing is going to answer the client's next message.
-      say("Shark Explorer run ${run.pid} closed the connection")
-      System.out.flush()
+      out.flush()
     }, "shark-explorer-agent-answers").apply {
       isDaemon = true
       start()
@@ -92,6 +112,7 @@ object AgentStdioBridge {
       }
     }
     // The client closed its end, which is how a session normally ends.
+    ending.set(true)
     socket.close()
     answers.join(SHUTDOWN_MILLIS)
     return 0
@@ -100,12 +121,26 @@ object AgentStdioBridge {
   private fun waitForRun(
     directory: File,
     pid: String?,
-    waitMillis: Long
+    waitMillis: Long,
+    openAWindow: (() -> Unit)?
   ): AgentServer.PublishedRun? {
     var waited = 0L
+    var deadline = waitMillis
+    var opened = false
+    // Naming a run names a window and therefore a heap dump, so opening a different one would be answering
+    // about the wrong dump: for that command line there is nothing to open, only something to wait for.
+    val opensAWindow = openAWindow != null && pid == null
     while (true) {
       val runs = AgentServer.publishedRuns(directory)
       val run = if (pid == null) runs.firstOrNull() else runs.firstOrNull { it.pid == pid }
+      if (run == null && !opened && opensAWindow) {
+        say("No Shark Explorer is running, so one is being opened to investigate in.")
+        requireNotNull(openAWindow).invoke()
+        opened = true
+        // From here rather than from the start, because what is being waited for changed: a JVM starting,
+        // Compose coming up and a window appearing, rather than a file that may already be there.
+        deadline = waited + OPENING_WAIT_MILLIS
+      }
       if (run != null) {
         if (pid == null && runs.size > 1) {
           // Which run an agent ends up in is worth saying rather than leaving to be worked out from what
@@ -117,9 +152,13 @@ object AgentStdioBridge {
         }
         return run
       }
-      if (waited >= waitMillis) {
+      if (waited >= deadline) {
         say(
-          if (pid == null) {
+          if (pid == null && opened) {
+            "A Shark Explorer was started and has not published itself in " +
+              "${OPENING_WAIT_MILLIS / 1000} seconds, so something went wrong opening it. Its log is in " +
+              "the newest file under ~/.shark-explorer/logs."
+          } else if (pid == null) {
             "No Shark Explorer is running, so there is no heap dump to investigate. Open one — every run " +
               "of the app publishes itself in $directory — and start this again."
           } else {
@@ -148,6 +187,15 @@ object AgentStdioBridge {
   const val PID_OPTION = "--agent-run="
 
   private const val DEFAULT_WAIT_MILLIS = 10_000L
+
+  /**
+   * How long a window opened from here is given to publish itself.
+   *
+   * Longer than [DEFAULT_WAIT_MILLIS] by a lot, because it covers a cold JVM, Compose starting and jlink's
+   * runtime being paged in — and because the alternative to waiting is telling an agent there is no window
+   * while one is in the middle of appearing.
+   */
+  private const val OPENING_WAIT_MILLIS = 60_000L
   private const val POLL_MILLIS = 250L
   private const val CONNECT_TIMEOUT_MILLIS = 1_000
   private const val SHUTDOWN_MILLIS = 500L

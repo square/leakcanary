@@ -2,31 +2,39 @@ package shark.explorer.app
 
 import java.io.Closeable
 import java.io.File
+import java.io.PrintStream
 import shark.SharkLog
 import shark.explorer.SessionLog
 import shark.explorer.formatByteSize
 
 /**
- * Sends everything Shark logs to stdout and to this run's own log file, and returns what closes it.
+ * Sends everything Shark logs to a stream and to this run's own log file, and returns what closes it.
  *
  * The file is what makes a report of "it hung" or "it showed nothing" answerable: the log says which
  * heap dump was open, what was read off it and how long each read took, which read failed and with
  * what. See [SessionLog], and [LOG_DIRECTORY] for where the files are.
  */
-internal fun installLogging(): Closeable {
-  val standardOut = StandardOutLogger()
+internal fun installLogging(
+  /**
+   * Where the diagnostics go besides the file, which is stdout for a run from a terminal and **stderr for
+   * one talking MCP over stdio**: there, stdout is the protocol, and a log line in the middle of a JSON-RPC
+   * stream is a session the client reports as broken. See `shark.explorer.agent.AgentStdioServer`.
+   */
+  diagnostics: PrintStream = System.out
+): Closeable {
+  val streamLogger = StreamLogger(diagnostics)
   val sessionLog = try {
     SessionLog.openIn(LOG_DIRECTORY)
   } catch (throwable: Throwable) {
     // A log file is a side channel, so not being able to open one is no reason not to start: say so on
-    // stdout, where a run from a terminal will see it, and run with stdout alone.
-    standardOut.d(throwable, "Could not open a log file in $LOG_DIRECTORY, logging to stdout only")
+    // the stream, where a run from a terminal will see it, and run with that alone.
+    streamLogger.d(throwable, "Could not open a log file in $LOG_DIRECTORY, logging to the terminal only")
     null
   }
   SharkLog.logger = if (sessionLog == null) {
-    standardOut
+    streamLogger
   } else {
-    Loggers(listOf(standardOut, sessionLog))
+    Loggers(listOf(streamLogger, sessionLog))
   }
   logEnvironment(sessionLog)
   logUncaughtExceptions()
@@ -76,17 +84,17 @@ private fun logUncaughtExceptions() {
   }
 }
 
-/** Shark's diagnostics on stdout, which is where a run from a terminal expects them. */
-private class StandardOutLogger : SharkLog.Logger {
+/** Shark's diagnostics on one stream, which is stdout for a run from a terminal. */
+private class StreamLogger(private val stream: PrintStream) : SharkLog.Logger {
 
-  override fun d(message: String) = println(message)
+  override fun d(message: String) = stream.println(message)
 
   override fun d(
     throwable: Throwable,
     message: String
   ) {
-    println(message)
-    throwable.printStackTrace()
+    stream.println(message)
+    throwable.printStackTrace(stream)
   }
 }
 

@@ -78,8 +78,11 @@ internal class FakeAgentHeapDump(
 
   override suspend fun notedPlaces(): List<Place> = notes.keys.toList()
 
-  override fun show(place: Place) {
+  override fun show(place: Place): String? {
     shown += place
+    // Null is "it was shown", which is what a window answers. The refusal a run with no window makes is
+    // `HeadlessAgentHeapDumpsTest`'s, since it is that run's one difference from this one.
+    return null
   }
 
   override fun close() {

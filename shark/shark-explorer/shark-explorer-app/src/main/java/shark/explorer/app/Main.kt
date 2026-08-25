@@ -257,7 +257,7 @@ internal fun ExplorerApp(
    * agent reaching in from outside the app. Called with the heap dump as it opens and with null as it
    * closes. See [ExplorerWindow.openHeapDump].
    */
-  onHeapDumpOpen: (WindowHeapDump?) -> Unit = {},
+  onHeapDumpOpen: (OpenHeapDump?) -> Unit = {},
   /**
    * And where a heap dump that could not be opened says so, for the same readers.
    *
@@ -339,7 +339,7 @@ internal fun ExplorerApp(
     val open = currentState as? HeapDumpState.Open
     onHeapDumpOpen(
       open?.let {
-        WindowHeapDump(
+        OpenHeapDump(
           session = it.session,
           notes = notes.of(it.session.heapDumpFile),
           leakStatuses = leakStatuses.of(it.session.heapDumpFile)
@@ -555,7 +555,7 @@ private fun cascadedPosition(cascade: Int): WindowPosition {
  * A function rather than a constant because it is one per run and a test's is its own — the default of a
  * composable that a test takes over, and what `main` hands to everything that has no window.
  */
-private fun commandLineDeviceHeapDumps(): DeviceHeapDumps {
+internal fun commandLineDeviceHeapDumps(): DeviceHeapDumps {
   val adb = CommandLineAdb()
   // A debugger is what reaches into a process for the two things `am dumpheap` can't ask it for on an old
   // enough device: the pixels of a bitmap below API 35, and a collection below API 27.

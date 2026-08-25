@@ -63,7 +63,7 @@ internal class ExplorerWindow(
    * composable's state — and set by [ExplorerApp] as the session opens and closes. Null while a heap dump is
    * being opened, for a window that has none, and for one whose dump failed to open.
    */
-  var openHeapDump: WindowHeapDump? by mutableStateOf(null)
+  var openHeapDump: OpenHeapDump? by mutableStateOf(null)
 
   /**
    * Why the heap dump this window was given could not be opened, and null while nothing has gone wrong.

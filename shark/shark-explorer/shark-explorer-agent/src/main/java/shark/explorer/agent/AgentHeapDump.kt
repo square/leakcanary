@@ -93,10 +93,14 @@ interface AgentHeapDump {
    * Opens [place] in a tab of this window and brings the window to the front, which is what makes an agent's
    * work something the person at the machine can watch rather than read about afterwards.
    *
-   * Not suspending and not answered: this is the same hand-over a `shark://` link makes — a place put where
-   * the tabs take it on the next frame — so there is nothing to wait for and nothing that can fail here.
+   * Not suspending: this is the same hand-over a `shark://` link makes — a place put where the tabs take it
+   * on the next frame — so there is nothing to wait for.
+   *
+   * @return null when it was shown, and why it wasn't otherwise. Which is one case, a run started with no
+   * window at all, and it is worth answering rather than logging: an agent told its human to look at
+   * something they cannot see has said the one thing worse than nothing.
    */
-  fun show(place: Place)
+  fun show(place: Place): String?
 }
 
 /**

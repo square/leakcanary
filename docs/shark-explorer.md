@@ -248,8 +248,31 @@ Point your client at the app itself:
 That is the app's own launcher, and `--mcp-stdio` makes this copy of it a pipe to the window already open
 rather than a second window. Nothing else to install and no port to configure: it talks to the run that
 started most recently, says which one that was, and takes `--agent-run=<pid>` when several explorers are
-open. A heap dump open before you start is one less thing for it to do, but not a requirement: with no
-window it says so, and `open_heap_dump` and `dump_heap` are how it gets one.
+open.
+
+**A window open before you start is not a requirement.** If nothing is running, this opens one — and if the
+command line named a heap dump, that window opens it, so the same configuration works whether or not you got
+there first:
+
+```json
+"args": ["--mcp-stdio", "--title=For an agent", "/Users/you/dumps/bug-4821.hprof"]
+```
+
+The window it opens outlives the agent's session, which is the point: whatever it concluded is on the tabs it
+left open when you come back to it.
+
+**And there is a case with no screen at all** — a build server, a heap dump on the far end of an ssh session,
+or something driving an agent with nobody watching. Add `--no-ui` and the tools are served from that process
+instead of piped to a window:
+
+```json
+"args": ["--mcp-stdio", "--no-ui", "/var/dumps/bug-4821.hprof"]
+```
+
+Everything works the same except `show`, which has nowhere to put a tab and says so rather than answering that
+it showed you something. Nothing else changes, because **notes and verdicts were never on the screen** — they
+are files beside the heap dump, so a dump investigated over ssh today opens in a window tomorrow with the
+verdicts, the reasons and the conclusion already on it.
 
 Then ask for what you actually want. This is the whole prompt the session below was given:
 
@@ -275,7 +298,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
 | `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
-| `show` | Opens a tab in your window and brings it to the front. |
+| `show` | Opens a tab in your window and brings it to the front. The one tool a `--no-ui` run can't do. |
 | `conclude` | The root cause, and the only way to finish. |
 | `open_heap_dump` | **Open heap dump…**, for a file nobody has open yet. |
 | `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |

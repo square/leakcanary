@@ -22,6 +22,7 @@ being talked to by a program that is not this app.
 | `AgentSessionFile.kt` | One session on disk, both ways: what a call is written as, and what it reads back as. |
 | `AgentServer.kt` | The loopback socket a run publishes, and the file that says where. |
 | `AgentStdioBridge.kt` | `--mcp-stdio`: the pipe an MCP client launches. |
+| `AgentStdioServer.kt` | And `--no-ui`: the same tools over this process's own stdio, for a run with no window. |
 | `harness/start-harness.sh` | Opens a window and prints the command that throws an agent at it. |
 
 Nothing here is public API — the module is in `modulesWithoutPublicApi`, like the rest of the explorer — with
@@ -85,16 +86,36 @@ one log line in the middle of a JSON-RPC stream is a session the client reports 
 
 - Everything the bridge has to say goes to stderr, which is where an MCP client collects a server's log.
 - Nothing in the bridge path may use `SharkLog`, `println`, or anything that ends up on stdout.
+- `--no-ui` installs the app's logging with stderr as its stream rather than skipping it, because there the
+  tools run in this process and their diagnostics are worth a log file. Same rule, wider scope.
 
 The app's own side of it — a window answering an agent — logs through `SharkLog` as usual, so a session log
 reads as the reason for each call followed by the reads it caused. That is the artefact to ask for when
 somebody reports that an agent got it wrong.
 
-## The transport, and why it is two things
+## The transport, and why it is three things
 
 **A run publishes a loopback port and a token** to `~/.shark-explorer/agents/<pid>.agent`, and `--mcp-stdio`
 is a mode of the same app binary that pipes stdio to it. Two parts because an MCP client can be configured
 with a command and not with a port that changes every run.
+
+The third is `--no-ui`, which serves [AgentTools] from the `--mcp-stdio` process itself, with no socket and no
+window: a build server, or a heap dump at the end of an ssh session. **The two are one code path with one
+call swapped**, `AgentHeapDump.show` — see `shark.explorer.app.HeadlessAgentHeapDumps` — and that is the rule
+rather than how it happened to land: the notes and the verdicts are files, so a run with no screen is not a
+reduced version of the surface, it is the same surface with nowhere to put a tab.
+
+Two things about the headless one that reading it won't tell you.
+
+**Nothing may reach stdout at all**, which is stricter than the bridge: the tools run in this process, so the
+heap dump's own `SharkLog` diagnostics are in it too. `main` passes `System.err` to `installLogging` in this
+mode, and a `println` anywhere under a tool breaks the session rather than only looking untidy.
+
+**A heap dump named on the command line is opened in the background, not before the first message.** A client
+is waiting on `initialize` and a gigabyte of heap dump is minutes of indexing, so a slow dump would be a
+server the client kills at startup. What makes that safe is that opening the same path twice joins the open
+already in flight instead of starting a second — so an agent that calls `open_heap_dump` on the path it was
+pointed at waits for the one that is already happening, and never gets a second index of the same file.
 
 Deliberately **not** the socket `DeepLinkPeers` listens on, though it is the same shape. A link is one line
 answered in a millisecond; this is a session held open for as long as an investigation takes. One port for

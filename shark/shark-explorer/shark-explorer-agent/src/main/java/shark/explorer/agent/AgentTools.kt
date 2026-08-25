@@ -92,8 +92,9 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       if (dumps.isEmpty()) {
         put(
           "problem",
-          "No heap dump is open. Shark Explorer is running, but every window of it is empty — open a " +
-            "dump in the app, or ask whoever is at the machine to."
+          "No heap dump is open yet. Call $OPEN_HEAP_DUMP with the path of an `.hprof` file, or dump_heap " +
+            "to take one off a device. If you were pointed at a heap dump, that path is the one to open: it " +
+            "may be being indexed right now, and opening it again waits for that rather than starting over."
         )
       }
     }
@@ -416,8 +417,12 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
   ) { arguments ->
     val dump = arguments.heapDump()
     val place = arguments.place()
-    dump.show(place)
-    buildJsonObject { put("shown", true) }
+    val problem = dump.show(place)
+    buildJsonObject {
+      put("shown", problem == null)
+      // So that an agent about to tell its human where to look finds out that there is nowhere.
+      put("problem", problem)
+    }
   }
 
   private fun conclude() = AgentTool(
@@ -464,7 +469,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       reason = arguments.reason
     )
     dump.appendToNote(Place.Object(objectId), note)
-    dump.show(Place.Object(objectId))
+    val showProblem = dump.show(Place.Object(objectId))
     buildJsonObject {
       put("concluded", true)
       putJsonArray("faultyReference") {
@@ -482,7 +487,11 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
           }
         }
       }
-      put("writtenTo", "the notes of ${exactHexObjectId(objectId)}, and shown in window ${dump.windowId}")
+      put(
+        "writtenTo",
+        "the notes of ${exactHexObjectId(objectId)}" +
+          if (showProblem == null) ", and shown in window ${dump.windowId}" else ". $showProblem"
+      )
     }
   }
 
