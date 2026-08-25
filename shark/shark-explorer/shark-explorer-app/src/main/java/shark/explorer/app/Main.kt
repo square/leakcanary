@@ -211,6 +211,9 @@ private fun explorerApplication(
             // The same way a link arriving from the OS is followed, which is what makes a `shark://` link
             // written in a note work wherever it is read from.
             followDeepLink = { link -> DeepLinkPeers.follow(link, windows) },
+            // A row of an agent's session about another heap dump, which is a file rather than a window: the
+            // run that answered that agent has usually ended, and its window ids with it.
+            onOpenHeapDump = { file, place -> windows.goToHeapDump(file, place) },
             linkedPlaces = window.linkedPlaces,
             onLinkedPlaceOpened = { place -> window.linkedPlaceOpened(place) },
             deepLinkProblem = window.deepLinkProblem,
@@ -283,6 +286,13 @@ internal fun ExplorerApp(
    * question about every window of the run, so a window composed without it says so in the log.
    */
   followDeepLink: (DeepLink) -> Unit = { link -> SharkLog.d { "Nothing here to follow $link with" } },
+  /**
+   * And where a row of an agent's session about another heap dump goes, which is that heap dump: the window
+   * showing it, or a new one. Only the application knows, for the same reason. See [ExplorerWindows].
+   */
+  onOpenHeapDump: (File, Place) -> Unit = { file, place ->
+    SharkLog.d { "Nothing here to open $place of $file with" }
+  },
   /**
    * Why this window has no heap dump, for one a link opened because the window it named had gone.
    *
@@ -400,6 +410,7 @@ internal fun ExplorerApp(
         linkedPlaces = linkedPlaces,
         onLinkedPlaceOpened = onLinkedPlaceOpened,
         followDeepLink = followDeepLink,
+        onOpenHeapDump = onOpenHeapDump,
         openUrl = openUrl,
         copyToClipboard = copyToClipboard,
         modifier = Modifier.weight(1f)

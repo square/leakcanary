@@ -19,6 +19,7 @@ import java.io.File
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import shark.SharkLog
 import shark.explorer.Place
 import shark.explorer.agent.AgentSession
 import shark.explorer.agent.AgentSessionCall
@@ -74,26 +75,31 @@ internal fun AgentLogsScreen(
  * from each other, and that is a question about what was asked and why — a screen of JSON is the same
  * information in the one form nobody reads. So a row is what the call did, what it was about, and the
  * sentence the agent gave for making it, which is its own words and not a paraphrase. An agent names objects
- * by address, and this names them the way the rest of the window does, so that a row and the tab it opens are
- * recognisably the same object.
+ * by address, and a row names them the way the rest of the window does, so that a row and the tab it opens
+ * are recognisably the same object. Which is [AgentSessionCall.subject], written down as the call was made:
+ * naming an address means reading the dump it is in, and this screen is read from whichever window is open.
  *
- * A row about an object of the heap dump this window has open leads to it, like every other way to an
- * object here. One about another dump says which, and leads nowhere: a session can span windows, and
- * silently landing on the wrong dump's object at the same address would be worse than not moving.
+ * **And every row that names a place leads to it.** One about the heap dump this window has open goes there
+ * the way every other way to an object here does; one about another dump opens that dump. A session is one
+ * agent's connection and can read as many dumps as were open, so a row leading nowhere would be the app
+ * showing somebody what an agent looked at and then declining to show them the thing.
  */
 @Composable
 internal fun AgentLogScreen(
   session: AgentSession?,
-  /** Which heap dump this window has open, which is what decides whether a row leads anywhere. */
+  /** Which heap dump this window has open, which is what decides whether a row moves this window. */
   heapDumpFile: File,
-  /**
-   * What this window calls each place a call was about — `MainActivity 0x12d368b8` — for the places it has
-   * been asked about yet. A place that isn't in here is drawn as the address the agent wrote, which is what
-   * a call about another heap dump stays as: naming it would mean reading a dump this window doesn't have.
-   */
-  placeTitles: Map<Place, String>,
   onOpen: (Place, OpenIn) -> Unit,
   onCopyLink: (Place) -> Unit,
+  /**
+   * Where a row about another heap dump goes: that dump, in the window that has it or one of its own.
+   *
+   * Nothing by default, because routing this is a question about every window of the run and a screen
+   * composed without an answer must not silently look like a screen whose rows lead somewhere.
+   */
+  onOpenHeapDump: (File, Place) -> Unit = { file, place ->
+    SharkLog.d { "Nothing here to open $place of $file with" }
+  },
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -121,9 +127,9 @@ internal fun AgentLogScreen(
         AgentCallRow(
           call = call,
           heapDumpFile = heapDumpFile,
-          title = call.place?.let { placeTitles[it] },
           onOpen = onOpen,
-          onCopyLink = onCopyLink
+          onCopyLink = onCopyLink,
+          onOpenHeapDump = onOpenHeapDump
         )
       }
     }
@@ -135,14 +141,19 @@ internal fun AgentLogScreen(
 private fun AgentCallRow(
   call: AgentSessionCall,
   heapDumpFile: File,
-  /** What this window calls what the call was about, and null while it hasn't been read or can't be. */
-  title: String?,
   onOpen: (Place, OpenIn) -> Unit,
-  onCopyLink: (Place) -> Unit
+  onCopyLink: (Place) -> Unit,
+  onOpenHeapDump: (File, Place) -> Unit
 ) {
-  // A row leads somewhere only when the place it names is a place of the dump this window has open. An
-  // address is an address of one heap dump, so the same one in another dump is a different object.
-  val place = call.place?.takeIf { call.isAbout(heapDumpFile) }
+  val place = call.place
+  // Which heap dump the row is about when it isn't this window's, and null when it is. An address is an
+  // address of one dump, so the same number in another one is another object: this window cannot go there,
+  // and the dump that can has to be opened first.
+  val elsewhere = call.otherHeapDumpOrNull(heapDumpFile)
+  // And whether that is still possible. A session outlives the heap dumps it was about, so a row naming one
+  // that has been deleted says which and leads nowhere.
+  val opens = elsewhere?.takeIf { it.isFile }
+  val line = call.line(elsewhere)
   Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     Text(
       call.at.clockTime(),
@@ -151,17 +162,29 @@ private fun AgentCallRow(
       color = MUTED_TEXT
     )
     Column {
-      if (place == null) {
-        Text(call.line(title), style = MaterialTheme.typography.bodyMedium)
-      } else {
-        val open: (OpenIn) -> Unit = { openIn -> onOpen(place, openIn) }
-        OpenTarget(open, { onCopyLink(place) }) {
-          Text(
-            call.line(title),
-            Modifier.openable(open),
-            style = MaterialTheme.typography.bodyMedium,
-            color = LINK_COLOR
-          )
+      when {
+        // Asking which heap dumps are open is about the app rather than about one of them.
+        place == null -> Text(line, style = MaterialTheme.typography.bodyMedium)
+        opens != null -> Text(
+          line,
+          // No tab to choose and no link to copy: what a link names is a window, and the window this call
+          // was made against belongs to a run that has usually ended. The heap dump is what outlived it.
+          Modifier.openable { onOpenHeapDump(opens, place) },
+          style = MaterialTheme.typography.bodyMedium,
+          color = LINK_COLOR
+        )
+        // The heap dump it names is gone, so there is nothing left to open it on.
+        elsewhere != null -> Text(line, style = MaterialTheme.typography.bodyMedium)
+        else -> {
+          val open: (OpenIn) -> Unit = { openIn -> onOpen(place, openIn) }
+          OpenTarget(open, { onCopyLink(place) }) {
+            Text(
+              line,
+              Modifier.openable(open),
+              style = MaterialTheme.typography.bodyMedium,
+              color = LINK_COLOR
+            )
+          }
         }
       }
       call.reason?.let { reason ->
@@ -180,9 +203,16 @@ private fun AgentCallRow(
   }
 }
 
-/** Whether the call was about the heap dump this window has open. See [AgentLogScreen]. */
-private fun AgentSessionCall.isAbout(heapDumpFile: File): Boolean =
-  heapDumpPath == null || heapDumpPath == heapDumpFile.absolutePath
+/**
+ * The heap dump the call was about when it is one this window hasn't got open, and null when it has.
+ *
+ * Null as well for a call about no heap dump at all, which is asking the app which dumps are open. Whether
+ * the file is still there is a separate question, and the one that decides whether the row leads anywhere:
+ * a deleted dump is worth naming and impossible to open. See [AgentLogScreen].
+ */
+private fun AgentSessionCall.otherHeapDumpOrNull(heapDumpFile: File): File? = heapDumpPath
+  ?.takeIf { it != heapDumpFile.absolutePath }
+  ?.let { File(it) }
 
 /**
  * What the call did and what it was about, as one line: "Described MainActivity 0x12d368b8".
@@ -190,12 +220,15 @@ private fun AgentSessionCall.isAbout(heapDumpFile: File): Boolean =
  * With what it came to on the end where there is one — "Concluded about MainActivity → MainActivity$2.this$0"
  * — since the row that says what was concluded is the row anybody scrolling a session is looking for.
  *
- * [title] is what this window calls that object, which is what a tab on it is called too — the row and the
- * tab it opens have to read the same. Without one, the address the agent wrote: a call about another heap
- * dump, or one this window hasn't read yet.
+ * And with [otherHeapDump] named at the end of a row about a dump this window hasn't got open, because
+ * clicking that row opens a heap dump: which one is a thing to know before rather than after.
  */
-private fun AgentSessionCall.line(title: String?): String =
-  listOfNotNull(verb, title ?: subject, outcome?.let { "$LEADS_TO $it" }).joinToString(" ")
+private fun AgentSessionCall.line(otherHeapDump: File?): String = listOfNotNull(
+  verb,
+  subject,
+  outcome?.let { "$LEADS_TO $it" },
+  otherHeapDump?.let { "$IN ${it.name}" }
+).joinToString(" ")
 
 /** What a session is called: who connected, and when. */
 private fun AgentSession.title(): String = listOfNotNull(
@@ -233,6 +266,9 @@ private const val BECAUSE = "because:"
 
 /** In front of what a call came to, which reads as the row's own arrow rather than as a word. */
 private const val LEADS_TO = "→"
+
+/** And in front of the heap dump a row is about, for the rows that are about another one. */
+private const val IN = "in"
 
 private const val REFUSED = "Refused:"
 

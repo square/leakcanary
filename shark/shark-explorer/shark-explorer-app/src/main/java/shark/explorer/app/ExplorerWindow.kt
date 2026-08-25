@@ -269,5 +269,33 @@ internal fun ExplorerWindows.openHeapDump(
   return window
 }
 
+/**
+ * Goes to [place] of [heapDumpFile], opening that dump if no window of this run has it.
+ *
+ * Which is what a row of the *Agent logs* screen about another heap dump leads to: a session is one agent's
+ * connection and can read whichever dumps were open, so the object a call was about is often not in the
+ * window the log is being read in. A window already showing that dump is the one to raise rather than a
+ * second one on the same file — the same rule [openHeapDump] follows, one window per heap dump — and the
+ * window that has just been opened for it is in front already, so only an existing one is brought forward.
+ *
+ * Not [DeepLink]: a link names the window it was copied from, and the window a session recorded is usually
+ * one from a run that has since ended. The heap dump outlives it, which is why this goes by the file.
+ */
+internal fun ExplorerWindows.goToHeapDump(
+  heapDumpFile: File,
+  place: Place
+) {
+  // By absolute path, because a window opened from a command line holds the relative path it was given while
+  // a session recorded the absolute one, and those are the same heap dump.
+  val showing = firstOrNull { it.heapDumpFile?.absoluteFile == heapDumpFile.absoluteFile }
+  SharkLog.d {
+    val where = if (showing == null) "a window it is not open in yet" else "window ${showing.deepLinkId}"
+    "A row of an agent's session asked $where for $place of ${heapDumpFile.name}"
+  }
+  val window = showing ?: openHeapDump(heapDumpFile)
+  window.goToLinked(place)
+  showing?.bringToFront()
+}
+
 /** Between what a run is called and which heap dump a window shows, as elsewhere in this window. */
 private const val TITLE_SEPARATOR = " · "

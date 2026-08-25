@@ -137,6 +137,7 @@ class EvalScoreTest {
     windowId = null,
     heapDumpPath = heapDumpPath,
     place = null,
+    about = null,
     arguments = emptyMap(),
     refusal = refusal,
     outcome = outcome,

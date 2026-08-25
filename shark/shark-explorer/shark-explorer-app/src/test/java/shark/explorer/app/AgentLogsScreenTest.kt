@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import java.time.Instant
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -32,8 +33,8 @@ import shark.explorer.hexObjectId
  *
  * An investigation an agent ran and one a person ran are the same investigation: it reads this heap dump,
  * sets the verdicts they see and writes the same notes. So what it did is read here in words, and **a row
- * leads where the call went** — which is what these tests are about, along with the one case where it must
- * not: a call about another heap dump, whose addresses mean nothing here.
+ * leads where the call went** — which is what these tests are about, including the row about a heap dump
+ * this window hasn't got open, since a session can span every dump that was open while it ran.
  */
 @OptIn(ExperimentalTestApi::class)
 class AgentLogsScreenTest {
@@ -106,15 +107,49 @@ class AgentLogsScreenTest {
     }
   }
 
-  @Test fun `a call about another heap dump is read here and leads nowhere`() {
+  @Test fun `a call about another heap dump names its object, and leads to that dump`() {
+    val otherHeapDump = testFolder.newFile("another.hprof")
+    var opened: Pair<File, Place>? = null
     explorerUiTest {
-      openAgentLogs(listOf(session(calls = listOf(call(heapDumpPath = "/dumps/another.hprof")))))
+      openAgentLogs(
+        sessions = listOf(session(calls = listOf(call(heapDumpPath = otherHeapDump.absolutePath)))),
+        onOpenHeapDump = { file, place -> opened = file to place }
+      )
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
 
-      // An address is an address of one heap dump, so the same one here is a different object — or no
-      // object at all. Read it as the agent wrote it, and don't follow it.
-      onNodeWithText("Described ${hex(activityObjectId())}").assertHasNoClickAction()
+      // Named the same way as a row about this window's own dump, because the name was written down when
+      // the call was made — this window has never read that file and could not work it out.
+      val row = "Described ${activityName()} in ${otherHeapDump.name}"
+      waitUntilAtLeastOneExists(hasText(row), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(row).performClick()
+    }
+
+    // Not this window: an address is an address of one heap dump, so going there means opening that dump.
+    assertThat(opened).isEqualTo(otherHeapDump to Place.Object(activityObjectId()))
+  }
+
+  @Test fun `a call about a heap dump that has gone leads nowhere`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call(heapDumpPath = "/dumps/deleted.hprof")))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
+
+      // Still worth reading, and there is nothing to open: a session outlives the heap dumps it was about.
+      onNodeWithText("Described ${activityName()} in deleted.hprof").assertHasNoClickAction()
+    }
+  }
+
+  @Test fun `a session written before the app recorded names reads as the address the agent wrote`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call(about = null)))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
+
+      // Which is what every session on disk holds from before there was a name beside the address, and a
+      // row of one still leads to the object: this window has that heap dump open.
+      onNodeWithText("Described ${hex(activityObjectId())}").performClick()
+      waitUntilAtLeastOneExists(hasText("mDestroyed", substring = true), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -127,7 +162,10 @@ class AgentLogsScreenTest {
   }
 
   /** Opens the window on [leakyHeapDump] with [sessions] as the agents that have worked through it. */
-  private fun ComposeUiTest.openAgentLogs(sessions: List<AgentSession>) {
+  private fun ComposeUiTest.openAgentLogs(
+    sessions: List<AgentSession>,
+    onOpenHeapDump: (File, Place) -> Unit = { _, _ -> }
+  ) {
     setContent {
       MaterialTheme {
         ExplorerApp(
@@ -136,6 +174,9 @@ class AgentLogsScreenTest {
           // Given rather than read off this machine: the sessions under whoever is running the tests are
           // their investigations, and none of this window's business.
           agentSessions = { sessions },
+          // Where a row about another heap dump goes, which is a question about every window of the run and
+          // so answered outside this one. See [ExplorerWindowTest].
+          onOpenHeapDump = onOpenHeapDump,
           deviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
         )
       }
@@ -157,6 +198,9 @@ class AgentLogsScreenTest {
   private fun call(
     tool: String = "describe_object",
     heapDumpPath: String = heapDump.file.absolutePath,
+    // What the app wrote down for the object as the call was made, which is what a row reads as. Null for a
+    // session from a build that recorded only the address.
+    about: String? = activityName(),
     refusal: String? = null,
     outcome: String? = null
   ) = AgentSessionCall(
@@ -166,6 +210,7 @@ class AgentLogsScreenTest {
     windowId = "zvphq4r3",
     heapDumpPath = heapDumpPath,
     place = Place.Object(activityObjectId()),
+    about = about,
     arguments = mapOf("object" to hex(activityObjectId())),
     refusal = refusal,
     outcome = outcome,

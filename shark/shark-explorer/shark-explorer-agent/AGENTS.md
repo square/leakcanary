@@ -70,6 +70,14 @@ a refusal nobody can follow up on is a dead end on the screen. `target` derives 
 *names* rather than from a second list of tool names — one exception, `list_leaks`, which takes no argument
 saying where it is.
 
+**And it is named here, not by whoever reads it.** `target` costs one extra read per call, `agentPlaceTitle`,
+because what an agent typed is an address and what the screen shows is `MainActivity 0x12d368b8` — and
+resolving an address means having *that* heap dump open. A session spans every dump that was open while it
+ran, and it is read afterwards in whichever window happens to be open, so a screen that resolved these itself
+could only name the calls about its own dump and every other row would stay a bare address. Which is exactly
+what it did, until this was recorded. `about` is null for a session written before that, and `subject` falls
+back to the address, so an old session still reads.
+
 **One field comes off the answer instead: `outcome`.** What an agent asked is what it typed, and what it
 concluded is what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s
 answer, and nothing else records an answer. Both readers need it and neither can work it out: the screen's

@@ -198,6 +198,33 @@ class ExplorerWindowTest {
     assertThat(empty.deepLinkProblem).isNull()
   }
 
+  @Test fun `a row of an agent's session goes to the window that has that heap dump`() {
+    val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
+    val (first, second) = windows
+
+    // The absolute path, which is what a session recorded, against a window holding the relative one it was
+    // given on the command line: the same heap dump, and one window of it.
+    windows.goToHeapDump(SECOND_DUMP.absoluteFile, Place.Leaks())
+
+    // Not a second window on the same dump: a session names the heap dump it read rather than a window,
+    // since the run that answered that agent has usually ended and its window ids with it.
+    assertThat(second.linkedPlaces).containsExactly(Place.Leaks())
+    assertThat(first.linkedPlaces).isEmpty()
+    assertThat(windows).hasSize(2)
+  }
+
+  @Test fun `a row about a heap dump no window has open opens it`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    windows.goToHeapDump(SECOND_DUMP.absoluteFile, Place.Starred)
+
+    // Because the alternative is the app showing somebody what an agent looked at and then declining to
+    // show them the thing.
+    val opened = windows.last()
+    assertThat(opened.heapDumpFile).isEqualTo(SECOND_DUMP.absoluteFile)
+    assertThat(opened.linkedPlaces).containsExactly(Place.Starred)
+  }
+
   @Test fun `a run knows which windows are its own`() {
     val windows = explorerWindows(opening(FIRST_DUMP))
 
