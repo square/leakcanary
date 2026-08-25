@@ -121,6 +121,12 @@ The note appears under that row and above the panes, because it is about the who
 Where nobody has written anything there is nothing there at all — only the button, which goes away once there
 is a note, since the note carries its own **✎ Edit**.
 
+**Drag the line along its bottom edge** to give the note more of the window or less, the same way the edges
+between the panes are dragged sideways. A long note scrolls rather than pushing the heap dump off the screen,
+and how tall it has been dragged to is per window rather than per tab, so it stays where you put it as you
+move around. It never takes more than its share of the window, however far it is dragged: the edge has to stay
+somewhere you can reach it.
+
 The notes live in `~/.shark-explorer/notes`, one directory per heap dump and one `.md` file per tab, so a
 note can be opened in an editor, pasted into an issue, or read by an agent without going through this app.
 

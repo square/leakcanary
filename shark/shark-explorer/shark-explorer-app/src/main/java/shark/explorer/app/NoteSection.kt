@@ -1,12 +1,12 @@
 package shark.explorer.app
 
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -22,6 +22,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -35,7 +36,9 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import shark.explorer.NoteBlock
 import shark.explorer.NoteLink
@@ -64,6 +67,10 @@ import shark.explorer.hexObjectId
  * - **Written**: the note as it means, which is where the names in it lead somewhere — a class shortened to
  *   a link, an address replaced by what is at it, a `shark://` link back to the tab it was copied from.
  *
+ * **The line along the bottom is the same divider the panes are resized by**, dragged up and down instead:
+ * how much of the window a note is worth is the reading of it against the reading of the heap dump, and that
+ * changes with the note. How tall it has been dragged to is [PanesState.noteHeight], per window.
+ *
  * One markdown file per place, kept between runs, read by the window rather than here. See [PlaceNotes].
  */
 @Composable
@@ -71,6 +78,9 @@ internal fun NoteSection(
   notes: PlaceNotes,
   /** Where clicking a link in the written note goes. See [HeapDumpExplorer]. */
   onLink: (NoteLink) -> Unit,
+  /** How tall it has been dragged to, and where a drag of its bottom edge goes. See [PanesState]. */
+  height: Dp,
+  onResize: (Dp) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val draft = notes.draft
@@ -86,11 +96,13 @@ internal fun NoteSection(
         draft != null -> NoteEditor(
           notes = notes,
           draft = draft,
+          height = height,
           onSave = { saving.launch { notes.save() } },
           onCancel = { notes.cancel() }
         )
         notes.text.isNotEmpty() -> WrittenNote(
           notes = notes,
+          height = height,
           onLink = onLink,
           onEdit = { notes.edit() }
         )
@@ -105,7 +117,9 @@ internal fun NoteSection(
           color = MaterialTheme.colorScheme.error
         )
       }
-      HorizontalDivider()
+      // Where a `HorizontalDivider` would be, and the same line to look at: the note's bottom edge is the
+      // one place a drag of it can be, since it is the only edge of the section that isn't the title above.
+      PaneDivider(RESIZE_NOTE_HINT, Orientation.Vertical, onResize)
     }
   }
 }
@@ -147,6 +161,7 @@ internal fun AddNoteButton(
 @Composable
 private fun WrittenNote(
   notes: PlaceNotes,
+  height: Dp,
   onLink: (NoteLink) -> Unit,
   onEdit: () -> Unit
 ) {
@@ -156,7 +171,7 @@ private fun WrittenNote(
     verticalAlignment = Alignment.Top
   ) {
     Column(
-      Modifier.weight(1f).heightIn(max = MAX_NOTE_HEIGHT)
+      Modifier.weight(1f).noteHeight(height, fill = false)
         .verticalScroll(rememberScrollState())
         .padding(vertical = 6.dp),
       verticalArrangement = Arrangement.spacedBy(BLOCK_SPACING)
@@ -184,6 +199,7 @@ private fun WrittenNote(
 private fun NoteEditor(
   notes: PlaceNotes,
   draft: String,
+  height: Dp,
   onSave: () -> Unit,
   onCancel: () -> Unit
 ) {
@@ -193,7 +209,7 @@ private fun NoteEditor(
       onValueChange = { notes.edited(it) },
       placeholder = { Text(NOTE_PLACEHOLDER, style = MaterialTheme.typography.bodySmall) },
       textStyle = MaterialTheme.typography.bodyMedium,
-      modifier = Modifier.fillMaxWidth().height(EDITOR_HEIGHT)
+      modifier = Modifier.fillMaxWidth().noteHeight(height, fill = true)
         .semantics { contentDescription = NOTE_EDITOR_DESCRIPTION }
     )
     Row(
@@ -218,6 +234,31 @@ private fun NoteEditor(
       )
     }
   }
+}
+
+/**
+ * As tall as the divider has been dragged to, and never more than [NOTE_SHARE] of the room the tab has.
+ *
+ * The share is what keeps the divider reachable: a note dragged tall and then a window made short would
+ * otherwise place its own bottom edge past the bottom of the screen, and the only way back would be to make
+ * the window bigger again.
+ *
+ * [fill] is the difference between the box being typed in, which is that tall whether or not anything has
+ * been typed yet, and the note as it reads, which takes what it needs up to that and then scrolls.
+ */
+private fun Modifier.noteHeight(
+  height: Dp,
+  fill: Boolean
+) = layout { measurable, constraints ->
+  val most = if (constraints.hasBoundedHeight) {
+    minOf(height.roundToPx(), (constraints.maxHeight * NOTE_SHARE).roundToInt())
+  } else {
+    height.roundToPx()
+  }
+  val placeable = measurable.measure(
+    constraints.copy(minHeight = if (fill) most else 0, maxHeight = most)
+  )
+  layout(placeable.width, placeable.height) { placeable.place(0, 0) }
 }
 
 @Composable
@@ -348,6 +389,9 @@ private const val NOTE_PLACEHOLDER =
 
 private const val SAVED_IN = "Saved in"
 
+/** What dragging the note's bottom edge does, said where a bar of pixels can't say it. See [PaneDivider]. */
+internal const val RESIZE_NOTE_HINT = "Drag to make the note taller or shorter."
+
 /** In front of a quoted line, since a quote here is one line rather than a paragraph to draw a bar beside. */
 private const val QUOTE_BAR = "▎"
 
@@ -357,11 +401,8 @@ private val BLOCK_SPACING = 4.dp
 private val INDENT_WIDTH = 16.dp
 private val MARKER_WIDTH = 24.dp
 
-/** Enough for a few lines while writing, so that the panes under it keep the window. */
-private val EDITOR_HEIGHT = 120.dp
-
 /** A line under the title rather than a button beside it. See [AddNoteButton]. */
 private val ADD_NOTE_HEIGHT = 20.dp
 
-/** And how much of it a long note gets before it scrolls instead of pushing the panes down. */
-private val MAX_NOTE_HEIGHT = 160.dp
+/** Whatever the divider says, this much of the tab's height is the most a note gets. See [noteHeight]. */
+private const val NOTE_SHARE = 0.6f

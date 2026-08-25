@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import java.awt.Cursor
@@ -49,17 +52,21 @@ internal enum class Pane(val paneName: String) {
 }
 
 /**
- * How wide the three columns are and which of them are folded away.
+ * How the window under the tab strip is laid out: how wide the three columns are, which of them are folded
+ * away, and how much height the note takes above them.
  *
  * Held per window rather than per tab: the shape of the window is how someone has set their desk up for
  * the job at hand, and having it change under them as they switch tabs would be the window rearranging
- * itself for reasons of its own.
+ * itself for reasons of its own. Which is also why the note's height is here and not in [NoteSection] —
+ * a tab with nothing written about it draws no note at all, and a height remembered inside a section that
+ * comes and goes is a height reset by visiting a tab nobody has written about.
  */
 @Stable
 internal class PanesState {
 
   var chainWidth by mutableStateOf(ROOT_PATH_WIDTH)
   var detailsWidth by mutableStateOf(DETAILS_WIDTH)
+  var noteHeight by mutableStateOf(NOTE_HEIGHT)
 
   private var foldedChain by mutableStateOf(false)
   private var foldedView by mutableStateOf(false)
@@ -106,7 +113,15 @@ internal class PanesState {
       Pane.VIEW -> Unit
     }
   }
+
+  /** Makes the note taller or shorter by [delta], within what leaves anything under it worth reading. */
+  fun resizeNote(delta: Dp) {
+    noteHeight = (noteHeight + delta).coerceIn(MIN_NOTE_HEIGHT, MAX_NOTE_HEIGHT)
+  }
 }
+
+/** A pane's name as it reads mid-sentence, since the name itself starts a heading above the pane. */
+private val Pane.said: String get() = paneName.replaceFirstChar { it.lowercase() }
 
 /** The name of a pane and the control that folds it away, along the top of it. */
 @Composable
@@ -135,7 +150,7 @@ internal fun FoldButton(
   pane: Pane,
   onFold: () -> Unit
 ) {
-  Hint("Fold ${pane.paneName.replaceFirstChar { it.lowercase() }} away.") {
+  Hint("Fold ${pane.said} away.") {
     Text(
       FOLD,
       Modifier.clickable(onClick = onFold).padding(4.dp),
@@ -160,7 +175,7 @@ internal fun FoldedPane(
       .background(MaterialTheme.colorScheme.surfaceVariant),
     horizontalAlignment = Alignment.CenterHorizontally
   ) {
-    Hint("Show ${pane.paneName.replaceFirstChar { it.lowercase() }} again.") {
+    Hint("Show ${pane.said} again.") {
       Text(
         UNFOLD,
         Modifier.clickable(onClick = onUnfold).padding(vertical = 6.dp, horizontal = 4.dp),
@@ -171,29 +186,49 @@ internal fun FoldedPane(
 }
 
 /**
- * The edge between two panes, dragged to move it.
+ * The edge between two things, dragged to move it: the side of a pane, or the bottom of the note.
  *
  * Wider than the line it draws, because a 1 px line is not something a pointer can be expected to hit —
  * the same reason the map's own containers have an [EDGE_GRAB].
+ *
+ * [description] says what dragging it does, since a bar of pixels says nothing to a screen reader — and it
+ * is also the only handle a test has on an edge that draws no text.
  */
 @Composable
-internal fun PaneDivider(onDrag: (Dp) -> Unit) {
+internal fun PaneDivider(
+  description: String,
+  orientation: Orientation = Orientation.Horizontal,
+  onDrag: (Dp) -> Unit
+) {
   val density = LocalDensity.current
   Box(
     Modifier
-      .width(DIVIDER_GRAB)
-      .fillMaxHeight()
-      .pointerHoverIcon(RESIZE_CURSOR)
+      .alongTheEdge(orientation, DIVIDER_GRAB)
+      .pointerHoverIcon(if (orientation == Orientation.Horizontal) SIDEWAYS_CURSOR else UPRIGHT_CURSOR)
+      .semantics { contentDescription = description }
       .draggable(
-        orientation = Orientation.Horizontal,
+        orientation = orientation,
         state = rememberDraggableState { delta -> onDrag(with(density) { delta.toDp() }) }
       )
   ) {
     Box(
-      Modifier.width(DIVIDER_LINE).fillMaxHeight().align(Alignment.Center)
+      Modifier.alongTheEdge(orientation, DIVIDER_LINE).align(Alignment.Center)
         .background(MaterialTheme.colorScheme.outlineVariant)
     )
   }
+}
+
+/** What dragging the edge of a pane does, in the words the pane is named by. */
+internal fun resizeHint(pane: Pane) = "Drag to resize ${pane.said}."
+
+/** As long as the edge it is on and [thickness] across it, whichever way round that is. */
+private fun Modifier.alongTheEdge(
+  orientation: Orientation,
+  thickness: Dp
+) = if (orientation == Orientation.Horizontal) {
+  width(thickness).fillMaxHeight()
+} else {
+  height(thickness).fillMaxWidth()
 }
 
 /** What the window shows in the middle when the last tab has been closed. */
@@ -204,7 +239,8 @@ internal fun NoTabOpen(modifier: Modifier = Modifier) {
   }
 }
 
-private val RESIZE_CURSOR = PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR))
+private val SIDEWAYS_CURSOR = PointerIcon(Cursor(Cursor.E_RESIZE_CURSOR))
+private val UPRIGHT_CURSOR = PointerIcon(Cursor(Cursor.N_RESIZE_CURSOR))
 
 private const val FOLD = "⊟"
 private const val UNFOLD = "⊞"
@@ -218,3 +254,14 @@ private val DIVIDER_LINE = 1.dp
 /** Below this a pane is too narrow to read a class name in, and above it the view is the one squeezed. */
 private val MIN_PANE_WIDTH = 160.dp
 private val MAX_PANE_WIDTH = 720.dp
+
+/**
+ * Enough of a note to read a paragraph of it, which is what most of them are, with the rest scrolling.
+ *
+ * A note is worth more room than that while it is being written or argued with, and less on a laptop
+ * screen — hence the divider. Whatever it is dragged to, the note never takes more than its share of the
+ * window; see [NoteSection].
+ */
+private val NOTE_HEIGHT = 160.dp
+private val MIN_NOTE_HEIGHT = 56.dp
+private val MAX_NOTE_HEIGHT = 640.dp

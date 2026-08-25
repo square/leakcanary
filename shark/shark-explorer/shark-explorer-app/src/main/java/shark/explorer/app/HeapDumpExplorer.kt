@@ -741,7 +741,9 @@ internal fun HeapDumpExplorer(
     if (tabNote != null) {
       NoteSection(
         notes = tabNote.notes,
-        onLink = followNoteLink
+        onLink = followNoteLink,
+        height = panes.noteHeight,
+        onResize = { delta -> panes.resizeNote(delta) }
       )
     }
     Box(Modifier.weight(1f)) {
@@ -936,7 +938,7 @@ private fun RowScope.ChainPane(
     )
   }
   if (panes.filling != Pane.CHAIN) {
-    PaneDivider { delta -> panes.resize(Pane.CHAIN, delta) }
+    PaneDivider(resizeHint(Pane.CHAIN)) { delta -> panes.resize(Pane.CHAIN, delta) }
   }
 }
 
@@ -1041,7 +1043,7 @@ private fun RowScope.DetailsPane(
     return
   }
   if (panes.filling != Pane.DETAILS) {
-    PaneDivider { delta -> panes.resize(Pane.DETAILS, -delta) }
+    PaneDivider(resizeHint(Pane.DETAILS)) { delta -> panes.resize(Pane.DETAILS, -delta) }
   }
   Column(paneWidth(panes, Pane.DETAILS).fillMaxHeight()) {
     PaneHeader(Pane.DETAILS) { panes.toggleFold(Pane.DETAILS) }

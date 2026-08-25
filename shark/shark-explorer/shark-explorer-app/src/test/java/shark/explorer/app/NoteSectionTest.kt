@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
@@ -9,17 +10,22 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilDoesNotExist
 import androidx.compose.ui.test.waitUntilExactlyOneExists
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -223,6 +229,36 @@ class NoteSectionTest {
     }
   }
 
+  @Test fun `dragging the bottom edge makes the note taller`() {
+    explorerUiTest {
+      openHeapDump()
+      startNote()
+      val before = noteEditorHeight()
+
+      dragTheNoteEdge(by = DRAG_PIXELS)
+
+      // How much of the window a note is worth is the reading of it against the reading of the heap dump,
+      // which is a judgement that changes with the note — hence an edge rather than a number in the code.
+      assertThat(noteEditorHeight()).isCloseTo(before + DRAG_PIXELS, within(SLOP_PIXELS))
+    }
+  }
+
+  @Test fun `a note is never dragged so tall that its own edge leaves the window`() {
+    // A short window, because that is the shape this is about: a note is dragged tall on a big screen and
+    // then the window is made small, which is one laptop lid away.
+    explorerUiTest(height = SHORT_WINDOW) {
+      openHeapDump()
+      startNote()
+
+      dragTheNoteEdge(by = SHORT_WINDOW.value)
+
+      // The edge is the only way back, so a drag that put it past the bottom of the window would leave the
+      // note as tall as it was dragged until the window itself is made bigger.
+      onNodeWithContentDescription(RESIZE_NOTE_HINT).assertIsDisplayed()
+      assertThat(noteEditorHeight()).isLessThan(SHORT_WINDOW.value)
+    }
+  }
+
   /** Which is what a note being about a place means: a tab somewhere else is another note. */
   @Test fun `a note is only about the place the tab it was written on is at`() {
     explorerUiTest {
@@ -369,6 +405,26 @@ class NoteSectionTest {
   private fun ComposeUiTest.noteEditor(): SemanticsNodeInteraction =
     onNodeWithContentDescription(NOTE_EDITOR_DESCRIPTION)
 
+  /**
+   * How tall the note is, measured on the box being typed in.
+   *
+   * The section itself is no node — it is a `Surface` around whichever of the two states it is in — and the
+   * box is the state whose height is the whole of what the edge sets, since a written note takes what it
+   * needs up to that.
+   */
+  private fun ComposeUiTest.noteEditorHeight(): Float = noteEditor().getBoundsInRoot().height.value
+
+  /** Drags the note's bottom edge down by [by] pixels, which is what makes it taller. */
+  private fun ComposeUiTest.dragTheNoteEdge(by: Float) {
+    onNodeWithContentDescription(RESIZE_NOTE_HINT).performMouseInput {
+      moveTo(center)
+      press()
+      moveBy(Offset(x = 0f, y = by))
+      release()
+    }
+    waitForIdle()
+  }
+
   /** Where the note about the tab a window opens on is kept. */
   private fun noteFile(
     notesRoot: File,
@@ -396,6 +452,15 @@ class NoteSectionTest {
   }
 
   companion object {
+    /** Far enough to be a drag rather than a click, and short of what the window has room for. */
+    private const val DRAG_PIXELS = 120f
+
+    /** What a drag loses to the slop that tells it from a click, which is a pixel or two of the first move. */
+    private const val SLOP_PIXELS = 8f
+
+    /** Shorter than a note can be dragged to, which is what makes the share of the window the only limit. */
+    private val SHORT_WINDOW = 420.dp
+
     private const val PAYLOAD_LENGTH = 100
 
     private const val HOLDER_ID = 0x82182c00L

@@ -28,6 +28,9 @@ uses, without the one for a newly recognized library leak:
   location are one note. Class names, addresses and `shark://` links written in a note become links back
   into the window, shortened to read as prose, and GitHub URLs are shortened the way GitHub shortens them.
   See [Take notes](shark-explorer.md#take-notes).
+* ✨ Drag the line along the bottom of a note to give it more of the window or less, the same way the edges
+  between the panes are dragged sideways. Per window rather than per tab, and never more than its share of
+  the window however far it is dragged. See [Take notes](shark-explorer.md#take-notes).
 * ✨ Right click ← or → for the list of everywhere that arrow leads, so going back four moves is one
   click rather than four.
 * ✨ **Verdict**: whether the object a tab is on is stuck in memory — `✗ Stuck`, `✓ Expected` or `? Unknown`

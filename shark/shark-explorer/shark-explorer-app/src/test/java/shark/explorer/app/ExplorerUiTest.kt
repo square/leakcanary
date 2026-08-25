@@ -10,6 +10,7 @@ import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
+import androidx.compose.ui.unit.Dp
 
 /**
  * Runs [block] against a window the size one opens at — [WINDOW_WIDTH] by [WINDOW_HEIGHT].
@@ -18,10 +19,16 @@ import androidx.compose.ui.test.v2.runSkikoComposeUiTest
  * the chain of objects holding what it's pointing at, and the details panel. At the default size the two
  * panes leave the view narrow enough that the controls above it are squeezed to nothing, so a test would be
  * pressing a window no user has. Density is 1 in a UI test, so a dp here is a pixel.
+ *
+ * [height] is there for the tests about running out of it — a window dragged short is a window with room for
+ * one of the things stacked up it — and every other test wants the one a window opens at.
  */
 @OptIn(ExperimentalTestApi::class)
-internal fun explorerUiTest(block: ComposeUiTest.() -> Unit) {
-  runSkikoComposeUiTest(size = Size(width = WINDOW_WIDTH.value, height = WINDOW_HEIGHT.value)) {
+internal fun explorerUiTest(
+  height: Dp = WINDOW_HEIGHT,
+  block: ComposeUiTest.() -> Unit
+) {
+  runSkikoComposeUiTest(size = Size(width = WINDOW_WIDTH.value, height = height.value)) {
     block()
   }
 }
