@@ -39,21 +39,21 @@ internal object AgentMethod {
     So an investigation is a search for that single reference, and the chain from a GC root to a stuck
     object is where it is. Each object on the chain gets a verdict:
 
-    - NOT_LEAKING — this object is meant to be in memory right now.
-    - LEAKING — this object should be gone.
+    - EXPECTED — this object is meant to be in memory right now.
+    - STUCK — this object should be gone.
     - UNKNOWN — you don't know yet. Most objects, most of the time.
 
-    Two rules turn verdicts into an answer, and the tools apply both for you:
+    Those are the three words the window shows the person watching, so they are the three words to think in
+    and to write. Two rules turn them into an answer, and the tools apply both for you:
 
-    - Everything holding an object that is meant to be in memory is meant to be in memory too, so a
-      NOT_LEAKING verdict spreads upwards.
-    - Everything a stuck object holds is only in memory because of it, so a LEAKING verdict spreads
+    - Everything holding an object that is meant to be in memory is meant to be in memory too, so an
+      EXPECTED verdict spreads upwards.
+    - Everything a stuck object holds is only in memory because of it, so a STUCK verdict spreads
       downwards.
 
-    A chain therefore reads as three zones: NOT_LEAKING at the top, LEAKING at the bottom, UNKNOWN in
-    between. **The leak is the one reference that crosses from the last NOT_LEAKING object to the first
-    LEAKING one.** While the UNKNOWN zone is more than one reference wide, you have not found it — you have
-    narrowed it.
+    A chain therefore reads as three zones: EXPECTED at the top, STUCK at the bottom, UNKNOWN in between.
+    **The leak is the one reference that crosses from the last EXPECTED object to the first STUCK one.**
+    While the UNKNOWN zone is more than one reference wide, you have not found it — you have narrowed it.
 
     ## The order to work in
 

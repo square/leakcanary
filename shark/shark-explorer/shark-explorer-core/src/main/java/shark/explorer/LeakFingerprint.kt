@@ -51,9 +51,9 @@ private fun PathStep.toLeakTraceObject() = LeakTraceObject(
   className = className,
   labels = inspectorLabels.toSet(),
   leakingStatus = when (leakStatus) {
-    LeakStatus.NOT_LEAKING -> LeakingStatus.NOT_LEAKING
+    LeakStatus.EXPECTED -> LeakingStatus.NOT_LEAKING
     LeakStatus.UNKNOWN -> LeakingStatus.UNKNOWN
-    LeakStatus.LEAKING -> LeakingStatus.LEAKING
+    LeakStatus.STUCK -> LeakingStatus.LEAKING
   },
   leakingStatusReason = leakStatusReason.orEmpty(),
   retainedHeapByteSize = null,

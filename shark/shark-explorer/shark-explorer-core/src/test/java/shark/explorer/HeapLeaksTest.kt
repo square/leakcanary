@@ -270,7 +270,7 @@ class HeapLeaksTest {
       val leaking = tree.findLeaks().objectsOf(APPLICATION).first()
 
       val steps = tree.rootPathTo(leaking.objectId).steps.map { it.step }
-      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.LEAKING)
+      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.STUCK)
       assertThat(steps.last().leakStatusReason).contains("mDestroyed")
     }
   }
@@ -330,7 +330,7 @@ class HeapLeaksTest {
       // it and says it is leaking, which is that chain being read as a leak trace.
       val steps = tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step }
       assertThat(steps.map { it.objectId }).contains(heapDump.activityObjectId)
-      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.LEAKING)
+      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.STUCK)
     }
   }
 

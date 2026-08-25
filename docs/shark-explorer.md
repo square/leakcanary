@@ -271,11 +271,11 @@ cannot argue with:
   verdict in the same file as yours. A verdict that contradicts one already recorded is refused with the list
   of what it disagrees with, the same way the window asks you.
 * **`conclude` is refused until the heap dump agrees that one reference is at fault** — one object above it
-  recorded as expected, the object below it recorded as stuck, and nothing unexplained in between. Reporting
+  recorded as `Expected`, the object below it recorded as `Stuck`, and nothing unexplained in between. Reporting
   a root cause before that gets this back:
 
 ```
-Not concluded. 1 step(s) between the last NOT_LEAKING object and the first LEAKING one have no verdict, so the
+Not concluded. 1 step(s) between the last EXPECTED object and the first STUCK one have no verdict, so the
 fault is at one of them and the chain doesn't say which: 0x12e9ed60 java.util.ArrayList. Until the chain names
 one reference, a root cause would be a guess about which of those steps is at fault. Read the objects in the
 unexplained stretch with describe_object, check whether anything else holds them with ways_held, and record

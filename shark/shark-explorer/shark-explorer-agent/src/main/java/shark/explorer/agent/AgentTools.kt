@@ -204,8 +204,8 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
 
   private fun setVerdict() = AgentTool(
     name = SET_VERDICT,
-    description = "Records that an object is meant to be in memory (NOT_LEAKING) or should be gone " +
-      "(LEAKING), which is how the search narrows: a verdict spreads along every chain through that " +
+    description = "Records that an object is meant to be in memory (EXPECTED) or should be gone " +
+      "(STUCK), which is how the search narrows: a verdict spreads along every chain through that " +
       "object, and naming the stuck object you are investigating as `chainTo` answers with what its " +
       "chain says once yours is on it. The `reason` is the " +
       "verdict's reason and is kept with it — make it something the next reader can check, a field value " +
@@ -215,13 +215,13 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       WINDOW to window(),
       OBJECT to objectId("The object to record a verdict about."),
       VERDICT to enumString(
-        "LEAKING for an object that should be gone, NOT_LEAKING for one that is meant to be here.",
-        listOf(LeakStatus.LEAKING.name, LeakStatus.NOT_LEAKING.name)
+        "STUCK for an object that should be gone, EXPECTED for one that is meant to be here.",
+        listOf(LeakStatus.STUCK.name, LeakStatus.EXPECTED.name)
       ),
       CHAIN_TO to objectId(
         "The stuck object you are investigating, which is what the answer reads the chain to: a verdict is " +
           "worth setting for what it does to that chain, and this is where you see the unexplained stretch " +
-          "narrow. Not the object of this verdict — one recorded as NOT_LEAKING is above the leak, so the " +
+          "narrow. Not the object of this verdict — one recorded as EXPECTED is above the leak, so the " +
           "chain ending at it has nothing stuck on it to point at."
       ).optional(),
       SOLVE_CONFLICTS to boolean(
@@ -327,7 +327,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     name = CONCLUDE,
     description = "Reports the root cause of one leak, and the only way to finish an investigation. " +
       "**Refused unless this heap dump agrees that a single reference is at fault**: one object above it " +
-      "recorded as NOT_LEAKING, the object below it recorded as LEAKING, and nothing unexplained in " +
+      "recorded as EXPECTED, the object below it recorded as STUCK, and nothing unexplained in " +
       "between. If it refuses, the message says what is missing and the investigation is not over. " +
       "Isolating the reference is not the root cause — rootCause is how the field came to still be set, " +
       "which is a sequence of events rather than a line. The conclusion is written into the notes of the " +
@@ -426,8 +426,8 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     val text = string(VERDICT)
     val status = LeakStatus.values().firstOrNull { it.name.equals(text, ignoreCase = true) }
       ?: throw AgentRefusal(
-        "\"$text\" is no verdict. It is ${LeakStatus.LEAKING.name} for an object that should be gone or " +
-          "${LeakStatus.NOT_LEAKING.name} for one that is meant to be here."
+        "\"$text\" is no verdict. It is ${LeakStatus.STUCK.name} for an object that should be gone or " +
+          "${LeakStatus.EXPECTED.name} for one that is meant to be here."
       )
     if (status == LeakStatus.UNKNOWN) {
       throw AgentRefusal(
@@ -534,20 +534,20 @@ private fun RootPath.verdictState(): ChainVerdicts {
       summary = "Nothing this heap dump was walked from reaches that object, so there is no chain to read."
     )
   }
-  val firstStuck = steps.indexOfFirst { it.step.leakStatus == LeakStatus.LEAKING }
-  val lastExpected = steps.indexOfLast { it.step.leakStatus == LeakStatus.NOT_LEAKING }
+  val firstStuck = steps.indexOfFirst { it.step.leakStatus == LeakStatus.STUCK }
+  val lastExpected = steps.indexOfLast { it.step.leakStatus == LeakStatus.EXPECTED }
   if (firstStuck == -1) {
     return ChainVerdicts(
       faultyStep = null,
-      summary = "Nothing on this chain of ${steps.size} steps is ${LeakStatus.LEAKING.name}, so it points " +
+      summary = "Nothing on this chain of ${steps.size} steps is ${LeakStatus.STUCK.name}, so it points " +
         "at no reference: the rules can only name one once something below it is known not to belong."
     )
   }
   if (lastExpected == -1) {
     return ChainVerdicts(
       faultyStep = null,
-      summary = "The chain has a ${LeakStatus.LEAKING.name} object at step ${firstStuck + 1} of " +
-        "${steps.size} and nothing above it is ${LeakStatus.NOT_LEAKING.name}. So whatever holds it may " +
+      summary = "The chain has a ${LeakStatus.STUCK.name} object at step ${firstStuck + 1} of " +
+        "${steps.size} and nothing above it is ${LeakStatus.EXPECTED.name}. So whatever holds it may " +
         "be something that should have let go too, and the fault could be further up than this chain " +
         "knows: find the highest object here that is meant to be in memory and record it."
     )
@@ -556,8 +556,8 @@ private fun RootPath.verdictState(): ChainVerdicts {
     val unexplained = (lastExpected + 1 until firstStuck).map { steps[it] }
     return ChainVerdicts(
       faultyStep = null,
-      summary = "${unexplained.size} step(s) between the last ${LeakStatus.NOT_LEAKING.name} object and " +
-        "the first ${LeakStatus.LEAKING.name} one have no verdict, so the fault is at one of them and the " +
+      summary = "${unexplained.size} step(s) between the last ${LeakStatus.EXPECTED.name} object and " +
+        "the first ${LeakStatus.STUCK.name} one have no verdict, so the fault is at one of them and the " +
         "chain doesn't say which: " +
         unexplained.joinToString(", ") { "${exactHexObjectId(it.step.objectId)} ${it.step.className}" } +
         "."
@@ -567,8 +567,8 @@ private fun RootPath.verdictState(): ChainVerdicts {
   val reference = faulty.step.reference
     ?: return ChainVerdicts(
       faultyStep = null,
-      summary = "One reference crosses from ${LeakStatus.NOT_LEAKING.name} to " +
-        "${LeakStatus.LEAKING.name} here, but reading the object above again didn't find the field it was " +
+      summary = "One reference crosses from ${LeakStatus.EXPECTED.name} to " +
+        "${LeakStatus.STUCK.name} here, but reading the object above again didn't find the field it was " +
         "reached through, so there is no reference to name."
     )
   return ChainVerdicts(

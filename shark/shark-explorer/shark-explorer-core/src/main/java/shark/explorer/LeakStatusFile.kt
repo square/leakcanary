@@ -107,8 +107,8 @@ class LeakStatusFile(
 
     /** What the columns are, for whoever opens this file without the app that wrote it. */
     private const val HEADER =
-      "# Leaking statuses set by hand in Shark Explorer.\n" +
-        "# object\tstatus\treason, with \\n \\t \\\\ escaped"
+      "# Verdicts set by hand in Shark Explorer.\n" +
+        "# object\tverdict\treason, with \\n \\t \\\\ escaped"
   }
 }
 

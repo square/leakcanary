@@ -66,7 +66,7 @@ class LeakStatusSectionTest {
       openHeapDump { it.activityObjectId }
 
       onNodeWithText(STATUS_LABEL).assertIsDisplayed()
-      onNode(shows(LeakStatus.LEAKING)).assertIsDisplayed()
+      onNode(shows(LeakStatus.STUCK)).assertIsDisplayed()
       // And why, because a status is a conclusion and half of them are about another object. The reason as
       // the panel has it, which is what the chain beside it prefixes with the status.
       onNodeWithText(DESTROYED_REASON).assertIsDisplayed()
@@ -97,16 +97,16 @@ class LeakStatusSectionTest {
       openHeapDump { it.activityObjectId }
       changeStatus()
 
-      choose(LeakStatus.NOT_LEAKING)
+      choose(LeakStatus.EXPECTED)
       write(TYPED_REASON)
       set()
 
-      waitUntilAtLeastOneExists(shows(LeakStatus.NOT_LEAKING), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(LeakStatus.EXPECTED), SAVE_TIMEOUT_MILLIS)
       // Marked as somebody's rather than the heap dump's, which is the difference between reading the dump
       // and reading a conclusion about it, and with what it overruled after it.
       onNodeWithText("$SET_BY_HAND$TYPED_REASON. Conflicts with $DESTROYED_REASON").assertIsDisplayed()
       waitUntil(timeoutMillis = SAVE_TIMEOUT_MILLIS) {
-        statusFile().read()[heapDump.activityObjectId]?.status == LeakStatus.NOT_LEAKING
+        statusFile().read()[heapDump.activityObjectId]?.status == LeakStatus.EXPECTED
       }
       assertThat(statusFile().read()[heapDump.activityObjectId]!!.reason).isEqualTo(TYPED_REASON)
     }
@@ -118,7 +118,7 @@ class LeakStatusSectionTest {
       openHeapDump { it.activityObjectId }
       changeStatus()
 
-      choose(LeakStatus.NOT_LEAKING)
+      choose(LeakStatus.EXPECTED)
 
       setButton().assertIsNotEnabled()
       write("because I read the code")
@@ -130,17 +130,17 @@ class LeakStatusSectionTest {
     explorerUiTest {
       openHeapDump { it.activityObjectId }
       changeStatus()
-      choose(LeakStatus.NOT_LEAKING)
+      choose(LeakStatus.EXPECTED)
       write("this screen is deliberately kept")
       set()
-      waitUntilAtLeastOneExists(shows(LeakStatus.NOT_LEAKING), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(LeakStatus.EXPECTED), SAVE_TIMEOUT_MILLIS)
 
       // Which is the one thing only the dialog of a status already set offers.
       changeStatus()
       onNode(hasText(CLEAR_STATUS) and isButton()).performClick()
 
       // And the heap dump says what it said about the object again.
-      waitUntilAtLeastOneExists(shows(LeakStatus.LEAKING), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(LeakStatus.STUCK), SAVE_TIMEOUT_MILLIS)
       waitUntil(timeoutMillis = SAVE_TIMEOUT_MILLIS) { statusFile().read().isEmpty }
     }
   }
@@ -151,18 +151,18 @@ class LeakStatusSectionTest {
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
       changeStatus()
 
-      choose(LeakStatus.NOT_LEAKING)
+      choose(LeakStatus.EXPECTED)
       write("this screen is deliberately kept")
       set()
 
       // The one it disagrees with, by name, with what it was given as its reason: whoever is about to
       // overrule it is the only person who can weigh the two, and only if they can read it.
       waitUntilAtLeastOneExists(hasText("$HOLDER_NAME $CONFLICT_ABOVE"), SAVE_TIMEOUT_MILLIS)
-      onNodeWithText("${LeakStatus.LEAKING.statusText}: $HOLDER_REASON").assertIsDisplayed()
-      onNodeWithText("$CONFLICT_BECOMES ${LeakStatus.NOT_LEAKING.statusText}")
+      onNodeWithText("${LeakStatus.STUCK.statusText}: $HOLDER_REASON").assertIsDisplayed()
+      onNodeWithText("$CONFLICT_BECOMES ${LeakStatus.EXPECTED.statusText}")
         .assertIsDisplayed()
       // And nothing written while the question is open, which is what makes undoing it free.
-      assertThat(statusFile().read().all.map { it.status }).containsExactly(LeakStatus.LEAKING)
+      assertThat(statusFile().read().all.map { it.status }).containsExactly(LeakStatus.STUCK)
     }
   }
 
@@ -170,7 +170,7 @@ class LeakStatusSectionTest {
     explorerUiTest {
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
       changeStatus()
-      choose(LeakStatus.NOT_LEAKING)
+      choose(LeakStatus.EXPECTED)
       write("this screen is deliberately kept")
       set()
       waitUntilAtLeastOneExists(hasText(SOLVE_CONFLICTS), SAVE_TIMEOUT_MILLIS)
@@ -181,9 +181,9 @@ class LeakStatusSectionTest {
         statusFile().read()[heapDump.activityObjectId] != null
       }
       val overrides = statusFile().read()
-      assertThat(overrides[heapDump.activityObjectId]!!.status).isEqualTo(LeakStatus.NOT_LEAKING)
+      assertThat(overrides[heapDump.activityObjectId]!!.status).isEqualTo(LeakStatus.EXPECTED)
       val flipped = overrides[heapDump.holderObjectId]!!
-      assertThat(flipped.status).isEqualTo(LeakStatus.NOT_LEAKING)
+      assertThat(flipped.status).isEqualTo(LeakStatus.EXPECTED)
       // Flipped rather than taken off, so that what was typed about it is still in the file.
       assertThat(flipped.reason).contains(HOLDER_REASON)
     }
@@ -193,7 +193,7 @@ class LeakStatusSectionTest {
     explorerUiTest {
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
       changeStatus()
-      choose(LeakStatus.NOT_LEAKING)
+      choose(LeakStatus.EXPECTED)
       write("this screen is deliberately kept")
       set()
       waitUntilAtLeastOneExists(hasText(UNDO_STATUS), SAVE_TIMEOUT_MILLIS)
@@ -203,7 +203,7 @@ class LeakStatusSectionTest {
       onNodeWithText(SOLVE_CONFLICTS).assertDoesNotExist()
       val overrides = statusFile().read()
       assertThat(overrides.all.map { it.objectId }).containsExactly(heapDump.holderObjectId)
-      assertThat(overrides[heapDump.holderObjectId]!!.status).isEqualTo(LeakStatus.LEAKING)
+      assertThat(overrides[heapDump.holderObjectId]!!.status).isEqualTo(LeakStatus.STUCK)
       assertThat(overrides[heapDump.activityObjectId]).isNull()
     }
   }
@@ -224,7 +224,7 @@ class LeakStatusSectionTest {
       onNodeWithText("$FAULTY_STEP $FAULTY_REFERENCE").assertIsDisplayed()
 
       changeStatus()
-      choose(LeakStatus.NOT_LEAKING)
+      choose(LeakStatus.EXPECTED)
       write(TYPED_REASON)
       set()
 
@@ -325,16 +325,16 @@ class LeakStatusSectionTest {
 
   /** Repeated from the section rather than shared: a glyph is one of the words the window says. */
   private fun LeakStatus.glyphOf() = when (this) {
-    LeakStatus.NOT_LEAKING -> "✓"
+    LeakStatus.EXPECTED -> "✓"
     LeakStatus.UNKNOWN -> "?"
-    LeakStatus.LEAKING -> "✗"
+    LeakStatus.STUCK -> "✗"
   }
 
   /** A status set on the holder in a run before the one under test, which is the file being there. */
-  private fun holderIsLeaking() = holderWasSetTo(LeakStatus.LEAKING, HOLDER_REASON)
+  private fun holderIsLeaking() = holderWasSetTo(LeakStatus.STUCK, HOLDER_REASON)
 
   /** And the other way: a holder that belongs in memory, with the activity below it still stuck. */
-  private fun holderIsExpected() = holderWasSetTo(LeakStatus.NOT_LEAKING, HOLDER_EXPECTED_REASON)
+  private fun holderIsExpected() = holderWasSetTo(LeakStatus.EXPECTED, HOLDER_EXPECTED_REASON)
 
   private fun holderWasSetTo(
     status: LeakStatus,

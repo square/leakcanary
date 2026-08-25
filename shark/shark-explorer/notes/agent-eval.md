@@ -36,7 +36,7 @@ independent of what the tools would answer:
 | **Right reference** | Exact match of the concluded `OwnerClass.field` against the key |
 | Wrong reference | Concluded, but on another step of the chain — the failure that matters most, since it is a confident wrong answer |
 | Stopped short | Text answer produced with no `conclude` — the failure mode of [the shark-cli draft](https://github.com/square/leakcanary/pull/2796) |
-| Verdicts against the key | A `NOT_LEAKING` on the object the key says is stuck, or the reverse |
+| Verdicts against the key | An `EXPECTED` on the object the key says is stuck, or the reverse |
 | Rounds | Tool calls, and refusals among them |
 | Cost | Wall clock, and the client's own token and dollar report where it has one |
 

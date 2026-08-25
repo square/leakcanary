@@ -1006,7 +1006,7 @@ who can weigh the two.
   The chain still says so wherever it does put one above the other, which is a reason reading
   `Conflicts with`.
 - **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
-  `NOT_LEAKING` propagates upwards only and `LEAKING` downwards only, so the pair that can disagree is
+  `EXPECTED` propagates upwards only and `STUCK` downwards only, so the pair that can disagree is
   always those two, and agreeing with the new status is the same as being flipped.
 - **Flipped, not taken off**, so that what somebody typed is still in the file: the solved reason says which
   status it was, what it said, and that this is why it changed.

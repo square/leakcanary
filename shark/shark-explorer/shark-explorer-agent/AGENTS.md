@@ -34,7 +34,7 @@ client because saying no is all it does — nothing here ever calls a model.
 - `set_verdict` refuses a blank reason (through `LeakStatusOverride`'s own `require`) and refuses a verdict
   that contradicts one already recorded unless it is told to flip it.
 - `conclude` refuses until the heap dump agrees that **one** reference is at fault, and the refusal says which
-  of the three reasons it is: nothing `LEAKING`, nothing `NOT_LEAKING` above it, or *these* steps in between
+  of the three reasons it is: nothing `STUCK`, nothing `EXPECTED` above it, or *these* steps in between
   with no verdict. Same rule as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it,
   because the three ways it answers null are three different things to do next.
 - Every tool takes a `reason`, and it is enforced in `AgentTool.call` rather than only asked for in the

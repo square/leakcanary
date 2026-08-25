@@ -162,7 +162,7 @@ class HeapDominatorTreemap internal constructor(
         leakingIndexes.markLeaking(override.objectId, override.objectId in leakingCandidateIds)
       }
       overrides.all.forEach { override ->
-        leakingIndexes.markLeaking(override.objectId, override.status == LeakStatus.LEAKING)
+        leakingIndexes.markLeaking(override.objectId, override.status == LeakStatus.STUCK)
       }
       indexedOverrides = overrides
     }
@@ -987,7 +987,7 @@ class HeapDominatorTreemap internal constructor(
     }
     val ids = LinkedHashSet(leakingCandidateIds)
     overrides.all.forEach { override ->
-      if (override.status == LeakStatus.LEAKING) {
+      if (override.status == LeakStatus.STUCK) {
         ids += override.objectId
       } else {
         ids -= override.objectId
@@ -1077,7 +1077,7 @@ class HeapDominatorTreemap internal constructor(
       retainedSize = nodes[objectId]?.retainedSize ?: 0L,
       retainedCount = nodes[objectId]?.retainedCount ?: 0,
       strength = strength,
-      leakingReason = target?.leakStatusReason?.takeIf { target.leakStatus == LeakStatus.LEAKING },
+      leakingReason = target?.leakStatusReason?.takeIf { target.leakStatus == LeakStatus.STUCK },
       watcher = watcher
     )
     val simpleClassName = leakingObject.className.substringAfterLast('.')

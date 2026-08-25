@@ -140,7 +140,7 @@ class AgentToolsTest {
   fun `an object the inspectors know about comes back with their verdict and their words`() {
     val activity = call("describe_object", OBJECT to hex(heapDump.activityObjectId))
 
-    assertThat(activity.text("verdict")).isEqualTo(LeakStatus.LEAKING.name)
+    assertThat(activity.text("verdict")).isEqualTo(LeakStatus.STUCK.name)
     assertThat(activity.text("verdictReason")).contains("mDestroyed")
   }
 
@@ -192,7 +192,7 @@ class AgentToolsTest {
     val answer = call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.NOT_LEAKING.name,
+      "verdict" to LeakStatus.EXPECTED.name,
       "chainTo" to hex(heapDump.activityObjectId),
       "reason" to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
@@ -212,7 +212,7 @@ class AgentToolsTest {
     val answer = call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.NOT_LEAKING.name,
+      "verdict" to LeakStatus.EXPECTED.name,
       "reason" to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
 
@@ -226,12 +226,12 @@ class AgentToolsTest {
     call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.NOT_LEAKING.name,
+      "verdict" to LeakStatus.EXPECTED.name,
       "reason" to "Holder.INSTANCE is a static singleton."
     )
 
     val verdict = window.verdicts[heapDump.holderObjectId]
-    assertThat(verdict?.status).isEqualTo(LeakStatus.NOT_LEAKING)
+    assertThat(verdict?.status).isEqualTo(LeakStatus.EXPECTED)
     assertThat(verdict?.reason).isEqualTo("Holder.INSTANCE is a static singleton.")
   }
 
@@ -286,7 +286,7 @@ class AgentToolsTest {
       call(
         SET_VERDICT,
         OBJECT to hex(heapDump.applicationObjectId),
-        "verdict" to LeakStatus.LEAKING.name,
+        "verdict" to LeakStatus.STUCK.name,
         "reason" to "This isn't the real Application, it is a copy left over from a test."
       )
     }
@@ -298,13 +298,13 @@ class AgentToolsTest {
     val answer = call(
       SET_VERDICT,
       OBJECT to hex(heapDump.applicationObjectId),
-      "verdict" to LeakStatus.LEAKING.name,
+      "verdict" to LeakStatus.STUCK.name,
       "solveConflicts" to "true",
       "reason" to "This isn't the real Application, it is a copy left over from a test."
     )
 
     assertThat(answer.text("verdictsFlipped")).isEqualTo("1")
-    assertThat(window.verdicts[heapDump.holderObjectId]?.status).isEqualTo(LeakStatus.LEAKING)
+    assertThat(window.verdicts[heapDump.holderObjectId]?.status).isEqualTo(LeakStatus.STUCK)
     assertThat(window.verdicts[heapDump.holderObjectId]?.reason)
       .contains("Holder.INSTANCE is a static singleton")
   }
@@ -329,7 +329,7 @@ class AgentToolsTest {
 
     val answer = call("clear_verdict", OBJECT to hex(heapDump.holderObjectId))
 
-    assertThat(answer.text("was")).isEqualTo(LeakStatus.NOT_LEAKING.name)
+    assertThat(answer.text("was")).isEqualTo(LeakStatus.EXPECTED.name)
     assertThat(answer.text("itsReason")).contains("static singleton")
     assertThat(window.verdicts.isEmpty).isTrue()
 
@@ -457,7 +457,7 @@ class AgentToolsTest {
     call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.NOT_LEAKING.name,
+      "verdict" to LeakStatus.EXPECTED.name,
       "reason" to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
   }

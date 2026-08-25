@@ -2,8 +2,8 @@ package shark.explorer
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
-import shark.explorer.LeakStatus.LEAKING
-import shark.explorer.LeakStatus.NOT_LEAKING
+import shark.explorer.LeakStatus.STUCK
+import shark.explorer.LeakStatus.EXPECTED
 import shark.explorer.LeakStatus.UNKNOWN
 
 class LeakStatusTest {
@@ -21,7 +21,7 @@ class LeakStatusTest {
     )
 
     assertThat(statuses.map { it.status })
-      .containsExactly(NOT_LEAKING, NOT_LEAKING, NOT_LEAKING, UNKNOWN)
+      .containsExactly(EXPECTED, EXPECTED, EXPECTED, UNKNOWN)
     // Named after the object that decided it, and which way along the path it is.
     assertThat(statuses[0].reason).isEqualTo("Activity↓ is expected")
     assertThat(statuses[2].reason).isEqualTo("Activity#mDestroyed is false")
@@ -32,7 +32,7 @@ class LeakStatusTest {
       listOf(unknown("Holder"), leaking("Activity"), unknown("View"), unknown("Payload"))
     )
 
-    assertThat(statuses.map { it.status }).containsExactly(UNKNOWN, LEAKING, LEAKING, LEAKING)
+    assertThat(statuses.map { it.status }).containsExactly(UNKNOWN, STUCK, STUCK, STUCK)
     assertThat(statuses[2].reason).isEqualTo("Activity↑ is stuck")
   }
 
@@ -41,7 +41,7 @@ class LeakStatusTest {
       listOf(notLeaking("Thread"), unknown("Holder"), unknown("Cache"), leaking("Activity"))
     )
 
-    assertThat(statuses.map { it.status }).containsExactly(NOT_LEAKING, UNKNOWN, UNKNOWN, LEAKING)
+    assertThat(statuses.map { it.status }).containsExactly(EXPECTED, UNKNOWN, UNKNOWN, STUCK)
   }
 
   @Test fun `the object a path ends at is not made to be leaking`() {
@@ -55,7 +55,7 @@ class LeakStatusTest {
   @Test fun `an object both sides recognize is taken to be still needed`() {
     val statuses = leakStatusesOf(listOf(conflicted("Activity"), unknown("Payload")))
 
-    assertThat(statuses.first().status).isEqualTo(NOT_LEAKING)
+    assertThat(statuses.first().status).isEqualTo(EXPECTED)
     assertThat(statuses.first().reason)
       .isEqualTo("Activity#mDestroyed is false. Conflicts with Activity#mDestroyed is true")
   }
@@ -63,7 +63,7 @@ class LeakStatusTest {
   @Test fun `except at the end of the path, where it is the object being asked about`() {
     val statuses = leakStatusesOf(listOf(unknown("Holder"), conflicted("Activity")))
 
-    assertThat(statuses.last().status).isEqualTo(LEAKING)
+    assertThat(statuses.last().status).isEqualTo(STUCK)
     assertThat(statuses.last().reason)
       .isEqualTo("Activity#mDestroyed is true. Conflicts with Activity#mDestroyed is false")
   }
@@ -75,7 +75,7 @@ class LeakStatusTest {
       listOf(leaking("Cache", reason = "Cache#entry is stale"), notLeaking("Activity"), unknown("Payload"))
     )
 
-    assertThat(statuses.map { it.status }).containsExactly(NOT_LEAKING, NOT_LEAKING, UNKNOWN)
+    assertThat(statuses.map { it.status }).containsExactly(EXPECTED, EXPECTED, UNKNOWN)
     assertThat(statuses.first().reason)
       .isEqualTo("Activity↓ is expected. Conflicts with Cache#entry is stale")
   }
@@ -86,18 +86,18 @@ class LeakStatusTest {
 
   @Test fun `a status set by hand wins over the inspector that disagreed with it`() {
     val statuses = leakStatusesOf(
-      listOf(unknown("Holder"), setByHand(leaking("Activity"), NOT_LEAKING, "kept for one more frame"))
+      listOf(unknown("Holder"), setByHand(leaking("Activity"), EXPECTED, "kept for one more frame"))
     )
 
-    assertThat(statuses.last().status).isEqualTo(NOT_LEAKING)
+    assertThat(statuses.last().status).isEqualTo(EXPECTED)
     assertThat(statuses.last().reason)
       .isEqualTo("set by hand — kept for one more frame. Conflicts with Activity#mDestroyed is true")
   }
 
   @Test fun `a status set by hand on an object nothing knew about has only its own reason`() {
-    val statuses = leakStatusesOf(listOf(setByHand(unknown("Cache"), LEAKING, "this cache is unbounded")))
+    val statuses = leakStatusesOf(listOf(setByHand(unknown("Cache"), STUCK, "this cache is unbounded")))
 
-    assertThat(statuses.single().status).isEqualTo(LEAKING)
+    assertThat(statuses.single().status).isEqualTo(STUCK)
     assertThat(statuses.single().reason).isEqualTo("set by hand — this cache is unbounded")
   }
 
@@ -117,12 +117,12 @@ class LeakStatusTest {
     val statuses = leakStatusesOf(
       listOf(
         unknown("Thread"),
-        setByHand(unknown("Presenter"), LEAKING, "this screen was closed"),
+        setByHand(unknown("Presenter"), STUCK, "this screen was closed"),
         unknown("View")
       )
     )
 
-    assertThat(statuses.map { it.status }).containsExactly(UNKNOWN, LEAKING, LEAKING)
+    assertThat(statuses.map { it.status }).containsExactly(UNKNOWN, STUCK, STUCK)
     assertThat(statuses.last().reason).isEqualTo("Presenter↑ is stuck")
   }
 
@@ -133,7 +133,7 @@ class LeakStatusTest {
       listOf(leaking("Activity"), setByHand(unknown("View"), UNKNOWN, "no idea what this is"))
     )
 
-    assertThat(statuses.last().status).isEqualTo(LEAKING)
+    assertThat(statuses.last().status).isEqualTo(STUCK)
     assertThat(statuses.last().reason)
       .isEqualTo("Activity↑ is stuck. Conflicts with set by hand — no idea what this is")
   }
