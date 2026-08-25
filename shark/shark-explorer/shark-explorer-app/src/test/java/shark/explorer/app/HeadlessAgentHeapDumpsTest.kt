@@ -42,6 +42,23 @@ class HeadlessAgentHeapDumpsTest {
   }
 
   @Test
+  fun `a heap dump named on the command line is named before it can be read`() {
+    val file = temporaryFolder.leakyHeapDump().file
+    headless(file).use { heapDumps ->
+      // Either open or indexing, and the assertion is the union because which one it is at this line is a race
+      // with the open this started: the invariant that matters is that a dump this run was pointed at is never
+      // in neither list. An agent that asks what is open and is told nothing, with no path, guesses a path.
+      val named = heapDumps.openingHeapDumpPaths() + heapDumps.openHeapDumps().map { it.heapDumpPath }
+      assertThat(named).containsExactly(file.absolutePath)
+
+      runBlocking { heapDumps.open(file) }
+
+      assertThat(heapDumps.openHeapDumps().map { it.heapDumpPath }).containsExactly(file.absolutePath)
+      assertThat(heapDumps.openingHeapDumpPaths()).isEmpty()
+    }
+  }
+
+  @Test
   fun `opening the same heap dump twice is one heap dump`() {
     val file = temporaryFolder.leakyHeapDump().file
     headless().use { heapDumps ->

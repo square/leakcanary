@@ -147,6 +147,19 @@ interface AgentHeapDumps {
   fun openHeapDumps(): List<AgentHeapDump>
 
   /**
+   * The heap dumps this run was pointed at and cannot read yet, absolute, because indexing one takes as long
+   * as it takes.
+   *
+   * Beside [openHeapDumps] rather than in it, since a window id is a promise that every tool given it answers
+   * and a dump nothing can read yet cannot keep that promise. But leaving the path out of the answer
+   * altogether is worse than either: an agent that asks what is open, is told nothing is, and is not told the
+   * path this run was started on has one move left, which is to guess a path. One did — it guessed a heap dump
+   * belonging to another run of the same eval, investigated that instead, and answered confidently about a
+   * dump nobody had asked it about. See `notes/agent-eval.md`.
+   */
+  fun openingHeapDumpPaths(): List<String>
+
+  /**
    * Opens [file] in a window of this app and answers once it can be read.
    *
    * Once it can be *read*, rather than once the window exists: everything else here is a read, so an answer

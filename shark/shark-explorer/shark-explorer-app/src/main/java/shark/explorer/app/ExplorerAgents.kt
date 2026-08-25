@@ -131,6 +131,12 @@ internal class WindowAgentHeapDumps(
       window.openHeapDump?.let { open -> window.agentHeapDump(open) }
     }
 
+  override fun openingHeapDumpPaths(): List<String> = windows.mapNotNull { window ->
+    // A window opened on a file it is still indexing, which is what a run started on a path looks like for as
+    // long as the indexing takes — and what an agent connecting in that window is otherwise told nothing about.
+    window.heapDumpFile?.takeIf { window.openHeapDump == null }?.absolutePath
+  }
+
   override suspend fun open(file: File): AgentHeapDump {
     // A window already on this file rather than a second window on it, which is the opposite of what the
     // button does: a person clicking `Open heap dump…` twice on one dump is comparing two readings of it, and

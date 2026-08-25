@@ -100,6 +100,8 @@ internal class FakeAgentHeapDump(
  */
 internal class FakeAgentHeapDumps(
   private val open: List<AgentHeapDump> = emptyList(),
+  /** Paths this run was pointed at that aren't readable yet, which is a dump still being indexed. */
+  private val indexing: List<String> = emptyList(),
   /** Keyed by serial number, each with the processes that device is running. */
   private val devices: Map<AndroidDevice, List<DeviceProcess>> = emptyMap(),
   /** What a file, or a dump pulled off a device, opens as. Refuses by default, since most tests open none. */
@@ -113,6 +115,8 @@ internal class FakeAgentHeapDumps(
   val dumped = mutableListOf<Pair<String, String>>()
 
   override fun openHeapDumps(): List<AgentHeapDump> = open
+
+  override fun openingHeapDumpPaths(): List<String> = indexing
 
   override suspend fun open(file: File): AgentHeapDump {
     opened += file

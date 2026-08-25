@@ -74,6 +74,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     schema = schema()
   ) { _ ->
     val dumps = heapDumps.openHeapDumps()
+    val indexing = heapDumps.openingHeapDumpPaths()
     // Read before the JSON is built rather than inside it: a heap dump read suspends, and the JSON builders
     // don't take a suspending block.
     val described = dumps.map { dump ->
@@ -89,13 +90,13 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       // instructions is a client whose model never saw them. See [AgentMethod].
       put("method", AgentMethod.INSTRUCTIONS)
       putJsonArray("heapDumps") { described.forEach { add(it) } }
+      // The paths this run was started on, whether or not anything is open: a second dump still indexing while
+      // the first one is readable is a dump an agent would otherwise never hear about.
+      if (indexing.isNotEmpty()) {
+        putJsonArray("indexing") { indexing.forEach { add(it) } }
+      }
       if (dumps.isEmpty()) {
-        put(
-          "problem",
-          "No heap dump is open yet. Call $OPEN_HEAP_DUMP with the path of an `.hprof` file, or dump_heap " +
-            "to take one off a device. If you were pointed at a heap dump, that path is the one to open: it " +
-            "may be being indexed right now, and opening it again waits for that rather than starting over."
-        )
+        put("problem", nothingToRead(indexing))
       }
     }
   }
@@ -714,9 +715,6 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     /** Named because [placeOrNull] is the one description of a call that has to know which tool it is. */
     const val LIST_LEAKS = "list_leaks"
 
-    /** And because the refusal for a path that isn't a heap dump points at it. */
-    const val OPEN_HEAP_DUMP = "open_heap_dump"
-
     const val WINDOW = "window"
     const val OBJECT = "object"
     const val FROM = "from"
@@ -901,4 +899,26 @@ private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
     else -> return
   }
   throw AgentRefusal(refusal)
+}
+
+/**
+ * Named out here because the refusal for a path that isn't a heap dump points at it, and because
+ * [nothingToRead] is not a method of [AgentTools].
+ */
+private const val OPEN_HEAP_DUMP = "open_heap_dump"
+
+/**
+ * What `open_heap_dumps` answers when there is nothing to read, which depends on whether there is about to be.
+ *
+ * The indexing case names the path rather than alluding to it, because an agent that is told nothing is open
+ * and is not told where its heap dump is has one move left, which is to guess a path — and one guessed another
+ * heap dump on the same machine and investigated that instead. See [AgentHeapDumps.openingHeapDumpPaths].
+ */
+private fun nothingToRead(indexing: List<String>): String = if (indexing.isEmpty()) {
+  "No heap dump is open yet. Call $OPEN_HEAP_DUMP with the path of an `.hprof` file, or dump_heap to take " +
+    "one off a device."
+} else {
+  "No heap dump can be read yet: this run was pointed at ${indexing.joinToString(", ")} and is indexing it. " +
+    "Call $OPEN_HEAP_DUMP with that path — it waits for the indexing rather than starting over — and " +
+    "investigate that dump. It is the one you were asked about, so don't go looking for another file."
 }

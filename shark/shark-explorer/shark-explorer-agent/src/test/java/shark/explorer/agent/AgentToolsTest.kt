@@ -87,6 +87,24 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `a heap dump still being indexed is named rather than left to be guessed`() {
+    tools = AgentTools(FakeAgentHeapDumps(indexing = listOf("/eval/runs/4/heap-dump.hprof")))
+
+    val answer = call(OPEN_HEAP_DUMPS)
+
+    assertThat(answer.array("indexing").map { it.jsonPrimitive.content })
+      .containsExactly("/eval/runs/4/heap-dump.hprof")
+    assertThat(answer.text("problem"))
+      .contains("/eval/runs/4/heap-dump.hprof")
+      .contains(OPEN_HEAP_DUMP)
+  }
+
+  @Test
+  fun `nothing is said to be indexing when nothing is`() {
+    assertThat(call(OPEN_HEAP_DUMPS).jsonObject.keys).doesNotContain("indexing")
+  }
+
+  @Test
   fun `two heap dumps open have to be named`() {
     val other = FakeAgentHeapDump(heapDump.explorer, windowId = "otherwindow")
     tools = AgentTools(FakeAgentHeapDumps(listOf(window, other)))
@@ -698,6 +716,7 @@ class AgentToolsTest {
   private companion object {
 
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
+    const val OPEN_HEAP_DUMP = "open_heap_dump"
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
     const val OBJECT = "object"

@@ -68,6 +68,11 @@ internal class HeadlessAgentHeapDumps(
 
   override fun openHeapDumps(): List<AgentHeapDump> = synchronized(lock) { opened.map { it.agent } }
 
+  override fun openingHeapDumpPaths(): List<String> = synchronized(lock) {
+    val readable = opened.map { it.agent.heapDumpPath }.toSet()
+    openings.keys.map { it.absolutePath }.filter { it !in readable }
+  }
+
   override suspend fun open(file: File): AgentHeapDump = opening(file).await().agent
 
   /** Releases the thread each open heap dump owns, and stops the ones still opening. */
