@@ -45,6 +45,12 @@ uses, without the one for a newly recognized library leak:
   does, and reporting a root cause is refused until the chain names one faulty reference. Point any MCP client
   at the installed app with `--mcp-stdio`.
   See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
+* ✨ **Agent logs**: every agent that has connected to the app is a row on a screen of its own, and opening
+  one is everything that agent did — what each call did, which object it did it to, and the sentence it gave
+  for making it, with the refusals in red. A row leads where the call went, so reading what an agent did and
+  going to look at it are one move. Kept in `~/.shark-explorer/agents/sessions`, one file per session and the
+  newest hundred kept, so a session outlives the window it was worked in.
+  See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
 * ✨ **The chain marks the faulty reference**: the one step going from an `Expected` object straight to a
   `Stuck` one reads `Holder.activity · faulty reference`, which is the leak itself rather than one of the
   objects it left behind, and the same reference the **Leaks** screen names that leak after. A chain whose

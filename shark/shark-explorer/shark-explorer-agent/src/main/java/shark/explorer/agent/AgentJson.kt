@@ -14,7 +14,6 @@ import shark.explorer.HeapLeaks
 import shark.explorer.HeapObjectSummary
 import shark.explorer.HeapSizes
 import shark.explorer.IndependentPaths
-import shark.explorer.LeakStatusConflict
 import shark.explorer.LeakStatusOverrides
 import shark.explorer.ObjectDominator
 import shark.explorer.ObjectList
@@ -223,24 +222,6 @@ internal object AgentJson {
           put("shallowBytes", entry.shallowSize)
           put("retainedBytes", entry.retainedSize)
           put("strength", entry.strength.name)
-        }
-      }
-    }
-  }
-
-  /** What setting a verdict would disagree with, and what solving it would set those objects to. */
-  fun conflicts(conflicts: List<LeakStatusConflict>): JsonArray = buildJsonArray {
-    conflicts.forEach { conflict ->
-      addJsonObject {
-        put("object", exactHexObjectId(conflict.existing.objectId))
-        put("objectName", conflict.objectName)
-        put("verdict", conflict.existing.status.name)
-        put("reason", conflict.existing.reason)
-        // Which way round the two objects are, since that is what makes the disagreement one at all.
-        put("holdsTheObjectBeingSet", conflict.isAbove)
-        putJsonObject("wouldBecome") {
-          put("verdict", conflict.solved.status.name)
-          put("reason", conflict.solved.reason)
         }
       }
     }

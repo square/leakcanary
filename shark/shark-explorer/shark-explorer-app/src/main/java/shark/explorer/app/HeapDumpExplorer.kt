@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -76,6 +77,7 @@ import shark.explorer.Tabs
 import shark.explorer.TreemapLayout
 import shark.explorer.TreemapPresentation
 import shark.explorer.TreemapRect
+import shark.explorer.agent.AgentSession
 import shark.explorer.detours
 import shark.explorer.formatObjectCount
 import shark.explorer.hexObjectId
@@ -129,6 +131,14 @@ internal fun HeapDumpExplorer(
    * window of this run, another run of the app, or nowhere. See [DeepLinkPeers.follow].
    */
   followDeepLink: (DeepLink) -> Unit = { link -> SharkLog.d { "Nothing here to follow $link with" } },
+  /**
+   * What every agent that has connected to this app did, read whenever the screen showing them is open.
+   *
+   * A function rather than state, because this is a directory of files an agent is appending to while the
+   * screen is being read: re-reading it is what makes the screen live. Overridden by tests, which have
+   * sessions of their own rather than the ones under this machine's home directory.
+   */
+  agentSessions: () -> List<AgentSession> = ::agentSessions,
   /** Overridden by tests, which have no browser. */
   openUrl: (String) -> Unit = ::openInBrowser,
   /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
@@ -178,6 +188,8 @@ internal fun HeapDumpExplorer(
   var showsBitmapsFromDevice by remember { mutableStateOf(false) }
   /** The objects starred so far, with everything the list shows about them read once. */
   var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
+  /** What the agents that have worked through this app did, while a screen showing them is open. */
+  var sessions by remember { mutableStateOf(emptyList<AgentSession>()) }
   /** What each tab is called, by the place it is on. Only grows: a place is named once and stays named. */
   var placeTitles by remember { mutableStateOf(emptyMap<Place, String>()) }
   /**
@@ -492,6 +504,21 @@ internal fun HeapDumpExplorer(
   // opened per tab, since what it answers is a question about the whole strip. See [HeapDumpNotes.list].
   LaunchedEffect(notes) { notes.list() }
 
+  // What the agents that have connected to this app did, for as long as a screen showing them is open. Read
+  // again on a timer rather than watched, because an agent appends to its session file while somebody is
+  // reading it — being able to watch an investigation happen is the point — and a handful of small files is
+  // cheaper to read again than a file watcher is to set up and take down per tab.
+  val showsAgentLogs = place is Place.AgentLogs || place is Place.AgentLog
+  LaunchedEffect(showsAgentLogs) {
+    if (!showsAgentLogs) {
+      return@LaunchedEffect
+    }
+    while (true) {
+      sessions = withContext(Dispatchers.IO) { agentSessions() }
+      delay(AGENT_LOGS_REFRESH_MILLIS)
+    }
+  }
+
   // And what has been decided about this heap dump's objects by hand, also once per run: one small file,
   // read before anything is drawn from it, because a chain read without it would be the heap dump's own
   // answer where someone has already recorded another. See [HeapDumpLeakStatuses].
@@ -699,9 +726,13 @@ internal fun HeapDumpExplorer(
           leaks = leaks,
           isFindingLeaks = isFindingLeaks,
           favourites = favourites,
+          sessions = sessions,
+          heapDumpFile = session.heapDumpFile,
           sizes = sizes,
           onOpen = openObject,
           onCopyLink = copyObjectLink,
+          onOpenPlace = open,
+          onCopyPlaceLink = copyLink,
           onReplacePlace = { tabs = tabs.replacingCurrent(it) },
           onRemoveStar = { objectId -> favourites = favourites.filterNot { it.objectId == objectId } },
           modifier = Modifier.fillMaxSize()
@@ -1034,9 +1065,16 @@ private fun ListPlace(
   leaks: HeapLeaks?,
   isFindingLeaks: Boolean,
   favourites: List<Favourite>,
+  /** What the agents that have worked through this app did, for the screens that draw them. */
+  sessions: List<AgentSession>,
+  /** Which heap dump this window has open, which is what decides where an agent's row leads. */
+  heapDumpFile: File,
   sizes: HeapSizes,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
+  /** Where a row leading to something that is not an object goes. See [AgentLogsScreen]. */
+  onOpenPlace: (Place, OpenIn) -> Unit,
+  onCopyPlaceLink: (Place) -> Unit,
   onReplacePlace: (Place) -> Unit,
   onRemoveStar: (Long) -> Unit,
   modifier: Modifier = Modifier
@@ -1077,6 +1115,20 @@ private fun ListPlace(
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onRemove = onRemoveStar,
+      modifier = modifier
+    )
+    is Place.AgentLogs -> AgentLogsScreen(
+      sessions = sessions,
+      onOpen = onOpenPlace,
+      onCopyLink = onCopyPlaceLink,
+      modifier = modifier
+    )
+    is Place.AgentLog -> AgentLogScreen(
+      // Null for a session that has been pushed out by newer ones, or one from another machine's link.
+      session = sessions.firstOrNull { it.sessionId == place.sessionId },
+      heapDumpFile = heapDumpFile,
+      onOpen = onOpenPlace,
+      onCopyLink = onCopyPlaceLink,
       modifier = modifier
     )
     // The places with a view of their own are drawn by the panes, not here.
@@ -1155,6 +1207,10 @@ private fun ScreenBar(
       onCopyLink = onCopyLink,
       isEnabled = starredCount > 0
     )
+    // Beside the reader's own trail through the heap dump, because it is the same kind of thing: what has
+    // been looked at, by whoever was looking. An agent works in this window rather than in one of its own,
+    // so what it did belongs on this bar and not in a file somebody has to be told about.
+    ScreenButton(Place.AgentLogs, Place.AGENT_LOGS_LABEL, onOpen, onCopyLink)
     // Only when there are bitmaps the dump has no pixels for, because that's the only thing a device can
     // add: pixels the dump carries are already on the map by the time this bar is read.
     if (bitmapCounts.withoutImageCount > 0) {
@@ -1568,6 +1624,16 @@ private const val FILTER_SETTLE_MILLIS = 250L
  * crossing the map costs the rectangles the pointer stopped on rather than every rectangle on the way.
  */
 private const val HOVER_SETTLE_MILLIS = 100L
+
+/**
+ * How often the sessions of the agents that have connected are read again, while a screen showing them is
+ * open.
+ *
+ * A second, because what this is for is watching an agent work: a row appearing as the call it stands for is
+ * answered is the difference between following an investigation and reading a report of one. Off entirely
+ * while no such screen is open, which is nearly always.
+ */
+private const val AGENT_LOGS_REFRESH_MILLIS = 1_000L
 
 /** What a tab is called for the beat between it being opened and the heap dump having named it. */
 private const val NAMING_TAB = "…"

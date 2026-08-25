@@ -10,6 +10,8 @@ import shark.explorer.agent.AgentHeapDump
 import shark.explorer.agent.AgentHeapDumps
 import shark.explorer.agent.AgentRefusal
 import shark.explorer.agent.AgentServer
+import shark.explorer.agent.AgentSession
+import shark.explorer.agent.AgentSessionFile
 import shark.explorer.agent.AgentStdioBridge
 
 /**
@@ -162,6 +164,16 @@ private class WindowAgentHeapDump(
 
 /** Between what was already written about a place and what an agent has to add, which is markdown. */
 private const val PARAGRAPH_BREAK = "\n\n"
+
+/**
+ * What every agent that has connected to this app did, newest session first.
+ *
+ * Read off disk rather than kept in memory, and not only this run's: the question the *Agent logs* screen
+ * answers is "what has an agent done to this heap dump", and the answer to that outlives the run it happened
+ * in. A directory of small files, so re-reading it is what keeps the screen live while an agent works.
+ */
+internal fun agentSessions(): List<AgentSession> =
+  AgentSessionFile.sessionsIn(AgentServer.sessionsDirectory(AGENT_RUNS_DIRECTORY))
 
 /** Beside the runs answering links, the notes, the statuses and the logs. See [AgentServer]. */
 private val AGENT_RUNS_DIRECTORY = File(SHARK_EXPLORER_DIRECTORY, "agents")

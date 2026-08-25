@@ -59,7 +59,11 @@ object AgentServer {
     return try {
       write(file, serverSocket.localPort, token)
       SharkLog.d { "Answering agents on port ${serverSocket.localPort}, published as $file" }
-      val thread = Thread({ accept(serverSocket, token, heapDumps, serverVersion) }, THREAD_NAME).apply {
+      val sessions = sessionsDirectory(directory)
+      val thread = Thread(
+        { accept(serverSocket, token, heapDumps, serverVersion, sessions) },
+        THREAD_NAME
+      ).apply {
         isDaemon = true
         start()
       }
@@ -75,6 +79,14 @@ object AgentServer {
       Closeable {}
     }
   }
+
+  /**
+   * Where the sessions of the agents that connect to a run published in [directory] are written down.
+   *
+   * One function rather than a path spelled in two modules: the app reads these to draw them, and a screen
+   * looking in the wrong directory is a screen that says no agent has ever been here. See [AgentSessionFile].
+   */
+  fun sessionsDirectory(directory: File): File = File(directory, SESSIONS_DIRECTORY)
 
   /** Every run of this app an agent could connect to, newest first, stale files cleared out on the way. */
   internal fun publishedRuns(directory: File): List<PublishedRun> {
@@ -122,7 +134,8 @@ object AgentServer {
     serverSocket: ServerSocket,
     token: String,
     heapDumps: AgentHeapDumps,
-    serverVersion: String
+    serverVersion: String,
+    sessions: File
   ) {
     while (!serverSocket.isClosed) {
       try {
@@ -130,7 +143,7 @@ object AgentServer {
         // A thread per agent, because a session is held open for as long as the agent is working and two
         // agents on one heap dump is a thing to allow rather than to serialise: what they would queue on
         // is the heap dump's own thread, which is where reads belong anyway.
-        Thread({ serve(socket, token, heapDumps, serverVersion) }, THREAD_NAME).apply {
+        Thread({ serve(socket, token, heapDumps, serverVersion, sessions) }, THREAD_NAME).apply {
           isDaemon = true
           start()
         }
@@ -155,7 +168,8 @@ object AgentServer {
     socket: Socket,
     token: String,
     heapDumps: AgentHeapDumps,
-    serverVersion: String
+    serverVersion: String,
+    sessions: File
   ) {
     socket.use {
       val reader = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
@@ -169,7 +183,12 @@ object AgentServer {
         return
       }
       writer.println(ACCEPTED)
-      val session = McpSession(AgentTools(heapDumps), serverVersion)
+      // A file per accepted connection, so that two agents at one heap dump are two sessions to read rather
+      // than one file with both of their reasoning in it. Named before the handshake, since a client that
+      // connects and says nothing is itself worth a line on that screen.
+      val sessionFile = AgentSessionFile.starting(sessions, serverVersion)
+      SharkLog.d { "An agent's session is being written to ${sessionFile.file}" }
+      val session = McpSession(AgentTools(heapDumps), serverVersion, sessionFile)
       while (true) {
         val line = reader.readLine() ?: break
         if (line.isBlank()) {
@@ -208,6 +227,9 @@ object AgentServer {
 
   /** Beside the runs answering links, the notes and the logs, which is everything else this app keeps. */
   internal const val RUN_SUFFIX = ".agent"
+
+  /** Under the directory the runs publish themselves in, since a session is a run being talked to. */
+  private const val SESSIONS_DIRECTORY = "sessions"
   internal const val ACCEPTED = "OK"
   internal const val DECLINED = "NO"
   private const val PORT_PROPERTY = "port"

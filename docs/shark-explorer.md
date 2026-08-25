@@ -287,8 +287,40 @@ draws by, held to before an answer can be written down: an agent that has narrow
 unexplained steps cannot report a root cause, however sure it is, and what it gets instead is the three
 objects to go and read.
 
-**What it did is in the log**, in `~/.shark-explorer/logs`, one line per call with the reason it gave followed
-by the reads that call cost:
+**What it did is on the *Agent logs* screen**, one row per agent that has connected to the app. Open a row
+and there is every call that agent made, in order and in words — what it did, which object it did it to, and
+the sentence it gave for doing it:
+
+```
+08:23:11  Listed the leaks
+          because: Starting from what the heap dump already says shouldn't be here.
+08:23:18  Read the chain to 0x12d368b8
+          because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is
+          true. Reading the chain from a GC root.
+08:23:27  Described 0x12d00c30
+          because: The FutureTask in the middle of the chain: checking whether it is really running.
+08:23:34  Looked for every way of holding 0x12d368b8
+          because: Checking whether anything else holds the activity, or only this one chain.
+```
+
+**A row leads where the call went**: click *Read the chain to 0x12d368b8* and the window opens that object,
+so reading what an agent did and going to look at it are one move.
+
+**A refused call is a row too**, in red, under the reason the agent gave for making it — and those are the
+half of a session worth reading, since a refusal is where the method sent an agent back to the heap dump
+rather than on to an answer:
+
+```
+08:23:45  Concluded about 0x12d00c30
+          because: […]
+          Refused: Not concluded. Nothing on this chain of 4 steps is STUCK, so it points at no
+          reference: the rules can only name one once something below it is known not to belong. […]
+```
+
+A session is kept in `~/.shark-explorer/agents/sessions`, one file per agent that connected and the newest
+hundred kept, a line of JSON per call — so it outlives the window and can be read by something other than
+this app. **And the reads each call cost are in the run's log**, in `~/.shark-explorer/logs`, where the reason
+it gave is followed by the work it caused:
 
 ```
 18:19:48.035 [shark-explorer-agents] An agent called chain_from_gc_root(object=0x12d368b8, window=zvphq4r3)

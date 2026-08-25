@@ -1,5 +1,6 @@
 package shark.explorer.agent
 
+import java.io.File
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -12,6 +13,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.explorer.Place
 import shark.explorer.exactHexObjectId
 
 /**
@@ -33,12 +35,18 @@ class McpSessionTest {
   private lateinit var heapDump: InvestigationHeapDump
   private lateinit var window: FakeAgentHeapDump
   private lateinit var session: McpSession
+  private lateinit var sessionsDirectory: File
 
   @Before
   fun setUp() {
     heapDump = temporaryFolder.applicationHoldsActivityThroughHolder()
     window = FakeAgentHeapDump(heapDump.explorer)
-    session = McpSession(AgentTools { listOf(window) }, serverVersion = SERVER_VERSION)
+    sessionsDirectory = File(temporaryFolder.root, "sessions")
+    session = McpSession(
+      tools = AgentTools { listOf(window) },
+      serverVersion = SERVER_VERSION,
+      sessionFile = AgentSessionFile.starting(sessionsDirectory, SERVER_VERSION)
+    )
   }
 
   @After
@@ -177,6 +185,49 @@ class McpSessionTest {
       .contains("because: Checking whether the holder is the singleton it looks like.")
     assertThat(log.subList(called + 1, log.size)).contains("${hex(heapDump.holderObjectId)} for an agent")
   }
+
+  @Test
+  fun `every call is written down with its reason and somewhere to go`() {
+    answer(
+      """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18",""" +
+        """"clientInfo":{"name":"claude-code","version":"9.9.9"},"capabilities":{}}}"""
+    )
+    callTool(
+      """{"name":"describe_object","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
+        """"reason":"Checking whether the holder is the singleton it looks like."}}"""
+    )
+
+    val session = sessions().single()
+    assertThat(session.client).isEqualTo("claude-code 9.9.9")
+    assertThat(session.serverVersion).isEqualTo(SERVER_VERSION)
+    val call = session.calls.single()
+    assertThat(call.verb).isEqualTo("Described")
+    assertThat(call.subject).isEqualTo(hex(heapDump.holderObjectId))
+    assertThat(call.reason).isEqualTo("Checking whether the holder is the singleton it looks like.")
+    assertThat(call.refusal).isNull()
+    // Which is what makes the row clickable: the place, in the window the call was made against.
+    assertThat(call.place).isEqualTo(Place.Object(heapDump.holderObjectId))
+    assertThat(call.link()).isEqualTo("shark://${window.windowId}/object?id=${hex(heapDump.holderObjectId)}")
+    assertThat(call.heapDumpPath).isEqualTo(window.heapDumpPath)
+  }
+
+  @Test
+  fun `a refused call is written down with the refusal and what it was asking about`() {
+    callTool(
+      """{"name":"conclude","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +
+        """"rootCause":"The holder never lets go.","reason":"I know what this is."}}"""
+    )
+
+    val call = sessions().single().calls.single()
+    assertThat(call.verb).isEqualTo("Concluded about")
+    assertThat(call.refusal).contains("Not concluded")
+    assertThat(call.reason).isEqualTo("I know what this is.")
+    // Refused, and still pointing at the object it was refused about: a refusal nobody can follow up on is
+    // the half of a session that is worth reading afterwards.
+    assertThat(call.place).isEqualTo(Place.Object(heapDump.activityObjectId))
+  }
+
+  private fun sessions(): List<AgentSession> = AgentSessionFile.sessionsIn(sessionsDirectory)
 
   private fun callTool(params: String): JsonObject =
     answer("""{"jsonrpc":"2.0","id":9,"method":"tools/call","params":$params}""").result()

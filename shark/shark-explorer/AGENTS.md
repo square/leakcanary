@@ -548,6 +548,9 @@ numbers belong in `notes/bitmaps.md`.
   default keeps notes in `~/.shark-explorer/notes`, so a test taking it writes into the notes of whoever is
   running it. A window that never opens one only lists that directory to see which tabs to mark, which is
   why the tests that don't touch notes need no directory of their own.
+- **A UI test that opens the *Agent logs* screen must pass its own `agentSessions`.** The default reads
+  `~/.shark-explorer/agents/sessions`, so a test taking it draws whatever the person running it last handed
+  to an agent — and asserts on rows it didn't write. `AgentLogsScreenTest` builds the sessions it expects.
 - **A UI test must pass a `DeviceHeapDumps` built on a fake `Adb`.** `ExplorerApp`'s default shells out to
   the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for — and the
   window can dump the heap of a real process. `FakeAdb` matches command prefixes, because the remote dump

@@ -45,6 +45,7 @@ import shark.explorer.HeapSizes
 import shark.explorer.NativeBitmapPixels
 import shark.explorer.Place
 import shark.explorer.ReachabilityStrength
+import shark.explorer.agent.AgentSession
 import shark.explorer.formatByteSize
 import shark.explorer.formatObjectCount
 import shark.explorer.jdwp.JdwpBitmaps
@@ -247,6 +248,13 @@ internal fun ExplorerApp(
    * closes. See [ExplorerWindow.openHeapDump].
    */
   onHeapDumpOpen: (WindowHeapDump?) -> Unit = {},
+  /**
+   * What every agent that has connected did, for the screens that draw them.
+   *
+   * Its own by default, and overridden by tests for the reason the notes are: a test reading the sessions
+   * under whoever is running it would be a test of their investigations rather than of this window.
+   */
+  agentSessions: () -> List<AgentSession> = ::agentSessions,
   /** What a link to a place in this window names it by. See [shark.explorer.DeepLink]. */
   deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked this window for, which its tabs open. See [ExplorerWindow.linkedPlaces]. */
@@ -373,6 +381,7 @@ internal fun ExplorerApp(
         fetchedBitmapPixels = currentState.bitmapPixels,
         notes = notes.of(currentState.session.heapDumpFile),
         leakStatuses = leakStatuses.of(currentState.session.heapDumpFile),
+        agentSessions = agentSessions,
         deepLinkId = deepLinkId,
         linkedPlaces = linkedPlaces,
         onLinkedPlaceOpened = onLinkedPlaceOpened,

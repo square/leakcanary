@@ -135,6 +135,26 @@ class DeepLinkTest {
   }
 
   /**
+   * Which is what an agent's own session is handed over by: the human it is working for gets a link to what
+   * it did, rather than a path to a file and instructions for finding the row.
+   */
+  @Test
+  fun `one agent's session is named by the session`() {
+    val place = Place.AgentLog("1a2b3c4d")
+
+    assertThat(DeepLink("abcd2345", place).toUri())
+      .isEqualTo("shark://abcd2345/agent-log?session=1a2b3c4d")
+    assertThat(DeepLink.parse("shark://abcd2345/agent-log?session=1a2b3c4d").place).isEqualTo(place)
+  }
+
+  @Test
+  fun `an agent log link with no session says what is missing`() {
+    assertThatThrownBy { DeepLink.parse("shark://abcd2345/agent-log") }
+      .isInstanceOf(IllegalArgumentException::class.java)
+      .hasMessageContaining("needs a \"session\"")
+  }
+
+  /**
    * The one that has to keep being true as places are added: every [Place] is reachable by link, which is
    * the whole promise. A place with no spelling here fails this rather than being found out by clicking one.
    */
@@ -148,7 +168,9 @@ class DeepLinkTest {
       Place.Objects(ObjectListFilter(query = "Bitmap", isExactMatch = true)),
       Place.Leaks(),
       Place.Leaks(expandedGroups = setOf("APPLICATION 12ab")),
-      Place.Starred
+      Place.Starred,
+      Place.AgentLogs,
+      Place.AgentLog("1a2b3c4d")
     )
 
     places.forEach { place ->

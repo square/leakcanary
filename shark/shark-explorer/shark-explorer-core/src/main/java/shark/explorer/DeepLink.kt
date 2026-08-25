@@ -104,6 +104,8 @@ data class DeepLink(
       )
       LEAKS_PATH -> Place.Leaks(parameters.all(EXPANDED_PARAMETER).toSet())
       STARRED_PATH -> Place.Starred
+      AGENT_LOGS_PATH -> Place.AgentLogs
+      AGENT_LOG_PATH -> Place.AgentLog(parameters.required(SESSION_PARAMETER, uri))
       else -> throw IllegalArgumentException("\"$path\" is no place of \"$uri\". ${usage()}")
     }
 
@@ -200,9 +202,18 @@ data class DeepLink(
     internal const val OBJECTS_PATH = "objects"
     internal const val LEAKS_PATH = "leaks"
     internal const val STARRED_PATH = "starred"
+    internal const val AGENT_LOGS_PATH = "agent-logs"
+    internal const val AGENT_LOG_PATH = "agent-log"
 
-    private val PLACE_PATHS =
-      listOf(OBJECT_PATH, SMALLER_OBJECTS_PATH, OBJECTS_PATH, LEAKS_PATH, STARRED_PATH)
+    private val PLACE_PATHS = listOf(
+      OBJECT_PATH,
+      SMALLER_OBJECTS_PATH,
+      OBJECTS_PATH,
+      LEAKS_PATH,
+      STARRED_PATH,
+      AGENT_LOGS_PATH,
+      AGENT_LOG_PATH
+    )
 
     internal const val ID_PARAMETER = "id"
     internal const val PARENT_PARAMETER = "parent"
@@ -212,19 +223,22 @@ data class DeepLink(
     internal const val EXACT_PARAMETER = "exact"
     internal const val KINDS_PARAMETER = "kinds"
     internal const val EXPANDED_PARAMETER = "expanded"
+    internal const val SESSION_PARAMETER = "session"
 
     internal const val HEX_PREFIX = "0x"
     private const val HEX_RADIX = 16
   }
 }
 
-/** Which of the five a place is written as. The other half of `DeepLink.placeOf`, and it has to stay so. */
+/** Which place this is written as. The other half of `DeepLink.placeOf`, and it has to stay so. */
 private fun Place.linkPath(): String = when (this) {
   is Place.Object -> DeepLink.OBJECT_PATH
   is Place.SmallerObjects -> DeepLink.SMALLER_OBJECTS_PATH
   is Place.Objects -> DeepLink.OBJECTS_PATH
   is Place.Leaks -> DeepLink.LEAKS_PATH
   is Place.Starred -> DeepLink.STARRED_PATH
+  is Place.AgentLogs -> DeepLink.AGENT_LOGS_PATH
+  is Place.AgentLog -> DeepLink.AGENT_LOG_PATH
 }
 
 /**
@@ -255,6 +269,8 @@ private fun Place.linkParameters(): List<Pair<String, String>> = when (this) {
   }
   is Place.Leaks -> expandedGroups.sorted().map { DeepLink.EXPANDED_PARAMETER to it }
   is Place.Starred -> emptyList()
+  is Place.AgentLogs -> emptyList()
+  is Place.AgentLog -> listOf(DeepLink.SESSION_PARAMETER to sessionId)
 }
 
 /** The exact 64 bits, unsigned, which is what `DeepLink.nodeId` reads back. */

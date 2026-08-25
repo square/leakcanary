@@ -74,6 +74,9 @@ fun Place.noteKey(): String = when (this) {
   is Place.Objects -> "object-list"
   is Place.Leaks -> "leaks"
   is Place.Starred -> "starred"
+  is Place.AgentLogs -> "agent-logs"
+  // Per session, because a note about what one agent did is about that investigation and not about agents.
+  is Place.AgentLog -> "agent-log-$sessionId"
 }
 
 /** The note about the heap dump as a whole, which is the place its first tab opens on. */

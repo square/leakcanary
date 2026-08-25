@@ -102,6 +102,31 @@ sealed interface Place {
     override val viewRootObjectId: Long? get() = null
   }
 
+  /** Every agent that has worked on a heap dump of this app, one row each. See `AgentSessionFile`. */
+  data object AgentLogs : Place {
+
+    override val title: String get() = AGENT_LOGS_LABEL
+
+    override val viewRootObjectId: Long? get() = null
+  }
+
+  /**
+   * What one agent did, call by call.
+   *
+   * A place like any other, so that it is a tab, a link, and somewhere the back arrow returns to — which is
+   * the whole point: reading what an agent did and going to look at what it was looking at have to be the
+   * same kind of move, or following an investigation means keeping a list of addresses on paper.
+   */
+  data class AgentLog(
+    /** Which session, as [DeepLink] and the file it was written to name it. */
+    val sessionId: String
+  ) : Place {
+
+    override val title: String get() = "$AGENT_LOGS_LABEL $sessionId"
+
+    override val viewRootObjectId: Long? get() = null
+  }
+
   companion object {
 
     /**
@@ -132,6 +157,9 @@ sealed interface Place {
 
     /** And to the objects starred so far. */
     const val STARRED_LABEL = "Starred"
+
+    /** And to what the agents that have worked on a heap dump of this app did. */
+    const val AGENT_LOGS_LABEL = "Agent logs"
   }
 }
 
@@ -157,6 +185,8 @@ fun HeapDominatorTreemap.titleOf(place: Place): String = when (place) {
   is Place.Objects -> place.title
   is Place.Leaks -> place.title
   is Place.Starred -> place.title
+  is Place.AgentLogs -> place.title
+  is Place.AgentLog -> place.title
 }
 
 /**

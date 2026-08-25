@@ -1,5 +1,6 @@
 package shark.explorer.agent
 
+import java.time.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -31,7 +32,13 @@ import shark.SharkLog
 internal class McpSession(
   private val tools: AgentTools,
   /** Which build of the app is answering, for a client that logs what it connected to. */
-  private val serverVersion: String
+  private val serverVersion: String,
+  /**
+   * Where this session is written down, which is what the window's *Agent logs* screen draws and what the
+   * eval scores. One per connection, so that two agents at one heap dump are two files. See
+   * [AgentSessionFile].
+   */
+  private val sessionFile: AgentSessionFile
 ) {
 
   /**
@@ -109,9 +116,13 @@ internal class McpSession(
    */
   private fun initialize(params: JsonObject): JsonObject {
     val clientVersion = (params["protocolVersion"] as? JsonPrimitive)?.content
-    val clientName = (params["clientInfo"] as? JsonObject)
-      ?.let { (it["name"] as? JsonPrimitive)?.content }
+    val clientInfo = params["clientInfo"] as? JsonObject
+    val clientName = listOfNotNull(
+      (clientInfo?.get("name") as? JsonPrimitive)?.content,
+      (clientInfo?.get("version") as? JsonPrimitive)?.content
+    ).joinToString(" ").takeIf { it.isNotEmpty() }
     SharkLog.d { "An agent connected: ${clientName ?: "a client that did not say who it is"}" }
+    sessionFile.opened(client = clientName, protocolVersion = clientVersion)
     return buildJsonObject {
       put("protocolVersion", clientVersion ?: FALLBACK_PROTOCOL_VERSION)
       putJsonObject("capabilities") {
@@ -139,14 +150,53 @@ internal class McpSession(
     // One line per call, before the reads it causes, so that a session log reads as what the agent was
     // trying to learn and then what that cost. See [AgentTools].
     SharkLog.d { "An agent called $name${arguments.logLine()}" }
+    // What the call is about, read before it is made rather than after: a refused call is recorded pointing
+    // at whatever it was asking about, which is most of what makes a refusal worth reading afterwards.
+    val target = tools.target(name, arguments)
+    val at = Instant.now()
+    val startedAt = System.nanoTime()
     return try {
-      toolResult(tool.call(arguments))
+      val result = toolResult(tool.call(arguments))
+      record(name, arguments, target, refusal = null, at = at, startedAt = startedAt)
+      result
     } catch (refused: AgentRefusal) {
       // A refusal is an answer to the agent and not a failure of the server, so it comes back as a tool
       // result the model reads rather than as a JSON-RPC error the client may swallow.
       SharkLog.d { "Refused $name: ${refused.message}" }
+      record(name, arguments, target, refusal = refused.message, at = at, startedAt = startedAt)
       toolError(refused.message)
     }
+  }
+
+  /**
+   * Writes the call down, answered or refused.
+   *
+   * Here rather than in [AgentTool] because this is the one place that has both halves of a call: what was
+   * asked, and what came back. Every call, in the order they were made, is what turns a session into
+   * something a person can follow — and the reason for each is the agent's own sentence rather than a
+   * paraphrase of it.
+   */
+  private fun record(
+    name: String,
+    arguments: JsonObject,
+    target: AgentTarget,
+    refusal: String?,
+    at: Instant,
+    startedAt: Long
+  ) {
+    sessionFile.called(
+      AgentSessionCall(
+        at = at,
+        tool = name,
+        reason = (arguments[REASON_ARGUMENT] as? JsonPrimitive)?.content,
+        windowId = target.windowId,
+        heapDumpPath = target.heapDumpPath,
+        place = target.place,
+        arguments = arguments.recorded(),
+        refusal = refusal,
+        millis = (System.nanoTime() - startedAt) / NANOS_PER_MILLI
+      )
+    )
   }
 
   private fun toolResult(result: JsonObject): JsonObject = buildJsonObject {
@@ -226,6 +276,25 @@ internal class McpSession(
     const val METHOD_NOT_FOUND = -32601
     const val INTERNAL_ERROR = -32603
 
+    /** What the agent said it was after, which every tool takes. See [AgentTool]. */
+    const val REASON_ARGUMENT = "reason"
+
+    /** Which window a call names, which the session log keeps as a field of its own. */
+    const val WINDOW_ARGUMENT = "window"
+
+    const val NANOS_PER_MILLI = 1_000_000L
+
+    /**
+     * The rest of the arguments, as text, for the row a session log keeps.
+     *
+     * Without the two that have fields of their own, and never as the JSON that arrived: what this is read
+     * back for is a screen that says what an agent did in words, so a value here is one the window can put
+     * beside a verb.
+     */
+    fun JsonObject.recorded(): Map<String, String> =
+      filterKeys { it != REASON_ARGUMENT && it != WINDOW_ARGUMENT }
+        .mapValues { (_, value) -> (value as? JsonPrimitive)?.content ?: value.toString() }
+
     /**
      * The arguments of a call on one line of the log, with the agent's `reason` first.
      *
@@ -236,8 +305,8 @@ internal class McpSession(
       if (isEmpty()) {
         return ""
       }
-      val reason = (this["reason"] as? JsonPrimitive)?.content
-      val rest = entries.filter { it.key != "reason" }
+      val reason = (this[REASON_ARGUMENT] as? JsonPrimitive)?.content
+      val rest = entries.filter { it.key != REASON_ARGUMENT }
         .joinToString(", ") { (key, value) -> "$key=${(value as? JsonPrimitive)?.content ?: value}" }
       return listOfNotNull(
         rest.takeIf { it.isNotEmpty() }?.let { "($it)" },

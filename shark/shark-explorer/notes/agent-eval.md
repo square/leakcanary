@@ -51,6 +51,12 @@ that connected, and per call the tool, its arguments, the reason, whether it was
 read took. The eval reads that rather than scraping prose, and the same file is what the window's *Agent
 logs* screen draws. One artefact, two readers — build it once.
 
+**That part exists**: `AgentSessionFile` writes `~/.shark-explorer/agents/sessions/*.jsonl` and reads it back,
+so a scorer is a walk over `AgentSessionFile.sessionsIn(…)`. Every signal in the table above is on it except
+the two the client reports — an answer written with no `conclude` at all, and the cost — which come from the
+adapter's own output. Which session belongs to which scenario run is the file the connection was given:
+`AgentServer` logs it as the connection opens, and one run of the eval is one connection.
+
 ## The scenario families
 
 Start with two dumps to get the harness working, then grow the synthetic side, because the whole point is

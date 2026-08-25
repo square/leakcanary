@@ -293,6 +293,12 @@ class AgentToolsTest {
       .isInstanceOf(AgentRefusal::class.java)
       .hasMessageContaining("contradicts 1 verdict(s)")
       .hasMessageContaining(hex(heapDump.holderObjectId))
+      // The verdict it disagrees with, in the words it was given, since that is what decides which of the
+      // two is wrong. As a sentence and not as JSON: this refusal is drawn on the *Agent logs* screen, which
+      // exists to not show the protocol. See AgentTools.asSentence.
+      .hasMessageContaining("Holder.INSTANCE is a static singleton")
+      .hasMessageContaining("Keeping yours makes it ${LeakStatus.STUCK}")
+      .hasMessageNotContaining("{\"")
       .hasMessageContaining("solveConflicts")
 
     val answer = call(

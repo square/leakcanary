@@ -1,5 +1,6 @@
 package shark.explorer.agent
 
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -8,6 +9,7 @@ import kotlinx.serialization.json.putJsonArray
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.LeakStatus
+import shark.explorer.LeakStatusConflict
 import shark.explorer.LeakStatusOverride
 import shark.explorer.ObjectListFilter
 import shark.explorer.Place
@@ -87,7 +89,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
   }
 
   private fun listLeaks() = AgentTool(
-    name = "list_leaks",
+    name = LIST_LEAKS,
     description = "What this heap dump says shouldn't be in memory, gathered into the leaks those objects " +
       "are instances of. The heap dump's own answer and the place to start: objects the app itself handed " +
       "to LeakCanary and said it was done with are the strongest evidence a dump carries. Sections marked " +
@@ -244,9 +246,10 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
         "Not set: $status on ${exactHexObjectId(objectId)} contradicts ${conflicts.size} verdict(s) " +
           "already recorded about this heap dump. Everything a stuck object holds is stuck, and " +
           "everything holding an object that is meant to be here is meant to be here, so these cannot " +
-          "all be read off one chain. Either your verdict is wrong, or theirs is. The conflicts are " +
-          "${AgentJson.conflicts(conflicts)}. Call $SET_VERDICT again with $SOLVE_CONFLICTS true to keep " +
-          "yours and flip those, and say in your reason why."
+          "all be read off one chain. Either your verdict is wrong, or theirs is:\n" +
+          conflicts.joinToString("\n") { it.asSentence() } +
+          "\nCall $SET_VERDICT again with $SOLVE_CONFLICTS true to keep yours and flip those, and say in " +
+          "your reason why."
       )
     }
     dump.setVerdict(override, conflicts.map { it.solved })
@@ -394,20 +397,51 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       explorer.tree.rootPathTo(objectId, verdicts)
     }
 
+  /**
+   * Which window and which place a call was about, for the log of the session it was made in.
+   *
+   * Read off the arguments rather than out of the handler, so that a call that was refused is recorded
+   * pointing at whatever it was asking about — which is most of what makes a refusal worth reading
+   * afterwards. Nothing here refuses: this is a description of a call, and a call with an argument this
+   * can't make sense of is one the handler is about to refuse with a message of its own.
+   */
+  fun target(
+    name: String,
+    arguments: JsonObject
+  ): AgentTarget {
+    val read = AgentArguments(name, arguments)
+    val dump = read.orNull { resolvedDump(optionalString(WINDOW)) }
+    val place = read.orNull { placeOrNull(name) }
+    return AgentTarget(
+      windowId = dump?.windowId,
+      heapDumpPath = dump?.heapDumpPath,
+      place = place
+    )
+  }
+
+  /**
+   * Which place of the heap dump a call is about, from what it was given rather than from which tool it is.
+   *
+   * By argument name, so that a tool added here is described by this without being listed in it: everything
+   * about an object takes `object`, everything about a place takes `place`, and the search takes a class
+   * name. The one tool whose subject is in neither is the list of leaks, which takes nothing at all.
+   */
+  private fun AgentArguments.placeOrNull(name: String): Place? = when {
+    optionalString(PLACE) != null -> place()
+    optionalString(OBJECT) != null -> Place.Object(objectId(OBJECT))
+    optionalString(CLASS_NAME) != null -> Place.Objects(ObjectListFilter(query = string(CLASS_NAME)))
+    name == LIST_LEAKS -> Place.Leaks()
+    else -> null
+  }
+
   /** Which heap dump a call is about, or a refusal naming the ones that are open. */
   private fun AgentArguments.heapDump(): AgentHeapDump {
-    val open = heapDumps.openHeapDumps()
     val windowId = optionalString(WINDOW)
-    // One open dump needs no naming, which is most sessions. Two of them always do: the same file open twice
-    // is how two readings of it are compared, so guessing would be answering about the wrong one.
-    val asked = if (windowId == null) {
-      open.singleOrNull()
-    } else {
-      open.firstOrNull { it.windowId == windowId }
-    }
+    val asked = resolvedDump(windowId)
     if (asked != null) {
       return asked
     }
+    val open = heapDumps.openHeapDumps()
     val windows = open.joinToString(", ") { "${it.windowId} (${it.heapDumpPath})" }
     throw AgentRefusal(
       when {
@@ -420,6 +454,34 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
             "stops being valid when that window is closed. Open windows: $windows. Call $OPEN_HEAP_DUMPS."
       }
     )
+  }
+
+  /**
+   * The window a call names, and null for one that names none of the open ones.
+   *
+   * One open dump needs no naming, which is most sessions. Two of them always do: the same file open twice is
+   * how two readings of it are compared, so guessing would be answering about the wrong one.
+   */
+  private fun resolvedDump(windowId: String?): AgentHeapDump? {
+    val open = heapDumps.openHeapDumps()
+    return if (windowId == null) {
+      open.singleOrNull()
+    } else {
+      open.firstOrNull { it.windowId == windowId }
+    }
+  }
+
+  /**
+   * Whatever [block] reads, or null if the arguments wouldn't answer it.
+   *
+   * Only for [target], and that is the whole of why it exists: describing a call must not refuse one. The
+   * handler reads the same arguments a moment later and refuses with a message written for the agent, which
+   * is where a bad address belongs.
+   */
+  private fun <T> AgentArguments.orNull(block: AgentArguments.() -> T?): T? = try {
+    block()
+  } catch (refused: AgentRefusal) {
+    null
   }
 
   private fun AgentArguments.verdict(): LeakStatus {
@@ -473,6 +535,9 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
 
+    /** Named because [placeOrNull] is the one description of a call that has to know which tool it is. */
+    const val LIST_LEAKS = "list_leaks"
+
     const val WINDOW = "window"
     const val OBJECT = "object"
     const val FROM = "from"
@@ -513,6 +578,18 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     )
   }
 }
+
+/**
+ * What a call was about: which window, which heap dump, and which place of it.
+ *
+ * Only for the session log, which is the one reader that needs this without needing the answer: a row of the
+ * *Agent logs* screen is a verb, a subject and somewhere to go when it is clicked. See [AgentSessionCall].
+ */
+internal class AgentTarget(
+  val windowId: String?,
+  val heapDumpPath: String?,
+  val place: Place?
+)
 
 /**
  * What the verdicts on a chain add up to: whether one reference is at fault, and what to say when none is.
@@ -601,6 +678,22 @@ private fun conclusionNote(
   }
   appendLine()
   appendLine("_Concluded by an agent: ${reason}_")
+}
+
+/**
+ * One verdict a new one disagrees with, as a line of the refusal that says so.
+ *
+ * A sentence rather than the JSON this used to be. Not for the model's sake — it reads either — but because
+ * a refusal is the one answer on this surface that is also read by a person: it is what the window's *Agent
+ * logs* screen draws under the call it refused, and a JSON array of three verdicts with their reasons in it
+ * is the raw protocol on a screen that exists to not show it.
+ *
+ * Which way round the two objects are is in it, since that is what makes the disagreement one at all.
+ */
+private fun LeakStatusConflict.asSentence(): String {
+  val side = if (isAbove) "which holds it" else "which it holds"
+  return "- ${exactHexObjectId(existing.objectId)} $objectName, $side, is ${existing.status}: " +
+    "${existing.reason} Keeping yours makes it ${solved.status}."
 }
 
 /**
