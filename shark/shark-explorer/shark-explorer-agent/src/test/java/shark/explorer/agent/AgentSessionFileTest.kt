@@ -2,6 +2,10 @@ package shark.explorer.agent
 
 import java.io.File
 import java.time.Instant
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -61,6 +65,35 @@ class AgentSessionFileTest {
     val call = AgentSessionFile.sessionsIn(directory).single().calls.single()
     assertThat(call.refusal).isEqualTo("Not concluded. 3 steps")
     assertThat(call.place).isEqualTo(Place.Object(OBJECT_ID))
+  }
+
+  @Test
+  fun `a call that concluded says which reference it concluded on`() {
+    val file = AgentSessionFile.starting(directory, SERVER_VERSION)
+    file.called(call(tool = "conclude", place = Place.Object(OBJECT_ID), outcome = FAULTY_REFERENCE))
+
+    // The one line a session is read for, and the one the eval scores against the answer key: a conclusion
+    // whose reference wasn't written down is a run nobody can mark. See `notes/agent-eval.md`.
+    assertThat(AgentSessionFile.sessionsIn(directory).single().calls.single().outcome)
+      .isEqualTo(FAULTY_REFERENCE)
+  }
+
+  @Test
+  fun `what a conclusion came to is read off the answer, and nothing else is`() {
+    val concluded = buildJsonObject {
+      put("concluded", true)
+      putJsonArray("faultyReference") {
+        addJsonObject { put("reference", FAULTY_REFERENCE) }
+      }
+    }
+
+    assertThat(outcomeOfTool("conclude", concluded)).isEqualTo(FAULTY_REFERENCE)
+    // Every other tool answers with data rather than a conclusion, and a row saying what a read came back
+    // with would be the answer printed twice.
+    assertThat(outcomeOfTool("describe_object", concluded)).isNull()
+    // A build whose conclude answers something else is a build whose sessions can't be scored, and null is
+    // how that shows up rather than as a crash mid-session.
+    assertThat(outcomeOfTool("conclude", buildJsonObject { put("concluded", true) })).isNull()
   }
 
   @Test
@@ -126,7 +159,8 @@ class AgentSessionFileTest {
     reason: String? = "Because.",
     place: Place? = null,
     arguments: Map<String, String> = emptyMap(),
-    refusal: String? = null
+    refusal: String? = null,
+    outcome: String? = null
   ) = AgentSessionCall(
     at = STARTED_AT,
     tool = tool,
@@ -136,6 +170,7 @@ class AgentSessionFileTest {
     place = place,
     arguments = arguments,
     refusal = refusal,
+    outcome = outcome,
     millis = 12L
   )
 

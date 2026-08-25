@@ -77,6 +77,20 @@ class AgentLogsScreenTest {
     }
   }
 
+  @Test fun `the row that concluded says which reference it came to`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call(tool = "conclude", outcome = FAULTY_REFERENCE)))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+
+      // The row anybody scrolling a session is looking for: what the agent asked, and what it came to, on
+      // one line — so that finding the answer isn't reading every reason down the screen.
+      waitUntilAtLeastOneExists(
+        hasText("Concluded about ${activityName()} → $FAULTY_REFERENCE"),
+        OPEN_TIMEOUT_MILLIS
+      )
+    }
+  }
+
   @Test fun `a row leads to the object the call was about`() {
     explorerUiTest {
       openAgentLogs(listOf(session(calls = listOf(call()))))
@@ -143,7 +157,8 @@ class AgentLogsScreenTest {
   private fun call(
     tool: String = "describe_object",
     heapDumpPath: String = heapDump.file.absolutePath,
-    refusal: String? = null
+    refusal: String? = null,
+    outcome: String? = null
   ) = AgentSessionCall(
     at = STARTED_AT,
     tool = tool,
@@ -153,6 +168,7 @@ class AgentLogsScreenTest {
     place = Place.Object(activityObjectId()),
     arguments = mapOf("object" to hex(activityObjectId())),
     refusal = refusal,
+    outcome = outcome,
     millis = 12L
   )
 
@@ -181,6 +197,7 @@ class AgentLogsScreenTest {
     const val CLIENT = "claude-code 9.9.9"
     const val REASON = "Checking whether this activity is really destroyed."
     const val REFUSAL = "3 step(s) have no verdict"
+    const val FAULTY_REFERENCE = "Holder.activity"
     const val NO_AGENT_YET = "No agent has connected"
 
     val STARTED_AT: Instant = Instant.parse("2026-08-25T18:19:48.035Z")

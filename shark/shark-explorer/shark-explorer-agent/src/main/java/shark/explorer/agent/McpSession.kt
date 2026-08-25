@@ -156,14 +156,31 @@ internal class McpSession(
     val at = Instant.now()
     val startedAt = System.nanoTime()
     return try {
-      val result = toolResult(tool.call(arguments))
-      record(name, arguments, target, refusal = null, at = at, startedAt = startedAt)
-      result
+      val answer = tool.call(arguments)
+      // The answer as well as the arguments, because one of them is a conclusion: see [outcomeOfTool].
+      record(
+        name,
+        arguments,
+        target,
+        refusal = null,
+        outcome = outcomeOfTool(name, answer),
+        at = at,
+        startedAt = startedAt
+      )
+      toolResult(answer)
     } catch (refused: AgentRefusal) {
       // A refusal is an answer to the agent and not a failure of the server, so it comes back as a tool
       // result the model reads rather than as a JSON-RPC error the client may swallow.
       SharkLog.d { "Refused $name: ${refused.message}" }
-      record(name, arguments, target, refusal = refused.message, at = at, startedAt = startedAt)
+      record(
+        name,
+        arguments,
+        target,
+        refusal = refused.message,
+        outcome = null,
+        at = at,
+        startedAt = startedAt
+      )
       toolError(refused.message)
     }
   }
@@ -181,6 +198,7 @@ internal class McpSession(
     arguments: JsonObject,
     target: AgentTarget,
     refusal: String?,
+    outcome: String?,
     at: Instant,
     startedAt: Long
   ) {
@@ -194,6 +212,7 @@ internal class McpSession(
         place = target.place,
         arguments = arguments.recorded(),
         refusal = refusal,
+        outcome = outcome,
         millis = (System.nanoTime() - startedAt) / NANOS_PER_MILLI
       )
     )

@@ -69,6 +69,11 @@ a refusal nobody can follow up on is a dead end on the screen. `target` derives 
 *names* rather than from a second list of tool names — one exception, `list_leaks`, which takes no argument
 saying where it is.
 
+**One field comes off the answer instead: `outcome`.** What an agent asked is what it typed, and what it
+concluded is what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s
+answer, and nothing else records an answer. Both readers need it and neither can work it out: the screen's
+last row is what a session came to, and the eval has nothing to mark against its answer key without it.
+
 **The verbs are here rather than in the app.** `verbOfTool` is beside the tool names, so that a screen never
 spells them itself and drift is one list rather than two. `AgentSessionFileTest` asserts every tool in the
 registry has one; a tool added without a verb reads as its own name, which is the protocol showing through on

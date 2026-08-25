@@ -187,12 +187,15 @@ private fun AgentSessionCall.isAbout(heapDumpFile: File): Boolean =
 /**
  * What the call did and what it was about, as one line: "Described MainActivity 0x12d368b8".
  *
+ * With what it came to on the end where there is one — "Concluded about MainActivity → MainActivity$2.this$0"
+ * — since the row that says what was concluded is the row anybody scrolling a session is looking for.
+ *
  * [title] is what this window calls that object, which is what a tab on it is called too — the row and the
  * tab it opens have to read the same. Without one, the address the agent wrote: a call about another heap
  * dump, or one this window hasn't read yet.
  */
 private fun AgentSessionCall.line(title: String?): String =
-  listOfNotNull(verb, title ?: subject).joinToString(" ")
+  listOfNotNull(verb, title ?: subject, outcome?.let { "$LEADS_TO $it" }).joinToString(" ")
 
 /** What a session is called: who connected, and when. */
 private fun AgentSession.title(): String = listOfNotNull(
@@ -227,6 +230,9 @@ private val CLOCK_TIME: DateTimeFormatter =
 private val TIME_WIDTH = 60.dp
 
 private const val BECAUSE = "because:"
+
+/** In front of what a call came to, which reads as the row's own arrow rather than as a word. */
+private const val LEADS_TO = "→"
 
 private const val REFUSED = "Refused:"
 

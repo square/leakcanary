@@ -232,6 +232,24 @@ class McpSessionTest {
     assertThat(call.place).isEqualTo(Place.Object(heapDump.activityObjectId))
   }
 
+  @Test
+  fun `a call that concluded is written down with the reference it concluded on`() {
+    callTool(
+      """{"name":"set_verdict","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
+        """"verdict":"EXPECTED","reason":"Holder.INSTANCE is a static singleton."}}"""
+    )
+    callTool(
+      """{"name":"conclude","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +
+        """"rootCause":"Nothing clears Holder.activity in onDestroy.",""" +
+        """"reason":"The chain names one reference."}}"""
+    )
+
+    // The answer rather than the arguments, which is the only line of a session that isn't: what an agent
+    // asked is what it typed, and what it concluded is what the heap dump agreed to. That is the line the
+    // *Agent logs* screen ends a session with, and the one the eval marks against an answer key.
+    assertThat(sessions().single().calls.last().outcome).isEqualTo(FAULTY_REFERENCE)
+  }
+
   private fun sessions(): List<AgentSession> = AgentSessionFile.sessionsIn(sessionsDirectory)
 
   private fun callTool(params: String): JsonObject =

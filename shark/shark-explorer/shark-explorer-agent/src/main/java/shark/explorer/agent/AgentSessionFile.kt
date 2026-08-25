@@ -6,6 +6,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -205,6 +206,7 @@ class AgentSessionFile private constructor(
       // clickable: the place to go to, and a line the agent's human can paste anywhere. See [DeepLink].
       link()?.let { put(LINK_KEY, it) }
       refusal?.let { put(REFUSAL_KEY, it) }
+      outcome?.let { put(OUTCOME_KEY, it) }
       put(MILLIS_KEY, millis)
       if (arguments.isNotEmpty()) {
         putJsonObject(ARGUMENTS_KEY) {
@@ -233,6 +235,7 @@ class AgentSessionFile private constructor(
         place = link?.let { placeOfLinkOrNull(it, file, lineNumber) },
         arguments = this[ARGUMENTS_KEY]?.asStringMap().orEmpty(),
         refusal = text(REFUSAL_KEY),
+        outcome = text(OUTCOME_KEY),
         millis = text(MILLIS_KEY)?.toLongOrNull() ?: 0L
       )
     }
@@ -318,6 +321,7 @@ class AgentSessionFile private constructor(
     private const val HEAP_DUMP_KEY = "heapDump"
     private const val LINK_KEY = "link"
     private const val REFUSAL_KEY = "refused"
+    private const val OUTCOME_KEY = "outcome"
     private const val MILLIS_KEY = "millis"
     private const val ARGUMENTS_KEY = "arguments"
   }
@@ -360,6 +364,14 @@ class AgentSessionCall(
   val arguments: Map<String, String>,
   /** Why the call was refused, and null for one that was answered. See [AgentRefusal]. */
   val refusal: String?,
+  /**
+   * What the call came to, for the calls whose answer is worth a word. See [outcomeOfTool].
+   *
+   * The other half of a refusal: `conclude` refused says why, and `conclude` answered says which reference
+   * the heap dump agreed was at fault — which is the one line of a session anybody reads it for, and the one
+   * the eval scores against the answer key. Null for a call whose answer is data rather than a conclusion.
+   */
+  val outcome: String?,
   /** How long the app took to answer, which is mostly how long the heap dump read took. */
   val millis: Long
 ) {
@@ -389,6 +401,24 @@ val AgentSessionCall.verb: String get() = verbOfTool(tool, arguments) ?: tool.re
  */
 val AgentSessionCall.subject: String?
   get() = arguments[SUBJECT_OBJECT] ?: arguments[SUBJECT_PLACE] ?: arguments[SUBJECT_CLASS_NAME]
+
+/**
+ * What the answer to a call came to, as a couple of words, and null when the answer is data rather than a
+ * conclusion.
+ *
+ * Here beside [verbOfTool] and for the same reason: the tool names live in this file. Only `conclude` has one
+ * today, which is the point of it — a session is read to find out what somebody concluded, and every other
+ * call is how they got there.
+ */
+internal fun outcomeOfTool(
+  tool: String,
+  answer: JsonObject
+): String? = when (tool) {
+  "conclude" -> ((answer[ANSWER_FAULTY_REFERENCE] as? JsonArray)?.firstOrNull() as? JsonObject)
+    ?.let { it[ANSWER_REFERENCE] as? JsonPrimitive }
+    ?.content
+  else -> null
+}
 
 /** Null for a tool this build has no verb for, which is what a test asserts never happens. */
 internal fun verbOfTool(
@@ -422,6 +452,10 @@ internal fun verbOfTool(
   "dump_heap" -> "Dumped the heap of ${arguments[SUBJECT_PROCESS] ?: "a process"}"
   else -> null
 }
+
+/** What `conclude` answers with the reference under, which is the one answer this file records. */
+private const val ANSWER_FAULTY_REFERENCE = "faultyReference"
+private const val ANSWER_REFERENCE = "reference"
 
 private const val SUBJECT_OBJECT = "object"
 private const val SUBJECT_PLACE = "place"
