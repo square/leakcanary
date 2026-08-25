@@ -70,10 +70,12 @@ internal fun AgentLogsScreen(
 /**
  * What one agent did, call by call, in the order it made them.
  *
- * **Verbs and addresses rather than the protocol.** What is worth reading here is whether the steps follow
+ * **Verbs and object names rather than the protocol.** What is worth reading here is whether the steps follow
  * from each other, and that is a question about what was asked and why — a screen of JSON is the same
  * information in the one form nobody reads. So a row is what the call did, what it was about, and the
- * sentence the agent gave for making it, which is its own words and not a paraphrase.
+ * sentence the agent gave for making it, which is its own words and not a paraphrase. An agent names objects
+ * by address, and this names them the way the rest of the window does, so that a row and the tab it opens are
+ * recognisably the same object.
  *
  * A row about an object of the heap dump this window has open leads to it, like every other way to an
  * object here. One about another dump says which, and leads nowhere: a session can span windows, and
@@ -84,6 +86,12 @@ internal fun AgentLogScreen(
   session: AgentSession?,
   /** Which heap dump this window has open, which is what decides whether a row leads anywhere. */
   heapDumpFile: File,
+  /**
+   * What this window calls each place a call was about — `MainActivity 0x12d368b8` — for the places it has
+   * been asked about yet. A place that isn't in here is drawn as the address the agent wrote, which is what
+   * a call about another heap dump stays as: naming it would mean reading a dump this window doesn't have.
+   */
+  placeTitles: Map<Place, String>,
   onOpen: (Place, OpenIn) -> Unit,
   onCopyLink: (Place) -> Unit,
   modifier: Modifier = Modifier
@@ -113,6 +121,7 @@ internal fun AgentLogScreen(
         AgentCallRow(
           call = call,
           heapDumpFile = heapDumpFile,
+          title = call.place?.let { placeTitles[it] },
           onOpen = onOpen,
           onCopyLink = onCopyLink
         )
@@ -126,6 +135,8 @@ internal fun AgentLogScreen(
 private fun AgentCallRow(
   call: AgentSessionCall,
   heapDumpFile: File,
+  /** What this window calls what the call was about, and null while it hasn't been read or can't be. */
+  title: String?,
   onOpen: (Place, OpenIn) -> Unit,
   onCopyLink: (Place) -> Unit
 ) {
@@ -141,12 +152,12 @@ private fun AgentCallRow(
     )
     Column {
       if (place == null) {
-        Text(call.line(), style = MaterialTheme.typography.bodyMedium)
+        Text(call.line(title), style = MaterialTheme.typography.bodyMedium)
       } else {
         val open: (OpenIn) -> Unit = { openIn -> onOpen(place, openIn) }
         OpenTarget(open, { onCopyLink(place) }) {
           Text(
-            call.line(),
+            call.line(title),
             Modifier.openable(open),
             style = MaterialTheme.typography.bodyMedium,
             color = LINK_COLOR
@@ -173,8 +184,15 @@ private fun AgentCallRow(
 private fun AgentSessionCall.isAbout(heapDumpFile: File): Boolean =
   heapDumpPath == null || heapDumpPath == heapDumpFile.absolutePath
 
-/** What the call did and what it was about, as one line: "Described 0x12d368b8". */
-private fun AgentSessionCall.line(): String = listOfNotNull(verb, subject).joinToString(" ")
+/**
+ * What the call did and what it was about, as one line: "Described MainActivity 0x12d368b8".
+ *
+ * [title] is what this window calls that object, which is what a tab on it is called too — the row and the
+ * tab it opens have to read the same. Without one, the address the agent wrote: a call about another heap
+ * dump, or one this window hasn't read yet.
+ */
+private fun AgentSessionCall.line(title: String?): String =
+  listOfNotNull(verb, title ?: subject).joinToString(" ")
 
 /** What a session is called: who connected, and when. */
 private fun AgentSession.title(): String = listOfNotNull(

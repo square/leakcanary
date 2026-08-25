@@ -25,6 +25,7 @@ import shark.explorer.Place
 import shark.explorer.agent.AgentSession
 import shark.explorer.agent.AgentSessionCall
 import shark.explorer.exactHexObjectId
+import shark.explorer.hexObjectId
 
 /**
  * What an agent did, in the window it did it in.
@@ -56,9 +57,10 @@ class AgentLogsScreenTest {
       onNodeWithText(CLIENT, substring = true).assertIsDisplayed()
       onNodeWithText(CLIENT, substring = true).performClick()
 
-      // The verb, the address, and the agent's own sentence for why it asked: no JSON on any of it.
+      // The verb, the object named the way a tab on it is named, and the agent's own sentence for why it
+      // asked: no JSON and no bare address on any of it.
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("Described ${hex(activityObjectId())}").assertIsDisplayed()
+      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -68,7 +70,10 @@ class AgentLogsScreenTest {
       onNodeWithText(CLIENT, substring = true).performClick()
 
       waitUntilAtLeastOneExists(hasText(REFUSAL, substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("Concluded about ${hex(activityObjectId())}").assertIsDisplayed()
+      waitUntilAtLeastOneExists(
+        hasText("Concluded about ${activityName()}"),
+        OPEN_TIMEOUT_MILLIS
+      )
     }
   }
 
@@ -78,7 +83,8 @@ class AgentLogsScreenTest {
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
 
-      onNodeWithText("Described ${hex(activityObjectId())}").performClick()
+      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(describedRow()).performClick()
 
       // What the inspectors made of the object the agent was reading, which is the whole promise of the
       // screen: reading what it did and going to look at it are one move.
@@ -93,7 +99,7 @@ class AgentLogsScreenTest {
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
 
       // An address is an address of one heap dump, so the same one here is a different object — or no
-      // object at all. Read it, don't follow it.
+      // object at all. Read it as the agent wrote it, and don't follow it.
       onNodeWithText("Described ${hex(activityObjectId())}").assertHasNoClickAction()
     }
   }
@@ -151,6 +157,12 @@ class AgentLogsScreenTest {
   )
 
   private fun activityObjectId() = heapDump.activityObjectIds.first()
+
+  /** How the window names the activity: the same title the tab a row opens carries. */
+  private fun activityName() =
+    "${LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.')} ${hexObjectId(activityObjectId())}"
+
+  private fun describedRow() = "Described ${activityName()}"
 
   private fun hex(objectId: Long) = exactHexObjectId(objectId)
 
