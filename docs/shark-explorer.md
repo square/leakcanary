@@ -248,8 +248,8 @@ Point your client at the app itself:
 That is the app's own launcher, and `--mcp-stdio` makes this copy of it a pipe to the window already open
 rather than a second window. Nothing else to install and no port to configure: it talks to the run that
 started most recently, says which one that was, and takes `--agent-run=<pid>` when several explorers are
-open. Open a heap dump before you start — with no window there is nothing to investigate, and it says so
-rather than waiting.
+open. A heap dump open before you start is one less thing for it to do, but not a requirement: with no
+window it says so, and `open_heap_dump` and `dump_heap` are how it gets one.
 
 Then ask for what you actually want. This is the whole prompt the session below was given:
 
@@ -261,18 +261,29 @@ leak is — one bad reference, the three zones of a chain, the rules that spread
 the order that finds it, which is [the LeakCanary
 method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it.
 
+**Everything the window can do, it can do** — there is no screen an agent can't reach and no button it can't
+press, because a surface with less than that is one whose answer is "ask your human to click something":
+
 | Tool | What it is |
 | --- | --- |
 | `open_heap_dumps` | Every window and what is open in it, with the method to follow. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
 | `describe_object` | What an object is: its class, fields, labels, size. |
-| `ways_held` | Every way an object is held, rather than the one chain. |
+| `ways_held` | Every way an object is held, rather than the one chain — the *X ways from here* list. |
 | `find_objects` | The object list, by class name. |
+| `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
 | `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
-| `take_note` | The notes, appended to. |
+| `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
 | `show` | Opens a tab in your window and brings it to the front. |
 | `conclude` | The root cause, and the only way to finish. |
+| `open_heap_dump` | **Open heap dump…**, for a file nobody has open yet. |
+| `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
+
+The last three are what make an agent useful when there is nothing open yet: point it at a dump a bug report
+came with, or at a process on a device, and the window it lands in is one you can look over its shoulder in.
+`dump_heap` takes minutes on a large app and answers once the dump can be read — the steps are in the run's
+log while it works.
 
 **And the tools refuse.** That is the part worth knowing about, because it is what an agent's confidence
 cannot argue with:

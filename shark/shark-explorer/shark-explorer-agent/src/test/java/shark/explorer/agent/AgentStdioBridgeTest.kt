@@ -52,7 +52,7 @@ class AgentStdioBridgeTest {
   @Test
   fun `a client's messages reach the window and its answers come back`() {
     closeables += AgentServer.listen(
-      heapDumps = { listOf(window) },
+      heapDumps = FakeAgentHeapDumps(listOf(window)),
       serverVersion = "1.2.3",
       directory = directory
     )

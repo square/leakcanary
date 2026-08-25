@@ -42,8 +42,11 @@ uses, without the one for a newly recognized library leak:
   you have open — the same tree, the same verdicts, the same notes — and `show` puts what it is looking at on
   your screen. What it can be held to is the point: every call has to say why it was made and lands in the
   run's log beside the reads it caused, a verdict needs a reason another reader can check exactly as yours
-  does, and reporting a root cause is refused until the chain names one faulty reference. Point any MCP client
-  at the installed app with `--mcp-stdio`.
+  does, and reporting a root cause is refused until the chain names one faulty reference. There is no screen
+  it can't reach and no button it can't press — the treemap as a tree of retained sizes, the notes read and
+  rewritten as well as added to, `Open heap dump…` for a file nobody has open, and `Take heap dump…` down to
+  picking the process off a device — because a surface with less than that answers "ask your human to click
+  something". Point any MCP client at the installed app with `--mcp-stdio`.
   See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
 * ✨ **Agent logs**: every agent that has connected to the app is a row on a screen of its own, and opening
   one is everything that agent did — what each call did, which object it did it to, and the sentence it gave

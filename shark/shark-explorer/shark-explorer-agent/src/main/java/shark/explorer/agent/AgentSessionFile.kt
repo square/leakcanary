@@ -401,11 +401,25 @@ internal fun verbOfTool(
   "chain_from_gc_root" -> "Read the chain to"
   "ways_held" -> "Looked for every way of holding"
   "find_objects" -> "Searched for"
+  // Both of these are about the whole heap dump when they name nothing, so the verb has to stand on its
+  // own: a row reads as the verb and then the subject, and "Read the notes on" alone says nothing.
+  "dominator_tree" ->
+    if (SUBJECT_OBJECT in arguments) "Read the dominator tree under" else "Read the dominator tree"
   "set_verdict" -> "Recorded ${arguments[SUBJECT_VERDICT] ?: "a verdict"} on"
   "clear_verdict" -> "Took the verdict off"
-  "take_note" -> "Wrote a note on"
+  "read_notes" -> if (SUBJECT_PLACE in arguments) "Read the notes on" else "Read what has been written"
+  // Worth the difference on the screen: a note replaced is a paragraph that was there and isn't any more,
+  // which is the one thing an agent does here that a reader can't get back.
+  "take_note" -> if (arguments[SUBJECT_REPLACE] == "true") "Rewrote the note on" else "Wrote a note on"
   "show" -> "Showed"
   "conclude" -> "Concluded about"
+  // The app rather than a heap dump, so each of these says the whole of what it did: there is no subject
+  // to put after it, the heap dump it opens not existing as a place until it is open.
+  "open_heap_dump" -> "Opened ${arguments[SUBJECT_PATH] ?: "a heap dump"}"
+  "list_devices" -> arguments[SUBJECT_DEVICE]
+    ?.let { "Listed the processes of $it" }
+    ?: "Asked which devices are connected"
+  "dump_heap" -> "Dumped the heap of ${arguments[SUBJECT_PROCESS] ?: "a process"}"
   else -> null
 }
 
@@ -413,3 +427,7 @@ private const val SUBJECT_OBJECT = "object"
 private const val SUBJECT_PLACE = "place"
 private const val SUBJECT_CLASS_NAME = "className"
 private const val SUBJECT_VERDICT = "verdict"
+private const val SUBJECT_REPLACE = "replace"
+private const val SUBJECT_PATH = "path"
+private const val SUBJECT_DEVICE = "device"
+private const val SUBJECT_PROCESS = "process"

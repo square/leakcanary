@@ -10,6 +10,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import shark.explorer.AndroidDevice
+import shark.explorer.DeviceProcess
+import shark.explorer.DominatorOutline
 import shark.explorer.HeapLeaks
 import shark.explorer.HeapObjectSummary
 import shark.explorer.HeapSizes
@@ -125,6 +128,56 @@ internal object AgentJson {
     // Only an array reaches this, and an agent that could not see it would read a 10,000 element array as
     // the handful of elements it was shown.
     put("hiddenFieldCount", summary.hiddenFieldCount)
+  }
+
+  /**
+   * The dominator tree in outline: what holds the most memory, and what holds the most of that.
+   *
+   * The treemap, without pixels. Which is the answer to "where has the memory gone" rather than to "why is
+   * this object still here" — an agent that starts from a leak never needs this, and one asked why an app is
+   * using 400 MB has nowhere else to start.
+   */
+  fun dominatorOutline(outline: DominatorOutline): JsonObject = buildJsonObject {
+    put("node", exactHexObjectId(outline.nodeId))
+    put("label", outline.label)
+    put("retainedBytes", outline.retainedSize)
+    put("strength", outline.strength.name)
+    // A pile of objects rather than one of them, which is what the top of every tree is mostly made of.
+    put("objectCount", outline.objectCount)
+    put("className", outline.className)
+    // Against the children handed back, so that "this is all of it" and "this is the biggest few of it" are
+    // never the same answer.
+    put("dominatedNodeCount", outline.childCount)
+    putJsonArray("dominates") { outline.children.forEach { add(dominatorOutline(it)) } }
+  }
+
+  /** Every device `adb` is connected to, and whether a heap dump could be taken off each. */
+  fun devices(devices: List<AndroidDevice>): JsonArray = buildJsonArray {
+    devices.forEach { device ->
+      addJsonObject {
+        put("device", device.serialNumber)
+        put("description", device.description)
+        put("state", device.state)
+        put("sdkInt", device.sdkInt)
+        put("model", device.model)
+        put("fingerprint", device.fingerprint)
+        // The difference between a device with two dumpable processes and one with all of them, and not a
+        // question about the app: a release build on a `userdebug` device can be dumped.
+        put("dumpsAnyProcess", device.dumpsAnyProcess)
+      }
+    }
+  }
+
+  /** The processes of one device that belong to an installed app. */
+  fun processes(processes: List<DeviceProcess>): JsonArray = buildJsonArray {
+    processes.forEach { process ->
+      addJsonObject {
+        put("process", process.name)
+        put("processId", process.processId)
+        // The system's own apps are dumpable only on a debuggable build, and are thirty of these.
+        put("isSystemApp", process.isSystemApp)
+      }
+    }
   }
 
   /** The shortest chain from a GC root down to an object, with dominators and the faulty reference marked. */

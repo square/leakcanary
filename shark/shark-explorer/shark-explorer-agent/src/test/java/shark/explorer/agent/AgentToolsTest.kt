@@ -18,6 +18,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.explorer.AndroidDevice
+import shark.explorer.DeviceProcess
 import shark.explorer.HeapObjectKind
 import shark.explorer.LeakStatus
 import shark.explorer.ObjectListFilter
@@ -45,7 +47,7 @@ class AgentToolsTest {
   fun setUp() {
     heapDump = temporaryFolder.applicationHoldsActivityThroughHolder()
     window = FakeAgentHeapDump(heapDump.explorer)
-    tools = AgentTools { listOf(window) }
+    tools = AgentTools(FakeAgentHeapDumps(listOf(window)))
   }
 
   @After
@@ -76,7 +78,7 @@ class AgentToolsTest {
 
   @Test
   fun `a run with no heap dump open says so rather than answering`() {
-    tools = AgentTools { emptyList() }
+    tools = AgentTools(FakeAgentHeapDumps())
 
     assertThat(call(OPEN_HEAP_DUMPS).text("problem")).contains("No heap dump is open")
     assertThatThrownBy { call("list_leaks") }
@@ -87,7 +89,7 @@ class AgentToolsTest {
   @Test
   fun `two heap dumps open have to be named`() {
     val other = FakeAgentHeapDump(heapDump.explorer, windowId = "otherwindow")
-    tools = AgentTools { listOf(window, other) }
+    tools = AgentTools(FakeAgentHeapDumps(listOf(window, other)))
 
     assertThatThrownBy { call("list_leaks") }
       .isInstanceOf(AgentRefusal::class.java)
@@ -463,6 +465,171 @@ class AgentToolsTest {
     call("describe_object", OBJECT to hex(heapDump.activityObjectId))
 
     assertThat(window.reads).containsExactly("${hex(heapDump.activityObjectId)} for an agent")
+  }
+
+  @Test
+  fun `the dominator tree comes back as a tree, with what was left out of each level counted`() {
+    val answer = call("dominator_tree", "maxDepth" to "1", "maxChildren" to "2")
+
+    // The whole heap dump, which is the node every treemap opens on and the default here.
+    assertThat(answer.text("retainedBytes").toLong()).isGreaterThan(0)
+    val children = answer.array("dominates").map { it.jsonObject }
+    assertThat(children).hasSizeLessThanOrEqualTo(2)
+    // Largest first, which is the order every list in this app is in.
+    val retained = children.map { it.text("retainedBytes").toLong() }
+    assertThat(retained).isEqualTo(retained.sortedDescending())
+    // Against the children handed back, so that "this is all of it" is never mistaken for the biggest few.
+    assertThat(answer.text("dominatedNodeCount").toInt())
+      .isGreaterThanOrEqualTo(children.size)
+    // One level asked for is one level answered with, so nothing under these was walked.
+    assertThat(children.flatMap { it.array("dominates") }).isEmpty()
+  }
+
+  @Test
+  fun `the dominator tree under one object is the tree under that object`() {
+    val answer = call("dominator_tree", OBJECT to hex(heapDump.holderObjectId), "maxDepth" to "1")
+
+    assertThat(answer.text("node")).isEqualTo(hex(heapDump.holderObjectId))
+    assertThat(answer.array("dominates").map { it.jsonObject.text("node") })
+      .contains(hex(heapDump.activityObjectId))
+  }
+
+  @Test
+  fun `an object the tree has no node for is refused rather than walked`() {
+    assertThatThrownBy { call("dominator_tree", OBJECT to "0x1") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("is no node of this heap dump's dominator tree")
+  }
+
+  @Test
+  fun `the notes say where somebody has been before they are read`() {
+    val empty = call("read_notes")
+
+    assertThat(empty.text("placeCount")).isEqualTo("0")
+    assertThat(empty.text("nothingWritten")).contains("Nobody has written anything")
+
+    call(
+      "take_note",
+      "place" to hex(heapDump.holderObjectId),
+      "text" to "Holder.INSTANCE is assigned in ExampleApplication.onCreate."
+    )
+
+    assertThat(call("read_notes").array("places").map { it.jsonPrimitive.content })
+      .containsExactly(hex(heapDump.holderObjectId))
+    val note = call("read_notes", "place" to hex(heapDump.holderObjectId))
+    assertThat(note.text("text")).contains("assigned in ExampleApplication.onCreate")
+    assertThat(note.text("characters").toInt()).isGreaterThan(0)
+  }
+
+  @Test
+  fun `a note can be replaced, which is what correcting one is`() {
+    val place = Place.Object(heapDump.holderObjectId)
+    call("take_note", "place" to hex(heapDump.holderObjectId), "text" to "A second holder holds it too.")
+
+    val answer = call(
+      "take_note",
+      "place" to hex(heapDump.holderObjectId),
+      "text" to "There is only one holder; I had misread the object list.",
+      "replace" to "true"
+    )
+
+    assertThat(answer.text("replaced")).isEqualTo("true")
+    // In place of what was there rather than under it, so that the wrong paragraph is not what the next
+    // reader finds first.
+    assertThat(window.notes[place])
+      .containsExactly("There is only one holder; I had misread the object list.")
+  }
+
+  @Test
+  fun `a heap dump nobody has open can be opened by its path`() {
+    val other = FakeAgentHeapDump(heapDump.explorer, windowId = "openedwindow")
+    val heapDumps = FakeAgentHeapDumps(listOf(window), opens = { other })
+    tools = AgentTools(heapDumps)
+
+    val answer = call("open_heap_dump", "path" to heapDump.explorer.heapDumpFile.absolutePath)
+
+    assertThat(answer.text("window")).isEqualTo("openedwindow")
+    assertThat(answer.text("opened")).isEqualTo("true")
+    assertThat(heapDumps.opened).containsExactly(heapDump.explorer.heapDumpFile)
+  }
+
+  @Test
+  fun `a path with no file at it is refused before anything is opened`() {
+    val heapDumps = FakeAgentHeapDumps(listOf(window))
+    tools = AgentTools(heapDumps)
+
+    assertThatThrownBy { call("open_heap_dump", "path" to "/no/such/dump.hprof") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("There is no file at /no/such/dump.hprof")
+
+    assertThat(heapDumps.opened).isEmpty()
+  }
+
+  @Test
+  fun `the devices adb is connected to, and then the processes of one`() {
+    val device = AndroidDevice(
+      serialNumber = "emulator-5554",
+      state = "device",
+      fingerprint = "google/sdk_gphone64_arm64/emu64a:16/BE1A.250305.005/13103848:userdebug/dev-keys",
+      model = "sdk_gphone64_arm64",
+      sdkInt = 36,
+      isDebuggableBuild = true
+    )
+    val process = DeviceProcess(processId = 4231, name = "com.example.app")
+    tools = AgentTools(FakeAgentHeapDumps(listOf(window), devices = mapOf(device to listOf(process))))
+
+    val devices = call("list_devices").array("devices").map { it.jsonObject }
+    assertThat(devices.single().text("device")).isEqualTo("emulator-5554")
+    // The difference between a device with two dumpable processes on it and one with all of them.
+    assertThat(devices.single().text("dumpsAnyProcess")).isEqualTo("true")
+
+    val processes = call("list_devices", "device" to "emulator-5554").array("processes").map { it.jsonObject }
+    assertThat(processes.single().text("process")).isEqualTo("com.example.app")
+    assertThat(processes.single().text("processId")).isEqualTo("4231")
+  }
+
+  @Test
+  fun `a machine with nothing plugged in says so rather than answering with an empty list`() {
+    tools = AgentTools(FakeAgentHeapDumps(listOf(window)))
+
+    assertThat(call("list_devices").text("problem")).contains("connected to no device")
+  }
+
+  @Test
+  fun `a heap dump taken off a device is opened in a window`() {
+    val device = AndroidDevice(
+      serialNumber = "emulator-5554",
+      state = "device",
+      fingerprint = null,
+      model = null,
+      sdkInt = 36,
+      isDebuggableBuild = true
+    )
+    val process = DeviceProcess(processId = 4231, name = "com.example.app")
+    val dumped = FakeAgentHeapDump(heapDump.explorer, windowId = "dumpedwindow")
+    val heapDumps = FakeAgentHeapDumps(
+      open = listOf(window),
+      devices = mapOf(device to listOf(process)),
+      opens = { dumped }
+    )
+    tools = AgentTools(heapDumps)
+
+    val answer = call("dump_heap", "device" to "emulator-5554", "process" to "com.example.app")
+
+    assertThat(answer.text("window")).isEqualTo("dumpedwindow")
+    assertThat(answer.text("dumped")).isEqualTo("true")
+    assertThat(heapDumps.dumped).containsExactly("emulator-5554" to "com.example.app")
+  }
+
+  @Test
+  fun `the agent logs are a place too, since an agent can be asked what another one did`() {
+    call("show", "place" to "agent-logs")
+    call("show", "place" to "agent-logs:agent-20260825-abcdef")
+
+    assertThat(window.shown).containsExactly(
+      Place.AgentLogs,
+      Place.AgentLog("agent-20260825-abcdef")
+    )
   }
 
   /** What the whole investigation turns on: the object in between is one somebody read the code about. */

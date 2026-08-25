@@ -43,7 +43,7 @@ class McpSessionTest {
     window = FakeAgentHeapDump(heapDump.explorer)
     sessionsDirectory = File(temporaryFolder.root, "sessions")
     session = McpSession(
-      tools = AgentTools { listOf(window) },
+      tools = AgentTools(FakeAgentHeapDumps(listOf(window))),
       serverVersion = SERVER_VERSION,
       sessionFile = AgentSessionFile.starting(sessionsDirectory, SERVER_VERSION)
     )
@@ -87,11 +87,16 @@ class McpSessionTest {
       "chain_from_gc_root",
       "ways_held",
       "find_objects",
+      "dominator_tree",
       "set_verdict",
       "clear_verdict",
+      "read_notes",
       "take_note",
       "show",
-      "conclude"
+      "conclude",
+      "open_heap_dump",
+      "list_devices",
+      "dump_heap"
     )
     tools.forEach { tool ->
       assertThat(tool.text("description")).isNotEmpty()

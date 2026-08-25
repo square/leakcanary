@@ -114,7 +114,7 @@ class AgentServerTest {
   }
 
   private fun listen(): Closeable = AgentServer.listen(
-    heapDumps = { listOf(window) },
+    heapDumps = FakeAgentHeapDumps(listOf(window)),
     serverVersion = "1.2.3",
     directory = directory
   ).also { closeables += it }

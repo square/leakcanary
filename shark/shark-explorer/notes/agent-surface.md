@@ -9,15 +9,17 @@ Measured off `AgentTools.all` and `AgentMethod.INSTRUCTIONS`, one `tools/list` e
 
 | | Characters | ≈ tokens | Paid |
 | --- | --- | --- | --- |
-| Eleven tool definitions | 13,116 | 3,300 | Every turn, while the server is connected |
-| The method | 4,970 | 1,240 | Handshake, and again with `open_heap_dumps` |
+| Sixteen tool definitions | 18,880 | 4,720 | Every turn, while the server is connected |
+| The method | 5,065 | 1,270 | Handshake, and again with `open_heap_dumps` |
 
-So the standing cost of this surface is **4 to 6 k tokens**, 2 to 3% of a 200 k window. The published
-horror stories are an order of magnitude worse — GitHub's server is ~17.6 k tokens of definitions, three
-servers together have been measured at 143 k — and the mitigations that shipped in 2026 (Anthropic's tool
-search, code execution over MCP) are aimed at that scale. **This surface is not where a context window goes
-to die**, and a per-tool cost of ~300 tokens is what buys descriptions that say when to reach for a tool.
-Worth re-measuring when the tool count doubles, which the parity work will do.
+So the standing cost of this surface is **5 to 6 k tokens**, around 3% of a 200 k window. Parity took the
+tool count from eleven to sixteen and the definitions from 13,116 characters to 18,880 — **a fifth of the
+window's budget for the five tools that mean an agent never has to ask its human to click something**, which
+is the trade this surface exists to make. The published horror stories are still an order of magnitude worse:
+GitHub's server is ~17.6 k tokens of definitions, and three servers together have been measured at 143 k. The
+mitigations that shipped in 2026 (Anthropic's tool search, code execution over MCP) are aimed at that scale.
+**This surface is not where a context window goes to die**, and a per-tool cost of ~300 tokens is what buys
+descriptions that say when to reach for a tool. Re-measure it if the count doubles again.
 
 ## What each shape is actually good at
 

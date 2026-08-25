@@ -1,11 +1,14 @@
 package shark.explorer.agent
 
+import java.io.File
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import shark.explorer.DEFAULT_OUTLINE_CHILDREN
+import shark.explorer.DEFAULT_OUTLINE_DEPTH
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectKind
 import shark.explorer.LeakStatus
@@ -18,6 +21,8 @@ import shark.explorer.RootPathStep
 import shark.explorer.exactHexObjectId
 import shark.explorer.leakLabel
 import shark.explorer.leakStatusConflictsWith
+import shark.explorer.nodeIdText
+import shark.explorer.outlineOf
 
 /**
  * Everything an agent can do to an open heap dump, as MCP tools.
@@ -47,11 +52,16 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     chainFromGcRoot(),
     waysHeld(),
     findObjects(),
+    dominatorTree(),
     setVerdict(),
     clearVerdict(),
+    readNotes(),
     takeNote(),
     show(),
-    conclude()
+    conclude(),
+    openHeapDump(),
+    listDevices(),
+    dumpHeap()
   )
 
   fun byName(name: String): AgentTool? = all.firstOrNull { it.name == name }
@@ -207,6 +217,43 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     AgentJson.objectList(list)
   }
 
+  private fun dominatorTree() = AgentTool(
+    name = "dominator_tree",
+    description = "Where the memory has gone: what holds the most of it, what holds the most of that, and " +
+      "so on. The tree the window draws as a treemap, without the pixels. Start at the whole heap dump and " +
+      "give `object` to walk down from one node. This answers \"why is this app using 400 MB\" — for " +
+      "\"why is this object still here\", read its chain instead.",
+    schema = schema(
+      WINDOW to window(),
+      OBJECT to objectId("Optional: the node to walk down from, the whole heap dump by default.")
+        .optional(),
+      MAX_DEPTH to integer(
+        "How many levels down, at most $MAX_OUTLINE_DEPTH. $DEFAULT_OUTLINE_DEPTH by default."
+      ).optional(),
+      MAX_CHILDREN to integer(
+        "How many of each node's biggest children to walk into, at most $MAX_OUTLINE_CHILDREN. " +
+          "$DEFAULT_OUTLINE_CHILDREN by default."
+      ).optional()
+    )
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val nodeId = arguments.optionalObjectId(OBJECT) ?: HeapDominatorTreemap.ROOT_OBJECT_ID
+    val maxDepth = arguments.int(MAX_DEPTH, default = DEFAULT_OUTLINE_DEPTH)
+      .coerceIn(0, MAX_OUTLINE_DEPTH)
+    val maxChildren = arguments.int(MAX_CHILDREN, default = DEFAULT_OUTLINE_CHILDREN)
+      .coerceIn(1, MAX_OUTLINE_CHILDREN)
+    dump.read("the dominator tree under ${nodeIdText(nodeId)}, for an agent") { explorer ->
+      val tree = explorer.tree
+      if (nodeId != HeapDominatorTreemap.ROOT_OBJECT_ID && nodeId !in tree) {
+        throw AgentRefusal(
+          "${exactHexObjectId(nodeId)} is no node of this heap dump's dominator tree, so there is nothing " +
+            "under it to walk. Leave `$OBJECT` out for the whole heap dump."
+        )
+      }
+      AgentJson.dominatorOutline(tree.outlineOf(nodeId, maxDepth, maxChildren))
+    }
+  }
+
   private fun setVerdict() = AgentTool(
     name = SET_VERDICT,
     description = "Records that an object is meant to be in memory (EXPECTED) or should be gone " +
@@ -299,21 +346,65 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     }
   }
 
+  private fun readNotes() = AgentTool(
+    name = "read_notes",
+    description = "What has already been written about this heap dump — by the person at the window, by " +
+      "you earlier, or by whoever read it last. Without `$PLACE`, every place that has a note, so that an " +
+      "investigation starts from what is known rather than on top of it. With one, that note in full. " +
+      "Notes outlive the window and are where a conclusion is kept.",
+    schema = schema(WINDOW to window(), PLACE to place().optional())
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val place = arguments.optionalString(PLACE)?.let { arguments.place() }
+    if (place != null) {
+      val text = dump.readNote(place)
+      return@AgentTool buildJsonObject {
+        put("place", arguments.string(PLACE))
+        put("characters", text.length)
+        put("text", text)
+      }
+    }
+    // Every note of the dump would be a screenful of markdown per place, so this is the listing the tab
+    // strip is: where somebody has been, and one call each to read what they wrote.
+    val spellings = dump.notedPlaces().mapNotNull { placeText(it) }
+    buildJsonObject {
+      put("placeCount", spellings.size)
+      putJsonArray("places") { spellings.forEach { add(it) } }
+      if (spellings.isEmpty()) {
+        put("nothingWritten", "Nobody has written anything about this heap dump yet.")
+      }
+    }
+  }
+
   private fun takeNote() = AgentTool(
     name = "take_note",
-    description = "Appends markdown to the notes of one place in this heap dump, which is where the " +
-      "person at the window reads them and what the next reader of this dump finds. Notes are kept " +
-      "between runs of the app. Write what you found and where you looked, not what you are about to do.",
+    description = "Writes markdown into the notes of one place in this heap dump, which is where the " +
+      "person at the window reads them and what the next reader of this dump finds. Appends by default, " +
+      "leaving whatever was there; `$REPLACE` true puts yours in place of it, which is what correcting " +
+      "something you wrote earlier is — read it first with read_notes. Notes are kept between runs of the " +
+      "app. Write what you found and where you looked, not what you are about to do.",
     schema = schema(
       WINDOW to window(),
       PLACE to place(),
-      TEXT to string("Markdown. `0x…` addresses in it become links to those objects.")
+      TEXT to string("Markdown. `0x…` addresses in it become links to those objects."),
+      REPLACE to boolean(
+        "Whether to replace the note rather than add to the end of it. Off by default."
+      ).optional()
     )
   ) { arguments ->
     val dump = arguments.heapDump()
     val place = arguments.place()
-    dump.appendToNote(place, arguments.string(TEXT))
-    buildJsonObject { put("written", true) }
+    val text = arguments.string(TEXT)
+    val replaces = arguments.boolean(REPLACE, default = false)
+    if (replaces) {
+      dump.replaceNote(place, text)
+    } else {
+      dump.appendToNote(place, text)
+    }
+    buildJsonObject {
+      put("written", true)
+      put("replaced", replaces)
+    }
   }
 
   private fun show() = AgentTool(
@@ -392,6 +483,88 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
         }
       }
       put("writtenTo", "the notes of ${exactHexObjectId(objectId)}, and shown in window ${dump.windowId}")
+    }
+  }
+
+  private fun openHeapDump() = AgentTool(
+    name = OPEN_HEAP_DUMP,
+    description = "Opens a heap dump file in a window of Shark Explorer and answers once it can be read, " +
+      "which is the same thing as somebody clicking `Open heap dump…`. For a dump nobody has open yet: a " +
+      "file a bug report came with, one you took with dump_heap, or a second dump of the same app to " +
+      "compare against. Opening a large dump takes a while, and this waits for it.",
+    schema = schema(
+      PATH to string("The absolute path of an `.hprof` file on this machine.")
+    )
+  ) { arguments ->
+    val path = arguments.string(PATH)
+    val file = File(path)
+    if (!file.isFile) {
+      throw AgentRefusal(
+        "There is no file at $path. A path here is a path on the machine Shark Explorer is running on, " +
+          "absolute, and it has to exist before this can open it."
+      )
+    }
+    val dump = heapDumps.open(file)
+    buildJsonObject {
+      put("window", dump.windowId)
+      put("heapDumpPath", dump.heapDumpPath)
+      put("opened", true)
+      put("next", "Call $LIST_LEAKS with this window to see what the dump says about itself.")
+    }
+  }
+
+  private fun listDevices() = AgentTool(
+    name = "list_devices",
+    description = "The Android devices `adb` is connected to, and with `$DEVICE`, the app processes of one " +
+      "of them. What the window's `Take heap dump` button asks. A process can only be dumped if the app " +
+      "was built debuggable or the whole build is (dumpsAnyProcess), and `adb` is the only thing here that " +
+      "reaches outside this machine.",
+    schema = schema(
+      DEVICE to string("Optional: a device's serial number, to list its app processes.").optional()
+    )
+  ) { arguments ->
+    val serialNumber = arguments.optionalString(DEVICE)
+    if (serialNumber == null) {
+      val devices = heapDumps.devices()
+      return@AgentTool buildJsonObject {
+        putJsonArray("devices") { AgentJson.devices(devices).forEach { add(it) } }
+        if (devices.isEmpty()) {
+          put(
+            "problem",
+            "`adb` is connected to no device. Plug one in, start an emulator, or ask whoever is at the " +
+              "machine to."
+          )
+        }
+      }
+    }
+    val processes = heapDumps.processesOf(serialNumber)
+    buildJsonObject {
+      put("device", serialNumber)
+      putJsonArray("processes") { AgentJson.processes(processes).forEach { add(it) } }
+    }
+  }
+
+  private fun dumpHeap() = AgentTool(
+    name = "dump_heap",
+    description = "Takes a heap dump of a running process, opens it in a window of Shark Explorer and " +
+      "answers once it can be read — the whole of what the window's `Take heap dump` button does. " +
+      "**Minutes, on a large app**: the device writes the dump, it is pulled over `adb`, and then opened. " +
+      "The garbage is collected first where the device is new enough, so what is in the dump is what is " +
+      "really still held. Ask list_devices first for the device and the process.",
+    schema = schema(
+      DEVICE to string("The serial number of the device, from list_devices."),
+      PROCESS to string("The name of the process to dump, from list_devices.")
+    )
+  ) { arguments ->
+    val dump = heapDumps.dumpHeap(
+      serialNumber = arguments.string(DEVICE),
+      processName = arguments.string(PROCESS)
+    )
+    buildJsonObject {
+      put("window", dump.windowId)
+      put("heapDumpPath", dump.heapDumpPath)
+      put("dumped", true)
+      put("next", "Call $LIST_LEAKS with this window to see what the dump says about itself.")
     }
   }
 
@@ -516,23 +689,6 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     }.toSet()
   }
 
-  private fun AgentArguments.place(): Place {
-    val text = string(PLACE)
-    return when {
-      text.startsWith(HEX_PREFIX) -> Place.Object(objectIdOf(PLACE, text))
-      text == PLACE_LEAKS -> Place.Leaks()
-      text == PLACE_OBJECTS -> Place.Objects()
-      text == PLACE_STARRED -> Place.Starred
-      text.startsWith("$PLACE_OBJECTS:") -> Place.Objects(
-        ObjectListFilter(query = text.substringAfter(':'))
-      )
-      else -> throw AgentRefusal(
-        "\"$text\" is no place of a heap dump. A place is an object's address, \"$PLACE_LEAKS\", " +
-          "\"$PLACE_OBJECTS\", \"$PLACE_OBJECTS:<class name>\" or \"$PLACE_STARRED\"."
-      )
-    }
-  }
-
   private companion object {
 
     /** What every investigation starts with, named because three messages point at it. */
@@ -542,6 +698,9 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
 
     /** Named because [placeOrNull] is the one description of a call that has to know which tool it is. */
     const val LIST_LEAKS = "list_leaks"
+
+    /** And because the refusal for a path that isn't a heap dump points at it. */
+    const val OPEN_HEAP_DUMP = "open_heap_dump"
 
     const val WINDOW = "window"
     const val OBJECT = "object"
@@ -553,15 +712,16 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     const val VERDICT = "verdict"
     const val CHAIN_TO = "chainTo"
     const val SOLVE_CONFLICTS = "solveConflicts"
-    const val PLACE = "place"
     const val TEXT = "text"
+    const val REPLACE = "replace"
+    const val MAX_DEPTH = "maxDepth"
+    const val MAX_CHILDREN = "maxChildren"
+    const val PATH = "path"
+    const val DEVICE = "device"
+    const val PROCESS = "process"
     const val ROOT_CAUSE = "rootCause"
     const val HOW_TO_REPRODUCE = "howToReproduce"
     const val NOT_CHECKED = "notChecked"
-
-    const val PLACE_LEAKS = "leaks"
-    const val PLACE_OBJECTS = "objects"
-    const val PLACE_STARRED = "starred"
 
     /**
      * How many objects a list comes back with by default, well under
@@ -577,10 +737,15 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     fun objectId(description: String) =
       string("$description An address as ${OPEN_HEAP_DUMPS} and every chain spells one: `0x…`.")
 
-    fun place() = string(
-      "Which place of the heap dump: an object's `0x…` address, \"$PLACE_LEAKS\", \"$PLACE_OBJECTS\", " +
-        "\"$PLACE_OBJECTS:<class name>\" or \"$PLACE_STARRED\"."
-    )
+    /**
+     * How far down the dominator tree one call will walk, and how wide.
+     *
+     * A cap rather than a warning because the answer is a tree: ten levels of ten children is 10^10 nodes,
+     * each of them a read of the heap dump, and a model that asked for it would have been waiting for the
+     * rest of the day. Five of fifteen is a long screenful.
+     */
+    const val MAX_OUTLINE_DEPTH = 5
+    const val MAX_OUTLINE_CHILDREN = 15
   }
 }
 

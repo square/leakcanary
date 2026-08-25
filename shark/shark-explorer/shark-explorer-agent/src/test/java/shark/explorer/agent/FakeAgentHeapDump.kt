@@ -1,7 +1,10 @@
 package shark.explorer.agent
 
 import java.io.Closeable
+import java.io.File
 import shark.SharkLog
+import shark.explorer.AndroidDevice
+import shark.explorer.DeviceProcess
 import shark.explorer.HeapExplorer
 import shark.explorer.LeakStatusOverride
 import shark.explorer.LeakStatusOverrides
@@ -63,11 +66,69 @@ internal class FakeAgentHeapDump(
     notes.getOrPut(place) { mutableListOf() } += text
   }
 
+  override suspend fun replaceNote(
+    place: Place,
+    text: String
+  ) {
+    notes[place] = mutableListOf(text)
+  }
+
+  override suspend fun readNote(place: Place): String =
+    notes[place]?.joinToString("\n\n").orEmpty()
+
+  override suspend fun notedPlaces(): List<Place> = notes.keys.toList()
+
   override fun show(place: Place) {
     shown += place
   }
 
   override fun close() {
     explorer.close()
+  }
+}
+
+/**
+ * The heap dumps of a run, as far as a test needs them: the windows it was given, and nothing plugged in.
+ *
+ * [AgentHeapDumps] is the app's whole side of this surface — the windows open, plus the two buttons above the
+ * map — and a test of what a tool answers has neither a window nor a device. So the dumps are handed in, a
+ * dump opened from a path is whatever [opens] makes of it, and `adb` answers with [devices]: enough for a
+ * refusal to be a refusal about the right thing, which is what these tools mostly are.
+ */
+internal class FakeAgentHeapDumps(
+  private val open: List<AgentHeapDump> = emptyList(),
+  /** Keyed by serial number, each with the processes that device is running. */
+  private val devices: Map<AndroidDevice, List<DeviceProcess>> = emptyMap(),
+  /** What a file, or a dump pulled off a device, opens as. Refuses by default, since most tests open none. */
+  private val opens: (File) -> AgentHeapDump = { file ->
+    throw AgentRefusal("This test opens no heap dump, so there is nothing to open $file as.")
+  }
+) : AgentHeapDumps {
+
+  /** What was asked to be opened, and what was dumped, in order, so a test can read the calls back. */
+  val opened = mutableListOf<File>()
+  val dumped = mutableListOf<Pair<String, String>>()
+
+  override fun openHeapDumps(): List<AgentHeapDump> = open
+
+  override suspend fun open(file: File): AgentHeapDump {
+    opened += file
+    return opens(file)
+  }
+
+  override suspend fun devices(): List<AndroidDevice> = devices.keys.toList()
+
+  override suspend fun processesOf(serialNumber: String): List<DeviceProcess> =
+    devices.entries.firstOrNull { it.key.serialNumber == serialNumber }?.value
+      ?: throw AgentRefusal("`adb` is connected to no device called \"$serialNumber\".")
+
+  override suspend fun dumpHeap(
+    serialNumber: String,
+    processName: String
+  ): AgentHeapDump {
+    processesOf(serialNumber).firstOrNull { it.name == processName }
+      ?: throw AgentRefusal("No process called \"$processName\" is running on $serialNumber.")
+    dumped += serialNumber to processName
+    return opens(File("$processName.hprof"))
   }
 }

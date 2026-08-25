@@ -82,6 +82,9 @@ fun main(args: Array<String>) {
     SharkLog.d { "Read that as $arguments" }
     nameThisRun(arguments.titlePrefix ?: APP_NAME)
     val windows = explorerWindows(arguments)
+    // One per run rather than one per window, because an agent has no window: opening a heap dump and taking
+    // one off a device are what make a window, so whatever does them has to outlive every window there is.
+    val deviceHeapDumps = commandLineDeviceHeapDumps()
     // Both before the first window, so that a link arriving while the heap dumps are still opening is one
     // the window queues rather than one that lands on an app not listening yet.
     DeepLinkScheme.takeUrisFromTheOs(windows)
@@ -89,12 +92,12 @@ fun main(args: Array<String>) {
     DeepLinkPeers.listen(windows).use {
       // Published before the first window too, so that an agent whose client started it while the heap
       // dumps were still opening finds this run and waits for a dump rather than finding nothing.
-      listenForAgents(windows).use {
+      listenForAgents(windows, deviceHeapDumps).use {
         // Whatever no other run claimed, which for a link naming a window that has gone is an empty window
         // saying so. Ours to answer for now: nobody else is going to.
         DeepLinkPeers.deliver(arguments.deepLinks).forEach { windows.open(it) }
         // Heap dump paths on the command line open straight away, which is how this is usually run.
-        explorerApplication(windows)
+        explorerApplication(windows, deviceHeapDumps)
       }
     }
   }
@@ -147,7 +150,10 @@ private fun nameThisRun(name: String) {
 }
 
 /** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
-private fun explorerApplication(windows: ExplorerWindows) = application {
+private fun explorerApplication(
+  windows: ExplorerWindows,
+  deviceHeapDumps: DeviceHeapDumps
+) = application {
   val updateNotice = remember { UpdateNotice() }
   // One notepad per place for the whole run, so that a heap dump open in two windows is one set of notes
   // rather than two that overwrite each other. See [ExplorerNotes].
@@ -200,13 +206,17 @@ private fun explorerApplication(windows: ExplorerWindows) = application {
             // What this window has open, for the agent surface: a socket thread has to be able to find it,
             // and it is a composable's state. See [ExplorerWindow.openHeapDump].
             onHeapDumpOpen = { open -> window.openHeapDump = open },
+            onHeapDumpProblem = { problem -> window.openProblem = problem },
             deepLinkId = window.deepLinkId,
             // The same way a link arriving from the OS is followed, which is what makes a `shark://` link
             // written in a note work wherever it is read from.
             followDeepLink = { link -> DeepLinkPeers.follow(link, windows) },
             linkedPlaces = window.linkedPlaces,
             onLinkedPlaceOpened = { place -> window.linkedPlaceOpened(place) },
-            deepLinkProblem = window.deepLinkProblem
+            deepLinkProblem = window.deepLinkProblem,
+            // The run's rather than this window's, because an agent reaches the same one through no window
+            // at all — and because two windows asking `adb` at once is two `adb` processes.
+            deviceHeapDumps = deviceHeapDumps
           )
         }
       }
@@ -249,6 +259,14 @@ internal fun ExplorerApp(
    */
   onHeapDumpOpen: (WindowHeapDump?) -> Unit = {},
   /**
+   * And where a heap dump that could not be opened says so, for the same readers.
+   *
+   * Beside [onHeapDumpOpen] rather than folded into it, because the two are not opposites: a window whose
+   * dump is still opening has neither, and something waiting for that dump has to be able to tell "not
+   * yet" from "never" without waiting for a timeout to decide it. Null again once another dump opens here.
+   */
+  onHeapDumpProblem: (String?) -> Unit = {},
+  /**
    * What every agent that has connected did, for the screens that draw them.
    *
    * Its own by default, and overridden by tests for the reason the notes are: a test reading the sessions
@@ -279,12 +297,7 @@ internal fun ExplorerApp(
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
-  deviceHeapDumps: DeviceHeapDumps = remember {
-    val adb = CommandLineAdb()
-    // A debugger is what reaches into a process for the two things `am dumpheap` can't ask it for on an
-    // old enough device: the pixels of a bitmap below API 35, and a collection below API 27.
-    DeviceHeapDumps(adb, JdwpBitmaps(adb), JdwpGc(adb))
-  }
+  deviceHeapDumps: DeviceHeapDumps = remember { commandLineDeviceHeapDumps() }
 ) {
   var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
   var takesHeapDump by remember { mutableStateOf(false) }
@@ -333,6 +346,7 @@ internal fun ExplorerApp(
         )
       }
     )
+    onHeapDumpProblem((currentState as? HeapDumpState.Failed)?.message)
     onDispose {
       onHeapDumpOpen(null)
       open?.session?.close()
@@ -533,6 +547,19 @@ private fun cascadedPosition(cascade: Int): WindowPosition {
   val stepCount = (minOf(centredX, centredY) / CASCADE_STEP).toInt().coerceAtLeast(1)
   val step = CASCADE_STEP * (cascade % stepCount)
   return WindowPosition(x = screen.x.dp + centredX + step, y = screen.y.dp + centredY + step)
+}
+
+/**
+ * How this app reaches a device: the machine's own `adb`, with a debugger for what `adb` can't ask for.
+ *
+ * A function rather than a constant because it is one per run and a test's is its own — the default of a
+ * composable that a test takes over, and what `main` hands to everything that has no window.
+ */
+private fun commandLineDeviceHeapDumps(): DeviceHeapDumps {
+  val adb = CommandLineAdb()
+  // A debugger is what reaches into a process for the two things `am dumpheap` can't ask it for on an old
+  // enough device: the pixels of a bitmap below API 35, and a collection below API 27.
+  return DeviceHeapDumps(adb, JdwpBitmaps(adb), JdwpGc(adb))
 }
 
 /**

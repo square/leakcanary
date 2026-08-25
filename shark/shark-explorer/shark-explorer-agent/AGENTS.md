@@ -14,6 +14,7 @@ being talked to by a program that is not this app.
 | --- | --- |
 | `AgentHeapDump.kt` | The seam: one open heap dump, as everything here sees it. The app implements it over a window; the tests implement it over a `HeapExplorer` and three fields. |
 | `AgentTools.kt` | Every tool, each a name, a schema and one read. Where the refusals are. |
+| `AgentPlace.kt` | Where a tab is, as one string an agent can be answered with and hand back. Both directions. |
 | `AgentMethod.kt` | The method, as prose handed to the model twice. |
 | `AgentJson.kt` | The explorer's model as JSON. |
 | `AgentTool.kt` | One tool, its arguments read strictly, and `AgentRefusal`. |
@@ -104,6 +105,26 @@ web page or another machine out, and **not** a boundary between programs run by 
 that can read `~/.shark-explorer` can read any heap dump on the disk anyway.
 
 `AgentServer.serve` sets **no read timeout**, unlike the link socket. An agent thinking is a quiet connection.
+
+## Everything the window can do, this can do
+
+`AgentTools` covers every screen and every button, `Take heap dump…` included, and that is a rule rather than
+how far it happened to get. A surface that can read a heap dump but not open one answers "ask your human to
+click something", which is the opposite of the point — so a capability added to the window is a tool added
+here, and the same the other way round.
+
+Two consequences worth knowing before adding one.
+
+**A tool that makes a window is answered once the dump is *readable*.** `AgentHeapDumps.open` and `dumpHeap`
+hand back an `AgentHeapDump`, not a path or a window id, because everything else on this surface is a read: an
+id handed over while the dump is still being indexed is one that refuses every call made with it. The app's
+side waits on three outcomes — open, failed to open, window closed — which is why `ExplorerWindow` publishes
+`openProblem` beside `openHeapDump`. Waiting on "opened" alone means a file that was never a heap dump is a
+call that never comes back.
+
+**A tool that reaches `adb` is minutes, and says so in the log rather than in the answer.** There is nothing to
+stream progress through — an agent is waiting on one JSON object — so `~/.shark-explorer/logs` is where a dump
+that is still being pulled says how far it has got.
 
 ## An address is a string, never a JSON number
 

@@ -66,6 +66,16 @@ internal class ExplorerWindow(
   var openHeapDump: WindowHeapDump? by mutableStateOf(null)
 
   /**
+   * Why the heap dump this window was given could not be opened, and null while nothing has gone wrong.
+   *
+   * The other half of [openHeapDump] for a reader outside the composition, and not its opposite: a window
+   * whose dump is still being indexed has neither, which is what tells something waiting for that dump that
+   * waiting is still the right thing to do. Set by [ExplorerApp] the same way, and cleared as another dump
+   * opens here.
+   */
+  var openProblem: String? by mutableStateOf(null)
+
+  /**
    * Places a link has asked this window for and whose tabs are not open yet, oldest first.
    *
    * A list handed over rather than a call into the tabs, because a link arrives on whichever thread the OS
@@ -138,7 +148,7 @@ internal class ExplorerWindow(
  */
 internal class ExplorerWindows(
   /** Put in front of every window title of this run. See [ExplorerArguments.titlePrefix]. */
-  private val titlePrefix: String? = null,
+  val titlePrefix: String? = null,
   /** One Compose window is drawn per entry, so a window opening or closing is an edit of this. */
   private val windows: SnapshotStateList<ExplorerWindow> = mutableStateListOf()
 ) : MutableList<ExplorerWindow> by windows {
@@ -229,8 +239,9 @@ internal fun ExplorerWindows.openHeapDump(
   } else {
     window.heapDumpFile = heapDumpFile
     window.bitmapPixels = bitmapPixels
-    // Whatever a link said about this window being empty is answered now that it isn't.
+    // Whatever a link, or a dump that failed to open, said about this window is answered now that it has one.
     window.deepLinkProblem = null
+    window.openProblem = null
   }
   // One run's log covers every window of that run, and what tells the lines apart afterwards is the
   // thread each was written from, so which window a heap dump went to is worth a line of its own.
@@ -238,6 +249,24 @@ internal fun ExplorerWindows.openHeapDump(
     val where = if (isWindowOfItsOwn) "a window of its own" else "the window that had no heap dump"
     "Opening ${heapDumpFile.name} in $where"
   }
+}
+
+/**
+ * Shows [heapDumpFile] somewhere, and says where, for a dump that arrives from **outside any window**.
+ *
+ * Which is an agent opening a file, or taking one off a device: there is no window it was asked from, so the
+ * rule above is asked of every window instead of one — the window showing nothing is the one with nothing to
+ * lose, and failing that a heap dump is a window.
+ */
+internal fun ExplorerWindows.openHeapDump(
+  heapDumpFile: File,
+  /** Fetched with the dump, for a device whose dump can't carry the pixels of its bitmaps. */
+  bitmapPixels: NativeBitmapPixels? = null
+): ExplorerWindow {
+  val window = firstOrNull { it.heapDumpFile == null }
+    ?: ExplorerWindow(cascade = freeCascade(), titlePrefix = titlePrefix).also { add(it) }
+  openHeapDump(window, heapDumpFile, bitmapPixels)
+  return window
 }
 
 /** Between what a run is called and which heap dump a window shows, as elsewhere in this window. */
