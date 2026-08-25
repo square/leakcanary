@@ -215,23 +215,30 @@ class LeakStatusSectionTest {
    * Both halves in one window, because they are one answer: the reference is marked from the verdicts either
    * side of it, so a verdict set by hand is what puts the mark on the chain and what takes it off again.
    */
-  @Test fun `the chain marks which reference the leak is, and a hand can take the mark off`() {
+  @Test fun `the chain names which reference the leak is, twice, and a hand can take that off`() {
     explorerUiTest {
       // Set in a run before this one, and what leaves a single reference below it: with nothing on this
       // chain known to belong in memory, the fault is at either of its two steps and neither is marked.
       openHeapDump(setAlready = { holderIsExpected() }) { it.activityObjectId }
 
       onNodeWithText("$FAULTY_STEP $FAULTY_REFERENCE").assertIsDisplayed()
+      // And said again above the chain, which is not a duplicate: a real chain is tens of steps, this pane
+      // is scrolled to the last of them, and a mark somewhere in the middle is an answer to go looking for.
+      // The exact text is the section's, the mark on the chain having the words above after it.
+      onNodeWithText(LEAK_SOLVED).assertIsDisplayed()
+      onNodeWithText(FAULTY_STEP).assertIsDisplayed()
 
       changeStatus()
       choose(LeakStatus.EXPECTED)
       write(TYPED_REASON)
       set()
 
-      // Nothing on this chain is stuck any more, so there is no reference to point at — and the step is
-      // still drawn, which is the mark being about the leak rather than about the reference.
+      // Nothing on this chain is stuck any more, so there is no reference to point at and nothing is solved
+      // — and the step is still drawn, which is both of those being about the leak rather than the reference.
       waitUntilAtLeastOneExists(hasText(TYPED_REASON, substring = true), SAVE_TIMEOUT_MILLIS)
       onNodeWithText(FAULTY_REFERENCE, substring = true).assertDoesNotExist()
+      onNodeWithText(LEAK_SOLVED).assertDoesNotExist()
+      // Which now matches the step on the chain rather than the section that was above it.
       onNodeWithText(FAULTY_STEP).assertIsDisplayed()
     }
   }

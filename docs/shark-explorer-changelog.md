@@ -55,5 +55,7 @@ uses, without the one for a newly recognized library leak:
   `Stuck` one reads `Holder.activity · faulty reference`, which is the leak itself rather than one of the
   objects it left behind, and the same reference the **Leaks** screen names that leak after. A chain whose
   two verdicts are further apart than one step carries no mark, since which reference in between is at fault
-  is what isn't known — overrule a verdict in between and the mark appears.
+  is what isn't known — overrule a verdict in between and the mark appears. Once there is a mark, a
+  `Leak solved` line above **What holds it** names that reference where the eye starts, rather than leaving
+  it to be found tens of steps down a chain, and an agent reading the chain is answered with the same name.
   See [The verdict](shark-explorer.md#the-verdict).

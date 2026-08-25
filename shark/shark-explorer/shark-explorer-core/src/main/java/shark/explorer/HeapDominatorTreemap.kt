@@ -42,7 +42,6 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Sh
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
 import shark.AndroidObjectInspectors
-import shark.ReferenceLocationType
 import shark.SharkLog
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ByteHolder
@@ -1105,7 +1104,7 @@ class HeapDominatorTreemap internal constructor(
       //
       // Null when nothing holds the object at all, which is what leaves an unreachable leak named after its
       // class: there is no reference left to name it after.
-      val weakenedBy = steps.firstOrNull { it.strength >= strength }?.reference?.genericLabel()
+      val weakenedBy = steps.firstOrNull { it.strength >= strength }?.reference?.leakLabel()
       if (weakenedBy == null && steps.isNotEmpty()) {
         SharkLog.d {
           "Nothing on the chain to ${hexObjectId(objectId)} holds it as weakly as $strength does, so it is " +
@@ -1189,20 +1188,7 @@ class HeapDominatorTreemap internal constructor(
    * marks nothing, since which of those references is at fault is exactly what isn't known.
    */
   private fun suspectSubpath(steps: List<PathStep>): List<String> =
-    steps.suspectReferenceIndexes().map { steps[it].reference!!.genericLabel() }
-
-  /**
-   * A reference spelled the way the chain pane spells it — `Tile.view`, `Object[][x]` — with an array index
-   * erased, since which slot an object is in is no part of what makes a leak that leak.
-   *
-   * Spelled that way because a leak is named after one of these, and the name is only worth anything if it
-   * is the same string as the step someone then goes looking for on the chain.
-   */
-  private fun PathReference.genericLabel(): String = when (locationType) {
-    ReferenceLocationType.ARRAY_ENTRY -> "$ownerClassName[x]"
-    ReferenceLocationType.LOCAL -> "$ownerClassName.$LOCAL_VARIABLE"
-    ReferenceLocationType.INSTANCE_FIELD, ReferenceLocationType.STATIC_FIELD -> "$ownerClassName.$name"
-  }
+    steps.suspectReferenceIndexes().map { steps[it].reference!!.leakLabel() }
 
   /** One leaking object and which leak it is an instance of, before the instances are gathered. */
   private class FoundLeak(
@@ -1835,13 +1821,6 @@ class HeapDominatorTreemap internal constructor(
      * are the ones anyone reads.
      */
     private const val MAX_LEAKING_OBJECTS = 500
-
-    /**
-     * What a reference from a running method is called, since it has no name of its own. The same words
-     * the chain pane uses, duplicated rather than shared: a leak named after a reference has to be named
-     * the way the chain spells it, and that is a string, not a module's API.
-     */
-    private const val LOCAL_VARIABLE = "<local variable>"
 
     /**
      * How many ways of holding an object [independentPathsBetween] spells out. Six chains is already more

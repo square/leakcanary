@@ -22,6 +22,8 @@ import shark.explorer.ReachabilityStrength
 import shark.explorer.RootPath
 import shark.explorer.RootPathStep
 import shark.explorer.exactHexObjectId
+import shark.explorer.faultyReference
+import shark.explorer.leakLabel
 
 /**
  * How the explorer's own model reads as JSON, which is the whole of what an agent sees of a heap dump.
@@ -129,6 +131,11 @@ internal object AgentJson {
   fun rootPath(path: RootPath): JsonObject = buildJsonObject {
     put("gcRoot", path.gcRootLabel)
     put("stepCount", path.steps.size)
+    // What the chain is for, said once at the top rather than left to be found by scanning the steps for
+    // isFaulty — and in the words the window names the leak with, so that an answer handed to a person
+    // matches the section they are reading it under. Null until the verdicts either side of one reference
+    // are both set, which is the state an investigation is working towards.
+    put("faultyReference", path.faultyReference()?.leakLabel())
     putJsonArray("steps") { path.steps.forEach { add(rootPathStep(it)) } }
   }
 

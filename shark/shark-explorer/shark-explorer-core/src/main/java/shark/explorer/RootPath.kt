@@ -54,6 +54,20 @@ fun RootPath.stepsBelow(rootNodeId: Long): List<RootPathStep> {
 }
 
 /**
+ * The one reference this chain is the leak *of*, and null for a chain that isn't a solved leak.
+ *
+ * Which is what a chain is read for: the objects on it say what is still in memory, and this says what to
+ * go and change. A reader who has set the two verdicts either side of one reference has finished — the heap
+ * dump has no more to add — so this being non-null is the same fact as the investigation being over.
+ *
+ * At most one, because [PathReference.isFaulty] is set for the single crossing from expected to stuck and
+ * for nothing else, so there is no need for a caller to decide between two of them. See
+ * [faultyReferenceIndexOrNull] for the rule and for the three ways a chain has none.
+ */
+fun RootPath.faultyReference(): PathReference? =
+  steps.firstNotNullOfOrNull { step -> step.step.reference?.takeIf { it.isFaulty } }
+
+/**
  * The part of this chain below [objectId], or null when no step of it is that object.
  *
  * What the chain to the rectangle under the pointer has to add to the chain already on screen: the object

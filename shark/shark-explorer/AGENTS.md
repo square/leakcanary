@@ -99,6 +99,15 @@ fingerprint — so it is tempting to mark the top of it, which is what the first
 for being where the walk started. A longer stretch is a fault at one of several steps with nothing saying
 which, and nothing drawn is the answer for that.
 
+**And it is named in one place, `PathReference.leakLabel()`.** Four surfaces say which reference a leak is —
+the row of the leaks screen, the `Leak solved` section above the chain, the `faultyReference` an agent is
+answered with, and the note `conclude` writes — and a leak named `Holder.activity` by one of them and
+`Holder#activity` by another is two leaks to whoever is reading, or grepping. `Owner.field` is not the whole
+of it either: an array entry loses its index (`Object[][x]`, since which slot a leak was in is no part of
+what it is) and a reference from a running method has no name of its own. `RootPath.faultyReference()` is the
+matching single answer to "does this chain name one?", which is what both the window's section and the agent's
+field are.
+
 Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
 are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
 `rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots`, `findLeaks`, `isBelowLeakingObject` —

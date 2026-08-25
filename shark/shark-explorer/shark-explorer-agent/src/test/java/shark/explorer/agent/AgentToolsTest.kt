@@ -2,6 +2,7 @@ package shark.explorer.agent
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
@@ -156,6 +157,9 @@ class AgentToolsTest {
     )
     assertThat(steps.mapNotNull { it["reference"]?.jsonObject?.text("isFaulty") })
       .containsOnly("false")
+    // Which is the field an agent reads to know whether it is done, so an unsolved chain has to leave it
+    // out rather than answer with something that could be mistaken for a name.
+    assertThat(answer.obj("chain")["faultyReference"]).isEqualTo(JsonNull)
     assertThat(answer.text("whatTheChainSays"))
       .contains("1 step(s)")
       .contains(hex(heapDump.holderObjectId))
@@ -205,6 +209,9 @@ class AgentToolsTest {
       .single { it.jsonObject["reference"]?.jsonObject?.text("isFaulty") == "true" }
       .jsonObject
     assertThat(faulty.text("object")).isEqualTo(hex(heapDump.activityObjectId))
+    // And named at the top of the chain in the same words the window's `Leak solved` section uses, so that
+    // an agent quoting it to its human names what the human is looking at.
+    assertThat(answer.obj("chain").text("faultyReference")).isEqualTo(FAULTY_REFERENCE)
   }
 
   @Test

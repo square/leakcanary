@@ -173,6 +173,18 @@ where to go and change code — the shades on the objects are what the leak left
 it is the same reference the Leaks screen names that leak after, so a row there and the chain you open from it
 name one thing.
 
+**And when it has one, `Leak solved` says so above the chain**, with the reference under it and nothing else:
+
+```
+Leak solved
+Holder.activity
+```
+
+Because a real chain is tens of steps and **What holds it** is scrolled to the last of them, so a mark
+somewhere in the middle is an answer you have to go looking for. The name is the one to go and grep for, and
+it is the same string the Leaks screen, a note written by `conclude`, and an agent's `faultyReference` all
+use.
+
 **A chain with no such step carries no mark**, which is deliberate: what would be marked would be a guess
 drawn as an answer. With objects nothing knows either way about between the two verdicts, the fault is at one
 of those steps and nothing on the chain says which. With nothing `Expected` above the stuck object at all,

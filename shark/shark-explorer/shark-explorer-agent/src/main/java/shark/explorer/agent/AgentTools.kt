@@ -16,6 +16,7 @@ import shark.explorer.Place
 import shark.explorer.RootPath
 import shark.explorer.RootPathStep
 import shark.explorer.exactHexObjectId
+import shark.explorer.leakLabel
 import shark.explorer.leakStatusConflictsWith
 
 /**
@@ -124,9 +125,11 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     name = "chain_from_gc_root",
     description = "The shortest chain of references from a GC root down to this object, which is where the " +
       "leak is. Every step carries its verdict, the reason for it, the inspectors' labels and the field " +
-      "the step above points through. A reference marked isFaulty is the one the heap dump says is at " +
-      "fault; while none is, the chain does not yet name a single reference. Steps marked isDominator are " +
-      "the ones every path to the object goes through.",
+      "the step above points through. faultyReference is what the chain names the leak — the one reference " +
+      "to go and change, also marked isFaulty on the step it reaches, and shown as `Leak solved` above the " +
+      "chain in the window. It is null while the verdicts don't yet cross from EXPECTED to STUCK at a " +
+      "single reference, which is the state an investigation works towards and what conclude requires. " +
+      "Steps marked isDominator are the ones every path to the object goes through.",
     schema = schema(WINDOW to window(), OBJECT to objectId("The object to walk up from."))
   ) { arguments ->
     val dump = arguments.heapDump()
@@ -363,7 +366,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       )
     val reference = requireNotNull(faulty.step.reference)
     val note = conclusionNote(
-      reference = "${reference.ownerClassName}.${reference.name}",
+      reference = reference.leakLabel(),
       rootCause = arguments.string(ROOT_CAUSE),
       howToReproduce = arguments.optionalString(HOW_TO_REPRODUCE),
       notChecked = arguments.optionalString(NOT_CHECKED),
@@ -375,7 +378,9 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       put("concluded", true)
       putJsonArray("faultyReference") {
         addJsonObject {
-          put("reference", "${reference.ownerClassName}.${reference.name}")
+          // The words the window names this leak with, so that an answer an agent gives its human and the
+          // section at the top of the chain they are looking at are the same string.
+          put("reference", reference.leakLabel())
           put("declaredIn", reference.ownerClassName)
           put("field", reference.name)
           put("heldObject", exactHexObjectId(faulty.step.objectId))
@@ -650,7 +655,7 @@ private fun RootPath.verdictState(): ChainVerdicts {
     )
   return ChainVerdicts(
     faultyStep = faulty,
-    summary = "${reference.ownerClassName}.${reference.name} is the faulty reference: the one step from " +
+    summary = "${reference.leakLabel()} is the faulty reference: the one step from " +
       "an object meant to be in memory to one that should be gone."
   )
 }

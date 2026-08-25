@@ -110,6 +110,7 @@ class HeapLeakStatusTest {
       // Nothing on this chain is known to belong in memory — a holder nothing knows either way about, then
       // two destroyed objects — so the fault is at one of two steps and the chain marks neither.
       assertThat(explorer.tree.rootPathTo(dump.windowObjectId).faultyReferences()).isEmpty()
+      assertThat(explorer.tree.rootPathTo(dump.windowObjectId).faultyReference()).isNull()
 
       val path = explorer.tree.rootPathTo(
         objectId = dump.windowObjectId,
@@ -120,6 +121,9 @@ class HeapLeakStatusTest {
       // it is still holding is the leak, and there is now nothing else it could be. Named after the class
       // that declares the field, which is the framework's `Activity` rather than the app's subclass of it.
       assertThat(path.faultyReferences()).containsExactly("Activity.mWindow")
+      // The same reference, through the one call the window's `Leak solved` section and an agent's
+      // `faultyReference` both go through: a chain either names the leak or it doesn't.
+      assertThat(path.faultyReference()?.leakLabel()).isEqualTo("Activity.mWindow")
     }
   }
 
@@ -428,11 +432,16 @@ class HeapLeakStatusTest {
     reason: String
   ) = LeakStatusOverrides.of(listOf(override(objectId, status, reason)))
 
-  /** The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named. */
+  /**
+   * The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named.
+   *
+   * Every step rather than [RootPath.faultyReference], which stops at the first: a chain marking two of them
+   * would leave the window and the agent naming one leak each, and this is what would notice.
+   */
   private fun RootPath.faultyReferences(): List<String> =
     steps.mapNotNull { it.step.reference }
       .filter { it.isFaulty }
-      .map { "${it.ownerClassName}.${it.name}" }
+      .map { it.leakLabel() }
 
   companion object {
     /** An address no dump these tests write has an object at, since they start at 1. */
