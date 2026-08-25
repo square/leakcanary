@@ -15,6 +15,7 @@ reading the source alone — everything else is in the code. Keep it that way.
 | `shark-explorer-jdwp` | Attaches to a live app as a debugger to read the pixels of its bitmaps. | **Imports `com.sun.jdi`, so it needs a JDK and can't be loaded on Android.** That's the whole reason it isn't in `core`. |
 | `shark-explorer-agent` | The MCP server a window answers agents through, the `--mcp-stdio` pipe that reaches it, and `--no-ui` for a run with no window at all. | **No Compose, Java 8 target, and desktop only** — it calls `ProcessHandle`. Has its own `AGENTS.md`. |
 | `shark-explorer-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
+| `shark-explorer-eval` | The heap dumps an agent is measured on, and the scoring of what it did with them. Driven by `shark-explorer-agent/harness/eval/run-eval.sh`. | **The only module with `shark-hprof-test` in its main source set**, which is why it is a module: writing the scenarios is what it does, and a dump-building DSL can be no dependency of anything the app ships. Runs no model. |
 
 `shark/shark-explorer/` itself holds no code, matching how `shark/` and `leakcanary/` are grouping
 directories in this repo.
@@ -585,8 +586,8 @@ Design decisions and findings, kept current as the work proceeds:
   about the provider rather than the component, and how to dump really generated code
 - `notes/agent-surface.md` — what the MCP surface costs a client in tokens, measured, and why a CLI and a
   skill are adapters over the same registry rather than second implementations
-- `notes/agent-eval.md` — the plan for scoring how well an agent solves a leak, with no model doing the
-  scoring
+- `notes/agent-eval.md` — how well an agent solves a leak, scored with no model doing the scoring: the answer
+  keys, the three ways a run gets handed its own answer, and the baseline to beat
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

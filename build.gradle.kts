@@ -200,6 +200,7 @@ val modulesWithoutPublicApi = listOf(
   "shark-explorer-agent",
   "shark-explorer-app",
   "shark-explorer-core",
+  "shark-explorer-eval",
   "shark-explorer-jdwp",
   "shark-hprof-test",
   "shark-test",

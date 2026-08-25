@@ -24,6 +24,7 @@ being talked to by a program that is not this app.
 | `AgentStdioBridge.kt` | `--mcp-stdio`: the pipe an MCP client launches. |
 | `AgentStdioServer.kt` | And `--no-ui`: the same tools over this process's own stdio, for a run with no window. |
 | `harness/start-harness.sh` | Opens a window and prints the command that throws an agent at it. |
+| `harness/eval/run-eval.sh` | Throws an agent at a heap dump whose answer is known, and scores what it did. The dumps and the scoring are `shark-explorer-eval`. |
 
 Nothing here is public API — the module is in `modulesWithoutPublicApi`, like the rest of the explorer — with
 two deliberate exceptions, `AgentServer`/`AgentStdioBridge`/`AgentHeapDump*` because the app calls them, and
@@ -187,6 +188,9 @@ the reads happen on the heap dump's thread and the tests run headless.
 
 # The whole surface end to end, in a real window, with an agent that has never seen this repository.
 shark/shark-explorer/shark-explorer-agent/harness/start-harness.sh [heap-dump.hprof]
+
+# And the same surface scored: heap dumps whose faulty reference is known, and a number per run.
+shark/shark-explorer/shark-explorer-agent/harness/eval/run-eval.sh --models opus,sonnet --repetitions 5
 ```
 
 Every test here runs against a heap dump built with the `dump { }` DSL and no window, which is what
@@ -199,3 +203,10 @@ one heap dump in it, and writes an MCP config pinned to that run plus a prompt t
 root cause" — so what the agent follows is the method the server handed it. Then read
 `~/.shark-explorer/logs`: a run that went well and a run that guessed look completely different there, and
 neither of them looks like anything in a unit test.
+
+**And `harness/eval` is the measured half of the same idea.** The harness shows how one investigation goes;
+the eval runs an agent against a dump whose faulty reference is already known and scores whether it found it,
+by string comparison and counting, with no model marking anything. So it is what says whether a change to a
+description or a refusal made things better rather than only different.
+`shark/shark-explorer/notes/agent-eval.md` has the answer keys — and the three ways a run gets handed its own
+answer, each of which was a score that meant nothing.
