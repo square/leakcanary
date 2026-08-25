@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.explorer.AndroidDevice
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.DeviceProcess
 import shark.explorer.HeapExplorer
@@ -21,6 +22,7 @@ import shark.explorer.agent.AgentSession
 import shark.explorer.agent.AgentSessionFile
 import shark.explorer.agent.AgentStdioBridge
 import shark.explorer.agent.AgentStdioServer
+import shark.explorer.agent.ShownPlace
 import shark.explorer.placeOfNoteKeyOrNull
 
 /**
@@ -303,7 +305,9 @@ private fun ExplorerWindow.agentHeapDump(open: OpenHeapDump): AgentHeapDump =
     // person clicking a link land in the same place. See [ExplorerWindows.open].
     goToLinked(place)
     bringToFront()
-    null
+    // And the link itself, which is the same one the right click menu copies: an agent's answer can then
+    // point at this place rather than describe how to get to it.
+    ShownPlace.at(DeepLink(deepLinkId, place).toUri())
   }
 
 /**
@@ -316,8 +320,8 @@ private fun ExplorerWindow.agentHeapDump(open: OpenHeapDump): AgentHeapDump =
 internal class OpenAgentHeapDump(
   override val windowId: String,
   private val open: OpenHeapDump,
-  /** Where a place goes, answering with why it couldn't. See [AgentHeapDump.show]. */
-  private val showPlace: (Place) -> String?
+  /** Where a place goes, and the link to it. See [AgentHeapDump.show]. */
+  private val showPlace: (Place) -> ShownPlace
 ) : AgentHeapDump {
 
   override val heapDumpPath: String get() = open.session.heapDumpFile.absolutePath
@@ -362,7 +366,7 @@ internal class OpenAgentHeapDump(
     return open.notes.writtenAbout.mapNotNull { key -> placeOfNoteKeyOrNull(key) }
   }
 
-  override fun show(place: Place): String? = showPlace(place)
+  override fun show(place: Place): ShownPlace = showPlace(place)
 
   /**
    * Puts what [newText] makes of the saved note on disk, whether that is the note plus a paragraph or

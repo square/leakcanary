@@ -100,5 +100,10 @@ internal object AgentMethod {
       something a person can follow afterwards rather than a conclusion they have to trust.
     - **`show` puts what you are looking at on screen.** Use it when you reach something that matters. The
       window is how the person watching follows the work, and it costs you one call.
+    - **Put the `shark://` links you are answered with in your reply.** `show` and `conclude` hand one back:
+      it opens that exact object, in that window, with your notes on it. Whoever asked you can click it
+      while reading your answer, and again next week. So write "the leak is
+      `Holder.activity`(shark://…)" rather than describing which screen to open and what to click — a link
+      is the difference between an answer they have to take your word for and one they can go and look at.
   """.trimIndent()
 }

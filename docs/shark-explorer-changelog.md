@@ -52,8 +52,14 @@ uses, without the one for a newly recognized library leak:
   opens one — on the heap dump its command line named, if it named one — and leaves it open for whoever comes
   back to it. And with `--no-ui`, the tools are served from that process with no window anywhere, for a build
   server or a heap dump at the end of an ssh session: everything works the same except `show`, which says it
-  has nowhere to put a tab rather than answering that it showed you something. Notes and verdicts were never
+  has nowhere to put a tab rather than answering that it showed you something, and hands back no link since a
+  link names a window and this run has none. Notes and verdicts were never
   on the screen, so a heap dump investigated with no window opens in one later with all of it on.
+  See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
+* ✨ **An agent answers with links into the window.** `show` and `conclude` hand back the `shark://` link to
+  what they put on screen, and the method the tools come with tells an agent to put those links in its reply —
+  so a sentence in a chat window, a pull request comment or a bug report carries a way into the heap dump
+  rather than instructions for finding the object again by hand.
   See [Hand it to an agent](shark-explorer.md#hand-it-to-an-agent).
 * ✨ **Agent logs**: every agent that has connected to the app is a row on a screen of its own, and opening
   one is everything that agent did — what each call did, which object it did it to, and the sentence it gave

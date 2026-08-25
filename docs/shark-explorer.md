@@ -270,9 +270,10 @@ instead of piped to a window:
 ```
 
 Everything works the same except `show`, which has nowhere to put a tab and says so rather than answering that
-it showed you something. Nothing else changes, because **notes and verdicts were never on the screen** — they
-are files beside the heap dump, so a dump investigated over ssh today opens in a window tomorrow with the
-verdicts, the reasons and the conclusion already on it.
+it showed you something — and hands back no `shark://` link either, since a link names a window and this run
+has none. Nothing else changes, because **notes and verdicts were never on the screen** — they are files
+beside the heap dump, so a dump investigated over ssh today opens in a window tomorrow with the verdicts, the
+reasons and the conclusion already on it.
 
 Then ask for what you actually want. This is the whole prompt the session below was given:
 
@@ -298,7 +299,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
 | `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
-| `show` | Opens a tab in your window and brings it to the front. The one tool a `--no-ui` run can't do. |
+| `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can't do. |
 | `conclude` | The root cause, and the only way to finish. |
 | `open_heap_dump` | **Open heap dump…**, for a file nobody has open yet. |
 | `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
@@ -394,6 +395,18 @@ stuck object and opens that tab, so the answer is in the window beside the evide
 > **Not checked:** I could not read the app's source. […] The "anonymous inner class" reading rests on the
 > class name `MainActivity$2`, the synthetic `this$0` field and Shark's inspector label, not on a line of
 > source.
+
+**And the link to that note comes back with the conclusion**, because the answer usually arrives somewhere
+that isn't this app. `show` and `conclude` both answer with the `shark://` link to what they put on screen,
+and the method tells an agent to put those links in its reply — so a sentence in your chat window, a pull
+request comment or a bug report ends up carrying a way in:
+
+> The leak is `MainActivity$2.this$0`, a non-static inner class holding the activity it was declared in:
+> shark://zvphq4r3/0x12d368b8
+
+Clicking it opens that object in that window, with the reasoning on its tabs. Once the window is closed the
+link says which window it was rather than opening the wrong one, so an answer worth keeping is worth
+[copying the heap dump's path](#open-a-heap-dump) beside it.
 
 An agent's verdicts are verdicts like any other: they say `set by hand` on every chain that runs through the
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the

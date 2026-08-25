@@ -95,12 +95,39 @@ interface AgentHeapDump {
    *
    * Not suspending: this is the same hand-over a `shark://` link makes — a place put where the tabs take it
    * on the next frame — so there is nothing to wait for.
-   *
-   * @return null when it was shown, and why it wasn't otherwise. Which is one case, a run started with no
-   * window at all, and it is worth answering rather than logging: an agent told its human to look at
-   * something they cannot see has said the one thing worse than nothing.
    */
-  fun show(place: Place): String?
+  fun show(place: Place): ShownPlace
+}
+
+/**
+ * What came of putting a place in front of the person watching: the link to it, or why there was nowhere.
+ *
+ * **One answer rather than two calls**, because the two questions have one answer. A link names a window, so
+ * whether there is a link and whether anything was shown are the same fact — and a run with no window that
+ * handed out a `shark://` link anyway would be handing out an address nothing answers to.
+ *
+ * The link matters as much as the showing does: it is what an agent puts in its *reply* so that whoever asked
+ * can open the place themselves, later, from wherever the conversation is. Showing raises a window over
+ * whatever they were doing, which is right once and wrong five times; a link in a sentence is right every
+ * time. See [AgentTools] `show`.
+ */
+class ShownPlace private constructor(
+  /** The `shark://` link a person can click to open it, and null when nothing was shown. */
+  val link: String?,
+  /** Why it wasn't shown, and null when it was. */
+  val problem: String?
+) {
+
+  companion object {
+
+    fun at(link: String) = ShownPlace(link = link, problem = null)
+
+    /**
+     * Nothing was shown, and [problem] says why — which is worth answering rather than logging: an agent that
+     * told its human to look at something they cannot see has said the one thing worse than nothing.
+     */
+    fun nowhere(problem: String) = ShownPlace(link = null, problem = problem)
+  }
 }
 
 /**

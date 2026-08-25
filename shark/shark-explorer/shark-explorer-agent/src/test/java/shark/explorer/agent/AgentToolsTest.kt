@@ -263,6 +263,10 @@ class AgentToolsTest {
     assertThat(faulty.text("field")).isEqualTo(ACTIVITY_FIELD_NAME)
     assertThat(faulty.text("heldObject")).isEqualTo(hex(heapDump.activityObjectId))
     assertThat(faulty.text("heldClassName")).isEqualTo(ACTIVITY_CLASS_NAME)
+    // The one link most worth handing back, so it comes with the conclusion rather than needing a show call
+    // after it: it opens the object this conclusion is about, with the conclusion in its notes.
+    assertThat(answer.text("link"))
+      .isEqualTo("shark://${window.windowId}/${hex(heapDump.activityObjectId)}")
   }
 
   @Test
@@ -442,6 +446,16 @@ class AgentToolsTest {
     assertThatThrownBy { call("show", "place" to "the leak") }
       .isInstanceOf(AgentRefusal::class.java)
       .hasMessageContaining("is no place of a heap dump")
+  }
+
+  @Test
+  fun `showing a place answers with the link to it`() {
+    val answer = call("show", "place" to hex(heapDump.activityObjectId))
+
+    // The half of showing that outlives the call: an agent writing its answer somewhere else has this to
+    // point at, where "open the window and click the activity" is a set of instructions.
+    assertThat(answer.text("link"))
+      .isEqualTo("shark://${window.windowId}/${hex(heapDump.activityObjectId)}")
   }
 
   @Test

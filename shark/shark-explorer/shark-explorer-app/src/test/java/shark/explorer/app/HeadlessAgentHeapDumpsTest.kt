@@ -61,11 +61,14 @@ class HeadlessAgentHeapDumpsTest {
     headless().use { heapDumps ->
       val dump = runBlocking { heapDumps.open(file) }
 
-      val problem = dump.show(Place.Leaks())
+      val shown = dump.show(Place.Leaks())
 
-      assertThat(problem)
+      assertThat(shown.problem)
         .contains(NO_UI_OPTION)
         .contains(file.name)
+      // And no link, which is the half of it an agent would otherwise pass on: a `shark://` link names a
+      // window, so one from a run that has none is an address nothing answers to.
+      assertThat(shown.link).isNull()
     }
   }
 

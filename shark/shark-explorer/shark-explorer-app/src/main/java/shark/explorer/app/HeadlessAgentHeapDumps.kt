@@ -13,6 +13,7 @@ import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.agent.AgentHeapDump
 import shark.explorer.agent.AgentRefusal
+import shark.explorer.agent.ShownPlace
 
 /**
  * The heap dumps of a run with no window, for an agent on a machine with no screen.
@@ -116,9 +117,13 @@ internal class HeadlessAgentHeapDumps(
       open = open,
       agent = OpenAgentHeapDump(windowId = windowId, open = open) { place ->
         SharkLog.d { "Nowhere to show $place: this run was started with $NO_UI_OPTION" }
-        "This Shark Explorer was started with $NO_UI_OPTION, so it has no window and nothing was shown. " +
-          "Say what you found in your answer instead. Whoever opens ${file.name} in a window later will " +
-          "find your notes and verdicts on it, since those are on disk rather than on screen."
+        // And no link either, deliberately: a link names a window, so one from here would be an address
+        // nothing answers to, handed to somebody who would click it.
+        ShownPlace.nowhere(
+          "This Shark Explorer was started with $NO_UI_OPTION, so it has no window and nothing was shown. " +
+            "Say what you found in your answer instead. Whoever opens ${file.name} in a window later will " +
+            "find your notes and verdicts on it, since those are on disk rather than on screen."
+        )
       }
     )
     synchronized(lock) { opened += dump }

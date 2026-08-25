@@ -411,17 +411,20 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
   private fun show() = AgentTool(
     name = "show",
     description = "Opens a place in a tab of this window and brings the window to the front, so that what " +
-      "you are looking at is what the person at the machine is looking at. One call, no answer to wait " +
-      "for. Use it when you reach something that matters rather than for every step.",
+      "you are looking at is what the person at the machine is looking at. Use it when you reach something " +
+      "that matters rather than for every step. It answers with a `shark://` link to that place: put that " +
+      "link in your reply to whoever asked you, because clicking it opens the place again, later, without " +
+      "you.",
     schema = schema(WINDOW to window(), PLACE to place())
   ) { arguments ->
     val dump = arguments.heapDump()
     val place = arguments.place()
-    val problem = dump.show(place)
+    val shown = dump.show(place)
     buildJsonObject {
-      put("shown", problem == null)
+      put("shown", shown.problem == null)
+      put("link", shown.link)
       // So that an agent about to tell its human where to look finds out that there is nowhere.
-      put("problem", problem)
+      put("problem", shown.problem)
     }
   }
 
@@ -469,7 +472,7 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       reason = arguments.reason
     )
     dump.appendToNote(Place.Object(objectId), note)
-    val showProblem = dump.show(Place.Object(objectId))
+    val shown = dump.show(Place.Object(objectId))
     buildJsonObject {
       put("concluded", true)
       putJsonArray("faultyReference") {
@@ -490,8 +493,11 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
       put(
         "writtenTo",
         "the notes of ${exactHexObjectId(objectId)}" +
-          if (showProblem == null) ", and shown in window ${dump.windowId}" else ". $showProblem"
+          if (shown.problem == null) ", and shown in window ${dump.windowId}" else ". ${shown.problem}"
       )
+      // The one link most worth handing back: it opens the object this conclusion is about, with the
+      // conclusion in its notes. Say it in your answer rather than describing where to click.
+      put("link", shown.link)
     }
   }
 
