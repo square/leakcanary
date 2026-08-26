@@ -139,3 +139,14 @@ internal class FakeAgentHeapDumps(
     return opens(File("$processName.hprof"))
   }
 }
+
+/**
+ * The registry over [heapDumps], with [sessions] as everything agents have recorded on this machine.
+ *
+ * Sessions are what `agent_log` answers with and nothing else here reads, so a test about any other tool
+ * says nothing about them — which is a run that has recorded none, not a run whose log is unreadable.
+ */
+internal fun agentTools(
+  heapDumps: AgentHeapDumps,
+  sessions: List<AgentSession> = emptyList()
+) = AgentTools(heapDumps) { sessions }

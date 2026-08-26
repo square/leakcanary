@@ -142,7 +142,7 @@ class AgentSessionFileTest {
 
   @Test
   fun `every tool has a verb, so that no screen ends up showing the protocol`() {
-    val withoutAVerb = AgentTools(FakeAgentHeapDumps()).all
+    val withoutAVerb = agentTools(FakeAgentHeapDumps()).all
       .map { it.name }
       .filter { verbOfTool(it, emptyMap()) == null }
 

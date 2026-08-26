@@ -75,6 +75,51 @@ internal object AgentJson {
   }
 
   /**
+   * One investigation somebody else already ran: who was working, how it went, and what it came to.
+   *
+   * The numbers the *Agent logs* screen shows in the same order, because they are what makes a session worth
+   * opening or not: how much was asked, how much of it was refused, and whether it ended in a conclusion.
+   */
+  fun agentSession(session: AgentSession): JsonObject = buildJsonObject {
+    put("session", session.sessionId)
+    put("client", session.client)
+    put("startedAt", session.startedAt?.toString())
+    put("calls", session.calls.size)
+    put("refused", session.refusedCount)
+    // What it concluded, which is the one thing a reader is looking for — and null for a session that
+    // concluded nothing, which is most of them.
+    put("concluded", session.calls.mapNotNull { it.outcome }.lastOrNull())
+    putJsonArray("heapDumps") { session.heapDumpPaths.forEach { add(it) } }
+  }
+
+  /**
+   * Every call of one session, in the order it made them, with the reason the agent gave for each.
+   *
+   * The reasons are the point. A session read as a list of tool names is the protocol showing through; read
+   * as what was asked and why, it either follows from itself or doesn't — which is the same judgement the
+   * person at the window makes on that screen.
+   */
+  fun agentSessionCalls(session: AgentSession): JsonObject = buildJsonObject {
+    put("session", session.sessionId)
+    put("client", session.client)
+    putJsonArray("calls") {
+      session.calls.forEach { call ->
+        addJsonObject {
+          put("at", call.at.toString())
+          put("tool", call.tool)
+          put("reason", call.reason)
+          // What the call was about, as the agent wrote it: an address is that dump's address, and this is
+          // read by something that can resolve it.
+          put("about", call.subject)
+          put("heapDumpPath", call.heapDumpPath)
+          put("refused", call.refusal)
+          put("outcome", call.outcome)
+        }
+      }
+    }
+  }
+
+  /**
    * Every verdict set by hand, so that an agent arriving at a window someone has been working in reads the
    * conclusions already reached rather than starting over on top of them.
    */

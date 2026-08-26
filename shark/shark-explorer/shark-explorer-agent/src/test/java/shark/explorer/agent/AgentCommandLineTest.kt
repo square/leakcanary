@@ -163,7 +163,7 @@ class AgentCommandLineTest {
 
     // Generated from the registry, so a tool added without being described here is a test failure rather
     // than a tool an agent using the command line never hears about.
-    AgentTools(FakeAgentHeapDumps()).all.forEach { tool ->
+    agentTools(FakeAgentHeapDumps()).all.forEach { tool ->
       assertThat(help).contains(tool.name).contains(tool.description)
     }
     // The one thing the schema doesn't say, because JSON has brackets and a command line hasn't.

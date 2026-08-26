@@ -467,6 +467,7 @@ val AgentSessionCall.verb: String get() = verbOfTool(tool, arguments) ?: tool.re
  */
 val AgentSessionCall.subject: String?
   get() = arguments[SUBJECT_OBJECT] ?: arguments[SUBJECT_PLACE] ?: arguments[SUBJECT_CLASS_NAME]
+    ?: arguments[SUBJECT_SESSION]
 
 /**
  * What the answer to a call came to, as a couple of words, and null when the answer is data rather than a
@@ -507,6 +508,8 @@ internal fun verbOfTool(
   // Worth the difference on the screen: a note replaced is a paragraph that was there and isn't any more,
   // which is the one thing an agent does here that a reader can't get back.
   "take_note" -> if (arguments[SUBJECT_REPLACE] == "true") "Rewrote the note on" else "Wrote a note on"
+  // Reading what other agents did, which is the one call whose subject is another session of this screen.
+  "agent_log" -> if (SUBJECT_SESSION in arguments) "Read what an agent did in" else "Read the agent log"
   "show" -> "Showed"
   "conclude" -> "Concluded about"
   // The app rather than a heap dump, so each of these says the whole of what it did: there is no subject
@@ -531,3 +534,4 @@ private const val SUBJECT_REPLACE = "replace"
 private const val SUBJECT_PATH = "path"
 private const val SUBJECT_DEVICE = "device"
 private const val SUBJECT_PROCESS = "process"
+private const val SUBJECT_SESSION = "session"

@@ -281,7 +281,7 @@ object AgentCommandLine {
   }
 
   /** The tools of this build, described. Built per call, so nothing here is shared between threads. */
-  private fun described(): List<AgentTool> = AgentTools(NoHeapDumpToDescribe).all
+  private fun described(): List<AgentTool> = AgentTools(NoHeapDumpToDescribe) { nothingToDescribeWith() }.all
 
   private fun initializeParameters(): JsonObject = buildJsonObject {
     put("protocolVersion", PROTOCOL_VERSION)
@@ -470,11 +470,14 @@ private object NoHeapDumpToDescribe : AgentHeapDumps {
     processName: String
   ): AgentHeapDump = nothing()
 
-  private fun nothing(): Nothing = throw IllegalStateException(
-    "These tools are only being described, so there is no heap dump here and nothing to call: a call goes " +
-      "to the run of the app that has one open. See AgentCommandLine."
-  )
+  private fun nothing(): Nothing = nothingToDescribeWith()
 }
+
+/** The same for the sessions the log tool reads, which a build being described has no directory for. */
+private fun nothingToDescribeWith(): Nothing = throw IllegalStateException(
+  "These tools are only being described, so there is no heap dump here and nothing to call: a call goes to " +
+    "the run of the app that has one open. See AgentCommandLine."
+)
 
 /** Said once in the preamble rather than under every tool. See [AgentTool]. */
 private const val REASON_ARGUMENT = "reason"

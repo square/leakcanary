@@ -40,7 +40,11 @@ object AgentStdioServer {
     // Named before the handshake, like a socket session is, so that a client which connects and says nothing
     // is still a row on the *Agent logs* screen of whoever reads these later.
     val sessionFile = AgentSessionFile.starting(sessions, serverVersion)
-    val session = McpSession(AgentTools(heapDumps), serverVersion, sessionFile)
+    val session = McpSession(
+      AgentTools(heapDumps) { AgentSessionFile.sessionsIn(sessions) },
+      serverVersion,
+      sessionFile
+    )
     val reader = BufferedReader(InputStreamReader(System.`in`, Charsets.UTF_8))
     val writer = PrintWriter(OutputStreamWriter(System.out, Charsets.UTF_8), true)
     while (true) {

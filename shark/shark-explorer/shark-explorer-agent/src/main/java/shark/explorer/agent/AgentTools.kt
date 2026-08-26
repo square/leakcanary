@@ -42,12 +42,23 @@ import shark.explorer.outlineOf
  * not a quality gate — asking a model to explain itself does not make it right — but it is what turns a run
  * into something a person can follow afterwards instead of a conclusion they have to take on trust.
  */
-internal class AgentTools(private val heapDumps: AgentHeapDumps) {
+internal class AgentTools(
+  private val heapDumps: AgentHeapDumps,
+  /**
+   * Every session this machine has a record of, for [AGENT_LOG] — the sessions of other runs of the app
+   * included, since what has been tried on a heap dump outlives the run it was tried in.
+   *
+   * A function rather than a list, because it is read off disk per call: an agent asking what has been done
+   * to this dump while another one is working on it has to see what that one has done so far.
+   */
+  private val recordedSessions: () -> List<AgentSession>
+) {
 
   /** In the order an investigation uses them, which is the order a client lists them in. */
   val all: List<AgentTool> = listOf(
     openHeapDumps(),
     listLeaks(),
+    agentLog(),
     describeObject(),
     chainFromGcRoot(),
     waysHeld(),
@@ -112,6 +123,45 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     val dump = arguments.heapDump()
     val leaks = dump.read("the leaks, for an agent") { it.tree.findLeaks(dump.verdicts) }
     AgentJson.leaks(leaks)
+  }
+
+  private fun agentLog() = AgentTool(
+    name = AGENT_LOG,
+    description = "What has already been done to this heap dump, by you and by anybody else: one entry per " +
+      "session, newest first, with what it concluded and how many of its calls were refused — and with " +
+      "`$SESSION`, every call of one session in order, with the reason the agent gave for each. The " +
+      "window's *Agent logs* screen, which is where a person reads the same thing. Worth reading before " +
+      "starting: an investigation somebody already ran is either the answer or the half of the dump not " +
+      "worth doing again. Sessions of earlier runs of the app are in it, and so is this one.",
+    schema = schema(
+      WINDOW to window(),
+      SESSION to string("Optional: one session's id, from the list, to read every call it made.").optional()
+    )
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val sessionId = arguments.optionalString(SESSION)
+    // The sessions about this heap dump, because a session is only readable against the dump it read: an
+    // address in another one is another object. Which is the same rule the screen groups by.
+    val sessions = recordedSessions().filter { dump.heapDumpPath in it.heapDumpPaths }
+    if (sessionId == null) {
+      return@AgentTool buildJsonObject {
+        put("heapDumpPath", dump.heapDumpPath)
+        putJsonArray("sessions") { sessions.forEach { add(AgentJson.agentSession(it)) } }
+        if (sessions.isEmpty()) {
+          put("problem", "Nothing has been done to this heap dump through Shark Explorer yet, so there is " +
+            "nothing to read. What you do now is what the next reader of this will find.")
+        }
+      }
+    }
+    val session = sessions.firstOrNull { it.sessionId == sessionId }
+      ?: throw AgentRefusal(
+        "No session called \"$sessionId\" read this heap dump. " + if (sessions.isEmpty()) {
+          "None has: this dump has no agent log yet."
+        } else {
+          "The ones that did are " + sessions.joinToString(", ") { it.sessionId } + "."
+        }
+      )
+    AgentJson.agentSessionCalls(session)
   }
 
   private fun describeObject() = AgentTool(
@@ -565,8 +615,9 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
     description = "Takes a heap dump of a running process, opens it in a window of Shark Explorer and " +
       "answers once it can be read — the whole of what the window's `Take heap dump` button does. " +
       "**Minutes, on a large app**: the device writes the dump, it is pulled over `adb`, and then opened. " +
-      "The garbage is collected first where the device is new enough, so what is in the dump is what is " +
-      "really still held. Ask list_devices first for the device and the process.",
+      "The garbage is collected first either way, so what is in the dump is what is really still held — " +
+      "with `am dumpheap -g` from API 27, and below that by running the same collection in the process " +
+      "over JDWP. Ask list_devices first for the device and the process.",
     schema = schema(
       DEVICE to string("The serial number of the device, from list_devices."),
       PROCESS to string("The name of the process to dump, from list_devices.")
@@ -617,14 +668,17 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
    * Which place of the heap dump a call is about, from what it was given rather than from which tool it is.
    *
    * By argument name, so that a tool added here is described by this without being listed in it: everything
-   * about an object takes `object`, everything about a place takes `place`, and the search takes a class
-   * name. The one tool whose subject is in neither is the list of leaks, which takes nothing at all.
+   * about an object takes `object`, everything about a place takes `place`, the search takes a class name and
+   * one session of the log takes its id. The two tools whose subject is in none of them name a screen and
+   * take nothing at all — the leaks, and the log read as a list.
    */
   private fun AgentArguments.placeOrNull(name: String): Place? = when {
     optionalString(PLACE) != null -> place()
     optionalString(OBJECT) != null -> Place.Object(objectId(OBJECT))
     optionalString(CLASS_NAME) != null -> Place.Objects(ObjectListFilter(query = string(CLASS_NAME)))
+    optionalString(SESSION) != null -> Place.AgentLog(string(SESSION))
     name == LIST_LEAKS -> Place.Leaks()
+    name == AGENT_LOG -> Place.AgentLogs
     else -> null
   }
 
@@ -714,8 +768,10 @@ internal class AgentTools(private val heapDumps: AgentHeapDumps) {
 
     /** Named because [placeOrNull] is the one description of a call that has to know which tool it is. */
     const val LIST_LEAKS = "list_leaks"
+    const val AGENT_LOG = "agent_log"
 
     const val WINDOW = "window"
+    const val SESSION = "session"
     const val OBJECT = "object"
     const val FROM = "from"
     const val CLASS_NAME = "className"

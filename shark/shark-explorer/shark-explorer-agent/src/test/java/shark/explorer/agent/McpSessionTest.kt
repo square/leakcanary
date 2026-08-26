@@ -43,7 +43,7 @@ class McpSessionTest {
     window = FakeAgentHeapDump(heapDump.explorer)
     sessionsDirectory = File(temporaryFolder.root, "sessions")
     session = McpSession(
-      tools = AgentTools(FakeAgentHeapDumps(listOf(window))),
+      tools = agentTools(FakeAgentHeapDumps(listOf(window))),
       serverVersion = SERVER_VERSION,
       sessionFile = AgentSessionFile.starting(sessionsDirectory, SERVER_VERSION)
     )
@@ -83,6 +83,7 @@ class McpSessionTest {
     assertThat(tools.map { it.text("name") }).containsExactly(
       "open_heap_dumps",
       "list_leaks",
+      "agent_log",
       "describe_object",
       "chain_from_gc_root",
       "ways_held",

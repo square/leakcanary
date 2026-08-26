@@ -189,7 +189,13 @@ object AgentServer {
       // handshake, since a client that connects and says nothing is itself worth a line on that screen.
       val sessionFile = sessionFile(sessions, serverVersion, handshake.getOrNull(1))
       SharkLog.d { "An agent's session is being written to ${sessionFile.file}" }
-      val session = McpSession(AgentTools(heapDumps), serverVersion, sessionFile)
+      val session = McpSession(
+        // Read off disk per call rather than captured, so that an agent asking what has been done to a
+        // heap dump sees what another one working on it right now has done so far.
+        AgentTools(heapDumps) { AgentSessionFile.sessionsIn(sessions) },
+        serverVersion,
+        sessionFile
+      )
       while (true) {
         val line = reader.readLine() ?: break
         if (line.isBlank()) {

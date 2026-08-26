@@ -1,5 +1,6 @@
 package shark.explorer.agent
 
+import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -47,7 +48,7 @@ class AgentToolsTest {
   fun setUp() {
     heapDump = temporaryFolder.applicationHoldsActivityThroughHolder()
     window = FakeAgentHeapDump(heapDump.explorer)
-    tools = AgentTools(FakeAgentHeapDumps(listOf(window)))
+    tools = agentTools(FakeAgentHeapDumps(listOf(window)))
   }
 
   @After
@@ -78,7 +79,7 @@ class AgentToolsTest {
 
   @Test
   fun `a run with no heap dump open says so rather than answering`() {
-    tools = AgentTools(FakeAgentHeapDumps())
+    tools = agentTools(FakeAgentHeapDumps())
 
     assertThat(call(OPEN_HEAP_DUMPS).text("problem")).contains("No heap dump is open")
     assertThatThrownBy { call("list_leaks") }
@@ -88,7 +89,7 @@ class AgentToolsTest {
 
   @Test
   fun `a heap dump still being indexed is named rather than left to be guessed`() {
-    tools = AgentTools(FakeAgentHeapDumps(indexing = listOf("/eval/runs/4/heap-dump.hprof")))
+    tools = agentTools(FakeAgentHeapDumps(indexing = listOf("/eval/runs/4/heap-dump.hprof")))
 
     val answer = call(OPEN_HEAP_DUMPS)
 
@@ -100,6 +101,63 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `the agent log is what has already been tried on this heap dump`() {
+    tools = agentTools(
+      FakeAgentHeapDumps(listOf(window)),
+      sessions = listOf(
+        recordedSession("cli7", concluded = "Holder.activity"),
+        // Another dump's investigation, which is another dump's addresses: not this window's to answer with.
+        recordedSession("cli8", heapDumpPath = "/dumps/another.hprof")
+      )
+    )
+
+    val answer = call(AGENT_LOG)
+
+    val sessions = answer.array("sessions").map { it.jsonObject }
+    assertThat(sessions.map { it.text("session") }).containsExactly("cli7")
+    // The one field a reader is looking for, and the one neither this screen nor the eval can work out for
+    // itself: what the investigation came to.
+    assertThat(sessions.single().text("concluded")).isEqualTo("Holder.activity")
+    assertThat(sessions.single().text("refused")).isEqualTo("1")
+  }
+
+  @Test
+  fun `one session of the log is every call it made, with the reasons`() {
+    tools = agentTools(
+      FakeAgentHeapDumps(listOf(window)),
+      sessions = listOf(recordedSession("cli7", concluded = "Holder.activity"))
+    )
+
+    val calls = call(AGENT_LOG, "session" to "cli7").array("calls").map { it.jsonObject }
+
+    // The reasons are the point: a session read as a list of tool names is the protocol showing through.
+    assertThat(calls.map { it.text("tool") }).containsExactly("list_leaks", "conclude")
+    assertThat(calls.first().text("reason")).isEqualTo("Reading what the dump says about itself.")
+    assertThat(calls.last().text("outcome")).isEqualTo("Holder.activity")
+    assertThat(calls.first().text("refused")).contains("needs `reason`")
+  }
+
+  @Test
+  fun `a session that read another heap dump is refused by name here`() {
+    tools = agentTools(
+      FakeAgentHeapDumps(listOf(window)),
+      sessions = listOf(recordedSession("cli7"), recordedSession("cli8", "/dumps/another.hprof"))
+    )
+
+    assertThatThrownBy { call(AGENT_LOG, "session" to "cli8") }
+      .isInstanceOf(AgentRefusal::class.java)
+      // Named, and the ones that did read this dump listed: an address of another dump is another object, so
+      // reading that session here would be a screen of rows meaning something else.
+      .hasMessageContaining("No session called \"cli8\" read this heap dump")
+      .hasMessageContaining("cli7")
+  }
+
+  @Test
+  fun `a heap dump nothing has been done to says so`() {
+    assertThat(call(AGENT_LOG).text("problem")).contains("Nothing has been done to this heap dump")
+  }
+
+  @Test
   fun `nothing is said to be indexing when nothing is`() {
     assertThat(call(OPEN_HEAP_DUMPS).jsonObject.keys).doesNotContain("indexing")
   }
@@ -107,7 +165,7 @@ class AgentToolsTest {
   @Test
   fun `two heap dumps open have to be named`() {
     val other = FakeAgentHeapDump(heapDump.explorer, windowId = "otherwindow")
-    tools = AgentTools(FakeAgentHeapDumps(listOf(window, other)))
+    tools = agentTools(FakeAgentHeapDumps(listOf(window, other)))
 
     assertThatThrownBy { call("list_leaks") }
       .isInstanceOf(AgentRefusal::class.java)
@@ -592,7 +650,7 @@ class AgentToolsTest {
   fun `a heap dump nobody has open can be opened by its path`() {
     val other = FakeAgentHeapDump(heapDump.explorer, windowId = "openedwindow")
     val heapDumps = FakeAgentHeapDumps(listOf(window), opens = { other })
-    tools = AgentTools(heapDumps)
+    tools = agentTools(heapDumps)
 
     val answer = call("open_heap_dump", "path" to heapDump.explorer.heapDumpFile.absolutePath)
 
@@ -604,7 +662,7 @@ class AgentToolsTest {
   @Test
   fun `a path with no file at it is refused before anything is opened`() {
     val heapDumps = FakeAgentHeapDumps(listOf(window))
-    tools = AgentTools(heapDumps)
+    tools = agentTools(heapDumps)
 
     assertThatThrownBy { call("open_heap_dump", "path" to "/no/such/dump.hprof") }
       .isInstanceOf(AgentRefusal::class.java)
@@ -624,7 +682,7 @@ class AgentToolsTest {
       isDebuggableBuild = true
     )
     val process = DeviceProcess(processId = 4231, name = "com.example.app")
-    tools = AgentTools(FakeAgentHeapDumps(listOf(window), devices = mapOf(device to listOf(process))))
+    tools = agentTools(FakeAgentHeapDumps(listOf(window), devices = mapOf(device to listOf(process))))
 
     val devices = call("list_devices").array("devices").map { it.jsonObject }
     assertThat(devices.single().text("device")).isEqualTo("emulator-5554")
@@ -638,7 +696,7 @@ class AgentToolsTest {
 
   @Test
   fun `a machine with nothing plugged in says so rather than answering with an empty list`() {
-    tools = AgentTools(FakeAgentHeapDumps(listOf(window)))
+    tools = agentTools(FakeAgentHeapDumps(listOf(window)))
 
     assertThat(call("list_devices").text("problem")).contains("connected to no device")
   }
@@ -660,7 +718,7 @@ class AgentToolsTest {
       devices = mapOf(device to listOf(process)),
       opens = { dumped }
     )
-    tools = AgentTools(heapDumps)
+    tools = agentTools(heapDumps)
 
     val answer = call("dump_heap", "device" to "emulator-5554", "process" to "com.example.app")
 
@@ -690,6 +748,58 @@ class AgentToolsTest {
     )
   }
 
+  /**
+   * A session somebody else already ran on a heap dump: two calls, one of them refused.
+   *
+   * Written by hand rather than by running the tools, because what `agent_log` answers with is what
+   * [AgentSessionFile] read back off disk — and how a call becomes a line of that file is
+   * [AgentSessionFileTest]'s.
+   */
+  private fun recordedSession(
+    sessionId: String,
+    heapDumpPath: String = heapDump.explorer.heapDumpFile.absolutePath,
+    concluded: String? = null
+  ) = AgentSession(
+    sessionId = sessionId,
+    startedAt = Instant.parse("2026-08-26T09:15:00Z"),
+    client = "claude-code 9.9.9",
+    serverVersion = "1.2.3",
+    file = temporaryFolder.newFile("agent-$sessionId.jsonl"),
+    calls = listOf(
+      recordedCall(
+        tool = "list_leaks",
+        heapDumpPath = heapDumpPath,
+        reason = "Reading what the dump says about itself.",
+        refusal = "list_leaks needs `reason`, and it was not given."
+      ),
+      recordedCall(
+        tool = "conclude",
+        heapDumpPath = heapDumpPath,
+        reason = "Naming the reference the chain agrees on.",
+        outcome = concluded
+      )
+    )
+  )
+
+  private fun recordedCall(
+    tool: String,
+    heapDumpPath: String,
+    reason: String,
+    refusal: String? = null,
+    outcome: String? = null
+  ) = AgentSessionCall(
+    at = Instant.parse("2026-08-26T09:15:01Z"),
+    tool = tool,
+    reason = reason,
+    windowId = window.windowId,
+    heapDumpPath = heapDumpPath,
+    place = null,
+    arguments = emptyMap(),
+    refusal = refusal,
+    outcome = outcome,
+    millis = 3L
+  )
+
   private fun call(
     name: String,
     vararg arguments: Pair<String, String>
@@ -717,6 +827,7 @@ class AgentToolsTest {
 
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
     const val OPEN_HEAP_DUMP = "open_heap_dump"
+    const val AGENT_LOG = "agent_log"
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
     const val OBJECT = "object"
