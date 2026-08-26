@@ -237,7 +237,9 @@ internal class AgentTools(
     description = "The objects of this heap dump whose class name matches, largest retained size first, " +
       "with how many matched in total. Use it on a class you have assumed something about: two instances " +
       "of a class you took for a singleton is the answer to a surprising number of leaks, because the " +
-      "object on the chain then isn't the instance you thought it was.",
+      "object on the chain then isn't the instance you thought it was. **With no className it is every " +
+      "object, so it is also the answer to \"what are the biggest things in this heap\"** — one object at " +
+      "a time, where dominator_tree is what holds them.",
     schema = schema(
       WINDOW to window(),
       CLASS_NAME to string("Matched against the class name.").optional(),
@@ -575,7 +577,7 @@ internal class AgentTools(
       put("window", dump.windowId)
       put("heapDumpPath", dump.heapDumpPath)
       put("opened", true)
-      put("next", "Call $LIST_LEAKS with this window to see what the dump says about itself.")
+      put("next", NEXT_WITH_A_NEW_DUMP)
     }
   }
 
@@ -631,7 +633,7 @@ internal class AgentTools(
       put("window", dump.windowId)
       put("heapDumpPath", dump.heapDumpPath)
       put("dumped", true)
-      put("next", "Call $LIST_LEAKS with this window to see what the dump says about itself.")
+      put("next", NEXT_WITH_A_NEW_DUMP)
     }
   }
 
@@ -791,6 +793,17 @@ internal class AgentTools(
     const val ROOT_CAUSE = "rootCause"
     const val HOW_TO_REPRODUCE = "howToReproduce"
     const val NOT_CHECKED = "notChecked"
+
+    /**
+     * What to do with a heap dump that has just been opened, whichever tool opened it.
+     *
+     * Both questions, because a dump is not always a leak. A dump somebody took because the app was using a
+     * gigabyte is a dominator tree, and being pointed only at the leaks is being pointed away from the
+     * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in `list_leaks` that
+     * walking a tree would take an hour to reach.
+     */
+    const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this window to see what the dump says about " +
+      "itself, or dominator_tree to see where its memory has gone."
 
     /**
      * How many objects a list comes back with by default, well under

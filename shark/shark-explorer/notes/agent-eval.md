@@ -166,6 +166,52 @@ An eval also leaves one `~/.shark-explorer/notes` directory and one `leak-status
 makes the above work. They can go once the runs have been read, and nothing depends on them going: the paths
 they are keyed to belong to an eval that has already been deleted.
 
+## Planned: a question that isn't a leak
+
+Everything above scores one question — *which reference is at fault* — and the surface answers others. "What
+is using all this memory" is the one people ask most after that, it has a checkable answer, and it exercises a
+different half of the tools: `dominator_tree` and `find_objects` rather than the chain and the verdicts. What
+follows is the design, not something that runs yet.
+
+**The prompt is the whole of the input, as it is for the leak runs**: *"A heap dump is open in Shark Explorer.
+What is using most of the memory in this app?"* — no mention of a tool.
+
+**The answer key is an object, not a string.** A leak's key is `OwnerClass.field` because that is what
+`conclude` answers with; here the scenario builder knows which object it made the biggest, so the key is that
+object's identity, and the score resolves what the agent named back to a class in the dump. Which means the
+same score works on a real dump with no key written by hand at all: `HeapDominatorTree` says what the biggest
+retainer is, and the eval can ask it.
+
+**What is scored, all of it off the session file and the dump, with no model:**
+
+| Signal | How it is read |
+| --- | --- |
+| `RIGHT` | The agent `show`ed or wrote a note naming the key object, or its class |
+| `WRONG` | Named another object as the answer — the confident wrong answer again |
+| `TRIVIAL` | Named the class loader's class array, or anything else above the app's own objects: true, useless, and the failure this dump is shaped to provoke |
+| `NO_ANSWER` | Never named an object at all |
+| Calls to get there | The number worth halving, since this question is a fan-out |
+
+**`take_note` and `show` are what an answer is written in**, because they already are: the window's own way of
+saying "this is the thing" is a note on the object and a tab on the screen. So this needs no new tool, and
+that is the point — a surface that needs a `report_the_answer` tool per question is a surface that has stopped
+being the window.
+
+**The `TRIVIAL` row is the finding that prompted this.** Measured on a 146 MB dump of a real app taken through
+`dump_heap`: the top of the dominator tree is `6 × PathClassLoader` at 42 MB, 38% of a 111 MB heap, and under
+it one `Object[]` of 79,655 loaded classes. The biggest ten children of that array come to 1 MB — 2% of it —
+so an agent that walks down the biggest branch and reports what it finds has reported "the classes", which is
+both true and no use to anybody. The interesting answer was two rows further down `find_objects`: a Coil image
+cache holding a 4 MB bitmap. A scenario shaped like that is what says whether a description or a refusal can
+get an agent past it.
+
+**Two scenarios to start with**, matching how the leak families are split:
+
+- **A synthetic one** where a named static cache retains a known share of the heap under a class loader made
+  deliberately fat, so `TRIVIAL` and `RIGHT` are both reachable and the key is exact.
+- **A real one**, a dump taken off a device with `dump_heap`, scored against what `HeapDominatorTree` says.
+  Which also makes it the first eval scenario whose dump nobody wrote.
+
 ## What to do with a result
 
 A scenario that fails the same way across models is a bug in this surface, not in the model, and the fix is

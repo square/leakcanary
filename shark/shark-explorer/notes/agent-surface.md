@@ -9,11 +9,11 @@ Measured off `AgentTools.all` and `AgentMethod.INSTRUCTIONS`, one `tools/list` e
 
 | | Characters | ≈ tokens | Paid |
 | --- | --- | --- | --- |
-| Seventeen tool definitions | 20,938 | 5,235 | Every turn, while the server is connected |
+| Seventeen tool definitions | 21,123 | 5,280 | Every turn, while the server is connected |
 | The method | 7,845 | 1,960 | Handshake, and again with `open_heap_dumps` |
 
 So the standing cost of this surface is **7 to 8 k tokens**, around 3.5% of a 200 k window. Parity took the
-tool count from eleven to seventeen and the definitions from 13,116 characters to 20,938 — **a fifth of the
+tool count from eleven to seventeen and the definitions from 13,116 characters to 21,123 — **a fifth of the
 window's budget for the six tools that mean an agent never has to ask its human to click something**, which
 is the trade this surface exists to make. The sixth is `agent_log`, 1,237 characters of the total, and the
 900 the other sixteen grew by are the two agent-log places added to the sentence naming every place, which
@@ -33,11 +33,11 @@ Measured against a packaged build with one window open on `leak_asynctask_o.hpro
 | | Measured | Paid |
 | --- | --- | --- |
 | One call, JVM start to JSON on stdout | 160–180 ms | Per call |
-| `--agent-help`, all seventeen tools | 14,414 characters, ≈3,600 tokens | Only when read |
+| `--agent-help`, all seventeen tools | 14,594 characters, ≈3,650 tokens | Only when read |
 | `--agent-help <tool>`, one of them | 500–1,250 characters, ≈125–310 tokens | Only when read |
 
 So the standing cost is nothing, and the whole surface as text is *smaller* than the `tools/list` definitions
-of it (14,414 against 20,938) because `reason` is explained once rather than seventeen times. Both
+of it (14,594 against 21,123) because `reason` is explained once rather than seventeen times. Both
 `--agent-help` figures include the invocation path twice, since what it prints is the command to type on this
 machine; a shorter install path is a slightly shorter help.
 
@@ -76,14 +76,42 @@ arguments in and JSON out, not a second copy of the rules:
   thrown by the handler that would have refused an MCP client. `--agent-help` is generated from the registry,
   so a tool cannot be on one and missing from the other, and it is described through `NoHeapDumpToDescribe` —
   a heap dump whose every method throws — which makes "printed, never called" hold rather than be a habit.
-- The skill — the method as `SKILL.md`, plus how to reach either adapter. Prose, not generated, and it points
-  at `--agent-help` rather than listing tools that would go stale.
+- The skill — `.claude/skills/shark-explorer/SKILL.md`. Exists. Prose, not generated, and it points at
+  `--agent-help` and at the method the tools hand over rather than repeating either, since a list of tools in
+  a file is a list that goes stale. See the next section for why it is in `.claude/`.
 
 What that leaves duplicated is argument parsing per adapter, which is tens of lines — and less than that
 here, because `AgentArguments` reads a number and a boolean out of text (the tools were written for a model,
 which sends `limit=30` as a string as often as not). So a command line sends every value as it was typed and
 the only shape needing a spelling of its own is a list, which is comma separated because a shell has no
 brackets. What it must never become is two places that decide whether an investigation may conclude.
+
+## Where the skill lives, and how an agent finds it
+
+A skill nobody loads is a file. The two things that decide where it goes are that **skills are discovered by
+directory, not by search** — every client that reads the
+[standard](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) looks in
+`.claude/skills/<name>/SKILL.md` under the project and in `~/.claude/skills/` for the machine — and that
+**the people who need it don't have this repository**: they installed a `.dmg`.
+
+So `.claude/skills/shark-explorer/` is the one place it can be that is not arbitrary. In this repository it is
+the project skill, so an agent working on the explorer has it without being told. And it is the directory a
+user copies:
+
+```bash
+cp -R .claude/skills/shark-explorer ~/.claude/skills/
+```
+
+Which is what `docs/shark-explorer.md` says, and what a release should carry as an asset. **The alternative
+worth knowing about and not taking** is having the app write it into `~/.claude/skills` as it starts: it would
+need no install step and would always match the build, and it would also be an app that writes into another
+program's configuration directory without being asked, which is not a thing to do to somebody's machine.
+
+**A skill is not how an agent finds the binary.** It names the `.dmg` install path and how to look for it,
+because there is nothing on `PATH` — the bundle is `/Applications/Shark Explorer.app`, the space stays and
+gets quoted, and the name was deliberately given that space once Block's signing service could take it (see
+`packageName` in the app's build script). What would remove the quoting for good is a launcher shim on `PATH`,
+which is a separate decision about writing outside the bundle.
 
 ## The judgement, in one line
 

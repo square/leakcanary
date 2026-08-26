@@ -281,6 +281,41 @@ has none. Nothing else changes, because **notes and verdicts were never on the s
 beside the heap dump, so a dump investigated over ssh today opens in a window tomorrow with the verdicts, the
 reasons and the conclusion already on it.
 
+### Or from a shell, with nothing configured
+
+The same tools are a command away, for an agent whose client speaks no MCP and for one that has a terminal and
+hasn't been set up with anything:
+
+```bash
+"/Applications/Shark Explorer.app/Contents/MacOS/Shark Explorer" --agent-help
+"/Applications/Shark Explorer.app/Contents/MacOS/Shark Explorer" \
+  --agent list_leaks reason="Starting from what the dump says about itself"
+```
+
+`--agent-help` prints every tool with its arguments; `--agent-help <tool>` prints one of them. A call goes to
+the window that has the heap dump open — the same socket the MCP pipe uses — or opens one when nothing is
+running. It exits 0 with the answer as JSON on stdout, **2 when the call was refused**, with the refusal on
+stderr where a script can read it, and 1 when there was nothing to answer it.
+
+Calls from one shell are one session, so what an agent did reads as one row of the *Agent logs* screen rather
+than a row per command. `--agent-session=<name>` says so explicitly, and `--agent-run=<pid>` picks between
+several explorers.
+
+### The skill
+
+An agent still has to be told that any of this exists. This repository carries a
+[skill](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) that does it — the three
+ways in, the command line, and what to do with an answer — and every client that reads the standard (Claude
+Code, Codex, Cursor, Gemini CLI) picks it up from the same directory:
+
+```bash
+git clone git@github.com:square/leakcanary.git
+cp -R leakcanary/.claude/skills/shark-explorer ~/.claude/skills/
+```
+
+Then "there's a heap dump in ~/Downloads, what's using all the memory" is enough: the skill is what turns that
+into opening the dump in a window you can watch.
+
 Then ask for what you actually want. This is the whole prompt the session below was given:
 
 > A heap dump is open in Shark Explorer, which you can reach through its MCP tools. Something in it is
@@ -306,6 +341,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | --- | --- |
 | `open_heap_dumps` | Every window and what is open in it, with the method to follow. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
+| `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
 | `describe_object` | What an object is: its class, fields, labels, size. |
 | `ways_held` | Every way an object is held, rather than the one chain — the *X ways from here* list. |
