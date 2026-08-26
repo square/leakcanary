@@ -6,9 +6,11 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
@@ -62,7 +64,38 @@ class AgentLogsScreenTest {
       // The verb, the object named the way a tab on it is named, and the agent's own sentence for why it
       // asked: no JSON and no bare address on any of it.
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
-      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(DESCRIBED), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `the object a call was about is the link, and the verb is not`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call()))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
+
+      // What a reader wants to go and look at is the object, so that is the whole of what leads anywhere:
+      // a row where clicking the word "Described" navigates is a row with a hand cursor over prose.
+      onNodeWithText(activityName()).assertHasClickAction()
+      onNodeWithText(DESCRIBED).assertHasNoClickAction()
+    }
+  }
+
+  @Test fun `a call that named nothing is the verb itself, and leads where it went`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(leaksCall()))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(LISTED_THE_LEAKS), OPEN_TIMEOUT_MILLIS)
+
+      // "Listed the leaks" is the whole sentence and the leaks screen is where it went, so the verb is the
+      // link — and nothing follows it. A screen name after it, from the tool rather than from an argument,
+      // read as "Listed the leaks Leaks".
+      onNodeWithText(LISTED_THE_LEAKS).assertHasClickAction()
+      onNodeWithText(LISTED_THE_LEAKS).performClick()
+
+      // The leaks screen, named by the reference each leak is: the same screen the agent was reading.
+      waitUntilAtLeastOneExists(hasText(ACTIVITY_LEAK_NAME, substring = true), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -72,10 +105,10 @@ class AgentLogsScreenTest {
       onNodeWithText(CLIENT, substring = true).performClick()
 
       waitUntilAtLeastOneExists(hasText(REFUSAL, substring = true), OPEN_TIMEOUT_MILLIS)
-      waitUntilAtLeastOneExists(
-        hasText("Concluded about ${activityName()}"),
-        OPEN_TIMEOUT_MILLIS
-      )
+      waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      // Refused, and still leading to the object it was refused about: the refusals are the half of a
+      // session worth reading afterwards.
+      onNodeWithText(activityName()).assertHasClickAction()
     }
   }
 
@@ -86,10 +119,9 @@ class AgentLogsScreenTest {
 
       // The row anybody scrolling a session is looking for: what the agent asked, and what it came to, on
       // one line — so that finding the answer isn't reading every reason down the screen.
-      waitUntilAtLeastOneExists(
-        hasText("Concluded about ${activityName()} → $FAULTY_REFERENCE"),
-        OPEN_TIMEOUT_MILLIS
-      )
+      waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(activityName()).assertIsDisplayed()
+      onNodeWithText("→ $FAULTY_REFERENCE").assertIsDisplayed()
     }
   }
 
@@ -99,8 +131,8 @@ class AgentLogsScreenTest {
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
 
-      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(describedRow()).performClick()
+      waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(activityName()).performClick()
 
       // What the inspectors made of the object the agent was reading, which is the whole promise of the
       // screen: reading what it did and going to look at it are one move.
@@ -121,7 +153,10 @@ class AgentLogsScreenTest {
       // addresses are addresses of that file. Still reachable, since a dump handed to an agent is usually
       // one nobody has open.
       onNodeWithText(NO_AGENT_YET, substring = true).assertIsDisplayed()
-      onNodeWithText(OTHER_HEAP_DUMPS).assertIsDisplayed()
+      // The dump this window has open is the first group and says so; the other is a group of its own,
+      // headed with the file name a reader recognises rather than with a path.
+      onNodeWithText("${heapDump.file.name} (this heap dump)").assertIsDisplayed()
+      onNodeWithText(otherHeapDump.name).assertIsDisplayed()
       onNodeWithText(CLIENT, substring = true).performClick()
     }
 
@@ -139,13 +174,15 @@ class AgentLogsScreenTest {
         ),
         onOpenHeapDump = { file, place -> opened = file to place }
       )
-      onNodeWithText(CLIENT, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
+      // Listed under both dumps, because it is one agent's work on each of them; the group read here is
+      // this window's, which is the first.
+      thisWindowsSession().performClick()
+      waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
 
       // The address as the agent wrote it, and the file it means something in: this window has never read
       // that dump, so what the number stands for there is not a question it can answer.
-      val row = "Described ${hex(activityObjectId())} in ${otherHeapDump.name}"
-      onNodeWithText(row).performClick()
+      onNodeWithText("in ${otherHeapDump.name}").assertIsDisplayed()
+      onNodeWithText(hex(activityObjectId())).performClick()
     }
 
     // Going there means opening that dump, where the same address is that dump's object.
@@ -155,11 +192,12 @@ class AgentLogsScreenTest {
   @Test fun `a call about a heap dump that has gone leads nowhere`() {
     explorerUiTest {
       openAgentLogs(listOf(session(calls = listOf(call(), call(heapDumpPath = "/dumps/deleted.hprof")))))
-      onNodeWithText(CLIENT, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(describedRow()), OPEN_TIMEOUT_MILLIS)
+      thisWindowsSession().performClick()
+      waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
 
       // Still worth reading, and there is nothing to open: a session outlives the heap dumps it was about.
-      onNodeWithText("Described ${hex(activityObjectId())} in deleted.hprof").assertHasNoClickAction()
+      onNodeWithText("in deleted.hprof").assertIsDisplayed()
+      onNodeWithText(hex(activityObjectId())).assertHasNoClickAction()
     }
   }
 
@@ -223,13 +261,31 @@ class AgentLogsScreenTest {
     millis = 12L
   )
 
+  /**
+   * The session as this window's group of them lists it, which is the first: a session that read two dumps is
+   * listed under both, and only this window's group is read here.
+   */
+  private fun ComposeUiTest.thisWindowsSession() = onAllNodesWithText(CLIENT, substring = true)[0]
+
+  /** The one call that names nothing: the leaks screen is the whole of what it was about. */
+  private fun leaksCall() = AgentSessionCall(
+    at = STARTED_AT,
+    tool = "list_leaks",
+    reason = REASON,
+    windowId = "zvphq4r3",
+    heapDumpPath = heapDump.file.absolutePath,
+    place = Place.Leaks(),
+    arguments = emptyMap(),
+    refusal = null,
+    outcome = null,
+    millis = 12L
+  )
+
   private fun activityObjectId() = heapDump.activityObjectIds.first()
 
   /** How the window names the activity: the same title the tab a row opens carries. */
   private fun activityName() =
     "${LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.')} ${hexObjectId(activityObjectId())}"
-
-  private fun describedRow() = "Described ${activityName()}"
 
   private fun hex(objectId: Long) = exactHexObjectId(objectId)
 
@@ -250,7 +306,11 @@ class AgentLogsScreenTest {
     const val REFUSAL = "3 step(s) have no verdict"
     const val FAULTY_REFERENCE = "Holder.activity"
     const val NO_AGENT_YET = "No agent has worked on this heap dump"
-    const val OTHER_HEAP_DUMPS = "Other heap dumps"
+
+    /** The verbs the rows read as, which are [shark.explorer.agent.verb]'s and not this screen's. */
+    const val DESCRIBED = "Described"
+    const val CONCLUDED_ABOUT = "Concluded about"
+    const val LISTED_THE_LEAKS = "Listed the leaks"
 
     val STARTED_AT: Instant = Instant.parse("2026-08-25T18:19:48.035Z")
 

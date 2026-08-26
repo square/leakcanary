@@ -78,6 +78,7 @@ import shark.explorer.TreemapLayout
 import shark.explorer.TreemapPresentation
 import shark.explorer.TreemapRect
 import shark.explorer.agent.AgentSession
+import shark.explorer.agent.subject
 import shark.explorer.detours
 import shark.explorer.exactHexObjectId
 import shark.explorer.formatObjectCount
@@ -544,6 +545,9 @@ internal fun HeapDumpExplorer(
     ?.let { open -> sessions.firstOrNull { it.sessionId == open.sessionId } }
     ?.calls.orEmpty()
     .filter { it.heapDumpPath == null || it.heapDumpPath == session.heapDumpFile.absolutePath }
+    // Only the calls that named what they were about, since those are the only rows that show a name: the
+    // place of a call that named nothing comes from which tool it is, and its verb already says it.
+    .filter { it.subject != null }
     .mapNotNull { it.place }
     .filter { it !in agentPlaceTitles }
     .distinct()
