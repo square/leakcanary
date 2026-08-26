@@ -233,13 +233,13 @@ internal class AgentTools(
   }
 
   private fun findObjects() = AgentTool(
-    name = "find_objects",
+    name = FIND_OBJECTS,
     description = "The objects of this heap dump whose class name matches, largest retained size first, " +
       "with how many matched in total. Use it on a class you have assumed something about: two instances " +
       "of a class you took for a singleton is the answer to a surprising number of leaks, because the " +
       "object on the chain then isn't the instance you thought it was. **With no className it is every " +
       "object, so it is also the answer to \"what are the biggest things in this heap\"** — one object at " +
-      "a time, where dominator_tree is what holds them.",
+      "a time, where $DOMINATOR_TREE is what holds them.",
     schema = schema(
       WINDOW to window(),
       CLASS_NAME to string("Matched against the class name.").optional(),
@@ -272,7 +272,7 @@ internal class AgentTools(
   }
 
   private fun dominatorTree() = AgentTool(
-    name = "dominator_tree",
+    name = DOMINATOR_TREE,
     description = "Where the memory has gone: what holds the most of it, what holds the most of that, and " +
       "so on. The tree the window draws as a treemap, without the pixels. Start at the whole heap dump and " +
       "give `object` to walk down from one node. This answers \"why is this app using 400 MB\" — for " +
@@ -671,17 +671,27 @@ internal class AgentTools(
    *
    * By argument name, so that a tool added here is described by this without being listed in it: everything
    * about an object takes `object`, everything about a place takes `place`, the search takes a class name and
-   * one session of the log takes its id. The two tools whose subject is in none of them name a screen and
-   * take nothing at all — the leaks, and the log read as a list.
+   * one session of the log takes its id.
+   *
+   * The tools whose subject is in none of them go through [screenOfTool], which is where the screens an
+   * agent names by naming nothing live: the leaks, the log as a list, and the two that mean the whole heap
+   * dump when they are given no object — the tree from its root, and the object list unfiltered. Every one of
+   * them has to be there, because **anything an agent can do that the window can do leads somewhere in the
+   * window**: a call with no place is a row of the *Agent logs* screen that shows a reader what was looked at
+   * and then declines to show them the thing. The words that row draws come off the same list, so a screen
+   * cannot be reachable and unnamed or named and unreachable.
+   *
+   * What is left with no place is the calls about the app rather than about a heap dump — which dumps are
+   * open, which devices are connected, opening a file, taking a dump — and `read_notes` with no place,
+   * whose answer is the list of places that have notes, which is the tab strip rather than a screen.
    */
   private fun AgentArguments.placeOrNull(name: String): Place? = when {
     optionalString(PLACE) != null -> place()
     optionalString(OBJECT) != null -> Place.Object(objectId(OBJECT))
     optionalString(CLASS_NAME) != null -> Place.Objects(ObjectListFilter(query = string(CLASS_NAME)))
     optionalString(SESSION) != null -> Place.AgentLog(string(SESSION))
-    name == LIST_LEAKS -> Place.Leaks()
-    name == AGENT_LOG -> Place.AgentLogs
-    else -> null
+    // No arguments, since nothing above matched: what is left is what the tool means on its own.
+    else -> screenOfTool(name, emptyMap())?.place
   }
 
   /** Which heap dump a call is about, or a refusal naming the ones that are open. */
@@ -768,9 +778,11 @@ internal class AgentTools(
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
 
-    /** Named because [placeOrNull] is the one description of a call that has to know which tool it is. */
+    /** Named because another tool's description tells an agent to call it, or its own says what it is. */
     const val LIST_LEAKS = "list_leaks"
     const val AGENT_LOG = "agent_log"
+    const val FIND_OBJECTS = "find_objects"
+    const val DOMINATOR_TREE = "dominator_tree"
 
     const val WINDOW = "window"
     const val SESSION = "session"
@@ -803,7 +815,7 @@ internal class AgentTools(
      * walking a tree would take an hour to reach.
      */
     const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this window to see what the dump says about " +
-      "itself, or dominator_tree to see where its memory has gone."
+      "itself, or $DOMINATOR_TREE to see where its memory has gone."
 
     /**
      * How many objects a list comes back with by default, well under

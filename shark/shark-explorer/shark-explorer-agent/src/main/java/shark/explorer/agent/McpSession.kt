@@ -160,13 +160,15 @@ internal class McpSession(
     val startedAt = System.nanoTime()
     return try {
       val answer = tool.call(arguments)
-      // The answer as well as the arguments, because one of them is a conclusion: see [outcomeOfTool].
+      // The answer as well as the arguments, because two of them are things the arguments don't say: what
+      // was concluded, and which heap dumps were open. See [outcomeOfTool] and [openHeapDumpsOfTool].
       record(
         name,
         arguments,
         target,
         refusal = null,
         outcome = outcomeOfTool(name, answer),
+        openHeapDumps = openHeapDumpsOfTool(name, answer),
         at = at,
         startedAt = startedAt
       )
@@ -202,6 +204,7 @@ internal class McpSession(
     target: AgentTarget,
     refusal: String?,
     outcome: String?,
+    openHeapDumps: List<String> = emptyList(),
     at: Instant,
     startedAt: Long
   ) {
@@ -216,6 +219,7 @@ internal class McpSession(
         arguments = arguments.recorded(),
         refusal = refusal,
         outcome = outcome,
+        openHeapDumps = openHeapDumps,
         millis = (System.nanoTime() - startedAt) / NANOS_PER_MILLI
       )
     )

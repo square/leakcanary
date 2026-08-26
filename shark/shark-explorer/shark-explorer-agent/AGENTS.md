@@ -62,14 +62,17 @@ connection, a JSON object per line, the newest `KEEP_SESSION_COUNT` kept. What r
 reading half lives here beside the writing half and is tested with it. A field written and never read back is
 a row of that screen saying nothing.
 
-Three things follow that reading the code won't tell you.
+What follows from that, and reading the code won't tell you:
 
 **A call is described before it is answered, not after.** `McpSession.callTool` asks `AgentTools.target` what
 the call is about and only then invokes the handler, so **a refused call still records its place** and its row
 is still clickable. That is deliberate: the refusals are the half of a session worth reading afterwards, and
 a refusal nobody can follow up on is a dead end on the screen. `target` derives the place from the argument
-*names* rather than from a second list of tool names — one exception, `list_leaks`, which takes no argument
-saying where it is.
+*names* rather than from a second list of tool names — except for the four tools that take no argument saying
+where they are, which are named in `placeOrNull` because **every call that goes somewhere in the window has to
+lead there**: the leaks, the agent log, and `dominator_tree` and `find_objects` given nothing, which are the
+tree from its root and the object list unfiltered. Anything left with no place is a call about the app rather
+than about a heap dump.
 
 **A session records addresses, and is read in the window of its heap dump.** What an agent types is
 `0x12d368b8` and what the screen shows is `MainActivity 0x12d368b8`, so somebody has to resolve it — and
@@ -82,15 +85,25 @@ heap dump read on every call to answer a question the reader already has the dum
 can open a second dump, and a call about one this window hasn't got is a row it leaves as the address, saying
 which file, and opens that dump when clicked.
 
-**One field comes off the answer instead: `outcome`.** What an agent asked is what it typed, and what it
-concluded is what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s
-answer, and nothing else records an answer. Both readers need it and neither can work it out: the screen's
-last row is what a session came to, and the eval has nothing to mark against its answer key without it.
+**Two fields come off the answer instead.** What an agent asked is what it typed, and what it concluded is
+what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s answer. Both
+readers need that one and neither can work it out: the screen's last row is what a session came to, and the
+eval has nothing to mark against its answer key without it. `openHeapDumpsOfTool` is the other, and the reason
+is the same shape: `open_heap_dumps` is the one call whose subject is the app, and the dumps it heard about are
+in the answer alone. Nothing else reads an answer — a row saying what a read came back with would be the
+answer printed twice.
 
 **The verbs are here rather than in the app.** `verbOfTool` is beside the tool names, so that a screen never
 spells them itself and drift is one list rather than two. `AgentSessionFileTest` asserts every tool in the
 registry has one; a tool added without a verb reads as its own name, which is the protocol showing through on
 the screen that exists to not show it.
+
+**A verb stops where the thing it was about starts**, which is why several of them end mid-sentence: a row of
+that screen is prose with one link in it, and the link is the thing. So `list_leaks` is "Listed the" and
+`screenOfTool` is the *leaks* after it, in lower case because it is inside a sentence rather than a tab title.
+Every tool `placeOrNull` names has words there, and only those — `AgentSessionFileTest` fails on either half
+of that being added without the other, since a place with no words is a call that went somewhere the reader is
+never shown, and words with no place are a link to nothing.
 
 **Writing a session never throws and never blocks the answer.** A bad line is skipped on read with a
 `SharkLog.d` saying which, a file whose header is missing falls back to the id in its name, and a truncated

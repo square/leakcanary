@@ -207,7 +207,7 @@ class McpSessionTest {
     assertThat(session.client).isEqualTo("claude-code 9.9.9")
     assertThat(session.serverVersion).isEqualTo(SERVER_VERSION)
     val call = session.calls.single()
-    assertThat(call.verb).isEqualTo("Described")
+    assertThat(call.verb).isEqualTo("Looked at")
     assertThat(call.subject).isEqualTo(hex(heapDump.holderObjectId))
     assertThat(call.reason).isEqualTo("Checking whether the holder is the singleton it looks like.")
     assertThat(call.refusal).isNull()
@@ -237,12 +237,39 @@ class McpSessionTest {
   fun `a call that named no place is written down with somewhere to go all the same`() {
     callTool("""{"name":"list_leaks","arguments":{"reason":"Starting with what the dump says."}}""")
 
-    // The leaks screen to go to, and nothing after the verb, which already says the whole of what this call
-    // did. The one place a call is about without naming it in an argument. See [AgentTools.target].
+    // The leaks screen to go to, and the words for it, so that a row of the window reads as a sentence with
+    // one link in it: "Listed the" and then *leaks*. See [AgentTools.target] and [screenOfTool].
     val call = sessions().single().calls.single()
-    assertThat(call.verb).isEqualTo("Listed the leaks")
+    assertThat(call.verb).isEqualTo("Listed the")
+    assertThat(call.screen).isEqualTo("leaks")
     assertThat(call.place).isEqualTo(Place.Leaks())
     assertThat(call.subject).isNull()
+  }
+
+  @Test
+  fun `a call about the whole heap dump goes to the whole heap dump`() {
+    callTool("""{"name":"dominator_tree","arguments":{"reason":"Where has the memory gone."}}""")
+    callTool("""{"name":"find_objects","arguments":{"reason":"What the biggest objects are."}}""")
+
+    // Both of these mean the whole heap dump when they name nothing in it, and both are something a person
+    // does in this window — so both lead there, rather than being the two rows of a session that show a
+    // reader what was looked at and then decline to show them the thing.
+    val calls = sessions().single().calls
+    assertThat(calls.map { it.verb }).containsExactly("Read the", "Listed the")
+    assertThat(calls.map { it.screen }).containsExactly("dominator tree", "biggest objects")
+    assertThat(calls.map { it.place }).containsExactly(Place.wholeHeapDump(), Place.Objects())
+  }
+
+  @Test
+  fun `the call that asks which heap dumps are open is written down with the ones that were`() {
+    callTool("""{"name":"open_heap_dumps","arguments":{"reason":"Seeing what there is."}}""")
+
+    // Off the answer, like a conclusion and unlike everything else: this is the one call whose subject is
+    // the app rather than a heap dump, and a row saying it asked without saying what it heard is a row that
+    // withholds the answer it is a record of. See [openHeapDumpsOfTool].
+    val call = sessions().single().calls.single()
+    assertThat(call.openHeapDumps).containsExactly(window.heapDumpPath)
+    assertThat(call.place).isNull()
   }
 
   @Test

@@ -150,6 +150,67 @@ class AgentSessionFileTest {
   }
 
   @Test
+  fun `a call that named nothing goes where the tool means, whether or not the file says so`() {
+    val tools = agentTools(FakeAgentHeapDumps())
+
+    // Both sides read [AgentScreen], so a screen cannot end up reachable and unnamed or named and
+    // unreachable: what a call with no arguments is about is the place, and the words are what the row of
+    // the *Agent logs* screen draws as the link to it.
+    tools.all.map { it.name }.forEach { name ->
+      assertThat(tools.target(name, buildJsonObject { }).place)
+        .describedAs(name)
+        .isEqualTo(screenOfTool(name, emptyMap())?.place)
+    }
+  }
+
+  @Test
+  fun `a session written before a call like that had a link still leads where it went`() {
+    directory.mkdirs()
+    // Which is every session on this machine, since the place of these was worked out from the arguments
+    // and they have none: a row of one that leads nowhere is the bug this fixed, kept fixed for the
+    // sessions that were already on disk.
+    File(directory, "agent-2026-08-25_18-19-48_035-older.jsonl").writeText(
+      """{"agentSession":"older","startedAt":"$STARTED_AT","sharkExplorer":"1.0.0"}""" + "\n" +
+        """{"at":"$STARTED_AT","tool":"dominator_tree","reason":"Where the memory went.",""" +
+        """"window":"$WINDOW_ID","heapDump":"/dumps/leak.hprof","millis":3}""" + "\n"
+    )
+
+    val call = AgentSessionFile.sessionsIn(directory).single().calls.single()
+    assertThat(call.place).isEqualTo(Place.wholeHeapDump())
+    assertThat(call.screen).isEqualTo("dominator tree")
+  }
+
+  @Test
+  fun `which heap dumps were open is read off the answer, and nothing else is`() {
+    val answered = buildJsonObject {
+      putJsonArray("heapDumps") {
+        addJsonObject {
+          put("window", WINDOW_ID)
+          put("heapDumpPath", "/dumps/leak.hprof")
+        }
+      }
+    }
+
+    assertThat(openHeapDumpsOfTool("open_heap_dumps", answered)).containsExactly("/dumps/leak.hprof")
+    // Every other call is about a heap dump rather than about which ones there are, and a row of them
+    // listing the dumps would be the window's own state printed against somebody's investigation.
+    assertThat(openHeapDumpsOfTool("list_leaks", answered)).isEmpty()
+  }
+
+  @Test
+  fun `the heap dumps a call was answered with are read back as somewhere to go`() {
+    val file = AgentSessionFile.starting(directory, SERVER_VERSION)
+    file.called(
+      call(tool = "open_heap_dumps", openHeapDumps = listOf("/dumps/leak.hprof", "/dumps/other.hprof"))
+    )
+
+    // In the order they were open in, because that is the order the window unfolds them in — and paths,
+    // since the window ids beside them belonged to a run that has ended by the time this is read.
+    assertThat(AgentSessionFile.sessionsIn(directory).single().calls.single().openHeapDumps)
+      .containsExactly("/dumps/leak.hprof", "/dumps/other.hprof")
+  }
+
+  @Test
   fun `a directory no agent has ever connected through is no sessions rather than a failure`() {
     assertThat(AgentSessionFile.sessionsIn(File(temporaryFolder.root, "never-used"))).isEmpty()
   }
@@ -160,7 +221,8 @@ class AgentSessionFileTest {
     place: Place? = null,
     arguments: Map<String, String> = emptyMap(),
     refusal: String? = null,
-    outcome: String? = null
+    outcome: String? = null,
+    openHeapDumps: List<String> = emptyList()
   ) = AgentSessionCall(
     at = STARTED_AT,
     tool = tool,
@@ -171,6 +233,7 @@ class AgentSessionFileTest {
     arguments = arguments,
     refusal = refusal,
     outcome = outcome,
+    openHeapDumps = openHeapDumps,
     millis = 12L
   )
 

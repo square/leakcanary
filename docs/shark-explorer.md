@@ -393,19 +393,25 @@ and there is every call that agent made, in order and in words — what it did, 
 the sentence it gave for doing it:
 
 ```
+08:23:04 ▸ Asked which heap dumps are open
+          because: Seeing what there is to read before asking anything about it.
 08:23:11  Listed the leaks
           because: Starting from what the heap dump already says shouldn't be here.
 08:23:18  Read the chain to 0x12d368b8
           because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is
           true. Reading the chain from a GC root.
-08:23:27  Described 0x12d00c30
+08:23:27  Looked at 0x12d00c30
           because: The FutureTask in the middle of the chain: checking whether it is really running.
 08:23:34  Looked for every way of holding 0x12d368b8
           because: Checking whether anything else holds the activity, or only this one chain.
 ```
 
-**A row leads where the call went**: click *Read the chain to 0x12d368b8* and the window opens that object,
-so reading what an agent did and going to look at it are one move.
+**A row leads where the call went**, and what leads there is the thing rather than the verb: click
+*0x12d368b8* on *Read the chain to 0x12d368b8* and the window opens that object, so reading what an agent did
+and going to look at it are one move. A call that named nothing went somewhere all the same — *leaks* on
+*Listed the leaks* is the leaks screen, and *dominator tree* on *Read the dominator tree* is the tree from its
+root. The one row that leads to several places unfolds instead: *Asked which heap dumps are open* opens into
+the dumps that were open, each of them a window away.
 
 **A refused call is a row too**, in red, under the reason the agent gave for making it — and those are the
 half of a session worth reading, since a refusal is where the method sent an agent back to the heap dump

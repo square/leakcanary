@@ -7,12 +7,14 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 import shark.SharkLog
 import shark.explorer.DeepLink
@@ -256,6 +258,9 @@ class AgentSessionFile private constructor(
       link()?.let { put(LINK_KEY, it) }
       refusal?.let { put(REFUSAL_KEY, it) }
       outcome?.let { put(OUTCOME_KEY, it) }
+      if (openHeapDumps.isNotEmpty()) {
+        putJsonArray(OPEN_HEAP_DUMPS_KEY) { openHeapDumps.forEach { add(it) } }
+      }
       put(MILLIS_KEY, millis)
       if (arguments.isNotEmpty()) {
         putJsonObject(ARGUMENTS_KEY) {
@@ -275,16 +280,21 @@ class AgentSessionFile private constructor(
         return null
       }
       val link = text(LINK_KEY)
+      val arguments = this[ARGUMENTS_KEY]?.asStringMap().orEmpty()
       return AgentSessionCall(
         at = at,
         tool = tool,
         reason = text(REASON_KEY),
         windowId = text(WINDOW_KEY),
         heapDumpPath = text(HEAP_DUMP_KEY),
-        place = link?.let { placeOfLinkOrNull(it, file, lineNumber) },
-        arguments = this[ARGUMENTS_KEY]?.asStringMap().orEmpty(),
+        // From the tool for a line with no link, which is a session written by a build that recorded no
+        // place for a call that named nothing — and it went to the same screen then as it would now.
+        place = link?.let { placeOfLinkOrNull(it, file, lineNumber) }
+          ?: screenOfTool(tool, arguments)?.place,
+        arguments = arguments,
         refusal = text(REFUSAL_KEY),
         outcome = text(OUTCOME_KEY),
+        openHeapDumps = this[OPEN_HEAP_DUMPS_KEY].asStrings(),
         millis = text(MILLIS_KEY)?.toLongOrNull() ?: 0L
       )
     }
@@ -317,6 +327,9 @@ class AgentSessionFile private constructor(
         null
       }
     }
+
+    private fun JsonElement?.asStrings(): List<String> =
+      (this as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.content }.orEmpty()
 
     private fun JsonElement.asStringMap(): Map<String, String> =
       (this as? JsonObject)?.mapValues { (_, value) ->
@@ -379,6 +392,7 @@ class AgentSessionFile private constructor(
     private const val LINK_KEY = "link"
     private const val REFUSAL_KEY = "refused"
     private const val OUTCOME_KEY = "outcome"
+    private const val OPEN_HEAP_DUMPS_KEY = "openHeapDumps"
     private const val MILLIS_KEY = "millis"
     private const val ARGUMENTS_KEY = "arguments"
   }
@@ -438,6 +452,16 @@ class AgentSessionCall(
    * the eval scores against the answer key. Null for a call whose answer is data rather than a conclusion.
    */
   val outcome: String?,
+  /**
+   * Which heap dumps the answer said were open, for the one call that asks about the app. See
+   * [openHeapDumpsOfTool].
+   *
+   * Empty for every other call, and that is the whole of what it means: a row with these is a row whose
+   * answer was a list of dumps, which the window unfolds and makes each of them somewhere to go. Recorded
+   * because it is a list of what *was* open — the run has usually ended by the time anybody reads it, so
+   * nothing can be asked again.
+   */
+  val openHeapDumps: List<String> = emptyList(),
   /** How long the app took to answer, which is mostly how long the heap dump read took. */
   val millis: Long
 ) {
@@ -451,23 +475,42 @@ class AgentSessionCall(
 }
 
 /**
- * What the call did, as a couple of words.
+ * What the call did, as a couple of words, and never the thing it did it to.
  *
  * Here rather than in the window that draws it because this is where the tool names are: a screen spelling
  * them itself would be a second list of them to keep in step. Every tool has one, which `AgentSessionFileTest`
  * is what keeps true — a tool added without a verb reads as its own name, which is the raw protocol showing
  * through on a screen that exists to not show it.
+ *
+ * **Prose, so it can be drawn as prose.** What a row leads to is [subject] or [screen], and a verb that
+ * swallowed the thing it was about — "Listed the leaks" — leaves a row with no part of it to be the link
+ * except the whole sentence. So a verb ends where the thing begins, even when that makes it "Listed the".
  */
 val AgentSessionCall.verb: String get() = verbOfTool(tool, arguments) ?: tool.replace('_', ' ')
 
 /**
  * What the call was about, in the words the window uses for it: an address, a class name, a place.
  *
- * Null for a call whose subject is the whole heap dump or the app itself, where the verb says all of it.
+ * Null for a call whose subject is a screen of the heap dump, which is [screen], or the app itself, where
+ * the verb says all of it.
  */
 val AgentSessionCall.subject: String?
   get() = arguments[SUBJECT_OBJECT] ?: arguments[SUBJECT_PLACE] ?: arguments[SUBJECT_CLASS_NAME]
     ?: arguments[SUBJECT_SESSION]
+
+/**
+ * What the call was about where that is a whole screen of the heap dump rather than something in it.
+ *
+ * The other half of [verb], and the reason a verb is allowed to end mid-sentence: a call that named nothing
+ * still went somewhere, so it still has one part of the row that leads there. "Read the" + "dominator tree",
+ * where the second words are the link and the first are not.
+ *
+ * Spelled beside the tool names rather than taken from what the window calls that screen, because these read
+ * inside a sentence: the tab says `Leaks` and the row says "Listed the leaks", and a row built from the tab
+ * titles reads as "Listed the Leaks". Null for a call that named an object — [subject] is that — and for the
+ * calls about the app rather than about a heap dump, which have no place of one to go to.
+ */
+val AgentSessionCall.screen: String? get() = screenOfTool(tool, arguments)?.words
 
 /**
  * What the answer to a call came to, as a couple of words, and null when the answer is data rather than a
@@ -487,21 +530,42 @@ internal fun outcomeOfTool(
   else -> null
 }
 
+/**
+ * Which heap dumps an answer said were open, which is the second thing read off an answer rather than off
+ * the arguments. See [AgentSessionCall.openHeapDumps].
+ *
+ * Only `open_heap_dumps`, and for the same reason `outcomeOfTool` is only `conclude`: this is the one call
+ * whose answer is not about a heap dump but *is* a list of them, and a row saying "asked which dumps are
+ * open" without saying which is a row that withholds the answer it is a record of. The paths, since a
+ * window is opened on a path — the window ids beside them in that answer belong to a run that has usually
+ * ended by the time anybody reads this.
+ */
+internal fun openHeapDumpsOfTool(
+  tool: String,
+  answer: JsonObject
+): List<String> = when (tool) {
+  "open_heap_dumps" -> (answer[ANSWER_HEAP_DUMPS] as? JsonArray).orEmpty()
+    .mapNotNull { ((it as? JsonObject)?.get(ANSWER_HEAP_DUMP_PATH) as? JsonPrimitive)?.content }
+  else -> emptyList()
+}
+
 /** Null for a tool this build has no verb for, which is what a test asserts never happens. */
 internal fun verbOfTool(
   tool: String,
   arguments: Map<String, String>
 ): String? = when (tool) {
   "open_heap_dumps" -> "Asked which heap dumps are open"
-  "list_leaks" -> "Listed the leaks"
-  "describe_object" -> "Described"
+  // Ending on "the", because what follows it is the link. See [AgentSessionCall.screen].
+  "list_leaks" -> "Listed the"
+  // Not "Described", which reads as the agent having written a description of something rather than having
+  // asked what it is. Every tool here is a read unless it says otherwise, and the verbs have to say which.
+  "describe_object" -> "Looked at"
   "chain_from_gc_root" -> "Read the chain to"
   "ways_held" -> "Looked for every way of holding"
-  "find_objects" -> "Searched for"
-  // Both of these are about the whole heap dump when they name nothing, so the verb has to stand on its
-  // own: a row reads as the verb and then the subject, and "Read the notes on" alone says nothing.
-  "dominator_tree" ->
-    if (SUBJECT_OBJECT in arguments) "Read the dominator tree under" else "Read the dominator tree"
+  // Which is a search of the whole dump when it names no class, and that is the list of the biggest
+  // objects rather than a search for nothing.
+  "find_objects" -> if (SUBJECT_CLASS_NAME in arguments) "Searched for" else "Listed the"
+  "dominator_tree" -> if (SUBJECT_OBJECT in arguments) "Read the dominator tree under" else "Read the"
   "set_verdict" -> "Recorded ${arguments[SUBJECT_VERDICT] ?: "a verdict"} on"
   "clear_verdict" -> "Took the verdict off"
   "read_notes" -> if (SUBJECT_PLACE in arguments) "Read the notes on" else "Read what has been written"
@@ -509,11 +573,12 @@ internal fun verbOfTool(
   // which is the one thing an agent does here that a reader can't get back.
   "take_note" -> if (arguments[SUBJECT_REPLACE] == "true") "Rewrote the note on" else "Wrote a note on"
   // Reading what other agents did, which is the one call whose subject is another session of this screen.
-  "agent_log" -> if (SUBJECT_SESSION in arguments) "Read what an agent did in" else "Read the agent log"
+  "agent_log" -> if (SUBJECT_SESSION in arguments) "Read what an agent did in" else "Read the"
   "show" -> "Showed"
   "conclude" -> "Concluded about"
-  // The app rather than a heap dump, so each of these says the whole of what it did: there is no subject
-  // to put after it, the heap dump it opens not existing as a place until it is open.
+  // The app rather than a heap dump, so each of these says the whole of what it did: there is no place of
+  // an open dump to go to, the file one of them opens and the file another one writes not being one until
+  // the call has been answered.
   "open_heap_dump" -> "Opened ${arguments[SUBJECT_PATH] ?: "a heap dump"}"
   "list_devices" -> arguments[SUBJECT_DEVICE]
     ?.let { "Listed the processes of $it" }
@@ -522,9 +587,45 @@ internal fun verbOfTool(
   else -> null
 }
 
-/** What `conclude` answers with the reference under, which is the one answer this file records. */
+/**
+ * A screen of the heap dump a whole call was about: what to call it inside a sentence, and where it is.
+ *
+ * One thing rather than two because the words and the place cannot be allowed to disagree — words with no
+ * place are a link to nothing, and a place with no words is a call that went somewhere the reader is never
+ * shown. `AgentTools.placeOrNull` reads the place off this, and the *Agent logs* screen draws the words.
+ */
+internal class AgentScreen(
+  val words: String,
+  val place: Place
+)
+
+/**
+ * Which screen a call that named nothing was about, and null for a call that named something.
+ *
+ * The calls that name nothing are the ones where naming nothing *means* something: the leaks, the agent log
+ * as a list, and the two tools that mean the whole heap dump when they are given no object — the tree from
+ * its root, and the list of every object.
+ */
+internal fun screenOfTool(
+  tool: String,
+  arguments: Map<String, String>
+): AgentScreen? = when (tool) {
+  "list_leaks" -> AgentScreen("leaks", Place.Leaks())
+  "agent_log" -> if (SUBJECT_SESSION in arguments) null else AgentScreen("agent log", Place.AgentLogs)
+  "find_objects" ->
+    if (SUBJECT_CLASS_NAME in arguments) null else AgentScreen("biggest objects", Place.Objects())
+  "dominator_tree" ->
+    if (SUBJECT_OBJECT in arguments) null else AgentScreen("dominator tree", Place.wholeHeapDump())
+  else -> null
+}
+
+/** What `conclude` answers with the reference under, which is one of the two answers this file records. */
 private const val ANSWER_FAULTY_REFERENCE = "faultyReference"
 private const val ANSWER_REFERENCE = "reference"
+
+/** And what `open_heap_dumps` answers with the dumps under. See `AgentJson.heapDump`. */
+private const val ANSWER_HEAP_DUMPS = "heapDumps"
+private const val ANSWER_HEAP_DUMP_PATH = "heapDumpPath"
 
 private const val SUBJECT_OBJECT = "object"
 private const val SUBJECT_PLACE = "place"

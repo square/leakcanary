@@ -9,7 +9,9 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,6 +26,7 @@ import org.junit.rules.TemporaryFolder
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeviceHeapDumps
+import shark.explorer.HeapDominatorTreemap
 import shark.explorer.Place
 import shark.explorer.agent.AgentSession
 import shark.explorer.agent.AgentSessionCall
@@ -64,7 +67,7 @@ class AgentLogsScreenTest {
       // The verb, the object named the way a tab on it is named, and the agent's own sentence for why it
       // asked: no JSON and no bare address on any of it.
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
-      waitUntilAtLeastOneExists(hasText(DESCRIBED), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
     }
   }
@@ -76,26 +79,63 @@ class AgentLogsScreenTest {
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
 
       // What a reader wants to go and look at is the object, so that is the whole of what leads anywhere:
-      // a row where clicking the word "Described" navigates is a row with a hand cursor over prose.
+      // a row where clicking the word "Looked at" navigates is a row with a hand cursor over prose.
       onNodeWithText(activityName()).assertHasClickAction()
-      onNodeWithText(DESCRIBED).assertHasNoClickAction()
+      onNodeWithText(LOOKED_AT).assertHasNoClickAction()
     }
   }
 
-  @Test fun `a call that named nothing is the verb itself, and leads where it went`() {
+  @Test fun `a call that named nothing links the words for where it went, and not the verb`() {
     explorerUiTest {
       openAgentLogs(listOf(session(calls = listOf(leaksCall()))))
       onNodeWithText(CLIENT, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(LISTED_THE_LEAKS), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(LISTED_THE), OPEN_TIMEOUT_MILLIS)
 
-      // "Listed the leaks" is the whole sentence and the leaks screen is where it went, so the verb is the
-      // link — and nothing follows it. A screen name after it, from the tool rather than from an argument,
-      // read as "Listed the leaks Leaks".
-      onNodeWithText(LISTED_THE_LEAKS).assertHasClickAction()
-      onNodeWithText(LISTED_THE_LEAKS).performClick()
+      // "Listed the leaks" is a sentence about the leaks screen, so *leaks* is the link and what comes
+      // before it is prose. Linking the whole of it was underlining a verb; naming the place from the tool
+      // instead read as "Listed the leaks Leaks".
+      onNodeWithText(LISTED_THE).assertHasNoClickAction()
+      onNodeWithText(LEAKS).assertHasClickAction()
+      onNodeWithText(LEAKS).performClick()
 
       // The leaks screen, named by the reference each leak is: the same screen the agent was reading.
       waitUntilAtLeastOneExists(hasText(ACTIVITY_LEAK_NAME, substring = true), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `a call that read the tree from its root leads to the whole heap dump`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(wholeDumpCall(tool = "dominator_tree")))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(DOMINATOR_TREE), OPEN_TIMEOUT_MILLIS)
+
+      // Reading the tree from its root is what this window opens on, so a row saying an agent did it leads
+      // there. Anything an agent can do that a person can do here is a row that goes where they went.
+      onNodeWithText(READ_THE).assertHasNoClickAction()
+      // The tab is on the agent's log until the row moves it, and then on the tree from its root, which is
+      // where a window opens and what the row said the agent read.
+      selectedTab().assertTextContains(Place.AgentLog(SESSION_ID).title)
+      onNodeWithText(DOMINATOR_TREE).performClick()
+
+      waitUntilAtLeastOneExists(
+        hasText(HeapDominatorTreemap.ROOT_LABEL) and isTab() and isSelected(),
+        OPEN_TIMEOUT_MILLIS
+      )
+    }
+  }
+
+  @Test fun `a search of the whole heap dump leads to the list of every object`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(wholeDumpCall(tool = "find_objects")))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(BIGGEST_OBJECTS), OPEN_TIMEOUT_MILLIS)
+
+      // A search with no class name is the biggest objects of the dump, which is the object list unfiltered
+      // — and reads as that rather than as "Searched for" with nothing after it.
+      onNode(hasText(Place.OBJECTS_LABEL) and isTab()).assertDoesNotExist()
+      onNodeWithText(BIGGEST_OBJECTS).performClick()
+
+      waitUntilAtLeastOneExists(hasText(Place.OBJECTS_LABEL) and isTab(), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -189,9 +229,51 @@ class AgentLogsScreenTest {
     assertThat(opened).isEqualTo(otherHeapDump to Place.Object(activityObjectId()))
   }
 
+  @Test fun `the call that asked which heap dumps are open unfolds into them`() {
+    val otherHeapDump = testFolder.newFile("another.hprof")
+    var opened: Pair<File, Place>? = null
+    explorerUiTest {
+      openAgentLogs(
+        sessions = listOf(session(calls = listOf(openHeapDumpsCall(otherHeapDump)))),
+        onOpenHeapDump = { file, place -> opened = file to place }
+      )
+      thisWindowsSession().performClick()
+      waitUntilAtLeastOneExists(hasText(ASKED_WHICH_ARE_OPEN), OPEN_TIMEOUT_MILLIS)
+
+      // Behind the verb until somebody asks, because what this one came back with is a list where every
+      // other row of a session is a sentence.
+      onNodeWithText(otherHeapDump.name).assertDoesNotExist()
+      onNodeWithText(ASKED_WHICH_ARE_OPEN).performClick()
+
+      // The dump this window has open says so and leads nowhere — it is already here — and the other one is
+      // a window away, which is what makes a list of what *was* open worth keeping.
+      waitUntilAtLeastOneExists(hasText(thisHeapDumpRow()), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(thisHeapDumpRow()).assertHasNoClickAction()
+      onNodeWithText(otherHeapDump.name).performClick()
+    }
+
+    assertThat(opened).isEqualTo(otherHeapDump to Place.wholeHeapDump())
+  }
+
+  @Test fun `a session about a heap dump that has gone is read here, there being no window for it`() {
+    explorerUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call(heapDumpPath = DELETED_HEAP_DUMP)))))
+
+      // Headed as gone, which is the answer to why the objects in it have no names: an address is an
+      // address of a file, and that file isn't here.
+      onNodeWithText("deleted.hprof ($MISSING)").assertIsDisplayed()
+      onNodeWithText(CLIENT, substring = true).performClick()
+
+      // And read here rather than nowhere. There is no window that could name those addresses, so what is
+      // left is what the agent said — the verbs, the reasons and the refusals — which is worth reading.
+      waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("in deleted.hprof").assertIsDisplayed()
+    }
+  }
+
   @Test fun `a call about a heap dump that has gone leads nowhere`() {
     explorerUiTest {
-      openAgentLogs(listOf(session(calls = listOf(call(), call(heapDumpPath = "/dumps/deleted.hprof")))))
+      openAgentLogs(listOf(session(calls = listOf(call(), call(heapDumpPath = DELETED_HEAP_DUMP)))))
       thisWindowsSession().performClick()
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
 
@@ -281,6 +363,42 @@ class AgentLogsScreenTest {
     millis = 12L
   )
 
+  /**
+   * A call that named nothing in the dump and so was about the whole of it: the tree from its root, or the
+   * list of every object. See `AgentTools.placeOrNull`.
+   */
+  private fun wholeDumpCall(tool: String) = AgentSessionCall(
+    at = STARTED_AT,
+    tool = tool,
+    reason = REASON,
+    windowId = "zvphq4r3",
+    heapDumpPath = heapDump.file.absolutePath,
+    place = if (tool == "find_objects") Place.Objects() else Place.wholeHeapDump(),
+    arguments = emptyMap(),
+    refusal = null,
+    outcome = null,
+    millis = 12L
+  )
+
+  /** The first call of most sessions: which dumps are open, answered with the ones that were. */
+  private fun openHeapDumpsCall(otherHeapDump: File) = AgentSessionCall(
+    at = STARTED_AT,
+    tool = "open_heap_dumps",
+    reason = REASON,
+    windowId = "zvphq4r3",
+    heapDumpPath = heapDump.file.absolutePath,
+    // Nowhere to go: this one asks the app rather than a heap dump. What it came back with is where it goes.
+    place = null,
+    arguments = emptyMap(),
+    refusal = null,
+    outcome = null,
+    openHeapDumps = listOf(heapDump.file.absolutePath, otherHeapDump.absolutePath),
+    millis = 12L
+  )
+
+  /** How the dump this window has open reads in a list of the dumps that were open. */
+  private fun thisHeapDumpRow() = "${heapDump.file.name} (this heap dump)"
+
   private fun activityObjectId() = heapDump.activityObjectIds.first()
 
   /** How the window names the activity: the same title the tab a row opens carries. */
@@ -298,6 +416,13 @@ class AgentLogsScreenTest {
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
+  /** Where the window is, since a row of this screen moves the tab it is read in. */
+  private fun ComposeUiTest.selectedTab() = onNode(isTab() and isSelected())
+
+  /** The tab a row opened, as against the button of the same name that would have opened it too. */
+  private fun isTab(): SemanticsMatcher =
+    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+
   private companion object {
 
     const val SESSION_ID = "1a2b3c4d"
@@ -307,10 +432,27 @@ class AgentLogsScreenTest {
     const val FAULTY_REFERENCE = "Holder.activity"
     const val NO_AGENT_YET = "No agent has worked on this heap dump"
 
+    /** A heap dump a session was about and nobody has any more. */
+    const val DELETED_HEAP_DUMP = "/dumps/deleted.hprof"
+
+    /** After the name of one, wherever this screen names a dump that isn't there. */
+    const val MISSING = "missing"
+
     /** The verbs the rows read as, which are [shark.explorer.agent.verb]'s and not this screen's. */
-    const val DESCRIBED = "Described"
+    const val LOOKED_AT = "Looked at"
     const val CONCLUDED_ABOUT = "Concluded about"
-    const val LISTED_THE_LEAKS = "Listed the leaks"
+    const val ASKED_WHICH_ARE_OPEN = "Asked which heap dumps are open"
+
+    /**
+     * And the verbs of the calls that named nothing, which stop where the link starts: the words after each
+     * of these are [shark.explorer.agent.screen]'s. See [LEAKS], [DOMINATOR_TREE] and [BIGGEST_OBJECTS].
+     */
+    const val LISTED_THE = "Listed the"
+    const val READ_THE = "Read the"
+
+    const val LEAKS = "leaks"
+    const val DOMINATOR_TREE = "dominator tree"
+    const val BIGGEST_OBJECTS = "biggest objects"
 
     val STARTED_AT: Instant = Instant.parse("2026-08-25T18:19:48.035Z")
 
