@@ -122,12 +122,15 @@ internal class HeadlessAgentHeapDumps(
       open = open,
       agent = OpenAgentHeapDump(windowId = windowId, open = open) { place ->
         SharkLog.d { "Nowhere to show $place: this run was started with $NO_UI_OPTION" }
-        // And no link either, deliberately: a link names a window, so one from here would be an address
-        // nothing answers to, handed to somebody who would click it.
-        ShownPlace.nowhere(
-          "This Shark Explorer was started with $NO_UI_OPTION, so it has no window and nothing was shown. " +
-            "Say what you found in your answer instead. Whoever opens ${file.name} in a window later will " +
-            "find your notes and verdicts on it, since those are on disk rather than on screen."
+        // A link all the same, and it works: a link names the heap dump rather than a window, so this one
+        // opens the file at that place in whatever Shark Explorer whoever clicks it has. Which is the whole
+        // of what a run with no screen can offer, and more than nothing.
+        ShownPlace.onlyAsALink(
+          link = DeepLink(file, place).toUri(),
+          problem = "This Shark Explorer was started with $NO_UI_OPTION, so it has no window and nobody " +
+            "saw this. Put the link in your answer instead: it opens ${file.name} at that place for " +
+            "whoever reads it, with your notes and verdicts on it, since those are on disk rather than on " +
+            "screen."
         )
       }
     )

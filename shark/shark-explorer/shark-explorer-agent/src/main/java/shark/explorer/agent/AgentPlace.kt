@@ -12,9 +12,9 @@ import shark.explorer.exactHexObjectId
  * directions in one file because they are one spelling — a place written one way and read another is a place
  * an agent can be told about and then cannot go to.
  *
- * Deliberately not `shark://` links, which name a place too: a link names a *window* as well, so it is the
- * thing to hand to a person rather than the thing to pass back over this protocol. See
- * [AgentTools] `show`.
+ * Deliberately not `shark://` links, which name a place too: a link names the *heap dump* as well, and often
+ * the window, so it is the thing to hand to a person — who has neither in front of them — rather than the
+ * thing to pass back over a protocol where both are already known. See [AgentTools] `show`.
  */
 internal fun AgentArguments.place(): Place {
   val text = string(PLACE)

@@ -85,9 +85,9 @@ of the map, a row of the object list or of the leaks, a step of a chain, a field
 starred object. Wherever the window will take you somewhere, it will also hand you the link to it.
 
 ```
-shark://vugs93jp/object?id=0x7f2a4b18
-shark://vugs93jp/objects?query=Bitmap&exact=true
-shark://vugs93jp/leaks
+shark://bug-4821.hprof/object?id=0x7f2a4b18
+shark://bug-4821.hprof/objects?query=Bitmap&exact=true
+shark://bug-4821.hprof/leaks
 ```
 
 Anywhere a tab can be is a link: an object, the object list with its search and filters filled in, the
@@ -95,10 +95,23 @@ leaks with the same groups unfolded, the starred objects. So "look at this" is a
 paragraph of directions, which is also how a tool or an agent that has read your heap dump can point you
 straight at what it found.
 
-The part after `shark://` is **the window, not the heap dump** — the same dump open twice is two windows,
-and a link leads to the one it was copied from. Which means a link works while that window is open and
-stops working once it is closed or the app is restarted; following one then opens an empty window saying
-so. A link never replaces what you were reading: it always opens a tab of its own.
+The part after `shark://` is **the heap dump**, because every place a link can name belongs to the dump
+rather than to the window showing it. So a link goes on working: following one opens that place in a window
+that has the dump open, and opens the file in a new window when none has — the run it was copied from can
+be long gone. A link never replaces what you were reading: it always opens a tab of its own.
+
+A copied link carries two more things after the place, and this is one in full:
+
+```
+shark://bug-4821.hprof/leaks?dump=%2FUsers%2Fyou%2Fdumps%2Fbug-4821.hprof&window=vugs93jp
+```
+
+`dump` is the file's full path, which is what makes the link exact — two `com.example.hprof` off two
+devices are two investigations — and what lets it open the dump again months later. `window` is the window
+it was copied from, honoured while that window is open and ignored once it isn't, so that the same dump
+open twice, which is two readings of it side by side, lands where you meant. Neither is needed to type one
+by hand: `shark://bug-4821.hprof/leaks` finds whichever window has a `bug-4821.hprof` open. What a link
+can't do is open a dump it doesn't have the path of and nobody has open — that opens a window saying so.
 
 Links reach the app from an installed build — the installer is what tells the OS that `shark://` is this
 app's. A copy run from source can still be linked to from another one, but the OS won't start it for a
@@ -137,7 +150,7 @@ this heap dump recognises becomes a way back into the window**:
 | --- | --- | --- |
 | `com.example.MyApp$Cache` | `MyApp$Cache` | Opens that class in a new tab |
 | `0x7f2a4b18` | `Cache instance (0x7f2a4b18)` | Opens that object in a new tab |
-| `shark://vugs93jp/leaks` | `Leaks` | Follows the link, like clicking it anywhere else |
+| `shark://bug-4821.hprof/leaks` | `Leaks` | Follows the link, like clicking it anywhere else |
 | `https://github.com/square/leakcanary/issues/2841` | `square/leakcanary#2841` | Opens it in your browser |
 
 A name or an address this dump has nothing for is left exactly as you typed it: a class this heap dump has
@@ -151,9 +164,9 @@ GitHub reads markdown. Nothing inside a fenced code block is linked or shortened
 A location is *where* you are rather than how it is arranged, so searching in the object list, unfolding a leak
 or resizing the window stays on the same note rather than starting a new one.
 
-Since a `shark://` link names a window, a link written into a note stops working once that window is closed
-— see above. Copy one for the tab you want to come back to *while you are writing about it*, and it will
-take you there for as long as that window is open.
+A `shark://` link written into a note keeps working, since it names the heap dump rather than the window it
+was copied from — see above. So a note that links to three places an investigation turned on still leads to
+all three next week, in whatever window has that dump open by then.
 
 ## The verdict
 
@@ -276,8 +289,9 @@ instead of piped to a window:
 ```
 
 Everything works the same except `show`, which has nowhere to put a tab and says so rather than answering that
-it showed you something — and hands back no `shark://` link either, since a link names a window and this run
-has none. Nothing else changes, because **notes and verdicts were never on the screen** — they are files
+it showed you something. It still hands back the `shark://` link, which names the heap dump: nobody saw the
+place, and the link opens it for whoever reads the answer. Nothing else changes, because **notes and verdicts
+were never on the screen** — they are files
 beside the heap dump, so a dump investigated over ssh today opens in a window tomorrow with the verdicts, the
 reasons and the conclusion already on it.
 
@@ -339,7 +353,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 
 | Tool | What it is |
 | --- | --- |
-| `open_heap_dumps` | Every window and what is open in it, with the method to follow. |
+| `open_heap_dumps` | Every heap dump open, by the file name the other tools take, with the method to follow. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
@@ -349,7 +363,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
 | `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
-| `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can't do. |
+| `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can only half do — no tab, and the link all the same. |
 | `conclude` | The root cause, and the only way to finish. |
 | `open_heap_dump` | **Open heap dump…**, for a file nobody has open yet. |
 | `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
@@ -462,11 +476,11 @@ and the method tells an agent to put those links in its reply — so a sentence 
 request comment or a bug report ends up carrying a way in:
 
 > The leak is `MainActivity$2.this$0`, a non-static inner class holding the activity it was declared in:
-> shark://zvphq4r3/0x12d368b8
+> shark://leak_asynctask_o.hprof/object?id=0x12d368b8&dump=%2FUsers%2Fyou%2Fdumps%2Fleak_asynctask_o.hprof&window=zvphq4r3
 
-Clicking it opens that object in that window, with the reasoning on its tabs. Once the window is closed the
-link says which window it was rather than opening the wrong one, so an answer worth keeping is worth
-[copying the heap dump's path](#open-a-heap-dump) beside it.
+Clicking it opens that object with the reasoning on its tabs — in the window it was written from while that
+window is up, and by opening the heap dump again once it isn't. So an answer worth keeping keeps working: it
+carries the path of the dump it is about, and the only thing that stops it is deleting the file.
 
 An agent's verdicts are verdicts like any other: they say `set by hand` on every chain that runs through the
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the

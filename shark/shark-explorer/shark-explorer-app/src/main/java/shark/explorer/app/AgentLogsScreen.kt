@@ -62,6 +62,10 @@ internal fun AgentLogsScreen(
   onOpenHeapDump: (File, Place) -> Unit = { file, place ->
     SharkLog.d { "Nothing here to open $place of $file with" }
   },
+  /** And the link to it, which names that dump: a row about another one is worth sending, not only clicking. */
+  onCopyHeapDumpLink: (File, Place) -> Unit = { file, place ->
+    SharkLog.d { "Nothing here to link to $place of $file with" }
+  },
   modifier: Modifier = Modifier
 ) {
   val groups = sessions.byHeapDump(heapDumpFile)
@@ -80,7 +84,7 @@ internal fun AgentLogsScreen(
           Text(NO_SESSIONS, style = MaterialTheme.typography.bodyMedium)
         }
         group.sessions.forEach { session ->
-          SessionRow(session, group, onOpen, onCopyLink, onOpenHeapDump)
+          SessionRow(session, group, onOpen, onCopyLink, onOpenHeapDump, onCopyHeapDumpLink)
         }
       }
     }
@@ -103,18 +107,22 @@ private fun SessionRow(
   group: HeapDumpSessions,
   onOpen: (Place, OpenIn) -> Unit,
   onCopyLink: (Place) -> Unit,
-  onOpenHeapDump: (File, Place) -> Unit
+  onOpenHeapDump: (File, Place) -> Unit,
+  onCopyHeapDumpLink: (File, Place) -> Unit
 ) {
   val place = Place.AgentLog(session.sessionId)
   val title = session.title()
   val summary = session.summary()
   val opensHeapDump = group.heapDumpFile?.takeIf { !group.isThisWindow && it.isFile }
   if (opensHeapDump != null) {
-    // No tab to choose and no link to copy: what a link names is a window, and the window this session was
-    // read in belongs to a run that has usually ended. The heap dump is what outlived it.
-    Column(Modifier.openable { onOpenHeapDump(opensHeapDump, place) }) {
-      Text(title, style = MaterialTheme.typography.bodyMedium, color = LINK_COLOR)
-      Text(summary, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+    // No tab to choose, since this opens a window of its own heap dump rather than a tab of this one — and a
+    // link all the same, naming that dump: the run this session was read in has usually ended, and the file
+    // is what outlived it.
+    CopyLinkTarget({ onCopyHeapDumpLink(opensHeapDump, place) }) {
+      Column(Modifier.openable { onOpenHeapDump(opensHeapDump, place) }) {
+        Text(title, style = MaterialTheme.typography.bodyMedium, color = LINK_COLOR)
+        Text(summary, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+      }
     }
     return
   }
@@ -219,6 +227,10 @@ internal fun AgentLogScreen(
   onOpenHeapDump: (File, Place) -> Unit = { file, place ->
     SharkLog.d { "Nothing here to open $place of $file with" }
   },
+  /** And the link to it, which names that dump rather than this window. See [AgentLogsScreen]. */
+  onCopyHeapDumpLink: (File, Place) -> Unit = { file, place ->
+    SharkLog.d { "Nothing here to link to $place of $file with" }
+  },
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -249,7 +261,8 @@ internal fun AgentLogScreen(
           placeTitles = placeTitles,
           onOpen = onOpen,
           onCopyLink = onCopyLink,
-          onOpenHeapDump = onOpenHeapDump
+          onOpenHeapDump = onOpenHeapDump,
+          onCopyHeapDumpLink = onCopyHeapDumpLink
         )
       }
     }
@@ -276,7 +289,8 @@ private fun AgentCallRow(
   placeTitles: Map<Place, String>,
   onOpen: (Place, OpenIn) -> Unit,
   onCopyLink: (Place) -> Unit,
-  onOpenHeapDump: (File, Place) -> Unit
+  onOpenHeapDump: (File, Place) -> Unit,
+  onCopyHeapDumpLink: (File, Place) -> Unit
 ) {
   val place = call.place
   // Which heap dump the row is about when it isn't this window's, and null when it is. An address is an
@@ -317,7 +331,11 @@ private fun AgentCallRow(
             Text(call.verb, style = MaterialTheme.typography.bodyMedium)
             when {
               leadsTo == null -> Text(target, style = MaterialTheme.typography.bodyMedium)
-              opens != null -> LinkText(target, Modifier.openable { onOpenHeapDump(opens, leadsTo) })
+              // Another dump: one place to go, and a link that names that dump for somebody to go there
+              // without this window.
+              opens != null -> CopyLinkTarget({ onCopyHeapDumpLink(opens, leadsTo) }) {
+                LinkText(target, Modifier.openable { onOpenHeapDump(opens, leadsTo) })
+              }
               else -> {
                 val open: (OpenIn) -> Unit = { openIn -> onOpen(leadsTo, openIn) }
                 OpenTarget(open, { onCopyLink(leadsTo) }) { LinkText(target, Modifier.openable(open)) }
@@ -346,7 +364,7 @@ private fun AgentCallRow(
       }
       if (isUnfolded) {
         openHeapDumps.forEach { path ->
-          OpenHeapDumpRow(path, heapDumpFile, onOpenHeapDump)
+          OpenHeapDumpRow(path, heapDumpFile, onOpenHeapDump, onCopyHeapDumpLink)
         }
       }
     }
@@ -392,7 +410,8 @@ private fun UnfoldableVerb(
 private fun OpenHeapDumpRow(
   path: String,
   heapDumpFile: File,
-  onOpenHeapDump: (File, Place) -> Unit
+  onOpenHeapDump: (File, Place) -> Unit,
+  onCopyHeapDumpLink: (File, Place) -> Unit
 ) {
   val file = File(path)
   val name = file.name
@@ -403,15 +422,17 @@ private fun OpenHeapDumpRow(
       Text("$name ($THIS_HEAP_DUMP)", indent, style = style, color = MUTED_TEXT)
     // Gone, which a list of what *was* open is exactly where somebody finds out.
     !file.isFile -> Text("$name ($MISSING_HEAP_DUMP)", indent, style = style, color = MUTED_TEXT)
-    // The whole heap dump, since a dump named without a place in it is the window that dump opens on. No
-    // tab to choose and no link to copy, for the reason a session of another dump has neither: what a link
-    // names is a window, and this is a file that has to be opened in one first.
-    else -> Text(
-      name,
-      indent.openable { onOpenHeapDump(file, Place.wholeHeapDump()) },
-      style = style,
-      color = LINK_COLOR
-    )
+    // The whole heap dump, since a dump named without a place in it is the window that dump opens on. No tab
+    // to choose, for the reason a session of another dump has none — it opens a window of its own — and a
+    // link to that dump all the same, which is a file anybody can be sent.
+    else -> CopyLinkTarget({ onCopyHeapDumpLink(file, Place.wholeHeapDump()) }) {
+      Text(
+        name,
+        indent.openable { onOpenHeapDump(file, Place.wholeHeapDump()) },
+        style = style,
+        color = LINK_COLOR
+      )
+    }
   }
 }
 

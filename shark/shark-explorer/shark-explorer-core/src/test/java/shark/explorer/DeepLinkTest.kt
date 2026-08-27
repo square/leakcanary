@@ -1,5 +1,6 @@
 package shark.explorer
 
+import java.io.File
 import kotlin.random.Random
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -8,16 +9,16 @@ import org.junit.Test
 class DeepLinkTest {
 
   @Test
-  fun `link to an object names the window and the object`() {
-    val link = DeepLink("abcd2345", Place.Object(0x12ab34cd))
+  fun `link to an object names the heap dump and the object`() {
+    val link = DeepLink("leak.hprof", Place.Object(0x12ab34cd))
 
-    assertThat(link.toUri()).isEqualTo("shark://abcd2345/object?id=0x12ab34cd")
+    assertThat(link.toUri()).isEqualTo("shark://leak.hprof/object?id=0x12ab34cd")
   }
 
   @Test
   fun `link to an object is read back as the object`() {
-    assertThat(DeepLink.parse("shark://abcd2345/object?id=0x12ab34cd"))
-      .isEqualTo(DeepLink("abcd2345", Place.Object(0x12ab34cd)))
+    assertThat(DeepLink.parse("shark://leak.hprof/object?id=0x12ab34cd"))
+      .isEqualTo(DeepLink("leak.hprof", Place.Object(0x12ab34cd)))
   }
 
   /**
@@ -39,7 +40,7 @@ class DeepLinkTest {
     )
 
     nodeIds.forEach { nodeId ->
-      val link = DeepLink("abcd2345", Place.Object(nodeId))
+      val link = DeepLink("leak.hprof", Place.Object(nodeId))
       assertThat(DeepLink.parse(link.toUri()).place)
         .describedAs(link.toUri())
         .isEqualTo(Place.Object(nodeId))
@@ -52,9 +53,9 @@ class DeepLinkTest {
    */
   @Test
   fun `a negative object id is not written the way a label writes it`() {
-    val link = DeepLink("abcd2345", Place.Object(-2112345088L)).toUri()
+    val link = DeepLink("leak.hprof", Place.Object(-2112345088L)).toUri()
 
-    assertThat(link).isEqualTo("shark://abcd2345/object?id=0xffffffff82182c00")
+    assertThat(link).isEqualTo("shark://leak.hprof/object?id=0xffffffff82182c00")
     // Which is 0x82182c00 on a label, and that is a different node of the tree.
     assertThat(link).doesNotContain(hexObjectId(-2112345088L))
   }
@@ -63,14 +64,14 @@ class DeepLinkTest {
   fun `link to a pile of smaller objects carries what the pile is`() {
     val place = Place.SmallerObjects(parentObjectId = 0x40, nodeCount = 42, byteCount = 9876)
 
-    assertThat(DeepLink("abcd2345", place).toUri())
-      .isEqualTo("shark://abcd2345/smaller-objects?parent=0x40&count=42&bytes=9876")
-    assertThat(DeepLink.parse(DeepLink("abcd2345", place).toUri()).place).isEqualTo(place)
+    assertThat(DeepLink("leak.hprof", place).toUri())
+      .isEqualTo("shark://leak.hprof/smaller-objects?parent=0x40&count=42&bytes=9876")
+    assertThat(DeepLink.parse(DeepLink("leak.hprof", place).toUri()).place).isEqualTo(place)
   }
 
   @Test
   fun `link to an unfiltered object list is the list and nothing else`() {
-    assertThat(DeepLink("abcd2345", Place.Objects()).toUri()).isEqualTo("shark://abcd2345/objects")
+    assertThat(DeepLink("leak.hprof", Place.Objects()).toUri()).isEqualTo("shark://leak.hprof/objects")
   }
 
   @Test
@@ -83,10 +84,10 @@ class DeepLinkTest {
       )
     )
 
-    val uri = DeepLink("abcd2345", place).toUri()
+    val uri = DeepLink("leak.hprof", place).toUri()
 
     assertThat(uri).isEqualTo(
-      "shark://abcd2345/objects?query=android.graphics.Bitmap&exact=true&kinds=CLASS%2CINSTANCE"
+      "shark://leak.hprof/objects?query=android.graphics.Bitmap&exact=true&kinds=CLASS%2CINSTANCE"
     )
     assertThat(DeepLink.parse(uri).place).isEqualTo(place)
   }
@@ -96,9 +97,9 @@ class DeepLinkTest {
   fun `an object list filtered to no kind at all is not an unfiltered one`() {
     val place = Place.Objects(ObjectListFilter(kinds = emptySet()))
 
-    val uri = DeepLink("abcd2345", place).toUri()
+    val uri = DeepLink("leak.hprof", place).toUri()
 
-    assertThat(uri).isEqualTo("shark://abcd2345/objects?kinds=")
+    assertThat(uri).isEqualTo("shark://leak.hprof/objects?kinds=")
     assertThat(DeepLink.parse(uri).place).isEqualTo(place)
   }
 
@@ -108,30 +109,30 @@ class DeepLinkTest {
     val query = "com.example a&b=c?d/e#f+g%h"
     val place = Place.Objects(ObjectListFilter(query = query))
 
-    assertThat(DeepLink.parse(DeepLink("abcd2345", place).toUri()).place).isEqualTo(place)
+    assertThat(DeepLink.parse(DeepLink("leak.hprof", place).toUri()).place).isEqualTo(place)
   }
 
   @Test
   fun `leaks arrive with the same ones unfolded`() {
     val place = Place.Leaks(expandedGroups = setOf("APPLICATION 12ab", "LIBRARY 34cd"))
 
-    val uri = DeepLink("abcd2345", place).toUri()
+    val uri = DeepLink("leak.hprof", place).toUri()
 
     assertThat(uri)
-      .isEqualTo("shark://abcd2345/leaks?expanded=APPLICATION+12ab&expanded=LIBRARY+34cd")
+      .isEqualTo("shark://leak.hprof/leaks?expanded=APPLICATION+12ab&expanded=LIBRARY+34cd")
     assertThat(DeepLink.parse(uri).place).isEqualTo(place)
   }
 
   @Test
   fun `leaks with nothing unfolded is the page and nothing else`() {
-    assertThat(DeepLink("abcd2345", Place.Leaks()).toUri()).isEqualTo("shark://abcd2345/leaks")
-    assertThat(DeepLink.parse("shark://abcd2345/leaks").place).isEqualTo(Place.Leaks())
+    assertThat(DeepLink("leak.hprof", Place.Leaks()).toUri()).isEqualTo("shark://leak.hprof/leaks")
+    assertThat(DeepLink.parse("shark://leak.hprof/leaks").place).isEqualTo(Place.Leaks())
   }
 
   @Test
   fun `starred is a place with nothing to say about it`() {
-    assertThat(DeepLink("abcd2345", Place.Starred).toUri()).isEqualTo("shark://abcd2345/starred")
-    assertThat(DeepLink.parse("shark://abcd2345/starred").place).isEqualTo(Place.Starred)
+    assertThat(DeepLink("leak.hprof", Place.Starred).toUri()).isEqualTo("shark://leak.hprof/starred")
+    assertThat(DeepLink.parse("shark://leak.hprof/starred").place).isEqualTo(Place.Starred)
   }
 
   /**
@@ -142,14 +143,14 @@ class DeepLinkTest {
   fun `one agent's session is named by the session`() {
     val place = Place.AgentLog("1a2b3c4d")
 
-    assertThat(DeepLink("abcd2345", place).toUri())
-      .isEqualTo("shark://abcd2345/agent-log?session=1a2b3c4d")
-    assertThat(DeepLink.parse("shark://abcd2345/agent-log?session=1a2b3c4d").place).isEqualTo(place)
+    assertThat(DeepLink("leak.hprof", place).toUri())
+      .isEqualTo("shark://leak.hprof/agent-log?session=1a2b3c4d")
+    assertThat(DeepLink.parse("shark://leak.hprof/agent-log?session=1a2b3c4d").place).isEqualTo(place)
   }
 
   @Test
   fun `an agent log link with no session says what is missing`() {
-    assertThatThrownBy { DeepLink.parse("shark://abcd2345/agent-log") }
+    assertThatThrownBy { DeepLink.parse("shark://leak.hprof/agent-log") }
       .isInstanceOf(IllegalArgumentException::class.java)
       .hasMessageContaining("needs a \"session\"")
   }
@@ -174,7 +175,7 @@ class DeepLinkTest {
     )
 
     places.forEach { place ->
-      val uri = DeepLink("abcd2345", place).toUri()
+      val uri = DeepLink("leak.hprof", place).toUri()
       assertThat(DeepLink.parse(uri).place).describedAs(uri).isEqualTo(place)
     }
   }
@@ -185,8 +186,8 @@ class DeepLinkTest {
     val place = Place.Leaks(expandedGroups = setOf("LIBRARY 34cd", "APPLICATION 12ab"))
     val sameOtherWayRound = Place.Leaks(expandedGroups = setOf("APPLICATION 12ab", "LIBRARY 34cd"))
 
-    assertThat(DeepLink("abcd2345", place).toUri())
-      .isEqualTo(DeepLink("abcd2345", sameOtherWayRound).toUri())
+    assertThat(DeepLink("leak.hprof", place).toUri())
+      .isEqualTo(DeepLink("leak.hprof", sameOtherWayRound).toUri())
   }
 
   @Test
@@ -198,35 +199,35 @@ class DeepLinkTest {
 
   @Test
   fun `a link naming no place says which places there are`() {
-    assertThatThrownBy { DeepLink.parse("shark://abcd2345") }
+    assertThatThrownBy { DeepLink.parse("shark://leak.hprof") }
       .isInstanceOf(IllegalArgumentException::class.java)
       .hasMessageContaining("object, smaller-objects, objects, leaks, starred")
   }
 
   @Test
   fun `a link to a place this app has no screen for says so`() {
-    assertThatThrownBy { DeepLink.parse("shark://abcd2345/dominators") }
+    assertThatThrownBy { DeepLink.parse("shark://leak.hprof/dominators") }
       .isInstanceOf(IllegalArgumentException::class.java)
       .hasMessageContaining("\"dominators\" is no place")
   }
 
   @Test
   fun `an object link with no object says what is missing`() {
-    assertThatThrownBy { DeepLink.parse("shark://abcd2345/object") }
+    assertThatThrownBy { DeepLink.parse("shark://leak.hprof/object") }
       .isInstanceOf(IllegalArgumentException::class.java)
       .hasMessageContaining("needs a \"id\"")
   }
 
   @Test
   fun `an object id that is not one says so`() {
-    assertThatThrownBy { DeepLink.parse("shark://abcd2345/object?id=the+big+one") }
+    assertThatThrownBy { DeepLink.parse("shark://leak.hprof/object?id=the+big+one") }
       .isInstanceOf(IllegalArgumentException::class.java)
       .hasMessageContaining("which is no object id")
   }
 
   @Test
   fun `an object kind this app has never heard of says which kinds there are`() {
-    assertThatThrownBy { DeepLink.parse("shark://abcd2345/objects?kinds=WIDGETS") }
+    assertThatThrownBy { DeepLink.parse("shark://leak.hprof/objects?kinds=WIDGETS") }
       .isInstanceOf(IllegalArgumentException::class.java)
       .hasMessageContaining("Kinds are CLASS, INSTANCE, OBJECT_ARRAY, PRIMITIVE_ARRAY")
   }
@@ -246,9 +247,83 @@ class DeepLinkTest {
     assertThat(ids.toSet()).hasSize(ids.size)
   }
 
+  /**
+   * The link the app itself writes, and the whole of what it is for: a heap dump, a place in it, where that
+   * dump is, and which window it was copied from.
+   */
+  @Test
+  fun `a link from a window carries the dump, the file and the window`() {
+    val link = DeepLink(File("/dumps/leak.hprof"), Place.Leaks(), windowId = "abcd2345")
+
+    assertThat(link.toUri())
+      .isEqualTo("shark://leak.hprof/leaks?dump=%2Fdumps%2Fleak.hprof&window=abcd2345")
+    assertThat(DeepLink.parse(link.toUri())).isEqualTo(link)
+  }
+
+  /** Because a link is read out of a heap dump's notes months later, from a machine with another home. */
+  @Test
+  fun `the path in a link is absolute and has no dots in it`() {
+    val link = DeepLink(File("dumps/./over/../leak.hprof"), Place.Starred)
+
+    assertThat(link.heapDumpPath).isEqualTo(File(File("").absoluteFile, "dumps/leak.hprof"))
+  }
+
+  /**
+   * Which is a link somebody typed, or shortened by hand to the two things worth reading. It resolves
+   * against whatever is open, so it is worth being able to write. See `ExplorerWindows.windowFor`.
+   */
+  @Test
+  fun `a link is a heap dump and a place and needs nothing else`() {
+    val link = DeepLink.parse("shark://leak.hprof/leaks")
+
+    assertThat(link.heapDumpName).isEqualTo("leak.hprof")
+    assertThat(link.place).isEqualTo(Place.Leaks())
+    assertThat(link.heapDumpPath).isNull()
+    assertThat(link.windowId).isNull()
+  }
+
+  /**
+   * `+` is a space to [java.net.URLEncoder], which writes a form field rather than the part of a URL in
+   * front of the first `/` — so a dump with a space in its name has to be written the other way, or every
+   * reader of the link outside this class reads a plus sign.
+   */
+  @Test
+  fun `a heap dump whose name needs escaping survives the trip`() {
+    val link = DeepLink(File("/dumps/my dump (2).hprof"), Place.Starred)
+
+    assertThat(link.toUri()).startsWith("shark://my%20dump%20%282%29.hprof/starred")
+    assertThat(DeepLink.parse(link.toUri())).isEqualTo(link)
+  }
+
+  /**
+   * The two parameters that are about the link rather than about the place share the query with the ones that
+   * are, so a [Place] spelling a parameter `dump` or `window` would quietly take one of them over. This is
+   * what would fail.
+   */
+  @Test
+  fun `no place takes the dump or the window off a link`() {
+    val places = listOf(
+      Place.wholeHeapDump(),
+      Place.Object(0x12ab34cd),
+      Place.SmallerObjects(parentObjectId = 0x40, nodeCount = 42, byteCount = 9876),
+      Place.Objects(),
+      Place.Objects(ObjectListFilter(query = "Bitmap", isExactMatch = true, kinds = emptySet())),
+      Place.Leaks(),
+      Place.Leaks(expandedGroups = setOf("APPLICATION 12ab", "LIBRARY 34cd")),
+      Place.Starred,
+      Place.AgentLogs,
+      Place.AgentLog("1a2b3c4d")
+    )
+
+    places.forEach { place ->
+      val link = DeepLink(File("/dumps/leak.hprof"), place, windowId = "abcd2345")
+      assertThat(DeepLink.parse(link.toUri())).describedAs(link.toUri()).isEqualTo(link)
+    }
+  }
+
   @Test
   fun `a link tells itself apart from a heap dump path`() {
-    assertThat(DeepLink.looksLikeOne("shark://abcd2345/starred")).isTrue()
+    assertThat(DeepLink.looksLikeOne("shark://leak.hprof/starred")).isTrue()
     assertThat(DeepLink.looksLikeOne("/Users/me/dumps/shark.hprof")).isFalse()
     assertThat(DeepLink.looksLikeOne("--title=Reading a leak")).isFalse()
   }

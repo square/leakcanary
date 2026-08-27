@@ -20,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.explorer.AndroidDevice
+import shark.explorer.DeepLink
 import shark.explorer.DeviceProcess
 import shark.explorer.HeapObjectKind
 import shark.explorer.LeakStatus
@@ -173,14 +174,37 @@ class AgentToolsTest {
       .hasMessageContaining(window.windowId)
       .hasMessageContaining(other.windowId)
 
-    assertThat(call("list_leaks", "window" to other.windowId).text("objectCount")).isNotEmpty()
+    assertThat(call("list_leaks", HEAP_DUMP to other.windowId).text("objectCount")).isNotEmpty()
   }
 
   @Test
-  fun `a window that is not open is refused by name`() {
-    assertThatThrownBy { call("list_leaks", "window" to "closedwindow") }
+  fun `a heap dump is named by its file name`() {
+    // Which is the whole point of naming it that way: the name is in every answer an agent has been given,
+    // and it goes on meaning this dump after the window it was opened in has gone.
+    assertThat(call("list_leaks", HEAP_DUMP to window.heapDumpName).text("objectCount")).isNotEmpty()
+  }
+
+  @Test
+  fun `two windows on one heap dump have to be named by window id`() {
+    val other = FakeAgentHeapDump(heapDump.explorer, windowId = "otherwindow")
+    tools = agentTools(FakeAgentHeapDumps(listOf(window, other)))
+
+    // The one case a file name cannot answer, and so the reason a window id is still on this surface: the
+    // same file open twice is two readings of it being compared, and either answer would be the wrong one
+    // half the time.
+    assertThatThrownBy { call("list_leaks", HEAP_DUMP to window.heapDumpName) }
       .isInstanceOf(AgentRefusal::class.java)
-      .hasMessageContaining("No window is called \"closedwindow\"")
+      .hasMessageContaining("2 windows have \"${window.heapDumpName}\" open")
+      .hasMessageContaining(window.windowId)
+      .hasMessageContaining(other.windowId)
+  }
+
+  @Test
+  fun `a heap dump that is not open is refused by name`() {
+    assertThatThrownBy { call("list_leaks", HEAP_DUMP to "closed.hprof") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("No open heap dump is called \"closed.hprof\", and no window is either")
+      .hasMessageContaining(window.heapDumpName)
       .hasMessageContaining(window.windowId)
   }
 
@@ -341,8 +365,7 @@ class AgentToolsTest {
     assertThat(faulty.text("heldClassName")).isEqualTo(ACTIVITY_CLASS_NAME)
     // The one link most worth handing back, so it comes with the conclusion rather than needing a show call
     // after it: it opens the object this conclusion is about, with the conclusion in its notes.
-    assertThat(answer.text("link"))
-      .isEqualTo("shark://${window.windowId}/${hex(heapDump.activityObjectId)}")
+    assertThatLinkOpens(answer, heapDump.activityObjectId)
   }
 
   @Test
@@ -530,8 +553,7 @@ class AgentToolsTest {
 
     // The half of showing that outlives the call: an agent writing its answer somewhere else has this to
     // point at, where "open the window and click the activity" is a set of instructions.
-    assertThat(answer.text("link"))
-      .isEqualTo("shark://${window.windowId}/${hex(heapDump.activityObjectId)}")
+    assertThatLinkOpens(answer, heapDump.activityObjectId)
   }
 
   @Test
@@ -823,6 +845,24 @@ class AgentToolsTest {
 
   private fun hex(objectId: Long) = exactHexObjectId(objectId)
 
+  /**
+   * The link an answer hands back, read as a link rather than compared as text.
+   *
+   * What matters about it here is what it opens — this object, of this heap dump, in the window the call was
+   * made against — and how it is spelled is `DeepLinkTest`'s. It names the heap dump rather than only the
+   * window so that an agent can put it in an answer somebody reads after this run has ended.
+   */
+  private fun assertThatLinkOpens(
+    answer: JsonObject,
+    objectId: Long
+  ) {
+    val link = DeepLink.parse(answer.text("link"))
+    assertThat(link.heapDumpName).isEqualTo(window.heapDumpName)
+    assertThat(link.heapDumpPath?.path).isEqualTo(window.heapDumpPath)
+    assertThat(link.windowId).isEqualTo(window.windowId)
+    assertThat(link.place).isEqualTo(Place.Object(objectId))
+  }
+
   private companion object {
 
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
@@ -830,6 +870,7 @@ class AgentToolsTest {
     const val AGENT_LOG = "agent_log"
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
+    const val HEAP_DUMP = "heapDump"
     const val OBJECT = "object"
     const val PLACE_LEAKS = "leaks"
 

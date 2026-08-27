@@ -17,7 +17,7 @@ is leaking still has a biggest object.
 
 ## Start by working out which case you are in
 
-**Something is already open.** Ask, and the answer carries the method to follow, the window ids every other
+**Something is already open.** Ask, and the answer carries the method to follow, the file names every other
 tool names a dump by, and any verdicts somebody has already reached:
 
 ```bash
@@ -76,6 +76,10 @@ An investigation somebody already ran is either the answer or the half of the du
   stderr is the next thing to do, not an error to retry. **1** means nothing was there to answer it.
 - **Addresses are `0x…`, exactly as the surface writes them.** Never decimal: a heap dump's addresses do not
   survive a JSON number.
+- **A call is about one heap dump**, and `heapDump=<file name>` says which — needed once more than one is
+  open, and the window id instead in the one case a name cannot answer, which is the same file open twice.
+  The `shark://` link `show` and `conclude` answer with names the dump too, so it still opens after this run
+  has ended: **put those links in your reply** rather than describing which screen to open.
 - `--agent-run=<pid>` picks between several open runs. `--agent-session=<name>` says which investigation these
   calls are one of; by default one shell is one session, so what you did reads as one row of that screen
   rather than a row per call.
@@ -90,7 +94,8 @@ An investigation somebody already ran is either the answer or the half of the du
 ```
 
 Add `--no-ui` for a machine with no screen — a build server, or a dump at the far end of an ssh session.
-Everything works the same except `show`, which has nowhere to put a tab.
+Everything works the same except `show`, which has nowhere to put a tab and says so; it still answers with the
+link, since a link names the heap dump rather than a window.
 
 ## What to do with it
 

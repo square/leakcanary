@@ -148,20 +148,23 @@ class ObjectsScreenTest {
   @Test fun `a listed object's menu copies a link to it`() {
     val copied = mutableListOf<String>()
     explorerUiTest {
-      openHeapDump(copyToClipboard = { copied += it })
+      val heapDumpFile = openHeapDump(copyToClipboard = { copied += it })
       listObjects()
 
       onNodeWithText("java.lang.Object[] array").performMouseInput { rightClick() }
       onNodeWithText(COPY_LINK).performClick()
 
       // Beside "open in a new tab" wherever that is, this row included: the two are the same thought a
-      // step apart, and a link is how the object leaves this window at all.
-      assertThat(copied)
-        .containsExactly(DeepLink(WINDOW_ID, Place.Object(payloadObjectId)).toUri())
+      // step apart, and a link is how the object leaves this window at all. It names the heap dump, so it
+      // outlives the window it was copied from. See [DeepLink].
+      assertThat(copied).containsExactly(
+        DeepLink(heapDumpFile, Place.Object(payloadObjectId), windowId = WINDOW_ID).toUri()
+      )
     }
   }
 
-  private fun ComposeUiTest.openHeapDump(copyToClipboard: (String) -> Unit = {}) {
+  /** Opens a heap dump and hands back the file, which is what a link to a place in it names. */
+  private fun ComposeUiTest.openHeapDump(copyToClipboard: (String) -> Unit = {}): File {
     val heapDumpFile = testHeapDump()
     setContent {
       MaterialTheme {
@@ -179,6 +182,7 @@ class ObjectsScreenTest {
       }
     }
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
+    return heapDumpFile
   }
 
   /** Opens a tab on the list and waits for the pass over the heap dump that fills it. */

@@ -7,6 +7,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeepLink
@@ -26,6 +27,9 @@ class ExplorerWindowTest {
    * installed. See [RecordedLog].
    */
   @get:Rule val logged = RecordedLog()
+
+  /** For the one thing a link needs a real file for: opening a heap dump no window has. */
+  @get:Rule val temporaryFolder = TemporaryFolder()
 
   @Test fun `an app started with no heap dump has one window to open one from`() {
     val windows = explorerWindows(noHeapDumps())
@@ -128,26 +132,76 @@ class ExplorerWindowTest {
   @Test fun `every window answers to an id of its own`() {
     val windows = explorerWindows(opening(FIRST_DUMP, FIRST_DUMP))
 
-    // The whole reason a link names a window rather than a heap dump: the same dump open twice is two
-    // places to be, and a link has to lead to the one it was copied from.
+    // The whole reason a link says which window as well as which heap dump: the same dump open twice is two
+    // places to be, and while both are open a link leads to the one it was copied from.
     assertThat(windows.map { it.deepLinkId }).doesNotHaveDuplicates()
   }
 
-  @Test fun `a link goes to the window it names and to no other`() {
+  @Test fun `a link goes to the window of the heap dump it names and to no other`() {
     val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
     val (first, second) = windows
 
-    windows.open(DeepLink(second.deepLinkId, Place.Starred))
+    windows.open(DeepLink(SECOND_DUMP, Place.Starred))
 
     assertThat(second.linkedPlaces).containsExactly(Place.Starred)
     assertThat(first.linkedPlaces).isEmpty()
     assertThat(windows).hasSize(2)
   }
 
+  /**
+   * The case the window id is there for, and the only one: which of two readings of one dump. Both windows
+   * answer to the heap dump, so without it a link would land on whichever came first.
+   */
+  @Test fun `a link to one of two windows on the same heap dump goes to that one`() {
+    val windows = explorerWindows(opening(FIRST_DUMP, FIRST_DUMP))
+    val (first, second) = windows
+
+    windows.open(DeepLink(FIRST_DUMP, Place.Starred, windowId = second.deepLinkId))
+
+    assertThat(second.linkedPlaces).containsExactly(Place.Starred)
+    assertThat(first.linkedPlaces).isEmpty()
+  }
+
+  /**
+   * Which is most links a day later: the run they were copied from has been closed and started again, and
+   * every window id it handed out went with it.
+   */
+  @Test fun `a link whose window has gone goes to a window of its heap dump`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    windows.open(DeepLink(FIRST_DUMP, Place.Starred, windowId = CLOSED_WINDOW_ID))
+
+    assertThat(windows.single().linkedPlaces).containsExactly(Place.Starred)
+    assertThat(windows).hasSize(1)
+  }
+
+  /** A link somebody typed or shortened, which names the dump the way a person would. */
+  @Test fun `a link with a file name and no path goes to the window of that file`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    windows.open(DeepLink.parse("shark://${FIRST_DUMP.name}/starred"))
+
+    assertThat(windows.single().linkedPlaces).containsExactly(Place.Starred)
+  }
+
+  /**
+   * Links written before a link named a heap dump are on disk in notes and in agent sessions, and one of
+   * those pasted back into the run it came from still goes where it went.
+   */
+  @Test fun `a link that names only a window id still finds that window`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+    val window = windows.single()
+
+    windows.open(DeepLink.parse("shark://${window.deepLinkId}/leaks"))
+
+    assertThat(window.linkedPlaces).containsExactly(Place.Leaks())
+    assertThat(windows).hasSize(1)
+  }
+
   @Test fun `a place a link asked for is dropped once a tab has opened it`() {
     val windows = explorerWindows(opening(FIRST_DUMP))
     val window = windows.single()
-    windows.open(DeepLink(window.deepLinkId, Place.Leaks()))
+    windows.open(DeepLink(FIRST_DUMP, Place.Leaks()))
 
     window.linkedPlaceOpened(Place.Leaks())
 
@@ -160,36 +214,65 @@ class ExplorerWindowTest {
     val windows = explorerWindows(opening(FIRST_DUMP))
     val window = windows.single()
 
-    windows.open(DeepLink(window.deepLinkId, Place.Starred))
-    windows.open(DeepLink(window.deepLinkId, Place.Leaks()))
+    windows.open(DeepLink(FIRST_DUMP, Place.Starred))
+    windows.open(DeepLink(FIRST_DUMP, Place.Leaks()))
 
     assertThat(window.linkedPlaces).containsExactly(Place.Starred, Place.Leaks())
   }
 
-  @Test fun `a link to a window that has gone opens one saying so`() {
+  /**
+   * The payoff of a link naming the heap dump: the run it was copied from can be gone, and the link still
+   * puts the reader in front of what it names.
+   */
+  @Test fun `a link to a heap dump nothing has open opens it`() {
+    val heapDumpFile = temporaryFolder.newFile("third.hprof")
     val windows = explorerWindows(opening(FIRST_DUMP))
 
-    windows.open(DeepLink(CLOSED_WINDOW_ID, Place.Starred))
+    windows.open(DeepLink(heapDumpFile, Place.Starred, windowId = CLOSED_WINDOW_ID))
+
+    val opened = windows.last()
+    assertThat(windows).hasSize(2)
+    assertThat(opened.heapDumpFile).isEqualTo(heapDumpFile.absoluteFile)
+    assertThat(opened.linkedPlaces).containsExactly(Place.Starred)
+  }
+
+  @Test fun `a link to a heap dump that has been deleted opens a window saying so`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    windows.open(DeepLink(SECOND_DUMP, Place.Starred))
 
     // Rather than nothing at all, which is the one answer that can't be told from the app having failed
     // to start — and a link is usually followed from somewhere that can't see either way.
     assertThat(windows).hasSize(2)
-    assertThat(windows.last().deepLinkProblem).contains(CLOSED_WINDOW_ID)
+    assertThat(windows.last().deepLinkProblem)
+      .contains(SECOND_DUMP.name)
+      .contains(SECOND_DUMP.absolutePath)
     assertThat(windows.last().heapDumpFile).isNull()
-    assertThat(logged).anyMatch { CLOSED_WINDOW_ID in it }
+    assertThat(logged).anyMatch { SECOND_DUMP.name in it }
+  }
+
+  /** A link shortened to the file name, which only works while something has that file open. */
+  @Test fun `a link with no path to a heap dump nothing has open says what is missing`() {
+    val windows = explorerWindows(opening(FIRST_DUMP))
+
+    windows.open(DeepLink.parse("shark://${SECOND_DUMP.name}/starred"))
+
+    assertThat(windows.last().deepLinkProblem)
+      .contains(SECOND_DUMP.name)
+      .contains("doesn't say where that file is")
   }
 
   @Test fun `a window opened by a link that found nothing lands beside the others`() {
     val windows = explorerWindows(opening(FIRST_DUMP, SECOND_DUMP))
 
-    windows.open(DeepLink(CLOSED_WINDOW_ID, Place.Starred))
+    windows.open(DeepLink.parse("shark://third.hprof/starred"))
 
     assertThat(windows.map { it.cascade }).doesNotHaveDuplicates()
   }
 
   @Test fun `a window that gets a heap dump stops saying a link found nothing`() {
     val windows = explorerWindows(noHeapDumps())
-    windows.open(DeepLink(CLOSED_WINDOW_ID, Place.Starred))
+    windows.open(DeepLink.parse("shark://third.hprof/starred"))
     val empty = windows.last()
 
     windows.openHeapDump(empty, FIRST_DUMP)
@@ -225,12 +308,16 @@ class ExplorerWindowTest {
     assertThat(opened.linkedPlaces).containsExactly(Place.Starred)
   }
 
-  @Test fun `a run knows which windows are its own`() {
+  /**
+   * What another run of this app asks before handing a link over — and it is about windows that exist and
+   * never about a file this run could open, or every run on the machine would claim every link. See
+   * [DeepLinkPeers].
+   */
+  @Test fun `a run claims a link only for a heap dump it has open`() {
     val windows = explorerWindows(opening(FIRST_DUMP))
 
-    // What another run of this app asks before handing a link over. See [DeepLinkPeers].
-    assertThat(windows.holds(windows.single().deepLinkId)).isTrue()
-    assertThat(windows.holds(CLOSED_WINDOW_ID)).isFalse()
+    assertThat(windows.windowFor(DeepLink(FIRST_DUMP, Place.Starred))).isEqualTo(windows.single())
+    assertThat(windows.windowFor(DeepLink(SECOND_DUMP, Place.Starred))).isNull()
   }
 
   @Test fun `an agent asking for a heap dump a window already has gets that window`() {

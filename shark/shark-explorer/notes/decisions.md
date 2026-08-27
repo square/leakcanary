@@ -814,10 +814,10 @@ recognise stays exactly as typed: a class this dump has never heard of is a clas
 - **An address is two `Long`s.** A 32 bit dump's ids are four bytes widened by sign, so `0x82182c00` is
   either that or the negative id `hexObjectId` prints as `0x82182c00`, and only the dump says which.
 - **A `shark://` link keeps its link and gains a name.** Resolving a mention never replaces a link that is
-  already there, so a link to an object reads as that object and still leads to the window it names —
-  followed exactly the way one arriving from the OS is, which is what makes the same link work in a note, a
-  chat message and an issue. A note outlives the window, so most of them are dead links a run later: that is
-  the honest answer, and it is the same empty window a stale link opens anywhere else.
+  already there, so a link to an object reads as that object and still leads where it names — followed
+  exactly the way one arriving from the OS is, which is what makes the same link work in a note, a chat
+  message and an issue. A note outlives the run it was written in, which is why a link names the heap dump
+  and not the window: see below.
 - **Inline code is still read for mentions, a fenced block is not.** `` `com.example.Thing` `` is how anyone
   who writes markdown writes a class name; a fenced block is quoted rather than written.
 - **One line is one block.** No two-space line endings, no blank line above a list. A note is written in
@@ -846,6 +846,39 @@ directory it was in, since two runs of one app produce two `heap.hprof`s and the
 inside it, a file per `noteKey` rather than one document with a section per place, so that a save touches only
 the note that was typed into, nothing has to be parsed back out of a document that also holds somebody's own
 headings, and the listing is the index.
+
+## A link names the heap dump, and a window only as a refinement
+
+`shark://<file name>/<place>?<what the place needs>[&dump=<path>][&window=<id>]`. The first version of this
+named the window — `shark://<window id>/<place>` — and it was wrong for the reason a link exists: every place
+there is belongs to the heap dump, not to whatever is showing it, so a link that named a window died with the
+window. Which is most links a day later, and most links in an agent's session log, since a session outlives
+the run that wrote it. A link that mostly doesn't work is a link nobody sends.
+
+So the dump is the identity and the window is honoured while it exists and **ignored once it doesn't**, rather
+than turning the link into an error. Being right about which window is worth a lot while the window is there
+and nothing at all afterwards.
+
+- **The authority is the file name**, because it is the part a person reads and types, and it is in every
+  answer an agent has already been given. `dump=` carries the normalized absolute path beside it, since two
+  dumps called `com.squareup.hprof` off two devices are two investigations — and because a path is the only
+  thing that can open a dump nothing has open. A link with a name and no path is one somebody typed, and it
+  resolves against what is open.
+- **Not `heapDumpFileKey`**, the `<name>-<hash of parent>` the notes and statuses are filed under. It is
+  one-way and nothing on disk maps a key back to a path, so a key-only link could never reopen a dump.
+- **Window ids stay random.** A counted id repeats across runs *and* within one as windows close and open, so
+  it would be honoured against the wrong reading of the dump — silently, which is worse than being ignored. A
+  file name plus a number fixes neither half: the number would have to be handed out across runs that cannot
+  see each other's windows.
+- **Resolution order is windowId, then path, then file name, then the authority as a window id** — that last
+  step for the `shark://<window id>/<place>` links already sitting in notes and in session files on disk.
+- **A run claims a link only for a window it already has**, never for a file it could open, or every run of
+  the app would claim every link. Whoever is left holding it opens the dump. `DeepLinkPeers`.
+- **The agent surface converged on the same choice**: the tool argument is `heapDump`, taking a file name, and
+  a window id only in the one case a name cannot answer, which is the same file open twice. `AgentTools`.
+- **What it unlocked**, and the reason to reverse it rather than live with it: a `--no-ui` run answers `show`
+  with a link now — it has no window and the file all the same — and every *Agent logs* row about another
+  heap dump has a link to copy, where before there was nothing to send.
 
 ## A leaking status is the heap dump's answer until a hand overrules it
 

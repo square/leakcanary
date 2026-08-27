@@ -466,11 +466,18 @@ class AgentSessionCall(
   val millis: Long
 ) {
 
-  /** The link to [place] in the window the call was made against, for a call that was about one. */
+  /**
+   * The link to [place] in the heap dump the call was about, for a call that was about one.
+   *
+   * The window as well, since it was open when the line was written, and a link is a request to look at
+   * something in the window somebody was watching while that is still possible. It stops being possible
+   * about as soon as anybody reads this — an agent's session outlives its run — and a link that names the
+   * heap dump goes on working after that. See [DeepLink].
+   */
   fun link(): String? {
     val place = place ?: return null
-    val windowId = windowId ?: return null
-    return DeepLink(windowId, place).toUri()
+    val heapDumpPath = heapDumpPath ?: return null
+    return DeepLink(File(heapDumpPath), place, windowId = windowId).toUri()
   }
 }
 

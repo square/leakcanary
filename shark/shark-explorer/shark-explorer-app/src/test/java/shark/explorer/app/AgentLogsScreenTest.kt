@@ -15,6 +15,8 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import java.time.Instant
@@ -25,6 +27,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.Place
@@ -204,6 +207,25 @@ class AgentLogsScreenTest {
     assertThat(opened).isEqualTo(otherHeapDump to Place.AgentLog(SESSION_ID))
   }
 
+  @Test fun `a session about another heap dump is worth sending as well as opening`() {
+    val otherHeapDump = testFolder.newFile("another.hprof")
+    val copied = mutableListOf<String>()
+    explorerUiTest {
+      openAgentLogs(
+        sessions = listOf(session(calls = listOf(call(heapDumpPath = otherHeapDump.absolutePath)))),
+        copyToClipboard = { copied += it }
+      )
+
+      onNodeWithText(CLIENT, substring = true).performMouseInput { rightClick() }
+      onNodeWithText(COPY_LINK).performClick()
+    }
+
+    // That dump, and no window id: this window is not one of that file's, so there is none to prefer — and
+    // a link names the heap dump, which is what makes a row about somebody else's dump something to send
+    // rather than only something to click. See [DeepLink].
+    assertThat(copied).containsExactly(DeepLink(otherHeapDump, Place.AgentLog(SESSION_ID)).toUri())
+  }
+
   @Test fun `a call that went on to another heap dump reads as the address, and leads to that dump`() {
     val otherHeapDump = testFolder.newFile("another.hprof")
     var opened: Pair<File, Place>? = null
@@ -294,7 +316,8 @@ class AgentLogsScreenTest {
   /** Opens the window on [leakyHeapDump] with [sessions] as the agents that have worked through it. */
   private fun ComposeUiTest.openAgentLogs(
     sessions: List<AgentSession>,
-    onOpenHeapDump: (File, Place) -> Unit = { _, _ -> }
+    onOpenHeapDump: (File, Place) -> Unit = { _, _ -> },
+    copyToClipboard: (String) -> Unit = {}
   ) {
     setContent {
       MaterialTheme {
@@ -307,6 +330,7 @@ class AgentLogsScreenTest {
           // Where a row about another heap dump goes, which is a question about every window of the run and
           // so answered outside this one. See [ExplorerWindowTest].
           onOpenHeapDump = onOpenHeapDump,
+          copyToClipboard = copyToClipboard,
           deviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
         )
       }

@@ -9,6 +9,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.explorer.Adb
 import shark.explorer.AdbOutput
+import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
 import shark.explorer.LeakStatus
 import shark.explorer.LeakStatusOverride
@@ -83,9 +84,14 @@ class HeadlessAgentHeapDumpsTest {
       assertThat(shown.problem)
         .contains(NO_UI_OPTION)
         .contains(file.name)
-      // And no link, which is the half of it an agent would otherwise pass on: a `shark://` link names a
-      // window, so one from a run that has none is an address nothing answers to.
-      assertThat(shown.link).isNull()
+      // And a link all the same, which is the half of it an agent passes on: a `shark://` link names the heap
+      // dump rather than a window, so one from a run that has no window opens this file for whoever clicks
+      // it. No window id on it, since there is no window of this run to prefer.
+      val link = DeepLink.parse(shown.link!!)
+      assertThat(link.heapDumpName).isEqualTo(file.name)
+      assertThat(link.heapDumpPath).isEqualTo(file.absoluteFile)
+      assertThat(link.windowId).isNull()
+      assertThat(link.place).isEqualTo(Place.Leaks())
     }
   }
 

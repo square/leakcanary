@@ -237,18 +237,25 @@ cp -R "shark/shark-explorer/shark-explorer-app/build/compose/binaries/main/app/S
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
   -f ~/Applications/"Shark Explorer.app"
 open -a ~/Applications/"Shark Explorer.app" --args --title="Links" path/to/dump.hprof
-grep "Windows of this run" ~/.shark-explorer/logs/$(ls -t ~/.shark-explorer/logs | head -1)
-open "shark://<the id that printed>/leaks"
+open "shark://dump.hprof/leaks"
 ```
+
+A link names the heap dump, so that is the whole recipe — no id to read out of the log first, and the same
+line works after the run that opened the dump has ended, which is the case worth trying. To try the window
+half of it, the `window=<id>` a copied link carries, `grep "Windows of this run"` in the newest file under
+`~/.shark-explorer/logs` for the ids of the run.
 
 **Read the result in the log rather than off the screen.** Following a link raises the app over whatever
 the person at the machine was doing, so a screenshot to check it worked costs them their window and shows
-you theirs. `The OS handed this run`, `A link asked window <id> for <place>` and `A link asked this window
-for <place>` are the three lines that say a link was delivered, routed and opened as a tab.
+you theirs. `The OS handed this run`, `A link asked window <id> for <place> of <file>`, `A link asked for
+<place> of <file>, which is not open yet` and `A link asked this window for <place>` are the lines that say
+a link was delivered, routed and opened as a tab.
 
 A run from source is still *reachable*: every run publishes a loopback port under `~/.shark-explorer/runs`,
-and the installed app hands on any link naming a window it doesn't have. That is what makes a link to a
-`./gradlew run` window work — the installed app is the courier, so there has to be one.
+and the installed app hands on any link it has no window for. That is what makes a link to a
+`./gradlew run` window work — the installed app is the courier, so there has to be one. It claims a link
+only for a heap dump it *already has open*, never for a file it could open, or every run would claim every
+link.
 
 **Deliberately not single instance.** Several explorers open at once is how this app is used, so a run
 holding a link asks each of the others in turn rather than the second run handing its command line to the

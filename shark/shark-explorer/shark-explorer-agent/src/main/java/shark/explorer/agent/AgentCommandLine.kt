@@ -298,7 +298,7 @@ object AgentCommandLine {
     |  $command $AGENT_OPTION open_heap_dumps reason="Finding out which heap dump is open"
     |  $command $AGENT_OPTION describe_object object=0x7205 reason="Reading the holder's fields"
     |
-    |Start with open_heap_dumps: its answer carries the method to follow, the window ids every other tool
+    |Start with open_heap_dumps: its answer carries the method to follow, the file names every other tool
     |names a heap dump by, and whatever verdicts somebody has already recorded about that dump.
     |
     |Every tool takes `reason`, which is why you are making the call. It is logged beside the reads it causes

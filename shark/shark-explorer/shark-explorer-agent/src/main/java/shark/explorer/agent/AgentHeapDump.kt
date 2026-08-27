@@ -15,17 +15,26 @@ import shark.explorer.Place
  * dump and nothing else: the app's implementation carries a `HeapDumpSession`, the statuses set by hand and
  * the tabs, none of which a test of what a tool answers needs.
  *
- * **A window and not a heap dump file**, matching `shark.explorer.DeepLink`: the same dump is often open
- * twice — that is what comparing two of them is — so a path would be ambiguous exactly when it matters, and
- * a verdict set through one of two windows has to be the verdict the other one draws.
+ * **One of these is a window and not a heap dump file**, even though an agent names it by the file: the same
+ * dump is open twice whenever two readings of it are being compared, and a verdict set through one of those
+ * windows has to be the verdict the other one draws. See [AgentTools.HEAP_DUMP] for how one is asked for, and
+ * `shark.explorer.DeepLink` for the same split in a link.
  */
 interface AgentHeapDump {
 
-  /** What a link names this window by, and what an agent addresses it by. See [AgentTools]. */
+  /**
+   * Which window this is, for the one thing the file name can't say: which of two windows on one dump.
+   *
+   * What a link names as its window and what this run's log calls it, so it is also how a person watching
+   * finds the window an agent was in. See [AgentTools.HEAP_DUMP].
+   */
   val windowId: String
 
   /** Which heap dump is open here, absolute, so that an agent can check it is the one it was asked about. */
   val heapDumpPath: String
+
+  /** How an agent names this dump, which is the file name. See [AgentTools.HEAP_DUMP]. */
+  val heapDumpName: String get() = File(heapDumpPath).name
 
   /**
    * Runs [block] against the open heap dump, wherever the implementation reads one.
@@ -100,11 +109,12 @@ interface AgentHeapDump {
 }
 
 /**
- * What came of putting a place in front of the person watching: the link to it, or why there was nowhere.
+ * What came of putting a place in front of the person watching: the link to it, and why there was nowhere.
  *
- * **One answer rather than two calls**, because the two questions have one answer. A link names a window, so
- * whether there is a link and whether anything was shown are the same fact — and a run with no window that
- * handed out a `shark://` link anyway would be handing out an address nothing answers to.
+ * **One answer rather than two calls**, because a call to `show` raises two questions with one cause and an
+ * agent needs both answers: whether anybody saw it, and what to write down so that somebody can. They are not
+ * the same fact, since a `shark://` link names the *heap dump* — so a run with no window has nothing on screen
+ * to point at and a link worth passing on all the same.
  *
  * The link matters as much as the showing does: it is what an agent puts in its *reply* so that whoever asked
  * can open the place themselves, later, from wherever the conversation is. Showing raises a window over
@@ -112,7 +122,7 @@ interface AgentHeapDump {
  * time. See [AgentTools] `show`.
  */
 class ShownPlace private constructor(
-  /** The `shark://` link a person can click to open it, and null when nothing was shown. */
+  /** The `shark://` link a person can click to open it, and null when there is no heap dump to link to. */
   val link: String?,
   /** Why it wasn't shown, and null when it was. */
   val problem: String?
@@ -123,9 +133,18 @@ class ShownPlace private constructor(
     fun at(link: String) = ShownPlace(link = link, problem = null)
 
     /**
-     * Nothing was shown, and [problem] says why — which is worth answering rather than logging: an agent that
-     * told its human to look at something they cannot see has said the one thing worse than nothing.
+     * Nothing was shown and [problem] says why, with [link] to the place it would have been.
+     *
+     * Both, because either alone is misleading: an agent that told its human to look at something they cannot
+     * see has said the one thing worse than nothing, and one that dropped the link would leave them with a
+     * description of a place they could have been taken to.
      */
+    fun onlyAsALink(
+      link: String,
+      problem: String
+    ) = ShownPlace(link = link, problem = problem)
+
+    /** Nothing was shown and there is nowhere to link to either, which [problem] has to account for. */
     fun nowhere(problem: String) = ShownPlace(link = null, problem = problem)
   }
 }

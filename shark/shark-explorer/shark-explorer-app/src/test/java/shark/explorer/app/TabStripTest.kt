@@ -174,14 +174,17 @@ class TabStripTest {
   @Test fun `right clicking a tab copies a link to where that tab is`() {
     val copied = mutableListOf<String>()
     explorerUiTest {
-      openHeapDump(copyToClipboard = { copied += it })
+      val heapDumpFile = openHeapDump(copyToClipboard = { copied += it })
 
       tab(HeapDominatorTreemap.ROOT_LABEL).performMouseInput { rightClick() }
       onNodeWithText(COPY_LINK).performClick()
 
-      // The window rather than the heap dump, because the same dump open twice is two places to be —
-      // and the tab's own place, so that following it lands where it was copied from. See [DeepLink].
-      assertThat(copied).containsExactly(DeepLink(WINDOW_ID, Place.wholeHeapDump()).toUri())
+      // The heap dump, so that the link outlives this window, and this window with it, because the same
+      // dump open twice is two places to be — plus the tab's own place, so that following it lands where
+      // it was copied from. See [DeepLink].
+      assertThat(copied).containsExactly(
+        DeepLink(heapDumpFile, Place.wholeHeapDump(), windowId = WINDOW_ID).toUri()
+      )
     }
   }
 
@@ -204,14 +207,16 @@ class TabStripTest {
   @Test fun `right clicking a button on the bar copies a link to the screen it opens`() {
     val copied = mutableListOf<String>()
     explorerUiTest {
-      openHeapDump(copyToClipboard = { copied += it })
+      val heapDumpFile = openHeapDump(copyToClipboard = { copied += it })
 
       screenButton(Place.LEAKS_LABEL).performMouseInput { rightClick() }
       onNodeWithText(COPY_LINK).performClick()
 
       // A button opens a screen nobody has been to yet, and a link to it is that screen as it opens: no
       // tab has to be opened first to have something to copy.
-      assertThat(copied).containsExactly(DeepLink(WINDOW_ID, Place.Leaks()).toUri())
+      assertThat(copied).containsExactly(
+        DeepLink(heapDumpFile, Place.Leaks(), windowId = WINDOW_ID).toUri()
+      )
       // And nothing was opened by asking for the link, which a menu that clicked the button would have.
       assertThat(tabs().fetchSemanticsNodes()).hasSize(1)
     }
@@ -261,12 +266,13 @@ class TabStripTest {
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
+  /** Opens a heap dump and hands back the file, which is what a link to a place in it names. */
   private fun ComposeUiTest.openHeapDump(
     /** Read inside the composition, so that a test can ask for a place once the window is up. */
     linkedPlaces: () -> List<Place> = { emptyList() },
     onLinkedPlaceOpened: (Place) -> Unit = {},
     copyToClipboard: (String) -> Unit = {}
-  ) {
+  ): File {
     // Written before the composition rather than in it: every recomposition would write it again, and
     // the second one fails rather than returning the file the window is already reading.
     val heapDumpFile = testHeapDump()
@@ -287,6 +293,7 @@ class TabStripTest {
     // A tab is named by a read of the heap dump, so a window whose strip has not caught up yet is one
     // where every assertion about a title would be about the placeholder.
     waitUntilAtLeastOneExists(hasText(HeapDominatorTreemap.ROOT_LABEL) and isTab(), OPEN_TIMEOUT_MILLIS)
+    return heapDumpFile
   }
 
   /**

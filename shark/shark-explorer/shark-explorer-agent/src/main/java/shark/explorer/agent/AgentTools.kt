@@ -80,7 +80,7 @@ internal class AgentTools(
   private fun openHeapDumps() = AgentTool(
     name = OPEN_HEAP_DUMPS,
     description = "Every heap dump open in Shark Explorer right now, with the method to investigate it. " +
-      "Call this first: the window ids it hands back are what every other tool names a heap dump by, and " +
+      "Call this first: the file names it hands back are what every other tool names a heap dump by, and " +
       "the verdicts it lists are the conclusions somebody has already reached about that dump.",
     schema = schema()
   ) { _ ->
@@ -90,6 +90,7 @@ internal class AgentTools(
     // don't take a suspending block.
     val described = dumps.map { dump ->
       AgentJson.heapDump(
+        heapDumpName = dump.heapDumpName,
         windowId = dump.windowId,
         heapDumpPath = dump.heapDumpPath,
         sizes = dump.read("its sizes, for an agent") { it.sizes },
@@ -118,7 +119,7 @@ internal class AgentTools(
       "are instances of. The heap dump's own answer and the place to start: objects the app itself handed " +
       "to LeakCanary and said it was done with are the strongest evidence a dump carries. Sections marked " +
       "isOnTheWayOut are objects the garbage collector will take on its own — not leaks to fix.",
-    schema = schema(WINDOW to window())
+    schema = schema(HEAP_DUMP to heapDumpArgument())
   ) { arguments ->
     val dump = arguments.heapDump()
     val leaks = dump.read("the leaks, for an agent") { it.tree.findLeaks(dump.verdicts) }
@@ -134,7 +135,7 @@ internal class AgentTools(
       "starting: an investigation somebody already ran is either the answer or the half of the dump not " +
       "worth doing again. Sessions of earlier runs of the app are in it, and so is this one.",
     schema = schema(
-      WINDOW to window(),
+      HEAP_DUMP to heapDumpArgument(),
       SESSION to string("Optional: one session's id, from the list, to read every call it made.").optional()
     )
   ) { arguments ->
@@ -169,7 +170,7 @@ internal class AgentTools(
     description = "What one object is: its class, what the inspectors made of it, its verdict and the " +
       "reason under it, what it retains, what dominates it, and every field with the address of each " +
       "field's value. Reading fields is how a guess about an object becomes evidence.",
-    schema = schema(WINDOW to window(), OBJECT to objectId("The object to describe."))
+    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectId("The object to describe."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
@@ -192,7 +193,7 @@ internal class AgentTools(
       "chain in the window. It is null while the verdicts don't yet cross from EXPECTED to STUCK at a " +
       "single reference, which is the state an investigation works towards and what conclude requires. " +
       "Steps marked isDominator are the ones every path to the object goes through.",
-    schema = schema(WINDOW to window(), OBJECT to objectId("The object to walk up from."))
+    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectId("The object to walk up from."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
@@ -210,7 +211,7 @@ internal class AgentTools(
       "and one that decides whether clearing a field would free anything at all. Give `from` to ask only " +
       "about the ways between that object and this one.",
     schema = schema(
-      WINDOW to window(),
+      HEAP_DUMP to heapDumpArgument(),
       OBJECT to objectId("The object being held."),
       FROM to objectId("Optional: only the ways this object holds it, rather than from the GC roots.")
         .optional()
@@ -241,7 +242,7 @@ internal class AgentTools(
       "object, so it is also the answer to \"what are the biggest things in this heap\"** — one object at " +
       "a time, where $DOMINATOR_TREE is what holds them.",
     schema = schema(
-      WINDOW to window(),
+      HEAP_DUMP to heapDumpArgument(),
       CLASS_NAME to string("Matched against the class name.").optional(),
       EXACT_MATCH to boolean(
         "Whether className has to be the whole name — `android.graphics.Bitmap` or `Bitmap` — rather " +
@@ -278,7 +279,7 @@ internal class AgentTools(
       "give `object` to walk down from one node. This answers \"why is this app using 400 MB\" — for " +
       "\"why is this object still here\", read its chain instead.",
     schema = schema(
-      WINDOW to window(),
+      HEAP_DUMP to heapDumpArgument(),
       OBJECT to objectId("Optional: the node to walk down from, the whole heap dump by default.")
         .optional(),
       MAX_DEPTH to integer(
@@ -318,7 +319,7 @@ internal class AgentTools(
       "or a line of source rather than a hunch. Refuses a verdict that contradicts one already set " +
       "unless solveConflicts is true, in which case the ones it disagrees with are flipped and say so.",
     schema = schema(
-      WINDOW to window(),
+      HEAP_DUMP to heapDumpArgument(),
       OBJECT to objectId("The object to record a verdict about."),
       VERDICT to enumString(
         "STUCK for an object that should be gone, EXPECTED for one that is meant to be here.",
@@ -384,7 +385,7 @@ internal class AgentTools(
     description = "Takes a verdict off an object, so the heap dump says what it says about it again. For " +
       "a verdict of yours that the evidence turned out not to support — leaving a wrong one in place is " +
       "worse than never setting it, because everything below it reads as stuck because of it.",
-    schema = schema(WINDOW to window(), OBJECT to objectId("The object to take the verdict off."))
+    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectId("The object to take the verdict off."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
@@ -406,7 +407,7 @@ internal class AgentTools(
       "you earlier, or by whoever read it last. Without `$PLACE`, every place that has a note, so that an " +
       "investigation starts from what is known rather than on top of it. With one, that note in full. " +
       "Notes outlive the window and are where a conclusion is kept.",
-    schema = schema(WINDOW to window(), PLACE to place().optional())
+    schema = schema(HEAP_DUMP to heapDumpArgument(), PLACE to place().optional())
   ) { arguments ->
     val dump = arguments.heapDump()
     val place = arguments.optionalString(PLACE)?.let { arguments.place() }
@@ -438,7 +439,7 @@ internal class AgentTools(
       "something you wrote earlier is — read it first with read_notes. Notes are kept between runs of the " +
       "app. Write what you found and where you looked, not what you are about to do.",
     schema = schema(
-      WINDOW to window(),
+      HEAP_DUMP to heapDumpArgument(),
       PLACE to place(),
       TEXT to string("Markdown. `0x…` addresses in it become links to those objects."),
       REPLACE to boolean(
@@ -468,7 +469,7 @@ internal class AgentTools(
       "that matters rather than for every step. It answers with a `shark://` link to that place: put that " +
       "link in your reply to whoever asked you, because clicking it opens the place again, later, without " +
       "you.",
-    schema = schema(WINDOW to window(), PLACE to place())
+    schema = schema(HEAP_DUMP to heapDumpArgument(), PLACE to place())
   ) { arguments ->
     val dump = arguments.heapDump()
     val place = arguments.place()
@@ -491,7 +492,7 @@ internal class AgentTools(
       "which is a sequence of events rather than a line. The conclusion is written into the notes of the " +
       "object and shown in the window.",
     schema = schema(
-      WINDOW to window(),
+      HEAP_DUMP to heapDumpArgument(),
       OBJECT to objectId("The stuck object whose being in memory is being explained."),
       ROOT_CAUSE to string(
         "How the faulty reference came to still be set: what assigned it, what should have cleared it, " +
@@ -574,6 +575,7 @@ internal class AgentTools(
     }
     val dump = heapDumps.open(file)
     buildJsonObject {
+      put("heapDump", dump.heapDumpName)
       put("window", dump.windowId)
       put("heapDumpPath", dump.heapDumpPath)
       put("opened", true)
@@ -630,6 +632,7 @@ internal class AgentTools(
       processName = arguments.string(PROCESS)
     )
     buildJsonObject {
+      put("heapDump", dump.heapDumpName)
       put("window", dump.windowId)
       put("heapDumpPath", dump.heapDumpPath)
       put("dumped", true)
@@ -657,7 +660,7 @@ internal class AgentTools(
     arguments: JsonObject
   ): AgentTarget {
     val read = AgentArguments(name, arguments)
-    val dump = read.orNull { resolvedDump(optionalString(WINDOW)) }
+    val dump = read.orNull { resolvedDump(optionalString(HEAP_DUMP)) }
     val place = read.orNull { placeOrNull(name) }
     return AgentTarget(
       windowId = dump?.windowId,
@@ -696,39 +699,51 @@ internal class AgentTools(
 
   /** Which heap dump a call is about, or a refusal naming the ones that are open. */
   private fun AgentArguments.heapDump(): AgentHeapDump {
-    val windowId = optionalString(WINDOW)
-    val asked = resolvedDump(windowId)
-    if (asked != null) {
-      return asked
+    val asked = optionalString(HEAP_DUMP)
+    val resolved = resolvedDump(asked)
+    if (resolved != null) {
+      return resolved
     }
     val open = heapDumps.openHeapDumps()
-    val windows = open.joinToString(", ") { "${it.windowId} (${it.heapDumpPath})" }
+    // The window id beside each, since that is what tells two windows of one file apart and this is one of
+    // the two moments an agent needs it. The other is being told a place was shown.
+    val dumps = open.joinToString(", ") { "${it.heapDumpName} (${it.windowId}) at ${it.heapDumpPath}" }
     throw AgentRefusal(
       when {
         open.isEmpty() ->
           "No heap dump is open in Shark Explorer, so there is nothing to read. Call $OPEN_HEAP_DUMPS."
-        windowId == null ->
-          "${open.size} heap dumps are open, so say which with `$WINDOW`: $windows"
+        asked == null ->
+          "${open.size} heap dumps are open, so say which with `$HEAP_DUMP`: $dumps"
+        open.count { it.heapDumpName == asked } > 1 ->
+          "${open.count { it.heapDumpName == asked }} windows have \"$asked\" open, which is how two " +
+            "readings of one dump are compared, so `$HEAP_DUMP` has to be the window id of the one you " +
+            "mean: $dumps"
         else ->
-          "No window is called \"$windowId\". A window id names one window of one run of this app, so it " +
-            "stops being valid when that window is closed. Open windows: $windows. Call $OPEN_HEAP_DUMPS."
+          "No open heap dump is called \"$asked\", and no window is either. Open heap dumps: $dumps. " +
+            "Call $OPEN_HEAP_DUMPS."
       }
     )
   }
 
   /**
-   * The window a call names, and null for one that names none of the open ones.
+   * The heap dump a call names, and null for one that names none of the open ones.
    *
-   * One open dump needs no naming, which is most sessions. Two of them always do: the same file open twice is
-   * how two readings of it are compared, so guessing would be answering about the wrong one.
+   * One open dump needs no naming, which is most sessions. More than one always does, and **the file name is
+   * what it is named by**: that is what an agent has read in every answer and what it can say back without
+   * copying an id, and it goes on meaning the same thing after the window it was opened in has closed.
+   *
+   * A window id is taken too, and has to be: the same file open twice is how two readings of it are compared,
+   * so the name is ambiguous exactly there, and answering about either of them would be answering about the
+   * wrong one half the time. Ids first, because a file called `abcd2345` is a heap dump somebody has and a
+   * window id is ours to hand out.
    */
-  private fun resolvedDump(windowId: String?): AgentHeapDump? {
+  private fun resolvedDump(asked: String?): AgentHeapDump? {
     val open = heapDumps.openHeapDumps()
-    return if (windowId == null) {
-      open.singleOrNull()
-    } else {
-      open.firstOrNull { it.windowId == windowId }
+    if (asked == null) {
+      return open.singleOrNull()
     }
+    return open.firstOrNull { it.windowId == asked }
+      ?: open.filter { it.heapDumpName == asked }.singleOrNull()
   }
 
   /**
@@ -784,7 +799,15 @@ internal class AgentTools(
     const val FIND_OBJECTS = "find_objects"
     const val DOMINATOR_TREE = "dominator_tree"
 
-    const val WINDOW = "window"
+    /**
+     * Which heap dump a call is about: a file name, or a window id where a file name can't say.
+     *
+     * Named after the dump rather than after the window it is open in, because that is what it is — every
+     * place an agent can ask about belongs to the heap dump, the file name is in every answer it has read,
+     * and a window id is eight characters it would have to copy. See [resolvedDump] for the ordering, and
+     * `shark.explorer.DeepLink`, which is the same choice made for a link.
+     */
+    const val HEAP_DUMP = "heapDump"
     const val SESSION = "session"
     const val OBJECT = "object"
     const val FROM = "from"
@@ -814,7 +837,7 @@ internal class AgentTools(
      * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in `list_leaks` that
      * walking a tree would take an hour to reach.
      */
-    const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this window to see what the dump says about " +
+    const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this heap dump to see what it says about " +
       "itself, or $DOMINATOR_TREE to see where its memory has gone."
 
     /**
@@ -824,8 +847,9 @@ internal class AgentTools(
      */
     const val DEFAULT_LISTED_OBJECTS = 30
 
-    fun window() = string(
-      "Which open heap dump, from ${OPEN_HEAP_DUMPS}. Optional while only one is open."
+    fun heapDumpArgument() = string(
+      "Which open heap dump, by file name from ${OPEN_HEAP_DUMPS}. Optional while only one is open, and " +
+        "the window id instead when two windows have the same file open."
     ).optional()
 
     fun objectId(description: String) =

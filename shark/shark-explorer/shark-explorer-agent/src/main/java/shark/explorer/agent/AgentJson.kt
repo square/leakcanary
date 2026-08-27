@@ -46,13 +46,20 @@ import shark.explorer.leakLabel
  */
 internal object AgentJson {
 
-  /** Which window, which dump, how big it is, and what has been concluded about it so far. */
+  /**
+   * Which heap dump, in which window, how big it is, and what has been concluded about it so far.
+   *
+   * The name first because it is what every other call names this dump by — [AgentTools.HEAP_DUMP] — and the
+   * window id after it, for the one thing the name can't say: which of two windows on one file.
+   */
   fun heapDump(
+    heapDumpName: String,
     windowId: String,
     heapDumpPath: String,
     sizes: HeapSizes,
     verdicts: LeakStatusOverrides
   ): JsonObject = buildJsonObject {
+    put("heapDump", heapDumpName)
     put("window", windowId)
     put("heapDumpPath", heapDumpPath)
     putJsonObject("sizes") {

@@ -648,9 +648,21 @@ internal fun HeapDumpExplorer(
    * rectangle, a row, a field, a button and a tab is one thing, and five of them would drift.
    */
   val copyLink: (Place) -> Unit = { destination ->
-    val link = DeepLink(deepLinkId, destination).toUri()
+    val link = DeepLink(session.heapDumpFile, destination, windowId = deepLinkId).toUri()
     // In the log as well as on the clipboard, so that a link someone reports as not working can be compared
     // against the one this window actually handed out.
+    SharkLog.d { "Copied $link" }
+    copyToClipboard(link)
+  }
+  /**
+   * And for a place of a heap dump this window hasn't got, which the *Agent logs* screens are full of.
+   *
+   * No window id on it: this window is not one of that dump's, so there is no window to prefer and the link
+   * is the file plus the place — which is all a link needs, and is why a row about somebody else's dump is
+   * something to send rather than only something to click. See [shark.explorer.DeepLink].
+   */
+  val copyHeapDumpLink: (File, Place) -> Unit = { heapDumpFile, destination ->
+    val link = DeepLink(heapDumpFile, destination).toUri()
     SharkLog.d { "Copied $link" }
     copyToClipboard(link)
   }
@@ -774,6 +786,7 @@ internal fun HeapDumpExplorer(
           heapDumpFile = session.heapDumpFile,
           agentPlaceTitles = agentPlaceTitles,
           onOpenHeapDump = onOpenHeapDump,
+          onCopyHeapDumpLink = copyHeapDumpLink,
           sizes = sizes,
           onOpen = openObject,
           onCopyLink = copyObjectLink,
@@ -1119,6 +1132,8 @@ private fun ListPlace(
   agentPlaceTitles: Map<Place, String>,
   /** And where a session or a row about another heap dump leads: that dump. See [AgentLogsScreen]. */
   onOpenHeapDump: (File, Place) -> Unit,
+  /** And the link to it, which names that dump rather than this window. */
+  onCopyHeapDumpLink: (File, Place) -> Unit,
   sizes: HeapSizes,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
@@ -1173,6 +1188,7 @@ private fun ListPlace(
       onOpen = onOpenPlace,
       onCopyLink = onCopyPlaceLink,
       onOpenHeapDump = onOpenHeapDump,
+      onCopyHeapDumpLink = onCopyHeapDumpLink,
       modifier = modifier
     )
     is Place.AgentLog -> AgentLogScreen(
@@ -1183,6 +1199,7 @@ private fun ListPlace(
       onOpen = onOpenPlace,
       onCopyLink = onCopyPlaceLink,
       onOpenHeapDump = onOpenHeapDump,
+      onCopyHeapDumpLink = onCopyHeapDumpLink,
       modifier = modifier
     )
     // The places with a view of their own are drawn by the panes, not here.

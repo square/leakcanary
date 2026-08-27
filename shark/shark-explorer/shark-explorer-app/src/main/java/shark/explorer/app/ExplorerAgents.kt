@@ -387,8 +387,9 @@ private fun ExplorerWindow.agentHeapDump(open: OpenHeapDump): AgentHeapDump =
     goToLinked(place)
     bringToFront()
     // And the link itself, which is the same one the right click menu copies: an agent's answer can then
-    // point at this place rather than describe how to get to it.
-    ShownPlace.at(DeepLink(deepLinkId, place).toUri())
+    // point at this place rather than describe how to get to it. Naming this window as well as the dump,
+    // since a reader following it while this run is up should land on the window they watched it happen in.
+    ShownPlace.at(DeepLink(open.session.heapDumpFile, place, windowId = deepLinkId).toUri())
   }
 
 /**

@@ -13,6 +13,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.explorer.DeepLink
 import shark.explorer.Place
 import shark.explorer.exactHexObjectId
 
@@ -211,10 +212,16 @@ class McpSessionTest {
     assertThat(call.subject).isEqualTo(hex(heapDump.holderObjectId))
     assertThat(call.reason).isEqualTo("Checking whether the holder is the singleton it looks like.")
     assertThat(call.refusal).isNull()
-    // Which is what makes the row clickable: the place, in the window the call was made against.
+    // Which is what makes the row clickable: the place, in the heap dump the call was made against — named
+    // by the dump so that the link still opens it once this run has ended, with the window it was made in as
+    // a refinement, honoured while that window is open.
     assertThat(call.place).isEqualTo(Place.Object(heapDump.holderObjectId))
-    assertThat(call.link()).isEqualTo("shark://${window.windowId}/object?id=${hex(heapDump.holderObjectId)}")
     assertThat(call.heapDumpPath).isEqualTo(window.heapDumpPath)
+    val link = DeepLink.parse(call.link()!!)
+    assertThat(link.heapDumpName).isEqualTo(window.heapDumpName)
+    assertThat(link.heapDumpPath?.path).isEqualTo(window.heapDumpPath)
+    assertThat(link.windowId).isEqualTo(window.windowId)
+    assertThat(link.place).isEqualTo(Place.Object(heapDump.holderObjectId))
   }
 
   @Test

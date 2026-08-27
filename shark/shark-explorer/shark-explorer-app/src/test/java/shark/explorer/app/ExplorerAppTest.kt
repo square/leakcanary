@@ -211,7 +211,7 @@ class ExplorerAppTest {
   @Test fun `the map's menu copies a link to the rectangle under the pointer`() {
     val copied = mutableListOf<String>()
     explorerUiTest {
-      openHeapDump(copyToClipboard = { copied += it })
+      val heapDumpFile = openHeapDump(copyToClipboard = { copied += it })
       hoverView(TREEMAP_X, TREEMAP_Y)
       // The card naming the rectangle, which is how a test knows the pointer has settled on one: the menu
       // acts on what is hovered, and nothing is until then.
@@ -221,8 +221,11 @@ class ExplorerAppTest {
       onNodeWithText(COPY_LINK).performClick()
 
       // Beside opening the rectangle in a tab of its own, which is the menu's other item: a link is the
-      // same move made somewhere else, so wherever one is offered so is the other.
-      assertThat(copied).containsExactly(DeepLink(WINDOW_ID, Place.Object(payloadObjectId)).toUri())
+      // same move made somewhere else, so wherever one is offered so is the other. Named after the heap
+      // dump, with this window as the refinement it is while the window is open. See [DeepLink].
+      assertThat(copied).containsExactly(
+        DeepLink(heapDumpFile, Place.Object(payloadObjectId), windowId = WINDOW_ID).toUri()
+      )
     }
   }
 
@@ -809,12 +812,14 @@ class ExplorerAppTest {
     }
   }
 
+  /** Opens a heap dump and hands back the file, which is what a link to a place in it names. */
   private fun ComposeUiTest.openHeapDump(
     heapDumpFile: File = testHeapDump(),
     copyToClipboard: (String) -> Unit = {}
-  ) {
+  ): File {
     setExplorerContent(heapDumpFile, copyToClipboard = copyToClipboard)
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
+    return heapDumpFile
   }
 
   /**

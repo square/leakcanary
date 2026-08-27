@@ -4,6 +4,7 @@ import java.io.Closeable
 import java.io.File
 import shark.SharkLog
 import shark.explorer.AndroidDevice
+import shark.explorer.DeepLink
 import shark.explorer.DeviceProcess
 import shark.explorer.HeapExplorer
 import shark.explorer.LeakStatusOverride
@@ -80,9 +81,10 @@ internal class FakeAgentHeapDump(
 
   override fun show(place: Place): ShownPlace {
     shown += place
-    // A window's answer, which is a link. What a run with no window answers is `HeadlessAgentHeapDumpsTest`'s,
-    // since it is that run's one difference from this one.
-    return ShownPlace.at("shark://$windowId/${placeText(place)}")
+    // A window's answer, which is a link — built the way the window builds one, since a fake that spelled it
+    // itself would be a test passing on a link nobody could follow. What a run with no window answers is
+    // `HeadlessAgentHeapDumpsTest`'s, since it is that run's one difference from this one.
+    return ShownPlace.at(DeepLink(File(heapDumpPath), place, windowId = windowId).toUri())
   }
 
   override fun close() {

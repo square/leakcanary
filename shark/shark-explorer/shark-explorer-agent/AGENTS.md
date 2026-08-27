@@ -192,8 +192,8 @@ here, and the same the other way round.
 Two consequences worth knowing before adding one.
 
 **A tool that makes a window is answered once the dump is *readable*.** `AgentHeapDumps.open` and `dumpHeap`
-hand back an `AgentHeapDump`, not a path or a window id, because everything else on this surface is a read: an
-id handed over while the dump is still being indexed is one that refuses every call made with it. The app's
+hand back an `AgentHeapDump`, not a path or a name, because everything else on this surface is a read: a dump
+named back while it is still being indexed is one that refuses every call made with it. The app's
 side waits on three outcomes — open, failed to open, window closed — which is why `ExplorerWindow` publishes
 `openProblem` beside `openHeapDump`. Waiting on "opened" alone means a file that was never a heap dump is a
 call that never comes back.
@@ -237,7 +237,8 @@ the reads happen on the heap dump's thread and the tests run headless.
 
 # What the surface is, from a shell, with nothing open and no Gradle. Then one call at a window.
 "Shark Explorer.app/Contents/MacOS/Shark Explorer" --agent-help
-"Shark Explorer.app/Contents/MacOS/Shark Explorer" --agent list_leaks window=<id> reason="Trying it"
+"Shark Explorer.app/Contents/MacOS/Shark Explorer" \
+  --agent list_leaks heapDump=<file name> reason="Trying it"
 
 # The whole surface end to end, in a real window, with an agent that has never seen this repository.
 shark/shark-explorer/shark-explorer-agent/harness/start-harness.sh [heap-dump.hprof]
