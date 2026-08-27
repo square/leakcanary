@@ -164,13 +164,14 @@ internal class ExplorerWindows(
    *
    * - **The window the link was made from**, while it is still open. Two windows on one dump are two
    *   readings of it, and this is the only thing that tells them apart.
-   * - **A window of that heap dump**, by path. The window is gone or belonged to another run, and the dump
-   *   is what the link was really about.
-   * - **A window of a dump with that file name**, for a link somebody typed, which carries no path.
-   * - **A window with that id**, for links written before a link named a heap dump: `shark://<window>/…` is
-   *   in notes on disk and in agent sessions, and one of those pasted back into the run it came from still
-   *   goes where it went. Last, so that a heap dump called like a window id — which is a file called
-   *   `abcd2345` — is read as the heap dump.
+   * - **A window of that heap dump**, by path, when the link says where the file is — which is one handed
+   *   over by another run, since that run looked it up. Exact, so nothing is tried after it: two dumps of one
+   *   name off two devices are two investigations.
+   * - **A window of a dump with that file name**, which is what a link says about the dump and all it says.
+   * - **A window with that id**, for a link whose whole authority is a window: `shark://<window>/…` is in
+   *   notes on disk and in agent sessions, and one of those pasted back into the run it came from still goes
+   *   where it went. Last, so that a heap dump called like a window id — which is a file called `abcd2345` —
+   *   is read as the heap dump.
    */
   fun windowFor(link: DeepLink): ExplorerWindow? {
     val ofWindowId = link.windowId?.let { id -> firstOrNull { it.deepLinkId == id } }
@@ -214,7 +215,8 @@ internal class ExplorerWindows(
       )
       return
     }
-    SharkLog.d { "A link asked for ${link.place} of ${link.heapDumpName}, which is not open yet" }
+    // The file rather than what the link called it, which for a link named by a window id is that id.
+    SharkLog.d { "A link asked for ${link.place} of ${heapDumpFile.name}, which is not open yet" }
     goToHeapDump(heapDumpFile, link.place)
   }
 
@@ -226,14 +228,16 @@ internal class ExplorerWindows(
      * What an empty window opened by a link with nowhere to go says in the middle of it.
      *
      * Two ways to get here, and they need different things done about them: a heap dump that has been moved
-     * or deleted since the link was made, and a link that never said where the dump was — which is one
-     * somebody typed or shortened, since every link this app writes carries the path.
+     * or deleted since the link was made, and one this machine has no record of ever opening — which is a
+     * link from somebody else's machine, or one about a dump opened so long ago that where it was has been
+     * forgotten. Both are answered by opening the file, so both messages end by saying so.
      */
     fun noSuchHeapDump(link: DeepLink): String {
       val path = link.heapDumpPath
       return if (path == null) {
-        "No heap dump called ${link.heapDumpName} is open, and this link doesn't say where that file is, " +
-          "so there is nothing to open. A link copied from a window carries the path."
+        "No heap dump called ${link.heapDumpName} is open here, and this machine has no record of opening " +
+          "one by that name. Open that file and follow the link again, or say where it is in the link: " +
+          "&${DeepLink.DUMP_PARAMETER}=/path/to/${link.heapDumpName}"
       } else {
         "${link.heapDumpName} is not open and there is no file at $path to open, so this link has nowhere " +
           "to go. A link outlives the window it was copied from, but not the heap dump it is about."

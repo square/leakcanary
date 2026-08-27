@@ -228,7 +228,7 @@ class ExplorerWindowTest {
     val heapDumpFile = temporaryFolder.newFile("third.hprof")
     val windows = explorerWindows(opening(FIRST_DUMP))
 
-    windows.open(DeepLink(heapDumpFile, Place.Starred, windowId = CLOSED_WINDOW_ID))
+    windows.open(lookedUp(heapDumpFile, Place.Starred, windowId = CLOSED_WINDOW_ID))
 
     val opened = windows.last()
     assertThat(windows).hasSize(2)
@@ -239,7 +239,7 @@ class ExplorerWindowTest {
   @Test fun `a link to a heap dump that has been deleted opens a window saying so`() {
     val windows = explorerWindows(opening(FIRST_DUMP))
 
-    windows.open(DeepLink(SECOND_DUMP, Place.Starred))
+    windows.open(lookedUp(SECOND_DUMP, Place.Starred))
 
     // Rather than nothing at all, which is the one answer that can't be told from the app having failed
     // to start — and a link is usually followed from somewhere that can't see either way.
@@ -251,15 +251,20 @@ class ExplorerWindowTest {
     assertThat(logged).anyMatch { SECOND_DUMP.name in it }
   }
 
-  /** A link shortened to the file name, which only works while something has that file open. */
-  @Test fun `a link with no path to a heap dump nothing has open says what is missing`() {
+  /**
+   * A link about a heap dump this machine has no record of ever opening, which is one from somebody else's
+   * machine: nothing looked its path up, because there was nothing to look up. See [HeapDumpPaths].
+   */
+  @Test fun `a link to a heap dump nothing knows where to find says what is missing`() {
     val windows = explorerWindows(opening(FIRST_DUMP))
 
     windows.open(DeepLink.parse("shark://${SECOND_DUMP.name}/starred"))
 
     assertThat(windows.last().deepLinkProblem)
       .contains(SECOND_DUMP.name)
-      .contains("doesn't say where that file is")
+      .contains("no record of opening one by that name")
+      // And what to type instead, since a link from another machine can carry the path.
+      .contains("&dump=/path/to/${SECOND_DUMP.name}")
   }
 
   @Test fun `a window opened by a link that found nothing lands beside the others`() {
@@ -355,6 +360,21 @@ class ExplorerWindowTest {
     deviceHeapDumps = DeviceHeapDumps(object : Adb {
       override fun run(arguments: List<String>) = AdbOutput(exitCode = 1, text = "")
     })
+  )
+
+  /**
+   * A link as [ExplorerWindows] is handed one: where the heap dump is has been looked up already, by the run
+   * that took the link off the OS. A link itself says the dump's file name and no more — see [HeapDumpPaths].
+   */
+  private fun lookedUp(
+    heapDumpFile: File,
+    place: Place,
+    windowId: String? = null
+  ) = DeepLink(
+    heapDumpName = heapDumpFile.name,
+    place = place,
+    heapDumpPath = heapDumpFile.absoluteFile.normalize(),
+    windowId = windowId
   )
 
   private fun noHeapDumps(titlePrefix: String? = null) =

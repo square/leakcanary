@@ -100,18 +100,22 @@ rather than to the window showing it. So a link goes on working: following one o
 that has the dump open, and opens the file in a new window when none has — the run it was copied from can
 be long gone. A link never replaces what you were reading: it always opens a tab of its own.
 
-A copied link carries two more things after the place, and this is one in full:
+A copied link carries one more thing after the place, and this is one in full:
 
 ```
-shark://bug-4821.hprof/leaks?dump=%2FUsers%2Fyou%2Fdumps%2Fbug-4821.hprof&window=vugs93jp
+shark://bug-4821.hprof/leaks?window=vugs93jp
 ```
 
-`dump` is the file's full path, which is what makes the link exact — two `com.example.hprof` off two
-devices are two investigations — and what lets it open the dump again months later. `window` is the window
-it was copied from, honoured while that window is open and ignored once it isn't, so that the same dump
-open twice, which is two readings of it side by side, lands where you meant. Neither is needed to type one
-by hand: `shark://bug-4821.hprof/leaks` finds whichever window has a `bug-4821.hprof` open. What a link
-can't do is open a dump it doesn't have the path of and nobody has open — that opens a window saying so.
+`window` is the window it was copied from, honoured while that window is open and ignored once it isn't, so
+that the same dump open twice, which is two readings of it side by side, lands where you meant. It isn't
+needed to type one by hand: `shark://bug-4821.hprof/leaks` is a link.
+
+**Where the file is doesn't travel in the link.** Every heap dump this app opens is written down in
+`~/.shark-explorer/heap-dump-paths`, the last 200 kept, so following a link is a lookup rather than a path
+pasted into a URL — which is what keeps a link short enough to read in a sentence. A link about a dump this
+machine has no record of opening, which is one from somebody else's machine, opens a window saying so; open
+that file and the link works, or add the path to the link yourself as
+`&dump=/Users/you/dumps/bug-4821.hprof`.
 
 Links reach the app from an installed build — the installer is what tells the OS that `shark://` is this
 app's. A copy run from source can still be linked to from another one, but the OS won't start it for a
@@ -290,7 +294,7 @@ instead of piped to a window:
 
 Everything works the same except `show`, which has nowhere to put a tab and says so rather than answering that
 it showed you something. It still hands back the `shark://` link, which names the heap dump: nobody saw the
-place, and the link opens it for whoever reads the answer. Nothing else changes, because **notes and verdicts
+place, and the link opens it for the next reader on the machine the dump is on. Nothing else changes, because **notes and verdicts
 were never on the screen** — they are files
 beside the heap dump, so a dump investigated over ssh today opens in a window tomorrow with the verdicts, the
 reasons and the conclusion already on it.
@@ -476,11 +480,11 @@ and the method tells an agent to put those links in its reply — so a sentence 
 request comment or a bug report ends up carrying a way in:
 
 > The leak is `MainActivity$2.this$0`, a non-static inner class holding the activity it was declared in:
-> shark://leak_asynctask_o.hprof/object?id=0x12d368b8&dump=%2FUsers%2Fyou%2Fdumps%2Fleak_asynctask_o.hprof&window=zvphq4r3
+> shark://leak_asynctask_o.hprof/object?id=0x12d368b8&window=zvphq4r3
 
 Clicking it opens that object with the reasoning on its tabs — in the window it was written from while that
-window is up, and by opening the heap dump again once it isn't. So an answer worth keeping keeps working: it
-carries the path of the dump it is about, and the only thing that stops it is deleting the file.
+window is up, and by opening the heap dump again once it isn't. So an answer worth keeping keeps working, and
+it is short enough to read: it names the heap dump, and where that file is, is looked up.
 
 An agent's verdicts are verdicts like any other: they say `set by hand` on every chain that runs through the
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the

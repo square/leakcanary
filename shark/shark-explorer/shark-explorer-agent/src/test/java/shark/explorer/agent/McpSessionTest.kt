@@ -214,12 +214,13 @@ class McpSessionTest {
     assertThat(call.refusal).isNull()
     // Which is what makes the row clickable: the place, in the heap dump the call was made against — named
     // by the dump so that the link still opens it once this run has ended, with the window it was made in as
-    // a refinement, honoured while that window is open.
+    // a refinement, honoured while that window is open. The session line records the dump's path as well,
+    // which the link doesn't have to: a row leads to a file, and a link is looked up.
     assertThat(call.place).isEqualTo(Place.Object(heapDump.holderObjectId))
     assertThat(call.heapDumpPath).isEqualTo(window.heapDumpPath)
     val link = DeepLink.parse(call.link()!!)
     assertThat(link.heapDumpName).isEqualTo(window.heapDumpName)
-    assertThat(link.heapDumpPath?.path).isEqualTo(window.heapDumpPath)
+    assertThat(link.heapDumpPath).isNull()
     assertThat(link.windowId).isEqualTo(window.windowId)
     assertThat(link.place).isEqualTo(Place.Object(heapDump.holderObjectId))
   }

@@ -850,7 +850,8 @@ class AgentToolsTest {
    *
    * What matters about it here is what it opens — this object, of this heap dump, in the window the call was
    * made against — and how it is spelled is `DeepLinkTest`'s. It names the heap dump rather than only the
-   * window so that an agent can put it in an answer somebody reads after this run has ended.
+   * window so that an agent can put it in an answer somebody reads after this run has ended, and it names it
+   * by file name alone: where that file is, is looked up by whoever follows the link.
    */
   private fun assertThatLinkOpens(
     answer: JsonObject,
@@ -858,7 +859,7 @@ class AgentToolsTest {
   ) {
     val link = DeepLink.parse(answer.text("link"))
     assertThat(link.heapDumpName).isEqualTo(window.heapDumpName)
-    assertThat(link.heapDumpPath?.path).isEqualTo(window.heapDumpPath)
+    assertThat(link.heapDumpPath).isNull()
     assertThat(link.windowId).isEqualTo(window.windowId)
     assertThat(link.place).isEqualTo(Place.Object(objectId))
   }

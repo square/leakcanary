@@ -86,7 +86,9 @@ internal object DeepLinkPeers {
    * installed app.
    *
    * Asking the others is a connection each, so it happens off the caller's thread — a link arrives on the
-   * event thread there, and a run that has been killed is only found out about by waiting for it.
+   * event thread there, and a run that has been killed is only found out about by waiting for it. A window of
+   * this run is answered before any of that, on the thread the link came in on: it takes no disk and no
+   * socket to see that a link is about a heap dump on screen here.
    */
   fun follow(
     link: DeepLink,
@@ -97,10 +99,9 @@ internal object DeepLinkPeers {
       return
     }
     Thread({
-      // Nobody else's, so this run answers for it, which is opening that heap dump here.
-      if (deliver(listOf(link)).isNotEmpty()) {
-        windows.open(link)
-      }
+      // Nobody else's, so this run answers for it, which is opening that heap dump here — at the path
+      // [deliver] looked up, since a link says the dump's name and not where it is.
+      deliver(listOf(link)).forEach { windows.open(it) }
     }, THREAD_NAME).apply {
       isDaemon = true
       start()
@@ -113,13 +114,21 @@ internal object DeepLinkPeers {
    *
    * The leftovers are the caller's to answer for, which is what makes a link whose window has gone a window
    * of that heap dump here rather than a process that started and exited without a word.
+   *
+   * **Where the heap dump is gets looked up first**, and it is looked up once for every run: a link carries a
+   * file name, and a run asked about a link it has no window for should be answering about the file rather
+   * than about the name — two dumps called `com.squareup.hprof` off two devices are two investigations. So
+   * what goes out on the socket is the link with the path filled in, and what comes back to the caller is the
+   * same, ready to open. See [HeapDumpPaths.resolve].
    */
   fun deliver(links: List<DeepLink>): List<DeepLink> {
     if (links.isEmpty()) {
       return emptyList()
     }
+    val heapDumpPaths = explorerHeapDumpPaths()
+    val resolved = links.map { heapDumpPaths.resolve(it) }
     val peers = peers()
-    return links.filter { link -> peers.none { peer -> peer.deliver(link) } }
+    return resolved.filter { link -> peers.none { peer -> peer.deliver(link) } }
   }
 
   /** Every other run that has published itself, stale files cleared out on the way past. */

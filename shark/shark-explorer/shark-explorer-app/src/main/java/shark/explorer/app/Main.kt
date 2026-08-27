@@ -164,6 +164,9 @@ private fun explorerApplication(
   // And one set of statuses set by hand per heap dump, for the same reason: a status is a conclusion about
   // the dump rather than about a window, so both windows on one dump read the heap through the same ones.
   val leakStatuses = remember { ExplorerLeakStatuses() }
+  // And where the heap dumps of every window are written down, so that a link into one of them works after
+  // this run has gone — which is what lets a link name the dump without carrying its path.
+  val heapDumpPaths = remember { explorerHeapDumpPaths() }
   // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
   // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
   LaunchedEffect(updateNotice) {
@@ -208,7 +211,12 @@ private fun explorerApplication(
             leakStatuses = leakStatuses,
             // What this window has open, for the agent surface: a socket thread has to be able to find it,
             // and it is a composable's state. See [ExplorerWindow.openHeapDump].
-            onHeapDumpOpen = { open -> window.openHeapDump = open },
+            onHeapDumpOpen = { open ->
+              window.openHeapDump = open
+              // Once it is open rather than as the window is given the file: a dump that turns out not to be
+              // one is not a heap dump for a link to be sent to. See [HeapDumpPaths].
+              open?.let { heapDumpPaths.record(window.deepLinkId, it.session.heapDumpFile) }
+            },
             onHeapDumpProblem = { problem -> window.openProblem = problem },
             deepLinkId = window.deepLinkId,
             // The same way a link arriving from the OS is followed, which is what makes a `shark://` link

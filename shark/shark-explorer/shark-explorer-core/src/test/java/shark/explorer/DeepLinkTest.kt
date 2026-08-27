@@ -248,24 +248,29 @@ class DeepLinkTest {
   }
 
   /**
-   * The link the app itself writes, and the whole of what it is for: a heap dump, a place in it, where that
-   * dump is, and which window it was copied from.
+   * The link the app itself writes, and the whole of what it is for: a heap dump, a place in it, and which
+   * window it was copied from. **Not where the file is** — that is looked up by whoever follows the link, see
+   * [HeapDumpPaths] — because a path is most of the characters of a link and the least readable part of it.
    */
   @Test
-  fun `a link from a window carries the dump, the file and the window`() {
+  fun `a link from a window is a heap dump, a place and a window`() {
     val link = DeepLink(File("/dumps/leak.hprof"), Place.Leaks(), windowId = "abcd2345")
 
-    assertThat(link.toUri())
-      .isEqualTo("shark://leak.hprof/leaks?dump=%2Fdumps%2Fleak.hprof&window=abcd2345")
+    assertThat(link.toUri()).isEqualTo("shark://leak.hprof/leaks?window=abcd2345")
+    assertThat(link.heapDumpPath).isNull()
     assertThat(DeepLink.parse(link.toUri())).isEqualTo(link)
   }
 
-  /** Because a link is read out of a heap dump's notes months later, from a machine with another home. */
+  /**
+   * The one case a file name cannot answer: a heap dump this machine has never opened, which is a link from
+   * somebody else's. Nothing writes one of these — a person does, into a link that had nowhere to go.
+   */
   @Test
-  fun `the path in a link is absolute and has no dots in it`() {
-    val link = DeepLink(File("dumps/./over/../leak.hprof"), Place.Starred)
+  fun `a link can say where the heap dump is`() {
+    val link = DeepLink("leak.hprof", Place.Starred, heapDumpPath = File("/dumps/leak.hprof"))
 
-    assertThat(link.heapDumpPath).isEqualTo(File(File("").absoluteFile, "dumps/leak.hprof"))
+    assertThat(link.toUri()).isEqualTo("shark://leak.hprof/starred?dump=%2Fdumps%2Fleak.hprof")
+    assertThat(DeepLink.parse(link.toUri())).isEqualTo(link)
   }
 
   /**
@@ -316,7 +321,12 @@ class DeepLinkTest {
     )
 
     places.forEach { place ->
-      val link = DeepLink(File("/dumps/leak.hprof"), place, windowId = "abcd2345")
+      val link = DeepLink(
+        heapDumpName = "leak.hprof",
+        place = place,
+        heapDumpPath = File("/dumps/leak.hprof"),
+        windowId = "abcd2345"
+      )
       assertThat(DeepLink.parse(link.toUri())).describedAs(link.toUri()).isEqualTo(link)
     }
   }

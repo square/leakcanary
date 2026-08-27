@@ -11,6 +11,7 @@ import shark.explorer.Adb
 import shark.explorer.AdbOutput
 import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
+import shark.explorer.HeapDumpPaths
 import shark.explorer.LeakStatus
 import shark.explorer.LeakStatusOverride
 import shark.explorer.Place
@@ -76,7 +77,8 @@ class HeadlessAgentHeapDumpsTest {
   @Test
   fun `showing a place says there is no window rather than that it was shown`() {
     val file = temporaryFolder.leakyHeapDump().file
-    headless().use { heapDumps ->
+    val paths = temporaryFolder.newFolder("paths-of-the-shown-place")
+    headless(paths = paths).use { heapDumps ->
       val dump = runBlocking { heapDumps.open(file) }
 
       val shown = dump.show(Place.Leaks())
@@ -84,14 +86,16 @@ class HeadlessAgentHeapDumpsTest {
       assertThat(shown.problem)
         .contains(NO_UI_OPTION)
         .contains(file.name)
-      // And a link all the same, which is the half of it an agent passes on: a `shark://` link names the heap
-      // dump rather than a window, so one from a run that has no window opens this file for whoever clicks
-      // it. No window id on it, since there is no window of this run to prefer.
+      // And a link all the same, which is the half of it an agent passes on: a link names the heap dump rather
+      // than a window, so one from a run with no window opens this file for whoever clicks it. Nothing but the
+      // dump and the place on it — no window of this run to prefer, and no path, because opening the dump
+      // wrote down where it is.
       val link = DeepLink.parse(shown.link!!)
       assertThat(link.heapDumpName).isEqualTo(file.name)
-      assertThat(link.heapDumpPath).isEqualTo(file.absoluteFile)
-      assertThat(link.windowId).isNull()
       assertThat(link.place).isEqualTo(Place.Leaks())
+      assertThat(link.windowId).isNull()
+      assertThat(link.heapDumpPath).isNull()
+      assertThat(HeapDumpPaths(paths).resolve(link).heapDumpPath).isEqualTo(file.absoluteFile)
     }
   }
 
@@ -141,14 +145,18 @@ class HeadlessAgentHeapDumpsTest {
   private fun headless(
     vararg heapDumpFiles: File,
     statuses: File = temporaryFolder.newFolder("statuses-${heapDumpFiles.size}"),
-    notes: File = temporaryFolder.newFolder("notes-${heapDumpFiles.size}")
+    notes: File = temporaryFolder.newFolder("notes-${heapDumpFiles.size}"),
+    paths: File = temporaryFolder.newFolder("paths-${heapDumpFiles.size}")
   ) = HeadlessAgentHeapDumps(
     // Nothing here reaches a device, and an `adb` that answers nothing is what proves it: a test that took
     // the machine's would have whatever is plugged in to answer for.
     deviceHeapDumps = DeviceHeapDumps(NoAdb),
     heapDumpFiles = heapDumpFiles.toList(),
     notes = ExplorerNotes(notes),
-    leakStatuses = ExplorerLeakStatuses(statuses)
+    leakStatuses = ExplorerLeakStatuses(statuses),
+    // This machine's own is where the app writes these, and a test writing there would leave records of heap
+    // dumps that only ever existed in a temporary folder.
+    heapDumpPaths = HeapDumpPaths(paths)
   )
 
   /** An `adb` that isn't there, which is what a build server running this has. */

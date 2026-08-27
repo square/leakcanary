@@ -849,29 +849,40 @@ headings, and the listing is the index.
 
 ## A link names the heap dump, and a window only as a refinement
 
-`shark://<file name>/<place>?<what the place needs>[&dump=<path>][&window=<id>]`. The first version of this
-named the window — `shark://<window id>/<place>` — and it was wrong for the reason a link exists: every place
-there is belongs to the heap dump, not to whatever is showing it, so a link that named a window died with the
-window. Which is most links a day later, and most links in an agent's session log, since a session outlives
-the run that wrote it. A link that mostly doesn't work is a link nobody sends.
+`shark://<file name>/<place>?<what the place needs>[&window=<id>]`. The first version of this named the window
+— `shark://<window id>/<place>` — and it was wrong for the reason a link exists: every place there is belongs
+to the heap dump, not to whatever is showing it, so a link that named a window died with the window. Which is
+most links a day later, and most links in an agent's session log, since a session outlives the run that wrote
+it. A link that mostly doesn't work is a link nobody sends.
 
 So the dump is the identity and the window is honoured while it exists and **ignored once it doesn't**, rather
 than turning the link into an error. Being right about which window is worth a lot while the window is there
 and nothing at all afterwards.
 
 - **The authority is the file name**, because it is the part a person reads and types, and it is in every
-  answer an agent has already been given. `dump=` carries the normalized absolute path beside it, since two
-  dumps called `com.squareup.hprof` off two devices are two investigations — and because a path is the only
-  thing that can open a dump nothing has open. A link with a name and no path is one somebody typed, and it
-  resolves against what is open.
-- **Not `heapDumpFileKey`**, the `<name>-<hash of parent>` the notes and statuses are filed under. It is
-  one-way and nothing on disk maps a key back to a path, so a key-only link could never reopen a dump.
+  answer an agent has already been given.
+- **Where the file is doesn't travel in the link.** The version between these two carried
+  `dump=%2FUsers%2F…`, which was four fifths of the characters of a link and the fifth nobody could read. So
+  `HeapDumpPaths` writes down the path of every dump that opens, under the id of the window it opened in, the
+  newest 200 kept, and following a link is a lookup. What that costs is honest and small: a link works for as
+  long as this machine remembers the file rather than for as long as the file exists, and a link that has been
+  forgotten says so and can be given `&dump=<path>` by hand.
+- **Recorded under the window id, not the dump.** One record per open is a single whole-file write by one run
+  with nothing to merge, and it answers both questions at once: a window id resolves to the dump it was
+  showing, and a file name resolves to the newest record with that name. Two dumps called `com.squareup.hprof`
+  off two devices are two investigations, and the `window=` on a copied link is what tells them apart.
+- **Not `heapDumpFileKey`**, the `<name>-<hash of parent>` the notes and statuses are filed under: it is
+  one-way, so a key on its own can name a dump but never find one. Which was also the objection to a window id
+  as the authority, and `HeapDumpPaths` answers it — a link that is nothing but an id resolves now. It still
+  isn't what the app writes, because an id says nothing to whoever reads the link, is not what a window's
+  title shows, and is not the same for the same place twice.
 - **Window ids stay random.** A counted id repeats across runs *and* within one as windows close and open, so
   it would be honoured against the wrong reading of the dump — silently, which is worse than being ignored. A
   file name plus a number fixes neither half: the number would have to be handed out across runs that cannot
   see each other's windows.
-- **Resolution order is windowId, then path, then file name, then the authority as a window id** — that last
-  step for the `shark://<window id>/<place>` links already sitting in notes and in session files on disk.
+- **Resolution order is windowId, then path, then file name, then the authority as a window id**, in the
+  windows of the run and again in the records on disk. That last step is what keeps a `shark://<window id>/…`
+  link working — the ones already sitting in notes and session files, and the shortest link anyone can write.
 - **A run claims a link only for a window it already has**, never for a file it could open, or every run of
   the app would claim every link. Whoever is left holding it opens the dump. `DeepLinkPeers`.
 - **The agent surface converged on the same choice**: the tool argument is `heapDump`, taking a file name, and

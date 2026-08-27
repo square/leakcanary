@@ -245,6 +245,13 @@ line works after the run that opened the dump has ended, which is the case worth
 half of it, the `window=<id>` a copied link carries, `grep "Windows of this run"` in the newest file under
 `~/.shark-explorer/logs` for the ids of the run.
 
+**A link says no path, so a dump this machine has never opened has nowhere to go.** Where each dump was is
+written down under `~/.shark-explorer/heap-dump-paths`, one file per window that opened one, and the
+`HeapDumpPaths` lookup is what turns a file name back into a file. So a link to a dump opened only in a run
+started before this feature existed, or one whose record has been evicted, opens a window saying so — `ls`
+that directory before concluding the routing is broken, and `&dump=<path>` is the way to try a link about a
+dump nothing here has opened.
+
 **Read the result in the log rather than off the screen.** Following a link raises the app over whatever
 the person at the machine was doing, so a screenshot to check it worked costs them their window and shows
 you theirs. `The OS handed this run`, `A link asked window <id> for <place> of <file>`, `A link asked for

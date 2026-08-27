@@ -69,5 +69,11 @@ internal fun writeWholeFile(
   Files.move(partial.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
 }
 
-/** A save in flight, which is never a file anything reads. */
-private const val PARTIAL_SUFFIX = ".partial"
+/**
+ * A save in flight, which is never a file anything reads.
+ *
+ * Named here rather than hidden in [writeWholeFile] because a directory these are written into is also a
+ * directory something lists — and one that took a save in flight for a file of its own would delete it out
+ * from under the run writing it. See [HeapDumpPaths].
+ */
+internal const val PARTIAL_SUFFIX = ".partial"

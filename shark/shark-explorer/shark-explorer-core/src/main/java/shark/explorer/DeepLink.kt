@@ -25,10 +25,11 @@ import kotlin.random.Random
  * error. Being right about which window is worth a lot while the window exists and nothing at all
  * afterwards.
  *
- * [heapDumpName] is the authority because it is the part a person reads and types; [heapDumpPath] is what
- * makes the link exact, since two dumps called `com.squareup.hprof` off two devices are two investigations,
- * and it is also the only way to open a dump nothing has open. A link with the name and no path is what
- * somebody typed by hand, and it resolves against what is open.
+ * [heapDumpName] is the authority because it is the part a person reads and types, and **it is all a link
+ * says about which file**: where that file is, is looked up on the machine following the link rather than
+ * carried in it, since a path is most of the characters of a link and the least readable part of one. See
+ * [HeapDumpPaths], which is what remembers it, and [heapDumpPath], which is where a link that does carry one
+ * puts it.
  *
  * Immutable and in this module rather than in the UI, so that what a link means is unit tested rather than
  * found out by clicking one. See [Place] and `ExplorerWindows.windowFor`.
@@ -38,10 +39,14 @@ data class DeepLink(
   val heapDumpName: String,
   val place: Place,
   /**
-   * Where that dump is, so that a link outlives every window of it and can open one.
+   * Where that dump is, for the links that say: null in every link this app writes.
    *
-   * Absolute and normalized, since it is compared against what a window has open and read months later.
-   * Null for a link somebody typed, which names a dump only by [heapDumpName].
+   * Filled in by [HeapDumpPaths.resolve] as a link is followed, which is how a link finds the file without
+   * carrying it, and passed on in the query when one run hands a link to another so that the second doesn't
+   * have to look it up again. Written by hand in a link about a heap dump this machine has never opened,
+   * which is the one case a name cannot answer.
+   *
+   * Absolute and normalized when this app put it there, since it is compared against what a window has open.
    */
   val heapDumpPath: File? = null,
   /**
@@ -52,7 +57,13 @@ data class DeepLink(
   val windowId: String? = null
 ) {
 
-  /** A link to a place in a heap dump this app has open, which is every link the app itself writes. */
+  /**
+   * A link to a place in a heap dump this app has open, which is every link the app itself writes.
+   *
+   * Names it by its file name and nothing else — where the file is doesn't travel in the link, see
+   * [heapDumpPath] — so this takes the [File] to save every caller writing `.name`, and to be the one
+   * spelling of "a link to what this window is showing".
+   */
   constructor(
     heapDumpFile: File,
     place: Place,
@@ -60,7 +71,6 @@ data class DeepLink(
   ) : this(
     heapDumpName = heapDumpFile.name,
     place = place,
-    heapDumpPath = normalizedHeapDumpPath(heapDumpFile),
     windowId = windowId
   )
 
@@ -278,13 +288,15 @@ data class DeepLink(
 
     /**
      * Where the heap dump is, and which window it was read in: the two parameters that are about the link
-     * rather than about the place.
+     * rather than about the place. Only `window` is written into a link this app copies — see [heapDumpPath]
+     * for when the other one is there.
      *
      * Which is why no [Place] may spell a parameter either of these names — they are read off the same query
      * — and none does. `DeepLinkTest` holds them apart.
      */
-    internal const val DUMP_PARAMETER = "dump"
-    internal const val WINDOW_PARAMETER = "window"
+    /** Public because a message telling somebody to add one to a link has to spell it the way this does. */
+    const val DUMP_PARAMETER = "dump"
+    const val WINDOW_PARAMETER = "window"
 
     internal const val ID_PARAMETER = "id"
     internal const val PARENT_PARAMETER = "parent"

@@ -11,6 +11,7 @@ import kotlinx.coroutines.cancel
 import shark.SharkLog
 import shark.explorer.DeepLink
 import shark.explorer.DeviceHeapDumps
+import shark.explorer.HeapDumpPaths
 import shark.explorer.agent.AgentHeapDump
 import shark.explorer.agent.AgentRefusal
 import shark.explorer.agent.ShownPlace
@@ -33,7 +34,9 @@ internal class HeadlessAgentHeapDumps(
   heapDumpFiles: List<File> = emptyList(),
   /** The same notes a window keeps, in the same directory: a test passes its own. See [ExplorerNotes]. */
   private val notes: ExplorerNotes = ExplorerNotes(),
-  private val leakStatuses: ExplorerLeakStatuses = ExplorerLeakStatuses()
+  private val leakStatuses: ExplorerLeakStatuses = ExplorerLeakStatuses(),
+  /** And the same record of where a heap dump was, which is what makes the links below resolve. */
+  private val heapDumpPaths: HeapDumpPaths = explorerHeapDumpPaths()
 ) : RunAgentHeapDumps(deviceHeapDumps), Closeable {
 
   /**
@@ -118,13 +121,17 @@ internal class HeadlessAgentHeapDumps(
     // agent does with it is name a dump, and a vocabulary that changes with whether there is a screen is one
     // nobody can carry between the two.
     val windowId = DeepLink.newWindowId()
+    // Written down the same way a window's dump is, and here it is the whole of what makes the links this
+    // hands back work: nobody watching a run with no screen can be told where the file was.
+    heapDumpPaths.record(windowId, file)
     val dump = HeadlessHeapDump(
       open = open,
       agent = OpenAgentHeapDump(windowId = windowId, open = open) { place ->
         SharkLog.d { "Nowhere to show $place: this run was started with $NO_UI_OPTION" }
-        // A link all the same, and it works: a link names the heap dump rather than a window, so this one
-        // opens the file at that place in whatever Shark Explorer whoever clicks it has. Which is the whole
-        // of what a run with no screen can offer, and more than nothing.
+        // A link all the same, and it works: a link names the heap dump rather than a window, and where this
+        // dump is has just been written down, so this opens the file at that place in whatever Shark Explorer
+        // reads it on this machine. Which is the whole of what a run with no screen can offer, and more than
+        // nothing.
         ShownPlace.onlyAsALink(
           link = DeepLink(file, place).toUri(),
           problem = "This Shark Explorer was started with $NO_UI_OPTION, so it has no window and nobody " +
