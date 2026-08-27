@@ -185,15 +185,15 @@ class NoteSectionTest {
       startNote()
       // Starred rather than the leaks or the object list, because the bar's button for those says the same
       // word as the link would: "★ 0 starred" doesn't, so this text is the note's and nothing else.
-      write("shark://$WINDOW_ID/starred")
+      write("shark://$LINKED_HEAP_DUMP/starred")
       save()
       waitUntilAtLeastOneExists(hasText(Place.STARRED_LABEL), RENDER_TIMEOUT_MILLIS)
 
       onNodeWithText(Place.STARRED_LABEL).performClick()
 
-      // Handed to whatever routes links rather than opened here: a link names one window of one run, and
-      // which window that is, is not a question this one can answer. See [DeepLinkPeers.follow].
-      assertThat(followed).containsExactly(DeepLink(WINDOW_ID, Place.Starred))
+      // Handed to whatever routes links rather than opened here: a link names a heap dump, and where that
+      // heap dump is open is not a question one window can answer. See [DeepLinkPeers.follow].
+      assertThat(followed).containsExactly(DeepLink(LINKED_HEAP_DUMP, Place.Starred))
     }
   }
 
@@ -358,7 +358,6 @@ class NoteSectionTest {
       MaterialTheme {
         ExplorerApp(
           heapDumpFile = heapDumpFile,
-          deepLinkId = WINDOW_ID,
           // A directory of this test's, never `~/.shark-explorer`: a test that saved into the real one
           // would write into the notes of whoever is running it.
           notes = ExplorerNotes(notesRoot),
@@ -474,8 +473,8 @@ class NoteSectionTest {
     /** Saving is a file written, on another thread. */
     private const val SAVE_TIMEOUT_MILLIS = 10_000L
 
-    /** What a link here names this window by, fixed so that a link can be spelled out in a test. */
-    private const val WINDOW_ID = "abcd2345"
+    /** The heap dump a link written in a note names, which is not the one this window has open. */
+    private const val LINKED_HEAP_DUMP = "another.hprof"
 
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }
   }

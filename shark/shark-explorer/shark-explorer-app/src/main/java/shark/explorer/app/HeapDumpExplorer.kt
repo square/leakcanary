@@ -123,8 +123,6 @@ internal fun HeapDumpExplorer(
   notes: HeapDumpNotes,
   /** And what has been decided about its objects by hand, shared the same way. See [LeakStatusDetail]. */
   leakStatuses: HeapDumpLeakStatuses,
-  /** What a link to one of these tabs names this window by. See [DeepLink]. */
-  deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked for, opened as tabs. See [ExplorerWindow.linkedPlaces]. */
   linkedPlaces: List<Place> = emptyList(),
   onLinkedPlaceOpened: (Place) -> Unit = {},
@@ -644,27 +642,24 @@ internal fun HeapDumpExplorer(
    */
   val openHovered: (OpenIn) -> Unit = { openIn -> hovered?.place?.let { open(it, openIn) } }
   /**
-   * Where every "copy link" in this window ends up, for the same reason [open] is one function: a link to a
-   * rectangle, a row, a field, a button and a tab is one thing, and five of them would drift.
+   * Where every "copy link" about another heap dump ends up, which the *Agent logs* screens are full of: a
+   * link is a heap dump and a place, so a row about a dump this window hasn't got is something to send as
+   * well as something to click. See [shark.explorer.DeepLink].
    */
-  val copyLink: (Place) -> Unit = { destination ->
-    val link = DeepLink(session.heapDumpFile, destination, windowId = deepLinkId).toUri()
+  val copyHeapDumpLink: (File, Place) -> Unit = { heapDumpFile, destination ->
+    val link = DeepLink(heapDumpFile, destination).toUri()
     // In the log as well as on the clipboard, so that a link someone reports as not working can be compared
     // against the one this window actually handed out.
     SharkLog.d { "Copied $link" }
     copyToClipboard(link)
   }
   /**
-   * And for a place of a heap dump this window hasn't got, which the *Agent logs* screens are full of.
-   *
-   * No window id on it: this window is not one of that dump's, so there is no window to prefer and the link
-   * is the file plus the place — which is all a link needs, and is why a row about somebody else's dump is
-   * something to send rather than only something to click. See [shark.explorer.DeepLink].
+   * And for this window's own heap dump, which is every other "copy link" there is, for the same reason
+   * [open] is one function: a link to a rectangle, a row, a field, a button and a tab is one thing, and five
+   * of them would drift.
    */
-  val copyHeapDumpLink: (File, Place) -> Unit = { heapDumpFile, destination ->
-    val link = DeepLink(heapDumpFile, destination).toUri()
-    SharkLog.d { "Copied $link" }
-    copyToClipboard(link)
+  val copyLink: (Place) -> Unit = { destination ->
+    copyHeapDumpLink(session.heapDumpFile, destination)
   }
   /** The same, for everything that names an object by its id. */
   val copyObjectLink: (Long) -> Unit = { objectId -> copyLink(Place.Object(objectId)) }

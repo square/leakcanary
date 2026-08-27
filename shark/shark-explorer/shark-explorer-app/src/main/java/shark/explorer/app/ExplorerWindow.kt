@@ -8,8 +8,10 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import java.awt.EventQueue
 import java.awt.Frame
 import java.io.File
+import kotlin.random.Random
 import shark.SharkLog
 import shark.explorer.DeepLink
+import shark.explorer.HeapDumpPaths
 import shark.explorer.NativeBitmapPixels
 import shark.explorer.Place
 
@@ -31,12 +33,11 @@ internal class ExplorerWindow(
   /** What this run calls its windows, in front of the heap dump. See [ExplorerArguments.titlePrefix]. */
   val titlePrefix: String? = null,
   /**
-   * What a link to a place in this window names it by, and the whole of what makes deep linking work: a
-   * link is answered by the window it was copied from and by no other, however many windows have the same
-   * heap dump open. See [DeepLink].
+   * What an agent calls this window, since a heap dump open in two of them is two places to be told about.
+   * Never in a link — see [DeepLink] — and it is not what makes one work.
    */
-  val deepLinkId: String = DeepLink.newWindowId(),
-  /** Why this window is empty, for one opened by a link naming a window that had already gone. */
+  val windowId: String = newWindowId(),
+  /** Why this window is empty, for one a link opened having nowhere to go. See [ExplorerWindows.open]. */
   deepLinkProblem: String? = null
 ) {
 
@@ -54,6 +55,15 @@ internal class ExplorerWindow(
    * Said in the middle of a window with nothing in it. See [ExplorerWindows.open].
    */
   var deepLinkProblem: String? by mutableStateOf(deepLinkProblem)
+
+  /**
+   * What a link is waiting on an answer about, and null whenever nothing is being asked.
+   *
+   * The other way a link ends up here: two heap dumps of the name it says, or none this machine can find.
+   * Set from whatever thread the link arrived on, for the reason [linkedPlaces] is, and taken by the window
+   * on the next frame as a dialog. See [ExplorerWindows.open] and [ExplorerWindows.chooseLinkedHeapDump].
+   */
+  var linkedHeapDump: LinkedHeapDump? by mutableStateOf(null)
 
   /**
    * The heap dump this window has open, once it is open, for everything that isn't drawing the window.
@@ -122,7 +132,7 @@ internal class ExplorerWindow(
     val frame = frame
     if (frame == null) {
       // Which is what a link that raised nothing at all looks like from here.
-      SharkLog.d { "Window $deepLinkId has no frame yet, so nothing was brought to the front" }
+      SharkLog.d { "Window $windowId has no frame yet, so nothing was brought to the front" }
       return
     }
     EventQueue.invokeLater {
@@ -140,6 +150,34 @@ internal class ExplorerWindow(
 }
 
 /**
+ * A new name for a window: eight characters of an alphabet nothing can be misread in.
+ *
+ * Read out of a log and typed back into an agent's call — see [ExplorerWindow.windowId] — so the alphabet
+ * leaves out `l`, `1`, `o` and `0`, and eight characters is short enough to retype. Random rather than
+ * counted, because two runs of this app count from the same place and an agent talking to both would be told
+ * about two windows called `1`.
+ */
+internal fun newWindowId(random: Random = Random.Default): String =
+  (1..WINDOW_ID_LENGTH).map { WINDOW_ID_ALPHABET.random(random) }.joinToString("")
+
+/**
+ * A heap dump a link named that this run could not pin down on its own, and what is being asked about it.
+ *
+ * Two ways one link gets here — see [ExplorerWindows.open] — and one question answers both, because both
+ * answers are a path: which of the heap dumps called that, or where the one called that is.
+ */
+internal class LinkedHeapDump(
+  /** What the link called the heap dump, which is a file name and all a link says. */
+  val heapDumpName: String,
+  /** Why this is being asked, said in the dialog and in the middle of a window opened to ask it. */
+  val question: String,
+  /** The paths of that name this machine knows of, which is what there is to pick from. Can be empty. */
+  val choices: List<File>,
+  /** Where the link was going, which is where whichever heap dump is picked opens. */
+  val place: Place
+)
+
+/**
  * Every window of this run, and the way in for anything that isn't drawing one.
  *
  * Hoisted out of the composable that draws the windows because a link arrives from outside the app — the
@@ -147,6 +185,11 @@ internal class ExplorerWindow(
  * composing nothing. See [ExplorerWindow.linkedPlaces].
  */
 internal class ExplorerWindows(
+  /**
+   * Where the heap dumps this machine has opened are, which is how a link about one that no window of this
+   * run has open finds the file. See [open].
+   */
+  val heapDumpPaths: HeapDumpPaths,
   /** Put in front of every window title of this run. See [ExplorerArguments.titlePrefix]. */
   val titlePrefix: String? = null,
   /** One Compose window is drawn per entry, so a window opening or closing is an edit of this. */
@@ -154,94 +197,180 @@ internal class ExplorerWindows(
 ) : MutableList<ExplorerWindow> by windows {
 
   /**
-   * The window of this run [link] leads to, or null for one no window here can answer.
+   * The windows of this run [link] leads to, which is every window showing the heap dump it names.
    *
    * Which is what a run asks before handing a link on to the others, so it is deliberately *only* about
    * windows that exist: a run that answered "I could open that file" would claim every link on the machine.
-   * Opening the dump is what whoever ends up answering does, in [open].
+   * Opening the file, and asking where it is, is what whoever ends up answering does. See [open].
    *
-   * In order, because each step is right about something the next one isn't:
-   *
-   * - **The window the link was made from**, while it is still open. Two windows on one dump are two
-   *   readings of it, and this is the only thing that tells them apart.
-   * - **A window of that heap dump**, by path, when the link says where the file is — which is one handed
-   *   over by another run, since that run looked it up. Exact, so nothing is tried after it: two dumps of one
-   *   name off two devices are two investigations.
-   * - **A window of a dump with that file name**, which is what a link says about the dump and all it says.
-   * - **A window with that id**, for a link whose whole authority is a window: `shark://<window>/…` is in
-   *   notes on disk and in agent sessions, and one of those pasted back into the run it came from still goes
-   *   where it went. Last, so that a heap dump called like a window id — which is a file called `abcd2345` —
-   *   is read as the heap dump.
+   * By file name, which is the whole of what a link says about the heap dump — and by path for the rare link
+   * that says where the file is, since that one is exact: two dumps called `com.squareup.hprof` off two
+   * devices are two investigations, and a link carrying a path has already said which.
    */
-  fun windowFor(link: DeepLink): ExplorerWindow? {
-    val ofWindowId = link.windowId?.let { id -> firstOrNull { it.deepLinkId == id } }
-    if (ofWindowId != null) {
-      return ofWindowId
+  fun windowsFor(link: DeepLink): List<ExplorerWindow> {
+    val path = link.heapDumpPath?.normalizedPath()
+    return filter { window ->
+      val heapDumpFile = window.heapDumpFile ?: return@filter false
+      if (path == null) heapDumpFile.name == link.heapDumpName else heapDumpFile.normalizedPath() == path
     }
-    val path = link.heapDumpPath
-    if (path != null) {
-      return firstOrNull { it.heapDumpFile?.absoluteFile?.normalize() == path }
-    }
-    return firstOrNull { it.heapDumpFile?.name == link.heapDumpName }
-      ?: firstOrNull { it.deepLinkId == link.heapDumpName }
   }
 
   /**
-   * Follows [link]: the place opens as a new tab in a window of that heap dump, which comes to the front.
+   * Follows [link]: the place opens as a new tab in a window of the heap dump it names, which comes to the
+   * front.
    *
-   * **A link outlives the window it was made from**, so one whose window has gone opens the heap dump it
-   * names — that is the whole point of naming the dump — and only a link naming a file that isn't there any
-   * more has nowhere to go. That gets an empty window saying so rather than silence: silence is the one
-   * answer that can't be told from the app having failed to start, and a link is usually followed from
-   * somewhere that cannot see whether this app did anything at all.
+   * **A link outlives the window it was copied from**, and naming the heap dump rather than the window is
+   * what makes that work. Four ways it goes, and the first is nearly always the one:
+   *
+   * - **A window of this run has that heap dump open.** That window is where the link goes, and nothing else
+   *   is looked at.
+   * - **None has, but this machine has had it open.** The file opens in a window of its own, wherever it was
+   *   last seen. See [HeapDumpPaths].
+   * - **There are two heap dumps of that name.** Two windows on two files, or two paths on record: a link
+   *   says nothing that tells them apart, so the reader is asked which, by path.
+   * - **Nothing here knows that name.** Which is a link from somebody else's machine, or about a heap dump
+   *   opened too long ago to still be on record, or one that has been deleted: the reader is asked for the
+   *   file. Asked, rather than left with silence — silence is the one answer that can't be told from the app
+   *   having failed to start, and a link is usually followed from somewhere that cannot see either way.
    */
   fun open(link: DeepLink) {
-    val window = windowFor(link)
+    val openWindows = windowsFor(link)
+    val openPaths = openWindows.mapNotNull { it.heapDumpFile?.normalizedPath() }.distinct()
+    if (openPaths.size > 1) {
+      // Which of them is a question only the reader can answer: nothing in the link tells the two apart, and
+      // guessing would be picking somebody's investigation for them.
+      ask(link, whichHeapDump(link, openPaths, areOpen = true), openPaths, host = openWindows.first())
+      return
+    }
+    val window = openWindows.firstOrNull()
     if (window != null) {
-      SharkLog.d { "A link asked window ${window.deepLinkId} for ${link.place} of ${link.heapDumpName}" }
+      // The first of them when one heap dump is open in two windows, which is two readings of one file: a
+      // link says nothing that tells those apart either, but they show the same dump, so there is nothing
+      // worth asking.
+      SharkLog.d { "A link asked window ${window.windowId} for ${link.place} of ${link.heapDumpName}" }
       window.goToLinked(link.place)
       window.bringToFront()
       return
     }
-    val heapDumpFile = link.heapDumpPath?.takeIf { it.isFile }
-    if (heapDumpFile == null) {
-      SharkLog.d { "No window of this run has ${link.heapDumpName} open: opening one to say so" }
-      add(
-        ExplorerWindow(
-          cascade = freeCascade(),
-          titlePrefix = titlePrefix,
-          deepLinkProblem = noSuchHeapDump(link)
-        )
-      )
+    // Nothing here has it open, so where the file is comes off the link when it says, and off what this
+    // machine remembers opening when it doesn't.
+    val remembered = link.heapDumpPath?.let { listOf(it.normalizedPath()) }
+      ?: heapDumpPaths.pathsNamed(link.heapDumpName).map { it.normalizedPath() }.distinct()
+    val found = remembered.filter { it.isFile }
+    when {
+      found.size == 1 -> {
+        SharkLog.d { "A link asked for ${link.place} of ${found.single()}, which is not open yet" }
+        goToHeapDump(found.single(), link.place)
+      }
+      found.size > 1 -> ask(link, whichHeapDump(link, found, areOpen = false), found, host = null)
+      // Nowhere to go on its own, so the question is the whole of what this link gets: a window of its own,
+      // saying what is missing, over a dialog asking for the file.
+      else -> ask(link, noSuchHeapDump(link, remembered), choices = emptyList(), host = null)
+    }
+  }
+
+  /**
+   * Puts a question about [link]'s heap dump to whoever followed it, in [host] or in a window of its own.
+   *
+   * A window already showing one of the heap dumps in question when there is one, so that asking which of
+   * them costs no window: the dialog is over what its reader was looking at either way. Failing that the
+   * question needs a window, which is also where the heap dump picked will open — and that window says the
+   * question in the middle of it as well, so that a question dismissed leaves the reason on screen rather
+   * than a window with nothing in it and nothing to explain it.
+   *
+   * Brought to the front either way, for the same reason following a link raises a window: a dialog drawn
+   * inside a window that is behind another one is a link that did nothing, as far as its reader can tell.
+   */
+  private fun ask(
+    link: DeepLink,
+    question: String,
+    choices: List<File>,
+    host: ExplorerWindow?
+  ) {
+    SharkLog.d { "A link to ${link.place} of ${link.heapDumpName} is asking: $question" }
+    val window = host ?: emptyWindow().also { it.deepLinkProblem = question }
+    window.linkedHeapDump = LinkedHeapDump(
+      heapDumpName = link.heapDumpName,
+      question = question,
+      choices = choices,
+      place = link.place
+    )
+    window.bringToFront()
+  }
+
+  /**
+   * What an answer to [ExplorerWindow.linkedHeapDump] does: the link goes where it was going, in the heap
+   * dump that was picked.
+   *
+   * [chosen] is null for a question dismissed, which is a link not followed — the window keeps the reason it
+   * was asked, and there is nothing else to do about it.
+   */
+  fun chooseLinkedHeapDump(
+    window: ExplorerWindow,
+    chosen: File?
+  ) {
+    val asked = window.linkedHeapDump ?: return
+    window.linkedHeapDump = null
+    if (chosen == null) {
+      SharkLog.d { "Nothing was picked for ${asked.heapDumpName}, so its link goes nowhere" }
       return
     }
-    // The file rather than what the link called it, which for a link named by a window id is that id.
-    SharkLog.d { "A link asked for ${link.place} of ${heapDumpFile.name}, which is not open yet" }
-    goToHeapDump(heapDumpFile, link.place)
+    SharkLog.d { "$chosen was picked for ${asked.heapDumpName}, so its link goes to ${asked.place}" }
+    goToHeapDump(chosen, asked.place)
   }
 
   /** The first step of the cascade no window is at, which is where the next window goes. */
   fun freeCascade(): Int = generateSequence(0, Int::inc).first { step -> none { it.cascade == step } }
 
+  /**
+   * A window with nothing in it for a link to say something in: the one this run started with when it was
+   * started with no heap dump, and a new one otherwise.
+   *
+   * Never one that is already asking about another link. Two links that both need an answer are two
+   * questions, and the second one taking this window would take the first one's question with it.
+   */
+  private fun emptyWindow(): ExplorerWindow =
+    firstOrNull { it.heapDumpFile == null && it.linkedHeapDump == null }
+      ?: ExplorerWindow(cascade = freeCascade(), titlePrefix = titlePrefix).also { add(it) }
+
   companion object {
     /**
-     * What an empty window opened by a link with nowhere to go says in the middle of it.
+     * What a link about a heap dump with more than one place to be asks, which is: which of these?
      *
-     * Two ways to get here, and they need different things done about them: a heap dump that has been moved
-     * or deleted since the link was made, and one this machine has no record of ever opening — which is a
-     * link from somebody else's machine, or one about a dump opened so long ago that where it was has been
-     * forgotten. Both are answered by opening the file, so both messages end by saying so.
+     * Rare, and worth wording rather than guessing at. Every heap dump this app takes off a device is named
+     * after the process, its pid and a random number, and LeakCanary names its own after the time of the
+     * dump — so two files of one name are a dump named by hand, or one app dumped on two devices, which are
+     * exactly the two cases where picking one for the reader would be picking wrong.
      */
-    fun noSuchHeapDump(link: DeepLink): String {
-      val path = link.heapDumpPath
-      return if (path == null) {
-        "No heap dump called ${link.heapDumpName} is open here, and this machine has no record of opening " +
-          "one by that name. Open that file and follow the link again, or say where it is in the link: " +
-          "&${DeepLink.DUMP_PARAMETER}=/path/to/${link.heapDumpName}"
-      } else {
-        "${link.heapDumpName} is not open and there is no file at $path to open, so this link has nowhere " +
-          "to go. A link outlives the window it was copied from, but not the heap dump it is about."
-      }
+    fun whichHeapDump(
+      link: DeepLink,
+      choices: List<File>,
+      areOpen: Boolean
+    ): String = if (areOpen) {
+      "${choices.size} heap dumps called ${link.heapDumpName} are open."
+    } else {
+      "${choices.size} heap dumps called ${link.heapDumpName} have been opened here, and none is open now."
+    }
+
+    /**
+     * What a link about a heap dump this run cannot find says, which ends in the two ways to say where it is.
+     *
+     * Two ways to get here, and they mean different things to whoever reads it: [gone] is where this machine
+     * remembers the heap dump being, so an empty one is a name nothing here has ever opened — a link from
+     * somebody else's machine, or about a dump opened so long ago that where it was has been forgotten — and
+     * a full one is a heap dump moved or deleted since the link was written. See [HeapDumpPaths].
+     */
+    fun noSuchHeapDump(
+      link: DeepLink,
+      gone: List<File>
+    ): String = if (gone.isEmpty()) {
+      "No heap dump called ${link.heapDumpName} is open here, and this machine has no record of opening one " +
+        "by that name. Choose the file, or say where it is in the link: " +
+        "&${DeepLink.DUMP_PARAMETER}=/path/to/${link.heapDumpName}"
+    } else {
+      "${link.heapDumpName} is not open, and there is no file at ${gone.joinToString(" or ")} any more. A " +
+        "link outlives the window it was copied from, but not the heap dump it is about. Choose the file if " +
+        "it has moved."
     }
   }
 }
@@ -250,8 +379,12 @@ internal class ExplorerWindows(
  * A window per heap dump named on the command line, or one window with none — something has to carry
  * the button that opens the first one.
  */
-internal fun explorerWindows(arguments: ExplorerArguments): ExplorerWindows =
-  ExplorerWindows(arguments.titlePrefix).apply {
+internal fun explorerWindows(
+  arguments: ExplorerArguments,
+  /** Handed in rather than made here, because a run records the heap dumps it opens into the same one. */
+  heapDumpPaths: HeapDumpPaths
+): ExplorerWindows =
+  ExplorerWindows(heapDumpPaths, arguments.titlePrefix).apply {
     val titlePrefix = arguments.titlePrefix
     if (arguments.heapDumpFiles.isEmpty()) {
       add(ExplorerWindow(null, titlePrefix = titlePrefix))
@@ -260,9 +393,9 @@ internal fun explorerWindows(arguments: ExplorerArguments): ExplorerWindows =
         add(ExplorerWindow(file, cascade = index, titlePrefix = titlePrefix))
       }
     }
-    // Which window is which, for reading a link out of a log afterwards: a link carries the window it was
-    // copied from, and nothing else in the file says what that id stands for.
-    SharkLog.d { "Windows of this run: ${joinToString { "${it.deepLinkId} ${it.title}" }}" }
+    // Which window is which, for reading an agent's session out of a log afterwards: a call names the window
+    // it was answered by, and nothing else in the file says what that id stands for.
+    SharkLog.d { "Windows of this run: ${joinToString { "${it.windowId} ${it.title}" }}" }
   }
 
 /**
@@ -332,24 +465,38 @@ internal fun ExplorerWindows.openHeapDump(
  * second one on the same file — the same rule [openHeapDump] follows, one window per heap dump — and the
  * window that has just been opened for it is in front already, so only an existing one is brought forward.
  *
- * Which is also where [ExplorerWindows.open] ends up for a link whose window has gone, a link being about a
- * heap dump for the same reason a row of that screen is.
+ * Which is also where [ExplorerWindows.open] ends up for a link about a heap dump no window has open, and
+ * where an answer to [ExplorerWindows.chooseLinkedHeapDump] goes: a link is about a heap dump for the same
+ * reason a row of that screen is.
  */
 internal fun ExplorerWindows.goToHeapDump(
   heapDumpFile: File,
   place: Place
 ) {
-  // By absolute path, because a window opened from a command line holds the relative path it was given while
-  // a session recorded the absolute one, and those are the same heap dump.
-  val showing = firstOrNull { it.heapDumpFile?.absoluteFile == heapDumpFile.absoluteFile }
+  val showing = firstOrNull { it.heapDumpFile?.normalizedPath() == heapDumpFile.normalizedPath() }
   SharkLog.d {
-    val where = if (showing == null) "a window it is not open in yet" else "window ${showing.deepLinkId}"
-    "A row of an agent's session asked $where for $place of ${heapDumpFile.name}"
+    val where = if (showing == null) "a window it is not open in yet" else "window ${showing.windowId}"
+    "Something outside a window asked $where for $place of ${heapDumpFile.name}"
   }
   val window = showing ?: openHeapDump(heapDumpFile)
   window.goToLinked(place)
   showing?.bringToFront()
 }
 
+/**
+ * One spelling of a heap dump's path, so that two names for one file are one heap dump: a window opened from
+ * a command line holds the relative path it was given, while a link, a session and [HeapDumpPaths] carry the
+ * absolute one.
+ *
+ * The same spelling `normalizedHeapDumpPath` gives what shark-explorer-core writes about a heap dump, copied
+ * rather than shared: a line of this belongs in whichever module needs it, not in a published API.
+ */
+private fun File.normalizedPath(): File = absoluteFile.normalize()
+
 /** Between what a run is called and which heap dump a window shows, as elsewhere in this window. */
 private const val TITLE_SEPARATOR = " · "
+
+private const val WINDOW_ID_LENGTH = 8
+
+/** Lowercase and digits without `l`, `1`, `o` and `0`, which is what nothing can be misread in. */
+private const val WINDOW_ID_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789"

@@ -84,7 +84,7 @@ internal class FakeAgentHeapDump(
     // A window's answer, which is a link — built the way the window builds one, since a fake that spelled it
     // itself would be a test passing on a link nobody could follow. What a run with no window answers is
     // `HeadlessAgentHeapDumpsTest`'s, since it is that run's one difference from this one.
-    return ShownPlace.at(DeepLink(File(heapDumpPath), place, windowId = windowId).toUri())
+    return ShownPlace.at(DeepLink(File(heapDumpPath), place).toUri())
   }
 
   override fun close() {

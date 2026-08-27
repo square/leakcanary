@@ -93,9 +93,8 @@ class HeadlessAgentHeapDumpsTest {
       val link = DeepLink.parse(shown.link!!)
       assertThat(link.heapDumpName).isEqualTo(file.name)
       assertThat(link.place).isEqualTo(Place.Leaks())
-      assertThat(link.windowId).isNull()
       assertThat(link.heapDumpPath).isNull()
-      assertThat(HeapDumpPaths(paths).resolve(link).heapDumpPath).isEqualTo(file.absoluteFile)
+      assertThat(HeapDumpPaths(paths).pathsNamed(link.heapDumpName)).containsExactly(file.absoluteFile)
     }
   }
 

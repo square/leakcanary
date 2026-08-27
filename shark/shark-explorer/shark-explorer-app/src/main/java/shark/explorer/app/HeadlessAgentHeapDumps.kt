@@ -120,10 +120,10 @@ internal class HeadlessAgentHeapDumps(
     // `window` on the surface even here, rather than growing a second word for a run that has none — what an
     // agent does with it is name a dump, and a vocabulary that changes with whether there is a screen is one
     // nobody can carry between the two.
-    val windowId = DeepLink.newWindowId()
+    val windowId = newWindowId()
     // Written down the same way a window's dump is, and here it is the whole of what makes the links this
     // hands back work: nobody watching a run with no screen can be told where the file was.
-    heapDumpPaths.record(windowId, file)
+    heapDumpPaths.record(file)
     val dump = HeadlessHeapDump(
       open = open,
       agent = OpenAgentHeapDump(windowId = windowId, open = open) { place ->

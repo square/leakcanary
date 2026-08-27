@@ -95,27 +95,25 @@ leaks with the same groups unfolded, the starred objects. So "look at this" is a
 paragraph of directions, which is also how a tool or an agent that has read your heap dump can point you
 straight at what it found.
 
-The part after `shark://` is **the heap dump**, because every place a link can name belongs to the dump
-rather than to the window showing it. So a link goes on working: following one opens that place in a window
-that has the dump open, and opens the file in a new window when none has — the run it was copied from can
-be long gone. A link never replaces what you were reading: it always opens a tab of its own.
-
-A copied link carries one more thing after the place, and this is one in full:
-
-```
-shark://bug-4821.hprof/leaks?window=vugs93jp
-```
-
-`window` is the window it was copied from, honoured while that window is open and ignored once it isn't, so
-that the same dump open twice, which is two readings of it side by side, lands where you meant. It isn't
-needed to type one by hand: `shark://bug-4821.hprof/leaks` is a link.
+The part after `shark://` is **the heap dump**, and it is the whole of what a link says about which one,
+because every place a link can name belongs to the dump rather than to the window showing it. So a link goes
+on working: following one opens that place in a window that has the dump open, and opens the file in a new
+window when none has — the run it was copied from can be long gone. A link never replaces what you were
+reading: it always opens a tab of its own. What you copy is what you can type, and nothing more.
 
 **Where the file is doesn't travel in the link.** Every heap dump this app opens is written down in
 `~/.shark-explorer/heap-dump-paths`, the last 200 kept, so following a link is a lookup rather than a path
-pasted into a URL — which is what keeps a link short enough to read in a sentence. A link about a dump this
-machine has no record of opening, which is one from somebody else's machine, opens a window saying so; open
-that file and the link works, or add the path to the link yourself as
-`&dump=/Users/you/dumps/bug-4821.hprof`.
+pasted into a URL — which is what keeps a link short enough to read in a sentence.
+
+Two links can't be sorted out on their own, and both ask rather than guess:
+
+* **A heap dump this machine can't find**, which is a link from somebody else's machine, or about a dump
+  deleted or moved since the link was written. A window opens saying which, and asks for the file. You can
+  also put the path in the link yourself, as `&dump=/Users/you/dumps/bug-4821.hprof`.
+* **Two heap dumps of one name**, which is one app dumped on two devices, or a dump copied somewhere. The
+  places they are in are offered, and the one you pick is where the link goes. Uncommon: a dump this app
+  takes is named after the process, its pid and a random number, and LeakCanary names its own after the
+  time of the dump.
 
 Links reach the app from an installed build — the installer is what tells the OS that `shark://` is this
 app's. A copy run from source can still be linked to from another one, but the OS won't start it for a
@@ -480,11 +478,11 @@ and the method tells an agent to put those links in its reply — so a sentence 
 request comment or a bug report ends up carrying a way in:
 
 > The leak is `MainActivity$2.this$0`, a non-static inner class holding the activity it was declared in:
-> shark://leak_asynctask_o.hprof/object?id=0x12d368b8&window=zvphq4r3
+> shark://leak_asynctask_o.hprof/object?id=0x12d368b8
 
-Clicking it opens that object with the reasoning on its tabs — in the window it was written from while that
-window is up, and by opening the heap dump again once it isn't. So an answer worth keeping keeps working, and
-it is short enough to read: it names the heap dump, and where that file is, is looked up.
+Clicking it opens that object with the reasoning on its tabs — in a window that has the heap dump while one
+is up, and by opening the file again once none is. So an answer worth keeping keeps working, and it is short
+enough to read: it names the heap dump, and where that file is, is looked up.
 
 An agent's verdicts are verdicts like any other: they say `set by hand` on every chain that runs through the
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the

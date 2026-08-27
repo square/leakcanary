@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
@@ -84,7 +86,9 @@ fun main(args: Array<String>) {
     // reads as one on the line above.
     SharkLog.d { "Read that as $arguments" }
     nameThisRun(arguments.titlePrefix ?: APP_NAME)
-    val windows = explorerWindows(arguments)
+    // With where this machine's heap dumps are, which is what a link naming one this run has not opened is
+    // looked up in. One per run, and the same one every window records into. See [HeapDumpPaths].
+    val windows = explorerWindows(arguments, explorerHeapDumpPaths())
     // One per run rather than one per window, because an agent has no window: opening a heap dump and taking
     // one off a device are what make a window, so whatever does them has to outlive every window there is.
     val deviceHeapDumps = commandLineDeviceHeapDumps()
@@ -96,8 +100,8 @@ fun main(args: Array<String>) {
       // Published before the first window too, so that an agent whose client started it while the heap
       // dumps were still opening finds this run and waits for a dump rather than finding nothing.
       listenForAgents(windows, deviceHeapDumps).use {
-        // Whatever no other run claimed, which for a link naming a window that has gone is an empty window
-        // saying so. Ours to answer for now: nobody else is going to.
+        // Whatever no other run claimed, which for a link about a heap dump nothing has open is this run
+        // opening it, or asking where it is. Ours to answer for now: nobody else is going to.
         DeepLinkPeers.deliver(arguments.deepLinks).forEach { windows.open(it) }
         // Heap dump paths on the command line open straight away, which is how this is usually run.
         explorerApplication(windows, deviceHeapDumps)
@@ -164,9 +168,6 @@ private fun explorerApplication(
   // And one set of statuses set by hand per heap dump, for the same reason: a status is a conclusion about
   // the dump rather than about a window, so both windows on one dump read the heap through the same ones.
   val leakStatuses = remember { ExplorerLeakStatuses() }
-  // And where the heap dumps of every window are written down, so that a link into one of them works after
-  // this run has gone — which is what lets a link name the dump without carrying its path.
-  val heapDumpPaths = remember { explorerHeapDumpPaths() }
   // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
   // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
   LaunchedEffect(updateNotice) {
@@ -214,11 +215,11 @@ private fun explorerApplication(
             onHeapDumpOpen = { open ->
               window.openHeapDump = open
               // Once it is open rather than as the window is given the file: a dump that turns out not to be
-              // one is not a heap dump for a link to be sent to. See [HeapDumpPaths].
-              open?.let { heapDumpPaths.record(window.deepLinkId, it.session.heapDumpFile) }
+              // one is not a heap dump for a link to be sent to. Which is also what makes a link work after
+              // this run has gone, since it is where the path is written down. See [HeapDumpPaths].
+              open?.let { windows.heapDumpPaths.record(it.session.heapDumpFile) }
             },
             onHeapDumpProblem = { problem -> window.openProblem = problem },
-            deepLinkId = window.deepLinkId,
             // The same way a link arriving from the OS is followed, which is what makes a `shark://` link
             // written in a note work wherever it is read from.
             followDeepLink = { link -> DeepLinkPeers.follow(link, windows) },
@@ -228,6 +229,10 @@ private fun explorerApplication(
             linkedPlaces = window.linkedPlaces,
             onLinkedPlaceOpened = { place -> window.linkedPlaceOpened(place) },
             deepLinkProblem = window.deepLinkProblem,
+            // And what a link is waiting to be told about the heap dump it names: which of the ones called
+            // that, or where it is. See [ExplorerWindows.open].
+            linkedHeapDump = window.linkedHeapDump,
+            onLinkedHeapDumpChosen = { chosen -> windows.chooseLinkedHeapDump(window, chosen) },
             // The run's rather than this window's, because an agent reaches the same one through no window
             // at all — and because two windows asking `adb` at once is two `adb` processes.
             deviceHeapDumps = deviceHeapDumps
@@ -287,8 +292,6 @@ internal fun ExplorerApp(
    * under whoever is running it would be a test of their investigations rather than of this window.
    */
   agentSessions: () -> List<AgentSession> = ::agentSessions,
-  /** What a link to a place in this window names it by. See [shark.explorer.DeepLink]. */
-  deepLinkId: String = remember { DeepLink.newWindowId() },
   /** Places a link has asked this window for, which its tabs open. See [ExplorerWindow.linkedPlaces]. */
   linkedPlaces: List<Place> = emptyList(),
   onLinkedPlaceOpened: (Place) -> Unit = {},
@@ -311,6 +314,15 @@ internal fun ExplorerApp(
    * way, and the two buttons above are what to do about it in both cases.
    */
   deepLinkProblem: String? = null,
+  /**
+   * What a link is waiting to be told about the heap dump it names, and null while nothing is being asked.
+   *
+   * A dialog rather than something in the window, because it is a question with an answer only the reader
+   * has: which of the heap dumps called that, or where the one called that is. See [LinkedHeapDumpDialog].
+   */
+  linkedHeapDump: LinkedHeapDump? = null,
+  /** The heap dump picked for it, or null for a question dismissed. See [ExplorerWindows.open]. */
+  onLinkedHeapDumpChosen: (File?) -> Unit = {},
   /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
   copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
   /** Overridden by tests, which have no browser to open a link written in the notes in. */
@@ -388,6 +400,15 @@ internal fun ExplorerApp(
     )
   }
 
+  if (linkedHeapDump != null) {
+    LinkedHeapDumpDialog(
+      asked = linkedHeapDump,
+      // The same picker the button in the bar opens: choosing a heap dump is choosing a heap dump.
+      chooseHeapDumpFile = chooseHeapDumpFile,
+      onChosen = onLinkedHeapDumpChosen
+    )
+  }
+
   Column(Modifier.fillMaxSize()) {
     // Above the heap dump bar, because it is about the app rather than about what is open in it, and
     // because a bar that pushes the map down is one nobody can miss and nobody has to act on.
@@ -417,7 +438,6 @@ internal fun ExplorerApp(
         notes = notes.of(currentState.session.heapDumpFile),
         leakStatuses = leakStatuses.of(currentState.session.heapDumpFile),
         agentSessions = agentSessions,
-        deepLinkId = deepLinkId,
         linkedPlaces = linkedPlaces,
         onLinkedPlaceOpened = onLinkedPlaceOpened,
         followDeepLink = followDeepLink,
@@ -429,18 +449,23 @@ internal fun ExplorerApp(
     } else {
       Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
         Column(
+          // Narrow enough for a sentence to wrap into lines the eye can come back to, since what a link
+          // asking for a heap dump says is longer than the words the rest of this window puts here.
+          Modifier.widthIn(max = CENTER_MESSAGE_MAX_WIDTH),
           horizontalAlignment = Alignment.CenterHorizontally,
           verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
           if (currentState is HeapDumpState.Opening) {
             CircularProgressIndicator()
           }
-          // A window a link opened to say the window it named has gone says that instead of the invitation
-          // to open a heap dump: it was opened to carry a message, and the invitation is under it anyway.
+          // A window a link opened to ask which heap dump it meant, or where the one it named is, says that
+          // instead of the invitation to open a heap dump: it was opened to carry the question, and the
+          // invitation is under it anyway. See [ExplorerWindows.ask].
           Text(
             deepLinkProblem?.takeIf { currentState is HeapDumpState.None }
               ?: currentState.centerMessage(),
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
           )
         }
       }
@@ -612,6 +637,9 @@ internal val WINDOW_HEIGHT = 900.dp
 
 /** How far a window opens from the one before it, which is about the height of a title bar. */
 private val CASCADE_STEP = 28.dp
+
+/** As wide as what a window with nothing in it says gets, which is a line length rather than a window. */
+private val CENTER_MESSAGE_MAX_WIDTH = 480.dp
 
 internal const val OPEN_HEAP_DUMP = "Open heap dump…"
 internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."

@@ -152,9 +152,9 @@ internal class WindowAgentHeapDumps(
     val window = already ?: windows.openHeapDump(file)
     SharkLog.d {
       if (already == null) {
-        "An agent opened ${file.absolutePath} in window ${window.deepLinkId}"
+        "An agent opened ${file.absolutePath} in window ${window.windowId}"
       } else {
-        "An agent asked for ${file.absolutePath}, which window ${window.deepLinkId} already has"
+        "An agent asked for ${file.absolutePath}, which window ${window.windowId} already has"
       }
     }
     // Three ways this ends and only one of them is an answer — the dump opens, it fails to open, or the
@@ -170,7 +170,7 @@ internal class WindowAgentHeapDumps(
     }
     throw AgentRefusal(
       window.openProblem?.let { "${file.name} could not be opened as a heap dump: $it" }
-        ?: "Window ${window.deepLinkId} was closed before ${file.name} had finished opening, so there is " +
+        ?: "Window ${window.windowId} was closed before ${file.name} had finished opening, so there is " +
         "nothing to read. Opening it again is a call away."
     )
   }
@@ -380,16 +380,15 @@ internal class OpenHeapDump(
 
 /** This window's heap dump as an agent sees it: shown by going to a tab, the way a link does. */
 private fun ExplorerWindow.agentHeapDump(open: OpenHeapDump): AgentHeapDump =
-  OpenAgentHeapDump(windowId = deepLinkId, open = open) { place ->
-    SharkLog.d { "An agent asked window $deepLinkId for $place" }
+  OpenAgentHeapDump(windowId = windowId, open = open) { place ->
+    SharkLog.d { "An agent asked window $windowId for $place" }
     // The same two steps following a link takes, which is what makes an agent showing something and a
     // person clicking a link land in the same place. See [ExplorerWindows.open].
     goToLinked(place)
     bringToFront()
     // And the link itself, which is the same one the right click menu copies: an agent's answer can then
-    // point at this place rather than describe how to get to it. Naming this window as well as the dump,
-    // since a reader following it while this run is up should land on the window they watched it happen in.
-    ShownPlace.at(DeepLink(open.session.heapDumpFile, place, windowId = deepLinkId).toUri())
+    // point at this place rather than describe how to get to it.
+    ShownPlace.at(DeepLink(open.session.heapDumpFile, place).toUri())
   }
 
 /**

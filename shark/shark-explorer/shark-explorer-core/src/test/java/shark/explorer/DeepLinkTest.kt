@@ -1,7 +1,6 @@
 package shark.explorer
 
 import java.io.File
-import kotlin.random.Random
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Test
@@ -232,31 +231,16 @@ class DeepLinkTest {
       .hasMessageContaining("Kinds are CLASS, INSTANCE, OBJECT_ARRAY, PRIMITIVE_ARRAY")
   }
 
-  @Test
-  fun `a window id is eight characters of an alphabet nothing can be misread in`() {
-    val ids = (1..200).map { DeepLink.newWindowId(Random(it)) }
-
-    assertThat(ids).allMatch { it.length == 8 }
-    assertThat(ids.joinToString("")).matches("[abcdefghijkmnpqrstuvwxyz23456789]+")
-  }
-
-  @Test
-  fun `two windows do not get one id`() {
-    val ids = (1..1000).map { DeepLink.newWindowId() }
-
-    assertThat(ids.toSet()).hasSize(ids.size)
-  }
-
   /**
-   * The link the app itself writes, and the whole of what it is for: a heap dump, a place in it, and which
-   * window it was copied from. **Not where the file is** — that is looked up by whoever follows the link, see
-   * [HeapDumpPaths] — because a path is most of the characters of a link and the least readable part of it.
+   * The link the app itself writes, and the whole of what it is for: a heap dump and a place in it. **Not
+   * where the file is** — that is looked up by whoever follows the link, see [HeapDumpPaths] — because a path
+   * is most of the characters of a link and the least readable part of it.
    */
   @Test
-  fun `a link from a window is a heap dump, a place and a window`() {
-    val link = DeepLink(File("/dumps/leak.hprof"), Place.Leaks(), windowId = "abcd2345")
+  fun `a link from a window is a heap dump and a place`() {
+    val link = DeepLink(File("/dumps/leak.hprof"), Place.Leaks())
 
-    assertThat(link.toUri()).isEqualTo("shark://leak.hprof/leaks?window=abcd2345")
+    assertThat(link.toUri()).isEqualTo("shark://leak.hprof/leaks")
     assertThat(link.heapDumpPath).isNull()
     assertThat(DeepLink.parse(link.toUri())).isEqualTo(link)
   }
@@ -274,8 +258,8 @@ class DeepLinkTest {
   }
 
   /**
-   * Which is a link somebody typed, or shortened by hand to the two things worth reading. It resolves
-   * against whatever is open, so it is worth being able to write. See `ExplorerWindows.windowFor`.
+   * Which is also a link somebody typed, since there is nothing else to type. It resolves against whatever
+   * heap dump of that name is open, or has been. See `ExplorerWindows.open`.
    */
   @Test
   fun `a link is a heap dump and a place and needs nothing else`() {
@@ -284,7 +268,6 @@ class DeepLinkTest {
     assertThat(link.heapDumpName).isEqualTo("leak.hprof")
     assertThat(link.place).isEqualTo(Place.Leaks())
     assertThat(link.heapDumpPath).isNull()
-    assertThat(link.windowId).isNull()
   }
 
   /**
@@ -301,12 +284,11 @@ class DeepLinkTest {
   }
 
   /**
-   * The two parameters that are about the link rather than about the place share the query with the ones that
-   * are, so a [Place] spelling a parameter `dump` or `window` would quietly take one of them over. This is
-   * what would fail.
+   * The one parameter that is about the link rather than about the place shares the query with the ones that
+   * are, so a [Place] spelling a parameter `dump` would quietly take it over. This is what would fail.
    */
   @Test
-  fun `no place takes the dump or the window off a link`() {
+  fun `no place takes the dump off a link`() {
     val places = listOf(
       Place.wholeHeapDump(),
       Place.Object(0x12ab34cd),
@@ -324,8 +306,7 @@ class DeepLinkTest {
       val link = DeepLink(
         heapDumpName = "leak.hprof",
         place = place,
-        heapDumpPath = File("/dumps/leak.hprof"),
-        windowId = "abcd2345"
+        heapDumpPath = File("/dumps/leak.hprof")
       )
       assertThat(DeepLink.parse(link.toUri())).describedAs(link.toUri()).isEqualTo(link)
     }

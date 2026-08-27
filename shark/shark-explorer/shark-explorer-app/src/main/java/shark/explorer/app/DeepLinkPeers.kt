@@ -94,13 +94,13 @@ internal object DeepLinkPeers {
     link: DeepLink,
     windows: ExplorerWindows
   ) {
-    if (windows.windowFor(link) != null) {
+    if (windows.windowsFor(link).isNotEmpty()) {
       windows.open(link)
       return
     }
     Thread({
-      // Nobody else's, so this run answers for it, which is opening that heap dump here — at the path
-      // [deliver] looked up, since a link says the dump's name and not where it is.
+      // Nobody else's, so this run answers for it, which is opening that heap dump here — or asking where it
+      // is, since a link says the dump's name and not where it is. See [ExplorerWindows.open].
       deliver(listOf(link)).forEach { windows.open(it) }
     }, THREAD_NAME).apply {
       isDaemon = true
@@ -115,20 +115,16 @@ internal object DeepLinkPeers {
    * The leftovers are the caller's to answer for, which is what makes a link whose window has gone a window
    * of that heap dump here rather than a process that started and exited without a word.
    *
-   * **Where the heap dump is gets looked up first**, and it is looked up once for every run: a link carries a
-   * file name, and a run asked about a link it has no window for should be answering about the file rather
-   * than about the name — two dumps called `com.squareup.hprof` off two devices are two investigations. So
-   * what goes out on the socket is the link with the path filled in, and what comes back to the caller is the
-   * same, ready to open. See [HeapDumpPaths.resolve].
+   * The link goes out exactly as it arrived: what a run does about a heap dump it has no window for is that
+   * run's own business — open it, or ask which one, or ask where it is — and every one of those answers
+   * belongs to whoever ends up with the link rather than to whoever passed it on. See [ExplorerWindows.open].
    */
   fun deliver(links: List<DeepLink>): List<DeepLink> {
     if (links.isEmpty()) {
       return emptyList()
     }
-    val heapDumpPaths = explorerHeapDumpPaths()
-    val resolved = links.map { heapDumpPaths.resolve(it) }
     val peers = peers()
-    return resolved.filter { link -> peers.none { peer -> peer.deliver(link) } }
+    return links.filter { link -> peers.none { peer -> peer.deliver(link) } }
   }
 
   /** Every other run that has published itself, stale files cleared out on the way past. */
@@ -231,7 +227,7 @@ internal object DeepLinkPeers {
     }
     // Answered before the window is asked to go anywhere, because the run on the other end is waiting to
     // find out whether to keep looking, and going somewhere is a frame away rather than a read away.
-    if (windows.windowFor(link) != null) {
+    if (windows.windowsFor(link).isNotEmpty()) {
       writer.println(ACCEPTED)
       windows.open(link)
     } else {

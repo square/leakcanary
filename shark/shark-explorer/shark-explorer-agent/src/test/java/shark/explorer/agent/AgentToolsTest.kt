@@ -860,7 +860,6 @@ class AgentToolsTest {
     val link = DeepLink.parse(answer.text("link"))
     assertThat(link.heapDumpName).isEqualTo(window.heapDumpName)
     assertThat(link.heapDumpPath).isNull()
-    assertThat(link.windowId).isEqualTo(window.windowId)
     assertThat(link.place).isEqualTo(Place.Object(objectId))
   }
 

@@ -22,11 +22,12 @@ uses, without the one for a newly recognized library leak:
 * ✨ Right click anything the window can take you to — a tab, a rectangle, a row, a field — and copy a
   `shark://` link to it, beside opening it in a new tab. Clicking one brings the app to the front and
   opens that place in a new tab: an object, a filtered object list, the leaks with the same groups
-  unfolded. A link names the **heap dump** — `shark://bug-4821.hprof/leaks?window=vugs93jp`, short enough to
+  unfolded. A link names the **heap dump** and nothing else — `shark://bug-4821.hprof/leaks`, short enough to
   read in a sentence — so it goes on working after the window it was copied from has gone: it opens the place
   in a window that has that dump, and opens the file in a new window when none has. Where that file is never
   goes in the link: every heap dump opened is written down in `~/.shark-explorer/heap-dump-paths`, the last
-  200 kept, and following a link looks it up there. See
+  200 kept, and following a link looks it up there. A link about a heap dump this machine can't find asks for
+  the file, and one about a name two heap dumps share asks which of them. See
   [Link to a tab](shark-explorer.md#link-to-a-tab).
 * ✨ **Notes**: every location takes a markdown note, kept between runs, and the tab strip marks the tabs
   whose location has one. A note belongs to the location rather than to the tab, so two tabs on one

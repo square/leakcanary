@@ -225,7 +225,7 @@ class AgentSessionFile private constructor(
     /**
      * Eight hexadecimal characters, from [SecureRandom] like the token beside it.
      *
-     * Random rather than counted, for the reason `DeepLink.newWindowId` is: ids handed out in order repeat
+     * Random rather than counted, for the reason a window's id is: ids handed out in order repeat
      * across runs of the app, and a session log named the same as one from yesterday is two investigations
      * that read as one.
      */
@@ -469,15 +469,14 @@ class AgentSessionCall(
   /**
    * The link to [place] in the heap dump the call was about, for a call that was about one.
    *
-   * The window as well, since it was open when the line was written, and a link is a request to look at
-   * something in the window somebody was watching while that is still possible. It stops being possible
-   * about as soon as anybody reads this — an agent's session outlives its run — and a link that names the
-   * heap dump goes on working after that. See [DeepLink].
+   * The heap dump and not [windowId], even though the window was open when the line was written: an agent's
+   * session outlives its run, so by the time anybody reads this the window has almost always gone while the
+   * heap dump is still there to open. See [DeepLink].
    */
   fun link(): String? {
     val place = place ?: return null
     val heapDumpPath = heapDumpPath ?: return null
-    return DeepLink(File(heapDumpPath), place, windowId = windowId).toUri()
+    return DeepLink(File(heapDumpPath), place).toUri()
   }
 }
 

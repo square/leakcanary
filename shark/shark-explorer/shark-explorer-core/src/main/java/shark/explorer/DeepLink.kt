@@ -3,7 +3,6 @@ package shark.explorer
 import java.io.File
 import java.net.URLDecoder
 import java.net.URLEncoder
-import kotlin.random.Random
 
 /**
  * A link to one place in one heap dump: `shark://<heap dump>/<place>?<what that place needs>`.
@@ -13,48 +12,33 @@ import kotlin.random.Random
  * spellings carry the whole of the place rather than a shorthand for it: a filtered list of objects arrives
  * filtered, and a page of leaks arrives with the same ones unfolded.
  *
- * **It names the heap dump, and a window only as a refinement.** Every place there is belongs to the dump
- * rather than to whatever is showing it — an address, a leak, a filter over the object list, a note — so a
- * link that named a window was a link that died with the window, which is most links a day later. This one
- * survives: the run it was made from can be gone, and it still opens what it names, in a window of that dump
- * if there is one and in a new window if there isn't.
+ * **A heap dump and a place, and nothing else.** Every place there is belongs to the dump rather than to
+ * whatever is showing it — an address, a leak, a filter over the object list, a note — so a link that named a
+ * window was a link that died with the window, which is most links a day later. This one survives: the run it
+ * was made from can be gone, and it still opens what it names, in a window of that dump if there is one and in
+ * a new window if there isn't.
  *
- * Which leaves the case the window id was there for. The same dump *is* often open twice — that is what
- * comparing two readings of it is — so [windowId] says which of them a link was made from, and it is
- * honoured while that window is open and **ignored once it isn't**, rather than turning the link into an
- * error. Being right about which window is worth a lot while the window exists and nothing at all
- * afterwards.
- *
- * [heapDumpName] is the authority because it is the part a person reads and types, and **it is all a link
- * says about which file**: where that file is, is looked up on the machine following the link rather than
- * carried in it, since a path is most of the characters of a link and the least readable part of one. See
- * [HeapDumpPaths], which is what remembers it, and [heapDumpPath], which is where a link that does carry one
- * puts it.
+ * [heapDumpName] is the whole of what it says about which file, because a file name is what a person reads,
+ * what a window's title shows, and what every heap dump this app takes is given something unique for.
+ * **Where that file is doesn't travel in the link**: it is looked up by whoever follows one, since a path is
+ * most of the characters of a link and the least readable part of it. See [HeapDumpPaths], which is what
+ * remembers it, and [heapDumpPath], for the link that does say.
  *
  * Immutable and in this module rather than in the UI, so that what a link means is unit tested rather than
- * found out by clicking one. See [Place] and `ExplorerWindows.windowFor`.
+ * found out by clicking one. See [Place] and `ExplorerWindows.open`.
  */
 data class DeepLink(
   /** The heap dump's file name: what a link is read as, and all of it that has to be typed. */
   val heapDumpName: String,
   val place: Place,
   /**
-   * Where that dump is, for the links that say: null in every link this app writes.
+   * Where that dump is, for the link that says: null in every link this app writes.
    *
-   * Filled in by [HeapDumpPaths.resolve] as a link is followed, which is how a link finds the file without
-   * carrying it, and passed on in the query when one run hands a link to another so that the second doesn't
-   * have to look it up again. Written by hand in a link about a heap dump this machine has never opened,
-   * which is the one case a name cannot answer.
-   *
-   * Absolute and normalized when this app put it there, since it is compared against what a window has open.
+   * Written by hand — or by a script — about a heap dump this machine has never opened, which is the one case
+   * a file name cannot answer. A link that has one is matched by path rather than by name, so it is also how
+   * to say *which* `com.squareup.hprof` when two of them off two devices have been opened here.
    */
-  val heapDumpPath: File? = null,
-  /**
-   * Which window of that dump the link was made from, or null for one nobody made from a window.
-   *
-   * A refinement and never a requirement: see the class comment. [newWindowId] is where these come from.
-   */
-  val windowId: String? = null
+  val heapDumpPath: File? = null
 ) {
 
   /**
@@ -66,19 +50,16 @@ data class DeepLink(
    */
   constructor(
     heapDumpFile: File,
-    place: Place,
-    windowId: String? = null
+    place: Place
   ) : this(
     heapDumpName = heapDumpFile.name,
-    place = place,
-    windowId = windowId
+    place = place
   )
 
   /** The link as text, which is what gets copied, printed and pasted. */
   fun toUri(): String {
     val parameters = place.linkParameters() + listOfNotNull(
-      heapDumpPath?.let { DUMP_PARAMETER to it.path },
-      windowId?.let { WINDOW_PARAMETER to it }
+      heapDumpPath?.let { DUMP_PARAMETER to it.path }
     )
     val query = if (parameters.isEmpty()) {
       ""
@@ -98,23 +79,6 @@ data class DeepLink(
 
     /** Whether [argument] is a link rather than a heap dump path, which is all a command line has to ask. */
     fun looksLikeOne(argument: String): Boolean = argument.startsWith(PREFIX)
-
-    /**
-     * A window id: eight lowercase characters, from an alphabet with no `l`, `1`, `o` or `0` in it so that a
-     * link read off a screen and typed back in is the link that was read.
-     *
-     * Random rather than counted up, which is not a detail even now that a link works without one. Ids
-     * handed out in order repeat across runs, and they repeat *within* one as windows close and open, so a
-     * link copied yesterday would be honoured today against the second window of whatever is running —
-     * silently the wrong reading of the dump, which is worse than being ignored. A random id is either the
-     * window it was made from or no window at all, and the second of those falls back to the heap dump.
-     *
-     * A file name and a number would not fix that. The number would have to be handed out across runs that
-     * cannot see each other's windows, and it would be reused the moment a window closed, so it would be
-     * exactly the id that opens *something*.
-     */
-    fun newWindowId(random: Random = Random.Default): String =
-      (1..WINDOW_ID_LENGTH).map { ID_ALPHABET[random.nextInt(ID_ALPHABET.length)] }.joinToString("")
 
     /**
      * Reads a link, or throws [IllegalArgumentException] saying what is wrong with it.
@@ -138,8 +102,7 @@ data class DeepLink(
       return DeepLink(
         heapDumpName = decode(segments[0]),
         place = placeOf(segments[1], parameters, uri),
-        heapDumpPath = parameters.firstOrNull(DUMP_PARAMETER)?.let { File(it) },
-        windowId = parameters.firstOrNull(WINDOW_PARAMETER)
+        heapDumpPath = parameters.firstOrNull(DUMP_PARAMETER)?.let { File(it) }
       )
     }
 
@@ -263,11 +226,6 @@ data class DeepLink(
 
     private const val PREFIX = "$SCHEME://"
 
-    private const val WINDOW_ID_LENGTH = 8
-
-    /** No `l`, `1`, `o` or `0`: a window id is read off a screen and typed back in often enough to care. */
-    private const val ID_ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789"
-
     internal const val OBJECT_PATH = "object"
     internal const val SMALLER_OBJECTS_PATH = "smaller-objects"
     internal const val OBJECTS_PATH = "objects"
@@ -287,16 +245,13 @@ data class DeepLink(
     )
 
     /**
-     * Where the heap dump is, and which window it was read in: the two parameters that are about the link
-     * rather than about the place. Only `window` is written into a link this app copies — see [heapDumpPath]
-     * for when the other one is there.
+     * Where the heap dump is: the one parameter that is about the link rather than about the place, and the
+     * one no [Place] may spell — they are read off the same query, and none of them does. `DeepLinkTest`
+     * holds them apart.
      *
-     * Which is why no [Place] may spell a parameter either of these names — they are read off the same query
-     * — and none does. `DeepLinkTest` holds them apart.
+     * Public because a message telling somebody to add one to a link has to spell it the way this does.
      */
-    /** Public because a message telling somebody to add one to a link has to spell it the way this does. */
     const val DUMP_PARAMETER = "dump"
-    const val WINDOW_PARAMETER = "window"
 
     internal const val ID_PARAMETER = "id"
     internal const val PARENT_PARAMETER = "parent"

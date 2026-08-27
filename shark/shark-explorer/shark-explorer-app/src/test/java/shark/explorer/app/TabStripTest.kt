@@ -183,7 +183,7 @@ class TabStripTest {
       // dump open twice is two places to be — plus the tab's own place, so that following it lands where
       // it was copied from. See [DeepLink].
       assertThat(copied).containsExactly(
-        DeepLink(heapDumpFile, Place.wholeHeapDump(), windowId = WINDOW_ID).toUri()
+        DeepLink(heapDumpFile, Place.wholeHeapDump()).toUri()
       )
     }
   }
@@ -215,7 +215,7 @@ class TabStripTest {
       // A button opens a screen nobody has been to yet, and a link to it is that screen as it opens: no
       // tab has to be opened first to have something to copy.
       assertThat(copied).containsExactly(
-        DeepLink(heapDumpFile, Place.Leaks(), windowId = WINDOW_ID).toUri()
+        DeepLink(heapDumpFile, Place.Leaks()).toUri()
       )
       // And nothing was opened by asking for the link, which a menu that clicked the button would have.
       assertThat(tabs().fetchSemanticsNodes()).hasSize(1)
@@ -282,7 +282,6 @@ class TabStripTest {
           heapDumpFile = heapDumpFile,
           onHeapDumpChosen = { _, _ -> },
           deviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB),
-          deepLinkId = WINDOW_ID,
           linkedPlaces = linkedPlaces(),
           onLinkedPlaceOpened = onLinkedPlaceOpened,
           copyToClipboard = copyToClipboard
@@ -333,9 +332,6 @@ class TabStripTest {
      * comfortably past what a line holds rather than exactly it.
      */
     private const val TABS_PAST_ONE_LINE = 20
-
-    /** What a link copied here names this window by, fixed so that the copied link can be spelled out. */
-    private const val WINDOW_ID = "abcd2345"
 
     /** An `adb` that answers as if nothing were plugged in, so no test here reaches a real device. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

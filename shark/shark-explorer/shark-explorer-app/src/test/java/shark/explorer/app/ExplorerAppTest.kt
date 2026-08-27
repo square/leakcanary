@@ -224,7 +224,7 @@ class ExplorerAppTest {
       // same move made somewhere else, so wherever one is offered so is the other. Named after the heap
       // dump, with this window as the refinement it is while the window is open. See [DeepLink].
       assertThat(copied).containsExactly(
-        DeepLink(heapDumpFile, Place.Object(payloadObjectId), windowId = WINDOW_ID).toUri()
+        DeepLink(heapDumpFile, Place.Object(payloadObjectId)).toUri()
       )
     }
   }
@@ -801,7 +801,6 @@ class ExplorerAppTest {
       var shown: File? by remember { mutableStateOf(heapDumpFile) }
       ExplorerApp(
         heapDumpFile = shown,
-        deepLinkId = WINDOW_ID,
         // No pixels to keep track of: nothing here takes a dump off a device, which is the only way
         // any come with one.
         onHeapDumpChosen = { file, _ -> shown = file },
@@ -1018,9 +1017,6 @@ class ExplorerAppTest {
 
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
-
-    /** What a link copied here names this window by, fixed so that the copied link can be spelled out. */
-    private const val WINDOW_ID = "abcd2345"
 
     /** How the log says a treemap was laid out, and what it calls the node at the top of the tree. */
     private const val TREEMAP_LAID_OUT = "Read the treemap rooted at"
