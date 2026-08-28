@@ -85,10 +85,7 @@ internal fun DetailsPanel(
             "${selection.nodeCount} smaller objects",
             style = MaterialTheme.typography.titleMedium
           )
-          Text(
-            "Held by ${selection.parentLabel}. $GROUP_EXPLANATION",
-            style = MaterialTheme.typography.bodySmall
-          )
+          Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
           Detail("Retained", formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount))
         }
         is Selection.ObjectGroup ->
@@ -130,8 +127,10 @@ internal sealed interface Selection {
 
 /**
  * A cell standing for many objects: half of the heap dump, or every instance of one class under the
- * root. Says so in as many words, because a rectangle that isn't an object looks exactly like one that
- * is until something says otherwise.
+ * root. Its title is a count, which is what says it is not one object.
+ *
+ * The same rows an object gets, in the same order, so that a pile and an object read as two of a kind
+ * rather than as two panels: how firmly it is held, then what it costs.
  */
 @Composable
 private fun ObjectGroupDetails(
@@ -145,7 +144,7 @@ private fun ObjectGroupDetails(
     verticalAlignment = Alignment.CenterVertically
   ) {
     Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
-    Text(summary.explanation(), style = MaterialTheme.typography.bodySmall)
+    Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
   }
   Detail("Retained together", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
   Detail("Objects", formatObjectCount(summary.objectCount))
@@ -155,11 +154,6 @@ private fun ObjectGroupDetails(
 internal fun ObjectGroupSummary.title(): String = when (kind) {
   ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
   ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
-}
-
-private fun ObjectGroupSummary.explanation(): String = when (kind) {
-  ObjectGroupKind.UNREACHABLE -> UNREACHABLE_EXPLANATION
-  ObjectGroupKind.CLASS -> CLASS_GROUP_EXPLANATION
 }
 
 @Composable
@@ -342,18 +336,6 @@ private const val STARRED = "Starred"
 private const val NOT_STARRED = "Star this object"
 private const val STAR_HINT = "Star this object, to compare it with others later."
 private const val UNSTAR_HINT = "Remove this object from the starred list."
-
-internal const val UNREACHABLE_EXPLANATION =
-  "Not one object: everything no GC root reaches, so garbage that hadn't been collected when the heap " +
-    "dump was written. The next collection would take all of it."
-
-internal const val CLASS_GROUP_EXPLANATION =
-  "Not one object: these are all the instances of this class that nothing owns on its own, gathered " +
-    "so the root's children can be read. Click it to see them one by one."
-
-private const val GROUP_EXPLANATION =
-  "Too small or too many to draw one by one in the rectangle they belong to. Clicking them roots the " +
-    "map at what holds them, which gives it the whole view to draw them in."
 
 /** What the pixels of the selected bitmap are, to anything that can't look at them. */
 internal const val BITMAP_DESCRIPTION = "The pixels of the selected bitmap."

@@ -581,8 +581,8 @@ class DiveAppTest {
 
       waitUntilAtLeastOneExists(hasText("of one class", substring = true), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText(SIBLING_CLASS_NAME).fetchSemanticsNodes()).isNotEmpty()
-      // Says it in words as well as with the label, the slate fill and the dashed outline.
-      onNodeWithText(CLASS_GROUP_EXPLANATION).assertIsDisplayed()
+      // And gets the rows an object gets, so that a pile and an object read as two of a kind.
+      onNodeWithText(STRONG.reachabilityText).assertIsDisplayed()
       onNodeWithText("Retained together").assertIsDisplayed()
     }
   }
@@ -624,7 +624,7 @@ class DiveAppTest {
         hasText(HeapDominatorTreemap.UNREACHABLE_LABEL),
         OPEN_TIMEOUT_MILLIS
       )
-      onNodeWithText(UNREACHABLE_EXPLANATION).assertIsDisplayed()
+      onNodeWithText(UNREACHABLE.reachabilityText).assertIsDisplayed()
       strengthToggle(UNREACHABLE).assertTextContains(
         formatByteSize(GARBAGE_PAYLOAD_BYTE_SIZE),
         substring = true

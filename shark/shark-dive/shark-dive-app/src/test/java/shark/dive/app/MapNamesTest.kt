@@ -92,9 +92,9 @@ class MapNamesTest {
       // The map has room for `400 × Sibling` and no more, and which Sibling that is, is the question a pile
       // of them raises. So the qualified name is what the pointer gets.
       waitUntilAtLeastOneExists(hasText(SIBLING_CLASS_NAME), OPEN_TIMEOUT_MILLIS)
+      // The count is also what says it is a pile at all, because a rectangle full of objects looks exactly
+      // like one object.
       onNodeWithText("${formatObjectCount(SIBLING_COUNT)} of one class").assertIsDisplayed()
-      // And that it is a pile at all, because a rectangle full of objects looks exactly like one object.
-      onNodeWithText(PILE_OF_OBJECTS).assertIsDisplayed()
     }
   }
 
@@ -108,7 +108,6 @@ class MapNamesTest {
       // there is to say about them: how many, how much, and which rectangle to go to for any of them.
       waitUntilAtLeastOneExists(hasText("smaller objects", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("Held by Object[]").assertIsDisplayed()
-      onNodeWithText(LEFTOVER_OBJECTS).assertIsDisplayed()
     }
   }
 
