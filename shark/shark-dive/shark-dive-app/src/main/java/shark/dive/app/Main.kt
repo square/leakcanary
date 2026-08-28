@@ -168,6 +168,8 @@ private fun diveApplication(
   // And one set of statuses set by hand per heap dump, for the same reason: a status is a conclusion about
   // the dump rather than about a window, so both windows on one dump read the heap through the same ones.
   val leakStatuses = remember { DiveLeakStatuses() }
+  // And one set of starred objects per heap dump, for the same reason again.
+  val stars = remember { DiveStars() }
   // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
   // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
   LaunchedEffect(updateNotice) {
@@ -210,6 +212,7 @@ private fun diveApplication(
             updateNotice = updateNotice,
             notes = notes,
             leakStatuses = leakStatuses,
+            stars = stars,
             // What this window has open, for the agent surface: a socket thread has to be able to find it,
             // and it is a composable's state. See [DiveWindow.openHeapDump].
             onHeapDumpOpen = { open ->
@@ -271,6 +274,8 @@ internal fun DiveApp(
    * default for the same reason: a test that took whoever is running it would rewrite their conclusions.
    */
   leakStatuses: DiveLeakStatuses = remember { DiveLeakStatuses() },
+  /** And the starred objects of each of them, shared and defaulted the same way. See [DiveStars]. */
+  stars: DiveStars = remember { DiveStars() },
   /**
    * Where what this window has open is published, for everything that isn't drawing it — which today is an
    * agent reaching in from outside the app. Called with the heap dump as it opens and with null as it
@@ -437,6 +442,7 @@ internal fun DiveApp(
         fetchedBitmapPixels = currentState.bitmapPixels,
         notes = notes.of(currentState.session.heapDumpFile),
         leakStatuses = leakStatuses.of(currentState.session.heapDumpFile),
+        stars = stars.of(currentState.session.heapDumpFile),
         agentSessions = agentSessions,
         linkedPlaces = linkedPlaces,
         onLinkedPlaceOpened = onLinkedPlaceOpened,

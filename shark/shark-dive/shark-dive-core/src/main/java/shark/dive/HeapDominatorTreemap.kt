@@ -570,6 +570,23 @@ class HeapDominatorTreemap internal constructor(
     )
   }
 
+  /**
+   * The same rows for objects picked by hand, in the order given: what the starred screen draws.
+   *
+   * An id no node of this tree has is left out, with a line in the log saying so, because the objects
+   * starred in a heap dump are a file anybody can edit — see [StarredFile] — and one address that was
+   * mistyped must not be a screen that throws.
+   */
+  fun listObjects(objectIds: List<Long>): List<ObjectListEntry> = objectIds.mapNotNull { objectId ->
+    val node = nodes[objectId]
+    if (node == null) {
+      SharkLog.d { "No object ${hexObjectId(objectId)} in this heap dump, so there is no row for it" }
+      null
+    } else {
+      Match(objectId, node.retainedSize, node.shallowSize).entry()
+    }
+  }
+
   /** One object a filter matched, before the read that turns it into a row. */
   private class Match(
     val objectId: Long,

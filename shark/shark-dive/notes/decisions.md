@@ -346,6 +346,17 @@ click rather than by a third noun.
 The card used to be drawn for `Selection.Object` alone, which meant pointing at the one kind of cell whose
 name is incomplete answered nothing at all.
 
+**And an object's sizes are `Retained` and `Shallow`, in those two words, everywhere they are given.** The
+card used to say `Retains 1.2 MB in 57 objects` and `88 B of its own, dominates 12 objects` where the panel
+behind it said `Retained`, `Retained objects`, `Shallow` and `Dominates` as four rows, and a chain step said
+`Retaining …` — three vocabularies for the same two numbers, which a reader has to reconcile before they can
+compare a card with the panel it is covering. `RETAINED`, `SHALLOW` and `retainedText` are the one answer.
+How many objects that is rides on the `Retained` line rather than getting a row, since it is the same fact
+counted the other way; how many an object *immediately* dominates is gone from the window entirely, being the
+count of rectangles drawn inside this one. `Dominates` therefore means one thing now, on the chain, where it
+says which step the map draws the rest inside. An agent still gets `dominatedObjects`, because an agent has
+no picture to read it off.
+
 Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
 pointer is on. Nothing is read when the pointer leaves, and nothing beside the map is blanked as the
 next cell is read, so a sweep across the map doesn't flicker.
@@ -692,11 +703,17 @@ once per heap dump, behind a screen someone asked for, and is capped at the larg
 
 ## Which object it is, said the same way everywhere
 
-Four surfaces name an object: a step of a chain, the card at the pointer, the bar above the map, a row of the
-starred list. All four use `ObjectIdentity` — the class, then the class in full greyed under it, then its
-address — because they are all answering the same question, and a reader who has learnt to skip the grey
-lines on one should not have to learn where they are again on the next. The package on its own line is also
-what keeps a row from wrapping in a pane 300 dp wide.
+Three surfaces name an object in full: a step of a chain, the card at the pointer, the bar above the map. All
+three use `ObjectIdentity` — the class, then the class in full greyed under it, then its address — because
+they are all answering the same question, and a reader who has learnt to skip the grey lines on one should
+not have to learn where they are again on the next. The package on its own line is also what keeps a row from
+wrapping in a pane 300 dp wide.
+
+**A list of objects names one on one line instead**, `ObjectRow`, because a list is read down a column and
+three lines a row would make ten objects a screenful. It is the same order — package greyed, class, kind —
+laid sideways, and it carries no address: what tells one row from the next is the headline under it, and the
+address is a right click away and on the tab a row opens. Both lists that are lists of objects are built from
+it, so the object list and the starred objects are one table with two contents.
 
 **Which object it is lives above the map, not in the details panel.** It is a different question from the
 rest of that panel — which object, as against what that object holds — and it is what the tab strip and the
@@ -852,6 +869,24 @@ directory it was in, since two runs of one app produce two `heap.hprof`s and the
 inside it, a file per `noteKey` rather than one document with a section per place, so that a save touches only
 the note that was typed into, nothing has to be parsed back out of a document that also holds somebody's own
 headings, and the listing is the index.
+
+## Starred is a working set, kept as addresses and nothing else
+
+Starring is how a handful of objects are held side by side while being compared, since a treemap has no room
+to keep the last rectangle on screen while you look at the next. So it is kept the way the notes and the
+verdicts are: one file per heap dump under `~/.shark-dive/starred`, `StarredFile`, shared by every window on
+that dump, and read once per run before anything is drawn from it.
+
+**Addresses and nothing else.** The first version kept a copy of each object's class, sizes and dominator from
+the moment it was starred, which made the screen a comparison of snapshots — and made a row go stale the
+moment a verdict set by hand changed what something retains, with nothing on screen saying which of the two
+numbers was current. Reading them out of the heap dump again is one small read, the same read every other list
+of objects is, and it is the only way the starred rows and the map can't disagree.
+
+**In the order they were starred**, not sorted: the list somebody built while comparing is the list they
+expect to come back to. And one address per line with a comment at the top, because a working set is
+something to keep, mail or check in — a line that can't be read is skipped with a line in the log rather
+than costing the rest of the file, exactly as `leak-statuses` does.
 
 ## A link names the heap dump and nothing else
 

@@ -47,7 +47,6 @@ import shark.dive.ReachabilityStrength
 import shark.dive.ReferencePage
 import shark.dive.Topic
 import shark.dive.formatByteSizeOfTotal
-import shark.dive.formatObjectCount
 import shark.dive.hexObjectId
 import shark.dive.statusText
 
@@ -184,9 +183,10 @@ internal fun PathStepRow(
     if (detail == PathDetail.FULL) {
       step.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
       if (step.retainedCount > 0) {
+        // The same word and the same numbers the details panel and the card at the pointer give an object,
+        // since a step of the chain is one of those objects. See [RETAINED].
         Text(
-          "Retaining ${formatByteSizeOfTotal(step.retainedSize, stronglyReachableByteCount)} in " +
-            formatObjectCount(step.retainedCount),
+          "$RETAINED ${retainedText(step.retainedSize, step.retainedCount, stronglyReachableByteCount)}",
           style = MaterialTheme.typography.bodySmall
         )
       }

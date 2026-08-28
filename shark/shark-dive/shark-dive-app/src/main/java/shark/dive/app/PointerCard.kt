@@ -131,7 +131,7 @@ private fun GroupLines(
   // go to if any of them is worth finding.
   Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
   Text(
-    "Retains ${formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount)}",
+    "$RETAINED ${formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount)}",
     style = MaterialTheme.typography.bodySmall
   )
 }
@@ -148,16 +148,16 @@ private fun StrengthLine(strength: ReachabilityStrength) {
   }
 }
 
+// The same two words the details panel labels these numbers with, and the same numbers under them: a card
+// read at a glance and a panel read at leisure are one vocabulary. See [RETAINED].
 private fun HeapObjectSummary.retainedText(stronglyReachableByteCount: Long): String =
-  "Retains ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} in " +
-    formatObjectCount(retainedCount)
+  "$RETAINED ${retainedText(retainedSize, retainedCount, stronglyReachableByteCount)}"
 
-private fun HeapObjectSummary.shallowText(): String =
-  "${formatByteSize(shallowSize)} of its own, dominates ${formatObjectCount(dominatedObjectCount)}"
+private fun HeapObjectSummary.shallowText(): String = "$SHALLOW ${formatByteSize(shallowSize)}"
 
+// How many objects is the bold line above this one, so it isn't said again here.
 private fun ObjectGroupSummary.retainedText(stronglyReachableByteCount: Long): String =
-  "Retains ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} in " +
-    formatObjectCount(objectCount)
+  "$RETAINED ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)}"
 
 /**
  * Where a card of [cardSize] goes for a pointer at [pointer] in a view of [viewSize]: below and to the right

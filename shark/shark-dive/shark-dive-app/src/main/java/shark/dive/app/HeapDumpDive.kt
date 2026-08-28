@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -48,6 +49,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import shark.SharkLog
 import shark.dive.BitmapCounts
@@ -62,8 +64,8 @@ import shark.dive.LeakStatusOverrides
 import shark.dive.NativeBitmapPixels
 import shark.dive.Note
 import shark.dive.NoteLink
-import shark.dive.ObjectDominator
 import shark.dive.ObjectList
+import shark.dive.ObjectListEntry
 import shark.dive.ObjectListFilter
 import shark.dive.Place
 import shark.dive.PresentedCell
@@ -126,6 +128,8 @@ internal fun HeapDumpDive(
   notes: HeapDumpNotes,
   /** And what has been decided about its objects by hand, shared the same way. See [LeakStatusDetail]. */
   leakStatuses: HeapDumpLeakStatuses,
+  /** And which of its objects are starred, shared the same way. See [HeapDumpStars]. */
+  stars: HeapDumpStars,
   /** Places a link has asked for, opened as tabs. See [DiveWindow.linkedPlaces]. */
   linkedPlaces: List<Place> = emptyList(),
   onLinkedPlaceOpened: (Place) -> Unit = {},
@@ -198,8 +202,8 @@ internal fun HeapDumpDive(
   /** Bumped when pixels arrive from the device, which is what makes the bitmaps be asked for again. */
   var bitmapRevision by remember { mutableStateOf(0) }
   var showsBitmapsFromDevice by remember { mutableStateOf(false) }
-  /** The objects starred so far, with everything the list shows about them read once. */
-  var favourites by remember { mutableStateOf(emptyList<Favourite>()) }
+  /** The objects starred so far, as the rows that draw them. Read from the addresses in [stars]. */
+  var starredObjects by remember { mutableStateOf(emptyList<ObjectListEntry>()) }
   /** What the agents that have worked through this app did, while a screen showing them is open. */
   var sessions by remember { mutableStateOf(emptyList<AgentSession>()) }
   /** What each tab is called, by the place it is on. Only grows: a place is named once and stays named. */
@@ -220,6 +224,14 @@ internal fun HeapDumpDive(
       subject = current.title ?: placeTitles[current] ?: NAMING_TAB
     )
   }
+  /**
+   * Where saving a star runs, which is the composition rather than an effect.
+   *
+   * A `LaunchedEffect` keyed on what was clicked is how the leak status dialog does it, and it can't be that
+   * here: two stars set in a row would key the effect twice, and the second would cancel the first between
+   * its write landing and the list on screen being told about it. See [HeapDumpStars.toggle].
+   */
+  val starring = rememberCoroutineScope()
   /** Which objects of this heap dump have a status someone set, which is what every chain is read with. */
   val overrides = leakStatuses.overrides
   /** Whether the dialog that sets one is open, for the object the tab is on. */
@@ -567,6 +579,24 @@ internal fun HeapDumpDive(
   // answer where someone has already recorded another. See [HeapDumpLeakStatuses].
   LaunchedEffect(leakStatuses) { leakStatuses.read() }
 
+  // And which of its objects are starred, the same way and for the same reason: a star is drawn beside every
+  // object the panel describes, so a window that hasn't read the file yet would say every one of them isn't.
+  LaunchedEffect(stars) { stars.read() }
+
+  // What those addresses stand for, which is a read of the heap dump like every other list of objects. Not
+  // gated on the starred screen being open: it is a handful of objects rather than a pass over the dump, and
+  // one that has left the tree is a row that quietly isn't there, which is worth being in the log early.
+  LaunchedEffect(session, stars.objectIds) {
+    val starredIds = stars.objectIds
+    if (starredIds.isEmpty()) {
+      starredObjects = emptyList()
+      return@LaunchedEffect
+    }
+    starredObjects = session.read("the ${starredIds.size} starred objects") { dive ->
+      dive.tree.listObjects(starredIds)
+    }
+  }
+
   // And what the note about this one says, once per run of the app. Here rather than in the section that draws
   // it, because a place nobody has written about has no section at all until the read says it has none.
   LaunchedEffect(tabNote?.notes) { tabNote?.notes?.read() }
@@ -729,7 +759,7 @@ internal fun HeapDumpDive(
 
   Column(modifier) {
     ScreenBar(
-      starredCount = favourites.size,
+      starredCount = stars.objectIds.size,
       bitmapCounts = bitmapCounts,
       onOpen = openInNewTab,
       onCopyLink = copyLink,
@@ -787,7 +817,7 @@ internal fun HeapDumpDive(
           isListing = isListing,
           leaks = leaks,
           isFindingLeaks = isFindingLeaks,
-          favourites = favourites,
+          starredObjects = starredObjects,
           sessions = sessions,
           heapDumpFile = session.heapDumpFile,
           agentPlaceTitles = agentPlaceTitles,
@@ -799,7 +829,7 @@ internal fun HeapDumpDive(
           onOpenPlace = open,
           onCopyPlaceLink = copyLink,
           onReplacePlace = { tabs = tabs.replacingCurrent(it) },
-          onRemoveStar = { objectId -> favourites = favourites.filterNot { it.objectId == objectId } },
+          onRemoveStar = { objectId -> starring.launch { stars.toggle(objectId) } },
           onFollowLink = followNoteLink,
           onExplain = explain,
           modifier = Modifier.fillMaxSize()
@@ -850,7 +880,7 @@ internal fun HeapDumpDive(
             selection = details?.selection,
             sizes = sizes,
             bitmap = describedBitmap,
-            isStarred = favourites.any { it.objectId == describedSummary?.objectId },
+            isStarred = describedSummary?.let { stars.isStarred(it.objectId) } == true,
             leakStatus = describedLeakStatus,
             isLeakStatusRead = leakStatuses.isRead,
             leakStatusProblem = leakStatuses.problem,
@@ -876,16 +906,7 @@ internal fun HeapDumpDive(
                 // selection disagreeing rather than a click on nothing.
                 SharkLog.d { "Nothing to star: no object is selected" }
               } else {
-                val wasStarred = favourites.any { it.objectId == summary.objectId }
-                SharkLog.d {
-                  "${if (wasStarred) "Unstarred" else "Starred"} ${hexObjectId(summary.objectId)}"
-                }
-                favourites = if (wasStarred) {
-                  favourites.filterNot { it.objectId == summary.objectId }
-                } else {
-                  // Described, since a summary to star came from the same read as the dominator beside it.
-                  favourites + Favourite.of(summary, details?.dominator)
-                }
+                starring.launch { stars.toggle(summary.objectId) }
               }
             },
             onExplain = explain
@@ -1140,7 +1161,7 @@ private fun ListPlace(
   isListing: Boolean,
   leaks: HeapLeaks?,
   isFindingLeaks: Boolean,
-  favourites: List<Favourite>,
+  starredObjects: List<ObjectListEntry>,
   /** What the agents that have worked through this app did, for the screens that draw them. */
   sessions: List<AgentSession>,
   /** Which heap dump this window has open, which is what decides where an agent's row leads. */
@@ -1198,7 +1219,7 @@ private fun ListPlace(
       modifier = modifier
     )
     is Place.Starred -> StarredScreen(
-      favourites = favourites,
+      entries = starredObjects,
       stronglyReachableByteCount = sizes.stronglyReachableByteCount,
       onOpen = onOpen,
       onCopyLink = onCopyLink,
@@ -1643,7 +1664,6 @@ private class PlaceDetails(
   /** Which place these are of, so that a pane can tell them from the ones it is waiting to replace. */
   val place: Place,
   val selection: Selection?,
-  val dominator: ObjectDominator?,
   /** Null until the walk up to the GC roots comes back. */
   val rootPath: RootPath?
 )
@@ -1686,13 +1706,9 @@ private suspend fun HeapDumpSession.describing(
       // A list has no one object to describe, so nothing asks this about one.
       else -> null
     }
-    // The tree already knows what dominates what, so this is a read of one label rather than a search,
-    // and it belongs in the same read: two of them means the panel showing a dominator a beat late.
-    val objectId = (selection as? Selection.Object)?.summary?.objectId
     PlaceDetails(
       place = place,
       selection = selection,
-      dominator = objectId?.let { tree.dominatorOf(it) },
       rootPath = null
     )
   }
@@ -1705,7 +1721,6 @@ private suspend fun HeapDumpSession.describing(
     PlaceDetails(
       place = place,
       selection = placeDetails.selection,
-      dominator = placeDetails.dominator,
       rootPath = rootPath
     )
   )

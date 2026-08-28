@@ -116,3 +116,18 @@ uses, without the one for a newly recognized library leak:
   and `Unreachable` for the garbage — where the line under each already said which was which: the rectangle
   they were left out of, the class name, and the strength. All three now say how many, and nothing else. The
   panel also stops repeating that count as an `Objects` row under it.
+* ✨ **The objects you star are kept between runs**, in `~/.shark-dive/starred` — one file per heap dump, one
+  address per line, so a working set can be read, mailed or checked in without this app, and hand editing it
+  costs at worst the line that was mistyped. They come back in the order they were starred.
+* 🔀 **Starred is a list of objects, drawn as every other list of objects is.** It used to be a screen of its
+  own, keeping a copy of each object's sizes from the moment it was starred — which went stale as soon as a
+  verdict you set changed what something retains — and labelling them in words nothing else used. Now it and
+  the object list are one table with two contents, sharing a row and a set of column headings, and what a
+  starred object is, is read out of the heap dump like everything else.
+* 🔀 **One word for each of an object's two sizes.** The same two numbers were `Retained` and `Shallow` in the
+  details panel, `Retains 1.2 MB in 57 objects` and `88 B of its own` on the card at the pointer, and
+  `Retaining …` again on a chain — three vocabularies to reconcile before two of them could be compared. Now
+  everything says `Retained` and `Shallow`, with how many objects that is on the `Retained` line rather than
+  in a row of its own. The count of objects a rectangle *immediately* holds is gone from the panel and the
+  card: that number is the rectangles drawn inside it, which is what you are looking at. `Dominates` now
+  means one thing, on the chain.

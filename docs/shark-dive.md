@@ -69,7 +69,7 @@ a few seconds.
 * Bitmaps are drawn as their own pictures where the dump has the pixels. Android keeps them outside the
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
-  come back to.
+  come back to — kept between runs in `~/.shark-dive/starred`, one address per line, one file per heap dump.
 * **The verdict on the object a tab is on is the first thing "What it is" says** — `Stuck`, `Expected` or
   `Unknown` — and you can overrule it, see [The verdict](#the-verdict).
 * Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).

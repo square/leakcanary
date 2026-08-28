@@ -572,6 +572,10 @@ numbers belong in `notes/bitmaps.md`.
   default keeps notes in `~/.shark-dive/notes`, so a test taking it writes into the notes of whoever is
   running it. A window that never opens one only lists that directory to see which tabs to mark, which is
   why the tests that don't touch notes need no directory of their own.
+- **And a UI test that stars an object must pass a `DiveStars` over a temporary directory**, for the same
+  reason: the default keeps them in `~/.shark-dive/starred`, so a test that stars puts an address into the
+  working set of whoever is running it. Reading is harmless — a test window reads the file for its own dump
+  and finds nothing — so only the tests that click a star need one.
 - **A UI test that opens the *Agent logs* screen must pass its own `agentSessions`.** The default reads
   `~/.shark-dive/agents/sessions`, so a test taking it draws whatever the person running it last handed
   to an agent — and asserts on rows it didn't write. `AgentLogsScreenTest` builds the sessions it expects.

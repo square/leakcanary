@@ -55,6 +55,7 @@ import shark.dive.ReachabilityStrength.UNREACHABLE
 import shark.dive.ReachabilityStrength.WEAK
 import shark.dive.ReferencePage
 import shark.dive.Topic.WEAKER_REFERENCES
+import shark.dive.exactHexObjectId
 import shark.dive.formatByteSize
 import shark.dive.formatObjectCount
 import shark.dive.hexObjectId
@@ -170,7 +171,7 @@ class DiveAppTest {
       // The panel was already describing the whole heap dump the window opened on, so what a click does is
       // move it onto the object clicked: what it says has to be about that object and not about the tree.
       waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("Retained objects").assertIsDisplayed()
+      onNodeWithText(RETAINED).assertIsDisplayed()
       onNodeWithText(STRONG.label).assertIsDisplayed()
     }
   }
@@ -447,8 +448,9 @@ class DiveAppTest {
       onNodeWithText(hexObjectId(holderObjectId)).assertIsDisplayed()
       // Which field of the holder the array is reached through, the way a leak trace names it.
       onNodeWithText("$HOLDER_LABEL.payload").assertIsDisplayed()
-      // And what each of the two retains, which is the size the treemap draws its rectangle at.
-      assertThat(onAllNodesWithText("Retaining ", substring = true).fetchSemanticsNodes()).hasSize(2)
+      // And what each of the two retains, which is the size the treemap draws its rectangle at, in the
+      // words the details panel and the card at the pointer use for it. See [RETAINED].
+      assertThat(onAllNodesWithText("$RETAINED ", substring = true).fetchSemanticsNodes()).hasSize(2)
     }
   }
 
@@ -494,9 +496,11 @@ class DiveAppTest {
     diveUiTest {
       openHeapDump()
       clickView(TREEMAP_X, TREEMAP_Y)
-      waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(RETAINED), OPEN_TIMEOUT_MILLIS)
 
       onNodeWithText(UNSTARRED_GLYPH, substring = true).performClick()
+      // Which is a file being written, so the count on the bar arrives a beat after the click.
+      waitUntilAtLeastOneExists(hasText("$STARRED_GLYPH 1 starred"), OPEN_TIMEOUT_MILLIS)
       // Moving on to the object that dominates it, which is what leaves the panel describing something else.
       onNodeWithText("com.example.Holder").performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
@@ -504,10 +508,47 @@ class DiveAppTest {
       screenButton("$STARRED_GLYPH 1 starred").performClick()
 
       // Comparing two rectangles means looking at them one after the other, and a treemap has no room to
-      // keep the first on screen. So the list keeps everything the panel had read about it.
-      onNodeWithText("Starred objects", substring = true).assertIsDisplayed()
-      onNodeWithText(hexObjectId(payloadObjectId)).assertIsDisplayed()
-      onNodeWithText("dominated by $HOLDER_LABEL", substring = true).assertIsDisplayed()
+      // keep the first on screen. So the one starred is a row of the same kind every other list has, read
+      // out of the heap dump again rather than remembered from the moment it was starred.
+      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `starring an object writes it down for the next run`() {
+    val starred = testFolder.newFolder()
+    diveUiTest {
+      openHeapDump(stars = DiveStars(starred))
+      clickView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText(RETAINED), OPEN_TIMEOUT_MILLIS)
+
+      onNodeWithText(UNSTARRED_GLYPH, substring = true).performClick()
+
+      // A working set outlives the window that built it, and it is one address per line so that it can be
+      // read, grepped and fixed without this app. See [StarredFile].
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { starred.listFiles().orEmpty().isNotEmpty() }
+      assertThat(starred.listFiles().orEmpty().single().readText())
+        .contains(exactHexObjectId(payloadObjectId))
+    }
+  }
+
+  @Test fun `taking the star off the last object is the working set gone`() {
+    val starred = testFolder.newFolder()
+    diveUiTest {
+      openHeapDump(stars = DiveStars(starred))
+      clickView(TREEMAP_X, TREEMAP_Y)
+      waitUntilAtLeastOneExists(hasText(RETAINED), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(UNSTARRED_GLYPH, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText("$STARRED_GLYPH 1 starred"), OPEN_TIMEOUT_MILLIS)
+      screenButton("$STARRED_GLYPH 1 starred").performClick()
+      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+
+      // The star on the row itself, which is the one thing this list offers that the object list doesn't.
+      onNode(hasText(STARRED_GLYPH) and isButton()).performClick()
+
+      // A heap dump whose last star has been taken off is one nobody has starred anything in, so there is
+      // no file left behind to read as a dump somebody worked on.
+      waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { starred.listFiles().orEmpty().isEmpty() }
+      onNodeWithText(NOTHING_STARRED, substring = true).assertIsDisplayed()
     }
   }
 
@@ -586,7 +627,7 @@ class DiveAppTest {
       assertThat(onAllNodesWithText(SIBLING_CLASS_NAME).fetchSemanticsNodes()).isNotEmpty()
       // And gets the rows an object gets, so that a pile and an object read as two of a kind.
       onNodeWithText(STRONG.label).assertIsDisplayed()
-      onNodeWithText("Retained together").assertIsDisplayed()
+      onNodeWithText(RETAINED).assertIsDisplayed()
     }
   }
 
@@ -743,7 +784,7 @@ class DiveAppTest {
       // fills only the first three of them and the space past that belongs to no cell.
       clickView(RING_X, RING_Y)
 
-      waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(RETAINED), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -759,7 +800,7 @@ class DiveAppTest {
       waitForTheTree(OPEN_TIMEOUT_MILLIS)
       clickAt(stackRow(STACK_ROW))
 
-      waitUntilAtLeastOneExists(hasText("Retained objects"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(RETAINED), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -821,7 +862,10 @@ class DiveAppTest {
     copyToClipboard: (String) -> Unit = {},
     // An `adb` that is connected to nothing, rather than the one on this machine: a test that shells out
     // has whatever devices happen to be plugged in to answer for.
-    deviceHeapDumps: DeviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB)
+    deviceHeapDumps: DeviceHeapDumps = DeviceHeapDumps(NO_DEVICE_ADB),
+    // And its own directory for whatever it stars, for the same reason: the default is the starred objects
+    // of whoever is running the tests, which a test that stars would be writing into.
+    stars: DiveStars = DiveStars(testFolder.newFolder())
   ) = setContent {
     MaterialTheme {
       var shown: File? by remember { mutableStateOf(heapDumpFile) }
@@ -832,7 +876,8 @@ class DiveAppTest {
         onHeapDumpChosen = { file, _ -> shown = file },
         copyToClipboard = copyToClipboard,
         chooseHeapDumpFile = chooseHeapDumpFile,
-        deviceHeapDumps = deviceHeapDumps
+        deviceHeapDumps = deviceHeapDumps,
+        stars = stars
       )
     }
   }
@@ -840,9 +885,10 @@ class DiveAppTest {
   /** Opens a heap dump and hands back the file, which is what a link to a place in it names. */
   private fun ComposeUiTest.openHeapDump(
     heapDumpFile: File = testHeapDump(),
-    copyToClipboard: (String) -> Unit = {}
+    copyToClipboard: (String) -> Unit = {},
+    stars: DiveStars = DiveStars(testFolder.newFolder())
   ): File {
-    setDiveContent(heapDumpFile, copyToClipboard = copyToClipboard)
+    setDiveContent(heapDumpFile, copyToClipboard = copyToClipboard, stars = stars)
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
     return heapDumpFile
   }

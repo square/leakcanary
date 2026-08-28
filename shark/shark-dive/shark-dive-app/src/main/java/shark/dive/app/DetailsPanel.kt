@@ -144,7 +144,10 @@ private fun ObjectGroupDetails(
   Text(summary.title(), style = MaterialTheme.typography.titleMedium)
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
   StrengthRow(summary.strength, onExplain)
-  Detail("Retained together", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
+  // How many objects is the title, so this row is the bytes and nothing else. The same word an object gets,
+  // rather than "Retained together": that a pile of objects retains something together is what makes it a
+  // pile, and it is already headed by a count.
+  Detail(RETAINED, formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
 }
 
 /**
@@ -221,13 +224,11 @@ private fun ObjectDetails(
   // and the sentence describing it stops just short of saying it.
   BitmapPreview(bitmap)
   StrengthRow(summary.strength, onExplain)
-  Detail("Retained", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
-  Detail("Retained objects", summary.retainedCount.toString())
+  Detail(RETAINED, retainedText(summary.retainedSize, summary.retainedCount, stronglyReachableByteCount))
   // No share of the total on the shallow size: what one object is made of on its own is never a
   // meaningful fraction of a heap dump, and a second percentage in the column would only dilute the
   // one that says something.
-  Detail("Shallow", formatByteSize(summary.shallowSize))
-  Detail("Dominates", "${summary.dominatedObjectCount} objects")
+  Detail(SHALLOW, formatByteSize(summary.shallowSize))
   summary.inspectorLabels.forEach { label ->
     Text(label, style = MaterialTheme.typography.bodySmall)
   }
@@ -350,6 +351,28 @@ internal fun Detail(
     Text(value, style = MaterialTheme.typography.bodyMedium)
   }
 }
+
+/**
+ * What an object's two sizes are called wherever they are given: the rows of this panel, the lines of the
+ * card at the pointer, and the columns of every list of objects. See [ObjectRow].
+ *
+ * **One word each.** These were three vocabularies for two numbers — `Retained` here, `Retains … in N
+ * objects` on the card, `Retained` again over a column — and a reader comparing a card against the panel
+ * behind it had to work out that they were the same numbers before they could compare them.
+ *
+ * How many objects that is goes on the [RETAINED] line rather than in a row of its own, because it is the
+ * same fact counted the other way. And how many the object *immediately* dominates is gone from both: that
+ * is the number of rectangles drawn inside this one, which is what the picture beside them is.
+ */
+internal const val RETAINED = "Retained"
+internal const val SHALLOW = "Shallow"
+
+internal fun retainedText(
+  retainedSize: Long,
+  retainedCount: Int,
+  stronglyReachableByteCount: Long
+): String = "${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} · " +
+  formatObjectCount(retainedCount)
 
 /**
  * Shown by the details panel until something has been clicked, which is what it describes: pointing at a
