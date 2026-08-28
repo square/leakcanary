@@ -1,0 +1,654 @@
+package shark.dive.app
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPosition
+import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
+import java.awt.FileDialog
+import java.awt.Frame
+import java.awt.GraphicsEnvironment
+import java.io.File
+import kotlin.system.exitProcess
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import shark.SharkLog
+import shark.dive.CommandLineAdb
+import shark.dive.DeepLink
+import shark.dive.DeviceHeapDumps
+import shark.dive.HeapSizes
+import shark.dive.NativeBitmapPixels
+import shark.dive.Place
+import shark.dive.ReachabilityStrength
+import shark.dive.agent.AgentSession
+import shark.dive.formatByteSize
+import shark.dive.formatObjectCount
+import shark.dive.jdwp.JdwpBitmaps
+import shark.dive.jdwp.JdwpGc
+
+fun main(args: Array<String>) {
+  // A command line that is nothing but links is a courier: Windows and Linux deliver a link by starting a
+  // process with it, so this is most of the runs of this app on those two. Answered before anything else
+  // and without opening a log file — one file per link would push out every run worth reading, and the
+  // last 20 is what a bug report attaches. See [SessionLog].
+  if (deliveredToAnotherRun(args)) {
+    return
+  }
+  // And a run asked to be a pipe between an agent and another run opens no window and, more to the point,
+  // installs no logging: stdout is the protocol in that mode, and one log line in the middle of it is a
+  // session the agent's client reports as broken. See [AgentStdioBridge].
+  agentBridgeExitCode(args)?.let { exitProcess(it) }
+  // And a run asked to make one call from a shell prints the answer and ends, for the same reason: what is
+  // on stdout is what whoever typed it is reading. See [AgentCommandLine].
+  agentCommandExitCode(args)?.let { exitProcess(it) }
+  // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
+  // stdout as well as in the window — and in a file, so that a session someone reports on can be read
+  // back after it. See [installLogging].
+  installLogging().use {
+    SharkLog.d { "Started with ${if (args.isEmpty()) "no arguments" else args.joinToString(" ")}" }
+    val arguments = try {
+      DiveArguments.parse(args.toList())
+    } catch (invalidArguments: IllegalArgumentException) {
+      // Said on stdout and in the log rather than thrown, because a command line nobody can read is a
+      // message to whoever typed it and not a crash to report.
+      SharkLog.d { invalidArguments.message.orEmpty() }
+      return@use
+    }
+    // What the arguments above were taken to mean, which is not obvious from them: a shell, Gradle's
+    // `--args` and a run configuration each split a quoted title differently, and a title split in two
+    // reads as one on the line above.
+    SharkLog.d { "Read that as $arguments" }
+    nameThisRun(arguments.titlePrefix ?: APP_NAME)
+    // With where this machine's heap dumps are, which is what a link naming one this run has not opened is
+    // looked up in. One per run, and the same one every window records into. See [HeapDumpPaths].
+    val windows = diveWindows(arguments, diveHeapDumpPaths())
+    // One per run rather than one per window, because an agent has no window: opening a heap dump and taking
+    // one off a device are what make a window, so whatever does them has to outlive every window there is.
+    val deviceHeapDumps = commandLineDeviceHeapDumps()
+    // Both before the first window, so that a link arriving while the heap dumps are still opening is one
+    // the window queues rather than one that lands on an app not listening yet.
+    DeepLinkScheme.takeUrisFromTheOs(windows)
+    DeepLinkScheme.registerWithTheOs()
+    DeepLinkPeers.listen(windows).use {
+      // Published before the first window too, so that an agent whose client started it while the heap
+      // dumps were still opening finds this run and waits for a dump rather than finding nothing.
+      listenForAgents(windows, deviceHeapDumps).use {
+        // Whatever no other run claimed, which for a link about a heap dump nothing has open is this run
+        // opening it, or asking where it is. Ours to answer for now: nobody else is going to.
+        DeepLinkPeers.deliver(arguments.deepLinks).forEach { windows.open(it) }
+        // Heap dump paths on the command line open straight away, which is how this is usually run.
+        diveApplication(windows, deviceHeapDumps)
+      }
+    }
+  }
+}
+
+/**
+ * Hands a command line of nothing but links to the runs that have those windows, and says whether every
+ * one of them was taken.
+ *
+ * False for anything else on the command line, for a link nobody claimed and for a link that doesn't
+ * parse — all three are a run that has something to show, and the full path below shows it, with a log
+ * file and a window rather than from here.
+ */
+private fun deliveredToAnotherRun(args: Array<String>): Boolean {
+  if (args.isEmpty() || !args.all { DeepLink.looksLikeOne(it) }) {
+    return false
+  }
+  val links = args.map {
+    try {
+      DeepLink.parse(it)
+    } catch (invalidLink: IllegalArgumentException) {
+      // Left to the full path, which has somewhere to say this: a courier has no window and, on Windows,
+      // no console either.
+      return false
+    }
+  }
+  return DeepLinkPeers.deliver(links).isEmpty()
+}
+
+/**
+ * Calls this process [name] wherever the OS names the process rather than one of its windows, which on
+ * macOS is the menu bar and the app switcher.
+ *
+ * A run is one process and several windows, so the one name it gets is what the run was started for —
+ * the `--title` its windows share — rather than which heap dump is open. Without this a run is called
+ * after whatever launched it, which is the same for every Shark Dive window on screen.
+ *
+ * Called before the first window, which is not a matter of taste: AWT reads this property as it starts
+ * and registers the process under whatever it says then, so setting it once a window is up changes
+ * nothing. It is the same name `-Xdock:name` sets — that JVM argument only puts it in an environment
+ * variable AWT reads at that same moment — which is why nothing that launches this has to pass one.
+ *
+ * The macOS dock is the one place this does not reach: it names a process after the bundle it was
+ * launched from and takes no notice of either. Naming that is the `runNamed` Gradle task's job.
+ */
+private fun nameThisRun(name: String) {
+  // Read on macOS only. Windows and Linux name a process after its window, which already says this.
+  System.setProperty("apple.awt.application.name", name)
+  SharkLog.d { "This run is called \"$name\" where the OS names the process rather than a window" }
+}
+
+/** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */
+private fun diveApplication(
+  windows: DiveWindows,
+  deviceHeapDumps: DeviceHeapDumps
+) = application {
+  val updateNotice = remember { UpdateNotice() }
+  // One notepad per place for the whole run, so that a heap dump open in two windows is one set of notes
+  // rather than two that overwrite each other. See [DiveNotes].
+  val notes = remember { DiveNotes() }
+  // And one set of statuses set by hand per heap dump, for the same reason: a status is a conclusion about
+  // the dump rather than about a window, so both windows on one dump read the heap through the same ones.
+  val leakStatuses = remember { DiveLeakStatuses() }
+  // Once per run, not once per window, and off the UI thread: this is a network request, and a window that
+  // waits for GitHub to answer before it draws is a window that hangs when GitHub is unreachable.
+  LaunchedEffect(updateNotice) {
+    withContext(Dispatchers.IO) { UpdateCheck().check() }?.let { updateNotice.offer(it) }
+  }
+  windows.forEach { window ->
+    // Keyed on the window, so that closing one doesn't hand its size and position to the next one along.
+    key(window) {
+      Window(
+        onCloseRequest = {
+          windows -= window
+          // The app is its windows, so there is nothing left to come back to.
+          if (windows.isEmpty()) {
+            exitApplication()
+          }
+        },
+        title = window.title,
+        // What Windows and Linux show in the title bar and the window list. macOS takes the dock icon
+        // from the process instead, which the build script sets.
+        icon = painterResource(APP_ICON),
+        state = rememberWindowState(
+          width = WINDOW_WIDTH,
+          height = WINDOW_HEIGHT,
+          position = cascadedPosition(window.cascade)
+        )
+      ) {
+        // The OS window this one came out as, which is the one thing following a link needs and Compose
+        // keeps no state for: raising a window is AWT's, not the composition's. See [DiveWindow].
+        DisposableEffect(this.window) {
+          window.attachTo(this@Window.window)
+          onDispose {}
+        }
+        MaterialTheme {
+          DiveApp(
+            heapDumpFile = window.heapDumpFile,
+            bitmapPixels = window.bitmapPixels,
+            onHeapDumpChosen = { file, fetchedPixels ->
+              windows.openHeapDump(window, file, fetchedPixels)
+            },
+            updateNotice = updateNotice,
+            notes = notes,
+            leakStatuses = leakStatuses,
+            // What this window has open, for the agent surface: a socket thread has to be able to find it,
+            // and it is a composable's state. See [DiveWindow.openHeapDump].
+            onHeapDumpOpen = { open ->
+              window.openHeapDump = open
+              // Once it is open rather than as the window is given the file: a dump that turns out not to be
+              // one is not a heap dump for a link to be sent to. Which is also what makes a link work after
+              // this run has gone, since it is where the path is written down. See [HeapDumpPaths].
+              open?.let { windows.heapDumpPaths.record(it.session.heapDumpFile) }
+            },
+            onHeapDumpProblem = { problem -> window.openProblem = problem },
+            // The same way a link arriving from the OS is followed, which is what makes a `shark://` link
+            // written in a note work wherever it is read from.
+            followDeepLink = { link -> DeepLinkPeers.follow(link, windows) },
+            // A row of an agent's session about another heap dump, which is a file rather than a window: the
+            // run that answered that agent has usually ended, and its window ids with it.
+            onOpenHeapDump = { file, place -> windows.goToHeapDump(file, place) },
+            linkedPlaces = window.linkedPlaces,
+            onLinkedPlaceOpened = { place -> window.linkedPlaceOpened(place) },
+            deepLinkProblem = window.deepLinkProblem,
+            // And what a link is waiting to be told about the heap dump it names: which of the ones called
+            // that, or where it is. See [DiveWindows.open].
+            linkedHeapDump = window.linkedHeapDump,
+            onLinkedHeapDumpChosen = { chosen -> windows.chooseLinkedHeapDump(window, chosen) },
+            // The run's rather than this window's, because an agent reaches the same one through no window
+            // at all — and because two windows asking `adb` at once is two `adb` processes.
+            deviceHeapDumps = deviceHeapDumps
+          )
+        }
+      }
+    }
+  }
+}
+
+// Internal, like the rest of this app: nothing outside the module composes it, the module is published
+// nowhere, and it takes internal types.
+@Composable
+internal fun DiveApp(
+  /** The one heap dump this window shows, null until one has been chosen for it. */
+  heapDumpFile: File?,
+  /**
+   * The pixels of [heapDumpFile]'s bitmaps, when they were fetched off the device along with it. Null for
+   * every other way a heap dump gets here, which is most of them.
+   */
+  bitmapPixels: NativeBitmapPixels? = null,
+  /** Where a heap dump chosen from the bar goes, which is a window: see [openHeapDump]. */
+  onHeapDumpChosen: (File, NativeBitmapPixels?) -> Unit,
+  /**
+   * Whether a newer release has been found, shared with every other window of this run. Empty by default so
+   * that a test only gets the bar when it is what the test is about.
+   */
+  updateNotice: UpdateNotice = remember { UpdateNotice() },
+  /**
+   * The notes of every heap dump this run has open, shared with every other window. Its own by default, so
+   * that a test writes into a directory it was given rather than into the notes of whoever is running it.
+   */
+  notes: DiveNotes = remember { DiveNotes() },
+  /**
+   * The leaking statuses set by hand on every heap dump this run has open, shared the same way. Its own by
+   * default for the same reason: a test that took whoever is running it would rewrite their conclusions.
+   */
+  leakStatuses: DiveLeakStatuses = remember { DiveLeakStatuses() },
+  /**
+   * Where what this window has open is published, for everything that isn't drawing it — which today is an
+   * agent reaching in from outside the app. Called with the heap dump as it opens and with null as it
+   * closes. See [DiveWindow.openHeapDump].
+   */
+  onHeapDumpOpen: (OpenHeapDump?) -> Unit = {},
+  /**
+   * And where a heap dump that could not be opened says so, for the same readers.
+   *
+   * Beside [onHeapDumpOpen] rather than folded into it, because the two are not opposites: a window whose
+   * dump is still opening has neither, and something waiting for that dump has to be able to tell "not
+   * yet" from "never" without waiting for a timeout to decide it. Null again once another dump opens here.
+   */
+  onHeapDumpProblem: (String?) -> Unit = {},
+  /**
+   * What every agent that has connected did, for the screens that draw them.
+   *
+   * Its own by default, and overridden by tests for the reason the notes are: a test reading the sessions
+   * under whoever is running it would be a test of their investigations rather than of this window.
+   */
+  agentSessions: () -> List<AgentSession> = ::agentSessions,
+  /** Places a link has asked this window for, which its tabs open. See [DiveWindow.linkedPlaces]. */
+  linkedPlaces: List<Place> = emptyList(),
+  onLinkedPlaceOpened: (Place) -> Unit = {},
+  /**
+   * Where a `shark://` link written in the notes goes. Only the application knows, since routing one is a
+   * question about every window of the run, so a window composed without it says so in the log.
+   */
+  followDeepLink: (DeepLink) -> Unit = { link -> SharkLog.d { "Nothing here to follow $link with" } },
+  /**
+   * And where a row of an agent's session about another heap dump goes, which is that heap dump: the window
+   * showing it, or a new one. Only the application knows, for the same reason. See [DiveWindows].
+   */
+  onOpenHeapDump: (File, Place) -> Unit = { file, place ->
+    SharkLog.d { "Nothing here to open $place of $file with" }
+  },
+  /**
+   * Why this window has no heap dump, for one a link opened because the window it named had gone.
+   *
+   * Shown where "open an Android heap dump" would be, rather than as a dialog: the window is empty either
+   * way, and the two buttons above are what to do about it in both cases.
+   */
+  deepLinkProblem: String? = null,
+  /**
+   * What a link is waiting to be told about the heap dump it names, and null while nothing is being asked.
+   *
+   * A dialog rather than something in the window, because it is a question with an answer only the reader
+   * has: which of the heap dumps called that, or where the one called that is. See [LinkedHeapDumpDialog].
+   */
+  linkedHeapDump: LinkedHeapDump? = null,
+  /** The heap dump picked for it, or null for a question dismissed. See [DiveWindows.open]. */
+  onLinkedHeapDumpChosen: (File?) -> Unit = {},
+  /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
+  copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
+  /** Overridden by tests, which have no browser to open a link written in the notes in. */
+  openUrl: (String) -> Unit = ::openInBrowser,
+  /** Overridden by tests, which have no display to put a file dialog on. */
+  chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
+  /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
+  deviceHeapDumps: DeviceHeapDumps = remember { commandLineDeviceHeapDumps() }
+) {
+  var state: HeapDumpState by remember { mutableStateOf(HeapDumpState.None) }
+  var takesHeapDump by remember { mutableStateOf(false) }
+
+  LaunchedEffect(heapDumpFile) {
+    val file = heapDumpFile
+    if (file == null) {
+      state = HeapDumpState.None
+      return@LaunchedEffect
+    }
+    state = HeapDumpState.Opening(file, "Opening ${file.name}")
+    state = try {
+      val session = HeapDumpSession.open(file) { step ->
+        state = HeapDumpState.Opening(file, step)
+      }
+      val sizes = session.read("the sizes of ${file.name}") { it.sizes }
+      HeapDumpState.Open(session, sizes, bitmapPixels).also {
+        SharkLog.d { "${it.statusLine()} · ${sizes.strengthsText()}" }
+      }
+    } catch (cancellation: CancellationException) {
+      // Not a failure to show: this window is closing, or is already opening another heap dump. Rethrown
+      // rather than caught below, because the state of a window nobody is looking at must not become the
+      // state of the window that replaced it.
+      throw cancellation
+    } catch (throwable: Throwable) {
+      SharkLog.d(throwable) { "Could not open $file" }
+      HeapDumpState.Failed(file, throwable.toString())
+    }
+  }
+
+  val currentState = state
+  // Closing the window is what ends the session: it's the only thing that takes this heap dump off
+  // screen, since another one opens in a window of its own.
+  //
+  // And what is open is published here rather than from the effect that opens it, because this is the one
+  // place that also runs when it closes: a window whose dump has gone must stop being a window an agent can
+  // ask about, and it has to stop being one before the session is closed under it.
+  DisposableEffect(currentState) {
+    val open = currentState as? HeapDumpState.Open
+    onHeapDumpOpen(
+      open?.let {
+        OpenHeapDump(
+          session = it.session,
+          notes = notes.of(it.session.heapDumpFile),
+          leakStatuses = leakStatuses.of(it.session.heapDumpFile)
+        )
+      }
+    )
+    onHeapDumpProblem((currentState as? HeapDumpState.Failed)?.message)
+    onDispose {
+      onHeapDumpOpen(null)
+      open?.session?.close()
+    }
+  }
+
+  if (takesHeapDump) {
+    TakeHeapDumpDialog(
+      deviceHeapDumps = deviceHeapDumps,
+      // The dump lands in a window the same way a chosen file does: it is one, and one window per heap
+      // dump is what keeps the windows on screen the dumps open. Its bitmaps' pixels travel with it,
+      // since they were fetched for this dump and belong to no other.
+      onDumped = { file, fetchedPixels ->
+        onHeapDumpChosen(file, fetchedPixels)
+        takesHeapDump = false
+      },
+      onDismiss = { takesHeapDump = false }
+    )
+  }
+
+  if (linkedHeapDump != null) {
+    LinkedHeapDumpDialog(
+      asked = linkedHeapDump,
+      // The same picker the button in the bar opens: choosing a heap dump is choosing a heap dump.
+      chooseHeapDumpFile = chooseHeapDumpFile,
+      onChosen = onLinkedHeapDumpChosen
+    )
+  }
+
+  Column(Modifier.fillMaxSize()) {
+    // Above the heap dump bar, because it is about the app rather than about what is open in it, and
+    // because a bar that pushes the map down is one nobody can miss and nobody has to act on.
+    UpdateBar(updateNotice)
+    HeapDumpBar(
+      state = currentState,
+      onOpenClick = {
+        val chosenFile = chooseHeapDumpFile()
+        if (chosenFile == null) {
+          // Which is why nothing happened, and the only way to tell that from a dialog that failed to
+          // open at all.
+          SharkLog.d { "No heap dump chosen" }
+        } else {
+          // No pixels: a file chosen off the disk is whatever it has in it, and only taking a dump can
+          // go and fetch what it hasn't.
+          onHeapDumpChosen(chosenFile, null)
+        }
+      },
+      onTakeClick = { takesHeapDump = true }
+    )
+    if (currentState is HeapDumpState.Open) {
+      HeapDumpDive(
+        session = currentState.session,
+        sizes = currentState.sizes,
+        deviceHeapDumps = deviceHeapDumps,
+        fetchedBitmapPixels = currentState.bitmapPixels,
+        notes = notes.of(currentState.session.heapDumpFile),
+        leakStatuses = leakStatuses.of(currentState.session.heapDumpFile),
+        agentSessions = agentSessions,
+        linkedPlaces = linkedPlaces,
+        onLinkedPlaceOpened = onLinkedPlaceOpened,
+        followDeepLink = followDeepLink,
+        onOpenHeapDump = onOpenHeapDump,
+        openUrl = openUrl,
+        copyToClipboard = copyToClipboard,
+        modifier = Modifier.weight(1f)
+      )
+    } else {
+      Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Column(
+          // Narrow enough for a sentence to wrap into lines the eye can come back to, since what a link
+          // asking for a heap dump says is longer than the words the rest of this window puts here.
+          Modifier.widthIn(max = CENTER_MESSAGE_MAX_WIDTH),
+          horizontalAlignment = Alignment.CenterHorizontally,
+          verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+          if (currentState is HeapDumpState.Opening) {
+            CircularProgressIndicator()
+          }
+          // A window a link opened to ask which heap dump it meant, or where the one it named is, says that
+          // instead of the invitation to open a heap dump: it was opened to carry the question, and the
+          // invitation is under it anyway. See [DiveWindows.ask].
+          Text(
+            deepLinkProblem?.takeIf { currentState is HeapDumpState.None }
+              ?: currentState.centerMessage(),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center
+          )
+        }
+      }
+    }
+  }
+}
+
+/** Which heap dump the app has open, if any. */
+private sealed interface HeapDumpState {
+
+  object None : HeapDumpState
+
+  /** [step] describes what opening the heap dump is currently doing, which takes a while. */
+  data class Opening(
+    val file: File,
+    val step: String
+  ) : HeapDumpState
+
+  data class Failed(
+    val file: File,
+    val message: String
+  ) : HeapDumpState
+
+  data class Open(
+    val session: HeapDumpSession,
+    val sizes: HeapSizes,
+    /** Fetched off the device along with the dump, for a device whose dump can't carry them. */
+    val bitmapPixels: NativeBitmapPixels?
+  ) : HeapDumpState
+}
+
+/**
+ * Says that a newer release exists, and nothing more: a link to it and a way to stop being told.
+ *
+ * Deliberately not a dialog. Someone opens this app to look at a heap dump, and a modal in front of that
+ * to announce a version number would be in the way of the reason they launched it.
+ */
+@Composable
+private fun UpdateBar(updateNotice: UpdateNotice) {
+  val update = updateNotice.availableUpdate ?: return
+  Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
+    Row(
+      Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Text(
+        updateAvailableText(update.version, SharkDiveVersion.current),
+        style = MaterialTheme.typography.bodyMedium
+      )
+      TextButton(onClick = { openInBrowser(update.releaseUrl) }) {
+        Text(DOWNLOAD_UPDATE)
+      }
+      TextButton(onClick = { updateNotice.dismiss() }) {
+        Text(DISMISS_UPDATE)
+      }
+    }
+  }
+}
+
+/** Which heap dump is open, and how to open another. Everything else belongs to whatever is showing it. */
+@Composable
+private fun HeapDumpBar(
+  state: HeapDumpState,
+  onOpenClick: () -> Unit,
+  onTakeClick: () -> Unit
+) {
+  Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
+    Row(
+      Modifier.fillMaxWidth().padding(8.dp),
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Button(onClick = onOpenClick) {
+        Text(OPEN_HEAP_DUMP)
+      }
+      // Next to opening one, because taking one off a device ends in the same place: a file to open. And
+      // a dump taken here arrives with its bitmaps in it, which one taken by hand only does with `-b`.
+      Button(onClick = onTakeClick) {
+        Text(TAKE_HEAP_DUMP)
+      }
+      Text(state.statusLine(), style = MaterialTheme.typography.bodyMedium)
+    }
+  }
+}
+
+private fun HeapDumpState.statusLine(): String = when (this) {
+  HeapDumpState.None -> ""
+  is HeapDumpState.Opening -> step
+  is HeapDumpState.Failed -> "Could not open ${file.name}"
+  // The split between reachable and uncollected is the legend's job now, and it says it per strength.
+  is HeapDumpState.Open -> "${session.heapDumpFile.name} · " +
+    "${formatByteSize(sizes.totalByteCount)} in ${formatObjectCount(sizes.totalObjectCount)}"
+}
+
+/**
+ * What the legend says, for the log: how a dump splits up by strength is the least predictable thing
+ * about it, so a terminal run should say it rather than only the window.
+ */
+private fun HeapSizes.strengthsText(): String = ReachabilityStrength.values()
+  .filter { byteCountByStrength.getValue(it) > 0L }
+  .joinToString(", ") { strength ->
+    "${formatByteSize(byteCountByStrength.getValue(strength))} ${strength.displayName.lowercase()}"
+  }
+
+private fun HeapDumpState.centerMessage(): String = when (this) {
+  HeapDumpState.None -> NO_HEAP_DUMP
+  is HeapDumpState.Opening -> step
+  is HeapDumpState.Failed -> "${file.name} could not be opened.\n$message"
+  is HeapDumpState.Open -> ""
+}
+
+/**
+ * Where a window opens: centred, then [cascade] steps down and to the right.
+ *
+ * Placing it is ours to do because macOS centres every window it is left to place itself, and a window
+ * landing exactly over the one it was opened from is what "the heap dump was replaced" looks like.
+ */
+private fun cascadedPosition(cascade: Int): WindowPosition {
+  // The screen minus whatever the OS keeps for itself, so a window doesn't open under the menu bar.
+  val screen = GraphicsEnvironment.getLocalGraphicsEnvironment().maximumWindowBounds
+  val centredX = ((screen.width.dp - WINDOW_WIDTH) / 2).coerceAtLeast(0.dp)
+  val centredY = ((screen.height.dp - WINDOW_HEIGHT) / 2).coerceAtLeast(0.dp)
+  // As many steps as there is room for below and to the right of centred, then over from the centre
+  // again: two windows sharing a spot beats one opening half off the screen.
+  val stepCount = (minOf(centredX, centredY) / CASCADE_STEP).toInt().coerceAtLeast(1)
+  val step = CASCADE_STEP * (cascade % stepCount)
+  return WindowPosition(x = screen.x.dp + centredX + step, y = screen.y.dp + centredY + step)
+}
+
+/**
+ * How this app reaches a device: the machine's own `adb`, with a debugger for what `adb` can't ask for.
+ *
+ * A function rather than a constant because it is one per run and a test's is its own — the default of a
+ * composable that a test takes over, and what `main` hands to everything that has no window.
+ */
+internal fun commandLineDeviceHeapDumps(): DeviceHeapDumps {
+  val adb = CommandLineAdb()
+  // A debugger is what reaches into a process for the two things `am dumpheap` can't ask it for on an old
+  // enough device: the pixels of a bitmap below API 35, and a collection below API 27.
+  return DeviceHeapDumps(adb, JdwpBitmaps(adb), JdwpGc(adb))
+}
+
+/**
+ * The platform file picker, through AWT: Compose Multiplatform has none of its own, and this is the
+ * native dialog on macOS and Windows.
+ */
+private fun showHeapDumpFileDialog(): File? {
+  val dialog = FileDialog(null as Frame?, "Open heap dump", FileDialog.LOAD)
+  dialog.setFilenameFilter { _, name -> name.endsWith(".hprof") }
+  dialog.isVisible = true
+  val directory = dialog.directory
+  val fileName = dialog.file
+  return if (directory == null || fileName == null) null else File(directory, fileName)
+}
+
+/** Rendered from `icons/shark-dive-icon.svg`, and the same PNG a Linux package is built with. */
+private const val APP_ICON = "shark-dive-icon.png"
+
+/** What a window with no heap dump in it is called, since it has no better name to go by. */
+internal const val APP_NAME = "Shark Dive"
+
+/**
+ * How large a window opens, which is also the size the UI tests drive one at: what a test presses is only
+ * where a user would find it if the window it presses is the window that opens.
+ */
+internal val WINDOW_WIDTH = 1440.dp
+internal val WINDOW_HEIGHT = 900.dp
+
+/** How far a window opens from the one before it, which is about the height of a title bar. */
+private val CASCADE_STEP = 28.dp
+
+/** As wide as what a window with nothing in it says gets, which is a line length rather than a window. */
+private val CENTER_MESSAGE_MAX_WIDTH = 480.dp
+
+internal const val OPEN_HEAP_DUMP = "Open heap dump…"
+internal const val NO_HEAP_DUMP = "Open an Android heap dump to see what retains its memory."
+
+/** A function rather than a constant because the versions are in the middle of it, and a test wants all of it. */
+internal fun updateAvailableText(
+  version: String,
+  currentVersion: String
+) = "Shark Dive $version is available. This run is $currentVersion."
+
+internal const val DOWNLOAD_UPDATE = "Download"
+internal const val DISMISS_UPDATE = "Not now"

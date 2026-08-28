@@ -63,7 +63,7 @@ complexity:
     ignoredLabels: ""
   LargeClass:
     #LeakCanary - excluded tests, and increased from 600 to 700: a test class is as long as the story it
-    # walks, which is why TooManyFunctions already excludes them, and shark-explorer-agent's AgentTools is a
+    # walks, which is why TooManyFunctions already excludes them, and shark-dive-agent's AgentTools is a
     # registry whose length is tool descriptions rather than behaviour.
     active: true
     excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"

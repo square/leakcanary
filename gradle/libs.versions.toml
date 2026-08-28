@@ -14,7 +14,7 @@
 
 [versions]
 compose = "1.11.4"
-# Compose Multiplatform, used by the Shark explorer desktop app. Unrelated to the `compose`
+# Compose Multiplatform, used by the Shark Dive desktop app. Unrelated to the `compose`
 # version above, which is the Jetpack Compose version the Android app builds against.
 composeMultiplatform = "1.11.1"
 # androidx.lifecycle 2.11.0 requires compiling against the Android 37 SDK
@@ -29,7 +29,7 @@ workManager = "2.7.0"
 detekt = "1.23.8"
 dokka = "2.2.0"
 hilt = "2.60.1"
-# Metro's runtime, used by no module's production code. Only the Shark explorer's tests depend on it,
+# Metro's runtime, used by no module's production code. Only Shark Dive's tests depend on it,
 # to build the very providers a generated Metro graph builds — see DependencyInjectionOwnerTest.
 metro = "1.4.0"
 sqldelight = "2.3.2"
@@ -56,15 +56,15 @@ kotlin-abi-tools = { module = "org.jetbrains.kotlin:abi-tools", version.ref = "k
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
 
-# The two dependency injection runtimes the explorer has an owner rule about, on the test classpath of
-# shark-explorer-core and nowhere else. Runtimes only: neither annotation processor nor compiler plugin
+# The two dependency injection runtimes Shark Dive has an owner rule about, on the test classpath of
+# shark-dive-core and nowhere else. Runtimes only: neither annotation processor nor compiler plugin
 # runs in this build, see DependencyInjectionOwnerTest.
 dagger-runtime = { module = "com.google.dagger:dagger", version.ref = "hilt" }
 metro-runtime = { module = "dev.zacsweers.metro:runtime-jvm", version.ref = "metro" }
 
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
-# The JSON the Shark explorer's agent surface speaks, in shark-explorer-agent and nowhere else. The
+# The JSON Shark Dive's agent surface speaks, in shark-dive-agent and nowhere else. The
 # runtime only, deliberately: the JsonElement API this uses needs no compiler plugin, and adding the
 # serialization plugin to the build would be a per-module opt-in nothing else here wants.
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.9.0" }
