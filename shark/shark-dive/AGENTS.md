@@ -69,6 +69,69 @@ found, and the search for every way an object is held runs for the object clicke
 question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md` has the
 numbers on the biggest dump in the repo, including how long a chain gets there.
 
+## On-screen words are the scarcest thing here
+
+Everything else in this repo rewards prose — this file, the KDoc, `notes/`, `docs/`. **The window does
+not.** Whoever is reading a heap dump in it is holding a twenty-step chain in their head, and a sentence on
+screen is read at the cost of the thing they were working out. The failure mode is specific and it is one an
+agent is unusually prone to: having reasoned its way to why a label means what it means, it writes the
+reasoning into the label, and the screen fills with text addressed to its author rather than to its reader.
+
+Each of the following is a change already made to this app, not a preference:
+
+- **A label names, it doesn't explain**, and a value is one or two words: `Stuck`, `Expected`, `Retained`,
+  `Shallow`, `Strong`, `Cache`, `Unreachable`. Not `Shouldn't be here`, not `Reachable without going
+  through a java.lang.ref.Reference`, not `Retains 1.2 MB in 57 objects` where `Retained` and the number
+  would do. A button says what pressing it does — `List the instances` — and stops there.
+- **Delete, don't shorten, anything the picture already says.** A rectangle drawn inside another says it is
+  dominated by it; the count on a pile says how many; the colour with a legend above it says the strength.
+  A row that repeats one of those is ink spent on a question the reader has already had answered — which is
+  why the details panel has no `Dominates` row and no `Objects` row.
+- **The paragraph goes behind a `?`, and the `?` is always there.** `Explain(topic, onExplain) { … }` puts
+  one beside a label; `Topic` and `ReferencePage` are the pages, one markdown file each under
+  `docs/shark-dive-reference/`, whose **opening sentence is the tooltip** so that the short answer can't
+  drift from the long one. The pages ship with the app rather than linking out, so a release explains
+  itself with the text it was built with, and the same files are the website's via `pymdownx.snippets`.
+- **Nothing fades and nothing decays.** No first-run tour, no hint that stops appearing once the app
+  decides you look experienced. Two reasons, and they are the reasons this was asked for rather than a
+  taste: a window that shows its owner less than it shows everybody else is a window in which they can't
+  see the bugs everybody else is hitting, and the hint that was in the way on day one is the one they go
+  looking for on day thirty and can't find. So don't propose progressive onboarding here — the `?` is
+  what that job was given to.
+- **Prose belongs in the KDoc, `notes/decisions.md`, or a reference page.** Those are the three places
+  something long enough to be worth writing goes. `notes/agent-surface.md` measures the same idea on the
+  agent surface — ~80 tokens of name and description at rest, the ~2 k-token body only for a session that
+  asked — and the window is the same trade against a smaller budget.
+
+## One concept, one name, one place
+
+The map, the card at the pointer, the details panel, a row of a list, a step of a chain, the tab strip, the
+log line and the JSON an agent is answered with all say the same things about the same heap dump. **They
+have one reader**, who is either the person at the machine or the agent working beside them, and two
+spellings of one concept are two concepts to that reader — or two grep results, which is worse.
+
+So a concept gets **one name**, and **one declaration that name comes from**. What is already collapsed
+this way, each of which was several before:
+
+| Concept | The one place |
+| --- | --- |
+| How firmly an object is held | `ReachabilityStrength.label`, nine names, plus the one page behind the `?` |
+| An object's two sizes | `RETAINED`, `SHALLOW` and `retainedText` in `DetailsPanel.kt` |
+| A rectangle that isn't one object | `formatObjectCount` — a count, whichever kind of pile it is |
+| Which reference a leak is | `PathReference.leakLabel()`, and `RootPath.faultyReference()` |
+| Whether an object is meant to be in memory | `LeakStatus`: `STUCK`, `EXPECTED`, `UNKNOWN`, nothing else |
+| What a place is called | `Place.title` |
+
+**So grep for the concept before writing a label.** A new string that names something the window already
+names is the one kind of change that passes review, passes the tests, and leaves the app harder to read
+than it was. The tests catch drift only from the other side: `onNodeWithText` failing with "found 2 nodes"
+after a rename usually means the rename worked and the assertion was pinned on a name that was never
+unique — see the testing conventions below.
+
+And it is one *place*, not one *copy*. A second spelling is obvious; a second **definition** of the same
+sentence — the enum's KDoc and the reference page both saying what `SOFT` means — reads as fine and goes
+stale silently, which is why `LeakKind.explanation` is null for the five kinds named after a strength.
+
 ## A verdict set by hand is an argument to every read, never state of the tree
 
 **`STUCK`, `EXPECTED` and `UNKNOWN` are the only words for this, everywhere** — the enum, the window, the

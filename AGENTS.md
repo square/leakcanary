@@ -125,6 +125,12 @@ every diff. Refactors, internal cleanups and test-only changes usually don't nee
   the documentation site". Explain *why* in the body when it isn't obvious.
 - Don't leave test-only or unused code in the committed tree. If scaffolding was needed to get
   somewhere, remove it before the PR lands.
+- **The prose conventions in this repo are for the repo, not for the screen.** The guides, the KDoc and
+  the `notes/` files are written at length on purpose — the reader is someone about to change the code,
+  and the cost of a paragraph there is nothing. What a *user interface* says is governed by the opposite
+  rule: a label is one or two words, and the paragraph explaining it lives somewhere the reader goes
+  looking for it. `shark/shark-dive/AGENTS.md` has that rule and the mechanism, and Shark Dive is the
+  only substantial UI in this repo, so it is the only place it applies.
 - Test heap dumps are built with the `dump { }` DSL from `shark-hprof-test` (see `docs/dev-env.md`)
   rather than committed as binary fixtures. Never hand-assemble hprof bytes. For a large realistic
   dump, drive a real JVM via `HotSpotDiagnosticMXBean.dumpHeap`.
