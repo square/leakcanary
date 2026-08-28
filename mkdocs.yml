@@ -89,13 +89,13 @@ nav:
         - 'Code of Conduct': code_of_conduct.md
         - 'Dev Environment': dev-env.md
         - 'Releasing': releasing.md
-        - 'Releasing Shark Explorer': releasing-shark-explorer.md
+        - 'Releasing Shark Dive': releasing-shark-dive.md
         - 'How to help': how_to_help.md
   - 'Shark':
     - 'Overview': shark.md
     - 'Shark API': api/shark/index.md
-  - 'Shark Explorer':
-    - 'Overview': shark-explorer.md
-    - 'Change Log': shark-explorer-changelog.md
+  - 'Shark Dive':
+    - 'Overview': shark-dive.md
+    - 'Change Log': shark-dive-changelog.md
   - 'LeakCanary API': api/index.md
   - 'Change Log': changelog.md

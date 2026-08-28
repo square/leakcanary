@@ -16,7 +16,7 @@ Shark is released in layers:
 3. **Shark**: Generate heap analysis reports.
 4. **Shark Android**: Android heuristics to generate tailored heap analysis reports.
 5. **Shark CLI**: Analyze the heap of debuggable apps installed on an Android device connected to your desktop. The output is similar to the output of LeakCanary, except you don't have to add the LeakCanary dependency to your app.
-6. **Shark Explorer**: A desktop app that opens a heap dump and draws what is holding its memory as a navigable treemap. See [Shark Explorer](shark-explorer.md).
+6. **Shark Dive**: A desktop app that opens a heap dump and draws what is holding its memory as a navigable treemap. See [Shark Dive](shark-dive.md).
 7. **LeakCanary**: Builds on top. It automatically watches destroyed activities and fragments, triggers a heap dump, runs Shark Android and then displays the result.
 
 A few more things:

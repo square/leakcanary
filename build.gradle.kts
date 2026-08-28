@@ -146,10 +146,10 @@ subprojects {
 }
 
 // Config shared for subprojects except the Gradle plugin, which runs on Gradle's own JVM, and the
-// Shark explorer desktop app, which needs a newer JVM target than the rest of the repo because
+// Shark Dive desktop app, which needs a newer JVM target than the rest of the repo because
 // Compose Multiplatform's artifacts do not support Java 8. Both set their own targets.
 configure(subprojects.filter {
-  it.name !in listOf("leakcanary-deobfuscation-gradle-plugin", "shark-explorer-app")
+  it.name !in listOf("leakcanary-deobfuscation-gradle-plugin", "shark-dive-app")
 }) {
   plugins.withId("java") {
     extensions.configure<JavaPluginExtension> {
@@ -185,7 +185,7 @@ configure(subprojects.filter {
 }
 
 // Modules that don't ship an API meant to be consumed by others: the sample apps, the LeakCanary UI
-// app and its internal plumbing, the Shark explorer desktop app and the heap model it renders, the
+// app and its internal plumbing, the Shark Dive desktop app and the heap model it renders, the
 // test fixtures for Shark, and the Shark command line tool, which is distributed as a zip attached
 // to the Github release rather than as a dependency. They are not published to Maven Central, their
 // ABI isn't tracked and they're left out of the documentation site.
@@ -197,11 +197,11 @@ val modulesWithoutPublicApi = listOf(
   "leakcanary-app-db",
   "leakcanary-app-service",
   "shark-cli",
-  "shark-explorer-agent",
-  "shark-explorer-app",
-  "shark-explorer-core",
-  "shark-explorer-eval",
-  "shark-explorer-jdwp",
+  "shark-dive-agent",
+  "shark-dive-app",
+  "shark-dive-core",
+  "shark-dive-eval",
+  "shark-dive-jdwp",
   "shark-hprof-test",
   "shark-test",
 )

@@ -1,0 +1,404 @@
+package shark.dive
+
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import shark.dive.LeakKind.APPLICATION
+import shark.dive.LeakKind.FINALIZER
+import shark.dive.LeakKind.LIBRARY
+import shark.dive.LeakKind.PHANTOM
+import shark.dive.LeakKind.SOFT
+import shark.dive.LeakKind.UNREACHABLE
+import shark.dive.LeakKind.WEAK
+
+class HeapLeaksTest {
+
+  @get:Rule
+  var testFolder = TemporaryFolder()
+
+  @Test fun `an object the app said should be gone is a leak`() {
+    HeapDive.open(testFolder.watchedLeakHeapDump()).use { dive ->
+      val leaks = dive.tree.findLeaks()
+
+      val leaking = leaks.objectsOf(APPLICATION).single()
+      assertThat(leaking.className).isEqualTo(WATCHED_CLASS_NAME)
+    }
+  }
+
+  @Test fun `a watched object comes with what the watcher wrote down about it`() {
+    HeapDive.open(testFolder.watchedLeakHeapDump()).use { dive ->
+      val watcher = dive.tree.findLeaks().objectsOf(APPLICATION).single().watcher!!
+
+      // The durations the DSL writes: watched 25 seconds before the dump, retained for the last 10 of them.
+      assertThat(watcher.key).isNotEmpty()
+      assertThat(watcher.description).isEqualTo("its lifecycle has ended")
+      assertThat(watcher.watchDurationMillis).isEqualTo(25_000L)
+      assertThat(watcher.retainedDurationMillis).isEqualTo(10_000L)
+      assertThat(watcher.isRetained).isTrue()
+    }
+  }
+
+  @Test fun `the weak reference a watched object came from is an object of the tree`() {
+    HeapDive.open(testFolder.watchedLeakHeapDump()).use { dive ->
+      val tree = dive.tree
+      val watcher = tree.findLeaks().objectsOf(APPLICATION).single().watcher!!
+
+      // Which is what makes the row about it clickable: it opens like any other object.
+      assertThat(tree.summarize(watcher.weakReferenceObjectId).className)
+        .isEqualTo("leakcanary.KeyedWeakReference")
+    }
+  }
+
+  @Test fun `an object the inspectors recognize is a leak with nothing watching it`() {
+    HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
+      val leaking = dive.tree.findLeaks().objectsOf(APPLICATION).first()
+
+      assertThat(leaking.className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaking.watcher).isNull()
+      assertThat(leaking.leakingReason).contains("mDestroyed")
+    }
+  }
+
+  @Test fun `objects leaking the same way are one leak with both of them in it`() {
+    HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
+      val leaks = dive.tree.findLeaks()
+
+      // The third activity of that dump is not destroyed, so it is not one of these.
+      val group = leaks.sectionOf(APPLICATION).groups.single()
+      assertThat(group.objects).hasSize(2)
+      assertThat(leaks.objectCount).isEqualTo(2)
+    }
+  }
+
+  @Test fun `a leak is named after the reference that shouldn't be holding`() {
+    HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
+      val group = dive.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // Which is the leak itself. The two activities under it are what it left behind, and each of those
+      // rows says what it is, so the row above them is free to say why they are still there.
+      assertThat(group.title).isEqualTo("Holder.activity")
+    }
+  }
+
+  @Test fun `a leak is the whole stretch of references, not only the one it is named after`() {
+    val heapDump = testFolder.leakTwoLeaksHoldHeapDump()
+    HeapDive.open(heapDump.file).use { dive ->
+      val group = dive.tree.findLeaks().sectionOf(APPLICATION).groups
+        .single { it.title == "Further.holder" }
+
+      // The name is the first of them, which is the reference that shouldn't be holding and is what
+      // LeakCanary calls the leak. The last is where on the chain to find what it left behind, and the two
+      // are different references as soon as the stretch is longer than one.
+      assertThat(group.suspectPath).containsExactly("Further.holder", "Holder.activity")
+    }
+  }
+
+  @Test fun `the reference a leak is named after is the one its chain marks as the leak`() {
+    HeapDive.open(testFolder.applicationHoldsActivityHeapDump()).use { dive ->
+      val tree = dive.tree
+      val group = tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      val steps = tree.rootPathTo(group.objects.single().objectId).steps.map { it.step }
+
+      // One reference of the chain and no other, and the same string the row on the leaks screen is named
+      // by: whoever goes from that row to this chain is looking for the step they were just reading.
+      assertThat(group.title).isEqualTo(APPLICATION_LEAK_REFERENCE)
+      assertThat(steps.faultyReferences()).containsExactly(APPLICATION_LEAK_REFERENCE)
+    }
+  }
+
+  @Test fun `a chain with nothing expected above what is stuck marks no reference`() {
+    HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
+      val tree = dive.tree
+      val group = tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      val steps = tree.rootPathTo(group.objects.first().objectId).steps.map { it.step }
+
+      // The leak is named after one reference and that reference is still not marked, because nothing above
+      // the activity is known to belong in memory: what holds it may be something that should have let go
+      // of it too, so the fault can be further up than this chain reaches. A mark on the top of it would be
+      // a reference named for being where the walk started.
+      assertThat(group.suspectPath).containsExactly("Holder.activity")
+      assertThat(steps.faultyReferences()).isEmpty()
+    }
+  }
+
+  @Test fun `a chain marks nothing where more than one reference could be the leak`() {
+    HeapDive.open(testFolder.applicationHoldsActivityThroughHolderHeapDump()).use { dive ->
+      val tree = dive.tree
+      val group = tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      val steps = tree.rootPathTo(group.objects.single().objectId).steps.map { it.step }
+
+      // Two references between the object expected to be in memory and the stuck one, with an object
+      // nothing knows either way about between them: the fault is at one of those two steps and the heap
+      // dump doesn't say which, so the row names both and the chain marks neither.
+      assertThat(group.suspectPath).containsExactly(APPLICATION_HOLDER_REFERENCE, "Holder.activity")
+      assertThat(steps.faultyReferences()).isEmpty()
+    }
+  }
+
+  @Test fun `objects in two slots of one array are instances of one leak`() {
+    HeapDive.open(testFolder.leaksInOneArrayHeapDump()).use { dive ->
+      val group = dive.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // Which slot an object landed in changes from one heap dump of an app to the next, so a leak that
+      // was named after one would be a different leak in every dump. LeakCanary erases them for the same
+      // reason, and this is what makes its report and this list line up.
+      assertThat(group.title).isEqualTo("$HOLDER_SIMPLE_CLASS_NAME.$LEAK_ARRAY_FIELD_NAME")
+      assertThat(group.objects.filter { it.className == ACTIVITY_CLASS_NAME }).hasSize(2)
+    }
+  }
+
+  @Test fun `objects of two classes held the same way are instances of one leak`() {
+    HeapDive.open(testFolder.leaksInOneArrayHeapDump()).use { dive ->
+      val group = dive.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // A leak is the reference that shouldn't be holding rather than the class of what it holds: letting
+      // go of that array is the one thing to do, and it is not two things because a window is in it too.
+      assertThat(group.objects.map { it.className })
+        .containsExactlyInAnyOrder(ACTIVITY_CLASS_NAME, ACTIVITY_CLASS_NAME, WINDOW_CLASS_NAME)
+    }
+  }
+
+  @Test fun `a leak nothing reaches any more is listed as already collected`() {
+    HeapDive.open(testFolder.collectedActivityHeapDump()).use { dive ->
+      val leaks = dive.tree.findLeaks()
+
+      val leaking = leaks.objectsOf(UNREACHABLE).single()
+      assertThat(leaking.className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaking.strength).isEqualTo(ReachabilityStrength.UNREACHABLE)
+      assertThat(leaks.objectsOf(APPLICATION)).isEmpty()
+    }
+  }
+
+  @Test fun `an object held only by a cleaner is listed as phantom reachable`() {
+    HeapDive.open(testFolder.cleanerHeldActivityHeapDump()).use { dive ->
+      val leaks = dive.tree.findLeaks()
+
+      // Destroyed, so the inspectors say it shouldn't be here, and phantom reachable, so it is on its way
+      // out and none of the app's business. Which is a section of its own rather than an app leak.
+      val leaking = leaks.objectsOf(PHANTOM).single()
+      assertThat(leaking.className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaking.strength).isEqualTo(ReachabilityStrength.PHANTOM)
+      assertThat(leaks.objectsOf(APPLICATION)).isEmpty()
+    }
+  }
+
+  @Test fun `a leak on its way out is named after the reference that hasn't let go`() {
+    HeapDive.open(testFolder.cleanerHeldActivityHeapDump()).use { dive ->
+      val group = dive.tree.findLeaks().sectionOf(PHANTOM).groups.single()
+
+      // Which is the whole of why the object is still in memory: clear that one reference and it goes. Not
+      // the class of what leaked, which says nothing about why it is here, and not the static list the
+      // `Cleaner` is on, which is where the `Cleaner` lives rather than what it is holding.
+      assertThat(group.title).isEqualTo("Cleaner.referent")
+      assertThat(group.suspectPath).containsExactly("Cleaner.referent")
+      // Nothing for a sentence to add to that, unlike the one section named after a class.
+      assertThat(group.subtitle).isNull()
+    }
+  }
+
+  @Test fun `objects each waiting on a cleaner of their own are one leak`() {
+    HeapDive.open(testFolder.cleanerHeldActivityHeapDump(activityCount = 3)).use { dive ->
+      val section = dive.tree.findLeaks().sectionOf(PHANTOM)
+
+      // Three `Cleaner`s, so three chains and no object holding another — and one row, because what these
+      // have in common is the kind of reference still holding them and not which instance of it.
+      assertThat(section.groups).hasSize(1)
+      assertThat(section.objectCount).isEqualTo(3)
+    }
+  }
+
+  @Test fun `an object on its way out and one already collected are two leaks`() {
+    HeapDive.open(testFolder.cleanerHeldActivityHeapDump()).use { dive ->
+      val phantom = dive.tree.findLeaks().sectionOf(PHANTOM).groups.single()
+
+      // The same class of object, meant to be gone in both dumps, and two different answers to why it is
+      // still here — so two leaks, which is the section being part of the fingerprint.
+      HeapDive.open(testFolder.collectedActivityHeapDump()).use { collected ->
+        val unreachable = collected.tree.findLeaks().sectionOf(UNREACHABLE).groups.single()
+
+        assertThat(phantom.objects.single().className).isEqualTo(unreachable.objects.single().className)
+        assertThat(phantom.leakFingerprint).isNotEqualTo(unreachable.leakFingerprint)
+      }
+    }
+  }
+
+  @Test fun `an object on its way out is still on the map`() {
+    HeapDive.open(testFolder.cleanerHeldActivityHeapDump()).use { dive ->
+      val tree = dive.tree
+      val activity = tree.findByLabel(ACTIVITY_CLASS_NAME.substringAfterLast('.')).objectId
+
+      // Left where it was: which bytes haven't come back yet is what the map is for, and which section of
+      // the list an object is in says nothing about where the tree hangs it.
+      assertThat(tree.strengthOf(activity)).isEqualTo(ReachabilityStrength.PHANTOM)
+      assertThat(tree.dominatorOf(activity)!!.label).isEqualTo("Cleaner")
+    }
+  }
+
+  @Test fun `a leak held by a reference Shark knows is somebody else's`() {
+    HeapDive.open(testFolder.libraryLeakHeapDump()).use { dive ->
+      val leaks = dive.tree.findLeaks()
+
+      val group = leaks.sectionOf(LIBRARY).groups.single()
+      assertThat(group.title).contains(TEXT_LINE_CLASS_NAME, TEXT_LINE_CACHE_FIELD_NAME)
+      assertThat(group.subtitle).contains("TextLine.sCached is a pool")
+      assertThat(group.objects.single().className).isEqualTo(ACTIVITY_CLASS_NAME)
+      assertThat(leaks.objectsOf(APPLICATION)).isEmpty()
+    }
+  }
+
+  @Test fun `a leak is classified by the very chain Shark Dive draws for it`() {
+    HeapDive.open(testFolder.libraryLeakHeapDump()).use { dive ->
+      val tree = dive.tree
+      val leaking = tree.findLeaks().objectsOf(LIBRARY).single()
+
+      // A list that sorted leaks by one path and then showed another when a row is clicked would be two
+      // answers to one question, so the known reference is matched on the steps of this path and no other.
+      val steps = tree.rootPathTo(leaking.objectId).steps.map { it.step }
+      assertThat(steps.last().objectId).isEqualTo(leaking.objectId)
+      assertThat(steps.mapNotNull { it.reference?.libraryLeak?.pattern })
+        .anySatisfy { assertThat(it).contains(TEXT_LINE_CACHE_FIELD_NAME) }
+    }
+  }
+
+  @Test fun `a chain says which of its objects shouldn't be there, whatever it was built for`() {
+    HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
+      val tree = dive.tree
+      val leaking = tree.findLeaks().objectsOf(APPLICATION).first()
+
+      val steps = tree.rootPathTo(leaking.objectId).steps.map { it.step }
+      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.STUCK)
+      assertThat(steps.last().leakStatusReason).contains("mDestroyed")
+    }
+  }
+
+  @Test fun `a leak the chain of another leak runs through is listed under that one`() {
+    val heapDump = testFolder.nestedLeaksHeapDump()
+    HeapDive.open(heapDump.file).use { dive ->
+      val leaking = dive.tree.findLeaks().objectsOf(APPLICATION)
+
+      // Both the activity and the window it holds are objects that shouldn't be in memory, and there is one
+      // thing to fix: let go of the activity and the window goes with it.
+      assertThat(leaking.map { it.objectId }).containsExactly(heapDump.activityObjectId)
+    }
+  }
+
+  @Test fun `a leak held another way as well is a leak of its own, held that other way`() {
+    val heapDump = testFolder.leakAlsoHeldAnotherWayHeapDump()
+    HeapDive.open(heapDump.file).use { dive ->
+      val tree = dive.tree
+
+      // Something that isn't leaking holds the window, one step further round than the destroyed activity
+      // does. So letting go of the activity leaves the window where it is, and the chain says the thing
+      // that would still be holding it rather than the shortest thing that is.
+      assertThat(tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step.objectId })
+        .doesNotContain(heapDump.activityObjectId)
+      assertThat(tree.findLeaks().objectsOf(APPLICATION).map { it.objectId })
+        .containsExactlyInAnyOrder(heapDump.activityObjectId, heapDump.windowObjectId)
+      // And two leaks rather than one, which is what listing them separately is for: they are two things to
+      // fix, and grouping goes by the chain, so a chain through the activity would have made them one.
+      assertThat(tree.findLeaks().sectionOf(APPLICATION).groups).hasSize(2)
+    }
+  }
+
+  @Test fun `a leak every way to it runs through a leak is left off the list`() {
+    val heapDump = testFolder.leakTwoLeaksHoldHeapDump()
+    HeapDive.open(heapDump.file).use { dive ->
+      val tree = dive.tree
+
+      // Two destroyed activities hold this window, so there is no way to it that avoids a leak and the chain
+      // runs through the nearer of the two — which doesn't dominate it, since letting go of that one leaves
+      // the other one holding it. Neither of them does, and it still goes: the two references that shouldn't
+      // be there are both on the list, and fixing both takes the window with them.
+      assertThat(tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step.objectId })
+        .contains(heapDump.nearerActivityObjectId)
+      assertThat(tree.findLeaks().objectsOf(APPLICATION).map { it.objectId })
+        .doesNotContain(heapDump.windowObjectId)
+        .contains(heapDump.nearerActivityObjectId)
+    }
+  }
+
+  @Test fun `the leak it was listed under is the one whose chain runs through it`() {
+    val heapDump = testFolder.nestedLeaksHeapDump()
+    HeapDive.open(heapDump.file).use { dive ->
+      val tree = dive.tree
+
+      // Nothing is lost by leaving it off the list: the chain drawn for the leak that stayed runs through
+      // it and says it is leaking, which is that chain being read as a leak trace.
+      val steps = tree.rootPathTo(heapDump.windowObjectId).steps.map { it.step }
+      assertThat(steps.map { it.objectId }).contains(heapDump.activityObjectId)
+      assertThat(steps.last().leakStatus).isEqualTo(LeakStatus.STUCK)
+    }
+  }
+
+  @Test fun `two leaks of one kind have two leak fingerprints, and one leak has one`() {
+    HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
+      val group = dive.tree.findLeaks().sectionOf(APPLICATION).groups.single()
+
+      // A hash of what makes it that leak, so the two activities of one leak are one fingerprint, and it says
+      // nothing about which heap dump this is: 40 characters of hex and no address among them.
+      assertThat(group.leakFingerprint).matches("[0-9a-f]{40}")
+      assertThat(group.objects).hasSize(2)
+    }
+  }
+
+  @Test fun `a heap dump with nothing wrong in it has every section and no leak`() {
+    testFolder.openTestHeapDump().use { dive ->
+      val leaks = dive.tree.findLeaks()
+
+      // Every one of them, so that the screen says which kinds of leak were looked for and not found: the
+      // two to do something about first, then the ways of being on the way out, weakest last.
+      assertThat(leaks.sections.map { it.kind })
+        .containsExactly(APPLICATION, LIBRARY, SOFT, WEAK, FINALIZER, PHANTOM, UNREACHABLE)
+      assertThat(leaks.objectCount).isZero()
+      assertThat(leaks.leakingObjectIds).isEmpty()
+    }
+  }
+
+  @Test fun `what a leaking object holds is leaking with it`() {
+    HeapDive.open(testFolder.watchedLeakHeapDump()).use { dive ->
+      val tree = dive.tree
+      val leaking = tree.findLeaks().objectsOf(APPLICATION).single()
+      val payload = tree.children(leaking.objectId).single()
+
+      // What the treemap shades by: the payload is only still in memory because the leak is.
+      assertThat(tree.isBelowLeakingObject(payload)).isTrue()
+      assertThat(tree.isBelowLeakingObject(leaking.objectId)).isFalse()
+      assertThat(tree.isBelowLeakingObject(tree.findByLabel("Holder").objectId)).isFalse()
+    }
+  }
+
+  @Test fun `nothing is below a leak in a heap dump that has none`() {
+    testFolder.openTestHeapDump().use { dive ->
+      val tree = dive.tree
+
+      assertThat(tree.findByLabel("Object[]").objectId).matches { !tree.isBelowLeakingObject(it) }
+    }
+  }
+
+  /** Which is most chains of a heap dump, and the whole of why the mark is worth reading on the few. */
+  @Test fun `a chain with nothing stuck on it marks no reference as the leak`() {
+    testFolder.openTestHeapDump().use { dive ->
+      val tree = dive.tree
+
+      val steps = tree.rootPathTo(tree.findByLabel("Object[]").objectId).steps.map { it.step }
+
+      assertThat(steps).isNotEmpty
+      assertThat(steps.faultyReferences()).isEmpty()
+    }
+  }
+}
+
+private fun HeapLeaks.sectionOf(kind: LeakKind): LeakSection = sections.single { it.kind == kind }
+
+private fun HeapLeaks.objectsOf(kind: LeakKind): List<LeakingObject> =
+  sectionOf(kind).groups.flatMap { it.objects }
+
+/** The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named. */
+private fun List<PathStep>.faultyReferences(): List<String> =
+  mapNotNull { it.reference }
+    .filter { it.isFaulty }
+    .map { "${it.ownerClassName}.${it.name}" }
