@@ -56,6 +56,7 @@ import shark.dive.ReachabilityStrength.WEAK
 import shark.dive.ReferencePage
 import shark.dive.Topic.WEAKER_REFERENCES
 import shark.dive.formatByteSize
+import shark.dive.formatObjectCount
 import shark.dive.hexObjectId
 
 @OptIn(ExperimentalTestApi::class)
@@ -568,7 +569,7 @@ class DiveAppTest {
 
       clickView(LEFTOVER_X, LEFTOVER_Y)
 
-      waitUntilAtLeastOneExists(hasText("smaller objects", substring = true), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("Held by Object[]", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("Held by Object[]", substring = true).assertIsDisplayed()
     }
   }
@@ -581,7 +582,7 @@ class DiveAppTest {
 
       clickContainerEdge(yFraction = 0.5f)
 
-      waitUntilAtLeastOneExists(hasText("of one class", substring = true), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(formatObjectCount(SIBLING_COUNT)), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText(SIBLING_CLASS_NAME).fetchSemanticsNodes()).isNotEmpty()
       // And gets the rows an object gets, so that a pile and an object read as two of a kind.
       onNodeWithText(STRONG.label).assertIsDisplayed()

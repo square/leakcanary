@@ -52,7 +52,7 @@ sealed interface Place {
     val byteCount: Long
   ) : Place {
 
-    override val title: String get() = "$nodeCount smaller objects"
+    override val title: String get() = formatObjectCount(nodeCount)
 
     override val viewRootObjectId: Long get() = parentObjectId
   }

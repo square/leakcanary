@@ -1267,7 +1267,7 @@ private fun DescribedObject(selection: Selection?) {
       fontWeight = FontWeight.Bold
     )
     is Selection.Group -> Text(
-      "${selection.nodeCount} smaller objects",
+      formatObjectCount(selection.nodeCount),
       style = titleStyle,
       fontWeight = FontWeight.Bold
     )

@@ -335,8 +335,14 @@ the pointer ends up inside takes the hover off the map — which would close the
 also the gap, and hence nothing in the card being clickable.
 
 **A rectangle that isn't one object gets the card too**, and needs it most. A pile is named on the map by a
-count and a simple class name — `400 × Sibling`, `300 smaller objects` — which is all a rectangle has room
+count and a simple class name — `400 × Sibling`, `300 objects` — which is all a rectangle has room
 for, so the qualified class name, or which rectangle a leftover pile was left out of, fits nowhere but here.
+
+**And a pile is a count, whichever kind of pile it is.** The three used to have a noun each — `300 smaller
+objects`, `400 objects of one class`, `Unreachable` — where the line under the count already said which:
+the class name, the rectangle they were left out of, or the strength. The one bit a reader can act on is
+whether a click goes *into* the pile or roots the map at what it was left out of, and that is said by the
+click rather than by a third noun.
 The card used to be drawn for `Selection.Object` alone, which meant pointing at the one kind of cell whose
 name is incomplete answered nothing at all.
 

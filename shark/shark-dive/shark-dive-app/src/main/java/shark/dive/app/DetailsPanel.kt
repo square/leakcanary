@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import shark.dive.CellSubject
 import shark.dive.HeapObjectKind
 import shark.dive.HeapObjectSummary
-import shark.dive.ObjectGroupKind
 import shark.dive.ObjectGroupSummary
 import shark.dive.ReachabilityStrength
 import shark.dive.Topic
@@ -85,7 +84,7 @@ internal fun DetailsPanel(
         null -> Text(NO_SELECTION, style = MaterialTheme.typography.bodyMedium)
         is Selection.Group -> {
           Text(
-            "${selection.nodeCount} smaller objects",
+            formatObjectCount(selection.nodeCount),
             style = MaterialTheme.typography.titleMedium
           )
           Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
@@ -146,14 +145,16 @@ private fun ObjectGroupDetails(
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
   StrengthRow(summary.strength, onExplain)
   Detail("Retained together", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
-  Detail("Objects", formatObjectCount(summary.objectCount))
 }
 
-/** What a pile of objects is called wherever it is described: here, and on the card at the pointer. */
-internal fun ObjectGroupSummary.title(): String = when (kind) {
-  ObjectGroupKind.UNREACHABLE -> ReachabilityStrength.UNREACHABLE.label
-  ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
-}
+/**
+ * What a pile of objects is called wherever it is described: here, and on the card at the pointer.
+ *
+ * **A count, and the same count whichever kind of pile it is.** Which kind it is is the line under it — the
+ * class name for a pile of one class, and the strength for the uncollected garbage — so a second word for it
+ * here would be that line said twice, in a different vocabulary each time.
+ */
+internal fun ObjectGroupSummary.title(): String = formatObjectCount(objectCount)
 
 /**
  * How firmly the thing being described is held: the colour the map draws it in, and the one name that colour

@@ -1606,7 +1606,7 @@ class HeapDominatorTreemap internal constructor(
     } ?: presentedObject(subject.node)
     is CellSubject.Group -> PresentedCell(
       cell = this,
-      label = "${subject.nodeCount} smaller objects",
+      label = formatObjectCount(subject.nodeCount),
       content = CellContent.Leftover(strengthOf(subject.parent))
     )
     // An object's own bytes are that object, so this reads as the object and is where its name shows:

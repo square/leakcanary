@@ -111,3 +111,8 @@ uses, without the one for a newly recognized library leak:
   Now every one of them says `Strong`, `Cache`, `Thread local`, `Local`, `Soft`, `Weak`, `Finalizer`,
   `Phantom` or `Unreachable`, one or two words each, and what one *means* is the one page behind the `?` on
   the legend and on each of those sections.
+* 🔀 **One noun for a rectangle that stands for many objects.** There were three — `300 smaller objects` for
+  the children a rectangle had no room to draw, `400 objects of one class` for every instance of one class,
+  and `Unreachable` for the garbage — where the line under each already said which was which: the rectangle
+  they were left out of, the class name, and the strength. All three now say how many, and nothing else. The
+  panel also stops repeating that count as an `Objects` row under it.

@@ -123,7 +123,7 @@ private fun GroupLines(
   stronglyReachableByteCount: Long
 ) {
   Text(
-    "${selection.nodeCount} smaller objects",
+    formatObjectCount(selection.nodeCount),
     style = MaterialTheme.typography.bodyMedium,
     fontWeight = FontWeight.Bold
   )

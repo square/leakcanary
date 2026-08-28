@@ -34,6 +34,7 @@ import shark.dive.StackLayout
 import shark.dive.StackPresentation
 import shark.dive.TreemapRect
 import shark.dive.TreemapTree
+import shark.dive.formatObjectCount
 
 /**
  * The same wiring [TreemapViewTest] covers, for the stack: a click reports the block under the pointer,
@@ -241,7 +242,7 @@ class StackViewTest {
           is CellSubject.Node -> PresentedCell(cell, "node ${subject.node}", CellContent.Object(STRONG))
           is CellSubject.Group -> PresentedCell(
             cell,
-            "${subject.nodeCount} smaller objects",
+            formatObjectCount(subject.nodeCount),
             CellContent.Leftover(STRONG)
           )
           is CellSubject.Own -> PresentedCell(
