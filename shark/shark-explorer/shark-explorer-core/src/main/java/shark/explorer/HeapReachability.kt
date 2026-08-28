@@ -243,10 +243,9 @@ internal class HeapReachability private constructor(
           if (isLastResort) {
             ownerReferences.markLastResortHeld(heapObject)
           }
-          val ownership = ownerReferences.ownershipOf(heapObject)
           // A reference that retains its target doesn't weaken the path it's on.
           strengthReader.retainingReferencesOf(heapObject).forEach { reference ->
-            if (ownerReferences.isRivalReference(ownership, reference)) {
+            if (ownerReferences.isRivalReference(heapObject.objectId, reference)) {
               parked += reference.valueObjectId
             } else {
               queue += reference.valueObjectId
@@ -395,9 +394,8 @@ internal class HeapReachability private constructor(
       block: (HeapObject) -> Unit
     ) {
       val source = graph.findObjectById(objectId)
-      val ownership = ownerReferences.ownershipOf(source)
       val referentIds = strengthReader.retainingReferencesOf(source)
-        .filter { ownerReferences.isHeldThrough(ownership, it) }
+        .filter { ownerReferences.isHeldThrough(objectId, it) }
         .map { it.valueObjectId } +
         strengthReader.weakeningReferencesOf(source).map { it.valueObjectId }
       referentIds.forEach { referentId ->
