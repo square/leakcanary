@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -35,6 +36,8 @@ import shark.dive.LeakSection
 import shark.dive.LeakingObject
 import shark.dive.Place
 import shark.dive.ReachabilityStrength
+import shark.dive.ReferencePage
+import shark.dive.Topic
 import shark.dive.hexObjectId
 import shark.dive.statusText
 
@@ -182,7 +185,7 @@ class LeaksScreenTest {
       // Rendered from leaks rather than read off a heap dump: what is being pinned is how the two ends of a
       // leak are named, and a dump whose leaks have the shape to show it is a dump built for it.
       setContent {
-        MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}, {}) }
+        MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}, {}, {}) }
       }
 
       // Both ends and a gap for what is between them, then the leak whose two ends are one reference. Each
@@ -190,6 +193,41 @@ class LeaksScreenTest {
       onNodeWithText("$FIRST_END $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW $LAST_END $STRETCH_ARROW")
         .assertIsDisplayed()
       onNodeWithText("$ONE_REFERENCE $STRETCH_ARROW").assertIsDisplayed()
+    }
+  }
+
+  /**
+   * All of it, on one line's worth of paragraph, with the URL at the end of it live. Three ellipsized lines
+   * was throwing away the half of these descriptions that says where the workaround is.
+   */
+  @Test fun `a library leak's description is drawn in full`() {
+    diveUiTest {
+      setContent {
+        MaterialTheme { LeaksScreen(LIBRARY_LEAK, false, emptySet(), {}, { _, _ -> }, {}, {}, {}) }
+      }
+
+      onNodeWithText(
+        "AccountManager.AmsTask.Response is a stub, and as all stubs it's held in memory by a native ref " +
+          "until the calling side gets GCed, which can happen long after the stub is no longer of use. " +
+          "https://issuetracker.google.com/issues/318303120"
+      ).assertIsDisplayed()
+    }
+  }
+
+  /** And what to do about somebody else's leak is a page, since it is more than a section heading holds. */
+  @Test fun `the library leaks section leads to the page about them`() {
+    diveUiTest {
+      var explained: Topic? = null
+      setContent {
+        MaterialTheme {
+          LeaksScreen(LIBRARY_LEAK, false, emptySet(), {}, { _, _ -> }, {}, { explained = it }, {})
+        }
+      }
+
+      onNodeWithContentDescription("$MORE_ABOUT ${ReferencePage.of(Topic.LIBRARY_LEAKS).title}")
+        .performClick()
+
+      assertThat(explained).isEqualTo(Topic.LIBRARY_LEAKS)
     }
   }
 
@@ -358,6 +396,26 @@ class LeaksScreenTest {
     private const val ONE_REFERENCE = "Holder.activity"
 
     /** Two app leaks, one of each shape. See [LeakGroup.suspectPath]. */
+    /**
+     * Verbatim from `AndroidReferenceMatchers.ACCOUNT_MANAGER`, wrapping and all: what the leaks screen has
+     * to draw is a `"""` block out of Shark, and 51 of the 85 of them end in a URL.
+     */
+    private val LIBRARY_DESCRIPTION = """
+      AccountManager.AmsTask.Response is a stub, and as all stubs it's held in memory by a
+      native ref until the calling side gets GCed, which can happen long after the stub is no
+      longer of use.
+      https://issuetracker.google.com/issues/318303120
+    """.trimIndent()
+
+    private val LIBRARY_LEAK = HeapLeaks(
+      listOf(
+        LeakSection(
+          kind = LeakKind.LIBRARY,
+          groups = listOf(leakGroup(listOf("AmsTask.response"), subtitle = LIBRARY_DESCRIPTION))
+        )
+      )
+    )
+
     private val TWO_ENDED_LEAKS = HeapLeaks(
       listOf(
         LeakSection(
@@ -370,11 +428,14 @@ class LeaksScreenTest {
       )
     )
 
-    private fun leakGroup(suspectPath: List<String>) = LeakGroup(
+    private fun leakGroup(
+      suspectPath: List<String>,
+      subtitle: String? = null
+    ) = LeakGroup(
       leakFingerprint = suspectPath.first().sha1OfNothing(),
       title = suspectPath.first(),
       suspectPath = suspectPath,
-      subtitle = null,
+      subtitle = subtitle,
       objects = listOf(
         LeakingObject(
           objectId = suspectPath.first().hashCode().toLong(),

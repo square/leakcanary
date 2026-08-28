@@ -37,6 +37,8 @@ import shark.dive.LeakGroup
 import shark.dive.LeakKind
 import shark.dive.LeakSection
 import shark.dive.LeakingObject
+import shark.dive.Note
+import shark.dive.NoteLink
 import shark.dive.Place
 import shark.dive.Topic
 import shark.dive.WatchedObject
@@ -64,6 +66,8 @@ internal fun LeaksScreen(
   onCopyLink: (Long) -> Unit,
   /** Where the `?` beside what a leak is called goes. See [Explain]. */
   onExplain: (Topic) -> Unit,
+  /** And where a link written into a library leak's description goes, which is out to a browser. */
+  onFollowLink: (NoteLink) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -91,7 +95,8 @@ internal fun LeaksScreen(
               onToggleGroup,
               onOpen,
               onCopyLink,
-              onExplain
+              onExplain,
+              onFollowLink
             )
         }
         val onTheWayOut = leaks.onTheWayOutSections
@@ -115,7 +120,8 @@ internal fun LeaksScreen(
               onToggleGroup,
               onOpen,
               onCopyLink,
-              onExplain
+              onExplain,
+              onFollowLink
             )
           }
         }
@@ -133,18 +139,19 @@ private fun LazyListScope.leakSection(
   onToggleGroup: (String) -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
-  onExplain: (Topic) -> Unit
+  onExplain: (Topic) -> Unit,
+  onFollowLink: (NoteLink) -> Unit
 ) {
   // Pinned while its own leaks scroll under it, which is what says they are its: a heading that scrolls away
   // leaves a list of rows with nothing above them saying which part they are.
   stickyHeader(key = section.kind.name) {
-    SectionHeader(section, isFirst = isFirst)
+    SectionHeader(section, isFirst = isFirst, onExplain = onExplain)
   }
   section.groups.forEach { group ->
     val groupKey = section.kind.groupKey(group)
     val isExpanded = groupKey in expandedGroups
     val hasMore = group.objects.size > 1
-    item(key = groupKey) { GroupRow(group, onExplain) }
+    item(key = groupKey) { GroupRow(group, onExplain, onFollowLink) }
     // The first object always: a leak is a reference, and a reference with nothing under it says
     // what shouldn't be holding without ever saying what it is holding.
     item(key = "$groupKey ${group.objects.first().objectId}") {
@@ -192,7 +199,8 @@ private fun LazyListScope.leakSection(
 private fun SectionHeader(
   section: LeakSection,
   /** Whether it opens what it is under, where there is nothing above to be told apart from. */
-  isFirst: Boolean
+  isFirst: Boolean,
+  onExplain: (Topic) -> Unit
 ) {
   Column(
     Modifier.fillMaxWidth()
@@ -209,13 +217,29 @@ private fun SectionHeader(
         "${section.kind.title} · ${section.summary()}",
         style = MaterialTheme.typography.titleSmall
       )
-      Text(
-        section.kind.explanation,
-        style = MaterialTheme.typography.bodySmall,
-        color = MUTED_TEXT
-      )
+      // What to do about a library leak is a page rather than a line, and it is the one section where what
+      // to do isn't obvious from what the section is. See [LeakKind.topic].
+      val topic = section.kind.topic
+      if (topic == null) {
+        SectionExplanation(section.kind.explanation, Modifier)
+      } else {
+        Explain(topic, onExplain) {
+          // The weight leaves the `?` its room: a paragraph in a row takes the whole width otherwise, and
+          // the `?` is pushed off the end of it.
+          SectionExplanation(section.kind.explanation, Modifier.weight(1f, fill = false))
+        }
+      }
     }
   }
+}
+
+/** What being in a section means, which not one of the titles says on its own. See [LeakKind]. */
+@Composable
+private fun SectionExplanation(
+  explanation: String,
+  modifier: Modifier
+) {
+  Text(explanation, modifier, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
 }
 
 /**
@@ -283,7 +307,8 @@ private fun OnTheWayOutHeader(
 @Composable
 private fun GroupRow(
   group: LeakGroup,
-  onExplain: (Topic) -> Unit
+  onExplain: (Topic) -> Unit,
+  onFollowLink: (NoteLink) -> Unit
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     SectionBar()
@@ -304,13 +329,13 @@ private fun GroupRow(
           )
         }
         group.subtitle?.let { subtitle ->
-          Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MUTED_TEXT,
-            maxLines = MAX_SUBTITLE_LINES,
-            overflow = TextOverflow.Ellipsis
-          )
+          // In full, and with the links live. What Shark knows about a library leak is written into the
+          // pattern that recognizes it, and half of those descriptions end in the AOSP change that
+          // introduced the leak or the file it is in — which is where the way round it is, and which three
+          // lines of ellipsized plain text was throwing away. See [Note.ofDocument].
+          Note.ofDocument(subtitle).blocks.forEach { block ->
+            NoteBlockView(block, onFollowLink, MaterialTheme.typography.bodySmall, MUTED_TEXT)
+          }
         }
         // What makes a leak something to write down: the addresses in this list are of one heap dump, and
         // this is the same for the same leak in the next one. See [LeakGroup.leakFingerprint].

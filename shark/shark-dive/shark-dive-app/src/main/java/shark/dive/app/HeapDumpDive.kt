@@ -1190,6 +1190,7 @@ private fun ListPlace(
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onExplain = onExplain,
+      onFollowLink = onFollowLink,
       modifier = modifier
     )
     is Place.Starred -> StarredScreen(

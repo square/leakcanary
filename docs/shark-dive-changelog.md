@@ -96,3 +96,11 @@ uses, without the one for a newly recognized library leak:
   other page of it is listed under the one being read. The app ships the text rather than opening a browser,
   so a release explains itself with the pages it was built with, and the sentence under the `?` is the page's
   own first sentence. The `?` never fades and is the same for everybody, however many heap dumps in.
+* 🔀 **A library leak is a leak to do something about**, and the screen now says so. It used to say there was
+  "usually nothing to do about them but wait for a fix upstream", which is wrong twice: a leak in a library is
+  an issue to file and often a small fix to send, and a leak in the framework has a workaround to look for and
+  a report to make. The `?` on that section leads to the page saying which to do, including
+  `AndroidLeakFixes`, the ten framework workarounds `plumber-android` already applies for you. And **the
+  description Shark carries for the leak is drawn in full, with its links live** — 51 of the 85 of them end in
+  the AOSP change that introduced the leak or the file it is in, which is where the way round it usually is,
+  and three ellipsized lines of plain text was throwing exactly that away.

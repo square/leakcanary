@@ -13,6 +13,8 @@ sentence below.
 
 --8<-- "docs/shark-dive-reference/leak-fingerprint.md"
 
+--8<-- "docs/shark-dive-reference/library-leaks.md"
+
 --8<-- "docs/shark-dive-reference/stuck-shading.md"
 
 --8<-- "docs/shark-dive-reference/weaker-references.md"

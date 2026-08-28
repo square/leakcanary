@@ -74,7 +74,15 @@ enum class LeakKind(
    * nothing else: every other section's groups are a reference, and a reference says what a sentence
    * would have.
    */
-  val subtitle: String? = null
+  val subtitle: String? = null,
+  /**
+   * The page of the reference behind this section's `?`, for the sections where what to do about one is
+   * more than [explanation] can hold.
+   *
+   * Null for the rest, and the `?` is simply not drawn — a `?` leading to a page that says what the line
+   * above it already said is a `?` nobody clicks a second time.
+   */
+  val topic: Topic? = null
 ) {
 
   APPLICATION(
@@ -86,8 +94,9 @@ enum class LeakKind(
   LIBRARY(
     "Library leaks",
     "The same thing in code the app doesn't control: the Android framework or a library. Shark recognizes " +
-      "the reference that holds them, so they can be told apart from the app's own — there is usually " +
-      "nothing to do about them but wait for a fix upstream."
+      "the reference that holds them, so they can be told apart from the app's own — which is who fixes " +
+      "them, not whether they need fixing.",
+    topic = Topic.LIBRARY_LEAKS
   ),
 
   SOFT(

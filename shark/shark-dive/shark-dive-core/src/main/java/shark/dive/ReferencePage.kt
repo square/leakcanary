@@ -22,6 +22,7 @@ enum class Topic(
   LEAK_NAME("leak-name"),
   FAULTY_REFERENCE("faulty-reference"),
   LEAK_FINGERPRINT("leak-fingerprint"),
+  LIBRARY_LEAKS("library-leaks"),
   STUCK_SHADING("stuck-shading"),
   WEAKER_REFERENCES("weaker-references"),
   OTHER_WAYS("other-ways");
@@ -63,7 +64,7 @@ class ReferencePage internal constructor(
 
     private fun pageOf(topic: Topic): ReferencePage {
       val path = "/$RESOURCE_DIRECTORY/${topic.page}$MARKDOWN_SUFFIX"
-      val blocks = documentBlocksOf(markdownOf(topic, path))
+      val blocks = Note.ofDocument(markdownOf(topic, path)).blocks
       val heading = blocks.firstOrNull()
       check(heading is NoteBlock.Heading) {
         "\"$path\" has to start with its title as a \"## \" heading, which is what names the page here " +

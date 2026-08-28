@@ -261,27 +261,31 @@ private fun Modifier.noteHeight(
   layout(placeable.width, placeable.height) { placeable.place(0, 0) }
 }
 
-/** One block of markdown, whether it was typed as a note or shipped as a page. See [ReferenceScreen]. */
+/**
+ * One block of markdown, whether it was typed as a note, shipped as a page, or written into the library leak
+ * pattern that recognized a leak. See [ReferenceScreen] and [LeaksScreen].
+ *
+ * [style] and [color] are what the surrounding text is set in, since the third of those is a subtitle in a
+ * list rather than a document of its own. A heading keeps its own sizes either way — see [headingStyle] —
+ * because what makes a heading a heading is being bigger than the line under it.
+ */
 @Composable
 internal fun NoteBlockView(
   block: NoteBlock,
-  onLink: (NoteLink) -> Unit
+  onLink: (NoteLink) -> Unit,
+  style: TextStyle = MaterialTheme.typography.bodyMedium,
+  color: Color = Color.Unspecified
 ) {
   when (block) {
-    is NoteBlock.Paragraph -> NoteText(block.spans, MaterialTheme.typography.bodyMedium, onLink)
-    is NoteBlock.Heading -> NoteText(block.spans, headingStyle(block.level), onLink)
+    is NoteBlock.Paragraph -> NoteText(block.spans, style, onLink, color)
+    is NoteBlock.Heading -> NoteText(block.spans, headingStyle(block.level), onLink, color)
     is NoteBlock.Item -> Row(Modifier.padding(start = INDENT_WIDTH * block.depth)) {
-      Text(
-        block.marker,
-        Modifier.width(MARKER_WIDTH),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MUTED_TEXT
-      )
-      NoteText(block.spans, MaterialTheme.typography.bodyMedium, onLink)
+      Text(block.marker, Modifier.width(MARKER_WIDTH), style = style, color = MUTED_TEXT)
+      NoteText(block.spans, style, onLink, color)
     }
     is NoteBlock.Quote -> Row {
-      Text(QUOTE_BAR, style = MaterialTheme.typography.bodyMedium, color = MUTED_TEXT)
-      NoteText(block.spans, MaterialTheme.typography.bodyMedium, onLink, color = MUTED_TEXT)
+      Text(QUOTE_BAR, style = style, color = MUTED_TEXT)
+      NoteText(block.spans, style, onLink, color = MUTED_TEXT)
     }
     is NoteBlock.Code -> Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
       Text(
