@@ -568,7 +568,7 @@ private fun HeapDumpState.statusLine(): String = when (this) {
 private fun HeapSizes.strengthsText(): String = ReachabilityStrength.values()
   .filter { byteCountByStrength.getValue(it) > 0L }
   .joinToString(", ") { strength ->
-    "${formatByteSize(byteCountByStrength.getValue(strength))} ${strength.displayName.lowercase()}"
+    "${formatByteSize(byteCountByStrength.getValue(strength))} ${strength.label.lowercase()}"
   }
 
 private fun HeapDumpState.centerMessage(): String = when (this) {

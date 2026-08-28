@@ -28,11 +28,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import shark.dive.CellSubject
-import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectKind
 import shark.dive.HeapObjectSummary
 import shark.dive.ObjectGroupKind
 import shark.dive.ObjectGroupSummary
+import shark.dive.ReachabilityStrength
+import shark.dive.Topic
 import shark.dive.formatByteSize
 import shark.dive.formatByteSizeOfTotal
 import shark.dive.formatObjectCount
@@ -71,6 +72,8 @@ internal fun DetailsPanel(
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit,
+  /** Where the `?` beside how firmly an object is held goes. See [Explain]. */
+  onExplain: (Topic) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -89,7 +92,7 @@ internal fun DetailsPanel(
           Detail("Retained", formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount))
         }
         is Selection.ObjectGroup ->
-          ObjectGroupDetails(selection.summary, stronglyReachableByteCount)
+          ObjectGroupDetails(selection.summary, stronglyReachableByteCount, onExplain)
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
           stronglyReachableByteCount = stronglyReachableByteCount,
@@ -102,7 +105,8 @@ internal fun DetailsPanel(
           onOpen = onOpen,
           onCopyLink = onCopyLink,
           onListInstances = onListInstances,
-          onToggleStar = onToggleStar
+          onToggleStar = onToggleStar,
+          onExplain = onExplain
         )
       }
     }
@@ -135,25 +139,44 @@ internal sealed interface Selection {
 @Composable
 private fun ObjectGroupDetails(
   summary: ObjectGroupSummary,
-  stronglyReachableByteCount: Long
+  stronglyReachableByteCount: Long,
+  onExplain: (Topic) -> Unit
 ) {
   Text(summary.title(), style = MaterialTheme.typography.titleMedium)
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-  Row(
-    horizontalArrangement = Arrangement.spacedBy(6.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
-    Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
-  }
+  StrengthRow(summary.strength, onExplain)
   Detail("Retained together", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
   Detail("Objects", formatObjectCount(summary.objectCount))
 }
 
 /** What a pile of objects is called wherever it is described: here, and on the card at the pointer. */
 internal fun ObjectGroupSummary.title(): String = when (kind) {
-  ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
+  ObjectGroupKind.UNREACHABLE -> ReachabilityStrength.UNREACHABLE.label
   ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
+}
+
+/**
+ * How firmly the thing being described is held: the colour the map draws it in, and the one name that colour
+ * has. See [ReachabilityStrength.label].
+ *
+ * One composable rather than the same row written out per panel, because the swatch beside the word is the
+ * whole of what ties the panel to the map — a panel that draws the swatch a pixel differently from another
+ * is a panel a reader has to check against the legend again.
+ */
+@Composable
+private fun StrengthRow(
+  strength: ReachabilityStrength,
+  onExplain: (Topic) -> Unit
+) {
+  Explain(Topic.REACHABILITY_STRENGTH, onExplain) {
+    Row(
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(strength)))
+      Text(strength.label, style = MaterialTheme.typography.bodySmall)
+    }
+  }
 }
 
 @Composable
@@ -169,7 +192,8 @@ private fun ObjectDetails(
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
-  onToggleStar: () -> Unit
+  onToggleStar: () -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   Hint(if (isStarred) UNSTAR_HINT else STAR_HINT) {
     Text(
@@ -195,13 +219,7 @@ private fun ObjectDetails(
   // Under the headline, which for a bitmap is its size and its format: the picture is what the bitmap is,
   // and the sentence describing it stops just short of saying it.
   BitmapPreview(bitmap)
-  Row(
-    horizontalArrangement = Arrangement.spacedBy(6.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
-    Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
-  }
+  StrengthRow(summary.strength, onExplain)
   Detail("Retained", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
   Detail("Retained objects", summary.retainedCount.toString())
   // No share of the total on the shallow size: what one object is made of on its own is never a

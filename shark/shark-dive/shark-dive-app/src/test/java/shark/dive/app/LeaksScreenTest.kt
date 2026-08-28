@@ -231,6 +231,39 @@ class LeaksScreenTest {
     }
   }
 
+  /**
+   * And a section a strength names says the strength's own name and leads to the one page about the nine of
+   * them: a paragraph per section would be that page written out five more times, in five places that go
+   * stale one at a time.
+   */
+  @Test fun `a section named after a strength leads to the page about strengths`() {
+    diveUiTest {
+      var explained: Topic? = null
+      setContent {
+        MaterialTheme {
+          LeaksScreen(
+            WEAKLY_HELD,
+            false,
+            // Open, since the half of the screen nobody has to act on is folded away until it is asked for.
+            setOf(Place.Leaks.ON_THE_WAY_OUT),
+            {},
+            { _, _ -> },
+            {},
+            { explained = it },
+            {}
+          )
+        }
+      }
+
+      onNodeWithText(ReachabilityStrength.WEAK.label, substring = true).assertIsDisplayed()
+      onNodeWithContentDescription(
+        "$MORE_ABOUT ${ReferencePage.of(Topic.REACHABILITY_STRENGTH).title}"
+      ).performClick()
+
+      assertThat(explained).isEqualTo(Topic.REACHABILITY_STRENGTH)
+    }
+  }
+
   @Test fun `the map is shaded by what is leaking as soon as it is drawn`() {
     diveUiTest {
       openHeapDump()
@@ -362,7 +395,7 @@ class LeaksScreenTest {
 
   /** And one of the boxes beside it that colour the map by how firmly an object is held. */
   private fun ComposeUiTest.strengthToggle(): SemanticsNodeInteraction =
-    onNode(hasText(ReachabilityStrength.STRONG.displayName, substring = true) and isToggleable())
+    onNode(hasText(ReachabilityStrength.STRONG.label, substring = true) and isToggleable())
 
   companion object {
     /** The two destroyed activities and the watched object of [leakyHeapDump]. */
@@ -412,6 +445,16 @@ class LeaksScreenTest {
         LeakSection(
           kind = LeakKind.LIBRARY,
           groups = listOf(leakGroup(listOf("AmsTask.response"), subtitle = LIBRARY_DESCRIPTION))
+        )
+      )
+    )
+
+    /** One of the five sections a [ReachabilityStrength] names, which are the half nobody has to act on. */
+    private val WEAKLY_HELD = HeapLeaks(
+      listOf(
+        LeakSection(
+          kind = LeakKind.WEAK,
+          groups = listOf(leakGroup(listOf("Cache.entry")))
         )
       )
     )

@@ -270,7 +270,9 @@ internal object AgentJson {
         addJsonObject {
           put("kind", section.kind.name)
           put("title", section.kind.title)
-          put("explanation", section.kind.explanation)
+          // Absent for the five sections a reachability strength names, whose title is the whole of what
+          // they are. See LeakKind.explanation.
+          section.kind.explanation?.let { put("explanation", it) }
           // Whether this is a leak to fix or an object the collector will take on its own, which is the
           // split that makes the list actionable. See LeakKind.isOnTheWayOut.
           put("isOnTheWayOut", section.kind.isOnTheWayOut)

@@ -170,7 +170,7 @@ class DiveAppTest {
       // move it onto the object clicked: what it says has to be about that object and not about the tree.
       waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("Retained objects").assertIsDisplayed()
-      onNodeWithText(STRONG.reachabilityText).assertIsDisplayed()
+      onNodeWithText(STRONG.label).assertIsDisplayed()
     }
   }
 
@@ -584,7 +584,7 @@ class DiveAppTest {
       waitUntilAtLeastOneExists(hasText("of one class", substring = true), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText(SIBLING_CLASS_NAME).fetchSemanticsNodes()).isNotEmpty()
       // And gets the rows an object gets, so that a pile and an object read as two of a kind.
-      onNodeWithText(STRONG.reachabilityText).assertIsDisplayed()
+      onNodeWithText(STRONG.label).assertIsDisplayed()
       onNodeWithText("Retained together").assertIsDisplayed()
     }
   }
@@ -610,7 +610,7 @@ class DiveAppTest {
 
       clickView(TREEMAP_X, TREEMAP_Y)
 
-      waitUntilAtLeastOneExists(hasText(WEAK.reachabilityText), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(WEAK.label), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -622,11 +622,12 @@ class DiveAppTest {
 
       clickContainerEdge(yFraction = 0.5f)
 
-      waitUntilAtLeastOneExists(
-        hasText(HeapDominatorTreemap.UNREACHABLE_LABEL),
-        OPEN_TIMEOUT_MILLIS
-      )
-      onNodeWithText(UNREACHABLE.reachabilityText).assertIsDisplayed()
+      // The cell, the tab it opens, the chain and the details panel all say the one word, because the pile
+      // is every object of that strength and the strength has one name. So this counts rather than finding
+      // one: how firmly an object is held reads off the details panel in the tests about a strength that
+      // isn't also a pile.
+      waitUntilAtLeastOneExists(hasText(UNREACHABLE.label), OPEN_TIMEOUT_MILLIS)
+      assertThat(onAllNodesWithText(UNREACHABLE.label).fetchSemanticsNodes()).isNotEmpty()
       strengthToggle(UNREACHABLE).assertTextContains(
         formatByteSize(GARBAGE_PAYLOAD_BYTE_SIZE),
         substring = true
@@ -642,7 +643,7 @@ class DiveAppTest {
 
       // No GC root reaches it, so there is no object to blame for it still being here: the chain starts at
       // that said in as many words, where every other chain names the kind of root it starts at.
-      waitUntilAtLeastOneExists(hasText(UNREACHABLE.reachabilityText), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(UNREACHABLE.label), OPEN_TIMEOUT_MILLIS)
       waitUntilAtLeastOneExists(hasText(UNCOLLECTED_GARBAGE_CHAIN), OPEN_TIMEOUT_MILLIS)
     }
   }
@@ -804,7 +805,7 @@ class DiveAppTest {
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
         onAllNodesWithText(ViewShape.RADIAL.displayName).fetchSemanticsNodes().isEmpty()
       }
-      assertThat(onAllNodesWithText(STRONG.displayName, substring = true).fetchSemanticsNodes())
+      assertThat(onAllNodesWithText(STRONG.label, substring = true).fetchSemanticsNodes())
         .isEmpty()
     }
   }
@@ -894,7 +895,7 @@ class DiveAppTest {
 
   /** The checkbox for [strength] above the view, which carries its name and how much it holds. */
   private fun ComposeUiTest.strengthToggle(strength: ReachabilityStrength): SemanticsNodeInteraction =
-    onNode(hasText(strength.displayName, substring = true) and isToggleable())
+    onNode(hasText(strength.label, substring = true) and isToggleable())
 
   /** The radio button for [scheme] above the view. */
   private fun ComposeUiTest.schemeOption(scheme: CellColorScheme): SemanticsNodeInteraction =

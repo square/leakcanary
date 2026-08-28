@@ -144,7 +144,7 @@ private fun StrengthLine(strength: ReachabilityStrength) {
     verticalAlignment = Alignment.CenterVertically
   ) {
     Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(strength)))
-    Text(strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
+    Text(strength.label, style = MaterialTheme.typography.bodySmall)
   }
 }
 

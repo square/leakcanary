@@ -213,27 +213,40 @@ private fun SectionHeader(
         .background(MaterialTheme.colorScheme.secondaryContainer)
         .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-      Text(
-        "${section.kind.title} · ${section.summary()}",
-        style = MaterialTheme.typography.titleSmall
-      )
-      // What to do about a library leak is a page rather than a line, and it is the one section where what
-      // to do isn't obvious from what the section is. See [LeakKind.topic].
+      // Beside the title rather than beside the explanation, so that the `?` of a section that has one and
+      // of a section that doesn't are in the same place. See [LeakKind.topic].
       val topic = section.kind.topic
       if (topic == null) {
-        SectionExplanation(section.kind.explanation, Modifier)
+        SectionTitle(section, Modifier)
       } else {
         Explain(topic, onExplain) {
-          // The weight leaves the `?` its room: a paragraph in a row takes the whole width otherwise, and
-          // the `?` is pushed off the end of it.
-          SectionExplanation(section.kind.explanation, Modifier.weight(1f, fill = false))
+          // The weight leaves the `?` its room: text in a row takes the whole width otherwise, and the `?`
+          // is pushed off the end of it.
+          SectionTitle(section, Modifier.weight(1f, fill = false))
         }
+      }
+      val explanation = section.kind.explanation
+      if (explanation != null) {
+        SectionExplanation(explanation, Modifier)
       }
     }
   }
 }
 
-/** What being in a section means, which not one of the titles says on its own. See [LeakKind]. */
+/** What the section is, and how much of the heap dump is in it. */
+@Composable
+private fun SectionTitle(
+  section: LeakSection,
+  modifier: Modifier
+) {
+  Text(
+    "${section.kind.title} · ${section.summary()}",
+    modifier,
+    style = MaterialTheme.typography.titleSmall
+  )
+}
+
+/** What being in a section means, for the sections whose title doesn't. See [LeakKind.explanation]. */
 @Composable
 private fun SectionExplanation(
   explanation: String,

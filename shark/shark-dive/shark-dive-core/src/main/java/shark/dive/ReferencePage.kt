@@ -23,6 +23,7 @@ enum class Topic(
   FAULTY_REFERENCE("faulty-reference"),
   LEAK_FINGERPRINT("leak-fingerprint"),
   LIBRARY_LEAKS("library-leaks"),
+  REACHABILITY_STRENGTH("reachability-strength"),
   STUCK_SHADING("stuck-shading"),
   WEAKER_REFERENCES("weaker-references"),
   OTHER_WAYS("other-ways");

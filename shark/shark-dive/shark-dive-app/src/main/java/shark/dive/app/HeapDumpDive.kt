@@ -69,6 +69,7 @@ import shark.dive.Place
 import shark.dive.PresentedCell
 import shark.dive.RadialLayout
 import shark.dive.RadialPresentation
+import shark.dive.ReachabilityStrength
 import shark.dive.ReferencePage
 import shark.dive.RootPath
 import shark.dive.RootPathWay
@@ -886,7 +887,8 @@ internal fun HeapDumpDive(
                   favourites + Favourite.of(summary, details?.dominator)
                 }
               }
-            }
+            },
+            onExplain = explain
           )
           // Every pane folded away leaves three strips and a window of nothing, which still has to be
           // laid out: without this the strips would be stretched across it instead.
@@ -1077,7 +1079,8 @@ private fun RowScope.DetailsPane(
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
-  onToggleStar: () -> Unit
+  onToggleStar: () -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   if (panes.isFolded(Pane.DETAILS)) {
     FoldedPane(Pane.DETAILS) { panes.toggleFold(Pane.DETAILS) }
@@ -1101,6 +1104,7 @@ private fun RowScope.DetailsPane(
       onCopyLink = onCopyLink,
       onListInstances = onListInstances,
       onToggleStar = onToggleStar,
+      onExplain = onExplain,
       modifier = Modifier.weight(1f).fillMaxWidth()
     )
   }
@@ -1258,7 +1262,7 @@ private fun DescribedObject(selection: Selection?) {
       )
     }
     is Selection.ObjectGroup -> Text(
-      selection.summary.className ?: HeapDominatorTreemap.UNREACHABLE_LABEL,
+      selection.summary.className ?: ReachabilityStrength.UNREACHABLE.label,
       style = titleStyle,
       fontWeight = FontWeight.Bold
     )

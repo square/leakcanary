@@ -411,7 +411,7 @@ class HeapDominatorTreemap internal constructor(
   }
 
   private fun NodeGroup.label(): String = when (kind) {
-    ObjectGroupKind.UNREACHABLE -> UNREACHABLE_LABEL
+    ObjectGroupKind.UNREACHABLE -> ReachabilityStrength.UNREACHABLE.label
     // "42 × Bitmap" rather than "Bitmap": a count and a multiplication sign say this cell is a pile
     // of objects and not one of them, on a rectangle with room for nothing else.
     ObjectGroupKind.CLASS -> "$objectCount $CLASS_GROUP_LABEL_SEPARATOR $simpleClassName"
@@ -1770,8 +1770,6 @@ class HeapDominatorTreemap internal constructor(
      * heap dump whose garbage was all collected before it was written.
      */
     const val UNREACHABLE_NODE_ID = FIRST_PILE_ID
-
-    const val UNREACHABLE_LABEL = "Unreachable"
 
     /** The ids after it are the class groups. See [GroupIds]. */
     private const val FIRST_CLASS_GROUP_ID = FIRST_PILE_ID + 1

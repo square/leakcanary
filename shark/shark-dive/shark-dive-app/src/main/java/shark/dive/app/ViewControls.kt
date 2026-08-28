@@ -151,11 +151,15 @@ private fun StrengthLegend(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
     verticalArrangement = Arrangement.spacedBy(2.dp)
   ) {
-    Text(
-      "Colour",
-      style = MaterialTheme.typography.labelLarge,
-      modifier = Modifier.padding(end = 4.dp)
-    )
+    // One `?` for the nine rows after it rather than one each: what a strength is is one page, and nine
+    // question marks in a row is nine times the ink for the same answer.
+    Explain(Topic.REACHABILITY_STRENGTH, onExplain) {
+      Text(
+        "Colour",
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(end = 4.dp)
+      )
+    }
     ReachabilityStrength.values().forEach { strength ->
       val checked = strength in coloring.coloredStrengths
       LegendRow(
@@ -220,7 +224,7 @@ private fun LegendRow(
 private fun ReachabilityStrength.legendText(sizes: HeapSizes): String {
   val byteCount = formatByteSize(sizes.byteCountByStrength.getValue(this))
   val objectCount = formatObjectCount(sizes.objectCountByStrength.getValue(this))
-  return "$displayName $byteCount · $objectCount"
+  return "$label $byteCount · $objectCount"
 }
 
 /**

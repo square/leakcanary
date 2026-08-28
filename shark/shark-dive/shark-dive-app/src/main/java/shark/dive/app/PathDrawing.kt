@@ -193,7 +193,7 @@ internal fun PathStepRow(
     }
     if (step.strength != ReachabilityStrength.STRONG) {
       Text(
-        step.strength.reachabilityText,
+        step.strength.label,
         style = MaterialTheme.typography.bodySmall,
         color = objectStrengthColor(step.strength)
       )

@@ -104,3 +104,10 @@ uses, without the one for a newly recognized library leak:
   description Shark carries for the leak is drawn in full, with its links live** — 51 of the 85 of them end in
   the AOSP change that introduced the leak or the file it is in, which is where the way round it usually is,
   and three ellipsized lines of plain text was throwing exactly that away.
+* 🔀 **One name for how firmly an object is held**, everywhere the app says it. The details panel used to
+  spell out a sentence per strength — "Reachable without going through a `java.lang.ref.Reference`" — where
+  the legend above the map said "Strong" and the leaks screen said "Softly reachable" for the same nine
+  things, so a colour on the map, a checkbox above it and a section of the list read as three vocabularies.
+  Now every one of them says `Strong`, `Cache`, `Thread local`, `Local`, `Soft`, `Weak`, `Finalizer`,
+  `Phantom` or `Unreachable`, one or two words each, and what one *means* is the one page behind the `?` on
+  the legend and on each of those sections.
