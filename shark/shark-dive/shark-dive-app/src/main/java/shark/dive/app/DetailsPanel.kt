@@ -243,21 +243,33 @@ private fun BitmapPreview(bitmap: ImageBitmap?) {
   )
 }
 
-/** Whatever it wraps, with [text] shown while the pointer rests on it. */
+/**
+ * Whatever it wraps, with [text] shown while the pointer rests on it.
+ *
+ * [footer] is a line under it in the colour of a link, for a hint that leads somewhere: what a hint says
+ * about clicking has to be said in the hint, because the tooltip itself cannot be clicked — its [Surface]
+ * swallows pointer events, which is the same thing that keeps [PointerCard] out from under the pointer. See
+ * [Explain], which is the one thing that passes one.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun Hint(
   text: String,
+  footer: String? = null,
   content: @Composable () -> Unit
 ) {
   TooltipArea(
     tooltip = {
       Surface(shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface) {
-        Text(
-          text,
+        Column(
           Modifier.width(HINT_WIDTH).padding(8.dp),
-          style = MaterialTheme.typography.bodySmall
-        )
+          verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+          Text(text, style = MaterialTheme.typography.bodySmall)
+          footer?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = LINK_COLOR)
+          }
+        }
       }
     },
     content = content

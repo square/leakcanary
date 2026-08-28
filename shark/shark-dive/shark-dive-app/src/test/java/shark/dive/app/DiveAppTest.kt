@@ -53,6 +53,8 @@ import shark.dive.ReachabilityStrength.PHANTOM
 import shark.dive.ReachabilityStrength.STRONG
 import shark.dive.ReachabilityStrength.UNREACHABLE
 import shark.dive.ReachabilityStrength.WEAK
+import shark.dive.ReferencePage
+import shark.dive.Topic.WEAKER_REFERENCES
 import shark.dive.formatByteSize
 import shark.dive.hexObjectId
 
@@ -696,9 +698,31 @@ class DiveAppTest {
       // bug until something explains it.
       strengthToggle(PHANTOM).assertTextContains(formatByteSize(0L), substring = true)
       onNodeWithText(NOTHING_WEAKER).assertIsDisplayed()
-      // The paragraph saying why that is normal waits for the pointer: it is above the map for as long as
-      // the heap dump is open, and read once it is in the way of the thing it is about.
-      onNodeWithText(NOTHING_WEAKER_HINT).assertDoesNotExist()
+      // The `?` beside it is there for everyone, always. What it says waits for the pointer: it is above
+      // the map for as long as the heap dump is open, and read once it is in the way of what it is about.
+      val page = ReferencePage.of(WEAKER_REFERENCES)
+      onNodeWithContentDescription("$MORE_ABOUT ${page.title}").assertIsDisplayed()
+      onNodeWithText(page.hint).assertDoesNotExist()
+    }
+  }
+
+  @Test fun `a question mark opens the page it is about, and the way to the others`() {
+    diveUiTest {
+      openHeapDump()
+      val page = ReferencePage.of(WEAKER_REFERENCES)
+
+      onNodeWithContentDescription("$MORE_ABOUT ${page.title}").performClick()
+
+      // A tab of this window rather than a browser, opening with the very sentence the `?` shows, so that
+      // what was hovered and what is now being read are one text. See `ReferencePage`.
+      waitUntilAtLeastOneExists(hasText(page.hint), OPEN_TIMEOUT_MILLIS)
+      onNode(hasText(page.title) and isTab()).assertIsDisplayed()
+      // And every other page under it, each with its own opening sentence, which is what makes one `?` the
+      // way in to all of them.
+      ReferencePage.all.filter { it.topic != page.topic }.forEach { other ->
+        onNodeWithText(other.title).assertIsDisplayed()
+        onNodeWithText(other.hint).assertIsDisplayed()
+      }
     }
   }
 

@@ -73,6 +73,8 @@ a few seconds.
 * **The verdict on the object a tab is on is the first thing "What it is" says** — `Stuck`, `Expected` or
   `Unknown` — and you can overrule it, see [The verdict](#the-verdict).
 * Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
+* **A `?` follows the labels that take more than a label to know.** Hover it for one sentence, click it to
+  read the rest as a tab of the window — it's the [reference](shark-dive-reference.md), shipped with the app.
 
 ## Link to a tab
 

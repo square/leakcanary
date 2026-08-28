@@ -261,8 +261,9 @@ private fun Modifier.noteHeight(
   layout(placeable.width, placeable.height) { placeable.place(0, 0) }
 }
 
+/** One block of markdown, whether it was typed as a note or shipped as a page. See [ReferenceScreen]. */
 @Composable
-private fun NoteBlockView(
+internal fun NoteBlockView(
   block: NoteBlock,
   onLink: (NoteLink) -> Unit
 ) {

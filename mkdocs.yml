@@ -24,6 +24,13 @@ remote_branch: gh-pages
 
 copyright: 'Copyright &copy; 2015 Square, Inc.'
 
+# The sections of shark-dive-reference.md, each of which that page includes with a snippet: pages of
+# their own as well would be every one of them published twice, at a URL nothing links to. They live under
+# docs/ rather than beside the module because they are documentation, and Shark Dive ships a copy of this
+# directory on its classpath — see the copyReference task in shark-dive-core.
+exclude_docs: |
+  shark-dive-reference/
+
 theme:
   name: 'material'
   custom_dir: 'docs/theme'
@@ -96,6 +103,7 @@ nav:
     - 'Shark API': api/shark/index.md
   - 'Shark Dive':
     - 'Overview': shark-dive.md
+    - 'Reference': shark-dive-reference.md
     - 'Change Log': shark-dive-changelog.md
   - 'LeakCanary API': api/index.md
   - 'Change Log': changelog.md

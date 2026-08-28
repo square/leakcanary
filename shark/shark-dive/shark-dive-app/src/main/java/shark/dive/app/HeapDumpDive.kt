@@ -69,11 +69,13 @@ import shark.dive.Place
 import shark.dive.PresentedCell
 import shark.dive.RadialLayout
 import shark.dive.RadialPresentation
+import shark.dive.ReferencePage
 import shark.dive.RootPath
 import shark.dive.RootPathWay
 import shark.dive.StackLayout
 import shark.dive.StackPresentation
 import shark.dive.Tabs
+import shark.dive.Topic
 import shark.dive.TreemapLayout
 import shark.dive.TreemapPresentation
 import shark.dive.TreemapRect
@@ -630,6 +632,14 @@ internal fun HeapDumpDive(
   }
   /** And for the buttons on the bar, which always open a tab of their own, in front. */
   val openInNewTab: (Place) -> Unit = { destination -> tabs = tabs.open(destination) }
+  /**
+   * Where a `?` goes: the page of the reference about that label, in a tab in front of what is being read.
+   *
+   * A tab rather than a browser, and in front rather than behind: clicking a `?` is asking to read the page,
+   * unlike ⌘ clicking a rectangle, which is parking somewhere to come back to. What was being read is a tab
+   * away, and the back arrow comes back from it. See [Explain] and [ReferenceScreen].
+   */
+  val explain: (Topic) -> Unit = { topic -> openInNewTab(Place.Reference(topic)) }
   /** Where a click on the view goes, which is wherever was clicked. Every rectangle is a move. */
   val onClickCell: (LayoutCell<Long>, OpenIn) -> Unit = { cell, openIn ->
     open(Place.of(cell), openIn)
@@ -789,6 +799,8 @@ internal fun HeapDumpDive(
           onCopyPlaceLink = copyLink,
           onReplacePlace = { tabs = tabs.replacingCurrent(it) },
           onRemoveStar = { objectId -> favourites = favourites.filterNot { it.objectId == objectId } },
+          onFollowLink = followNoteLink,
+          onExplain = explain,
           modifier = Modifier.fillMaxSize()
         )
         else -> Row(Modifier.fillMaxSize()) {
@@ -804,7 +816,8 @@ internal fun HeapDumpDive(
             chosenWays = chosenWays,
             onChooseWay = { detour, way -> chosenWays = chosenWays + (detour to way) },
             onOpen = openObject,
-            onCopyLink = copyObjectLink
+            onCopyLink = copyObjectLink,
+            onExplain = explain
           )
           ViewPane(
             panes = panes,
@@ -828,7 +841,8 @@ internal fun HeapDumpDive(
             onClick = onClickCell,
             onOpenHovered = openHovered,
             onCopyHoveredLink = copyHoveredLink,
-            onMeasured = { viewportSize = it }
+            onMeasured = { viewportSize = it },
+            onExplain = explain
           )
           DetailsPane(
             panes = panes,
@@ -936,7 +950,8 @@ private fun RowScope.ChainPane(
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
-  onCopyLink: (Long) -> Unit
+  onCopyLink: (Long) -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   if (panes.isFolded(Pane.CHAIN)) {
     FoldedPane(Pane.CHAIN) { panes.toggleFold(Pane.CHAIN) }
@@ -957,6 +972,7 @@ private fun RowScope.ChainPane(
       onChooseWay = onChooseWay,
       onOpen = onOpen,
       onCopyLink = onCopyLink,
+      onExplain = onExplain,
       modifier = Modifier.weight(1f).fillMaxWidth()
     )
   }
@@ -991,7 +1007,8 @@ private fun RowScope.ViewPane(
   onOpenHovered: (OpenIn) -> Unit,
   /** And what that menu copies a link to, which is the same rectangle. */
   onCopyHoveredLink: () -> Unit,
-  onMeasured: (IntSize) -> Unit
+  onMeasured: (IntSize) -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   if (panes.isFolded(Pane.VIEW)) {
     FoldedPane(Pane.VIEW) { panes.toggleFold(Pane.VIEW) }
@@ -1010,6 +1027,7 @@ private fun RowScope.ViewPane(
       isFindingLeaks = isFindingLeaks,
       onColoringChange = onColoringChange,
       onShapeChange = onShapeChange,
+      onExplain = onExplain,
       modifier = Modifier.fillMaxWidth()
     )
     Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -1137,6 +1155,10 @@ private fun ListPlace(
   onCopyPlaceLink: (Place) -> Unit,
   onReplacePlace: (Place) -> Unit,
   onRemoveStar: (Long) -> Unit,
+  /** And where a link written in prose goes: a browser, this heap dump, or another window. */
+  onFollowLink: (NoteLink) -> Unit,
+  /** And where a `?` goes, which is the page of the reference on that label. See [Explain]. */
+  onExplain: (Topic) -> Unit,
   modifier: Modifier = Modifier
 ) {
   when (place) {
@@ -1167,6 +1189,7 @@ private fun ListPlace(
       },
       onOpen = onOpen,
       onCopyLink = onCopyLink,
+      onExplain = onExplain,
       modifier = modifier
     )
     is Place.Starred -> StarredScreen(
@@ -1175,6 +1198,13 @@ private fun ListPlace(
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onRemove = onRemoveStar,
+      modifier = modifier
+    )
+    is Place.Reference -> ReferenceScreen(
+      page = ReferencePage.of(place.topic),
+      onOpenTopic = { topic, openIn -> onOpenPlace(Place.Reference(topic), openIn) },
+      onCopyTopicLink = { topic -> onCopyPlaceLink(Place.Reference(topic)) },
+      onLink = onFollowLink,
       modifier = modifier
     )
     is Place.AgentLogs -> AgentLogsScreen(
@@ -1277,6 +1307,9 @@ private fun ScreenBar(
     // been looked at, by whoever was looking. An agent works in this window rather than in one of its own,
     // so what it did belongs on this bar and not in a file somebody has to be told about.
     ScreenButton(Place.AgentLogs, Place.AGENT_LOGS_LABEL, onOpen, onCopyLink)
+    // Last, and here at all so that the pages every `?` leads to can be found without one: a reader who
+    // wondered about a label an hour ago and has moved on has nothing left to hover. See [Explain].
+    ScreenButton(Place.Reference(Topic.values().first()), Place.REFERENCE_LABEL, onOpen, onCopyLink)
     // Only when there are bitmaps the dump has no pixels for, because that's the only thing a device can
     // add: pixels the dump carries are already on the map by the time this bar is read.
     if (bitmapCounts.withoutImageCount > 0) {

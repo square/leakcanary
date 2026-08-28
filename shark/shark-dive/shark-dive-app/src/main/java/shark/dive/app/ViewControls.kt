@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import shark.dive.HeapSizes
 import shark.dive.ReachabilityStrength
+import shark.dive.Topic
 import shark.dive.formatByteSize
 import shark.dive.formatObjectCount
 
@@ -43,6 +44,8 @@ internal fun ViewControls(
   isFindingLeaks: Boolean,
   onColoringChange: (CellColoring) -> Unit,
   onShapeChange: (ViewShape) -> Unit,
+  /** Where the `?` on a row of the legend goes. See [Explain]. */
+  onExplain: (Topic) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -56,7 +59,8 @@ internal fun ViewControls(
         leakCount = leakCount,
         isFindingLeaks = isFindingLeaks,
         onColoredStrengthsChange = { onColoringChange(coloring.withStrengths(it)) },
-        onShowLeaksChange = { onColoringChange(coloring.withLeaks(it)) }
+        onShowLeaksChange = { onColoringChange(coloring.withLeaks(it)) },
+        onExplain = onExplain
       )
       Row(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -78,9 +82,9 @@ internal fun ViewControls(
         )
       }
       if (REFERENCE_STRENGTHS.none { sizes.byteCountByStrength.getValue(it) > 0L }) {
-        // The fact on one line, the paragraph saying why on hover: this sits above the map for as long as
-        // the heap dump is open, and the reader who has read it once is looking at the map underneath.
-        Hint(NOTHING_WEAKER_HINT) {
+        // The fact on one line, and why it is normal a `?` away: this sits above the map for as long as the
+        // heap dump is open, and the reader who has read it once is looking at the map underneath.
+        Explain(Topic.WEAKER_REFERENCES, onExplain) {
           Text(NOTHING_WEAKER, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
         }
       }
@@ -140,7 +144,8 @@ private fun StrengthLegend(
   leakCount: Int?,
   isFindingLeaks: Boolean,
   onColoredStrengthsChange: (Set<ReachabilityStrength>) -> Unit,
-  onShowLeaksChange: (Boolean) -> Unit
+  onShowLeaksChange: (Boolean) -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   FlowRow(
     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -172,7 +177,7 @@ private fun StrengthLegend(
     // how the collector holds an object, and this is whether the object should be there at all. Ticking it
     // is what sends Shark Dive looking for the leaks, so the row says so while that runs — and it unticks
     // every strength, see [CellColoring.withLeaks].
-    Hint(LEAKING_HINT) {
+    Explain(Topic.STUCK_SHADING, onExplain) {
       LegendRow(
         isChecked = coloring.showsLeaks,
         onCheckedChange = onShowLeaksChange,
@@ -243,23 +248,9 @@ internal const val STUCK = "Stuck"
 /** And while the pass over the heap dump that finds them runs, which is what ticking it starts. */
 internal const val FINDING_LEAKS = "Stuck: looking…"
 
-internal const val LEAKING_HINT =
-  "Shade the objects that are stuck in memory, and everything they hold with them — anything a stuck " +
-    "object dominates is only still there because it is. Greys the rest of the map, so that the shade is " +
-    "the only colour on it. There is no colour for the objects that are expected: a treemap draws what " +
-    "retains what, and most of a heap dump is objects nothing knows either way about. The chain beside " +
-    "the map says which is which, object by object."
-
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
  * which is what the legend rows reading 0 B mean and would otherwise read as a bug.
  */
 internal const val NOTHING_WEAKER =
   "Nothing in this heap dump is reachable only through a java.lang.ref.Reference."
-
-/** Why that is normal, which is a paragraph, and a paragraph is more than the bar above a map can hold. */
-internal const val NOTHING_WEAKER_HINT =
-  "$NOTHING_WEAKER That's common, because the garbage collection before a dump clears the references " +
-    "whose referent nothing else was holding — but it isn't a given: a referent a thread got out of a " +
-    "reference and has since let go of is weakly reachable again until the next collection. Unreachable " +
-    "is a different thing again: objects nothing points at, which that collection didn't get to."

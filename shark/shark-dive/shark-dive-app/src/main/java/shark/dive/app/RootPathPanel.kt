@@ -33,6 +33,7 @@ import shark.dive.PathReference
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.RootPathWay
+import shark.dive.Topic
 import shark.dive.detours
 import shark.dive.drawnWith
 import shark.dive.faultyReference
@@ -82,6 +83,8 @@ internal fun RootPathPanel(
   onOpen: (Long, OpenIn) -> Unit,
   /** Puts a link to a step's object on the clipboard, beside opening it. See [OpenTarget]. */
   onCopyLink: (Long) -> Unit,
+  /** Where the `?` beside what the chain says about itself goes. See [Explain]. */
+  onExplain: (Topic) -> Unit,
   modifier: Modifier = Modifier
 ) {
   val summary = (selection as? Selection.Object)?.summary
@@ -123,7 +126,7 @@ internal fun RootPathPanel(
   }
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
     Column {
-      drawn?.path?.faultyReference()?.let { SolvedLeak(it) }
+      drawn?.path?.faultyReference()?.let { SolvedLeak(it, onExplain) }
       // A row per object, drawn only where the pane has the room for it: a chain is as long as the heap dump
       // makes it, and the linked structures of a real one run to hundreds of steps — a pane that composed all
       // of them would take a minute to draw a chain nobody has scrolled to yet.
@@ -148,7 +151,8 @@ internal fun RootPathPanel(
             chosenWays = chosenWays,
             onChooseWay = onChooseWay,
             onOpen = onOpen,
-            onCopyLink = onCopyLink
+            onCopyLink = onCopyLink,
+            onExplain = onExplain
           )
         } else {
           noChainText(selection, summary, isWholeHeapDump, rootPath, hasTail = cutTail != null)?.let {
@@ -186,17 +190,20 @@ internal fun RootPathPanel(
  * pointer moves: a row at the top of it is a row that scrolls away.
  */
 @Composable
-private fun SolvedLeak(faultyReference: PathReference) {
-  Hint(FAULTY_REFERENCE_HINT) {
-    Column(Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp)) {
+private fun SolvedLeak(
+  faultyReference: PathReference,
+  onExplain: (Topic) -> Unit
+) {
+  Column(Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp)) {
+    Explain(Topic.FAULTY_REFERENCE, onExplain) {
       Text(LEAK_SOLVED, style = MaterialTheme.typography.labelSmall, color = MUTED_TEXT)
-      Text(
-        faultyReference.leakLabel(),
-        style = MaterialTheme.typography.bodyMedium,
-        color = LeakStatus.STUCK.textColor
-      )
-      HorizontalDivider(Modifier.padding(top = 8.dp))
     }
+    Text(
+      faultyReference.leakLabel(),
+      style = MaterialTheme.typography.bodyMedium,
+      color = LeakStatus.STUCK.textColor
+    )
+    HorizontalDivider(Modifier.padding(top = 8.dp))
   }
 }
 
@@ -227,7 +234,8 @@ private fun LazyListScope.rootPathTrace(
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
-  onCopyLink: (Long) -> Unit
+  onCopyLink: (Long) -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   val steps = drawn.path.steps
   item {
@@ -235,7 +243,7 @@ private fun LazyListScope.rootPathTrace(
       label = drawn.path.gcRootLabel.orEmpty(),
       reference = steps.first().step.reference,
       nextStrength = steps.first().step.strength,
-      below = { WaysOfDetour(drawn, HEAD_INDEX, ways, chosenWays, onChooseWay) }
+      below = { WaysOfDetour(drawn, HEAD_INDEX, ways, chosenWays, onChooseWay, onExplain) }
     )
   }
   itemsIndexed(steps) { depth, step ->
@@ -254,7 +262,7 @@ private fun LazyListScope.rootPathTrace(
         step.isDominator -> PathRole.DOMINATOR
         else -> PathRole.STEP
       },
-      below = { WaysOfDetour(drawn, depth, ways, chosenWays, onChooseWay) }
+      below = { WaysOfDetour(drawn, depth, ways, chosenWays, onChooseWay, onExplain) }
     )
   }
 }
@@ -317,7 +325,8 @@ private fun WaysOfDetour(
   row: Int,
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
-  onChooseWay: (Int, Int) -> Unit
+  onChooseWay: (Int, Int) -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   val detour = drawn.detourByRow[row] ?: return
   val found = ways[detour.fromIndex] ?: return
@@ -337,7 +346,7 @@ private fun WaysOfDetour(
       Modifier.clickableRow { onChooseWay(detour.fromIndex, (chosen - 1 + found.size) % found.size) },
       style = MaterialTheme.typography.bodySmall
     )
-    Hint(WAYS_HINT) {
+    Explain(Topic.OTHER_WAYS, onExplain) {
       Text(
         "${chosen + 1} of ${found.size} $WAYS_FROM_HERE",
         style = MaterialTheme.typography.labelSmall,
@@ -370,14 +379,6 @@ internal const val NO_ROOT_PATH_FOR_A_PILE =
 internal const val SEARCHING_ROOT_PATH = "Working out what holds it…"
 
 internal const val NO_ROOT_PATH = "No chain from a GC root down to this object was found."
-
-/** What the arrows either side of a stretch of the chain do, which is worth spelling out once. */
-internal const val WAYS_HINT =
-  "The steps between two objects that both hold this one are a stretch the chain didn't have to take: if " +
-    "it had, those steps would hold it too and be marked as dominators. So there are other ways from the " +
-    "object above down to the one below, and these arrows walk through them. They share no object in " +
-    "between, which graph theory calls independent, and they are found greedily, so there can be more of " +
-    "them than are counted here."
 
 /** What the count between the arrows counts, after which of them is drawn: `2 of 3 ways from here`. */
 internal const val WAYS_FROM_HERE = "ways from here"

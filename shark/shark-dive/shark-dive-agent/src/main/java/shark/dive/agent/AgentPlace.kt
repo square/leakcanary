@@ -36,8 +36,13 @@ internal fun AgentArguments.place(): Place {
 /**
  * The same place written back, and null for one an agent has no way of naming.
  *
- * The one that can't be is the pile of objects a rectangle had no room for: which objects are in it follows
- * from how wide the window is, so there is nothing here that would name it again on a screen of another size.
+ * One of the two can't be: the pile of objects a rectangle had no room for, because which objects are in it
+ * follows from how wide the window is, so there is nothing here that would name it again on a screen of
+ * another size.
+ *
+ * The other, a page of the reference, has no name here on purpose. It is what a *person* reads to find out
+ * what a label on screen means; the method is what an agent is handed for the same thing, twice, and
+ * sending it to read the human's copy would be the same prose a third time. See `AgentMethod`.
  */
 internal fun placeText(place: Place): String? = when (place) {
   is Place.Object -> exactHexObjectId(place.objectId)
@@ -52,6 +57,7 @@ internal fun placeText(place: Place): String? = when (place) {
   is Place.AgentLogs -> PLACE_AGENT_LOGS
   is Place.AgentLog -> "$PLACE_AGENT_LOGS$PLACE_SEPARATOR${place.sessionId}"
   is Place.SmallerObjects -> null
+  is Place.Reference -> null
 }
 
 /** What every tool taking one says, so that a place is described the one way. */

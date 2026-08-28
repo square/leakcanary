@@ -74,6 +74,9 @@ fun Place.noteKey(): String = when (this) {
   is Place.Objects -> OBJECT_LIST_KEY
   is Place.Leaks -> LEAKS_KEY
   is Place.Starred -> STARRED_KEY
+  // Per page, because a page of the reference is a thing to have something to say about — usually what it
+  // meant for this heap dump, which is why the note belongs to this dump's notes and not to the page.
+  is Place.Reference -> "$REFERENCE_KEY_PREFIX${topic.page}"
   is Place.AgentLogs -> AGENT_LOGS_KEY
   // Per session, because a note about what one agent did is about that investigation and not about agents.
   is Place.AgentLog -> "$AGENT_LOG_KEY_PREFIX$sessionId"
@@ -103,6 +106,8 @@ fun placeOfNoteKeyOrNull(key: String): Place? = when {
   key == STARRED_KEY -> Place.Starred
   key == AGENT_LOGS_KEY -> Place.AgentLogs
   key.startsWith(AGENT_LOG_KEY_PREFIX) -> Place.AgentLog(key.removePrefix(AGENT_LOG_KEY_PREFIX))
+  key.startsWith(REFERENCE_KEY_PREFIX) ->
+    Topic.ofPage(key.removePrefix(REFERENCE_KEY_PREFIX))?.let { Place.Reference(it) }
   key.startsWith(OBJECT_KEY_PREFIX) ->
     objectIdOfHex(key.removePrefix(OBJECT_KEY_PREFIX))?.let { Place.Object(it) }
   // A pile of the objects one rectangle had no room for is drawn from the window's width, so how many
@@ -118,6 +123,7 @@ private const val SMALLER_OBJECTS_KEY_PREFIX = "smaller-objects-"
 private const val OBJECT_LIST_KEY = "object-list"
 private const val LEAKS_KEY = "leaks"
 private const val STARRED_KEY = "starred"
+private const val REFERENCE_KEY_PREFIX = "reference-"
 private const val AGENT_LOGS_KEY = "agent-logs"
 private const val AGENT_LOG_KEY_PREFIX = "agent-log-"
 

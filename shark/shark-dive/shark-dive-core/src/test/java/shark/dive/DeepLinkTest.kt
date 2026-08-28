@@ -147,6 +147,24 @@ class DeepLinkTest {
     assertThat(DeepLink.parse("shark://leak.hprof/agent-log?session=1a2b3c4d").place).isEqualTo(place)
   }
 
+  /** Where a `?` in the window goes, and therefore what a link to one somebody was reading has to open. */
+  @Test
+  fun `one page of the reference is named by the page`() {
+    val place = Place.Reference(Topic.LEAK_FINGERPRINT)
+
+    assertThat(DeepLink("leak.hprof", place).toUri())
+      .isEqualTo("shark://leak.hprof/reference?topic=leak-fingerprint")
+    assertThat(DeepLink.parse("shark://leak.hprof/reference?topic=leak-fingerprint").place)
+      .isEqualTo(place)
+  }
+
+  @Test
+  fun `a reference link naming no page of it says which pages there are`() {
+    assertThatThrownBy { DeepLink.parse("shark://leak.hprof/reference?topic=how-to-fix-it") }
+      .isInstanceOf(IllegalArgumentException::class.java)
+      .hasMessageContaining("leak-fingerprint")
+  }
+
   @Test
   fun `an agent log link with no session says what is missing`() {
     assertThatThrownBy { DeepLink.parse("shark://leak.hprof/agent-log") }
@@ -169,6 +187,8 @@ class DeepLinkTest {
       Place.Leaks(),
       Place.Leaks(expandedGroups = setOf("APPLICATION 12ab")),
       Place.Starred,
+      Place.Reference(Topic.values().first()),
+      Place.Reference(Topic.values().last()),
       Place.AgentLogs,
       Place.AgentLog("1a2b3c4d")
     )
@@ -298,6 +318,8 @@ class DeepLinkTest {
       Place.Leaks(),
       Place.Leaks(expandedGroups = setOf("APPLICATION 12ab", "LIBRARY 34cd")),
       Place.Starred,
+      Place.Reference(Topic.values().first()),
+      Place.Reference(Topic.values().last()),
       Place.AgentLogs,
       Place.AgentLog("1a2b3c4d")
     )

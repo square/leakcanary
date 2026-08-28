@@ -91,3 +91,8 @@ uses, without the one for a newly recognized library leak:
   `Leak solved` line above **What holds it** names that reference where the eye starts, rather than leaving
   it to be found tens of steps down a chain, and an agent reading the chain is answered with the same name.
   See [The verdict](shark-dive.md#the-verdict).
+* ✨ **A `?` beside the labels that take more than a label to know.** Hovering it says what the label means in
+  one sentence; clicking it opens the [reference](shark-dive-reference.md) as a tab of the window, and every
+  other page of it is listed under the one being read. The app ships the text rather than opening a browser,
+  so a release explains itself with the pages it was built with, and the sentence under the `?` is the page's
+  own first sentence. The `?` never fades and is the same for everybody, however many heap dumps in.

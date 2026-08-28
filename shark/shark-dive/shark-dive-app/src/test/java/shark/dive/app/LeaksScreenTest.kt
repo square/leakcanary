@@ -181,7 +181,9 @@ class LeaksScreenTest {
     diveUiTest {
       // Rendered from leaks rather than read off a heap dump: what is being pinned is how the two ends of a
       // leak are named, and a dump whose leaks have the shape to show it is a dump built for it.
-      setContent { MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}) } }
+      setContent {
+        MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}, {}) }
+      }
 
       // Both ends and a gap for what is between them, then the leak whose two ends are one reference. Each
       // ends on an arrow, because what it points at is the object on the row below.

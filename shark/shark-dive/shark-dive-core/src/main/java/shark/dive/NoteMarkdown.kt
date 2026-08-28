@@ -44,6 +44,62 @@ internal fun noteBlocksOf(text: String): List<NoteBlock> {
   return blocks
 }
 
+/**
+ * Reading the markdown of a written document rather than of a note: a page of the reference, wrapped at the
+ * column the rest of this repository is wrapped at.
+ *
+ * The one difference from [noteBlocksOf] is what a line break means. In a note it means a line break, which
+ * is what anyone typing into a box expects and why nothing there has to be ended with two spaces. In a file
+ * somebody wrapped to fit a diff it means nothing at all, so a run of prose lines is one paragraph and the
+ * blank line between two runs is what separates them — plain markdown, and the same reading the website
+ * gives these files.
+ *
+ * Everything else is [noteBlocksOf]'s, headings and links and fences and all, so a page reads in the window
+ * the way a note does and there is one parser to be wrong.
+ */
+internal fun documentBlocksOf(text: String): List<NoteBlock> = noteBlocksOf(unwrapped(text))
+
+/**
+ * The same markdown with each paragraph on one line, which is the shape [noteBlocksOf] reads.
+ *
+ * Blank lines go with the wrapping they separated: they were the paragraph break, and once the paragraphs
+ * are one line each they would be empty paragraphs drawn as blank space on top of the spacing the window
+ * already puts between blocks. Inside a fence every line is left exactly as it is, blank ones included —
+ * code is the one place a line break is the content.
+ */
+private fun unwrapped(text: String): String {
+  val unwrapped = mutableListOf<String>()
+  var isCode = false
+  var isParagraph = false
+  text.split('\n').map { it.removeSuffix("\r") }.forEach { line ->
+    when {
+      line.trimStart().startsWith(CODE_FENCE) -> {
+        isCode = !isCode
+        isParagraph = false
+        unwrapped += line
+      }
+      isCode -> unwrapped += line
+      line.isBlank() -> isParagraph = false
+      // A heading, a bullet, a quote or a rule is a block of its own, so it neither continues the
+      // paragraph above it nor is continued by the line below.
+      !isProse(line) -> {
+        isParagraph = false
+        unwrapped += line
+      }
+      isParagraph -> unwrapped[unwrapped.lastIndex] = "${unwrapped.last()} ${line.trim()}"
+      else -> {
+        isParagraph = true
+        unwrapped += line.trim()
+      }
+    }
+  }
+  return unwrapped.joinToString("\n")
+}
+
+/** Whether this line is prose, rather than one of the shapes [blockOf] reads as a block in its own right. */
+private fun isProse(line: String): Boolean =
+  !RULE.matches(line) && !HEADING.matches(line) && !QUOTE.matches(line) && !ITEM.matches(line)
+
 private fun blockOf(line: String): NoteBlock {
   // Before the list, so that `---` is a rule rather than a bullet with nothing after it.
   if (RULE.matches(line)) {
