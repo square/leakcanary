@@ -206,11 +206,16 @@ internal class ExplorerWindows(
    * By file name, which is the whole of what a link says about the heap dump — and by path for the rare link
    * that says where the file is, since that one is exact: two dumps called `com.squareup.hprof` off two
    * devices are two investigations, and a link carrying a path has already said which.
+   *
+   * A window whose heap dump **failed to open** is not a window that has it. The file it was given may well
+   * be openable from where this machine last saw it — a path typed wrong, a dump on a volume that wasn't
+   * mounted then — and landing a link on the window that says so is the one outcome that helps nobody.
    */
   fun windowsFor(link: DeepLink): List<ExplorerWindow> {
     val path = link.heapDumpPath?.normalizedPath()
     return filter { window ->
       val heapDumpFile = window.heapDumpFile ?: return@filter false
+      if (window.openProblem != null) return@filter false
       if (path == null) heapDumpFile.name == link.heapDumpName else heapDumpFile.normalizedPath() == path
     }
   }

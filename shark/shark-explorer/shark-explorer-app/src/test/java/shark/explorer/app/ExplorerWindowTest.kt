@@ -216,6 +216,32 @@ class ExplorerWindowTest {
     assertThat(windows.mapNotNull { it.linkedHeapDump }).isEmpty()
   }
 
+  /**
+   * A window whose heap dump failed to open is not a window that has it, so a link is looked up instead of
+   * being handed to the window that says so.
+   *
+   * Which is what a run started with a relative path leaves behind — the OS launches an app with `/` for a
+   * working directory, so a path off a command line typed in a checkout resolves to nothing — and the file is
+   * usually right there where this machine last saw it.
+   */
+  @Test fun `a link about a heap dump a window failed to open opens the file instead`() {
+    val heapDumpFile = temporaryFolder.newFile(FIRST_DUMP.name)
+    heapDumpPaths.record(heapDumpFile)
+    val windows = explorerWindows(opening(FIRST_DUMP))
+    val failed = windows.single()
+    failed.openProblem = "There is no file at ${FIRST_DUMP.absolutePath}"
+    // So a peer that has it open takes the link ahead of this run, for the same reason. See [DeepLinkPeers].
+    assertThat(windows.windowsFor(DeepLink(FIRST_DUMP, Place.Starred))).isEmpty()
+
+    windows.open(DeepLink(FIRST_DUMP, Place.Starred))
+
+    val opened = windows.last()
+    assertThat(windows).hasSize(2)
+    assertThat(opened.heapDumpFile).isEqualTo(heapDumpFile.absoluteFile)
+    assertThat(opened.linkedPlaces).containsExactly(Place.Starred)
+    assertThat(failed.linkedPlaces).isEmpty()
+  }
+
   /** The one case a file name cannot answer, and the reason a link can still carry a path. */
   @Test fun `a link that says where the heap dump is opens it without looking anything up`() {
     val heapDumpFile = temporaryFolder.newFile("fourth.hprof")

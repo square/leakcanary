@@ -1,5 +1,7 @@
 package shark.explorer
 
+import java.io.File
+import java.io.FileNotFoundException
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Rule
@@ -543,6 +545,16 @@ class HeapExplorerTest {
 
     assertThatThrownBy { HeapExplorer.open(notAHeapDump) }
       .isInstanceOf(Exception::class.java)
+  }
+
+  @Test fun `opening a file that is not there says where it looked`() {
+    val missing = File(testFolder.root, "gone.hprof")
+
+    assertThatThrownBy { HeapExplorer.open(missing) }
+      // The absolute path, since a relative one resolves against a working directory the reader can't see:
+      // a run the OS launched has `/` for it, so the path as given says nothing about what was looked for.
+      .isInstanceOf(FileNotFoundException::class.java)
+      .hasMessageContaining(missing.absolutePath)
   }
 
   @Test fun `a weakly reachable object nests inside the weak reference reaching it`() {
