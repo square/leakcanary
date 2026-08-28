@@ -198,7 +198,7 @@ class LeaksScreenTest {
       // Nothing is ticked to make this happen: the leaks are looked for as the heap dump opens, and the
       // box says how many there are once they are found.
       leakToggle().assertIsOn()
-      waitUntilAtLeastOneExists(hasText("$LEAKING $LEAKING_OBJECT_COUNT"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("$STUCK $LEAKING_OBJECT_COUNT"), OPEN_TIMEOUT_MILLIS)
 
       leakToggle().performClick()
 
@@ -235,7 +235,7 @@ class LeaksScreenTest {
 
       onAllNodesWithText(listed)[0].performClick()
 
-      val leaking = LeakStatus.LEAKING.statusText
+      val leaking = LeakStatus.STUCK.statusText
       waitUntilAtLeastOneExists(hasText("$leaking: ", substring = true), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText("mDestroyed", substring = true).fetchSemanticsNodes()).isNotEmpty()
     }
@@ -318,7 +318,7 @@ class LeaksScreenTest {
 
   /** The checkbox above the view that shades the objects that shouldn't be in memory. */
   private fun ComposeUiTest.leakToggle(): SemanticsNodeInteraction =
-    onNode(hasText(LEAKING, substring = true) and isToggleable())
+    onNode(hasText(STUCK, substring = true) and isToggleable())
 
   /** And one of the boxes beside it that colour the map by how firmly an object is held. */
   private fun ComposeUiTest.strengthToggle(): SemanticsNodeInteraction =

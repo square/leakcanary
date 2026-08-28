@@ -699,16 +699,16 @@ private val BADGE_LETTER_COLOR = Color.White
  */
 internal val LeakStatus.background: Color?
   get() = when (this) {
-    LeakStatus.NOT_LEAKING -> ALIVE_BACKGROUND
+    LeakStatus.EXPECTED -> ALIVE_BACKGROUND
     LeakStatus.UNKNOWN -> null
-    LeakStatus.LEAKING -> LEAKING_BACKGROUND
+    LeakStatus.STUCK -> LEAKING_BACKGROUND
   }
 
 internal val LeakStatus.textColor: Color
   get() = when (this) {
-    LeakStatus.NOT_LEAKING -> ALIVE_TEXT
+    LeakStatus.EXPECTED -> ALIVE_TEXT
     LeakStatus.UNKNOWN -> MUTED_TEXT
-    LeakStatus.LEAKING -> LEAKING_TEXT
+    LeakStatus.STUCK -> LEAKING_TEXT
   }
 
 /** Green for an object something knows is still needed. */

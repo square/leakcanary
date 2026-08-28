@@ -145,6 +145,25 @@ data class PathReference(
 )
 
 /**
+ * A reference the way a leak is named after it: `MainActivity$2.this$0`, `Object[][x]`.
+ *
+ * By the class that *declares* the field rather than by the referrer's own class, and with an array index
+ * erased, since which slot an object sits in is no part of what makes a leak that leak.
+ *
+ * One spelling in one place because three surfaces say it and they have to agree: the row of the leaks
+ * screen, the section that names a solved leak at the top of the chain, and the `faultyReference` an agent
+ * is answered with. A leak named one way here and another way there is two leaks to whoever is reading.
+ */
+fun PathReference.leakLabel(): String = when (locationType) {
+  ReferenceLocationType.ARRAY_ENTRY -> "$ownerClassName[x]"
+  // The same words the chain pane draws for a reference from a running method, spelled again here rather
+  // than shared with it: what a leak is named after has to read the way the chain reads, and that is a
+  // string rather than a module's API.
+  ReferenceLocationType.LOCAL -> "$ownerClassName.<local variable>"
+  ReferenceLocationType.INSTANCE_FIELD, ReferenceLocationType.STATIC_FIELD -> "$ownerClassName.$name"
+}
+
+/**
  * A reference Shark recognizes as one that leaks in code the app doesn't control. See
  * [PathReference.libraryLeak].
  *

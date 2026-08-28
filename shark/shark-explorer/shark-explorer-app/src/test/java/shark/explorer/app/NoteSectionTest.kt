@@ -1,6 +1,7 @@
 package shark.explorer.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
@@ -9,17 +10,22 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilDoesNotExist
 import androidx.compose.ui.test.waitUntilExactlyOneExists
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.within
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -179,15 +185,15 @@ class NoteSectionTest {
       startNote()
       // Starred rather than the leaks or the object list, because the bar's button for those says the same
       // word as the link would: "★ 0 starred" doesn't, so this text is the note's and nothing else.
-      write("shark://$WINDOW_ID/starred")
+      write("shark://$LINKED_HEAP_DUMP/starred")
       save()
       waitUntilAtLeastOneExists(hasText(Place.STARRED_LABEL), RENDER_TIMEOUT_MILLIS)
 
       onNodeWithText(Place.STARRED_LABEL).performClick()
 
-      // Handed to whatever routes links rather than opened here: a link names one window of one run, and
-      // which window that is, is not a question this one can answer. See [DeepLinkPeers.follow].
-      assertThat(followed).containsExactly(DeepLink(WINDOW_ID, Place.Starred))
+      // Handed to whatever routes links rather than opened here: a link names a heap dump, and where that
+      // heap dump is open is not a question one window can answer. See [DeepLinkPeers.follow].
+      assertThat(followed).containsExactly(DeepLink(LINKED_HEAP_DUMP, Place.Starred))
     }
   }
 
@@ -220,6 +226,36 @@ class NoteSectionTest {
       onNode(hasText(EDIT_NOTE_BUTTON) and isButton()).performClick()
 
       noteEditor().assertTextContains("Held by com.example.Holder")
+    }
+  }
+
+  @Test fun `dragging the bottom edge makes the note taller`() {
+    explorerUiTest {
+      openHeapDump()
+      startNote()
+      val before = noteEditorHeight()
+
+      dragTheNoteEdge(by = DRAG_PIXELS)
+
+      // How much of the window a note is worth is the reading of it against the reading of the heap dump,
+      // which is a judgement that changes with the note — hence an edge rather than a number in the code.
+      assertThat(noteEditorHeight()).isCloseTo(before + DRAG_PIXELS, within(SLOP_PIXELS))
+    }
+  }
+
+  @Test fun `a note is never dragged so tall that its own edge leaves the window`() {
+    // A short window, because that is the shape this is about: a note is dragged tall on a big screen and
+    // then the window is made small, which is one laptop lid away.
+    explorerUiTest(height = SHORT_WINDOW) {
+      openHeapDump()
+      startNote()
+
+      dragTheNoteEdge(by = SHORT_WINDOW.value)
+
+      // The edge is the only way back, so a drag that put it past the bottom of the window would leave the
+      // note as tall as it was dragged until the window itself is made bigger.
+      onNodeWithContentDescription(RESIZE_NOTE_HINT).assertIsDisplayed()
+      assertThat(noteEditorHeight()).isLessThan(SHORT_WINDOW.value)
     }
   }
 
@@ -322,7 +358,6 @@ class NoteSectionTest {
       MaterialTheme {
         ExplorerApp(
           heapDumpFile = heapDumpFile,
-          deepLinkId = WINDOW_ID,
           // A directory of this test's, never `~/.shark-explorer`: a test that saved into the real one
           // would write into the notes of whoever is running it.
           notes = ExplorerNotes(notesRoot),
@@ -369,6 +404,26 @@ class NoteSectionTest {
   private fun ComposeUiTest.noteEditor(): SemanticsNodeInteraction =
     onNodeWithContentDescription(NOTE_EDITOR_DESCRIPTION)
 
+  /**
+   * How tall the note is, measured on the box being typed in.
+   *
+   * The section itself is no node — it is a `Surface` around whichever of the two states it is in — and the
+   * box is the state whose height is the whole of what the edge sets, since a written note takes what it
+   * needs up to that.
+   */
+  private fun ComposeUiTest.noteEditorHeight(): Float = noteEditor().getBoundsInRoot().height.value
+
+  /** Drags the note's bottom edge down by [by] pixels, which is what makes it taller. */
+  private fun ComposeUiTest.dragTheNoteEdge(by: Float) {
+    onNodeWithContentDescription(RESIZE_NOTE_HINT).performMouseInput {
+      moveTo(center)
+      press()
+      moveBy(Offset(x = 0f, y = by))
+      release()
+    }
+    waitForIdle()
+  }
+
   /** Where the note about the tab a window opens on is kept. */
   private fun noteFile(
     notesRoot: File,
@@ -396,6 +451,15 @@ class NoteSectionTest {
   }
 
   companion object {
+    /** Far enough to be a drag rather than a click, and short of what the window has room for. */
+    private const val DRAG_PIXELS = 120f
+
+    /** What a drag loses to the slop that tells it from a click, which is a pixel or two of the first move. */
+    private const val SLOP_PIXELS = 8f
+
+    /** Shorter than a note can be dragged to, which is what makes the share of the window the only limit. */
+    private val SHORT_WINDOW = 420.dp
+
     private const val PAYLOAD_LENGTH = 100
 
     private const val HOLDER_ID = 0x82182c00L
@@ -409,8 +473,8 @@ class NoteSectionTest {
     /** Saving is a file written, on another thread. */
     private const val SAVE_TIMEOUT_MILLIS = 10_000L
 
-    /** What a link here names this window by, fixed so that a link can be spelled out in a test. */
-    private const val WINDOW_ID = "abcd2345"
+    /** The heap dump a link written in a note names, which is not the one this window has open. */
+    private const val LINKED_HEAP_DUMP = "another.hprof"
 
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }
   }

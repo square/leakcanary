@@ -13,7 +13,9 @@ reading the source alone — everything else is in the code. Keep it that way.
 | --- | --- | --- |
 | `shark-explorer-core` | Heap dump → dominator tree → layout model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
 | `shark-explorer-jdwp` | Attaches to a live app as a debugger to read the pixels of its bitmaps. | **Imports `com.sun.jdi`, so it needs a JDK and can't be loaded on Android.** That's the whole reason it isn't in `core`. |
+| `shark-explorer-agent` | The MCP server a window answers agents through, the `--mcp-stdio` pipe and the `--agent` command line that reach it, and `--no-ui` for a run with no window at all. | **No Compose, Java 8 target, and desktop only** — it calls `ProcessHandle`. Has its own `AGENTS.md`. |
 | `shark-explorer-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
+| `shark-explorer-eval` | The heap dumps an agent is measured on, and the scoring of what it did with them. Driven by `shark-explorer-agent/harness/eval/run-eval.sh`. | **The only module with `shark-hprof-test` in its main source set**, which is why it is a module: writing the scenarios is what it does, and a dump-building DSL can be no dependency of anything the app ships. Runs no model. |
 
 `shark/shark-explorer/` itself holds no code, matching how `shark/` and `leakcanary/` are grouping
 directories in this repo.
@@ -69,12 +71,21 @@ numbers on the biggest dump in the repo, including how long a chain gets there.
 
 ## A verdict set by hand is an argument to every read, never state of the tree
 
-**The window says `Verdict`, `Stuck`, `Expected` and "faulty reference"; the code says `LeakStatus`,
-`LEAKING`, `NOT_LEAKING` and `suspectPath`.** That's deliberate — the identifiers match
-`shark.LeakTraceObject.LeakingStatus` because they have to agree with Shark, and the words on screen
-deliberately avoid "leak" on an object, since a leak is one faulty reference and calling everything under it
-leaking points readers at the wrong thing. `LeakStatus.statusText` is the only place the two meet, so change
-a word there and nowhere else. `notes/decisions.md` has why each word won.
+**`STUCK`, `EXPECTED` and `UNKNOWN` are the only words for this, everywhere** — the enum, the window, the
+`leak-statuses` files and the agent surface. Shark's `LEAKING`/`NOT_LEAKING` stops at the door: a person
+watching an agent work has to be able to say the same thing about the same object as the agent, and a
+vocabulary that changes at the edge of the process is one nobody can check across it. So don't reintroduce
+either word, in an enum, a JSON value or a message — `LeakFingerprint` is the single place that maps to
+`shark.LeakTraceObject.LeakingStatus`, and only because a fingerprint has to be the string LeakCanary
+computes. `LeakStatus.statusText` is the case-only difference between the constant and a sentence.
+
+None of the three is built on "leak" for a reason worth keeping: a leak is one faulty reference, and calling
+everything under it leaking points readers at the wrong thing. The code still says `suspectPath` where Shark
+does. `notes/decisions.md` has why each word won.
+
+**An older `leak-statuses` file will have Shark's words in it** and its rows are skipped with a line in the
+log saying which, since `LeakStatusFile` matches a status by name. That is the intended cost of having one
+vocabulary; this app is an alpha and the files are three columns of text anybody can fix with `sed`.
 
 **Which reference the leak is, is decided once, over the whole path** — `faultyReferenceIndexOrNull`, called
 from `withLeakStatuses` — and carried on `PathReference.isFaulty` for the drawing to read. Working it out in
@@ -88,6 +99,15 @@ fingerprint — so it is tempting to mark the top of it, which is what the first
 `notes/decisions.md` records as wrong: a chain whose objects all have no verdict got its top reference marked
 for being where the walk started. A longer stretch is a fault at one of several steps with nothing saying
 which, and nothing drawn is the answer for that.
+
+**And it is named in one place, `PathReference.leakLabel()`.** Four surfaces say which reference a leak is —
+the row of the leaks screen, the `Leak solved` section above the chain, the `faultyReference` an agent is
+answered with, and the note `conclude` writes — and a leak named `Holder.activity` by one of them and
+`Holder#activity` by another is two leaks to whoever is reading, or grepping. `Owner.field` is not the whole
+of it either: an array entry loses its index (`Object[][x]`, since which slot a leak was in is no part of
+what it is) and a reference from a running method has no name of its own. `RootPath.faultyReference()` is the
+matching single answer to "does this chain name one?", which is what both the window's section and the agent's
+field are.
 
 Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
 are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
@@ -217,18 +237,32 @@ cp -R "shark/shark-explorer/shark-explorer-app/build/compose/binaries/main/app/S
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
   -f ~/Applications/"Shark Explorer.app"
 open -a ~/Applications/"Shark Explorer.app" --args --title="Links" path/to/dump.hprof
-grep "Windows of this run" ~/.shark-explorer/logs/$(ls -t ~/.shark-explorer/logs | head -1)
-open "shark://<the id that printed>/leaks"
+open "shark://dump.hprof/leaks"
 ```
+
+A link names the heap dump and nothing else, so that is the whole recipe — no id to read out of the log
+first, and the same line works after the run that opened the dump has ended, which is the case worth trying.
+
+**A link says no path, so a dump this machine has never opened is a question rather than a jump.** Where each
+dump was is written down under `~/.shark-explorer/heap-dump-paths`, one file per heap dump opened, and the
+`HeapDumpPaths` lookup is what turns a file name back into a file. A link about a name nothing there has, or
+one whose record has been evicted, opens a window asking for the file — and a name two records share asks
+which of them. Both are dialogs waiting on somebody, so a link that "did nothing" is worth a look at the
+screen: `ls ~/.shark-explorer/heap-dump-paths` says which of the two it will be, and `&dump=<path>` skips the
+question for a dump nothing here has opened.
 
 **Read the result in the log rather than off the screen.** Following a link raises the app over whatever
 the person at the machine was doing, so a screenshot to check it worked costs them their window and shows
-you theirs. `The OS handed this run`, `A link asked window <id> for <place>` and `A link asked this window
-for <place>` are the three lines that say a link was delivered, routed and opened as a tab.
+you theirs. `The OS handed this run`, `A link asked window <id> for <place> of <file>`, `A link asked for
+<place> of <file>, which is not open yet`, `A link to <place> of <file> is asking: <question>` and `A link
+asked this window for <place>` are the lines that say a link was delivered, routed, asked about and opened
+as a tab.
 
 A run from source is still *reachable*: every run publishes a loopback port under `~/.shark-explorer/runs`,
-and the installed app hands on any link naming a window it doesn't have. That is what makes a link to a
-`./gradlew run` window work — the installed app is the courier, so there has to be one.
+and the installed app hands on any link it has no window for. That is what makes a link to a
+`./gradlew run` window work — the installed app is the courier, so there has to be one. It claims a link
+only for a heap dump it *already has open*, never for a file it could open, or every run would claim every
+link.
 
 **Deliberately not single instance.** Several explorers open at once is how this app is used, so a run
 holding a link asks each of the others in turn rather than the second run handing its command line to the
@@ -305,6 +339,21 @@ time. So the run task passes no name and an IDE run configuration needs none eit
 bundle, because jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
 bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it until
 something names it.
+
+**And a bundle has three names, from three different places**, which is why one of them being right is no
+evidence about the others. Measured on a copy of the packaged app renamed and re-plisted a key at a time:
+
+| What a person sees | Where it comes from |
+| --- | --- |
+| The dock tile | The **file name** of the `.app`, and nothing else — see the next section. |
+| The menu bar next to the Apple logo | `CFBundleDisplayName`, else `CFBundleName`. |
+| `lsappinfo`, the app switcher | `CFBundleExecutable` — so it says `Shark_Explorer` for a renamed copy whose other two say the title. |
+
+So a packaged app can be renamed for a person to navigate by without being rebuilt: `cp -Rc` the app image
+(a clone, 80 ms and no disk on APFS), rename the `.app`, set those two plist keys.
+`shark-explorer-agent/harness/start-harness.sh` does exactly that, and **copies out of `build/compose`
+first** — another Compose task deletes that app image, and a window whose bundle was deleted under it dies
+the way a window launched from source does.
 
 ## The dock only reads a bundle's file name, so `runNamed` gives it one
 
@@ -523,6 +572,9 @@ numbers belong in `notes/bitmaps.md`.
   default keeps notes in `~/.shark-explorer/notes`, so a test taking it writes into the notes of whoever is
   running it. A window that never opens one only lists that directory to see which tabs to mark, which is
   why the tests that don't touch notes need no directory of their own.
+- **A UI test that opens the *Agent logs* screen must pass its own `agentSessions`.** The default reads
+  `~/.shark-explorer/agents/sessions`, so a test taking it draws whatever the person running it last handed
+  to an agent — and asserts on rows it didn't write. `AgentLogsScreenTest` builds the sessions it expects.
 - **A UI test must pass a `DeviceHeapDumps` built on a fake `Adb`.** `ExplorerApp`'s default shells out to
   the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for — and the
   window can dump the heap of a real process. `FakeAdb` matches command prefixes, because the remote dump
@@ -546,6 +598,10 @@ Design decisions and findings, kept current as the work proceeds:
   the ones that don't are fetched off the device
 - `notes/dependency-injection.md` — what Dagger and Metro leave in a heap dump, why the owner rule is
   about the provider rather than the component, and how to dump really generated code
+- `notes/agent-surface.md` — what the MCP surface costs a client in tokens, measured, and why a CLI and a
+  skill are adapters over the same registry rather than second implementations
+- `notes/agent-eval.md` — how well an agent solves a leak, scored with no model doing the scoring: the answer
+  keys, the three ways a run gets handed its own answer, and the baseline to beat
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

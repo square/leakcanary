@@ -74,28 +74,34 @@ internal object DeepLinkPeers {
   }
 
   /**
-   * Follows [link] in this run, or in whichever other run has the window it names.
+   * Follows [link] in this run, or in whichever other run has a window of the heap dump it names.
    *
    * Which is what a run handed a link by the OS does with it, and the macOS half of the reason this exists
    * at all: there, one installed app is handed every `shark://` link on the machine, including the ones
-   * naming a window of a run from source that the OS knows nothing about.
+   * about a heap dump open in a run from source that the OS knows nothing about.
+   *
+   * **A run claims a link only for a window it already has**, never for a heap dump it could open, or every
+   * run on the machine would claim every link. Whoever is left with it opens the dump — see
+   * [ExplorerWindows.open] — so a link with nobody to take it lands in the run the OS chose, which is the
+   * installed app.
    *
    * Asking the others is a connection each, so it happens off the caller's thread — a link arrives on the
-   * event thread there, and a run that has been killed is only found out about by waiting for it.
+   * event thread there, and a run that has been killed is only found out about by waiting for it. A window of
+   * this run is answered before any of that, on the thread the link came in on: it takes no disk and no
+   * socket to see that a link is about a heap dump on screen here.
    */
   fun follow(
     link: DeepLink,
     windows: ExplorerWindows
   ) {
-    if (windows.holds(link.windowId)) {
+    if (windows.windowsFor(link).isNotEmpty()) {
       windows.open(link)
       return
     }
     Thread({
-      // Nobody else's, so this run answers for it, which is an empty window saying the window has gone.
-      if (deliver(listOf(link)).isNotEmpty()) {
-        windows.open(link)
-      }
+      // Nobody else's, so this run answers for it, which is opening that heap dump here — or asking where it
+      // is, since a link says the dump's name and not where it is. See [ExplorerWindows.open].
+      deliver(listOf(link)).forEach { windows.open(it) }
     }, THREAD_NAME).apply {
       isDaemon = true
       start()
@@ -103,11 +109,15 @@ internal object DeepLinkPeers {
   }
 
   /**
-   * Hands each of [links] to whichever other run has the window it names, and returns the ones nobody
-   * claimed.
+   * Hands each of [links] to whichever other run has a window of the heap dump it names, and returns the
+   * ones nobody claimed.
    *
-   * The leftovers are the caller's to answer for, which is what makes a link to a window that has gone an
-   * empty window saying so rather than a process that started and exited without a word.
+   * The leftovers are the caller's to answer for, which is what makes a link whose window has gone a window
+   * of that heap dump here rather than a process that started and exited without a word.
+   *
+   * The link goes out exactly as it arrived: what a run does about a heap dump it has no window for is that
+   * run's own business — open it, or ask which one, or ask where it is — and every one of those answers
+   * belongs to whoever ends up with the link rather than to whoever passed it on. See [ExplorerWindows.open].
    */
   fun deliver(links: List<DeepLink>): List<DeepLink> {
     if (links.isEmpty()) {
@@ -163,8 +173,8 @@ internal object DeepLinkPeers {
   }
 
   /**
-   * One line in, one line out, per connection: the token and the link, answered with whether the window
-   * this link names belongs to this run.
+   * One line in, one line out, per connection: the token and the link, answered with whether a window of the
+   * heap dump this link names belongs to this run.
    */
   private fun accept(
     serverSocket: ServerSocket,
@@ -217,7 +227,7 @@ internal object DeepLinkPeers {
     }
     // Answered before the window is asked to go anywhere, because the run on the other end is waiting to
     // find out whether to keep looking, and going somewhere is a frame away rather than a read away.
-    if (windows.holds(link.windowId)) {
+    if (windows.windowsFor(link).isNotEmpty()) {
       writer.println(ACCEPTED)
       windows.open(link)
     } else {

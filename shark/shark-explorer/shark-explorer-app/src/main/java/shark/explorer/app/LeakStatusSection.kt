@@ -398,9 +398,9 @@ internal class ObjectLeakStatus(
 /** A mark beside the words, so that which status this is doesn't rest on the colour alone. */
 private val LeakStatus.glyph: String
   get() = when (this) {
-    LeakStatus.NOT_LEAKING -> "✓"
+    LeakStatus.EXPECTED -> "✓"
     LeakStatus.UNKNOWN -> "?"
-    LeakStatus.LEAKING -> "✗"
+    LeakStatus.STUCK -> "✗"
   }
 
 /**

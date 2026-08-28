@@ -19,10 +19,10 @@ class LeakStatusFileTest {
   @Test fun `what was set is read back`() {
     val file = statusFile("heap.hprof")
 
-    file.write(LeakStatusOverrides.of(listOf(override(HOLDER_ID, LeakStatus.LEAKING, "the screen is gone"))))
+    file.write(LeakStatusOverrides.of(listOf(override(HOLDER_ID, LeakStatus.STUCK, "the screen is gone"))))
 
     val read = file.read()[HOLDER_ID]!!
-    assertThat(read.status).isEqualTo(LeakStatus.LEAKING)
+    assertThat(read.status).isEqualTo(LeakStatus.STUCK)
     assertThat(read.reason).isEqualTo("the screen is gone")
   }
 
@@ -103,7 +103,7 @@ class LeakStatusFileTest {
 
   @Test fun `a status with no reason is not a status`() {
     assertThatIllegalArgumentException().isThrownBy {
-      LeakStatusOverride(objectId = HOLDER_ID, status = LeakStatus.LEAKING, reason = "  ")
+      LeakStatusOverride(objectId = HOLDER_ID, status = LeakStatus.STUCK, reason = "  ")
     }.withMessageContaining("no reason")
   }
 
@@ -119,7 +119,7 @@ class LeakStatusFileTest {
 
   private fun override(
     objectId: Long,
-    status: LeakStatus = LeakStatus.LEAKING,
+    status: LeakStatus = LeakStatus.STUCK,
     reason: String = "because I read the code"
   ) = LeakStatusOverride(objectId = objectId, status = status, reason = reason)
 

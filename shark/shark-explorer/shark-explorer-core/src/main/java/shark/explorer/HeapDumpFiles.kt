@@ -33,15 +33,15 @@ internal fun heapDumpFileKey(heapDumpFile: File): String {
 }
 
 /**
- * One spelling of a heap dump's path, so that two ways of naming one file are one set of notes and one set
- * of statuses.
+ * One spelling of a heap dump's path, so that two ways of naming one file are one set of notes, one set of
+ * statuses, and one dump for a [DeepLink] to be about.
  *
  * Absolute, since what is written about a dump outlives the working directory the app was started in, and
  * with the `.` and `..` steps taken out, since `./heap.hprof` and `heap.hprof` are what the same dump gets
  * called on a command line. Not the canonical path: that resolves symlinks, which means asking the
  * filesystem and getting a different answer once the dump has been deleted.
  */
-private fun normalizedHeapDumpPath(heapDumpFile: File): File = heapDumpFile.absoluteFile.normalize()
+internal fun normalizedHeapDumpPath(heapDumpFile: File): File = heapDumpFile.absoluteFile.normalize()
 
 /**
  * Puts [text] in [file], through a file of its own and a rename, so that a run killed halfway through a
@@ -69,5 +69,11 @@ internal fun writeWholeFile(
   Files.move(partial.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING)
 }
 
-/** A save in flight, which is never a file anything reads. */
-private const val PARTIAL_SUFFIX = ".partial"
+/**
+ * A save in flight, which is never a file anything reads.
+ *
+ * Named here rather than hidden in [writeWholeFile] because a directory these are written into is also a
+ * directory something lists — and one that took a save in flight for a file of its own would delete it out
+ * from under the run writing it. See [HeapDumpPaths].
+ */
+internal const val PARTIAL_SUFFIX = ".partial"

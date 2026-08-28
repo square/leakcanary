@@ -2,6 +2,7 @@ package shark.explorer
 
 import java.io.Closeable
 import java.io.File
+import java.io.FileNotFoundException
 import java.util.concurrent.TimeUnit.NANOSECONDS
 import shark.AndroidObjectSizeCalculator
 import shark.CancelSignal
@@ -55,6 +56,13 @@ class HeapExplorer private constructor(
       onProgress: (String) -> Unit = {},
       cancelSignal: CancelSignal = CancelSignal.NEVER
     ): HeapExplorer {
+      // Said here rather than left to the parser, which reports the path exactly as it was given. A relative
+      // path resolves against the working directory, and a run the OS launched from a link or from `open` has
+      // `/` for that, so the absolute path is the only part of the message that says which file was looked
+      // for — and `0 B` below would be the size of a file that isn't there.
+      if (!heapDumpFile.isFile) {
+        throw FileNotFoundException("There is no file at ${heapDumpFile.absolutePath}")
+      }
       SharkLog.d { "Opening heap dump $heapDumpFile, ${formatByteSize(heapDumpFile.length())}" }
       val startNanos = System.nanoTime()
       val steps = OpenSteps(onProgress)

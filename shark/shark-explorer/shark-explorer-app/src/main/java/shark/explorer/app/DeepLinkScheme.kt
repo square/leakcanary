@@ -83,7 +83,7 @@ internal object DeepLinkScheme {
    * starts to deliver one.
    */
   fun registerWithTheOs() {
-    val launcher = launcherPath()
+    val launcher = launcherPathOrNull()
     if (launcher == null) {
       SharkLog.d {
         "Not registering ${DeepLink.SCHEME}:// with the OS: this run is a JVM on a classpath rather than " +
@@ -106,18 +106,6 @@ internal object DeepLinkScheme {
       isDaemon = true
       start()
     }
-  }
-
-  /**
-   * The executable a link should be started with, or null when this run is not one.
-   *
-   * A packaged build is a launcher jpackage generated; everything else is `java`, and registering that
-   * would tell the OS to open links with a JVM and no classpath.
-   */
-  private fun launcherPath(): String? {
-    val command = ProcessHandle.current().info().command().orElse(null) ?: return null
-    val name = File(command).name
-    return if (name in JVM_EXECUTABLES) null else command
   }
 
   private fun registerOnWindows(launcher: String) {
@@ -182,9 +170,6 @@ internal object DeepLinkScheme {
   private fun isLinux(): Boolean = osName().startsWith("linux")
 
   private fun osName(): String = System.getProperty("os.name").orEmpty().lowercase()
-
-  /** A run launched as one of these is a classpath rather than an app, whatever bundle it came out of. */
-  private val JVM_EXECUTABLES = setOf("java", "java.exe", "javaw.exe")
 
   private val SCHEME_KEY = "HKCU\\Software\\Classes\\${DeepLink.SCHEME}"
   private val COMMAND_KEY = "$SCHEME_KEY\\shell\\open\\command"

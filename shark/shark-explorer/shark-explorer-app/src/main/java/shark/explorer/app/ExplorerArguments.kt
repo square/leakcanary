@@ -73,11 +73,17 @@ internal data class ExplorerArguments(
       )
     }
 
-    private const val TITLE_OPTION = "--title"
-
     /** Shown with whatever was wrong, so that the message says what to type instead. */
     private val USAGE =
       "Usage: shark-explorer [$TITLE_OPTION=\"<window title prefix>\"] [<heap dump>…] " +
         "[${DeepLink.SCHEME}://<window>/<place>…]"
   }
 }
+
+/**
+ * What the command line says to put in front of every window title of this run.
+ *
+ * Outside the parser because it is also written: a run that opens a window for an agent passes one, so that a
+ * window nobody typed a command line for still has a name to be found by in the window list.
+ */
+internal const val TITLE_OPTION = "--title"

@@ -62,8 +62,12 @@ complexity:
     active: false
     ignoredLabels: ""
   LargeClass:
+    #LeakCanary - excluded tests, and increased from 600 to 700: a test class is as long as the story it
+    # walks, which is why TooManyFunctions already excludes them, and shark-explorer-agent's AgentTools is a
+    # registry whose length is tool descriptions rather than behaviour.
     active: true
-    threshold: 600
+    excludes: "**/test/**,**/androidTest/**,**/*.Test.kt,**/*.Spec.kt,**/*.Spek.kt"
+    threshold: 700
   # Leave me alone!
   # LongMethod:
   #   #LeakCanary - increased from 60 to 90

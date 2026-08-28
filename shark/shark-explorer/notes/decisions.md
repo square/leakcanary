@@ -814,10 +814,10 @@ recognise stays exactly as typed: a class this dump has never heard of is a clas
 - **An address is two `Long`s.** A 32 bit dump's ids are four bytes widened by sign, so `0x82182c00` is
   either that or the negative id `hexObjectId` prints as `0x82182c00`, and only the dump says which.
 - **A `shark://` link keeps its link and gains a name.** Resolving a mention never replaces a link that is
-  already there, so a link to an object reads as that object and still leads to the window it names —
-  followed exactly the way one arriving from the OS is, which is what makes the same link work in a note, a
-  chat message and an issue. A note outlives the window, so most of them are dead links a run later: that is
-  the honest answer, and it is the same empty window a stale link opens anywhere else.
+  already there, so a link to an object reads as that object and still leads where it names — followed
+  exactly the way one arriving from the OS is, which is what makes the same link work in a note, a chat
+  message and an issue. A note outlives the run it was written in, which is why a link names the heap dump
+  and not the window: see below.
 - **Inline code is still read for mentions, a fenced block is not.** `` `com.example.Thing` `` is how anyone
   who writes markdown writes a class name; a fenced block is quoted rather than written.
 - **One line is one block.** No two-space line endings, no blank line above a list. A note is written in
@@ -846,6 +846,53 @@ directory it was in, since two runs of one app produce two `heap.hprof`s and the
 inside it, a file per `noteKey` rather than one document with a section per place, so that a save touches only
 the note that was typed into, nothing has to be parsed back out of a document that also holds somebody's own
 headings, and the listing is the index.
+
+## A link names the heap dump and nothing else
+
+`shark://<file name>/<place>?<what the place needs>`. Two things were tried in front of that and both were
+taken back out. The first version named the window — `shark://<window id>/<place>` — and it was wrong for the
+reason a link exists: every place there is belongs to the heap dump, not to whatever is showing it, so a link
+that named a window died with the window. Which is most links a day later, and most links in an agent's
+session log, since a session outlives the run that wrote it. A link that mostly doesn't work is a link nobody
+sends. The second carried the dump's path and then, briefly, the window as a refinement — `…/leaks?window=…`
+— and both were paid for on every link that didn't need them, which is nearly all of them.
+
+**Heap dump names are unique in practice**, which is what makes a name enough: a dump this app takes is
+`<process>-<pid>-<random>.hprof` and LeakCanary's are `yyyy-MM-dd_HH-mm-ss_SSS.hprof`. So the cases a name
+can't settle are rare enough to *ask* about, and asking is better than a link that carries an answer to a
+question nobody had.
+
+- **The authority is the file name**, because it is the part a person reads and types, it is what the window's
+  title shows, and it is in every answer an agent has already been given.
+- **Where the file is doesn't travel in the link.** `dump=%2FUsers%2F…` was four fifths of the characters of a
+  link and the fifth nobody could read. So `HeapDumpPaths` writes down the path of every dump that opens, the
+  newest 200 kept, and following a link is a lookup. What that costs is honest and small: a link works for as
+  long as this machine remembers the file rather than for as long as the file exists, and a link about a dump
+  that has been forgotten asks for the file — or can be given `&dump=<path>` by hand, which is also the answer
+  for a dump this machine has never opened.
+- **One record per heap dump**, named `heapDumpFileKey` — the `<name>-<hash of parent>` the notes and statuses
+  are filed under — with the path inside it. The key is one-way, so the file name of the record can name a
+  dump but never find one; the path it holds is what makes the lookup work. A file each rather than one file
+  of all of them, because several runs open dumps at once and none of them coordinates: a whole-file write and
+  a rename cannot be read as half of one.
+- **Four outcomes, and the first is nearly always the one.** A window of this run has that dump: that window.
+  None has, but the machine has had it open: the file opens. Two dumps of that name: ask which, by path. Name
+  unknown here: ask for the file. `ExplorerWindows.open`.
+- **The two questions are one dialog**, because both answers are a path — the places on record as rows, and
+  the file picker under them. It is hosted in a window already showing one of the dumps in question when there
+  is one, so asking which costs no window, and in an empty window otherwise, which is where the dump picked
+  opens and which says why it is empty if the question is dismissed.
+- **Window ids stay, and stay out of links.** They are what an agent calls a window, since one heap dump open
+  in two of them is two places to be told about, and they stay random for that: a counted id repeats across
+  runs and within one as windows close, which is an id that names the wrong window rather than none.
+- **A run claims a link only for a window it already has**, never for a file it could open, or every run of
+  the app would claim every link. The link is passed on exactly as it arrived, so what to do about a dump no
+  window has — open it, ask which, ask where — belongs to whoever ends up holding it. `DeepLinkPeers`.
+- **The agent surface converged on the same choice**: the tool argument is `heapDump`, taking a file name, and
+  a window id only in the one case a name cannot answer, which is the same file open twice. `AgentTools`.
+- **What it unlocked**, and the reason to reverse the first version rather than live with it: a `--no-ui` run
+  answers `show` with a link now — it has no window and the file all the same — and every *Agent logs* row
+  about another heap dump has a link to copy, where before there was nothing to send.
 
 ## A leaking status is the heap dump's answer until a hand overrules it
 
@@ -1006,7 +1053,7 @@ who can weigh the two.
   The chain still says so wherever it does put one above the other, which is a reason reading
   `Conflicts with`.
 - **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
-  `NOT_LEAKING` propagates upwards only and `LEAKING` downwards only, so the pair that can disagree is
+  `EXPECTED` propagates upwards only and `STUCK` downwards only, so the pair that can disagree is
   always those two, and agreeing with the new status is the same as being flipped.
 - **Flipped, not taken off**, so that what somebody typed is still in the file: the solved reason says which
   status it was, what it said, and that this is why it changed.

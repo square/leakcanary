@@ -4,8 +4,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.explorer.LeakStatus.LEAKING
-import shark.explorer.LeakStatus.NOT_LEAKING
+import shark.explorer.LeakStatus.STUCK
+import shark.explorer.LeakStatus.EXPECTED
 import shark.explorer.LeakStatus.UNKNOWN
 
 /**
@@ -23,7 +23,7 @@ class HeapLeakStatusTest {
     HeapExplorer.open(dump.file).use { explorer ->
       val summary = explorer.tree.summarize(dump.activityObjectId)
 
-      assertThat(summary.leakStatus).isEqualTo(LEAKING)
+      assertThat(summary.leakStatus).isEqualTo(STUCK)
       assertThat(summary.leakStatusReason).contains("mDestroyed")
     }
   }
@@ -34,10 +34,10 @@ class HeapLeakStatusTest {
     HeapExplorer.open(dump.file).use { explorer ->
       val summary = explorer.tree.summarize(
         objectId = dump.activityObjectId,
-        overrides = overrides(dump.activityObjectId, NOT_LEAKING, "kept for one more frame on purpose")
+        overrides = overrides(dump.activityObjectId, EXPECTED, "kept for one more frame on purpose")
       )
 
-      assertThat(summary.leakStatus).isEqualTo(NOT_LEAKING)
+      assertThat(summary.leakStatus).isEqualTo(EXPECTED)
       // What the inspector said is kept as the record of what the hand overruled.
       assertThat(summary.leakStatusReason)
         .isEqualTo("set by hand — kept for one more frame on purpose. Conflicts with Activity#mDestroyed is true")
@@ -51,10 +51,10 @@ class HeapLeakStatusTest {
     HeapExplorer.open(dump.file).use { explorer ->
       val summary = explorer.tree.summarize(
         objectId = dump.windowObjectId,
-        overrides = overrides(dump.activityObjectId, NOT_LEAKING, "kept for one more frame on purpose")
+        overrides = overrides(dump.activityObjectId, EXPECTED, "kept for one more frame on purpose")
       )
 
-      assertThat(summary.leakStatus).isEqualTo(LEAKING)
+      assertThat(summary.leakStatus).isEqualTo(STUCK)
     }
   }
 
@@ -64,14 +64,14 @@ class HeapLeakStatusTest {
     HeapExplorer.open(dump.file).use { explorer ->
       val path = explorer.tree.rootPathTo(
         objectId = dump.windowObjectId,
-        overrides = overrides(dump.activityObjectId, NOT_LEAKING, "kept for one more frame on purpose")
+        overrides = overrides(dump.activityObjectId, EXPECTED, "kept for one more frame on purpose")
       )
 
       val activity = path.steps.single { it.step.objectId == dump.activityObjectId }.step
-      assertThat(activity.leakStatus).isEqualTo(NOT_LEAKING)
+      assertThat(activity.leakStatus).isEqualTo(EXPECTED)
       assertThat(activity.leakStatusReason).contains(SET_BY_HAND)
       // And what a chain reads off it: the object above the activity is holding something still needed.
-      assertThat(path.steps.first().step.leakStatus).isEqualTo(NOT_LEAKING)
+      assertThat(path.steps.first().step.leakStatus).isEqualTo(EXPECTED)
     }
   }
 
@@ -84,7 +84,7 @@ class HeapLeakStatusTest {
       // The holder above the destroyed activity is where the leak starts, so it is left unknown.
       assertThat(plain.steps.first().step.leakStatus).isEqualTo(UNKNOWN)
       assertThat(plain.steps.single { it.step.objectId == dump.activityObjectId }.step.leakStatus)
-        .isEqualTo(LEAKING)
+        .isEqualTo(STUCK)
 
       val read = explorer.tree.rootPathTo(
         objectId = dump.windowObjectId,
@@ -93,7 +93,7 @@ class HeapLeakStatusTest {
 
       // The window is still leaking on its own account — an inspector recognized it — so what the activity
       // no longer being leaking changes is the activity, not the object the chain leads to.
-      assertThat(read.steps.last().step.leakStatus).isEqualTo(LEAKING)
+      assertThat(read.steps.last().step.leakStatus).isEqualTo(STUCK)
       assertThat(read.steps.single { it.step.objectId == dump.activityObjectId }.step.leakStatus)
         .isEqualTo(UNKNOWN)
     }
@@ -110,16 +110,20 @@ class HeapLeakStatusTest {
       // Nothing on this chain is known to belong in memory — a holder nothing knows either way about, then
       // two destroyed objects — so the fault is at one of two steps and the chain marks neither.
       assertThat(explorer.tree.rootPathTo(dump.windowObjectId).faultyReferences()).isEmpty()
+      assertThat(explorer.tree.rootPathTo(dump.windowObjectId).faultyReference()).isNull()
 
       val path = explorer.tree.rootPathTo(
         objectId = dump.windowObjectId,
-        overrides = overrides(dump.activityObjectId, NOT_LEAKING, "kept for one more frame on purpose")
+        overrides = overrides(dump.activityObjectId, EXPECTED, "kept for one more frame on purpose")
       )
 
       // And saying the activity belongs there is what leaves one step between the two verdicts: the window
       // it is still holding is the leak, and there is now nothing else it could be. Named after the class
       // that declares the field, which is the framework's `Activity` rather than the app's subclass of it.
       assertThat(path.faultyReferences()).containsExactly("Activity.mWindow")
+      // The same reference, through the one call the window's `Leak solved` section and an agent's
+      // `faultyReference` both go through: a chain either names the leak or it doesn't.
+      assertThat(path.faultyReference()?.leakLabel()).isEqualTo("Activity.mWindow")
     }
   }
 
@@ -154,8 +158,8 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.windowObjectId, NOT_LEAKING, "this window is reused deliberately"),
-        overrides = overrides(dump.activityObjectId, LEAKING, "this screen was closed")
+        override = override(dump.windowObjectId, EXPECTED, "this window is reused deliberately"),
+        overrides = overrides(dump.activityObjectId, STUCK, "this screen was closed")
       )
 
       val conflict = conflicts.single()
@@ -163,7 +167,7 @@ class HeapLeakStatusTest {
       assertThat(conflict.objectName).contains(ACTIVITY_CLASS_NAME.substringAfterLast('.'))
       assertThat(conflict.isAbove).isTrue()
       // Solving it flips the one already set, and the reason says that this is why.
-      assertThat(conflict.solved.status).isEqualTo(NOT_LEAKING)
+      assertThat(conflict.solved.status).isEqualTo(EXPECTED)
       assertThat(conflict.solved.reason)
         .contains("below this can be \"Expected\"", "Was \"Stuck\": this screen was closed")
     }
@@ -175,14 +179,14 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.activityObjectId, LEAKING, "this screen was closed"),
-        overrides = overrides(dump.windowObjectId, NOT_LEAKING, "this window is reused deliberately")
+        override = override(dump.activityObjectId, STUCK, "this screen was closed"),
+        overrides = overrides(dump.windowObjectId, EXPECTED, "this window is reused deliberately")
       )
 
       val conflict = conflicts.single()
       assertThat(conflict.existing.objectId).isEqualTo(dump.windowObjectId)
       assertThat(conflict.isAbove).isFalse()
-      assertThat(conflict.solved.status).isEqualTo(LEAKING)
+      assertThat(conflict.solved.status).isEqualTo(STUCK)
       assertThat(conflict.solved.reason).contains("above this can be \"Stuck\"")
     }
   }
@@ -192,8 +196,8 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.windowObjectId, LEAKING, "and so is the window it holds"),
-        overrides = overrides(dump.activityObjectId, LEAKING, "this screen was closed")
+        override = override(dump.windowObjectId, STUCK, "and so is the window it holds"),
+        overrides = overrides(dump.activityObjectId, STUCK, "this screen was closed")
       )
 
       assertThat(conflicts).isEmpty()
@@ -207,8 +211,8 @@ class HeapLeakStatusTest {
       val (one, other) = explorer.tree.findLeaks().leakingObjectIds.toList()
 
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(one, NOT_LEAKING, "this screen is meant to be kept"),
-        overrides = overrides(other, LEAKING, "and that one is not")
+        override = override(one, EXPECTED, "this screen is meant to be kept"),
+        overrides = overrides(other, STUCK, "and that one is not")
       )
 
       assertThat(conflicts).isEmpty()
@@ -238,8 +242,8 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.taskObjectId, LEAKING, "this task should have been cancelled"),
-        overrides = overrides(dump.wrapperObjectId, NOT_LEAKING, "the executor is running this")
+        override = override(dump.taskObjectId, STUCK, "this task should have been cancelled"),
+        overrides = overrides(dump.wrapperObjectId, EXPECTED, "the executor is running this")
       )
 
       assertThat(conflicts).isEmpty()
@@ -252,8 +256,8 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.wrapperObjectId, NOT_LEAKING, "the executor is running this"),
-        overrides = overrides(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+        override = override(dump.wrapperObjectId, EXPECTED, "the executor is running this"),
+        overrides = overrides(dump.taskObjectId, STUCK, "this task should have been cancelled")
       )
 
       assertThat(conflicts).isEmpty()
@@ -272,8 +276,8 @@ class HeapLeakStatusTest {
         objectId = dump.activityObjectId,
         overrides = LeakStatusOverrides.of(
           listOf(
-            override(dump.wrapperObjectId, NOT_LEAKING, "the executor is running this"),
-            override(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+            override(dump.wrapperObjectId, EXPECTED, "the executor is running this"),
+            override(dump.taskObjectId, STUCK, "this task should have been cancelled")
           )
         )
       )
@@ -292,8 +296,8 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.activityObjectId, NOT_LEAKING, "this screen is coming back"),
-        overrides = overrides(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+        override = override(dump.activityObjectId, EXPECTED, "this screen is coming back"),
+        overrides = overrides(dump.taskObjectId, STUCK, "this task should have been cancelled")
       )
 
       val conflict = conflicts.single()
@@ -307,8 +311,8 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.activityObjectId, NOT_LEAKING, "changed my mind"),
-        overrides = overrides(dump.activityObjectId, LEAKING, "this screen was closed")
+        override = override(dump.activityObjectId, EXPECTED, "changed my mind"),
+        overrides = overrides(dump.activityObjectId, STUCK, "this screen was closed")
       )
 
       assertThat(conflicts).isEmpty()
@@ -321,7 +325,7 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val conflicts = explorer.tree.leakStatusConflictsWith(
-        override = override(dump.windowObjectId, LEAKING, "the window is the problem"),
+        override = override(dump.windowObjectId, STUCK, "the window is the problem"),
         overrides = overrides(dump.activityObjectId, UNKNOWN, "no idea about this activity")
       )
 
@@ -339,7 +343,7 @@ class HeapLeakStatusTest {
       assertThat(explorer.tree.findLeaks().leakingObjectIds).containsExactly(dump.activityObjectId)
 
       val leaks = explorer.tree.findLeaks(
-        overrides(holderObjectId, LEAKING, "this cache is never emptied")
+        overrides(holderObjectId, STUCK, "this cache is never emptied")
       )
 
       // The activity is now only in memory because of an object that shouldn't be there, which is the one
@@ -353,7 +357,7 @@ class HeapLeakStatusTest {
 
     HeapExplorer.open(dump.file).use { explorer ->
       val leaks = explorer.tree.findLeaks(
-        overrides(dump.activityObjectId, NOT_LEAKING, "kept for one more frame on purpose")
+        overrides(dump.activityObjectId, EXPECTED, "kept for one more frame on purpose")
       )
 
       // What the activity was holding is still a destroyed window, and nothing above it is a leak any
@@ -367,7 +371,7 @@ class HeapLeakStatusTest {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapExplorer.open(dump.file).use { explorer ->
-      explorer.tree.findLeaks(overrides(dump.activityObjectId, NOT_LEAKING, "kept on purpose"))
+      explorer.tree.findLeaks(overrides(dump.activityObjectId, EXPECTED, "kept on purpose"))
 
       assertThat(explorer.tree.findLeaks().leakingObjectIds).containsExactly(dump.activityObjectId)
     }
@@ -385,7 +389,7 @@ class HeapLeakStatusTest {
 
       val path = explorer.tree.rootPathTo(
         objectId = dump.windowObjectId,
-        overrides = overrides(dump.activityObjectId, NOT_LEAKING, "this screen is coming back")
+        overrides = overrides(dump.activityObjectId, EXPECTED, "this screen is coming back")
       )
 
       // And takes the short way through it once there is nothing to avoid, which is the chain and the
@@ -405,7 +409,7 @@ class HeapLeakStatusTest {
     HeapExplorer.open(dump.file).use { explorer ->
       val path = explorer.tree.rootPathTo(
         objectId = dump.activityObjectId,
-        overrides = overrides(dump.taskObjectId, LEAKING, "this task should have been cancelled")
+        overrides = overrides(dump.taskObjectId, STUCK, "this task should have been cancelled")
       )
 
       // The frame holding the activity is two steps from the thread where the executor's field is four, and
@@ -428,11 +432,16 @@ class HeapLeakStatusTest {
     reason: String
   ) = LeakStatusOverrides.of(listOf(override(objectId, status, reason)))
 
-  /** The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named. */
+  /**
+   * The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named.
+   *
+   * Every step rather than [RootPath.faultyReference], which stops at the first: a chain marking two of them
+   * would leave the window and the agent naming one leak each, and this is what would notice.
+   */
   private fun RootPath.faultyReferences(): List<String> =
     steps.mapNotNull { it.step.reference }
       .filter { it.isFaulty }
-      .map { "${it.ownerClassName}.${it.name}" }
+      .map { it.leakLabel() }
 
   companion object {
     /** An address no dump these tests write has an object at, since they start at 1. */

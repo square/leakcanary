@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,11 +28,15 @@ import shark.explorer.DrawnRootPath
 import shark.explorer.HEAD_INDEX
 import shark.explorer.HeapDominatorTreemap
 import shark.explorer.HeapObjectSummary
+import shark.explorer.LeakStatus
+import shark.explorer.PathReference
 import shark.explorer.RootPath
 import shark.explorer.RootPathStep
 import shark.explorer.RootPathWay
 import shark.explorer.detours
 import shark.explorer.drawnWith
+import shark.explorer.faultyReference
+import shark.explorer.leakLabel
 import shark.explorer.stepsAfter
 import shark.explorer.stepsBelow
 
@@ -117,51 +122,80 @@ internal fun RootPathPanel(
     }
   }
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
-    // A row per object, drawn only where the pane has the room for it: a chain is as long as the heap dump
-    // makes it, and the linked structures of a real one run to hundreds of steps — a pane that composed all
-    // of them would take a minute to draw a chain nobody has scrolled to yet.
-    LazyColumn(state = listState, contentPadding = PaddingValues(12.dp)) {
-      item {
-        // Where every chain starts, and the way back to the screen the window opens on.
-        Column {
-          PathRootRow(
-            nextStrength = drawn?.path?.steps?.firstOrNull()?.step?.strength
-              ?: cutTail?.firstOrNull()?.step?.strength,
+    Column {
+      drawn?.path?.faultyReference()?.let { SolvedLeak(it) }
+      // A row per object, drawn only where the pane has the room for it: a chain is as long as the heap dump
+      // makes it, and the linked structures of a real one run to hundreds of steps — a pane that composed all
+      // of them would take a minute to draw a chain nobody has scrolled to yet.
+      LazyColumn(state = listState, contentPadding = PaddingValues(12.dp)) {
+        item {
+          // Where every chain starts, and the way back to the screen the window opens on.
+          Column {
+            PathRootRow(
+              nextStrength = drawn?.path?.steps?.firstOrNull()?.step?.strength
+                ?: cutTail?.firstOrNull()?.step?.strength,
+              onOpen = onOpen,
+              onCopyLink = onCopyLink
+            )
+            Spacer(Modifier.height(BLOCK_SPACING))
+          }
+        }
+        if (drawn != null) {
+          rootPathTrace(
+            drawn = drawn,
+            stronglyReachableByteCount = stronglyReachableByteCount,
+            ways = ways,
+            chosenWays = chosenWays,
+            onChooseWay = onChooseWay,
             onOpen = onOpen,
             onCopyLink = onCopyLink
           )
-          Spacer(Modifier.height(BLOCK_SPACING))
+        } else {
+          noChainText(selection, summary, isWholeHeapDump, rootPath, hasTail = cutTail != null)?.let {
+            item { Text(it, style = MaterialTheme.typography.bodySmall) }
+          }
+        }
+        if (tail != null) {
+          hoveredTail(
+            steps = tail,
+            isCut = false,
+            stronglyReachableByteCount = stronglyReachableByteCount
+          )
+        } else if (cutTail != null) {
+          // Nothing above it on screen is what holds it, so the end of it is the object being described here.
+          hoveredTail(
+            steps = cutTail,
+            isCut = true,
+            stronglyReachableByteCount = stronglyReachableByteCount
+          )
         }
       }
-      if (drawn != null) {
-        rootPathTrace(
-          drawn = drawn,
-          stronglyReachableByteCount = stronglyReachableByteCount,
-          ways = ways,
-          chosenWays = chosenWays,
-          onChooseWay = onChooseWay,
-          onOpen = onOpen,
-          onCopyLink = onCopyLink
-        )
-      } else {
-        noChainText(selection, summary, isWholeHeapDump, rootPath, hasTail = cutTail != null)?.let {
-          item { Text(it, style = MaterialTheme.typography.bodySmall) }
-        }
-      }
-      if (tail != null) {
-        hoveredTail(
-          steps = tail,
-          isCut = false,
-          stronglyReachableByteCount = stronglyReachableByteCount
-        )
-      } else if (cutTail != null) {
-        // Nothing above it on screen is what holds it, so the end of it is the object being described here.
-        hoveredTail(
-          steps = cutTail,
-          isCut = true,
-          stronglyReachableByteCount = stronglyReachableByteCount
-        )
-      }
+    }
+  }
+}
+
+/**
+ * That the chain below is solved, and which reference solved it: two lines above everything else.
+ *
+ * The chain already marks that reference where it sits, and a reader still has to find it: a real chain is
+ * tens of steps, this pane is scrolled to the bottom of it, and the answer is somewhere in the middle. So the
+ * answer is also said where the eye starts, in the words the leaks screen names the leak with — a reader who
+ * has got this far is looking for a name to go and grep for, not for another paragraph.
+ *
+ * Above the list rather than as its first row, because the list scrolls itself to the end every time the
+ * pointer moves: a row at the top of it is a row that scrolls away.
+ */
+@Composable
+private fun SolvedLeak(faultyReference: PathReference) {
+  Hint(FAULTY_REFERENCE_HINT) {
+    Column(Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp)) {
+      Text(LEAK_SOLVED, style = MaterialTheme.typography.labelSmall, color = MUTED_TEXT)
+      Text(
+        faultyReference.leakLabel(),
+        style = MaterialTheme.typography.bodyMedium,
+        color = LeakStatus.STUCK.textColor
+      )
+      HorizontalDivider(Modifier.padding(top = 8.dp))
     }
   }
 }
@@ -317,6 +351,14 @@ private fun WaysOfDetour(
     )
   }
 }
+
+/**
+ * What the section above the chain is called, when there is a reference to name under it.
+ *
+ * Past tense, and about the leak rather than about the reader: a chain with a faulty reference on it is
+ * solved by the heap dump and the verdicts together, whoever set them and whenever.
+ */
+internal const val LEAK_SOLVED = "Leak solved"
 
 /** Shown until a rectangle has been clicked, which is what this pane draws a chain for. */
 internal const val NO_ROOT_PATH_YET = "Click a rectangle to see what holds it."

@@ -131,13 +131,13 @@ fun HeapDominatorTreemap.leakStatusConflictsWith(
     }
     // A leaking object above forces everything it holds to be leaking, so it disagrees with anything else
     // down here.
-    val holdsIt = existing.status == LeakStatus.LEAKING &&
-      override.status != LeakStatus.LEAKING &&
+    val holdsIt = existing.status == LeakStatus.STUCK &&
+      override.status != LeakStatus.STUCK &&
       isAbove(aboveObjectId = existing.objectId, belowObjectId = override.objectId)
     // And an object below that is still needed forces everything holding it to be needed too, so it
     // disagrees with anything else up here.
-    val heldByIt = existing.status == LeakStatus.NOT_LEAKING &&
-      override.status != LeakStatus.NOT_LEAKING &&
+    val heldByIt = existing.status == LeakStatus.EXPECTED &&
+      override.status != LeakStatus.EXPECTED &&
       isAbove(aboveObjectId = override.objectId, belowObjectId = existing.objectId)
     if (!holdsIt && !heldByIt) {
       return@mapNotNull null
@@ -205,8 +205,8 @@ private fun LeakStatusOverride.solvedBy(
 ): LeakStatusOverride = LeakStatusOverride(
   objectId = objectId,
   status = when (status) {
-    LeakStatus.LEAKING -> LeakStatus.NOT_LEAKING
-    LeakStatus.NOT_LEAKING -> LeakStatus.LEAKING
+    LeakStatus.STUCK -> LeakStatus.EXPECTED
+    LeakStatus.EXPECTED -> LeakStatus.STUCK
     // Nothing to flip: an object nobody claims to know about overrules nothing, so it is never one of the
     // statuses a new one has to be solved against.
     LeakStatus.UNKNOWN -> error(

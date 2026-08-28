@@ -179,8 +179,8 @@ private fun StrengthLegend(
         swatch = LEAK_COLOR,
         label = when {
           isFindingLeaks -> FINDING_LEAKS
-          leakCount != null -> "$LEAKING $leakCount"
-          else -> LEAKING
+          leakCount != null -> "$STUCK $leakCount"
+          else -> STUCK
         }
       )
     }
@@ -238,7 +238,7 @@ private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf
  * that: two spellings of one verdict, one of them over the map and the other beside it, would read as two
  * different things being shaded.
  */
-internal const val LEAKING = "Stuck"
+internal const val STUCK = "Stuck"
 
 /** And while the pass over the heap dump that finds them runs, which is what ticking it starts. */
 internal const val FINDING_LEAKS = "Stuck: looking…"

@@ -68,16 +68,58 @@ fun Place.noteKey(): String = when (this) {
     if (objectId == HeapDominatorTreemap.ROOT_OBJECT_ID) {
       HEAP_DUMP_KEY
     } else {
-      "object-${hexObjectId(objectId)}"
+      "$OBJECT_KEY_PREFIX${hexObjectId(objectId)}"
     }
-  is Place.SmallerObjects -> "smaller-objects-${hexObjectId(parentObjectId)}"
-  is Place.Objects -> "object-list"
-  is Place.Leaks -> "leaks"
-  is Place.Starred -> "starred"
+  is Place.SmallerObjects -> "$SMALLER_OBJECTS_KEY_PREFIX${hexObjectId(parentObjectId)}"
+  is Place.Objects -> OBJECT_LIST_KEY
+  is Place.Leaks -> LEAKS_KEY
+  is Place.Starred -> STARRED_KEY
+  is Place.AgentLogs -> AGENT_LOGS_KEY
+  // Per session, because a note about what one agent did is about that investigation and not about agents.
+  is Place.AgentLog -> "$AGENT_LOG_KEY_PREFIX$sessionId"
+}
+
+/**
+ * The place a [noteKey] was written for, and null for a key this version of the app doesn't know.
+ *
+ * The other way round from [noteKey] and therefore missing what a key deliberately leaves out — which filter
+ * the object list had, which leaks were unfolded — so this answers with the plain list rather than the screen
+ * somebody wrote the note from. That is the same note either way, which is the whole point of a key being
+ * what a note is about rather than how it was arranged.
+ *
+ * **For reading a directory of notes back**, which is the one thing that has a key and wants a place: a
+ * listing says which places this heap dump has been written about, and that is only worth saying if each of
+ * them is somewhere a reader can be sent. A key from a newer version of the app, or a file somebody dropped
+ * in the directory by hand, is null rather than an error.
+ *
+ * One caveat, from [hexObjectId] being the recognisable spelling rather than the exact one: a 32 bit heap
+ * dump's sign-widened address and the positive address of the same digits share a key, so they share a note,
+ * and this answers with the positive one. The note is right; the tab it opens, for that one dump, may not be.
+ */
+fun placeOfNoteKeyOrNull(key: String): Place? = when {
+  key == HEAP_DUMP_KEY -> Place.wholeHeapDump()
+  key == OBJECT_LIST_KEY -> Place.Objects()
+  key == LEAKS_KEY -> Place.Leaks()
+  key == STARRED_KEY -> Place.Starred
+  key == AGENT_LOGS_KEY -> Place.AgentLogs
+  key.startsWith(AGENT_LOG_KEY_PREFIX) -> Place.AgentLog(key.removePrefix(AGENT_LOG_KEY_PREFIX))
+  key.startsWith(OBJECT_KEY_PREFIX) ->
+    objectIdOfHex(key.removePrefix(OBJECT_KEY_PREFIX))?.let { Place.Object(it) }
+  // A pile of the objects one rectangle had no room for is drawn from the window's width, so how many
+  // objects it stands for and what they weigh are no part of the key and can't be answered here.
+  else -> null
 }
 
 /** The note about the heap dump as a whole, which is the place its first tab opens on. */
 private const val HEAP_DUMP_KEY = "heap-dump"
+
+private const val OBJECT_KEY_PREFIX = "object-"
+private const val SMALLER_OBJECTS_KEY_PREFIX = "smaller-objects-"
+private const val OBJECT_LIST_KEY = "object-list"
+private const val LEAKS_KEY = "leaks"
+private const val STARRED_KEY = "starred"
+private const val AGENT_LOGS_KEY = "agent-logs"
+private const val AGENT_LOG_KEY_PREFIX = "agent-log-"
 
 /**
  * One note: a markdown file, read and written whole.
