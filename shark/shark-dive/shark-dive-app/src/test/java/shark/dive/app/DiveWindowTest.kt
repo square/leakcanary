@@ -284,7 +284,7 @@ class DiveWindowTest {
     val asked = windows.last()
     assertThat(asked.deepLinkProblem)
       .contains(SECOND_DUMP.name)
-      .contains("no record of opening one by that name")
+      .contains("Nothing here has opened it")
       // And what to type instead, since a link from another machine can carry the path.
       .contains("&dump=/path/to/${SECOND_DUMP.name}")
     // The same sentence in the dialog that asks for the file, so the question and the reason for it are one.
@@ -307,7 +307,9 @@ class DiveWindowTest {
     val asked = windows.first().linkedHeapDump
     assertThat(windows).hasSize(2)
     assertThat(asked?.choices).containsExactly(pixel.absoluteFile, emulator.absoluteFile)
-    assertThat(asked?.question).contains("2 heap dumps called app.hprof are open")
+    // Which file is in the title and the directories are the rows, so the question is the count and
+    // whether the choice is between windows or between files on disk.
+    assertThat(asked?.question).contains("2 open")
     assertThat(windows.none { it.linkedPlaces.isNotEmpty() }).isTrue()
   }
 
@@ -325,7 +327,7 @@ class DiveWindowTest {
     val asked = windows.last()
     assertThat(asked.linkedHeapDump?.choices)
       .containsExactlyInAnyOrder(pixel.absoluteFile, emulator.absoluteFile)
-    assertThat(asked.deepLinkProblem).contains("have been opened here, and none is open now")
+    assertThat(asked.deepLinkProblem).contains("none open now")
   }
 
   @Test fun `the heap dump picked for a link is where the link goes`() {

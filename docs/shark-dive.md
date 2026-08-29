@@ -40,6 +40,15 @@ through the `adb` of your Android SDK: pick a device, then a process. Only an ap
 dumped, unless the device's whole build is debuggable (`ro.debuggable=1`, which is what a `userdebug`
 emulator image is), where every process on it can be.
 
+Dumping a heap freezes the app for a moment and pulls tens of megabytes over `adb`.
+
+**A bitmap keeps its pixels outside the Java heap from API 26**, so a heap dump carries them only when it
+was taken with `am dumpheap -b png`, which needs Android 15. On an older device the app offers to fetch
+them instead: that attaches a debugger and has the app compress every bitmap, suspended throughout —
+seconds of fixed cost, plus a fraction of a second per bitmap. It's the same offer as **Bitmaps from the
+live process**, which fetches them for a heap dump already open, as long as the process that wrote it is
+still running.
+
 Each heap dump opens in a window of its own, so two of them stay on screen side by side. Opening one takes
 a few seconds.
 

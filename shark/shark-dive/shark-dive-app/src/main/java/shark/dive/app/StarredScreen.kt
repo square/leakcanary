@@ -56,6 +56,10 @@ internal fun StarredScreen(
   }
 }
 
-/** What the list says when it has none, which is also what says the star is what fills it. */
-internal const val NOTHING_STARRED =
-  "Nothing starred. $UNSTARRED_GLYPH in the details panel puts an object here."
+/**
+ * What the list says when it has none, which is also what says the star is what fills it.
+ *
+ * The glyph and nothing about where it is: naming the panel it sits in is a second thing to find, and one
+ * that goes stale the day the star moves.
+ */
+internal const val NOTHING_STARRED = "Nothing starred. $UNSTARRED_GLYPH puts an object here."

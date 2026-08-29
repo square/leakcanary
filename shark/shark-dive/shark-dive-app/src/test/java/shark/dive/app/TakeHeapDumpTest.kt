@@ -67,11 +67,11 @@ class TakeHeapDumpTest {
       waitUntilAtLeastOneExists(hasText(OLD_DEVICE_DESCRIPTION), TIMEOUT_MILLIS)
       // Not on the device list, which says nothing about bitmaps: it is on the screen where the fetch
       // is offered, next to the checkbox it is the reason for.
-      assertThat(onAllNodesWithText("can't put", substring = true).fetchSemanticsNodes()).isEmpty()
+      assertThat(onAllNodesWithText(BITMAPS_MISSING, substring = true).fetchSemanticsNodes()).isEmpty()
       onNodeWithText(OLD_DEVICE_DESCRIPTION).performClick()
 
       // The dump is still worth taking, and it's the one thing about it worth knowing in advance.
-      waitUntilAtLeastOneExists(hasText("API 30 can't put", substring = true), TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("API 30 $BITMAPS_MISSING", substring = true), TIMEOUT_MILLIS)
     }
   }
 
@@ -292,6 +292,12 @@ class TakeHeapDumpTest {
     /** Older than `am dumpheap -b png`, which is what makes a debugger the only way to the pixels. */
     private const val OLD_SDK_INT = 30
     private const val OLD_DEVICE_DESCRIPTION = "$MODEL · API $OLD_SDK_INT · $SERIAL"
+
+    /**
+     * What such a device says about its dumps, after the API level: matched here as a fragment rather
+     * than in full, because the sentence after it is about the fetch and not about the device.
+     */
+    private const val BITMAPS_MISSING = "keeps bitmap pixels out of the dump"
 
     /** What the debugger reads out of the process: one image, for the one bitmap of the dump. */
     private val FETCHED_PIXELS = NativeBitmapPixels(

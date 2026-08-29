@@ -513,13 +513,15 @@ private val UNFOLDED_INSET = 20.dp
 /** And over the sessions of a client that connected and read nothing, which no window can be about. */
 private const val NO_HEAP_DUMP_READ = "No heap dump"
 
-private const val NO_SESSIONS =
-  "No agent has worked on this heap dump. Hand it to one by pointing its MCP client at Shark Dive, and " +
-    "everything it does lands here."
+/**
+ * Over a heap dump nothing has been handed to yet.
+ *
+ * What it is and how to point an MCP client at this window is [docs/shark-dive.md], not a paragraph on a
+ * screen somebody reached by pressing *Agent logs*: they know what an agent is by the time they are here.
+ */
+private const val NO_SESSIONS = "No agent has worked on this heap dump."
 
-private const val NOTHING_ASKED =
-  "This agent connected and asked nothing before it went away."
+private const val NOTHING_ASKED = "Connected and asked nothing."
 
-private const val NO_SUCH_SESSION =
-  "There is no session with that name. A link to one leads to the file it was written to, which is kept " +
-    "until a hundred newer sessions have pushed it out."
+/** And after a link to a session the newer ones have pushed out, which is the likeliest way to be here. */
+private const val NO_SUCH_SESSION = "No session by that name. The newest hundred are kept."

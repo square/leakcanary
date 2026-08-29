@@ -372,13 +372,13 @@ internal const val LEAK_SOLVED = "Leak solved"
 /** Shown until a rectangle has been clicked, which is what this pane draws a chain for. */
 internal const val NO_ROOT_PATH_YET = "Click a rectangle to see what holds it."
 
-internal const val NO_ROOT_PATH_FOR_A_PILE =
-  "Not one object, so there is no one chain holding it. Click it to reach the objects it stands for."
+/** And for a rectangle standing for many objects, which is held as many ways as it has objects in it. */
+internal const val NO_ROOT_PATH_FOR_A_PILE = "Not one object. Click it for the objects it stands for."
 
 /** Shown while the walk up to the GC roots is still running. */
 internal const val SEARCHING_ROOT_PATH = "Working out what holds it…"
 
-internal const val NO_ROOT_PATH = "No chain from a GC root down to this object was found."
+internal const val NO_ROOT_PATH = "No chain from a GC root reaches it."
 
 /** What the count between the arrows counts, after which of them is drawn: `2 of 3 ways from here`. */
 internal const val WAYS_FROM_HERE = "ways from here"

@@ -140,3 +140,17 @@ uses, without the one for a newly recognized library leak:
 * 🔀 The line above the map saying no object is held only through a `java.lang.ref.Reference` now says
   `Nothing here is held only weakly.`, in the words of the `Soft`, `Weak`, `Phantom` and `Finalizer` rows it
   sits under. Which class those four have in common is the page behind the `?` beside it.
+* 🔀 **An empty list says what fills it, and stops there.** `Nothing starred` used to name the panel the star
+  is in, the empty **Agent logs** screen explained what an agent is and how to point one at the window, and
+  the window with its last tab closed reassured you that the heap dump was still read. Each of those is now
+  the one line that is news — `Nothing starred. ☆ puts an object here.` — and what an agent *is* stays in
+  [the documentation](shark-dive.md), which is where somebody who doesn't know goes looking.
+* 🔀 **The dialogs say what a step costs, not how it works.** Taking a heap dump off a device, and fetching
+  the bitmap pixels a device too old for `am dumpheap -b png` leaves out of one, each used to spend a
+  paragraph on the mechanism above the list of devices: which Android version put the pixels in native
+  memory, what a debugger does to a process while it reads them, what `ro.debuggable` is. What is left is
+  what changes the click — `Freezes the app briefly. Tens of megabytes over adb.`,
+  `API 30: from a debugger, which suspends the app.` — and the mechanism moved to
+  [Open a heap dump](shark-dive.md#open-a-heap-dump), where somebody who wants it goes looking. Same for the
+  question a `shark://` link asks when this machine has two heap dumps of that name or none: the title
+  already names the file, so the question is now the count and where to look.

@@ -173,10 +173,10 @@ private fun TabView(
  * Shown where a tab would be once the last one has been closed.
  *
  * Says what to do rather than nothing at all, because a window that has gone blank reads as one that has
- * broken — and the heap dump behind it is still open, which is the thing worth not throwing away.
+ * broken. And no more than that: closing the last tab leaves the heap dump open, which is worth knowing
+ * once and is a sentence in the way of the buttons every time after.
  */
-internal const val NO_TAB_OPEN =
-  "No tab open. The buttons above open one, and the heap dump stays read while you decide."
+internal const val NO_TAB_OPEN = "No tab open. The buttons above open one."
 
 /** What closes a tab, on the tab: its own click target, so a test presses it rather than the tab. */
 internal const val CLOSE_TAB = "✕"

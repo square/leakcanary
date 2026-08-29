@@ -352,9 +352,11 @@ internal class DiveWindows(
       choices: List<File>,
       areOpen: Boolean
     ): String = if (areOpen) {
-      "${choices.size} heap dumps called ${link.heapDumpName} are open."
+      // The title asks which ${link.heapDumpName}, and the rows are the directories, so this says the one
+      // thing neither of them does: whether the choice is between windows or between files on disk.
+      "${choices.size} open."
     } else {
-      "${choices.size} heap dumps called ${link.heapDumpName} have been opened here, and none is open now."
+      "${choices.size} opened here before, none open now."
     }
 
     /**
@@ -369,13 +371,12 @@ internal class DiveWindows(
       link: DeepLink,
       gone: List<File>
     ): String = if (gone.isEmpty()) {
-      "No heap dump called ${link.heapDumpName} is open here, and this machine has no record of opening one " +
-        "by that name. Choose the file, or say where it is in the link: " +
+      // The title is `Where is <name>?`, so this is where it isn't, and the second way to answer it — the
+      // one the file picker under it can't offer, for a link about to be sent to somebody else.
+      "Nothing here has opened it. Choose the file, or say where it is in the link: " +
         "&${DeepLink.DUMP_PARAMETER}=/path/to/${link.heapDumpName}"
     } else {
-      "${link.heapDumpName} is not open, and there is no file at ${gone.joinToString(" or ")} any more. A " +
-        "link outlives the window it was copied from, but not the heap dump it is about. Choose the file if " +
-        "it has moved."
+      "Not at ${gone.joinToString(" or ")} any more."
     }
   }
 }
