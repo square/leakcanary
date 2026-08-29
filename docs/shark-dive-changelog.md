@@ -124,6 +124,12 @@ uses, without the one for a newly recognized library leak:
   verdict you set changed what something retains — and labelling them in words nothing else used. Now it and
   the object list are one table with two contents, sharing a row and a set of column headings, and what a
   starred object is, is read out of the heap dump like everything else.
+* 🔀 **One way to name an object, on every surface that names one.** A step of a chain, the card at the
+  pointer and the bar above the map said the class, the package under it and the address; a row of the object
+  list said the package, the class and the kind on one line and no address at all; a leaking object on the
+  **Leaks** screen said the class, the kind and the address and no package. Now all six are the same three
+  lines — so the object list and the starred list show an address, which is what a `shark://` link, a note
+  and an agent's answer all name an object by, and the leaks screen shows which `Handler` it is.
 * 🔀 **One word for each of an object's two sizes.** The same two numbers were `Retained` and `Shallow` in the
   details panel, `Retains 1.2 MB in 57 objects` and `88 B of its own` on the card at the pointer, and
   `Retaining …` again on a chain — three vocabularies to reconcile before two of them could be compared. Now

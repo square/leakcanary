@@ -303,7 +303,7 @@ class LeaksScreenTest {
       // Filtered down to it rather than scrolled to it: the activities of this dump retain the least of
       // anything in it, so they are the last rows of a list that is longer than the window.
       onNode(hasSetTextAction()).performTextInput(LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.'))
-      val listed = "$LEAKING_ACTIVITY_CLASS_NAME instance"
+      val listed = "${LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.')} instance"
       waitUntilAtLeastOneExists(hasText(listed), OPEN_TIMEOUT_MILLIS)
 
       onAllNodesWithText(listed)[0].performClick()

@@ -142,7 +142,7 @@ class DiveBitmapsTest {
     /** Opening a heap dump and rebuilding a tree both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
 
-    private const val BITMAP_ROW = "android.graphics.Bitmap instance"
+    private const val BITMAP_ROW = "Bitmap instance"
 
     /** What `adb devices` prints when nothing is plugged in, which is every command this test needs. */
     private val NO_DEVICE_ADB = Adb { AdbOutput(exitCode = 0, text = "List of devices attached\n") }

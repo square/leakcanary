@@ -65,7 +65,7 @@ class ObjectsScreenTest {
       listObjects()
 
       // One line per object, whatever its size, with the retained size the treemap draws its rectangle from.
-      onNodeWithText("com.example.Holder instance").assertIsDisplayed()
+      onNodeWithText("Holder instance").assertIsDisplayed()
       onNodeWithText("$PAYLOAD_LENGTH elements").assertIsDisplayed()
       // How much of the heap dump is being looked at, which is what says a search found little of it.
       onNodeWithText("objects match", substring = true).assertIsDisplayed()
@@ -80,9 +80,9 @@ class ObjectsScreenTest {
       // Part of a name rather than all of it, which is how anyone types a class they half remember.
       searchBox().performTextInput("Hold")
 
-      waitUntilExactlyOneExists(hasText("com.example.Holder instance"), OPEN_TIMEOUT_MILLIS)
+      waitUntilExactlyOneExists(hasText("Holder instance"), OPEN_TIMEOUT_MILLIS)
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
-        onAllNodesWithText("java.lang.Object[] array").fetchSemanticsNodes().isEmpty()
+        onAllNodesWithText("Object[] array").fetchSemanticsNodes().isEmpty()
       }
     }
   }
@@ -92,7 +92,7 @@ class ObjectsScreenTest {
       openHeapDump()
       listObjects()
       // The class object itself, which the list has a line of its own for.
-      onNodeWithText("com.example.Holder class").performClick()
+      onNodeWithText("Holder class").performClick()
       waitUntilAtLeastOneExists(hasText(LIST_INSTANCES), OPEN_TIMEOUT_MILLIS)
 
       onNodeWithText(LIST_INSTANCES).performClick()
@@ -102,9 +102,9 @@ class ObjectsScreenTest {
       // itself going, since listing the objects again is a read of the heap dump and the list on screen is
       // the one from before it until it comes back.
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
-        onAllNodesWithText("com.example.Holder class").fetchSemanticsNodes().isEmpty()
+        onAllNodesWithText("Holder class").fetchSemanticsNodes().isEmpty()
       }
-      onNodeWithText("com.example.Holder instance").assertIsDisplayed()
+      onNodeWithText("Holder instance").assertIsDisplayed()
       onNode(hasText(EXACT_MATCH) and isToggleable()).assertIsOn()
       kindToggle(HeapObjectKind.INSTANCE).assertIsOn()
       kindToggle(HeapObjectKind.CLASS).assertIsOff()
@@ -116,7 +116,7 @@ class ObjectsScreenTest {
       openHeapDump()
       listObjects()
 
-      onNodeWithText("java.lang.Object[] array").performClick()
+      onNodeWithText("Object[] array").performClick()
 
       // The same place clicking its rectangle would have taken you, in the tab the list was read in: the
       // map rooted at it, and the panel describing it.
@@ -133,7 +133,7 @@ class ObjectsScreenTest {
       openHeapDump()
       listObjects()
 
-      onNodeWithText("java.lang.Object[] array").performMouseInput { rightClick() }
+      onNodeWithText("Object[] array").performMouseInput { rightClick() }
       onNodeWithText(OPEN_IN_NEW_TAB).performClick()
 
       // The gesture ⌘ clicking a row already had, spelled out in words: a row of a list is a way to an
@@ -151,7 +151,7 @@ class ObjectsScreenTest {
       val heapDumpFile = openHeapDump(copyToClipboard = { copied += it })
       listObjects()
 
-      onNodeWithText("java.lang.Object[] array").performMouseInput { rightClick() }
+      onNodeWithText("Object[] array").performMouseInput { rightClick() }
       onNodeWithText(COPY_LINK).performClick()
 
       // Beside "open in a new tab" wherever that is, this row included: the two are the same thought a
@@ -187,7 +187,7 @@ class ObjectsScreenTest {
   /** Opens a tab on the list and waits for the pass over the heap dump that fills it. */
   private fun ComposeUiTest.listObjects() {
     onNode(hasText(Place.OBJECTS_LABEL) and isButton()).performClick()
-    waitUntilAtLeastOneExists(hasText("java.lang.Object[] array"), OPEN_TIMEOUT_MILLIS)
+    waitUntilAtLeastOneExists(hasText("Object[] array"), OPEN_TIMEOUT_MILLIS)
   }
 
   /** A button of the screen bar, as against the tab of the same name that clicking it opens. */

@@ -14,12 +14,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import shark.dive.ObjectListEntry
 import shark.dive.formatByteSize
@@ -86,11 +82,13 @@ internal fun ObjectRow(
     ) {
       Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(entry.strength)))
       Column(Modifier.weight(1f)) {
-        Text(
-          entry.classNameText(),
-          style = MaterialTheme.typography.bodyMedium,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
+        // The same lines the chain, the card at the pointer and the bar above the map name an object
+        // with, address included: a row of a list is asking the same question as any of those, and a
+        // reader who has an address in a note or a link has to be able to find it in a list.
+        ObjectIdentity(
+          className = entry.className,
+          typeName = entry.kind.typeName,
+          objectId = entry.objectId
         )
         entry.headline?.let { headline ->
           Text(
@@ -143,16 +141,6 @@ internal fun NoObjectRows(text: String) {
     style = MaterialTheme.typography.bodySmall,
     color = MUTED_TEXT
   )
-}
-
-/** The package greyed out, the class name in full, and which kind of thing it is. */
-private fun ObjectListEntry.classNameText() = buildAnnotatedString {
-  val packageName = className.substringBeforeLast('.', missingDelimiterValue = "")
-  if (packageName.isNotEmpty()) {
-    withStyle(SpanStyle(color = MUTED_TEXT)) { append("$packageName.") }
-  }
-  withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(className.substringAfterLast('.')) }
-  withStyle(SpanStyle(color = MUTED_TEXT)) { append(" ${kind.typeName}") }
 }
 
 private const val CLASS_COLUMN = "Class"

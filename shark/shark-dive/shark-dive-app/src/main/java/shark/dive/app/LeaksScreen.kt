@@ -25,12 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import shark.dive.HeapLeaks
 import shark.dive.LeakGroup
@@ -43,7 +40,6 @@ import shark.dive.Place
 import shark.dive.Topic
 import shark.dive.WatchedObject
 import shark.dive.formatByteSize
-import shark.dive.hexObjectId
 
 /**
  * Every leaking object of the heap dump, in two halves: the leaks to do something about, which is the app's
@@ -464,11 +460,13 @@ private fun LeakingObjectRow(
         ) {
           Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(leakingObject.strength)))
           Column(Modifier.weight(1f)) {
-            Text(
-              leakingObject.identityText(),
-              style = MaterialTheme.typography.bodySmall,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis
+            // Named the way every other surface names an object. Smaller, because a leaking object is
+            // drawn inside the leak it is an instance of, and that indent is what the size says too.
+            ObjectIdentity(
+              className = leakingObject.className,
+              typeName = leakingObject.kind.typeName,
+              objectId = leakingObject.objectId,
+              nameStyle = MaterialTheme.typography.bodySmall
             )
             leakingObject.headline?.let { headline ->
               Text(
@@ -629,14 +627,6 @@ private fun LeakGroup.nameText(): String = when (suspectPath.size) {
 /** How many objects the leak has past the one on the row above, which is what opening it shows. */
 private fun moreObjectsText(count: Int): String =
   "$count $MORE ${if (count == 1) OBJECT else OBJECTS} $LEAKING_THE_SAME_WAY"
-
-/** The class in full, then the address: the same two things every list of objects here shows. */
-private fun LeakingObject.identityText() = buildAnnotatedString {
-  withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(className.substringAfterLast('.')) }
-  withStyle(SpanStyle(color = MUTED_TEXT)) {
-    append(" ${kind.typeName} · ${hexObjectId(objectId)}")
-  }
-}
 
 /**
  * What the watcher knew: the key it logged the object under, how long before the dump it was handed over,

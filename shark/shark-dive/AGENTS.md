@@ -115,6 +115,7 @@ this way, each of which was several before:
 
 | Concept | The one place |
 | --- | --- |
+| Which object this is | `ObjectIdentity` — class, package, address, on every surface that names one |
 | How firmly an object is held | `ReachabilityStrength.label`, nine names, plus the one page behind the `?` |
 | An object's two sizes | `RETAINED`, `SHALLOW` and `retainedText` in `DetailsPanel.kt` |
 | A rectangle that isn't one object | `formatObjectCount` — a count, whichever kind of pile it is |
@@ -124,7 +125,10 @@ this way, each of which was several before:
 
 **So grep for the concept before writing a label.** A new string that names something the window already
 names is the one kind of change that passes review, passes the tests, and leaves the app harder to read
-than it was. The tests catch drift only from the other side: `onNodeWithText` failing with "found 2 nodes"
+than it was. **A composable is a second spelling as much as a string is**, and the harder one to spot: which
+object this is was drawn three ways at once — `ObjectIdentity`, and two hand-rolled `buildAnnotatedString`s
+that each read as consistent beside the list they were written next to, one of them dropping the address and
+the other the package. Reach for the entry in the table, not for text that comes out looking like it. The tests catch drift only from the other side: `onNodeWithText` failing with "found 2 nodes"
 after a rename usually means the rename worked and the assertion was pinned on a name that was never
 unique — see the testing conventions below.
 

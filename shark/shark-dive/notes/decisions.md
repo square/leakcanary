@@ -703,17 +703,26 @@ once per heap dump, behind a screen someone asked for, and is capped at the larg
 
 ## Which object it is, said the same way everywhere
 
-Three surfaces name an object in full: a step of a chain, the card at the pointer, the bar above the map. All
-three use `ObjectIdentity` — the class, then the class in full greyed under it, then its address — because
-they are all answering the same question, and a reader who has learnt to skip the grey lines on one should
-not have to learn where they are again on the next. The package on its own line is also what keeps a row from
-wrapping in a pane 300 dp wide.
+Every surface that names an object uses `ObjectIdentity` — the class, then the class in full greyed under it,
+then its address — because they are all answering the same question, and a reader who has learnt to skip the
+grey lines on one should not have to learn where they are again on the next. A step of a chain, the card at
+the pointer, the bar above the map, a row of the object list, a row of the starred list, a leaking object on
+the leaks screen. The package on its own line is also what keeps a row from wrapping in a pane 300 dp wide.
 
-**A list of objects names one on one line instead**, `ObjectRow`, because a list is read down a column and
-three lines a row would make ten objects a screenful. It is the same order — package greyed, class, kind —
-laid sideways, and it carries no address: what tells one row from the next is the headline under it, and the
-address is a right click away and on the tab a row opens. Both lists that are lists of objects are built from
-it, so the object list and the starred objects are one table with two contents.
+**The rows were the ones that got this wrong, twice, and it is worth saying how.** A list row was written as
+one line of its own — package greyed, class, kind, no address — and the leaks screen's row as another —
+class, kind, address, no package. Neither was a decision; each was written next to the list it was for, and
+each looked consistent from where it was: the two lists of objects agreed with each other, and the leaks row
+agreed with what a leak's address is copied for. What that produced was three spellings of one question,
+which is exactly what "consistency between screens" gets you when the thing to be consistent about is the
+concept. **So the rule is that a naming of an object is a call to `ObjectIdentity`, not a `buildAnnotatedString`
+that looks like one.** `nameStyle` is the only thing a surface picks — the leaks row draws smaller, being
+indented inside the leak it is an instance of.
+
+A list row is that block with the headline under it and the sizes beside it, `ObjectRow`, which both lists of
+objects are built from — so the object list and the starred objects are one table with two contents. Three
+lines a row rather than one costs a screenful about half the objects it used to hold, which is the price of
+an address being readable where a link, a note or an agent's answer put one.
 
 **Which object it is lives above the map, not in the details panel.** It is a different question from the
 rest of that panel — which object, as against what that object holds — and it is what the tab strip and the

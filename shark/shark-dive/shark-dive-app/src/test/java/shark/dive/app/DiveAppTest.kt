@@ -511,6 +511,9 @@ class DiveAppTest {
       // keep the first on screen. So the one starred is a row of the same kind every other list has, read
       // out of the heap dump again rather than remembered from the moment it was starred.
       waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      // Named the way every surface of this window names an object, address included: a row of a list is
+      // where an address written in a note or handed back by an agent has to be findable again.
+      onNodeWithText(hexObjectId(payloadObjectId)).assertIsDisplayed()
     }
   }
 
@@ -1104,7 +1107,6 @@ class DiveAppTest {
 
     /** Big enough that the row of the object list naming it is the bitmap rather than its buffer. */
     private const val BITMAP_SIDE = 64
-    private const val BITMAP_ROW = "android.graphics.Bitmap instance"
     private const val BITMAP_DUMP_MODEL = "Pixel 9"
     private const val BITMAP_DUMP_SDK_INT = 36
 
