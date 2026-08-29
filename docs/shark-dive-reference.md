@@ -19,6 +19,8 @@ sentence below.
 
 --8<-- "docs/shark-dive-reference/stuck-shading.md"
 
+--8<-- "docs/shark-dive-reference/conflicting-verdicts.md"
+
 --8<-- "docs/shark-dive-reference/weaker-references.md"
 
 --8<-- "docs/shark-dive-reference/other-ways.md"

@@ -2,20 +2,25 @@ package shark.dive.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,6 +39,7 @@ import shark.SharkLog
 import shark.dive.LeakStatus
 import shark.dive.LeakStatusConflict
 import shark.dive.LeakStatusOverride
+import shark.dive.Topic
 import shark.dive.statusText
 
 /**
@@ -123,141 +129,216 @@ internal fun LeakStatusDetail(
 }
 
 /**
+ * A verdict being set by hand: what has been picked, why, and how far the flow has got.
+ *
+ * Held by [HeapDumpDive] against the tab it was started in rather than `remember`ed by the composable that
+ * draws it, which is half of what makes this a dialog of the tab rather than of the window: switching tabs
+ * leaves it where it is, and coming back finds the reason half typed exactly as it was left. The other half
+ * is where [LeakStatusSetter] draws — inside the tab's panes, so the scrim stops at them.
+ */
+internal class SettingVerdict(
+  /**
+   * The object it is about, as it was when the pencil was pressed.
+   *
+   * Kept rather than read off the tab each time, because the tab is free to move while this is open: going
+   * to look at a verdict this one disagrees with is the whole point, and what is being set has to stay the
+   * thing that was asked about.
+   */
+  val status: ObjectLeakStatus
+) {
+  var chosen: LeakStatus by mutableStateOf(status.setByHand?.status ?: status.status)
+  var reason: String by mutableStateOf(status.setByHand?.reason.orEmpty())
+  var step: SetStep by mutableStateOf(SetStep.Choosing)
+
+  /** What has been asked for, and null while nothing has: the ask is what the reading below follows. */
+  var requested: LeakStatusOverride? by mutableStateOf(null)
+}
+
+/**
  * Sets the leaking status of one object by hand, and settles what that disagrees with.
  *
  * Two steps, and the second one only when it has to be: a status, with the reason that makes it worth
  * keeping, and then whatever else was set by hand that it cannot be true alongside. The reader decides which
  * of the two readings to keep — nothing is flipped without being shown, and nothing is written until it is.
  *
+ * **A dialog of the tab rather than of the window**, which is the whole of what it is doing by hand what an
+ * `AlertDialog` would have done for it: the scrim covers the panes and stops at them, so the screen bar and
+ * the tab strip above are still there to click. That is what the `?` on why two verdicts disagree needs —
+ * every `?` in this window opens the reference in a tab, and a tab opened behind a window wide scrim is a tab
+ * nobody can reach. Each verdict this one contradicts opens the object it is about for the same reason.
+ * Switching tabs leaves this where it is, because [SettingVerdict] belongs to the tab and not to this
+ * composable, so coming back finds the reason half typed exactly as it was left.
+ *
  * Finding the disagreements is a walk up the heap dump's references, so it happens on the heap dump's thread
  * like everything else here and this waits for it. See [shark.dive.leakStatusConflictsWith].
  */
 @Composable
-internal fun LeakStatusDialog(
-  status: ObjectLeakStatus,
+internal fun LeakStatusSetter(
+  setting: SettingVerdict,
   /** What the new status would disagree with, read off the heap dump. See [HeapDumpDive]. */
   onFindConflicts: suspend (LeakStatusOverride) -> List<LeakStatusConflict>,
   /** Sets it, along with whatever had to change for it to be true. */
   onSet: suspend (LeakStatusOverride, List<LeakStatusOverride>) -> Unit,
   /** Takes the status off the object, so that the heap dump says what it says about it again. */
   onClear: suspend () -> Unit,
-  onDismiss: () -> Unit
+  /** Where a verdict this one disagrees with leads: the object it is about, in a tab of its own. */
+  onOpenObject: (Long) -> Unit,
+  /** Where the `?` on what a disagreement is goes. See [Explain]. */
+  onExplain: (Topic) -> Unit,
+  /** Answered or abandoned, which is the same thing to whoever is holding this. */
+  onDone: () -> Unit,
+  modifier: Modifier = Modifier
 ) {
-  var chosen: LeakStatus by remember { mutableStateOf(status.setByHand?.status ?: status.status) }
-  var reason by remember { mutableStateOf(status.setByHand?.reason.orEmpty()) }
-  var step: SetStep by remember { mutableStateOf(SetStep.Choosing) }
-  /** What has been asked for, and null while nothing has: the ask is what the reading below follows. */
-  var requested: LeakStatusOverride? by remember { mutableStateOf(null) }
+  val status = setting.status
 
-  LaunchedEffect(requested) {
-    val override = requested ?: return@LaunchedEffect
-    step = SetStep.Checking
+  LaunchedEffect(setting, setting.requested) {
+    val override = setting.requested ?: return@LaunchedEffect
+    setting.step = SetStep.Checking
     val conflicts = onFindConflicts(override)
-    step = if (conflicts.isEmpty()) {
+    setting.step = if (conflicts.isEmpty()) {
       // Nothing to settle, so the status someone typed is the whole of what they were asked for.
       SetStep.Writing(Decision.Set(override, emptyList()))
     } else {
       SetStep.Conflicts(override, conflicts)
     }
-    requested = null
+    setting.requested = null
   }
 
-  // Every write goes through here, and closing the dialog is the last thing it does: a save started from a
-  // button and a dialog that goes away in the same breath is a save whose result nothing is left to keep.
-  val writing = (step as? SetStep.Writing)?.decision
-  LaunchedEffect(writing) {
+  // Every write goes through here, and closing this is the last thing it does: a save started from a button
+  // and a dialog that goes away in the same breath is a save whose result nothing is left to keep.
+  val writing = (setting.step as? SetStep.Writing)?.decision
+  LaunchedEffect(setting, writing) {
     when (val decision = writing ?: return@LaunchedEffect) {
       is Decision.Set -> onSet(decision.override, decision.solved)
       Decision.Clear -> onClear()
     }
-    onDismiss()
+    onDone()
   }
 
-  AlertDialog(
-    onDismissRequest = onDismiss,
-    title = { Text(statusDialogTitle(status.objectName)) },
-    text = {
+  Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // Its own box with nothing in it, so that the click it swallows is a click and not the semantics of
+    // everything below merged into one node. It swallows rather than dismisses, which is the one way this
+    // differs from an `AlertDialog`: a click landing outside is a click that missed, and treating it as an
+    // answer would throw away a reason somebody was half way through typing.
+    Box(
+      Modifier.fillMaxSize()
+        .background(MaterialTheme.colorScheme.scrim.copy(alpha = SCRIM_ALPHA))
+        .clickable(
+          interactionSource = remember { MutableInteractionSource() },
+          indication = null
+        ) {}
+    )
+    Surface(
+      Modifier.padding(16.dp).widthIn(min = DIALOG_MIN_WIDTH, max = DIALOG_WIDTH),
+      shape = AlertDialogDefaults.shape,
+      color = AlertDialogDefaults.containerColor,
+      tonalElevation = AlertDialogDefaults.TonalElevation,
+      shadowElevation = DIALOG_SHADOW
+    ) {
       Column(
-        Modifier.heightIn(max = DIALOG_MAX_HEIGHT).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        Modifier.padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
       ) {
-        when (val currentStep = step) {
-          SetStep.Choosing -> ChoosingStatus(
-            status = status,
-            chosen = chosen,
-            reason = reason,
-            onChoose = { chosen = it },
-            onReason = { reason = it }
-          )
-          SetStep.Checking -> Waiting(CHECKING_CONFLICTS)
-          is SetStep.Conflicts -> Conflicts(currentStep.requested, currentStep.conflicts)
-          is SetStep.Writing -> Waiting(WRITING_STATUS)
-        }
-      }
-    },
-    confirmButton = {
-      when (val currentStep = step) {
-        SetStep.Choosing -> TextButton(
-          onClick = {
-            requested = LeakStatusOverride(
-              objectId = status.objectId,
-              status = chosen,
-              reason = reason.trim()
-            )
-          },
-          // A status set by hand overrules the heap dump, so it is worth nothing to whoever reads it next
-          // without the why — which is why this waits for one rather than filling one in.
-          enabled = reason.isNotBlank()
+        Text(settingVerdictTitle(status.objectName), style = MaterialTheme.typography.headlineSmall)
+        Column(
+          Modifier.heightIn(max = DIALOG_MAX_HEIGHT).verticalScroll(rememberScrollState()),
+          verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-          Text(SAVE_STATUS)
-        }
-        is SetStep.Conflicts -> TextButton(
-          onClick = {
-            SharkLog.d {
-              "Keeping ${currentStep.requested.status} for ${status.objectName} and flipping the " +
-                "${currentStep.conflicts.size} statuses set by hand that disagreed with it"
-            }
-            step = SetStep.Writing(
-              Decision.Set(currentStep.requested, currentStep.conflicts.map { it.solved })
+          when (val currentStep = setting.step) {
+            SetStep.Choosing -> ChoosingStatus(
+              status = status,
+              chosen = setting.chosen,
+              reason = setting.reason,
+              onChoose = { setting.chosen = it },
+              onReason = { setting.reason = it }
             )
+            SetStep.Checking -> Waiting(CHECKING_CONFLICTS)
+            is SetStep.Conflicts -> Conflicts(
+              requested = currentStep.requested,
+              conflicts = currentStep.conflicts,
+              onOpenObject = onOpenObject,
+              onExplain = onExplain
+            )
+            is SetStep.Writing -> Waiting(WRITING_STATUS)
           }
+        }
+        Row(
+          Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End)
         ) {
-          Text(SOLVE_CONFLICTS)
-        }
-        // Nothing to confirm while the heap dump is being read or written: both of them are already the
-        // answer to a button someone pressed.
-        SetStep.Checking, is SetStep.Writing -> Unit
-      }
-    },
-    dismissButton = {
-      Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        // Only for a status a hand set: there is nothing to take off an object the inspectors alone spoke
-        // about, and a button that says there is would read as a way to silence them.
-        if (step == SetStep.Choosing && status.setByHand != null) {
-          TextButton(onClick = { step = SetStep.Writing(Decision.Clear) }) {
-            Text(CLEAR_STATUS)
-          }
-        }
-        if (step !is SetStep.Writing) {
-          TextButton(
-            onClick = {
-              if (step is SetStep.Conflicts) {
-                // Which is a reader who read what they were about to overrule and decided not to, and is
-                // worth as much in the log as the other choice.
-                SharkLog.d {
-                  "Left the statuses of this heap dump as they were rather than setting " +
-                    "${status.objectName} to $chosen"
-                }
-              }
-              onDismiss()
-            }
-          ) {
-            Text(if (step is SetStep.Conflicts) UNDO_STATUS else CANCEL_STATUS)
-          }
+          SetterButtons(setting, onDone)
         }
       }
     }
-  )
+  }
+}
+
+/**
+ * What there is to press, in the order a dialog puts them: what leaves things as they were on the left,
+ * what changes them on the right, and neither while a file is being written.
+ */
+@Composable
+private fun SetterButtons(
+  setting: SettingVerdict,
+  onDone: () -> Unit
+) {
+  val status = setting.status
+  // Only for a status a hand set: there is nothing to take off an object the inspectors alone spoke about,
+  // and a button that says there is would read as a way to silence them.
+  if (setting.step == SetStep.Choosing && status.setByHand != null) {
+    TextButton(onClick = { setting.step = SetStep.Writing(Decision.Clear) }) {
+      Text(CLEAR_STATUS)
+    }
+  }
+  if (setting.step !is SetStep.Writing) {
+    TextButton(
+      onClick = {
+        if (setting.step is SetStep.Conflicts) {
+          // Which is a reader who read what they were about to overrule and decided not to, and is worth as
+          // much in the log as the other choice.
+          SharkLog.d {
+            "Left the statuses of this heap dump as they were rather than setting " +
+              "${status.objectName} to ${setting.chosen}"
+          }
+        }
+        onDone()
+      }
+    ) {
+      Text(if (setting.step is SetStep.Conflicts) UNDO_STATUS else CANCEL_STATUS)
+    }
+  }
+  when (val currentStep = setting.step) {
+    SetStep.Choosing -> TextButton(
+      onClick = {
+        setting.requested = LeakStatusOverride(
+          objectId = status.objectId,
+          status = setting.chosen,
+          reason = setting.reason.trim()
+        )
+      },
+      // A status set by hand overrules the heap dump, so it is worth nothing to whoever reads it next
+      // without the why — which is why this waits for one rather than filling one in.
+      enabled = setting.reason.isNotBlank()
+    ) {
+      Text(SAVE_STATUS)
+    }
+    is SetStep.Conflicts -> TextButton(
+      onClick = {
+        SharkLog.d {
+          "Keeping ${currentStep.requested.status} for ${status.objectName} and flipping the " +
+            "${currentStep.conflicts.size} statuses set by hand that disagreed with it"
+        }
+        setting.step = SetStep.Writing(
+          Decision.Set(currentStep.requested, currentStep.conflicts.map { it.solved })
+        )
+      }
+    ) {
+      Text(SOLVE_CONFLICTS)
+    }
+    // Nothing to confirm while the heap dump is being read or written: both of them are already the answer
+    // to a button someone pressed.
+    SetStep.Checking, is SetStep.Writing -> Unit
+  }
 }
 
 /** What the object is now, the three statuses it could be, and the reason that has to come with a change. */
@@ -310,25 +391,39 @@ private fun ChoosingStatus(
  * Every one of them rather than a count, with the reason each was given, because that reason is the case for
  * the other reading: whoever is about to overrule it is the one person who can weigh the two, and they can
  * only do that if they can read what they are overruling.
+ *
+ * Which is also why each one leads to the object it is about. A reason somebody typed is what they knew and
+ * not what the heap dump says, so weighing it against this one is sometimes going and looking — and the
+ * dialog belonging to its tab rather than to the window is what lets that happen without throwing away the
+ * verdict half set. *Why* two verdicts can disagree at all is the `?`, for the same reason it is a `?`
+ * everywhere else: it is one paragraph, read once, above something read every time.
  */
 @Composable
 private fun Conflicts(
   requested: LeakStatusOverride,
-  conflicts: List<LeakStatusConflict>
+  conflicts: List<LeakStatusConflict>,
+  onOpenObject: (Long) -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
-  Text(
-    "${conflicts.size} ${if (conflicts.size == 1) CONFLICT_ONE else CONFLICT_MANY} " +
-      "\"${requested.status.statusText}\".",
-    style = MaterialTheme.typography.bodyMedium,
-    fontWeight = FontWeight.Bold
-  )
-  Text(CONFLICT_EXPLANATION, style = MaterialTheme.typography.bodySmall)
+  Explain(Topic.CONFLICTING_VERDICTS, onExplain) {
+    Text(
+      "${conflicts.size} ${if (conflicts.size == 1) CONFLICT_ONE else CONFLICT_MANY} " +
+        "\"${requested.status.statusText}\".",
+      style = MaterialTheme.typography.bodyMedium,
+      fontWeight = FontWeight.Bold
+    )
+  }
   conflicts.forEach { conflict ->
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Column(
+      Modifier.fillMaxWidth()
+        .clickableRow { onOpenObject(conflict.existing.objectId) }
+        .padding(vertical = 4.dp)
+    ) {
       Text(
         "${conflict.objectName} ${if (conflict.isAbove) CONFLICT_ABOVE else CONFLICT_BELOW}",
         style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Bold
+        fontWeight = FontWeight.Bold,
+        color = LINK_COLOR
       )
       Text(
         "${conflict.existing.status.statusText}: ${conflict.existing.reason}",
@@ -350,7 +445,7 @@ private fun Conflicts(
  * Nothing has been written in any of the three. What is on disk changes once, when the last of them is
  * answered.
  */
-private sealed interface SetStep {
+internal sealed interface SetStep {
 
   object Choosing : SetStep
 
@@ -367,7 +462,7 @@ private sealed interface SetStep {
 }
 
 /** What was decided, which is the whole of what a dialog full of choices comes down to. */
-private sealed interface Decision {
+internal sealed interface Decision {
 
   class Set(
     val override: LeakStatusOverride,
@@ -412,9 +507,10 @@ private val LeakStatus.glyph: String
  */
 internal const val STATUS_LABEL = "Verdict"
 
-internal fun statusDialogTitle(objectName: String) = "Verdict on $objectName"
+/** What the dialog setting one is titled, which is the one thing on it that names what is being changed. */
+internal fun settingVerdictTitle(objectName: String) = "Verdict on $objectName"
 
-/** What opens the dialog, set or not: the same mark the app writes a note with. */
+/** What opens the dialog that sets one, set or not: the same mark the app writes a note with. */
 internal const val EDIT_STATUS_GLYPH = "✎"
 
 internal const val SAVE_STATUS = "Set the verdict"
@@ -450,11 +546,6 @@ internal const val REASON_DESCRIPTION = "Why this object is being given that ver
 private const val CONFLICT_ONE = "verdict set by hand cannot be true alongside"
 private const val CONFLICT_MANY = "verdicts set by hand cannot be true alongside"
 
-private const val CONFLICT_EXPLANATION =
-  "Everything a stuck object holds is stuck too, and everything holding an expected one is expected too — " +
-    "so these and the verdict being set contradict each other. Keeping this one flips them to the opposite " +
-    "verdict, with what they said kept as part of the new reason."
-
 private const val CONFLICT_ABOVE = "holds it"
 private const val CONFLICT_BELOW = "is held by it"
 
@@ -462,3 +553,9 @@ private const val CONFLICT_BECOMES = "Would become:"
 
 /** Enough for the sentence someone is expected to type, and no more: the panes below keep the window. */
 private val REASON_HEIGHT = 90.dp
+
+/** What Material gives a dialog, since this is one drawn by hand: 280dp to 560dp wide, over a 32% scrim. */
+private val DIALOG_MIN_WIDTH = 280.dp
+private val DIALOG_WIDTH = 560.dp
+private val DIALOG_SHADOW = 6.dp
+private const val SCRIM_ALPHA = 0.32f

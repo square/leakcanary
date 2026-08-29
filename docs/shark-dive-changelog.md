@@ -140,6 +140,13 @@ uses, without the one for a newly recognized library leak:
 * 🔀 The line above the map saying no object is held only through a `java.lang.ref.Reference` now says
   `Nothing here is held only weakly.`, in the words of the `Soft`, `Weak`, `Phantom` and `Finalizer` rows it
   sits under. Which class those four have in common is the page behind the `?` beside it.
+* 🔀 **Setting a verdict belongs to the tab it was started in**, so the bar and the tab strip still work
+  while one is open, and switching tabs leaves it half set rather than throwing it away. Which is what the
+  step listing the verdicts a new one contradicts needed: each of those is an object, and the reason somebody
+  typed for it is the case for the other reading — so each is now a link, and going to look at it opens a tab
+  and leaves your verdict where it was. Why two verdicts can disagree at all came out of a paragraph drawn
+  above that list every time and went behind the `?`, as
+  [Verdicts that disagree](shark-dive-reference.md). Closing the tab is what abandons a verdict half set.
 * 🔀 **An empty list says what fills it, and stops there.** `Nothing starred` used to name the panel the star
   is in, the empty **Agent logs** screen explained what an agent is and how to point one at the window, and
   the window with its last tab closed reassured you that the heap dump was still read. Each of those is now

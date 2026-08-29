@@ -98,6 +98,18 @@ Each of the following is a change already made to this app, not a preference:
   see the bugs everybody else is hitting, and the hint that was in the way on day one is the one they go
   looking for on day thirty and can't find. So don't propose progressive onboarding here — the `?` is
   what that job was given to.
+- **A dialog over the whole window is a claim that nothing outside it will be needed.** The `?` is the
+  rule above and it opens a *tab*, so on a surface with a window wide scrim the only way to explain
+  something is to print the paragraph on it. Setting a verdict was a material3 `AlertDialog` and its
+  conflicts step broke on exactly that, twice over: the `?` had nowhere to go, and each verdict being
+  overruled is an object worth going to look at, which meant dismissing the dialog and losing the half
+  typed reason. `LeakStatusSetter` is the same dialog drawn by hand — same card, same scrim — inside the
+  `Box` holding the tab's panes, so the bar and the tab strip above it stay clickable, with its state kept
+  per tab id by `HeapDumpDive` rather than `remember`ed, so switching tabs and coming back finds it as it
+  was. **So don't reach for `AlertDialog` for a step of reading a heap dump.** The three that stay one —
+  `Take heap dump…`, `Bitmaps from the live process`, and the question a `shark://` link asks — are all
+  about *getting* a heap dump rather than reading one, which is why nothing behind them is worth
+  reaching.
 - **Prose belongs in the KDoc, `notes/decisions.md`, or a reference page.** Those are the three places
   something long enough to be worth writing goes. `notes/agent-surface.md` measures the same idea on the
   agent surface — ~80 tokens of name and description at rest, the ~2 k-token body only for a session that

@@ -1115,6 +1115,26 @@ who can weigh the two.
   leave a heap dump whose statuses contradict each other, which is the one state this step exists to
   prevent. It runs `NonCancellable` because the dialog closes as soon as it has.
 
+**It is a dialog of the tab, not of the window.** It was a material3 `AlertDialog`, which draws over the
+whole window, and the conflicts step is what that got wrong. Two things a reader wants there are behind the
+scrim. Why two verdicts can disagree at all is a paragraph — it was 265 characters drawn above the list,
+every time, for somebody who had read it once — and every other label in this window answers that shape with
+a `?` that opens the reference **in a tab**, which behind a window wide scrim is a tab nobody can reach. And
+each verdict being overruled is an *object*: the reason somebody typed for it is the case for the other
+reading, so weighing it against yours is sometimes going and looking, which a modal can only offer by being
+dismissed — and dismissing it throws away the half typed reason it was holding.
+
+So the dialog is drawn by hand instead: the same centred card over the same 32% scrim, inside the `Box` that
+holds the tab's panes rather than over the window, so the screen bar and the tab strip above it still take a
+click. And `SettingVerdict` is state `HeapDumpDive` keeps per tab id rather than `remember`ed inside the
+composable, so switching tabs leaves it where it is and coming back finds the reason half typed. Tab ids are
+never reused (see `Tab.id`), so an entry can only ever be about the tab it was made for, and closing a tab
+drops it. Two smaller differences from `AlertDialog` fall out: a click on the scrim is swallowed rather than
+taken as a dismissal, for the same reason as above, and the scrim is its own childless `Box` because
+`Modifier.clickable` merges the semantics of everything under it, which would have made the whole dialog one
+node to a test. The other three dialogs stay `AlertDialog`s: they are about acquiring a heap dump rather than
+reading one, so there is nothing behind them to go and look at.
+
 **One tab separated file per heap dump, in `~/.shark-dive/leak-statuses`.** Named after the dump the way
 its notes are, and beside them rather than next to the dump, for the same reason: dumps come from device
 pulls, temporary files and read only mounts. A file rather than a directory of files, which is the opposite

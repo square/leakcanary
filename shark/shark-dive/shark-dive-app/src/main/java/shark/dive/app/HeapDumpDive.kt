@@ -25,6 +25,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -234,8 +235,17 @@ internal fun HeapDumpDive(
   val starring = rememberCoroutineScope()
   /** Which objects of this heap dump have a status someone set, which is what every chain is read with. */
   val overrides = leakStatuses.overrides
-  /** Whether the dialog that sets one is open, for the object the tab is on. */
-  var setsLeakStatus by remember { mutableStateOf(false) }
+  /**
+   * The verdict being set in each tab, by tab id, and empty in a window where nobody is setting one.
+   *
+   * Per tab rather than per window, because setting a verdict is not a dialog: it is drawn inside the tab
+   * it was started from, so the reader can open the reference, go and look at a verdict this one disagrees
+   * with, or read the chain, and come back to the reason half typed. Tab ids are never reused, so an entry
+   * here can only ever be about the tab it was made for. See [SettingVerdict] and [LeakStatusSetter].
+   */
+  val settingVerdicts = remember { mutableStateMapOf<Int, SettingVerdict>() }
+  /** And the one in the tab on screen, which is the only one drawn. */
+  val settingVerdict = tabs.selectedId?.let { settingVerdicts[it] }
 
   // Nothing is under the pointer while a list is showing: the view isn't there, so the rectangle it was on
   // last is neither where the pointer is now nor what the tab is about.
@@ -419,9 +429,6 @@ internal fun HeapDumpDive(
   // And on the statuses set by hand, because they are half of what a chain says: setting one is asking the
   // window to read the heap dump through it, which is this read again.
   LaunchedEffect(session, place, overrides) {
-    // Whatever was being decided was being decided about the object this is leaving, and a dialog that
-    // outlived the tab it was opened from would set a status on an object nobody is looking at.
-    setsLeakStatus = false
     if (place == null || place.viewRootObjectId == null) {
       details = null
       return@LaunchedEffect
@@ -741,22 +748,6 @@ internal fun HeapDumpDive(
     )
   }
 
-  if (setsLeakStatus && describedLeakStatus != null) {
-    LeakStatusDialog(
-      status = describedLeakStatus,
-      // A walk up the references per status already set, which is a read of the heap dump like any other —
-      // and one asked for, so it is not on the path the pointer takes. See [leakStatusConflictsWith].
-      onFindConflicts = { override ->
-        session.read("what setting ${hexObjectId(override.objectId)} to ${override.status} disagrees with") {
-          it.tree.leakStatusConflictsWith(override, overrides)
-        }
-      },
-      onSet = { override, solved -> leakStatuses.set(override, solved) },
-      onClear = { leakStatuses.clear(describedLeakStatus.objectId) },
-      onDismiss = { setsLeakStatus = false }
-    )
-  }
-
   Column(modifier) {
     ScreenBar(
       starredCount = stars.objectIds.size,
@@ -770,7 +761,12 @@ internal fun HeapDumpDive(
       titleOf = { it.title ?: placeTitles[it] ?: NAMING_TAB },
       hasNote = { notes.hasNote(it) },
       onSelect = { id -> tabs = tabs.select(id) },
-      onClose = { id -> tabs = tabs.close(id) },
+      onClose = { id ->
+        tabs = tabs.close(id)
+        // A verdict being set belongs to its tab, so closing the tab is abandoning it — and leaving the
+        // entry behind would hand it to whichever tab took that id, if ids were ever reused.
+        settingVerdicts.remove(id)
+      },
       onCopyLink = copyLink
     )
     // Two things in one row, and a rule between them: how the tab got here, then what it is on. The height is
@@ -884,7 +880,12 @@ internal fun HeapDumpDive(
             leakStatus = describedLeakStatus,
             isLeakStatusRead = leakStatuses.isRead,
             leakStatusProblem = leakStatuses.problem,
-            onChangeLeakStatus = { setsLeakStatus = true },
+            onChangeLeakStatus = {
+              val tabId = tabs.selectedId
+              if (tabId != null && describedLeakStatus != null) {
+                settingVerdicts[tabId] = SettingVerdict(describedLeakStatus)
+              }
+            },
             onOpen = openObject,
             onCopyLink = copyObjectLink,
             onListInstances = { className ->
@@ -917,6 +918,32 @@ internal fun HeapDumpDive(
             Spacer(Modifier.weight(1f))
           }
         }
+      }
+      // Over the tab and no further: the scrim stops where this box does, so the screen bar and the tab
+      // strip above it still take a click while a verdict is being set. Which is what the `?` inside it
+      // needs — it opens the reference in a tab — and what going to look at a verdict this one contradicts
+      // needs. See [LeakStatusSetter].
+      settingVerdict?.let { setting ->
+        LeakStatusSetter(
+          setting = setting,
+          // A walk up the references per status already set, which is a read of the heap dump like any
+          // other — and one asked for, so it is not on the path the pointer takes. See
+          // [leakStatusConflictsWith].
+          onFindConflicts = { override ->
+            session.read(
+              "what setting ${hexObjectId(override.objectId)} to ${override.status} disagrees with"
+            ) {
+              it.tree.leakStatusConflictsWith(override, overrides)
+            }
+          },
+          onSet = { override, solved -> leakStatuses.set(override, solved) },
+          onClear = { leakStatuses.clear(setting.status.objectId) },
+          // In a tab of its own and in front, the way a `?` opens a page: going to look at a verdict this
+          // one disagrees with is reading, and the tab it was left in keeps what was typed into it.
+          onOpenObject = { objectId -> openInNewTab(Place.Object(objectId)) },
+          onExplain = explain,
+          onDone = { tabs.selectedId?.let { settingVerdicts.remove(it) } }
+        )
       }
     }
   }

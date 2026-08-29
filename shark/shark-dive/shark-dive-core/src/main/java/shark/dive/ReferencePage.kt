@@ -25,6 +25,7 @@ enum class Topic(
   LIBRARY_LEAKS("library-leaks"),
   REACHABILITY_STRENGTH("reachability-strength"),
   STUCK_SHADING("stuck-shading"),
+  CONFLICTING_VERDICTS("conflicting-verdicts"),
   WEAKER_REFERENCES("weaker-references"),
   OTHER_WAYS("other-ways");
 
