@@ -137,3 +137,6 @@ uses, without the one for a newly recognized library leak:
   in a row of its own. The count of objects a rectangle *immediately* holds is gone from the panel and the
   card: that number is the rectangles drawn inside it, which is what you are looking at. `Dominates` now
   means one thing, on the chain.
+* 🔀 The line above the map saying no object is held only through a `java.lang.ref.Reference` now says
+  `Nothing here is held only weakly.`, in the words of the `Soft`, `Weak`, `Phantom` and `Finalizer` rows it
+  sits under. Which class those four have in common is the page behind the `?` beside it.

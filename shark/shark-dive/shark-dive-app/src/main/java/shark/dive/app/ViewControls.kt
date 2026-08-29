@@ -255,6 +255,10 @@ internal const val FINDING_LEAKS = "Stuck: looking…"
 /**
  * Shown when every object a `java.lang.ref.Reference` points at is also reachable some stronger way,
  * which is what the legend rows reading 0 B mean and would otherwise read as a bug.
+ *
+ * In the words the legend beside it uses rather than in `java.lang.ref.Reference`'s: this line sits under
+ * rows reading `Soft`, `Weak`, `Phantom` and `Finalizer`, and naming the class they have in common is one
+ * more vocabulary to hold for a reader who has the four names in front of them. Which class that is, and why
+ * having none of them is normal, is the page behind the `?`.
  */
-internal const val NOTHING_WEAKER =
-  "Nothing in this heap dump is reachable only through a java.lang.ref.Reference."
+internal const val NOTHING_WEAKER = "Nothing here is held only weakly."
