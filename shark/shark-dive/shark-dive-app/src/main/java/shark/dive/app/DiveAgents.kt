@@ -11,9 +11,13 @@ import shark.dive.DeepLink
 import shark.dive.DeviceHeapDumps
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
+import shark.dive.HeapDominatorTreemap
 import shark.dive.LeakStatusOverride
 import shark.dive.LeakStatusOverrides
 import shark.dive.Place
+import shark.dive.TreemapLayout
+import shark.dive.TreemapPresentation
+import shark.dive.TreemapRect
 import shark.dive.agent.AgentCommandLine
 import shark.dive.agent.AgentHeapDump
 import shark.dive.agent.AgentHeapDumps
@@ -24,7 +28,11 @@ import shark.dive.agent.AgentSessionFile
 import shark.dive.agent.AgentStdioBridge
 import shark.dive.agent.AgentStdioServer
 import shark.dive.agent.ShownPlace
+import shark.dive.agent.TreemapDrawing
+import shark.dive.exactHexObjectId
+import shark.dive.nodeIdText
 import shark.dive.placeOfNoteKeyOrNull
+import shark.dive.titleOf
 
 /**
  * Publishes this run so that agents can find it, or does nothing if it can't. See [AgentServer].
@@ -448,6 +456,59 @@ internal class OpenAgentHeapDump(
   }
 
   override fun show(place: Place): ShownPlace = showPlace(place)
+
+  /**
+   * The same layout, colours and leak shading the window draws with, written as a document instead.
+   *
+   * Nothing is remembered between calls, unlike the window: a client asks for the size of its own canvas and
+   * walks by asking again rooted somewhere else, so every call is one read. The two expensive parts are
+   * already shared with whatever the window is doing — laying the tree out queues on its thread, and the
+   * leaks are worked out once per set of verdicts and kept.
+   */
+  override suspend fun drawTreemap(
+    rootObjectId: Long,
+    width: Int,
+    height: Int
+  ): TreemapDrawing = read("the treemap under ${nodeIdText(rootObjectId)}, to draw for an agent") { dive ->
+    val tree = dive.tree
+    if (rootObjectId != HeapDominatorTreemap.ROOT_OBJECT_ID && rootObjectId !in tree) {
+      throw AgentRefusal(
+        "${exactHexObjectId(rootObjectId)} is no node of this heap dump's dominator tree, so there is " +
+          "nothing there to draw. Leave the object out for the whole heap dump."
+      )
+    }
+    val title = tree.titleOf(Place.Object(rootObjectId))
+    val leaks = tree.findLeaks(verdicts)
+    TreemapDrawing(
+      document = treemapDocument(
+        presentation = TreemapPresentation.of(
+          tree = tree,
+          layout = TreemapLayout(),
+          // Below the title, which the drawing puts at the top of the same canvas: a map laid out into the
+          // whole height would be drawn under its own title with its top row unpressable.
+          viewport = TreemapRect(
+            0.0,
+            DRAWING_TITLE_HEIGHT.toDouble(),
+            width.toDouble(),
+            height.toDouble()
+          ),
+          root = rootObjectId
+        ),
+        title = title,
+        // Where pressing the title leads, which is the only way back out of a drawing: a player has no
+        // history and no chrome of ours to put a button in, so up is a click area like every other.
+        parentObjectId = tree.parentOf(rootObjectId),
+        coloring = CellColoring.DEFAULT,
+        shading = LeakShading(
+          objectIds = leaks.leakingObjectIds,
+          isRootLeaking = tree.isBelowLeakingObject(rootObjectId, verdicts)
+        ),
+        width = width,
+        height = height
+      ),
+      title = title
+    )
+  }
 
   /**
    * Puts what [newText] makes of the saved note on disk, whether that is the note plus a paragraph or

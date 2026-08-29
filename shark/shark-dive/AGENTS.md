@@ -600,6 +600,8 @@ Design decisions and findings, kept current as the work proceeds:
   about the provider rather than the component, and how to dump really generated code
 - `notes/agent-surface.md` — what the MCP surface costs a client in tokens, measured, and why a CLI and a
   skill are adapters over the same registry rather than second implementations
+- `notes/remote-compose.md` — the treemap written as a document a client can play: what the writer can't do,
+  the vendored player and how it is rebuilt, and why a drawing is a resource rather than a tool result
 - `notes/agent-eval.md` — how well an agent solves a leak, scored with no model doing the scoring: the answer
   keys, the three ways a run gets handed its own answer, and the baseline to beat
 

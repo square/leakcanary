@@ -106,7 +106,37 @@ interface AgentHeapDump {
    * on the next frame — so there is nothing to wait for.
    */
   fun show(place: Place): ShownPlace
+
+  /**
+   * The treemap this window would draw rooted at [rootObjectId], laid out into [width] by [height] and
+   * written as a drawing a client can play. See [TreemapDrawing].
+   *
+   * Here rather than in [AgentTools] because it cannot be there: drawing needs the colour scheme, which is
+   * Compose colours in `shark-dive-app`, and Remote Compose's own libraries, which are Java 11 while this
+   * module compiles to Java 8. So the seam is a call, and `shark.dive.app.treemapDocument` is the drawing.
+   *
+   * A read of the heap dump like any other — laying a treemap out reads it for every visible label — so it
+   * queues on the same thread and shows up in the same log.
+   *
+   * **Refuses an object the dominator tree has no node for**, with an [AgentRefusal], the same way
+   * `dominator_tree` refuses one: there is nowhere to root a view at such an object. Drawing the whole heap
+   * dump instead was tried and is worse — the answer would be a picture of everything under the address of
+   * one thing, and a client that pressed into it would be walking somewhere it never asked to be.
+   */
+  suspend fun drawTreemap(
+    rootObjectId: Long,
+    width: Int,
+    height: Int
+  ): TreemapDrawing
 }
+
+/** A treemap as bytes rather than as pixels: the document, and what a window showing it would be titled. */
+class TreemapDrawing(
+  /** The Remote Compose document, which is what a player is handed. */
+  val document: ByteArray,
+  /** What it is of, in the words a tab showing that place is titled with. */
+  val title: String
+)
 
 /**
  * What came of putting a place in front of the person watching: the link to it, and why there was nowhere.

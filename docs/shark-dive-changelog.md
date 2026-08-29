@@ -76,6 +76,15 @@ uses, without the one for a newly recognized library leak:
   so a sentence in a chat window, a pull request comment or a bug report carries a way into the heap dump
   rather than instructions for finding the object again by hand.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+* ✨ **An agent can draw the treemap into your conversation**, and you can press into it there. `draw_treemap`
+  is the map itself — the same layout, colours and leak shading the window draws, over the same dominator
+  tree — and it arrives as a document your client plays rather than as an image, so a rectangle takes you
+  into what it stands for and the title takes you back up, with no turn of the conversation in between: your
+  client asks Shark Dive for the next drawing directly, and the agent finds out where you got to the next
+  time you speak to it. It replaces nothing an agent reads, since **it cannot see the drawing either** —
+  `dominator_tree` is still the same tree in words. Needs a client that supports
+  [MCP Apps](https://modelcontextprotocol.io); one that doesn't shows the answer and no picture.
+  See [The treemap, in the conversation](shark-dive.md#the-treemap-in-the-conversation).
 * ✨ **Agent logs**: every agent that has connected to the app is a row on a screen of its own, and opening
   one is everything that agent did — what each call did, which object it did it to, and the sentence it gave
   for making it, with the refusals in red. A row leads where the call went, so reading what an agent did and

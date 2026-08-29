@@ -642,6 +642,34 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
+   * The node a view rooted at [nodeId] goes back up to, and null for the root and for a node this tree
+   * hasn't got.
+   *
+   * Where the *map* nests this one, which is not always where [dominatorOf] attributes its bytes: the
+   * root's children are gathered into piles by class, so an object nothing in particular holds is drawn
+   * inside a pile while its dominator is the whole heap dump. Which is the difference this answers — a
+   * view with no history has nothing else to go up by, and one that went up by the dominator would walk
+   * somebody a level past where they pressed from.
+   *
+   * The pile a node is in is found by looking rather than remembered, since the piles are only the top
+   * two levels and this is asked once per view rather than once per rectangle.
+   */
+  fun parentOf(nodeId: Long): Long? {
+    if (nodeId == root) {
+      return null
+    }
+    group(nodeId)?.let { pile ->
+      return pile.parentNodeId
+    }
+    val dominator = dominatorOf(nodeId) ?: return null
+    if (dominator.kind == DominatorKind.OBJECT) {
+      return dominator.nodeId
+    }
+    return topLevel.groups.entries.firstOrNull { (_, pile) -> nodeId in pile.childIds }?.key
+      ?: dominator.nodeId
+  }
+
+  /**
    * Every way [toObjectId] is held below [fromObjectId], spelled out field by field. See
    * [IndependentPaths] for what "independent" means and what this search does and doesn't guarantee.
    *

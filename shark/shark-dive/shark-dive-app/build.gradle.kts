@@ -47,6 +47,10 @@ dependencies {
 
   implementation(compose.desktop.currentOs)
   implementation(compose.material3)
+  // Draws a view a second time, as bytes a client can play rather than pixels this window shows. Here
+  // and not in shark-dive-agent because the colours are here, and because this is the module that is
+  // allowed a Java 11 dependency. See TreemapDocument.kt.
+  implementation(libs.remoteCompose.creationJvm)
 
   testImplementation(libs.junit)
   testImplementation(libs.assertjCore)

@@ -23,6 +23,11 @@ internal class AgentTool(
   val description: String,
   /** JSON Schema for the arguments, which is what a client validates against before calling. */
   val schema: JsonObject,
+  /**
+   * The page an MCP Apps host should open beside this tool's answer, and null for the tools whose answer is
+   * words — which is every one of them but `draw_treemap`. See [AgentResources].
+   */
+  val uiResourceUri: String? = null,
   private val handler: suspend (AgentArguments) -> JsonObject
 ) {
 

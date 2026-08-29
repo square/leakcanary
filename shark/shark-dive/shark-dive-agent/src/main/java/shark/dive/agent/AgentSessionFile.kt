@@ -572,6 +572,9 @@ internal fun verbOfTool(
   // objects rather than a search for nothing.
   "find_objects" -> if (SUBJECT_CLASS_NAME in arguments) "Searched for" else "Listed the"
   "dominator_tree" -> if (SUBJECT_OBJECT in arguments) "Read the dominator tree under" else "Read the"
+  // "Drew", not "Looked at": this is the one tool whose answer the agent cannot see, so a row saying it
+  // looked at the treemap would be a row saying something that didn't happen.
+  "draw_treemap" -> if (SUBJECT_OBJECT in arguments) "Drew the treemap under" else "Drew the"
   "set_verdict" -> "Recorded ${arguments[SUBJECT_VERDICT] ?: "a verdict"} on"
   "clear_verdict" -> "Took the verdict off"
   "read_notes" -> if (SUBJECT_PLACE in arguments) "Read the notes on" else "Read what has been written"
@@ -622,6 +625,8 @@ internal fun screenOfTool(
     if (SUBJECT_CLASS_NAME in arguments) null else AgentScreen("biggest objects", Place.Objects())
   "dominator_tree" ->
     if (SUBJECT_OBJECT in arguments) null else AgentScreen("dominator tree", Place.wholeHeapDump())
+  "draw_treemap" ->
+    if (SUBJECT_OBJECT in arguments) null else AgentScreen("treemap", Place.wholeHeapDump())
   else -> null
 }
 

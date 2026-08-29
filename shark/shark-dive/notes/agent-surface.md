@@ -9,17 +9,21 @@ Measured off `AgentTools.all` and `AgentMethod.INSTRUCTIONS`, one `tools/list` e
 
 | | Characters | ≈ tokens | Paid |
 | --- | --- | --- | --- |
-| Seventeen tool definitions | 21,123 | 5,280 | Every turn, while the server is connected |
-| The method | 7,845 | 1,960 | Handshake, and again with `open_heap_dumps` |
+| Eighteen tool definitions | 23,508 | 5,880 | Every turn, while the server is connected |
+| The method | 7,961 | 1,990 | Handshake, and again with `open_heap_dumps` |
+| The resources, listed | 794 | 200 | Once, and only by a client that lists them |
 
-So the standing cost of this surface is **7 to 8 k tokens**, around 3.5% of a 200 k window. Parity took the
+So the standing cost of this surface is **around 8 k tokens**, 4% of a 200 k window. Parity took the
 tool count from eleven to seventeen and the definitions from 13,116 characters to 21,123 — **a fifth of the
 window's budget for the six tools that mean an agent never has to ask its human to click something**, which
 is the trade this surface exists to make. The sixth is `agent_log`, 1,237 characters of the total, and the
 900 the other sixteen grew by are the two agent-log places added to the sentence naming every place, which
 `show`, `read_notes` and `take_note` all repeat. The method then grew by half again for the section on reading the
 code at the version the dump is of, which is the one part of the method the tools cannot enforce at all and
-the part that decides whether an answer is a root cause or a reference. The published horror stories are still an order of magnitude worse:
+the part that decides whether an answer is a root cause or a reference. `draw_treemap` is the eighteenth,
+1,468 characters of the table above — and **the page it is drawn in is 432,116 characters that no model ever
+sees**, the drawings being resources the client reads rather than anything answered to the agent. See
+`notes/remote-compose.md`. The published horror stories are still an order of magnitude worse:
 GitHub's server is ~17.6 k tokens of definitions, and three servers together have been measured at 143 k. The
 mitigations that shipped in 2026 (Anthropic's tool search, code execution over MCP) are aimed at that scale.
 **This surface is not where a context window goes to die**, and a per-tool cost of ~300 tokens is what buys
@@ -33,11 +37,11 @@ Measured against a packaged build with one window open on `leak_asynctask_o.hpro
 | | Measured | Paid |
 | --- | --- | --- |
 | One call, JVM start to JSON on stdout | 160–180 ms | Per call |
-| `--agent-help`, all seventeen tools | 14,594 characters, ≈3,650 tokens | Only when read |
+| `--agent-help`, all eighteen tools | 16,239 characters, ≈4,060 tokens | Only when read |
 | `--agent-help <tool>`, one of them | 500–1,250 characters, ≈125–310 tokens | Only when read |
 
 So the standing cost is nothing, and the whole surface as text is *smaller* than the `tools/list` definitions
-of it (14,594 against 21,123) because `reason` is explained once rather than seventeen times. Both
+of it (16,239 against 23,508) because `reason` is explained once rather than eighteen times. Both
 `--agent-help` figures include the invocation path twice, since what it prints is the command to type on this
 machine; a shorter install path is a slightly shorter help.
 
