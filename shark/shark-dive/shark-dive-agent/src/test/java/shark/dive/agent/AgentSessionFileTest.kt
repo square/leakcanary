@@ -58,6 +58,35 @@ class AgentSessionFileTest {
   }
 
   @Test
+  fun `what a call sent and what it read back are kept as they were`() {
+    val file = AgentSessionFile.starting(directory, SERVER_VERSION)
+    file.called(call(tool = "describe_object", input = SENT, output = ANSWERED))
+
+    // Character for character, newlines and all, because the point of keeping these is that they are not a
+    // reading of what happened: an argument spelled wrong reads right in every derived field there is.
+    val call = AgentSessionFile.sessionsIn(directory).single().calls.single()
+    assertThat(call.input).isEqualTo(SENT)
+    assertThat(call.output).isEqualTo(ANSWERED)
+  }
+
+  @Test
+  fun `a session recorded before the exchange was kept reads back without one`() {
+    directory.mkdirs()
+    File(directory, "agent-2026-08-25_18-19-48_035-older.jsonl").writeText(
+      """{"agentSession":"older","startedAt":"$STARTED_AT","sharkDive":"1.0.0"}""" + "\n" +
+        """{"at":"$STARTED_AT","tool":"list_leaks","reason":"What the dump says.",""" +
+        """"window":"$WINDOW_ID","heapDump":"/dumps/leak.hprof","millis":3}""" + "\n"
+    )
+
+    // Null rather than empty, which is what the *Agent logs* screen says out loud: a fold that opens onto
+    // nothing reads as an app that lost the answer rather than one that was never given it.
+    val call = AgentSessionFile.sessionsIn(directory).single().calls.single()
+    assertThat(call.input).isNull()
+    assertThat(call.output).isNull()
+    assertThat(call.reason).isEqualTo("What the dump says.")
+  }
+
+  @Test
   fun `a call that was refused says so, and still says what it was about`() {
     val file = AgentSessionFile.starting(directory, SERVER_VERSION)
     file.called(call(tool = "conclude", place = Place.Object(OBJECT_ID), refusal = "Not concluded. 3 steps"))
@@ -220,6 +249,8 @@ class AgentSessionFileTest {
     reason: String? = "Because.",
     place: Place? = null,
     arguments: Map<String, String> = emptyMap(),
+    input: String? = null,
+    output: String? = null,
     refusal: String? = null,
     outcome: String? = null,
     openHeapDumps: List<String> = emptyList()
@@ -231,6 +262,8 @@ class AgentSessionFileTest {
     heapDumpPath = "/dumps/leak.hprof",
     place = place,
     arguments = arguments,
+    input = input,
+    output = output,
     refusal = refusal,
     outcome = outcome,
     openHeapDumps = openHeapDumps,
@@ -241,6 +274,10 @@ class AgentSessionFileTest {
     const val SERVER_VERSION = "1.2.3"
     const val WINDOW_ID = "zvphq4r3"
     const val OBJECT_ID = 0x12d368b8L
+
+    /** An exchange as it crosses the wire: formatted over several lines, which one line of JSON escapes. */
+    const val SENT = "{\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"Reading the holder's fields.\"\n}"
+    const val ANSWERED = "{\n  \"object\": \"0x12d368b8\",\n  \"className\": \"com.example.Holder\"\n}"
 
     val STARTED_AT: Instant = Instant.parse("2026-08-25T18:19:48.035Z")
   }

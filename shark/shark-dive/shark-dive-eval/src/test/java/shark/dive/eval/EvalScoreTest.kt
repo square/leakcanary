@@ -138,6 +138,10 @@ class EvalScoreTest {
     heapDumpPath = heapDumpPath,
     place = null,
     arguments = emptyMap(),
+    // What a run scores on is what it concluded and how many calls it took, so the exchange every call also
+    // carries is nothing this reads. See [AgentSessionCall.input].
+    input = null,
+    output = null,
     refusal = refusal,
     outcome = outcome,
     millis = 12L

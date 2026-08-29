@@ -85,6 +85,21 @@ heap dump read on every call to answer a question the reader already has the dum
 can open a second dump, and a call about one this window hasn't got is a row it leaves as the address, saying
 which file, and opens that dump when clicked.
 
+**A call keeps the exchange as well as this app's reading of it.** `input` is the arguments as they arrived,
+formatted, and `output` is the answer as the text that reached the model — the same string `toolResult` puts
+in `content[0].text`, formatted once and then both answered with and written down, so that a session can be
+compared against a client's own transcript character for character. Everything else on a call is derived, and
+a derived field is the one thing that is no use when the question is why an investigation went wrong: a step
+made on an answer that said nothing reads exactly like a step made on one that said everything. **A refused
+call has no `output`**, its answer having been the refusal that is already in `refused` — writing it twice
+would put the same paragraph on disk and on the screen twice over.
+
+Two things follow. The window's *Agent logs* screen unfolds **every** row onto this, not only the one that
+answers with a list, so the verb is a fold on all of them and the thing beside it is still the only link.
+And `agent_log` with a session id hands the same text over, which makes it the one expensive call on this
+surface — `notes/agent-surface.md` has the measurement. Neither of them truncates: a session cut to fit is
+one where the answer that misled an agent is the part that got cut.
+
 **Two fields come off the answer instead.** What an agent asked is what it typed, and what it concluded is
 what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s answer. Both
 readers need that one and neither can work it out: the screen's last row is what a session came to, and the

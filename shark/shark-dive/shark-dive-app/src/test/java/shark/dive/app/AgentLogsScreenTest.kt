@@ -81,10 +81,12 @@ class AgentLogsScreenTest {
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
 
-      // What a reader wants to go and look at is the object, so that is the whole of what leads anywhere:
-      // a row where clicking the word "Looked at" navigates is a row with a hand cursor over prose.
+      // What a reader wants to go and look at is the object, so that is the whole of what moves the window:
+      // a row where clicking the word "Looked at" navigates is a row with a hand cursor over prose. What the
+      // verb does instead is unfold the call in place, which leaves the tab where it was.
       onNodeWithText(activityName()).assertHasClickAction()
-      onNodeWithText(LOOKED_AT).assertHasNoClickAction()
+      onNodeWithText(LOOKED_AT).performClick()
+      selectedTab().assertTextContains(Place.AgentLog(SESSION_ID).title)
     }
   }
 
@@ -96,8 +98,9 @@ class AgentLogsScreenTest {
 
       // "Listed the leaks" is a sentence about the leaks screen, so *leaks* is the link and what comes
       // before it is prose. Linking the whole of it was underlining a verb; naming the place from the tool
-      // instead read as "Listed the leaks Leaks".
-      onNodeWithText(LISTED_THE).assertHasNoClickAction()
+      // instead read as "Listed the leaks Leaks". The verb unfolds the call and goes nowhere.
+      onNodeWithText(LISTED_THE).performClick()
+      selectedTab().assertTextContains(Place.AgentLog(SESSION_ID).title)
       onNodeWithText(LEAKS).assertHasClickAction()
       onNodeWithText(LEAKS).performClick()
 
@@ -114,9 +117,10 @@ class AgentLogsScreenTest {
 
       // Reading the tree from its root is what this window opens on, so a row saying an agent did it leads
       // there. Anything an agent can do that a person can do here is a row that goes where they went.
-      onNodeWithText(READ_THE).assertHasNoClickAction()
-      // The tab is on the agent's log until the row moves it, and then on the tree from its root, which is
-      // where a window opens and what the row said the agent read.
+      // The tab is on the agent's log until the row moves it — which the verb does not do, it being the fold
+      // over the call — and then on the tree from its root, which is where a window opens and what the row
+      // said the agent read.
+      onNodeWithText(READ_THE).performClick()
       selectedTab().assertTextContains(Place.AgentLog(SESSION_ID).title)
       onNodeWithText(DOMINATOR_TREE).performClick()
 
@@ -139,6 +143,53 @@ class AgentLogsScreenTest {
       onNodeWithText(BIGGEST_OBJECTS).performClick()
 
       waitUntilAtLeastOneExists(hasText(Place.OBJECTS_LABEL) and isTab(), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `a row unfolds onto what the call sent and what it read back`() {
+    diveUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call()))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
+
+      // Behind the verb until asked for, because a session read straight through is sentences: the exchange
+      // is what somebody opens one call for when the sentences stopped explaining the next step.
+      onNodeWithText(SENT, substring = true).assertDoesNotExist()
+      onNodeWithText(LOOKED_AT).performClick()
+
+      // Both halves, whole, and as they were: this is the one thing on the screen that is not this window's
+      // reading of what happened.
+      waitUntilAtLeastOneExists(hasText(SENT), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(ANSWERED).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `a refused call unfolds onto what it sent, its answer being the refusal on the row`() {
+    diveUiTest {
+      openAgentLogs(
+        listOf(session(calls = listOf(call(tool = "conclude", output = null, refusal = REFUSAL))))
+      )
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(CONCLUDED_ABOUT).performClick()
+
+      // The refusal is already on the row in full, so unfolding adds what was sent and does not print the
+      // same sentence a second time in a box.
+      waitUntilAtLeastOneExists(hasText(SENT), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText("$REFUSED $REFUSAL").assertIsDisplayed()
+    }
+  }
+
+  @Test fun `a session recorded before the exchange was kept says so rather than unfolding onto nothing`() {
+    diveUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call(input = null, output = null)))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(LOOKED_AT).performClick()
+
+      // A gap where the exchange should be reads as an app that lost it; this is the app saying it was never
+      // given one, which is a thing about that session rather than about this window.
+      waitUntilAtLeastOneExists(hasText(NOTHING_KEPT, substring = true), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -352,6 +403,8 @@ class AgentLogsScreenTest {
   private fun call(
     tool: String = "describe_object",
     heapDumpPath: String = heapDump.file.absolutePath,
+    input: String? = SENT,
+    output: String? = ANSWERED,
     refusal: String? = null,
     outcome: String? = null
   ) = AgentSessionCall(
@@ -362,6 +415,8 @@ class AgentLogsScreenTest {
     heapDumpPath = heapDumpPath,
     place = Place.Object(activityObjectId()),
     arguments = mapOf("object" to hex(activityObjectId())),
+    input = input,
+    output = output,
     refusal = refusal,
     outcome = outcome,
     millis = 12L
@@ -382,6 +437,8 @@ class AgentLogsScreenTest {
     heapDumpPath = heapDump.file.absolutePath,
     place = Place.Leaks(),
     arguments = emptyMap(),
+    input = SENT,
+    output = ANSWERED,
     refusal = null,
     outcome = null,
     millis = 12L
@@ -399,6 +456,8 @@ class AgentLogsScreenTest {
     heapDumpPath = heapDump.file.absolutePath,
     place = if (tool == "find_objects") Place.Objects() else Place.wholeHeapDump(),
     arguments = emptyMap(),
+    input = SENT,
+    output = ANSWERED,
     refusal = null,
     outcome = null,
     millis = 12L
@@ -414,6 +473,8 @@ class AgentLogsScreenTest {
     // Nowhere to go: this one asks the app rather than a heap dump. What it came back with is where it goes.
     place = null,
     arguments = emptyMap(),
+    input = SENT,
+    output = ANSWERED,
     refusal = null,
     outcome = null,
     openHeapDumps = listOf(heapDump.file.absolutePath, otherHeapDump.absolutePath),
@@ -453,6 +514,19 @@ class AgentLogsScreenTest {
     const val CLIENT = "claude-code 9.9.9"
     const val REASON = "Checking whether this activity is really destroyed."
     const val REFUSAL = "3 step(s) have no verdict"
+
+    /** In front of a refusal on a row, which is where the answer to a refused call already is. */
+    const val REFUSED = "Refused:"
+
+    /**
+     * What a call sent and what came back, as the text they were: several lines of formatted JSON, which is
+     * what reaches the model and so what a session keeps. See [shark.dive.agent.AgentSessionCall.input].
+     */
+    const val SENT = "{\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"$REASON\"\n}"
+    const val ANSWERED = "{\n  \"object\": \"0x12d368b8\",\n  \"verdict\": \"UNKNOWN\"\n}"
+
+    /** And what a row of a session recorded before either of them was kept unfolds onto. */
+    const val NOTHING_KEPT = "recorded before Shark Dive kept what was sent and answered"
     const val FAULTY_REFERENCE = "Holder.activity"
     const val NO_AGENT_YET = "No agent has worked on this heap dump"
 

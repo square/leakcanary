@@ -130,13 +130,18 @@ internal class AgentTools(
     name = AGENT_LOG,
     description = "What has already been done to this heap dump, by you and by anybody else: one entry per " +
       "session, newest first, with what it concluded and how many of its calls were refused — and with " +
-      "`$SESSION`, every call of one session in order, with the reason the agent gave for each. The " +
+      "`$SESSION`, every call of one session in order, each with the reason the agent gave and the exact " +
+      "text it sent and read back. The " +
       "window's *Agent logs* screen, which is where a person reads the same thing. Worth reading before " +
       "starting: an investigation somebody already ran is either the answer or the half of the dump not " +
       "worth doing again. Sessions of earlier runs of the app are in it, and so is this one.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
-      SESSION to string("Optional: one session's id, from the list, to read every call it made.").optional()
+      SESSION to string(
+        "Optional: one session's id, from the list, to read every call it made, with what each call sent " +
+          "and what it got back. A long answer, and the only way to tell a step that read an answer from " +
+          "one that misread it."
+      ).optional()
     )
   ) { arguments ->
     val dump = arguments.heapDump()

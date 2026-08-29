@@ -100,11 +100,22 @@ internal object AgentJson {
   }
 
   /**
-   * Every call of one session, in the order it made them, with the reason the agent gave for each.
+   * Every call of one session, in the order it made them, with the reason the agent gave for each — and the
+   * exchange itself.
    *
    * The reasons are the point. A session read as a list of tool names is the protocol showing through; read
    * as what was asked and why, it either follows from itself or doesn't — which is the same judgement the
    * person at the window makes on that screen.
+   *
+   * **And `input` and `output` are what the reasons are checked against**, which is why this answer is a long
+   * one: a reason is what the agent said it was doing, and the two of them are what it actually sent and
+   * actually read. An agent asked to work out where another one went wrong cannot do it from a summary,
+   * however well worded — the step that misread an answer reads exactly like the step that read it right.
+   * The same text the window's *Agent logs* screen unfolds a row onto.
+   *
+   * So a session with a hundred calls in it is a large answer, and that is the tool being used as intended
+   * rather than a leak: this is the only call on this surface whose subject is somebody else's whole
+   * investigation. The list without `session` is the short form, and how a reader picks which one to read.
    */
   fun agentSessionCalls(session: AgentSession): JsonObject = buildJsonObject {
     put("session", session.sessionId)
@@ -121,6 +132,11 @@ internal object AgentJson {
           put("heapDumpPath", call.heapDumpPath)
           put("refused", call.refusal)
           put("outcome", call.outcome)
+          // Last, and in that order, because they are the two long ones and they read as the call: this is
+          // what went out, and this is what came back. Null on both for a session recorded by a build older
+          // than they are; null on `output` alone for a call whose answer was the refusal above it.
+          put("input", call.input)
+          put("output", call.output)
         }
       }
     }

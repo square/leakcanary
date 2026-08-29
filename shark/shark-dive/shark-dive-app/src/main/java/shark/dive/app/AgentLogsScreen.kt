@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import java.io.File
 import java.time.Instant
@@ -281,6 +282,12 @@ internal fun AgentLogScreen(
  * this window; a call that named nothing went to a screen of the dump all the same, and the words for that
  * come with the verb. A row with no link is a call about the app rather than about a heap dump — which dumps
  * are open, which devices are connected — or one about a heap dump that has since been deleted.
+ *
+ * **And every row unfolds onto what actually crossed the wire**, which is the other half of following an
+ * investigation. The sentence on the row is this window's reading of a call, and a reading is no use for the
+ * question a reader ends up with — why did it do *that* next — because a step made on an answer that said
+ * nothing reads exactly like a step made on one that said everything. So the arrow is on every row and what
+ * is behind it is [AgentSessionCall.input] and [AgentSessionCall.output], as sent and as read.
  */
 @Composable
 private fun AgentCallRow(
@@ -324,23 +331,18 @@ private fun AgentCallRow(
       // Wrapped rather than truncated, since a class name is as long as it is and the reason under it is a
       // sentence: this row is read, not scanned past.
       FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        UnfoldableVerb(call.verb, isUnfolded) { isUnfolded = !isUnfolded }
         when {
-          openHeapDumps.isNotEmpty() -> UnfoldableVerb(call.verb, isUnfolded) { isUnfolded = !isUnfolded }
-          target == null -> Text(call.verb, style = MaterialTheme.typography.bodyMedium)
+          target == null -> Unit
+          leadsTo == null -> Text(target, style = MaterialTheme.typography.bodyMedium)
+          // Another dump: one place to go, and a link that names that dump for somebody to go there
+          // without this window.
+          opens != null -> CopyLinkTarget({ onCopyHeapDumpLink(opens, leadsTo) }) {
+            LinkText(target, Modifier.openable { onOpenHeapDump(opens, leadsTo) })
+          }
           else -> {
-            Text(call.verb, style = MaterialTheme.typography.bodyMedium)
-            when {
-              leadsTo == null -> Text(target, style = MaterialTheme.typography.bodyMedium)
-              // Another dump: one place to go, and a link that names that dump for somebody to go there
-              // without this window.
-              opens != null -> CopyLinkTarget({ onCopyHeapDumpLink(opens, leadsTo) }) {
-                LinkText(target, Modifier.openable { onOpenHeapDump(opens, leadsTo) })
-              }
-              else -> {
-                val open: (OpenIn) -> Unit = { openIn -> onOpen(leadsTo, openIn) }
-                OpenTarget(open, { onCopyLink(leadsTo) }) { LinkText(target, Modifier.openable(open)) }
-              }
-            }
+            val open: (OpenIn) -> Unit = { openIn -> onOpen(leadsTo, openIn) }
+            OpenTarget(open, { onCopyLink(leadsTo) }) { LinkText(target, Modifier.openable(open)) }
           }
         }
         // What the answer came to, and — for a row that opens another dump when clicked — which dump that
@@ -366,17 +368,74 @@ private fun AgentCallRow(
         openHeapDumps.forEach { path ->
           OpenHeapDumpRow(path, heapDumpFile, onOpenHeapDump, onCopyHeapDumpLink)
         }
+        CallExchange(call)
       }
     }
   }
 }
 
 /**
- * A verb with what is behind it, for the call whose answer is a list rather than a thing.
+ * What the agent sent and what it read back, under the row that says what this window made of it.
  *
- * The verb itself is what opens it, since there is no thing on that row to be a link — and the arrow is the
- * same one the leaks screen folds its sections with, because it is the same gesture on a screen somebody
- * reads straight after that one.
+ * **Whole, and never a first line of it.** What somebody unfolds a call for is the part the row left out, so
+ * an answer cut to fit is the one shape this must not take: the field that was null, the address that was a
+ * digit out, the list that came back empty are all in the tail. It is behind a fold and monospaced for the
+ * same reason — this is data being read closely, not prose being skimmed, and JSON that doesn't line up is
+ * JSON nobody reads twice.
+ *
+ * A refused call has no output here because its answer *was* the refusal, which the row prints in full above.
+ * A call with neither says so: a session recorded before this app kept them unfolds onto a sentence rather
+ * than onto nothing.
+ */
+@Composable
+private fun CallExchange(call: AgentSessionCall) {
+  val input = call.input
+  val output = call.output
+  if (input == null && output == null) {
+    Text(
+      NOTHING_KEPT,
+      Modifier.padding(start = UNFOLDED_INSET),
+      style = MaterialTheme.typography.bodySmall,
+      color = MUTED_TEXT
+    )
+    return
+  }
+  input?.let { ExchangeText(SENT, it) }
+  output?.let { ExchangeText(ANSWERED, it) }
+}
+
+/** One side of an exchange: what it is, and then it, as it was. */
+@Composable
+private fun ExchangeText(
+  label: String,
+  text: String
+) {
+  Column(
+    Modifier.padding(start = UNFOLDED_INSET),
+    verticalArrangement = Arrangement.spacedBy(2.dp)
+  ) {
+    Text(label, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+    // Selectable, because what somebody does with an exact answer is take it somewhere else: into an issue,
+    // into a diff of two runs, into a message to whoever handed them the dump.
+    SelectionContainer {
+      Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
+        Text(
+          text,
+          Modifier.padding(8.dp),
+          style = MaterialTheme.typography.bodySmall,
+          fontFamily = FontFamily.Monospace
+        )
+      }
+    }
+  }
+}
+
+/**
+ * A verb with what is behind it, which is on every row.
+ *
+ * The verb itself is what opens it, since the thing on a row is a link to where the call went — and the arrow
+ * is the same one the leaks screen folds its sections with, because it is the same gesture on a screen
+ * somebody reads straight after that one.
  */
 @Composable
 private fun UnfoldableVerb(
@@ -495,6 +554,20 @@ private const val LEADS_TO = "→"
 private const val IN = "in"
 
 private const val REFUSED = "Refused:"
+
+/** Over the two halves of an unfolded call, which are the call itself rather than a word about it. */
+private const val SENT = "sent:"
+private const val ANSWERED = "answered:"
+
+/**
+ * And where a session from an older build has neither.
+ *
+ * Rather than a fold that opens onto an empty gap, which reads as an app that lost the answer instead of one
+ * that was never given it.
+ */
+private const val NOTHING_KEPT =
+  "This session was recorded before Shark Dive kept what was sent and answered, so only the line above it " +
+    "is left."
 
 private const val A_CLIENT_THAT_DID_NOT_SAY = "An agent"
 

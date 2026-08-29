@@ -225,6 +225,40 @@ class McpSessionTest {
   }
 
   @Test
+  fun `a call is written down as the text that was sent and the text that came back`() {
+    val result = callTool(
+      """{"name":"describe_object","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
+        """"reason":"Reading the holder's fields."}}"""
+    )
+
+    // The same string the model read, not the same JSON printed a second way: what a session is kept for is
+    // following what an agent did, and an answer reformatted on its way to disk is one nobody can compare
+    // against the client's own transcript of it.
+    val call = sessions().single().calls.single()
+    assertThat(call.output).isEqualTo(result.array("content").single().jsonObject.text("text"))
+    // And everything the client sent under the tool's name, `reason` included: the derived fields leave it
+    // out because they have one of their own, and this is the call rather than a reading of it.
+    assertThat(call.input)
+      .contains(""""object": "${hex(heapDump.holderObjectId)}"""")
+      .contains(""""reason": "Reading the holder's fields."""")
+  }
+
+  @Test
+  fun `a refused call keeps what it sent, its answer being the refusal`() {
+    val result = callTool(
+      """{"name":"conclude","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +
+        """"rootCause":"The holder never lets go.","reason":"I know what this is."}}"""
+    )
+
+    // Written once rather than twice: the text a refused call was answered with *is* its refusal, which the
+    // row of the *Agent logs* screen already prints in full. See [AgentSessionCall.output].
+    val call = sessions().single().calls.single()
+    assertThat(call.output).isNull()
+    assertThat(call.refusal).isEqualTo(result.array("content").single().jsonObject.text("text"))
+    assertThat(call.input).contains(""""rootCause": "The holder never lets go."""")
+  }
+
+  @Test
   fun `a refused call is written down with the refusal and what it was asking about`() {
     callTool(
       """{"name":"conclude","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +

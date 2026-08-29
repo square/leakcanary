@@ -371,7 +371,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | --- | --- |
 | `open_heap_dumps` | Every heap dump open, by the file name the other tools take, with the method to follow. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
-| `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to. |
+| `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
 | `describe_object` | What an object is: its class, fields, labels, size. |
 | `ways_held` | Every way an object is held, rather than the one chain — the *X ways from here* list. |
@@ -425,14 +425,14 @@ the sentence it gave for doing it:
 ```
 08:23:04 ▸ Asked which heap dumps are open
           because: Seeing what there is to read before asking anything about it.
-08:23:11  Listed the leaks
+08:23:11 ▸ Listed the leaks
           because: Starting from what the heap dump already says shouldn't be here.
-08:23:18  Read the chain to 0x12d368b8
+08:23:18 ▸ Read the chain to 0x12d368b8
           because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is
           true. Reading the chain from a GC root.
-08:23:27  Looked at 0x12d00c30
+08:23:27 ▸ Looked at 0x12d00c30
           because: The FutureTask in the middle of the chain: checking whether it is really running.
-08:23:34  Looked for every way of holding 0x12d368b8
+08:23:34 ▸ Looked for every way of holding 0x12d368b8
           because: Checking whether anything else holds the activity, or only this one chain.
 ```
 
@@ -454,10 +454,48 @@ rather than on to an answer:
           reference: the rules can only name one once something below it is known not to belong. […]
 ```
 
+**And every row unfolds onto the call itself** — the ▸ opens what the agent sent and what it read back, as
+the text each of them was, so a step you don't follow is one question rather than a dead end:
+
+```
+11:37:31 ▾ Looked at 0x12d368b8
+          because: The one App leak: a MainActivity the app watched. Reading what it is before the chain.
+          sent:
+            {
+                "object": "0x12d368b8",
+                "reason": "The one App leak: a MainActivity the app watched. Reading what it is
+                           before the chain."
+            }
+          answered:
+            {
+                "object": "0x12d368b8",
+                "label": "MainActivity",
+                "className": "com.example.leakcanary.MainActivity",
+                "kind": "INSTANCE",
+                "strength": "STRONG",
+                "shallowBytes": 214,
+                "retainedBytes": 210978,
+                "verdict": "STUCK",
+                "verdictReason": "ObjectWatcher was watching this and Activity#mDestroyed is true",
+                […]
+            }
+```
+
+Whole, never a first line of it: what you open a call for is the part the sentence left out, so an answer cut
+to fit would be one where the field that misled the agent is the part that got cut. A refused call shows what
+it sent and no answer, its answer having been the refusal already on the row. And a session recorded by an
+older Shark Dive says so rather than opening onto a gap.
+
+**Reading it is what makes the reasons worth anything**, since a reason is what an agent *said* it was doing:
+a step that reads as sound and was taken on an answer that said nothing looks exactly like a step taken on
+one that said everything, until you open both. Select and copy either half — into an issue, into a message to
+whoever handed you the dump, into a diff of two runs.
+
 A session is kept in `~/.shark-dive/agents/sessions`, one file per agent that connected and the newest
-hundred kept, a line of JSON per call — so it outlives the window and can be read by something other than
-this app. **And the reads each call cost are in the run's log**, in `~/.shark-dive/logs`, where the reason
-it gave is followed by the work it caused:
+hundred kept, a line of JSON per call, each carrying that call's `input` and `output` — so it outlives the
+window and can be read by something other than this app. `agent_log` hands an agent the same text, which is
+how one agent works out where another went wrong. **And the reads each call cost are in the run's log**, in
+`~/.shark-dive/logs`, where the reason it gave is followed by the work it caused:
 
 ```
 18:19:48.035 [shark-dive-agents] An agent called chain_from_gc_root(object=0x12d368b8, window=zvphq4r3)

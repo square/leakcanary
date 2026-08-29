@@ -160,6 +160,9 @@ internal class McpSession(
     val startedAt = System.nanoTime()
     return try {
       val answer = tool.call(arguments)
+      // Formatted once and then both answered with and written down, so that the text in the session is the
+      // text the model read rather than the same object printed a second way. See [AgentSessionCall.output].
+      val answered = PRETTY_JSON.encodeToString(JsonElement.serializer(), answer)
       // The answer as well as the arguments, because two of them are things the arguments don't say: what
       // was concluded, and which heap dumps were open. See [outcomeOfTool] and [openHeapDumpsOfTool].
       record(
@@ -167,12 +170,13 @@ internal class McpSession(
         arguments,
         target,
         refusal = null,
+        output = answered,
         outcome = outcomeOfTool(name, answer),
         openHeapDumps = openHeapDumpsOfTool(name, answer),
         at = at,
         startedAt = startedAt
       )
-      toolResult(answer)
+      toolResult(answer, answered)
     } catch (refused: AgentRefusal) {
       // A refusal is an answer to the agent and not a failure of the server, so it comes back as a tool
       // result the model reads rather than as a JSON-RPC error the client may swallow.
@@ -182,6 +186,9 @@ internal class McpSession(
         arguments,
         target,
         refusal = refused.message,
+        // Which is the whole of what came back, so there is nothing else to keep: a refusal is text, and
+        // this is it. See [AgentSessionCall.output].
+        output = null,
         outcome = null,
         at = at,
         startedAt = startedAt
@@ -203,6 +210,7 @@ internal class McpSession(
     arguments: JsonObject,
     target: AgentTarget,
     refusal: String?,
+    output: String?,
     outcome: String?,
     openHeapDumps: List<String> = emptyList(),
     at: Instant,
@@ -217,6 +225,10 @@ internal class McpSession(
         heapDumpPath = target.heapDumpPath,
         place = target.place,
         arguments = arguments.recorded(),
+        // Everything the client sent under this tool's name, formatted the way the answer is: the fields
+        // above are what this app made of it, and this is what it was. See [AgentSessionCall.input].
+        input = PRETTY_JSON.encodeToString(JsonElement.serializer(), arguments),
+        output = output,
         refusal = refusal,
         outcome = outcome,
         openHeapDumps = openHeapDumps,
@@ -225,13 +237,20 @@ internal class McpSession(
     )
   }
 
-  private fun toolResult(result: JsonObject): JsonObject = buildJsonObject {
+  private fun toolResult(
+    result: JsonObject,
+    /**
+     * [result] as text, which the caller already has because the session file keeps the same string.
+     *
+     * Indented, because the reader is a model reading a chain of twenty steps and every one of them matters.
+     * The newlines are escaped by being inside a JSON string, so the wire stays one line.
+     */
+    text: String
+  ): JsonObject = buildJsonObject {
     putJsonArray("content") {
       addJsonObject {
         put("type", "text")
-        // Indented, because the reader is a model reading a chain of twenty steps and every one of them
-        // matters. The newlines are escaped by being inside a JSON string, so the wire stays one line.
-        put("text", PRETTY_JSON.encodeToString(JsonElement.serializer(), result))
+        put("text", text)
       }
     }
     // For the clients that read it, alongside the text for the ones that don't.

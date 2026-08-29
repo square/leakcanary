@@ -25,6 +25,29 @@ mitigations that shipped in 2026 (Anthropic's tool search, code execution over M
 **This surface is not where a context window goes to die**, and a per-tool cost of ~300 tokens is what buys
 descriptions that say when to reach for a tool. Re-measure it if the count doubles again.
 
+## And what reading somebody else's session costs
+
+`agent_log` without a session id is a line per session and cheap. With one, it is now every call of that
+session *with what each one sent and read back*, which is the only form that answers "why did it do that
+next" — and the numbers are worth knowing before reaching for it. Measured on a five-call session against
+`leak_asynctask_o.hprof`, one `list_leaks` twice, a `describe_object`, a `chain_from_gc_root` and a refused
+`conclude`:
+
+| | Measured |
+| --- | --- |
+| The five answers as recorded | 7,783 + 7,783 + 11,935 + 5,364 characters, and none for the refusal |
+| The whole `agent_log session=…` answer | 39,400 characters, ≈9,850 tokens |
+
+So **a session is roughly two thousand tokens a call**, and a thirty-call investigation read in full is most
+of a small context window. That is the tool being used for what it is for rather than a leak — it is the one
+call on this surface whose subject is somebody else's whole investigation — but it means the list form is
+what "worth reading before starting" points at, and the session form is what somebody reaches for when an
+investigation went wrong and the reasons on their own didn't say where.
+
+Nothing truncates it, deliberately: a session cut to fit is one where the answer that misled an agent is the
+part that got cut. If this needs to be cheaper the answer is a way to ask for *one call's* exchange, not a
+shorter version of every call's.
+
 ## What the command line costs, now that there is one
 
 `--agent <tool> name=value …` is a process per call, and the thing to know is what that *doesn't* cost.

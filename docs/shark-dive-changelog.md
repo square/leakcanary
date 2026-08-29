@@ -80,7 +80,11 @@ uses, without the one for a newly recognized library leak:
   one is everything that agent did — what each call did, which object it did it to, and the sentence it gave
   for making it, with the refusals in red. A row leads where the call went, so reading what an agent did and
   going to look at it are one move — including a row about a heap dump this window hasn't got, which opens
-  that dump, and whose link is there to copy like every other. Kept in `~/.shark-dive/agents/sessions`,
+  that dump, and whose link is there to copy like every other. **And every row unfolds onto the call itself**,
+  what was sent and what came back, as the text each of them was and never a first line of it: a reason is
+  what an agent *said* it was doing, and a step taken on an answer that said nothing reads exactly like one
+  taken on an answer that said everything until you open both. `agent_log` hands an agent the same text, so
+  one agent can work out where another went wrong. Kept in `~/.shark-dive/agents/sessions`,
   one file per session and the newest hundred kept, so a session outlives the window it was worked in.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **The chain marks the faulty reference**: the one step going from an `Expected` object straight to a

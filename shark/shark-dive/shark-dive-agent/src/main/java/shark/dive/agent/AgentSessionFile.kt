@@ -32,6 +32,12 @@ import shark.dive.Place
  * Which is why it is machine readable and appended to rather than the run log reworded: the run log is prose
  * about everything the app did, and this is the one agent's calls with nothing else in the file.
  *
+ * **And a call carries the exchange itself, not only this app's reading of it.** Every derived field here —
+ * the verb, the subject, the place a row leads to — is what Shark Dive made of a call, and a reading is the
+ * one thing that is no use when the question is why an investigation went wrong. So [AgentSessionCall.input]
+ * and [AgentSessionCall.output] are what the agent sent and what it read back, verbatim, which is what makes
+ * a session something to debug and follow along with rather than only a summary to skim.
+ *
  * JSON, one object per line, flushed per line, because the session worth reading is often the one that ended
  * by the agent giving up or the app being killed. A header line naming the session, then a line per call.
  * Beside the notes and the verdicts under `~/.shark-dive`, since it is the same kind of thing: what
@@ -267,6 +273,10 @@ class AgentSessionFile private constructor(
           arguments.forEach { (name, value) -> put(name, value) }
         }
       }
+      // Last, because they are the long ones: a line stays readable to whoever is looking at it with `head
+      // -c` or a text editor's first screenful, and what is up there is what says which call this is.
+      input?.let { put(INPUT_KEY, it) }
+      output?.let { put(OUTPUT_KEY, it) }
     }
 
     private fun JsonObject.asCallOrNull(
@@ -292,6 +302,8 @@ class AgentSessionFile private constructor(
         place = link?.let { placeOfLinkOrNull(it, file, lineNumber) }
           ?: screenOfTool(tool, arguments)?.place,
         arguments = arguments,
+        input = text(INPUT_KEY),
+        output = text(OUTPUT_KEY),
         refusal = text(REFUSAL_KEY),
         outcome = text(OUTCOME_KEY),
         openHeapDumps = this[OPEN_HEAP_DUMPS_KEY].asStrings(),
@@ -356,8 +368,12 @@ class AgentSessionFile private constructor(
     private val JSON = Json { ignoreUnknownKeys = true }
 
     /**
-     * How many sessions are kept. More than the run logs beside them, because these are a few kilobytes
-     * each and because "what did that agent do" is asked about an investigation rather than about a run.
+     * How many sessions are kept. More than the run logs beside them, because "what did that agent do" is
+     * asked about an investigation rather than about a run.
+     *
+     * A session is as big as the answers it read — tens of kilobytes for a short one, more where a chain or a
+     * tree came back — since [AgentSessionCall.output] keeps them. Which is the trade: a hundred sessions of
+     * summaries would fit in a fraction of that and would be a hundred sessions nobody can check.
      */
     const val KEEP_SESSION_COUNT = 100
 
@@ -395,6 +411,10 @@ class AgentSessionFile private constructor(
     private const val OPEN_HEAP_DUMPS_KEY = "openHeapDumps"
     private const val MILLIS_KEY = "millis"
     private const val ARGUMENTS_KEY = "arguments"
+
+    /** The call as it was sent and the answer as it was read, verbatim. See [AgentSessionCall.input]. */
+    private const val INPUT_KEY = "input"
+    private const val OUTPUT_KEY = "output"
   }
 }
 
@@ -442,6 +462,32 @@ class AgentSessionCall(
   val place: Place?,
   /** The rest of the arguments, by name, with `reason` and `window` left out: they have fields of their own. */
   val arguments: Map<String, String>,
+  /**
+   * What the agent sent, as the text it sent: its arguments, formatted, nothing left out and nothing added.
+   *
+   * Every other field of a call is *about* the call — the verb, the subject, the place, the arguments the
+   * screen puts beside a verb — and every one of them is this app's reading of what happened. This is the
+   * thing itself, which is what somebody debugging a session needs: an argument that looks right on the row
+   * and was spelled wrong on the wire is invisible in a paraphrase and obvious here.
+   *
+   * The arguments and not the JSON-RPC envelope around them, because the envelope is the client's and the
+   * arguments are the model's. The tool name is [tool] and the id is a number the client counted to.
+   *
+   * Null for a session written before this was recorded, which is how the *Agent logs* screen knows to say
+   * so rather than unfolding onto nothing.
+   */
+  val input: String?,
+  /**
+   * And exactly what it got back: the answer, formatted, as the text that reached the model.
+   *
+   * Not a summary of it — [outcome] is that, and only `conclude` has one. What this is for is following an
+   * investigation afterwards: a step that reads as sound and was made on an answer that said nothing is a
+   * step nobody can see the trouble with until they read what the agent read.
+   *
+   * Null for a refused call, whose answer text *is* the refusal: it would be the same string twice, on disk
+   * and on the screen, since a row already prints [refusal] in full.
+   */
+  val output: String?,
   /** Why the call was refused, and null for one that was answered. See [AgentRefusal]. */
   val refusal: String?,
   /**

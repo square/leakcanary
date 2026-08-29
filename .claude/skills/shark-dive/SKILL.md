@@ -54,6 +54,9 @@ was built debuggable or the whole device build is; `list_devices` says which.
 ```
 
 An investigation somebody already ran is either the answer or the half of the dump not worth doing again.
+Adding `session=<id>` reads one of them call by call, each with the exact text it sent and read back — which
+is how you tell a step that read an answer from one that misread it, and a long answer for that reason, so
+reach for it when a run went wrong rather than as a matter of course.
 
 ## The command line
 
