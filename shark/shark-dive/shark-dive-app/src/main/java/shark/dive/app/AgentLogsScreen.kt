@@ -286,8 +286,9 @@ internal fun AgentLogScreen(
  * **And every row unfolds onto what actually crossed the wire**, which is the other half of following an
  * investigation. The sentence on the row is this window's reading of a call, and a reading is no use for the
  * question a reader ends up with — why did it do *that* next — because a step made on an answer that said
- * nothing reads exactly like a step made on one that said everything. So the arrow is on every row and what
- * is behind it is [AgentSessionCall.input] and [AgentSessionCall.output], as sent and as read.
+ * nothing reads exactly like a step made on one that said everything. So there is a mark under every row and
+ * what is behind it is [AgentSessionCall.input] and [AgentSessionCall.output], as sent and as read. Under it
+ * rather than on the sentence: see [ExchangeToggle].
  */
 @Composable
 private fun AgentCallRow(
@@ -331,7 +332,7 @@ private fun AgentCallRow(
       // Wrapped rather than truncated, since a class name is as long as it is and the reason under it is a
       // sentence: this row is read, not scanned past.
       FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        UnfoldableVerb(call.verb, isUnfolded) { isUnfolded = !isUnfolded }
+        Text(call.verb, style = MaterialTheme.typography.bodyMedium)
         when {
           target == null -> Unit
           leadsTo == null -> Text(target, style = MaterialTheme.typography.bodyMedium)
@@ -364,6 +365,9 @@ private fun AgentCallRow(
           color = MaterialTheme.colorScheme.error
         )
       }
+      // Under everything this window made of the call, because it is the call: last is where a reader
+      // arrives having read the sentence and wanted more of it, and it opens where it is.
+      ExchangeToggle(isUnfolded) { isUnfolded = !isUnfolded }
       if (isUnfolded) {
         openHeapDumps.forEach { path ->
           OpenHeapDumpRow(path, heapDumpFile, onOpenHeapDump, onCopyHeapDumpLink)
@@ -431,29 +435,32 @@ private fun ExchangeText(
 }
 
 /**
- * A verb with what is behind it, which is on every row.
+ * The mark at the foot of a row, which opens the call under it. On every row.
  *
- * The verb itself is what opens it, since the thing on a row is a link to where the call went — and the arrow
- * is the same one the leaks screen folds its sections with, because it is the same gesture on a screen
- * somebody reads straight after that one.
+ * **A mark of its own rather than the verb**, which is where this began and was wrong for a reason worth
+ * keeping: a row is a sentence, one part of it is a link to where the call went, and folding it from the
+ * first words made hovering the sentence light up the half of it that *isn't* the link. Two pressable pieces
+ * of one sentence, doing different things, and the highlight drawing a box round the wrong one. So the
+ * sentence stays a sentence and what opens the call sits under it, where what it opens appears.
+ *
+ * Braces, because what is behind it is the JSON, with the arrow the leaks screen folds its sections with in
+ * front — the same gesture on a screen somebody reads straight after that one. Small and grey and wordless
+ * because it is on every row of a screen read for the sentences: a word here is a word to read past forty
+ * times before reaching the row worth opening.
  */
 @Composable
-private fun UnfoldableVerb(
-  verb: String,
+private fun ExchangeToggle(
   isUnfolded: Boolean,
   onToggle: () -> Unit
 ) {
-  Row(
-    Modifier.clickableRow(onClick = onToggle),
-    horizontalArrangement = Arrangement.spacedBy(4.dp)
-  ) {
-    Text(
-      if (isUnfolded) EXPANDED_ARROW else FOLDED_ARROW,
-      style = MaterialTheme.typography.bodyMedium,
-      color = MUTED_TEXT
-    )
-    Text(verb, style = MaterialTheme.typography.bodyMedium)
-  }
+  Text(
+    if (isUnfolded) EXPANDED_EXCHANGE else FOLDED_EXCHANGE,
+    // Padded inside the click, so that a mark this small is still something a pointer can land on.
+    Modifier.clickableRow(onClick = onToggle).padding(end = 6.dp, top = 2.dp, bottom = 2.dp),
+    style = MaterialTheme.typography.bodySmall,
+    fontFamily = FontFamily.Monospace,
+    color = MUTED_TEXT
+  )
 }
 
 /**
@@ -555,6 +562,15 @@ private const val IN = "in"
 
 private const val REFUSED = "Refused:"
 
+/**
+ * What opens a call, folded and open: the arrow this app folds everything with, and JSON's braces.
+ *
+ * Which is the whole of what it says, and enough — braces are what the thing behind it looks like. See
+ * [ExchangeToggle].
+ */
+private const val FOLDED_EXCHANGE = "$FOLDED_ARROW {}"
+private const val EXPANDED_EXCHANGE = "$EXPANDED_ARROW {}"
+
 /** Over the two halves of an unfolded call, which are the call itself rather than a word about it. */
 private const val SENT = "sent:"
 private const val ANSWERED = "answered:"
@@ -580,7 +596,7 @@ private const val THIS_HEAP_DUMP = "this heap dump"
  */
 private const val MISSING_HEAP_DUMP = "missing"
 
-/** How far the rows behind a verb sit in from it, which is the arrow's width and the gap after it. */
+/** How far what a row opens sits in from the mark that opened it, which is that mark's own width. */
 private val UNFOLDED_INSET = 20.dp
 
 /** And over the sessions of a client that connected and read nothing, which no window can be about. */

@@ -36,7 +36,8 @@ next" — and the numbers are worth knowing before reaching for it. Measured on 
 | | Measured |
 | --- | --- |
 | The five answers as recorded | 7,783 + 7,783 + 11,935 + 5,364 characters, and none for the refusal |
-| The whole `agent_log session=…` answer | 39,400 characters, ≈9,850 tokens |
+| The five calls as sent | 95 + 81 + 150 + 121 + 163 characters — a rounding error beside the answers |
+| The whole `agent_log session=…` answer | 39,615 characters, ≈9,900 tokens |
 
 So **a session is roughly two thousand tokens a call**, and a thirty-call investigation read in full is most
 of a small context window. That is the tool being used for what it is for rather than a leak — it is the one

@@ -275,8 +275,12 @@ class AgentSessionFileTest {
     const val WINDOW_ID = "zvphq4r3"
     const val OBJECT_ID = 0x12d368b8L
 
-    /** An exchange as it crosses the wire: formatted over several lines, which one line of JSON escapes. */
-    const val SENT = "{\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"Reading the holder's fields.\"\n}"
+    /**
+     * An exchange as it crosses the wire: the tool's own name and then several lines of formatted JSON,
+     * which one line of the session file escapes.
+     */
+    const val SENT =
+      "describe_object {\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"Reading the holder's fields.\"\n}"
     const val ANSWERED = "{\n  \"object\": \"0x12d368b8\",\n  \"className\": \"com.example.Holder\"\n}"
 
     val STARTED_AT: Instant = Instant.parse("2026-08-25T18:19:48.035Z")

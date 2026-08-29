@@ -463,15 +463,22 @@ class AgentSessionCall(
   /** The rest of the arguments, by name, with `reason` and `window` left out: they have fields of their own. */
   val arguments: Map<String, String>,
   /**
-   * What the agent sent, as the text it sent: its arguments, formatted, nothing left out and nothing added.
+   * What the agent sent, as the text it sent: the tool it named and the arguments it named it with,
+   * formatted, nothing left out and nothing added.
    *
    * Every other field of a call is *about* the call — the verb, the subject, the place, the arguments the
    * screen puts beside a verb — and every one of them is this app's reading of what happened. This is the
    * thing itself, which is what somebody debugging a session needs: an argument that looks right on the row
    * and was spelled wrong on the wire is invisible in a paraphrase and obvious here.
    *
-   * The arguments and not the JSON-RPC envelope around them, because the envelope is the client's and the
-   * arguments are the model's. The tool name is [tool] and the id is a number the client counted to.
+   * **The name as the tool spells it**, `describe_object` rather than "Looked at", and not because [tool]
+   * doesn't have it: what this field is for is being read as one thing, and a call whose name has been
+   * lifted out of it is a set of values with nothing saying what they are values of. The verb beside it on
+   * the screen is this app's word for the same call, which is exactly the pair worth seeing together when a
+   * step doesn't follow.
+   *
+   * The name and the arguments and not the JSON-RPC envelope around them, because the envelope is the
+   * client's and both of these are the model's: the id is a number the client counted to.
    *
    * Null for a session written before this was recorded, which is how the *Agent logs* screen knows to say
    * so rather than unfolding onto nothing.

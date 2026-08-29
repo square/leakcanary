@@ -236,9 +236,12 @@ class McpSessionTest {
     // against the client's own transcript of it.
     val call = sessions().single().calls.single()
     assertThat(call.output).isEqualTo(result.array("content").single().jsonObject.text("text"))
-    // And everything the client sent under the tool's name, `reason` included: the derived fields leave it
-    // out because they have one of their own, and this is the call rather than a reading of it.
+    // And the call as the model wrote it: the tool it named, then everything it sent, `reason` included —
+    // the derived fields leave that out because they have one of their own, and this is the call rather than
+    // a reading of it. The name because a set of arguments with nothing saying what they are arguments to is
+    // the one form of this that can't be read on its own.
     assertThat(call.input)
+      .startsWith("describe_object {")
       .contains(""""object": "${hex(heapDump.holderObjectId)}"""")
       .contains(""""reason": "Reading the holder's fields."""")
   }
@@ -255,7 +258,9 @@ class McpSessionTest {
     val call = sessions().single().calls.single()
     assertThat(call.output).isNull()
     assertThat(call.refusal).isEqualTo(result.array("content").single().jsonObject.text("text"))
-    assertThat(call.input).contains(""""rootCause": "The holder never lets go."""")
+    assertThat(call.input)
+      .startsWith("conclude {")
+      .contains(""""rootCause": "The holder never lets go."""")
   }
 
   @Test

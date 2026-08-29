@@ -225,9 +225,9 @@ internal class McpSession(
         heapDumpPath = target.heapDumpPath,
         place = target.place,
         arguments = arguments.recorded(),
-        // Everything the client sent under this tool's name, formatted the way the answer is: the fields
-        // above are what this app made of it, and this is what it was. See [AgentSessionCall.input].
-        input = PRETTY_JSON.encodeToString(JsonElement.serializer(), arguments),
+        // The whole call, formatted the way the answer is: the fields above are what this app made of it,
+        // and this is what it was. See [AgentSessionCall.input].
+        input = "$name ${PRETTY_JSON.encodeToString(JsonElement.serializer(), arguments)}",
         output = output,
         refusal = refusal,
         outcome = outcome,

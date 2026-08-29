@@ -82,11 +82,10 @@ class AgentLogsScreenTest {
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
 
       // What a reader wants to go and look at is the object, so that is the whole of what moves the window:
-      // a row where clicking the word "Looked at" navigates is a row with a hand cursor over prose. What the
-      // verb does instead is unfold the call in place, which leaves the tab where it was.
+      // a row where clicking the word "Looked at" navigates is a row with a hand cursor over prose. And the
+      // verb is nothing to press either — what opens the call is the mark under the row.
       onNodeWithText(activityName()).assertHasClickAction()
-      onNodeWithText(LOOKED_AT).performClick()
-      selectedTab().assertTextContains(Place.AgentLog(SESSION_ID).title)
+      onNodeWithText(LOOKED_AT).assertHasNoClickAction()
     }
   }
 
@@ -98,9 +97,8 @@ class AgentLogsScreenTest {
 
       // "Listed the leaks" is a sentence about the leaks screen, so *leaks* is the link and what comes
       // before it is prose. Linking the whole of it was underlining a verb; naming the place from the tool
-      // instead read as "Listed the leaks Leaks". The verb unfolds the call and goes nowhere.
-      onNodeWithText(LISTED_THE).performClick()
-      selectedTab().assertTextContains(Place.AgentLog(SESSION_ID).title)
+      // instead read as "Listed the leaks Leaks".
+      onNodeWithText(LISTED_THE).assertHasNoClickAction()
       onNodeWithText(LEAKS).assertHasClickAction()
       onNodeWithText(LEAKS).performClick()
 
@@ -116,11 +114,11 @@ class AgentLogsScreenTest {
       waitUntilAtLeastOneExists(hasText(DOMINATOR_TREE), OPEN_TIMEOUT_MILLIS)
 
       // Reading the tree from its root is what this window opens on, so a row saying an agent did it leads
-      // there. Anything an agent can do that a person can do here is a row that goes where they went.
-      // The tab is on the agent's log until the row moves it — which the verb does not do, it being the fold
-      // over the call — and then on the tree from its root, which is where a window opens and what the row
-      // said the agent read.
-      onNodeWithText(READ_THE).performClick()
+      // there. Anything an agent can do that a person can do here is a row that goes where they went — and
+      // "Read the" is the prose in front of it rather than a second thing to press.
+      onNodeWithText(READ_THE).assertHasNoClickAction()
+      // The tab is on the agent's log until the row moves it, and then on the tree from its root, which is
+      // where a window opens and what the row said the agent read.
       selectedTab().assertTextContains(Place.AgentLog(SESSION_ID).title)
       onNodeWithText(DOMINATOR_TREE).performClick()
 
@@ -152,10 +150,10 @@ class AgentLogsScreenTest {
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
 
-      // Behind the verb until asked for, because a session read straight through is sentences: the exchange
-      // is what somebody opens one call for when the sentences stopped explaining the next step.
+      // Behind the mark under the row until asked for, because a session read straight through is sentences:
+      // the exchange is what somebody opens one call for when the sentences stopped explaining the next step.
       onNodeWithText(SENT, substring = true).assertDoesNotExist()
-      onNodeWithText(LOOKED_AT).performClick()
+      exchangeToggle().performClick()
 
       // Both halves, whole, and as they were: this is the one thing on the screen that is not this window's
       // reading of what happened.
@@ -171,7 +169,7 @@ class AgentLogsScreenTest {
       )
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(CONCLUDED_ABOUT).performClick()
+      exchangeToggle().performClick()
 
       // The refusal is already on the row in full, so unfolding adds what was sent and does not print the
       // same sentence a second time in a box.
@@ -185,7 +183,7 @@ class AgentLogsScreenTest {
       openAgentLogs(listOf(session(calls = listOf(call(input = null, output = null)))))
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(LOOKED_AT).performClick()
+      exchangeToggle().performClick()
 
       // A gap where the exchange should be reads as an app that lost it; this is the app saying it was never
       // given one, which is a thing about that session rather than about this window.
@@ -313,10 +311,10 @@ class AgentLogsScreenTest {
       thisWindowsSession().performClick()
       waitUntilAtLeastOneExists(hasText(ASKED_WHICH_ARE_OPEN), OPEN_TIMEOUT_MILLIS)
 
-      // Behind the verb until somebody asks, because what this one came back with is a list where every
-      // other row of a session is a sentence.
+      // Behind the mark under the row until somebody asks, because what this one came back with is a list
+      // where every other row of a session is a sentence.
       onNodeWithText(otherHeapDump.name).assertDoesNotExist()
-      onNodeWithText(ASKED_WHICH_ARE_OPEN).performClick()
+      exchangeToggle().performClick()
 
       // The dump this window has open says so and leads nowhere — it is already here — and the other one is
       // a window away, which is what makes a list of what *was* open worth keeping.
@@ -423,6 +421,14 @@ class AgentLogsScreenTest {
   )
 
   /**
+   * What opens a call, which is under the row rather than on the sentence it is under.
+   *
+   * The first of them, for the sessions here that have more than one call: a mark per row, and the row a
+   * test is about is the one it built first.
+   */
+  private fun ComposeUiTest.exchangeToggle() = onAllNodesWithText(FOLDED_EXCHANGE)[0]
+
+  /**
    * The session as this window's group of them lists it, which is the first: a session that read two dumps is
    * listed under both, and only this window's group is read here.
    */
@@ -519,11 +525,15 @@ class AgentLogsScreenTest {
     const val REFUSED = "Refused:"
 
     /**
-     * What a call sent and what came back, as the text they were: several lines of formatted JSON, which is
-     * what reaches the model and so what a session keeps. See [shark.dive.agent.AgentSessionCall.input].
+     * What a call sent and what came back, as the text they were: the tool's own name and then several lines
+     * of formatted JSON, which is what reaches the model and so what a session keeps. See
+     * [shark.dive.agent.AgentSessionCall.input] — and `McpSessionTest` for these being what is recorded.
      */
-    const val SENT = "{\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"$REASON\"\n}"
+    const val SENT = "describe_object {\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"$REASON\"\n}"
     const val ANSWERED = "{\n  \"object\": \"0x12d368b8\",\n  \"verdict\": \"UNKNOWN\"\n}"
+
+    /** The mark under a row that opens the call, which is on every row. See `AgentLogsScreen`. */
+    const val FOLDED_EXCHANGE = "▸ {}"
 
     /** And what a row of a session recorded before either of them was kept unfolds onto. */
     const val NOTHING_KEPT = "recorded before Shark Dive kept what was sent and answered"

@@ -900,13 +900,15 @@ class AgentToolsTest {
     const val PLACE_LEAKS = "leaks"
 
     /**
-     * What the calls of a recorded session sent and read back, as the text they were.
+     * What the calls of a recorded session sent and read back, as the text they were: the tool's own name
+     * and then what was sent to it.
      *
      * The refused one has no output, its answer having been the refusal — which is the shape a reader of one
      * of these has to be able to tell from a call whose answer went missing.
      */
-    const val REFUSED_CALL_SENT = "{\n  \"heapDump\": \"leak.hprof\"\n}"
-    const val CONCLUDE_SENT = "{\n  \"object\": \"0x12d368b8\",\n  \"rootCause\": \"Nothing clears it.\"\n}"
+    const val REFUSED_CALL_SENT = "list_leaks {\n  \"heapDump\": \"leak.hprof\"\n}"
+    const val CONCLUDE_SENT =
+      "conclude {\n  \"object\": \"0x12d368b8\",\n  \"rootCause\": \"Nothing clears it.\"\n}"
     const val CONCLUDE_ANSWERED = "{\n  \"concluded\": true\n}"
 
     /**

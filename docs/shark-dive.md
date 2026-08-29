@@ -423,16 +423,16 @@ and there is every call that agent made, in order and in words — what it did, 
 the sentence it gave for doing it:
 
 ```
-08:23:04 ▸ Asked which heap dumps are open
+08:23:04  Asked which heap dumps are open
           because: Seeing what there is to read before asking anything about it.
-08:23:11 ▸ Listed the leaks
+08:23:11  Listed the leaks
           because: Starting from what the heap dump already says shouldn't be here.
-08:23:18 ▸ Read the chain to 0x12d368b8
+08:23:18  Read the chain to 0x12d368b8
           because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is
           true. Reading the chain from a GC root.
-08:23:27 ▸ Looked at 0x12d00c30
+08:23:27  Looked at 0x12d00c30
           because: The FutureTask in the middle of the chain: checking whether it is really running.
-08:23:34 ▸ Looked for every way of holding 0x12d368b8
+08:23:34  Looked for every way of holding 0x12d368b8
           because: Checking whether anything else holds the activity, or only this one chain.
 ```
 
@@ -440,8 +440,8 @@ the sentence it gave for doing it:
 *0x12d368b8* on *Read the chain to 0x12d368b8* and the window opens that object, so reading what an agent did
 and going to look at it are one move. A call that named nothing went somewhere all the same — *leaks* on
 *Listed the leaks* is the leaks screen, and *dominator tree* on *Read the dominator tree* is the tree from its
-root. The one row that leads to several places unfolds instead: *Asked which heap dumps are open* opens into
-the dumps that were open, each of them a window away.
+root. The one row that leads to several places keeps them behind its fold instead: *Asked which heap dumps are
+open* opens into the dumps that were open, each of them a window away.
 
 **A refused call is a row too**, in red, under the reason the agent gave for making it — and those are the
 half of a session worth reading, since a refusal is where the method sent an agent back to the heap dump
@@ -454,37 +454,45 @@ rather than on to an answer:
           reference: the rules can only name one once something below it is known not to belong. […]
 ```
 
-**And every row unfolds onto the call itself** — the ▸ opens what the agent sent and what it read back, as
-the text each of them was, so a step you don't follow is one question rather than a dead end:
+**And every row unfolds onto the call itself** — the `▸ {}` under a row opens what the agent sent and what it
+read back, as the text each of them was, so a step you don't follow is one question rather than a dead end:
 
 ```
-11:37:31 ▾ Looked at 0x12d368b8
+11:37:31  Looked at 0x12d368b8
           because: The one App leak: a MainActivity the app watched. Reading what it is before the chain.
-          sent:
-            {
-                "object": "0x12d368b8",
-                "reason": "The one App leak: a MainActivity the app watched. Reading what it is
-                           before the chain."
-            }
-          answered:
-            {
-                "object": "0x12d368b8",
-                "label": "MainActivity",
-                "className": "com.example.leakcanary.MainActivity",
-                "kind": "INSTANCE",
-                "strength": "STRONG",
-                "shallowBytes": 214,
-                "retainedBytes": 210978,
-                "verdict": "STUCK",
-                "verdictReason": "ObjectWatcher was watching this and Activity#mDestroyed is true",
-                […]
-            }
+          ▾ {}
+            sent:
+              describe_object {
+                  "object": "0x12d368b8",
+                  "reason": "The one App leak: a MainActivity the app watched. Reading what it is
+                             before the chain."
+              }
+            answered:
+              {
+                  "object": "0x12d368b8",
+                  "label": "MainActivity",
+                  "className": "com.example.leakcanary.MainActivity",
+                  "kind": "INSTANCE",
+                  "strength": "STRONG",
+                  "shallowBytes": 214,
+                  "retainedBytes": 210978,
+                  "verdict": "STUCK",
+                  "verdictReason": "ObjectWatcher was watching this and Activity#mDestroyed is true",
+                  […]
+              }
 ```
+
+What it sent is the tool's own name and then the arguments under it, which is the call as the model wrote it:
+*Looked at* is this window's word for `describe_object`, and the pair is worth having side by side exactly
+when a step doesn't follow from the one before it.
 
 Whole, never a first line of it: what you open a call for is the part the sentence left out, so an answer cut
 to fit would be one where the field that misled the agent is the part that got cut. A refused call shows what
 it sent and no answer, its answer having been the refusal already on the row. And a session recorded by an
 older Shark Dive says so rather than opening onto a gap.
+
+The mark is under the row rather than on the verb because a row is a sentence with one link in it, and a fold
+over its first words made hovering light up the half that isn't the link.
 
 **Reading it is what makes the reasons worth anything**, since a reason is what an agent *said* it was doing:
 a step that reads as sound and was taken on an answer that said nothing looks exactly like a step taken on
