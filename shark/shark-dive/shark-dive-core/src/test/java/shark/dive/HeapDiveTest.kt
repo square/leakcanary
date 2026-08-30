@@ -646,6 +646,29 @@ class HeapDiveTest {
     }
   }
 
+  @Test fun `going up follows how the map nests, which is not always the dominator`() {
+    HeapDive.open(testFolder.crowdedRootHeapDump()).use { dive ->
+      val tree = dive.tree
+      val group = tree.classGroup().nodeId
+      val tile = tree.children(group).first()
+      val payload = tree.children(tile).single()
+      val solo = tree.children(tree.root).single { tree.label(it) == "Solo" }
+
+      assertThat(tree.parentOf(tree.root)).isNull()
+      // A pile goes back to the level it was gathered at, and it is no node of the dominator tree at all.
+      assertThat(tree.parentOf(group)).isEqualTo(tree.root)
+      assertThat(tree.dominatorOf(group)).isNull()
+      // A tile goes back into the pile it was drawn in, though its bytes are attributed to the whole heap
+      // dump: going up by the dominator would land whoever pressed a level past where they pressed from.
+      assertThat(tree.dominatorOf(tile)!!.kind).isEqualTo(DominatorKind.WHOLE_HEAP_DUMP)
+      assertThat(tree.parentOf(tile)).isEqualTo(group)
+      // And where the two agree: below the piles it is what holds the object, and a child of the root that
+      // nothing gathered is the root's own.
+      assertThat(tree.parentOf(payload)).isEqualTo(tile)
+      assertThat(tree.parentOf(solo)).isEqualTo(tree.root)
+    }
+  }
+
   @Test fun `a class group reads as a pile of objects rather than as one`() {
     HeapDive.open(testFolder.crowdedRootHeapDump()).use { dive ->
       val tree = dive.tree

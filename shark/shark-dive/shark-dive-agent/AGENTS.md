@@ -18,6 +18,7 @@ being talked to by a program that is not this app.
 | `AgentMethod.kt` | The method, as prose handed to the model twice. |
 | `AgentJson.kt` | Shark Dive's model as JSON. |
 | `AgentTool.kt` | One tool, its arguments read strictly, and `AgentRefusal`. |
+| `AgentResources.kt` | The MCP app `draw_treemap` is drawn in, and the drawings it reads. Both halves of the URI a drawing is named by. |
 | `McpSession.kt` | JSON-RPC, one message per line. |
 | `AgentSessionFile.kt` | One session on disk, both ways: what a call is written as, and what it reads back as. |
 | `AgentServer.kt` | The loopback socket a run publishes, and the file that says where. |
@@ -201,6 +202,22 @@ call that never comes back.
 **A tool that reaches `adb` is minutes, and says so in the log rather than in the answer.** There is nothing to
 stream progress through — an agent is waiting on one JSON object — so `~/.shark-dive/logs` is where a dump
 that is still being pulled says how far it has got.
+
+## It serves resources too, and they are not calls
+
+`resources/list`, `resources/templates/list` and `resources/read`, for one page and the drawings it plays:
+`draw_treemap` hands back a `shark-dive://treemap/…` URI and carries `_meta.ui.resourceUri`, so a host that
+speaks [MCP Apps](https://modelcontextprotocol.io) opens the page beside the answer and the page reads the
+drawing itself. `shark/shark-dive/notes/remote-compose.md` is what that is made of — the format, the
+vendored player, and why a drawing that size can never be a tool result.
+
+**A resource read is deliberately not written to the session file.** A call is an agent's move and has a
+`reason` beside it; these are a page fetching what somebody pressed, and a session log filled with them would
+bury the investigation it exists to show. They are in `~/.shark-dive/logs` like every other read.
+
+**A `resources/read` can name any address**, having been built by a page rather than by a model, which is why
+`AgentHeapDump.drawTreemap` refuses a node the tree hasn't got as well as `draw_treemap` doing so. Two
+readers, one rule; the tool's refusal is the one an agent is meant to learn from.
 
 ## An address is a string, never a JSON number
 

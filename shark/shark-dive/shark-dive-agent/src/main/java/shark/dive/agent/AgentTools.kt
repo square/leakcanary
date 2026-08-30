@@ -64,6 +64,7 @@ internal class AgentTools(
     waysHeld(),
     findObjects(),
     dominatorTree(),
+    drawTreemap(),
     setVerdict(),
     clearVerdict(),
     readNotes(),
@@ -306,6 +307,52 @@ internal class AgentTools(
         )
       }
       AgentJson.dominatorOutline(tree.outlineOf(nodeId, maxDepth, maxChildren))
+    }
+  }
+
+  /**
+   * The one tool whose answer is for the person rather than for the model. See [AgentResources].
+   *
+   * It hands back a URI and draws nothing itself, because the size a treemap is laid out at is the client's
+   * canvas and no model can know it: the page reads the drawing at the size it measured, and again when the
+   * panel is dragged. What this call is for is putting the picture there and refusing an address that has
+   * nothing to draw — which is why the check below is here as well as in [AgentHeapDump.drawTreemap]. Both
+   * are reachable, and they are for two different readers: this message is written for the agent that typed
+   * the address, and that one for a client that made a URI up.
+   */
+  private fun drawTreemap() = AgentTool(
+    name = DRAW_TREEMAP,
+    description = "Draws the treemap for the person you are working with, in whatever they are talking to " +
+      "you in: the same map, colours and leak shading Shark Dive's own window draws, and they can press " +
+      "into it themselves from there. Reach for it when the answer is a shape rather than a sentence — " +
+      "where the memory has gone, how much of it one thing is, what a leaking object is holding on to. " +
+      "**You cannot see it**, so it replaces nothing you would have read: $DOMINATOR_TREE is the same " +
+      "tree in words and is still the one to call. Needs a client that supports MCP Apps.",
+    schema = schema(
+      HEAP_DUMP to heapDumpArgument(),
+      OBJECT to objectId("Optional: the node to draw, the whole heap dump by default.").optional()
+    ),
+    uiResourceUri = AgentResources.APP_URI
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val nodeId = arguments.optionalObjectId(OBJECT) ?: HeapDominatorTreemap.ROOT_OBJECT_ID
+    dump.read("whether ${nodeIdText(nodeId)} is somewhere to root a drawing, for an agent") { dive ->
+      if (nodeId != HeapDominatorTreemap.ROOT_OBJECT_ID && nodeId !in dive.tree) {
+        throw AgentRefusal(
+          "${exactHexObjectId(nodeId)} is no node of this heap dump's dominator tree, so there is nothing " +
+            "there to draw. Leave `$OBJECT` out for the whole heap dump."
+        )
+      }
+    }
+    buildJsonObject {
+      put("drawing", TreemapDrawingUri.of(uriNameOf(dump), nodeId).toUri())
+      put(
+        "next",
+        "A client that supports MCP Apps draws it beside your answer, and pressing a rectangle takes them " +
+          "into it without asking you. Say what you meant to show them and why, since they are looking at " +
+          "a map and not at your reasoning. If no picture appeared, their client cannot draw one: answer " +
+          "with $DOMINATOR_TREE in words instead."
+      )
     }
   }
 
@@ -640,6 +687,40 @@ internal class AgentTools(
     }
   }
 
+  /**
+   * What is at [uri], for a client's `resources/read`, and null for a URI this server serves nothing at.
+   *
+   * Here rather than in [McpSession] for the one thing a resource of ours needs and a session has no way to
+   * do: work out which open heap dump a name means, which is [heapDumpNamed] and is the same answer the
+   * tools give. A drawing is a read of a heap dump like any other — see [AgentResources].
+   */
+  suspend fun readResource(uri: String): JsonObject? {
+    if (uri == AgentResources.APP_URI) {
+      return AgentResources.appContents()
+    }
+    val drawing = TreemapDrawingUri.parseOrNull(uri) ?: return null
+    val dump = heapDumpNamed(drawing.heapDump)
+    return AgentResources.drawingContents(
+      uri = drawing,
+      drawing = dump.drawTreemap(drawing.rootObjectId, drawing.width, drawing.height)
+    )
+  }
+
+  /**
+   * What a drawing's URI should call [dump]: its file name, or its window id where that would be two of them.
+   *
+   * The name almost always, for the same reason every tool takes one — it is what an agent has read in every
+   * answer, and it goes on meaning the same thing after the window has closed. The id only where the name is
+   * ambiguous, which is one file open in two windows, since a URI that named either of them would draw the
+   * wrong one half the time.
+   */
+  private fun uriNameOf(dump: AgentHeapDump): String =
+    if (heapDumps.openHeapDumps().count { it.heapDumpName == dump.heapDumpName } > 1) {
+      dump.windowId
+    } else {
+      dump.heapDumpName
+    }
+
   /** The chain to [objectId], read through the verdicts, refusing an address that is no object of the dump. */
   private suspend fun AgentHeapDump.readRootPath(objectId: Long): RootPath =
     read("the chain to ${exactHexObjectId(objectId)}, for an agent") { dive ->
@@ -698,8 +779,15 @@ internal class AgentTools(
   }
 
   /** Which heap dump a call is about, or a refusal naming the ones that are open. */
-  private fun AgentArguments.heapDump(): AgentHeapDump {
-    val asked = optionalString(HEAP_DUMP)
+  private fun AgentArguments.heapDump(): AgentHeapDump = heapDumpNamed(optionalString(HEAP_DUMP))
+
+  /**
+   * The same, for a name that came from somewhere other than a call's arguments — which is a resource URI.
+   *
+   * The refusals name no tool, deliberately: they are about which heap dumps this run has open, and that is
+   * the same answer however it was asked for.
+   */
+  private fun heapDumpNamed(asked: String?): AgentHeapDump {
     val resolved = resolvedDump(asked)
     if (resolved != null) {
       return resolved
@@ -798,6 +886,7 @@ internal class AgentTools(
     const val AGENT_LOG = "agent_log"
     const val FIND_OBJECTS = "find_objects"
     const val DOMINATOR_TREE = "dominator_tree"
+    const val DRAW_TREEMAP = "draw_treemap"
 
     /**
      * Which heap dump a call is about: a file name, or a window id where a file name can't say.

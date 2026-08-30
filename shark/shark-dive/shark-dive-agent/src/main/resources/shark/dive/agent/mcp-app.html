@@ -1,0 +1,278 @@
+<!doctype html>
+<!--
+  Shark Dive's treemap, inside whatever is hosting the conversation.
+
+  An MCP App: the host opens this page in a sandboxed iframe beside the answer to `draw_treemap` and speaks
+  JSON-RPC to it over `postMessage`. Everything drawn here is one Remote Compose document played on a canvas
+  by the player spliced in below — there is no DOM in the picture, and the layout, the colours and the leak
+  shading are Shark Dive's own, done over the real dominator tree rather than approximated in JavaScript.
+
+  What makes it worth being a document rather than a picture: the rectangles carry click areas whose metadata
+  is the object's address, so pressing one is a `resources/read` of the treemap under it and the next document
+  arrives. Nobody's model is in that loop, so walking into the heap costs nothing and takes one round trip.
+
+  Two things it assumes about the URI it is handed, and both are `shark.dive.agent.TreemapDrawingUri`:
+  the last path segment is the object, and the size is `width` and `height` in the query.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shark Dive</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #101418; overflow: hidden; }
+  #stage { display: block; }
+  #stage canvas { display: block; }
+  #status {
+    position: absolute; left: 0; bottom: 0; right: 0; padding: 4px 8px;
+    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: #8b949e; background: #101418;
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="status">Loading</div>
+<script>/*REMOTE_COMPOSE_PLAYER*/</script>
+<script>
+(function () {
+  'use strict';
+
+  var stage = document.getElementById('stage');
+  var statusLine = document.getElementById('status');
+
+  /** One or two words, never a sentence: this is a work surface and the panel is small. */
+  function status(text) {
+    statusLine.textContent = text || '';
+    statusLine.style.display = text ? 'block' : 'none';
+  }
+
+  // JSON-RPC to the host, which proxies `resources/read` on to Shark Dive.
+  var pending = new Map();
+  var nextId = 0;
+
+  // A heap dump this size is minutes to open and seconds to lay out, so the wait is real and worth being
+  // patient about: a treemap that gave up after ten seconds would be a blank panel on every large dump.
+  var REQUEST_TIMEOUT_MILLIS = 120000;
+
+  function request(method, params) {
+    return new Promise(function (resolve, reject) {
+      var id = ++nextId;
+      pending.set(id, { resolve: resolve, reject: reject });
+      window.parent.postMessage({ jsonrpc: '2.0', id: id, method: method, params: params }, '*');
+      setTimeout(function () {
+        if (pending.delete(id)) {
+          reject(new Error(method + ' timed out'));
+        }
+      }, REQUEST_TIMEOUT_MILLIS);
+    });
+  }
+
+  function notify(method, params) {
+    window.parent.postMessage({ jsonrpc: '2.0', method: method, params: params }, '*');
+  }
+
+  var hostCapabilities = {};
+  var containerDimensions = null;
+  var showing = null;
+  var player = null;
+  var drawing = false;
+  var resizeTimer = null;
+
+  /** Long enough that dragging a panel is one read of the heap dump and not thirty. */
+  var RESIZE_SETTLE_MILLIS = 400;
+
+  /** How tall a drawing is made when the host says only how wide the panel may be. */
+  var ASPECT = 0.62;
+  var MIN_HEIGHT = 240;
+  var MAX_HEIGHT = 720;
+
+  function containerWidth() {
+    var given = containerDimensions || {};
+    return Math.round(given.width || given.maxWidth || window.innerWidth || 960);
+  }
+
+  function containerHeight() {
+    var given = containerDimensions || {};
+    var asked = given.height || given.maxHeight;
+    if (asked) {
+      return Math.round(asked);
+    }
+    return Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(containerWidth() * ASPECT)));
+  }
+
+  /** The same drawing at this panel's size, or a different object at it. See TreemapDrawingUri. */
+  function drawingUri(from, objectId) {
+    var url = new URL(from);
+    if (objectId) {
+      url.pathname = url.pathname.replace(/[^/]*$/, objectId);
+    }
+    url.searchParams.set('width', String(containerWidth()));
+    url.searchParams.set('height', String(containerHeight()));
+    return url.toString();
+  }
+
+  /** The object a drawing is rooted at, which is what a navigation is reported as. */
+  function objectOf(uri) {
+    return decodeURIComponent(new URL(uri).pathname.replace(/^.*\//, ''));
+  }
+
+  function heapDumpOf(uri) {
+    return decodeURIComponent(new URL(uri).pathname.split('/')[1] || '');
+  }
+
+  function play(base64, uri) {
+    if (player) {
+      player.destroy();
+      stage.innerHTML = '';
+    }
+    // The canvas is sized from the document rather than the other way round: the layout was done at the size
+    // this asked for, so anything else here would be a treemap scaled instead of a treemap laid out.
+    player = RC.createPlayer(stage, {
+      data: base64,
+      theme: 'dark',
+      onLoad: function (document_) {
+        // The handle isn't assigned when this fires, so the resize waits a tick. Without it the player
+        // leaves the canvas at its own 256x256 default and the drawing is clipped to a corner of itself.
+        setTimeout(function () {
+          if (player) {
+            player.resize(document_.getWidth(), document_.getHeight());
+          }
+        }, 0);
+        // A click area hit arrives through the id listener, which is a different channel from the named
+        // actions `addActionCallback` gets: `addClickArea` metadata comes back here and nowhere else.
+        document_.addIdActionListener({
+          onAction: function (id, metadata) {
+            navigateTo(metadata);
+          }
+        });
+      }
+    });
+    player.canvas.style.cursor = 'pointer';
+    showing = uri;
+    status('');
+  }
+
+  async function show(uri) {
+    if (drawing) {
+      return;
+    }
+    drawing = true;
+    try {
+      var read = await request('resources/read', { uri: uri });
+      var contents = (read && read.contents && read.contents[0]) || {};
+      if (!contents.blob) {
+        throw new Error('no drawing at that address');
+      }
+      play(contents.blob, uri);
+    } catch (failed) {
+      status(String(failed.message || failed));
+    } finally {
+      drawing = false;
+    }
+  }
+
+  /**
+   * Into whatever was pressed, and up when it was the title.
+   *
+   * The model is told afterwards rather than asked first: pressing a rectangle is somebody navigating, and
+   * a step that had to wait for a turn of the conversation would be a treemap nobody could explore. What the
+   * host does with the context is defer it until the next message, so the model finds out where they got to
+   * when it is next spoken to — which is exactly when it needs to know.
+   */
+  async function navigateTo(objectId) {
+    if (!showing || !objectId) {
+      return;
+    }
+    var uri = drawingUri(showing, objectId);
+    await show(uri);
+    if (!hostCapabilities.updateModelContext) {
+      return;
+    }
+    request('ui/update-model-context', {
+      content: [{
+        type: 'text',
+        text: 'The treemap of ' + heapDumpOf(uri) + ' is now showing what is under ' + objectOf(uri) + '.'
+      }],
+      structuredContent: { heapDump: heapDumpOf(uri), object: objectOf(uri), drawing: uri }
+    }).catch(function () {
+      // A host that advertised this and then refused it is not a reason to stop drawing.
+    });
+  }
+
+  /**
+   * Laid out again at the new size rather than scaled, which is what the window does when it is dragged.
+   *
+   * Debounced because a drag is a stream of these and each one is a read of the heap dump, queued on the
+   * thread whoever is at the window is reading with.
+   */
+  function resized() {
+    if (resizeTimer) {
+      clearTimeout(resizeTimer);
+    }
+    resizeTimer = setTimeout(function () {
+      resizeTimer = null;
+      if (showing) {
+        show(drawingUri(showing, null));
+      }
+    }, RESIZE_SETTLE_MILLIS);
+  }
+
+  window.addEventListener('message', function (event) {
+    var message = event.data;
+    if (!message || typeof message !== 'object') {
+      return;
+    }
+    if ('id' in message && pending.has(message.id)) {
+      var waiting = pending.get(message.id);
+      pending.delete(message.id);
+      if (message.error) {
+        waiting.reject(new Error(message.error.message));
+      } else {
+        waiting.resolve(message.result);
+      }
+      return;
+    }
+    if (message.method === 'ui/notifications/tool-result') {
+      var answer = (message.params && message.params.result) || {};
+      var structured = answer.structuredContent || {};
+      if (structured.drawing) {
+        show(drawingUri(structured.drawing, null));
+      } else {
+        status('Nothing to draw');
+      }
+      return;
+    }
+    if (message.method === 'ui/notifications/host-context-changed') {
+      var changed = (message.params && message.params.containerDimensions) || null;
+      if (changed) {
+        containerDimensions = changed;
+        resized();
+      }
+    }
+  });
+
+  window.addEventListener('resize', resized);
+
+  (async function () {
+    try {
+      var host = await request('ui/initialize', {
+        protocolVersion: '2025-11-21',
+        appInfo: { name: 'shark-dive-treemap', version: '1' },
+        appCapabilities: {}
+      });
+      hostCapabilities = (host && host.hostCapabilities) || {};
+      containerDimensions = (host && host.hostContext && host.hostContext.containerDimensions) || null;
+      notify('ui/notifications/initialized', {});
+      notify('ui/notifications/size-changed', { height: containerHeight() });
+      if (!hostCapabilities.serverResources) {
+        // The one capability this cannot do without: the drawings are resources of the server, and a host
+        // that will not fetch one leaves nothing to play. Said here rather than left as a blank panel.
+        status('This host does not fetch resources');
+      }
+    } catch (failed) {
+      status(String(failed.message || failed));
+    }
+  })();
+})();
+</script>
+</body>
+</html>

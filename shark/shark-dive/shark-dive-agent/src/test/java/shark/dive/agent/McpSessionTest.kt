@@ -1,6 +1,7 @@
 package shark.dive.agent
 
 import java.io.File
+import java.util.Base64
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -67,6 +68,9 @@ class McpSessionTest {
     assertThat(result.obj("serverInfo").text("name")).isEqualTo("shark-dive")
     assertThat(result.obj("serverInfo").text("version")).isEqualTo(SERVER_VERSION)
     assertThat(result.obj("capabilities")["tools"]).isNotNull
+    // Resources as well as tools, which is what lets a client fetch the page a treemap is drawn in and then
+    // the drawings themselves. See [AgentResources].
+    assertThat(result.obj("capabilities")["resources"]).isNotNull
   }
 
   @Test
@@ -90,6 +94,7 @@ class McpSessionTest {
       "ways_held",
       "find_objects",
       "dominator_tree",
+      "draw_treemap",
       "set_verdict",
       "clear_verdict",
       "read_notes",
@@ -111,6 +116,77 @@ class McpSessionTest {
   }
 
   @Test
+  fun `the page a treemap is drawn in is served with the player in it`() {
+    val listed = answer("""{"jsonrpc":"2.0","id":5,"method":"resources/list"}""")
+      .result().array("resources").single().jsonObject
+    assertThat(listed.text("uri")).isEqualTo(AgentResources.APP_URI)
+    assertThat(listed.text("mimeType")).isEqualTo("text/html;profile=mcp-app")
+
+    val contents = readResource(AgentResources.APP_URI).array("contents").single().jsonObject
+    assertThat(contents.text("mimeType")).isEqualTo("text/html;profile=mcp-app")
+    val html = contents.text("text")
+    // The player spliced in rather than fetched, which is also why the page is allowed no origin at all.
+    assertThat(html).contains("var RC=").doesNotContain("/*REMOTE_COMPOSE_PLAYER*/")
+    val csp = contents.obj("_meta").obj("ui").obj("csp")
+    assertThat(csp.array("connectDomains")).isEmpty()
+    assertThat(csp.array("resourceDomains")).isEmpty()
+  }
+
+  @Test
+  fun `the drawings are a template, since a drawing is one per object per canvas size`() {
+    val template = answer("""{"jsonrpc":"2.0","id":6,"method":"resources/templates/list"}""")
+      .result().array("resourceTemplates").single().jsonObject
+
+    assertThat(template.text("uriTemplate")).isEqualTo(AgentResources.DRAWING_URI_TEMPLATE)
+    assertThat(template.text("mimeType")).isEqualTo(AgentResources.DRAWING_MIME)
+  }
+
+  @Test
+  fun `a drawing is read as the bytes of a document, at the size the client asked for`() {
+    val uri = TreemapDrawingUri.of(window.heapDumpName, TREEMAP_ROOT, width = 640, height = 400).toUri()
+
+    val contents = readResource(uri).array("contents").single().jsonObject
+
+    assertThat(contents.text("uri")).isEqualTo(uri)
+    assertThat(contents.text("mimeType")).isEqualTo(AgentResources.DRAWING_MIME)
+    // Bytes rather than text, so base64 under `blob` — and the fake's stand-in for a document, since
+    // Remote Compose is a dependency of the app and of nothing here. See [FakeAgentHeapDump.drawTreemap].
+    assertThat(String(Base64.getDecoder().decode(contents.text("blob"))))
+      .isEqualTo("a drawing of ${exactHexObjectId(TREEMAP_ROOT)}")
+    assertThat(window.drawn).containsExactly("640x400 under ${exactHexObjectId(TREEMAP_ROOT)}")
+  }
+
+  @Test
+  fun `a URI this server serves nothing at is a resource error and not an internal one`() {
+    val error = answer(
+      """{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"ui://somebody-else/view"}}"""
+    ).obj("error")
+
+    assertThat(error.text("code")).isEqualTo("-32002")
+    assertThat(error.text("message")).contains(AgentResources.APP_URI).contains("shark-dive://treemap/")
+  }
+
+  @Test
+  fun `the tool that draws hands back a URI and says which page to draw it in`() {
+    val listed = answer("""{"jsonrpc":"2.0","id":8,"method":"tools/list"}""")
+      .result().array("tools").map { it.jsonObject }.single { it.text("name") == "draw_treemap" }
+    // Both spellings, for the hosts that only read the older one.
+    assertThat(listed.obj("_meta").obj("ui").text("resourceUri")).isEqualTo(AgentResources.APP_URI)
+    assertThat(listed.obj("_meta").text("ui/resourceUri")).isEqualTo(AgentResources.APP_URI)
+
+    val result = callTool(
+      """{"name":"draw_treemap","arguments":{"reason":"Showing them where the memory went."}}"""
+    )
+
+    assertThat(result.obj("_meta").obj("ui").text("resourceUri")).isEqualTo(AgentResources.APP_URI)
+    val drawing = result.obj("structuredContent").text("drawing")
+    assertThat(drawing).startsWith("shark-dive://treemap/${window.heapDumpName}/")
+    // Nothing drawn by the call itself: the size is the client's canvas, and the page reads it at that.
+    assertThat(window.drawn).isEmpty()
+    assertThat(TreemapDrawingUri.parseOrNull(drawing)!!.rootObjectId).isEqualTo(TREEMAP_ROOT)
+  }
+
+  @Test
   fun `a notification is not answered at all`() {
     assertThat(answerOrNull("""{"jsonrpc":"2.0","method":"notifications/initialized"}""")).isNull()
   }
@@ -125,10 +201,10 @@ class McpSessionTest {
 
   @Test
   fun `a method this server does not have says what it does have`() {
-    val error = answer("""{"jsonrpc":"2.0","id":3,"method":"resources/list"}""").obj("error")
+    val error = answer("""{"jsonrpc":"2.0","id":3,"method":"prompts/list"}""").obj("error")
 
     assertThat(error.text("code")).isEqualTo("-32601")
-    assertThat(error.text("message")).contains("resources/list").contains("tools")
+    assertThat(error.text("message")).contains("prompts/list").contains("tools")
   }
 
   @Test
@@ -299,6 +375,9 @@ class McpSessionTest {
 
   private fun sessions(): List<AgentSession> = AgentSessionFile.sessionsIn(sessionsDirectory)
 
+  private fun readResource(uri: String): JsonObject =
+    answer("""{"jsonrpc":"2.0","id":10,"method":"resources/read","params":{"uri":"$uri"}}""").result()
+
   private fun callTool(params: String): JsonObject =
     answer("""{"jsonrpc":"2.0","id":9,"method":"tools/call","params":$params}""").result()
 
@@ -315,6 +394,9 @@ class McpSessionTest {
   private companion object {
 
     const val SERVER_VERSION = "1.2.3"
+
+    /** The whole heap dump, which is what a drawing that names no object is of. */
+    const val TREEMAP_ROOT = 0L
 
     val JSON = Json
 

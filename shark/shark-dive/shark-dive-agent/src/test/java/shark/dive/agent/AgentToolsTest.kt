@@ -630,6 +630,25 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `the drawing of one object is a URI naming that object, with nothing drawn yet`() {
+    val answer = call("draw_treemap", OBJECT to hex(heapDump.holderObjectId))
+
+    val drawing = TreemapDrawingUri.parseOrNull(answer.text("drawing"))!!
+    assertThat(drawing.heapDump).isEqualTo(window.heapDumpName)
+    assertThat(drawing.rootObjectId).isEqualTo(heapDump.holderObjectId)
+    // The size is the client's canvas and no model can know it, so this call reads whether there is
+    // something there to draw and stops: the page fetches the drawing at the size it measured.
+    assertThat(window.drawn).isEmpty()
+  }
+
+  @Test
+  fun `an object the tree has no node for has nothing to draw either`() {
+    assertThatThrownBy { call("draw_treemap", OBJECT to "0x1") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("nothing there to draw")
+  }
+
+  @Test
   fun `the notes say where somebody has been before they are read`() {
     val empty = call("read_notes")
 

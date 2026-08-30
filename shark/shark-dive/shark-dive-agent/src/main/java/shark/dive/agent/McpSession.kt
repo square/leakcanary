@@ -5,6 +5,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -77,6 +78,14 @@ internal class McpSession(
       successResponse(id, dispatch(method, message["params"]?.jsonObject ?: EMPTY_PARAMS))
     } catch (unknown: UnknownMethod) {
       errorResponse(id, METHOD_NOT_FOUND, unknown.message)
+    } catch (missing: ResourceNotFound) {
+      // The code the spec keeps for this, rather than a tool result: a resource read has no `isError` shape
+      // to say no in, and the reader is a page rather than a model.
+      errorResponse(id, RESOURCE_NOT_FOUND, missing.message)
+    } catch (refused: AgentRefusal) {
+      // A refusal reaching this far is a resource read of a drawing that has nothing to draw, since a tool
+      // call catches its own. Same answer as above and for the same reason.
+      errorResponse(id, RESOURCE_NOT_FOUND, refused.message)
     } catch (throwable: Throwable) {
       // A read that failed or a bug of ours, either way told to the agent rather than dropped: a client
       // waiting for a response it never gets has no way to tell that from the app having gone away.
@@ -98,15 +107,39 @@ internal class McpSession(
             put("name", tool.name)
             put("description", tool.description)
             put("inputSchema", tool.schema)
+            tool.uiResourceUri?.let { uri -> putJsonObject("_meta") { putUi(uri) } }
           }
         }
       }
     }
     "tools/call" -> callTool(params)
+    "resources/list" -> AgentResources.listed()
+    "resources/templates/list" -> AgentResources.templates()
+    "resources/read" -> readResource(params)
     // Answered because clients use it to find out whether this end is still there, and this end is a
     // window someone may have closed.
     "ping" -> buildJsonObject { }
-    else -> throw UnknownMethod("This server has no \"$method\". It has tools, and nothing else.")
+    else -> throw UnknownMethod(
+      "This server has no \"$method\". It has tools, and the resources behind ${AgentResources.APP_URI}."
+    )
+  }
+
+  /**
+   * One resource, which is the page a treemap is drawn in or a treemap. See [AgentResources].
+   *
+   * Not written to the session file, unlike a tool call, and the difference is who is acting: a call is an
+   * agent's move and has a reason of its own, while these are a page fetching what it was told to draw and
+   * then whatever somebody pressed. What that person did is in this run's log, since every drawing is a read
+   * of the heap dump like any other.
+   */
+  private suspend fun readResource(params: JsonObject): JsonObject {
+    val uri = (params["uri"] as? JsonPrimitive)?.content
+      ?: throw ResourceNotFound("A resources/read needs a \"uri\".")
+    SharkLog.d { "An agent's client read $uri" }
+    return tools.readResource(uri) ?: throw ResourceNotFound(
+      "This server has nothing at \"$uri\". It serves ${AgentResources.APP_URI} and the drawings under " +
+        AgentResources.DRAWING_URI_TEMPLATE + "."
+    )
   }
 
   /**
@@ -130,6 +163,9 @@ internal class McpSession(
       put("protocolVersion", clientVersion ?: FALLBACK_PROTOCOL_VERSION)
       putJsonObject("capabilities") {
         putJsonObject("tools") { }
+        // Neither `subscribe` nor `listChanged`: a drawing is made when it is asked for and there is
+        // nothing to notify anybody about between two reads of one.
+        putJsonObject("resources") { }
       }
       putJsonObject("serverInfo") {
         put("name", SERVER_NAME)
@@ -172,7 +208,7 @@ internal class McpSession(
         at = at,
         startedAt = startedAt
       )
-      toolResult(answer)
+      toolResult(answer, tool.uiResourceUri)
     } catch (refused: AgentRefusal) {
       // A refusal is an answer to the agent and not a failure of the server, so it comes back as a tool
       // result the model reads rather than as a JSON-RPC error the client may swallow.
@@ -225,7 +261,10 @@ internal class McpSession(
     )
   }
 
-  private fun toolResult(result: JsonObject): JsonObject = buildJsonObject {
+  private fun toolResult(
+    result: JsonObject,
+    uiResourceUri: String?
+  ): JsonObject = buildJsonObject {
     putJsonArray("content") {
       addJsonObject {
         put("type", "text")
@@ -236,6 +275,9 @@ internal class McpSession(
     }
     // For the clients that read it, alongside the text for the ones that don't.
     put("structuredContent", result)
+    // On the answer as well as on the tool, because the two say different things to a host: the tool has a
+    // page, and *this* answer is one to open it for.
+    uiResourceUri?.let { uri -> putJsonObject("_meta") { putUi(uri) } }
   }
 
   private fun toolError(message: String): JsonObject = buildJsonObject {
@@ -273,6 +315,9 @@ internal class McpSession(
 
   private class UnknownMethod(override val message: String) : Exception(message)
 
+  /** No resource at that URI, which is its own error code rather than an internal one. */
+  private class ResourceNotFound(override val message: String) : Exception(message)
+
   private companion object {
 
     val JSON = Json {
@@ -301,6 +346,20 @@ internal class McpSession(
     const val INVALID_REQUEST = -32600
     const val METHOD_NOT_FOUND = -32601
     const val INTERNAL_ERROR = -32603
+
+    /** MCP's own code for a `resources/read` of something this server hasn't got. */
+    const val RESOURCE_NOT_FOUND = -32002
+
+    /**
+     * Which page an answer is drawn in, as MCP Apps spells it.
+     *
+     * Both spellings, since the extension carries the older one for the hosts that only read that: the
+     * cost is a key, and half the hosts that support this at all are a release behind.
+     */
+    fun JsonObjectBuilder.putUi(resourceUri: String) {
+      putJsonObject("ui") { put("resourceUri", resourceUri) }
+      put("ui/resourceUri", resourceUri)
+    }
 
     /** What the agent said it was after, which every tool takes. See [AgentTool]. */
     const val REASON_ARGUMENT = "reason"

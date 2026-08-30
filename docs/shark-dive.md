@@ -377,6 +377,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `ways_held` | Every way an object is held, rather than the one chain — the *X ways from here* list. |
 | `find_objects` | The object list, by class name. |
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
+| `draw_treemap` | The treemap *with* the pixels, drawn into the conversation for you to press into. See below. |
 | `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
 | `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can only half do — no tab, and the link all the same. |
@@ -388,6 +389,22 @@ The last three are what make an agent useful when there is nothing open yet: poi
 came with, or at a process on a device, and the window it lands in is one you can look over its shoulder in.
 `dump_heap` takes minutes on a large app and answers once the dump can be read — the steps are in the run's
 log while it works.
+
+### The treemap, in the conversation
+
+Some answers are a shape rather than a sentence, and *where the memory went* is the first of them. So
+`draw_treemap` puts the map itself where you are talking to your agent — the same layout, the same colours
+and the same leak shading the window draws, over the same dominator tree.
+
+**And you can press into it.** A rectangle takes you into whatever it stands for and the title takes you back
+up, without a turn of the conversation: the picture is a document your client plays rather than an image, so
+walking into the heap is your client asking Shark Dive for the next one. Your agent finds out where you got
+to the next time you say something to it.
+
+It needs a client that supports [MCP Apps](https://modelcontextprotocol.io), which is how a server gets to
+put a page beside its answer. Clients that don't will show the answer and no picture, so this replaces
+nothing: `dominator_tree` is the same tree in words, and it is still what an agent reads — **it cannot see
+the drawing either.** That one is for you.
 
 **And the tools refuse.** That is the part worth knowing about, because it is what an agent's confidence
 cannot argue with:

@@ -69,6 +69,11 @@ coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", ve
 # serialization plugin to the build would be a per-module opt-in nothing else here wants.
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version = "1.9.0" }
 
+# Writes the drawings Shark Dive's agent surface hands to an MCP app, in shark-dive-app and nowhere
+# else. The creation half only: the players are Android artifacts, and the one that draws these is a
+# TypeScript port running on a canvas in the client. See shark/shark-dive/notes/remote-compose.md.
+remoteCompose-creationJvm = { module = "androidx.compose.remote:remote-creation-jvm", version = "1.0.0-alpha18" }
+
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 

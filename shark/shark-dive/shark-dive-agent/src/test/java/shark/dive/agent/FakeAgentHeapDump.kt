@@ -7,9 +7,13 @@ import shark.dive.AndroidDevice
 import shark.dive.DeepLink
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
+import shark.dive.HeapDominatorTreemap
 import shark.dive.LeakStatusOverride
 import shark.dive.LeakStatusOverrides
 import shark.dive.Place
+import shark.dive.exactHexObjectId
+import shark.dive.nodeIdText
+import shark.dive.titleOf
 
 /**
  * A heap dump open the way a window has one, without a window.
@@ -78,6 +82,36 @@ internal class FakeAgentHeapDump(
     notes[place]?.joinToString("\n\n").orEmpty()
 
   override suspend fun notedPlaces(): List<Place> = notes.keys.toList()
+
+  /** What was asked to be drawn, in order, as `<width>x<height> under <address>`. */
+  val drawn = mutableListOf<String>()
+
+  /**
+   * The read the app's implementation makes, and bytes standing in for the document it would write.
+   *
+   * A document is Remote Compose, which `shark-dive-app` depends on and nothing here does, so what a test of
+   * these tools can be about is which drawing was asked for and where its bytes went — never what is in them.
+   * `TreemapDocumentTest` is the one that writes a real document and reads it back.
+   *
+   * The refusal is here rather than only in the app because it is the contract of
+   * [AgentHeapDump.drawTreemap] rather than a detail of one implementation: a `resources/read` can name any
+   * address, and drawing the whole heap dump for one that is no node would be a picture of everything
+   * answered to a question about one thing.
+   */
+  override suspend fun drawTreemap(
+    rootObjectId: Long,
+    width: Int,
+    height: Int
+  ): TreemapDrawing = read("the treemap under ${nodeIdText(rootObjectId)}, to draw for an agent") { dive ->
+    drawn += "${width}x$height under ${exactHexObjectId(rootObjectId)}"
+    if (rootObjectId != HeapDominatorTreemap.ROOT_OBJECT_ID && rootObjectId !in dive.tree) {
+      throw AgentRefusal("${exactHexObjectId(rootObjectId)} is no node of this heap dump's dominator tree.")
+    }
+    TreemapDrawing(
+      document = "a drawing of ${exactHexObjectId(rootObjectId)}".toByteArray(),
+      title = dive.tree.titleOf(Place.Object(rootObjectId))
+    )
+  }
 
   override fun show(place: Place): ShownPlace {
     shown += place
