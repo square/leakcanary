@@ -91,3 +91,73 @@ uses, without the one for a newly recognized library leak:
   `Leak solved` line above **What holds it** names that reference where the eye starts, rather than leaving
   it to be found tens of steps down a chain, and an agent reading the chain is answered with the same name.
   See [The verdict](shark-dive.md#the-verdict).
+* ✨ **A `?` beside the labels that take more than a label to know.** Hovering it says what the label means in
+  one sentence; clicking it opens the [reference](shark-dive-reference.md) as a tab of the window, and every
+  other page of it is listed under the one being read. The app ships the text rather than opening a browser,
+  so a release explains itself with the pages it was built with, and the sentence under the `?` is the page's
+  own first sentence. The `?` never fades and is the same for everybody, however many heap dumps in.
+* 🔀 **A library leak is a leak to do something about**, and the screen now says so. It used to say there was
+  "usually nothing to do about them but wait for a fix upstream", which is wrong twice: a leak in a library is
+  an issue to file and often a small fix to send, and a leak in the framework has a workaround to look for and
+  a report to make. The `?` on that section leads to the page saying which to do, including
+  `AndroidLeakFixes`, the ten framework workarounds `plumber-android` already applies for you. And **the
+  description Shark carries for the leak is drawn in full, with its links live** — 51 of the 85 of them end in
+  the AOSP change that introduced the leak or the file it is in, which is where the way round it usually is,
+  and three ellipsized lines of plain text was throwing exactly that away.
+* 🔀 **One name for how firmly an object is held**, everywhere the app says it. The details panel used to
+  spell out a sentence per strength — "Reachable without going through a `java.lang.ref.Reference`" — where
+  the legend above the map said "Strong" and the leaks screen said "Softly reachable" for the same nine
+  things, so a colour on the map, a checkbox above it and a section of the list read as three vocabularies.
+  Now every one of them says `Strong`, `Cache`, `Thread local`, `Local`, `Soft`, `Weak`, `Finalizer`,
+  `Phantom` or `Unreachable`, one or two words each, and what one *means* is the one page behind the `?` on
+  the legend and on each of those sections.
+* 🔀 **One noun for a rectangle that stands for many objects.** There were three — `300 smaller objects` for
+  the children a rectangle had no room to draw, `400 objects of one class` for every instance of one class,
+  and `Unreachable` for the garbage — where the line under each already said which was which: the rectangle
+  they were left out of, the class name, and the strength. All three now say how many, and nothing else. The
+  panel also stops repeating that count as an `Objects` row under it.
+* ✨ **The objects you star are kept between runs**, in `~/.shark-dive/starred` — one file per heap dump, one
+  address per line, so a working set can be read, mailed or checked in without this app, and hand editing it
+  costs at worst the line that was mistyped. They come back in the order they were starred.
+* 🔀 **Starred is a list of objects, drawn as every other list of objects is.** It used to be a screen of its
+  own, keeping a copy of each object's sizes from the moment it was starred — which went stale as soon as a
+  verdict you set changed what something retains — and labelling them in words nothing else used. Now it and
+  the object list are one table with two contents, sharing a row and a set of column headings, and what a
+  starred object is, is read out of the heap dump like everything else.
+* 🔀 **One way to name an object, on every surface that names one.** A step of a chain, the card at the
+  pointer and the bar above the map said the class, the package under it and the address; a row of the object
+  list said the package, the class and the kind on one line and no address at all; a leaking object on the
+  **Leaks** screen said the class, the kind and the address and no package. Now all six are the same three
+  lines — so the object list and the starred list show an address, which is what a `shark://` link, a note
+  and an agent's answer all name an object by, and the leaks screen shows which `Handler` it is.
+* 🔀 **One word for each of an object's two sizes.** The same two numbers were `Retained` and `Shallow` in the
+  details panel, `Retains 1.2 MB in 57 objects` and `88 B of its own` on the card at the pointer, and
+  `Retaining …` again on a chain — three vocabularies to reconcile before two of them could be compared. Now
+  everything says `Retained` and `Shallow`, with how many objects that is on the `Retained` line rather than
+  in a row of its own. The count of objects a rectangle *immediately* holds is gone from the panel and the
+  card: that number is the rectangles drawn inside it, which is what you are looking at. `Dominates` now
+  means one thing, on the chain.
+* 🔀 The line above the map saying no object is held only through a `java.lang.ref.Reference` now says
+  `Nothing here is held only weakly.`, in the words of the `Soft`, `Weak`, `Phantom` and `Finalizer` rows it
+  sits under. Which class those four have in common is the page behind the `?` beside it.
+* 🔀 **Setting a verdict belongs to the tab it was started in**, so the bar and the tab strip still work
+  while one is open, and switching tabs leaves it half set rather than throwing it away. Which is what the
+  step listing the verdicts a new one contradicts needed: each of those is an object, and the reason somebody
+  typed for it is the case for the other reading — so each is now a link, and going to look at it opens a tab
+  and leaves your verdict where it was. Why two verdicts can disagree at all came out of a paragraph drawn
+  above that list every time and went behind the `?`, as
+  [Verdicts that disagree](shark-dive-reference.md). Closing the tab is what abandons a verdict half set.
+* 🔀 **An empty list says what fills it, and stops there.** `Nothing starred` used to name the panel the star
+  is in, the empty **Agent logs** screen explained what an agent is and how to point one at the window, and
+  the window with its last tab closed reassured you that the heap dump was still read. Each of those is now
+  the one line that is news — `Nothing starred. ☆ puts an object here.` — and what an agent *is* stays in
+  [the documentation](shark-dive.md), which is where somebody who doesn't know goes looking.
+* 🔀 **The dialogs say what a step costs, not how it works.** Taking a heap dump off a device, and fetching
+  the bitmap pixels a device too old for `am dumpheap -b png` leaves out of one, each used to spend a
+  paragraph on the mechanism above the list of devices: which Android version put the pixels in native
+  memory, what a debugger does to a process while it reads them, what `ro.debuggable` is. What is left is
+  what changes the click — `Freezes the app briefly. Tens of megabytes over adb.`,
+  `API 30: from a debugger, which suspends the app.` — and the mechanism moved to
+  [Open a heap dump](shark-dive.md#open-a-heap-dump), where somebody who wants it goes looking. Same for the
+  question a `shark://` link asks when this machine has two heap dumps of that name or none: the title
+  already names the file, so the question is now the count and where to look.

@@ -411,7 +411,7 @@ class HeapDominatorTreemap internal constructor(
   }
 
   private fun NodeGroup.label(): String = when (kind) {
-    ObjectGroupKind.UNREACHABLE -> UNREACHABLE_LABEL
+    ObjectGroupKind.UNREACHABLE -> ReachabilityStrength.UNREACHABLE.label
     // "42 × Bitmap" rather than "Bitmap": a count and a multiplication sign say this cell is a pile
     // of objects and not one of them, on a rectangle with room for nothing else.
     ObjectGroupKind.CLASS -> "$objectCount $CLASS_GROUP_LABEL_SEPARATOR $simpleClassName"
@@ -568,6 +568,23 @@ class HeapDominatorTreemap internal constructor(
       // The virtual root is a node of the tree and no object of the heap dump.
       totalCount = nodes.size - 1
     )
+  }
+
+  /**
+   * The same rows for objects picked by hand, in the order given: what the starred screen draws.
+   *
+   * An id no node of this tree has is left out, with a line in the log saying so, because the objects
+   * starred in a heap dump are a file anybody can edit — see [StarredFile] — and one address that was
+   * mistyped must not be a screen that throws.
+   */
+  fun listObjects(objectIds: List<Long>): List<ObjectListEntry> = objectIds.mapNotNull { objectId ->
+    val node = nodes[objectId]
+    if (node == null) {
+      SharkLog.d { "No object ${hexObjectId(objectId)} in this heap dump, so there is no row for it" }
+      null
+    } else {
+      Match(objectId, node.retainedSize, node.shallowSize).entry()
+    }
   }
 
   /** One object a filter matched, before the read that turns it into a row. */
@@ -1606,7 +1623,7 @@ class HeapDominatorTreemap internal constructor(
     } ?: presentedObject(subject.node)
     is CellSubject.Group -> PresentedCell(
       cell = this,
-      label = "${subject.nodeCount} smaller objects",
+      label = formatObjectCount(subject.nodeCount),
       content = CellContent.Leftover(strengthOf(subject.parent))
     )
     // An object's own bytes are that object, so this reads as the object and is where its name shows:
@@ -1770,8 +1787,6 @@ class HeapDominatorTreemap internal constructor(
      * heap dump whose garbage was all collected before it was written.
      */
     const val UNREACHABLE_NODE_ID = FIRST_PILE_ID
-
-    const val UNREACHABLE_LABEL = "Unreachable"
 
     /** The ids after it are the class groups. See [GroupIds]. */
     private const val FIRST_CLASS_GROUP_ID = FIRST_PILE_ID + 1

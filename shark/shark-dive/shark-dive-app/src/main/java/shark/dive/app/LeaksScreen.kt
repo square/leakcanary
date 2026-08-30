@@ -25,22 +25,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import shark.dive.HeapLeaks
 import shark.dive.LeakGroup
 import shark.dive.LeakKind
 import shark.dive.LeakSection
 import shark.dive.LeakingObject
+import shark.dive.Note
+import shark.dive.NoteLink
 import shark.dive.Place
+import shark.dive.Topic
 import shark.dive.WatchedObject
 import shark.dive.formatByteSize
-import shark.dive.hexObjectId
 
 /**
  * Every leaking object of the heap dump, in two halves: the leaks to do something about, which is the app's
@@ -61,6 +60,10 @@ internal fun LeaksScreen(
   onOpen: (Long, OpenIn) -> Unit,
   /** Puts a link to a row's object on the clipboard, beside opening it. See [OpenTarget]. */
   onCopyLink: (Long) -> Unit,
+  /** Where the `?` beside what a leak is called goes. See [Explain]. */
+  onExplain: (Topic) -> Unit,
+  /** And where a link written into a library leak's description goes, which is out to a browser. */
+  onFollowLink: (NoteLink) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -81,7 +84,16 @@ internal fun LeaksScreen(
       HorizontalDivider()
       LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
         leaks.leakSections.forEachIndexed { sectionIndex, section ->
-          leakSection(section, sectionIndex == 0, expandedGroups, onToggleGroup, onOpen, onCopyLink)
+          leakSection(
+              section,
+              sectionIndex == 0,
+              expandedGroups,
+              onToggleGroup,
+              onOpen,
+              onCopyLink,
+              onExplain,
+              onFollowLink
+            )
         }
         val onTheWayOut = leaks.onTheWayOutSections
         val isOnTheWayOutExpanded = Place.Leaks.ON_THE_WAY_OUT in expandedGroups
@@ -97,7 +109,16 @@ internal fun LeaksScreen(
         }
         if (isOnTheWayOutExpanded) {
           onTheWayOut.forEachIndexed { sectionIndex, section ->
-            leakSection(section, sectionIndex == 0, expandedGroups, onToggleGroup, onOpen, onCopyLink)
+            leakSection(
+              section,
+              sectionIndex == 0,
+              expandedGroups,
+              onToggleGroup,
+              onOpen,
+              onCopyLink,
+              onExplain,
+              onFollowLink
+            )
           }
         }
       }
@@ -113,18 +134,20 @@ private fun LazyListScope.leakSection(
   expandedGroups: Set<String>,
   onToggleGroup: (String) -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
-  onCopyLink: (Long) -> Unit
+  onCopyLink: (Long) -> Unit,
+  onExplain: (Topic) -> Unit,
+  onFollowLink: (NoteLink) -> Unit
 ) {
   // Pinned while its own leaks scroll under it, which is what says they are its: a heading that scrolls away
   // leaves a list of rows with nothing above them saying which part they are.
   stickyHeader(key = section.kind.name) {
-    SectionHeader(section, isFirst = isFirst)
+    SectionHeader(section, isFirst = isFirst, onExplain = onExplain)
   }
   section.groups.forEach { group ->
     val groupKey = section.kind.groupKey(group)
     val isExpanded = groupKey in expandedGroups
     val hasMore = group.objects.size > 1
-    item(key = groupKey) { GroupRow(group) }
+    item(key = groupKey) { GroupRow(group, onExplain, onFollowLink) }
     // The first object always: a leak is a reference, and a reference with nothing under it says
     // what shouldn't be holding without ever saying what it is holding.
     item(key = "$groupKey ${group.objects.first().objectId}") {
@@ -172,7 +195,8 @@ private fun LazyListScope.leakSection(
 private fun SectionHeader(
   section: LeakSection,
   /** Whether it opens what it is under, where there is nothing above to be told apart from. */
-  isFirst: Boolean
+  isFirst: Boolean,
+  onExplain: (Topic) -> Unit
 ) {
   Column(
     Modifier.fillMaxWidth()
@@ -185,17 +209,46 @@ private fun SectionHeader(
         .background(MaterialTheme.colorScheme.secondaryContainer)
         .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-      Text(
-        "${section.kind.title} · ${section.summary()}",
-        style = MaterialTheme.typography.titleSmall
-      )
-      Text(
-        section.kind.explanation,
-        style = MaterialTheme.typography.bodySmall,
-        color = MUTED_TEXT
-      )
+      // Beside the title rather than beside the explanation, so that the `?` of a section that has one and
+      // of a section that doesn't are in the same place. See [LeakKind.topic].
+      val topic = section.kind.topic
+      if (topic == null) {
+        SectionTitle(section, Modifier)
+      } else {
+        Explain(topic, onExplain) {
+          // The weight leaves the `?` its room: text in a row takes the whole width otherwise, and the `?`
+          // is pushed off the end of it.
+          SectionTitle(section, Modifier.weight(1f, fill = false))
+        }
+      }
+      val explanation = section.kind.explanation
+      if (explanation != null) {
+        SectionExplanation(explanation, Modifier)
+      }
     }
   }
+}
+
+/** What the section is, and how much of the heap dump is in it. */
+@Composable
+private fun SectionTitle(
+  section: LeakSection,
+  modifier: Modifier
+) {
+  Text(
+    "${section.kind.title} · ${section.summary()}",
+    modifier,
+    style = MaterialTheme.typography.titleSmall
+  )
+}
+
+/** What being in a section means, for the sections whose title doesn't. See [LeakKind.explanation]. */
+@Composable
+private fun SectionExplanation(
+  explanation: String,
+  modifier: Modifier
+) {
+  Text(explanation, modifier, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
 }
 
 /**
@@ -261,7 +314,11 @@ private fun OnTheWayOutHeader(
  * this one whether the leak has one or fifty. See [MoreObjectsRow] for the rest.
  */
 @Composable
-private fun GroupRow(group: LeakGroup) {
+private fun GroupRow(
+  group: LeakGroup,
+  onExplain: (Topic) -> Unit,
+  onFollowLink: (NoteLink) -> Unit
+) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     SectionBar()
     Row(
@@ -270,9 +327,10 @@ private fun GroupRow(group: LeakGroup) {
       verticalAlignment = Alignment.CenterVertically
     ) {
       Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Hint(NAME_HINT) {
+        Explain(Topic.LEAK_NAME, onExplain) {
           Text(
             group.nameText(),
+            Modifier.weight(1f, fill = false),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -280,19 +338,20 @@ private fun GroupRow(group: LeakGroup) {
           )
         }
         group.subtitle?.let { subtitle ->
-          Text(
-            subtitle,
-            style = MaterialTheme.typography.bodySmall,
-            color = MUTED_TEXT,
-            maxLines = MAX_SUBTITLE_LINES,
-            overflow = TextOverflow.Ellipsis
-          )
+          // In full, and with the links live. What Shark knows about a library leak is written into the
+          // pattern that recognizes it, and half of those descriptions end in the AOSP change that
+          // introduced the leak or the file it is in — which is where the way round it is, and which three
+          // lines of ellipsized plain text was throwing away. See [Note.ofDocument].
+          Note.ofDocument(subtitle).blocks.forEach { block ->
+            NoteBlockView(block, onFollowLink, MaterialTheme.typography.bodySmall, MUTED_TEXT)
+          }
         }
         // What makes a leak something to write down: the addresses in this list are of one heap dump, and
         // this is the same for the same leak in the next one. See [LeakGroup.leakFingerprint].
-        Hint(LEAK_FINGERPRINT_HINT) {
+        Explain(Topic.LEAK_FINGERPRINT, onExplain) {
           Text(
             "$LEAK_FINGERPRINT ${group.leakFingerprint}",
+            Modifier.weight(1f, fill = false),
             style = MaterialTheme.typography.bodySmall,
             color = MUTED_TEXT,
             maxLines = 1,
@@ -401,11 +460,13 @@ private fun LeakingObjectRow(
         ) {
           Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(leakingObject.strength)))
           Column(Modifier.weight(1f)) {
-            Text(
-              leakingObject.identityText(),
-              style = MaterialTheme.typography.bodySmall,
-              maxLines = 1,
-              overflow = TextOverflow.Ellipsis
+            // Named the way every other surface names an object. Smaller, because a leaking object is
+            // drawn inside the leak it is an instance of, and that indent is what the size says too.
+            ObjectIdentity(
+              className = leakingObject.className,
+              typeName = leakingObject.kind.typeName,
+              objectId = leakingObject.objectId,
+              nameStyle = MaterialTheme.typography.bodySmall
             )
             leakingObject.headline?.let { headline ->
               Text(
@@ -548,7 +609,7 @@ private fun LeakGroup.objectCountText(): String =
  * One line rather than two, because the ends are the same reference for most leaks and a second line that
  * repeats the first says the row has two names. Which end is which is worth knowing — the first is what to
  * stop holding, the last is where the object that leaked hangs off — and a row of a list is read left to
- * right, so it is the same order the chain is in. See [LeakGroup.suspectPath] and [NAME_HINT].
+ * right, so it is the same order the chain is in. See [LeakGroup.suspectPath] and the `leak-name` page of the reference.
  *
  * It ends on an arrow, because what the last reference points at is the row underneath: the references are
  * the leak and the objects below them are what it left behind, which is the whole shape of this list.
@@ -566,14 +627,6 @@ private fun LeakGroup.nameText(): String = when (suspectPath.size) {
 /** How many objects the leak has past the one on the row above, which is what opening it shows. */
 private fun moreObjectsText(count: Int): String =
   "$count $MORE ${if (count == 1) OBJECT else OBJECTS} $LEAKING_THE_SAME_WAY"
-
-/** The class in full, then the address: the same two things every list of objects here shows. */
-private fun LeakingObject.identityText() = buildAnnotatedString {
-  withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(className.substringAfterLast('.')) }
-  withStyle(SpanStyle(color = MUTED_TEXT)) {
-    append(" ${kind.typeName} · ${hexObjectId(objectId)}")
-  }
-}
 
 /**
  * What the watcher knew: the key it logged the object under, how long before the dump it was handed over,
@@ -615,22 +668,6 @@ private const val WATCHED_GLYPH = "◉"
 
 /** What the hash of a leak is called on the row, since a bare 40 characters of hex names nothing. */
 internal const val LEAK_FINGERPRINT = "Leak fingerprint:"
-
-internal const val NAME_HINT =
-  "The references this leak is: the first is the faulty reference, the one that should have been cleared " +
-    "and what LeakCanary calls the leak, and the last is the one that points straight at what is stuck, " +
-    "which is where to look on the chain to see it. They are one reference for most leaks. Everything " +
-    "above the first is the app working as intended and everything below the last is what the leak is " +
-    "holding, so neither is part of what makes this leak this leak. For an object on its way out it is " +
-    "the one reference the collector hasn't cleared yet, which is the whole of why it is still here. Where " +
-    "a leak is a single reference, the chain drawn for an object under this row marks it, so the row and " +
-    "the step are one thing said twice."
-
-internal const val LEAK_FINGERPRINT_HINT =
-  "A hash of how this leak is held, which is the same for the same leak in the next heap dump of this app " +
-    "— unlike the addresses under it, which are of this one. So it is what to write in a bug report, and " +
-    "what to compare two dumps by. It is also the leak fingerprint LeakCanary prints under this leak when " +
-    "it reports it, so a report and this list can be lined up hash by hash."
 
 /** Between the two ends of a leak, pointing the way the chain runs: down, away from the GC roots. */
 internal const val STRETCH_ARROW = "→"

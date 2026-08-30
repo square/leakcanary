@@ -1,8 +1,6 @@
 package shark.dive.app
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -11,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
@@ -26,21 +23,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import java.util.Locale
 import shark.dive.HeapObjectKind
 import shark.dive.ObjectList
-import shark.dive.ObjectListEntry
 import shark.dive.ObjectListFilter
-import shark.dive.formatByteSize
 import shark.dive.formatObjectCount
-import shark.dive.formatPercentOfTotal
 
 /**
  * Every object of the heap dump as a list, largest first, filtered by class name and kind.
@@ -167,112 +155,12 @@ private fun ObjectList.countText(isListing: Boolean): String = when {
 private fun ObjectList.matchesOfTotal() =
   "${String.format(Locale.US, "%,d", matchCount)} of ${formatObjectCount(totalCount)} match"
 
-@Composable
-private fun ObjectRowHeader() {
-  Row(
-    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    HeaderCell(CLASS_COLUMN, Modifier.weight(1f))
-    HeaderCell(SHALLOW_COLUMN, Modifier.width(SIZE_COLUMN_WIDTH), TextAlign.End)
-    HeaderCell(RETAINED_COLUMN, Modifier.width(SIZE_COLUMN_WIDTH), TextAlign.End)
-  }
-}
-
-@Composable
-private fun HeaderCell(
-  text: String,
-  modifier: Modifier = Modifier,
-  textAlign: TextAlign = TextAlign.Start
-) {
-  Text(text, modifier, style = MaterialTheme.typography.labelSmall, textAlign = textAlign)
-}
-
-/** One object: what it is, what tells it apart from the next of its class, and what it holds. */
-@Composable
-private fun ObjectRow(
-  entry: ObjectListEntry,
-  stronglyReachableByteCount: Long,
-  onOpen: (Long, OpenIn) -> Unit,
-  onCopyLink: (Long) -> Unit
-) {
-  val open: (OpenIn) -> Unit = { openIn -> onOpen(entry.objectId, openIn) }
-  OpenTarget(open, { onCopyLink(entry.objectId) }) {
-    Row(
-      Modifier.fillMaxWidth()
-        .openable(open)
-        .padding(horizontal = 12.dp, vertical = 4.dp),
-      horizontalArrangement = Arrangement.spacedBy(8.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(entry.strength)))
-      Column(Modifier.weight(1f)) {
-        Text(
-          entry.classNameText(),
-          style = MaterialTheme.typography.bodyMedium,
-          maxLines = 1,
-          overflow = TextOverflow.Ellipsis
-        )
-        entry.headline?.let { headline ->
-          Text(
-            headline,
-            style = MaterialTheme.typography.bodySmall,
-            color = MUTED_TEXT,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-          )
-        }
-      }
-      Text(
-        formatByteSize(entry.shallowSize),
-        Modifier.width(SIZE_COLUMN_WIDTH),
-        style = MaterialTheme.typography.bodySmall,
-        textAlign = TextAlign.End
-      )
-      // The share under the size rather than beside it: the column is as wide as a size and no wider,
-      // and a table's numbers only line up while every cell in the column is the same shape.
-      Column(Modifier.width(SIZE_COLUMN_WIDTH)) {
-        Text(
-          formatByteSize(entry.retainedSize),
-          Modifier.fillMaxWidth(),
-          style = MaterialTheme.typography.bodyMedium,
-          textAlign = TextAlign.End
-        )
-        Text(
-          formatPercentOfTotal(entry.retainedSize, stronglyReachableByteCount),
-          Modifier.fillMaxWidth(),
-          style = MaterialTheme.typography.labelSmall,
-          color = MUTED_TEXT,
-          textAlign = TextAlign.End
-        )
-      }
-    }
-  }
-}
-
-/** The package greyed out, the class name in full, and which kind of thing it is. */
-private fun ObjectListEntry.classNameText() = buildAnnotatedString {
-  val packageName = className.substringBeforeLast('.', missingDelimiterValue = "")
-  if (packageName.isNotEmpty()) {
-    withStyle(SpanStyle(color = MUTED_TEXT)) { append("$packageName.") }
-  }
-  withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(className.substringAfterLast('.')) }
-  withStyle(SpanStyle(color = MUTED_TEXT)) { append(" ${kind.typeName}") }
-}
-
 private const val SEARCH_LABEL = "Class name"
 
 internal const val EXACT_MATCH = "Exact match"
 
 /** Shown while the pass over every object of the heap dump is still running. */
 private const val LISTING = "Going through the heap dump…"
-
-private const val CLASS_COLUMN = "Class"
-private const val SHALLOW_COLUMN = "Shallow"
-private const val RETAINED_COLUMN = "Retained"
-
-/** Wide enough for a size in gigabytes, so that the numbers line up down the column. */
-private val SIZE_COLUMN_WIDTH = 72.dp
 
 private val SPINNER_SIZE = 12.dp
 private val SPINNER_STROKE = 2.dp

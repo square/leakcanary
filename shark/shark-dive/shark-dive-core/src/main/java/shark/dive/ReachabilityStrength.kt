@@ -13,11 +13,27 @@ package shark.dive
  *
  * Every object of a heap dump has one of these, [UNREACHABLE] included, so the strengths partition the
  * dump: the bytes and the object counts of [HeapSizes] add up to the whole thing.
+ *
+ * The KDoc below is for whoever is reading this file. What a strength means to whoever is reading a heap
+ * dump is `docs/shark-dive-reference/reachability-strength.md`, the page behind every `?` beside a [label],
+ * and a change to what one of these *means* is a change to both.
  */
-enum class ReachabilityStrength {
+enum class ReachabilityStrength(
+  /**
+   * What it is called wherever a person reads it: the checkbox above the map, the details panel, the card
+   * at the pointer, the heading of a section of the leaks screen, and the log line saying how a dump splits
+   * up.
+   *
+   * **One name each, and one or two words of it.** A strength called `Soft` on a checkbox and
+   * `Softly reachable` in the panel beside it is two things to whoever is reading, and the sentence saying
+   * what one means is [Topic.REACHABILITY_STRENGTH] rather than the label — a name that explains itself is a
+   * name too long to put in a row of nine.
+   */
+  val label: String
+) {
 
   /** Reachable without going through a `java.lang.ref.Reference`. Never reclaimed. */
-  STRONG,
+  STRONG("Strong"),
 
   /**
    * Reachable only from a cache that gives its entries up on its own: an LRU that evicts as it fills,
@@ -34,7 +50,7 @@ enum class ReachabilityStrength {
    * tree couldn't say so. Ranked above [SOFT] because a cache decides for itself when to let go, where
    * a soft reference is at the mercy of the next collection that needs room.
    */
-  CACHE,
+  CACHE("Cache"),
 
   /**
    * Reachable only from a thread's own storage, which is given up when the thread dies.
@@ -45,7 +61,7 @@ enum class ReachabilityStrength {
    * [CACHE] because a cache lets go when memory runs short and a thread local doesn't, and stronger than
    * [SOFT] because nothing collects it while the thread lives.
    */
-  THREAD_LOCAL,
+  THREAD_LOCAL("Thread local"),
 
   /**
    * Reachable only from a running method: a local variable, a JNI local reference, a native stack frame,
@@ -56,29 +72,29 @@ enum class ReachabilityStrength {
    * anything in memory. So an object a field also holds is the field's, and this is what's left for the
    * objects nothing else points at, which are usually the ones being built.
    */
-  LOCAL,
+  LOCAL("Local"),
 
   /**
    * Reclaimed when the VM decides it wants the memory back, which is what makes a `SoftReference` a
    * cache rather than a leak.
    */
-  SOFT,
+  SOFT("Soft"),
 
   /** Reclaimed at the next collection, whether or not memory is short. */
-  WEAK,
+  WEAK("Weak"),
 
   /**
    * Reachable only from the queue of objects whose `finalize()` hasn't run yet, so it survives at
    * least one more collection, and longer if finalization is backed up. Finalizing it can even make
    * it reachable again.
    */
-  FINALIZER,
+  FINALIZER("Finalizer"),
 
   /**
    * Already finalized and unreachable to the program, held only so that a `PhantomReference` or a
    * `Cleaner` gets enqueued once it's gone.
    */
-  PHANTOM,
+  PHANTOM("Phantom"),
 
   /**
    * No path from any GC root reaches it: garbage that hadn't been collected when the heap dump was
@@ -88,5 +104,5 @@ enum class ReachabilityStrength {
    * never queues anything into it — nothing reaches an unreachable object by definition. What's
    * unreachable is what the walk didn't reach.
    */
-  UNREACHABLE
+  UNREACHABLE("Unreachable")
 }

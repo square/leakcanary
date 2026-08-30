@@ -28,11 +28,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import shark.dive.CellSubject
-import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectKind
 import shark.dive.HeapObjectSummary
-import shark.dive.ObjectGroupKind
 import shark.dive.ObjectGroupSummary
+import shark.dive.ReachabilityStrength
+import shark.dive.Topic
 import shark.dive.formatByteSize
 import shark.dive.formatByteSizeOfTotal
 import shark.dive.formatObjectCount
@@ -71,6 +71,8 @@ internal fun DetailsPanel(
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
   onToggleStar: () -> Unit,
+  /** Where the `?` beside how firmly an object is held goes. See [Explain]. */
+  onExplain: (Topic) -> Unit,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surfaceVariant) {
@@ -82,17 +84,14 @@ internal fun DetailsPanel(
         null -> Text(NO_SELECTION, style = MaterialTheme.typography.bodyMedium)
         is Selection.Group -> {
           Text(
-            "${selection.nodeCount} smaller objects",
+            formatObjectCount(selection.nodeCount),
             style = MaterialTheme.typography.titleMedium
           )
-          Text(
-            "Held by ${selection.parentLabel}. $GROUP_EXPLANATION",
-            style = MaterialTheme.typography.bodySmall
-          )
+          Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
           Detail("Retained", formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount))
         }
         is Selection.ObjectGroup ->
-          ObjectGroupDetails(selection.summary, stronglyReachableByteCount)
+          ObjectGroupDetails(selection.summary, stronglyReachableByteCount, onExplain)
         is Selection.Object -> ObjectDetails(
           summary = selection.summary,
           stronglyReachableByteCount = stronglyReachableByteCount,
@@ -105,7 +104,8 @@ internal fun DetailsPanel(
           onOpen = onOpen,
           onCopyLink = onCopyLink,
           onListInstances = onListInstances,
-          onToggleStar = onToggleStar
+          onToggleStar = onToggleStar,
+          onExplain = onExplain
         )
       }
     }
@@ -130,36 +130,57 @@ internal sealed interface Selection {
 
 /**
  * A cell standing for many objects: half of the heap dump, or every instance of one class under the
- * root. Says so in as many words, because a rectangle that isn't an object looks exactly like one that
- * is until something says otherwise.
+ * root. Its title is a count, which is what says it is not one object.
+ *
+ * The same rows an object gets, in the same order, so that a pile and an object read as two of a kind
+ * rather than as two panels: how firmly it is held, then what it costs.
  */
 @Composable
 private fun ObjectGroupDetails(
   summary: ObjectGroupSummary,
-  stronglyReachableByteCount: Long
+  stronglyReachableByteCount: Long,
+  onExplain: (Topic) -> Unit
 ) {
   Text(summary.title(), style = MaterialTheme.typography.titleMedium)
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-  Row(
-    horizontalArrangement = Arrangement.spacedBy(6.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
-    Text(summary.explanation(), style = MaterialTheme.typography.bodySmall)
+  StrengthRow(summary.strength, onExplain)
+  // How many objects is the title, so this row is the bytes and nothing else. The same word an object gets,
+  // rather than "Retained together": that a pile of objects retains something together is what makes it a
+  // pile, and it is already headed by a count.
+  Detail(RETAINED, formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
+}
+
+/**
+ * What a pile of objects is called wherever it is described: here, and on the card at the pointer.
+ *
+ * **A count, and the same count whichever kind of pile it is.** Which kind it is is the line under it — the
+ * class name for a pile of one class, and the strength for the uncollected garbage — so a second word for it
+ * here would be that line said twice, in a different vocabulary each time.
+ */
+internal fun ObjectGroupSummary.title(): String = formatObjectCount(objectCount)
+
+/**
+ * How firmly the thing being described is held: the colour the map draws it in, and the one name that colour
+ * has. See [ReachabilityStrength.label].
+ *
+ * One composable rather than the same row written out per panel, because the swatch beside the word is the
+ * whole of what ties the panel to the map — a panel that draws the swatch a pixel differently from another
+ * is a panel a reader has to check against the legend again.
+ */
+@Composable
+private fun StrengthRow(
+  strength: ReachabilityStrength,
+  onExplain: (Topic) -> Unit
+) {
+  Explain(Topic.REACHABILITY_STRENGTH, onExplain) {
+    Row(
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(strength)))
+      Text(strength.label, style = MaterialTheme.typography.bodySmall)
+    }
   }
-  Detail("Retained together", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
-  Detail("Objects", formatObjectCount(summary.objectCount))
-}
-
-/** What a pile of objects is called wherever it is described: here, and on the card at the pointer. */
-internal fun ObjectGroupSummary.title(): String = when (kind) {
-  ObjectGroupKind.UNREACHABLE -> HeapDominatorTreemap.UNREACHABLE_LABEL
-  ObjectGroupKind.CLASS -> "${formatObjectCount(objectCount)} of one class"
-}
-
-private fun ObjectGroupSummary.explanation(): String = when (kind) {
-  ObjectGroupKind.UNREACHABLE -> UNREACHABLE_EXPLANATION
-  ObjectGroupKind.CLASS -> CLASS_GROUP_EXPLANATION
 }
 
 @Composable
@@ -175,7 +196,8 @@ private fun ObjectDetails(
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
-  onToggleStar: () -> Unit
+  onToggleStar: () -> Unit,
+  onExplain: (Topic) -> Unit
 ) {
   Hint(if (isStarred) UNSTAR_HINT else STAR_HINT) {
     Text(
@@ -201,20 +223,12 @@ private fun ObjectDetails(
   // Under the headline, which for a bitmap is its size and its format: the picture is what the bitmap is,
   // and the sentence describing it stops just short of saying it.
   BitmapPreview(bitmap)
-  Row(
-    horizontalArrangement = Arrangement.spacedBy(6.dp),
-    verticalAlignment = Alignment.CenterVertically
-  ) {
-    Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(summary.strength)))
-    Text(summary.strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
-  }
-  Detail("Retained", formatByteSizeOfTotal(summary.retainedSize, stronglyReachableByteCount))
-  Detail("Retained objects", summary.retainedCount.toString())
+  StrengthRow(summary.strength, onExplain)
+  Detail(RETAINED, retainedText(summary.retainedSize, summary.retainedCount, stronglyReachableByteCount))
   // No share of the total on the shallow size: what one object is made of on its own is never a
   // meaningful fraction of a heap dump, and a second percentage in the column would only dilute the
   // one that says something.
-  Detail("Shallow", formatByteSize(summary.shallowSize))
-  Detail("Dominates", "${summary.dominatedObjectCount} objects")
+  Detail(SHALLOW, formatByteSize(summary.shallowSize))
   summary.inspectorLabels.forEach { label ->
     Text(label, style = MaterialTheme.typography.bodySmall)
   }
@@ -249,21 +263,33 @@ private fun BitmapPreview(bitmap: ImageBitmap?) {
   )
 }
 
-/** Whatever it wraps, with [text] shown while the pointer rests on it. */
+/**
+ * Whatever it wraps, with [text] shown while the pointer rests on it.
+ *
+ * [footer] is a line under it in the colour of a link, for a hint that leads somewhere: what a hint says
+ * about clicking has to be said in the hint, because the tooltip itself cannot be clicked — its [Surface]
+ * swallows pointer events, which is the same thing that keeps [PointerCard] out from under the pointer. See
+ * [Explain], which is the one thing that passes one.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun Hint(
   text: String,
+  footer: String? = null,
   content: @Composable () -> Unit
 ) {
   TooltipArea(
     tooltip = {
       Surface(shadowElevation = 4.dp, color = MaterialTheme.colorScheme.surface) {
-        Text(
-          text,
+        Column(
           Modifier.width(HINT_WIDTH).padding(8.dp),
-          style = MaterialTheme.typography.bodySmall
-        )
+          verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+          Text(text, style = MaterialTheme.typography.bodySmall)
+          footer?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = LINK_COLOR)
+          }
+        }
       }
     },
     content = content
@@ -327,6 +353,28 @@ internal fun Detail(
 }
 
 /**
+ * What an object's two sizes are called wherever they are given: the rows of this panel, the lines of the
+ * card at the pointer, and the columns of every list of objects. See [ObjectRow].
+ *
+ * **One word each.** These were three vocabularies for two numbers — `Retained` here, `Retains … in N
+ * objects` on the card, `Retained` again over a column — and a reader comparing a card against the panel
+ * behind it had to work out that they were the same numbers before they could compare them.
+ *
+ * How many objects that is goes on the [RETAINED] line rather than in a row of its own, because it is the
+ * same fact counted the other way. And how many the object *immediately* dominates is gone from both: that
+ * is the number of rectangles drawn inside this one, which is what the picture beside them is.
+ */
+internal const val RETAINED = "Retained"
+internal const val SHALLOW = "Shallow"
+
+internal fun retainedText(
+  retainedSize: Long,
+  retainedCount: Int,
+  stronglyReachableByteCount: Long
+): String = "${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} · " +
+  formatObjectCount(retainedCount)
+
+/**
  * Shown by the details panel until something has been clicked, which is what it describes: pointing at a
  * rectangle says what it is at the pointer instead, and adds the chain holding it to the one beside the map.
  * See [PointerCard] and [RootPathPanel].
@@ -342,18 +390,6 @@ private const val STARRED = "Starred"
 private const val NOT_STARRED = "Star this object"
 private const val STAR_HINT = "Star this object, to compare it with others later."
 private const val UNSTAR_HINT = "Remove this object from the starred list."
-
-internal const val UNREACHABLE_EXPLANATION =
-  "Not one object: everything no GC root reaches, so garbage that hadn't been collected when the heap " +
-    "dump was written. The next collection would take all of it."
-
-internal const val CLASS_GROUP_EXPLANATION =
-  "Not one object: these are all the instances of this class that nothing owns on its own, gathered " +
-    "so the root's children can be read. Click it to see them one by one."
-
-private const val GROUP_EXPLANATION =
-  "Too small or too many to draw one by one in the rectangle they belong to. Clicking them roots the " +
-    "map at what holds them, which gives it the whole view to draw them in."
 
 /** What the pixels of the selected bitmap are, to anything that can't look at them. */
 internal const val BITMAP_DESCRIPTION = "The pixels of the selected bitmap."

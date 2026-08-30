@@ -325,34 +325,6 @@ private fun shaded(
   )
 }
 
-/** How the UI names a strength, e.g. next to its checkbox. */
-internal val ReachabilityStrength.displayName: String
-  get() = when (this) {
-    STRONG -> "Strong"
-    CACHE -> "Cache"
-    THREAD_LOCAL -> "Thread local"
-    LOCAL -> "Local"
-    SOFT -> "Soft"
-    WEAK -> "Weak"
-    FINALIZER -> "Finalizer"
-    PHANTOM -> "Phantom"
-    UNREACHABLE -> "Unreachable"
-  }
-
-/** How the details panel says an object is reachable. */
-internal val ReachabilityStrength.reachabilityText: String
-  get() = when (this) {
-    STRONG -> "Strongly reachable"
-    CACHE -> "Held only by a cache that evicts"
-    THREAD_LOCAL -> "Held only by a thread's own storage"
-    LOCAL -> "Held only by a running method"
-    SOFT -> "Softly reachable"
-    WEAK -> "Weakly reachable"
-    FINALIZER -> "Reachable only from the finalizer queue"
-    PHANTOM -> "Phantom reachable"
-    UNREACHABLE -> "Unreachable: uncollected garbage"
-  }
-
 private val ReachabilityStrength.hue: Float
   get() = when (this) {
     STRONG -> 210f

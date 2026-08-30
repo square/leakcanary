@@ -11,7 +11,6 @@ import shark.GcRoot.StickyClass
 import shark.HprofWriterHelper
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
-import shark.dive.HeapDominatorTreemap.Companion.UNREACHABLE_LABEL
 import shark.dive.HeapDominatorTreemap.Companion.UNREACHABLE_NODE_ID
 import shark.dive.ReachabilityStrength.FINALIZER
 import shark.dive.ReachabilityStrength.PHANTOM
@@ -240,7 +239,7 @@ class HeapReachabilityTest {
 
       // One rectangle beside the objects a GC root holds, rather than a level of its own beside a level of
       // theirs: the root of the map is the whole heap dump wherever the reader is.
-      assertThat(topLevel.map { tree.label(it) }).contains("Holder", UNREACHABLE_LABEL)
+      assertThat(topLevel.map { tree.label(it) }).contains("Holder", ReachabilityStrength.UNREACHABLE.label)
       val unreachable = tree.groupOrNull(UNREACHABLE_NODE_ID)!!
       assertThat(unreachable.strength).isEqualTo(ReachabilityStrength.UNREACHABLE)
       assertThat(unreachable.objectCount).isEqualTo(2)

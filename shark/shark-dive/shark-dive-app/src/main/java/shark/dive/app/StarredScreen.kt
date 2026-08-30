@@ -1,35 +1,33 @@
 package shark.dive.app
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import shark.dive.HeapObjectSummary
-import shark.dive.ObjectDominator
-import shark.dive.formatByteSize
-import shark.dive.formatByteSizeOfTotal
-import shark.dive.hexObjectId
+import shark.dive.ObjectListEntry
 
 /**
- * The objects starred so far, everything about them read when they were starred.
+ * The objects starred so far, as the same list of objects every other list on this window is.
  *
  * Comparing what two rectangles hold means looking at them one after the other, and a treemap has no room
  * to keep the first one on screen. Starring is how a handful of objects stay comparable.
+ *
+ * **Read out of the heap dump, not remembered from the moment they were starred.** The list used to keep a
+ * copy of each object's sizes, which made it a screen of its own with columns of its own, and made a row go
+ * stale the moment a status set by hand changed what an object retains. What is kept is the addresses, in
+ * `~/.shark-dive/starred` — see [shark.dive.StarredFile].
  */
 @Composable
 internal fun StarredScreen(
-  favourites: List<Favourite>,
+  entries: List<ObjectListEntry>,
   /** What a retained size here is a share of. See [shark.dive.HeapSizes.stronglyReachableByteCount]. */
   stronglyReachableByteCount: Long,
   onOpen: (Long, OpenIn) -> Unit,
@@ -39,31 +37,18 @@ internal fun StarredScreen(
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
-    Column(
-      Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
-      verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-      Text("$STARRED_GLYPH Starred objects", style = MaterialTheme.typography.titleMedium)
-      if (favourites.isEmpty()) {
-        Text(NOTHING_STARRED, style = MaterialTheme.typography.bodyMedium)
+    Column(Modifier.fillMaxSize()) {
+      ObjectRowHeader(hasTrailing = true)
+      HorizontalDivider()
+      if (entries.isEmpty()) {
+        NoObjectRows(NOTHING_STARRED)
       }
-      favourites.forEach { favourite ->
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          Column(Modifier.weight(1f)) {
-            Inspectable(favourite.label, favourite.objectId, onOpen, onCopyLink)
-            Text(favourite.className, style = MaterialTheme.typography.bodySmall)
-            SelectionContainer {
-              Text(hexObjectId(favourite.objectId), style = MaterialTheme.typography.bodySmall)
+      LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
+        items(entries, key = { it.objectId }) { entry ->
+          ObjectRow(entry, stronglyReachableByteCount, onOpen, onCopyLink) {
+            TextButton(onClick = { onRemove(entry.objectId) }) {
+              Text(STARRED_GLYPH)
             }
-            Text(
-              "Retained ${formatByteSizeOfTotal(favourite.retainedSize, stronglyReachableByteCount)} · " +
-                "shallow ${formatByteSize(favourite.shallowSize)} · " +
-                "dominated by ${favourite.dominatorLabel}",
-              style = MaterialTheme.typography.bodySmall
-            )
-          }
-          TextButton(onClick = { onRemove(favourite.objectId) }) {
-            Text(STARRED_GLYPH)
           }
         }
       }
@@ -71,32 +56,10 @@ internal fun StarredScreen(
   }
 }
 
-/** One starred object, with what the list shows about it kept rather than read again. */
-internal data class Favourite(
-  val objectId: Long,
-  val label: String,
-  val className: String,
-  val shallowSize: Long,
-  val retainedSize: Long,
-  val dominatorLabel: String
-) {
-  companion object {
-    fun of(
-      summary: HeapObjectSummary,
-      dominator: ObjectDominator?
-    ) = Favourite(
-      objectId = summary.objectId,
-      label = summary.headline?.let { "${summary.label} · $it" } ?: summary.label,
-      className = summary.className,
-      shallowSize = summary.shallowSize,
-      retainedSize = summary.retainedSize,
-      dominatorLabel = dominator?.label ?: UNKNOWN_DOMINATOR
-    )
-  }
-}
-
-private const val NOTHING_STARRED =
-  "Nothing is starred. The star next to an object's name in the panel keeps it here, so that two of " +
-    "them can be compared without holding one in your head."
-
-private const val UNKNOWN_DOMINATOR = "not read yet"
+/**
+ * What the list says when it has none, which is also what says the star is what fills it.
+ *
+ * The glyph and nothing about where it is: naming the panel it sits in is a second thing to find, and one
+ * that goes stale the day the star moves.
+ */
+internal const val NOTHING_STARRED = "Nothing starred. $UNSTARRED_GLYPH puts an object here."

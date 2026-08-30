@@ -47,6 +47,17 @@ data class Note(val blocks: List<NoteBlock>) {
 
     /** Reads [text] as markdown, with its mentions left for the heap dump to answer. See [resolvedWith]. */
     fun of(text: String): Note = Note(noteBlocksOf(text))
+
+    /**
+     * The same, for prose that was wrapped to fit a column rather than typed into a box: a page of the
+     * reference, or the description a library leak pattern carries.
+     *
+     * The one difference is what a line break means. In a note it is a line break, by the one-line-one-block
+     * rule above. In wrapped prose it is nothing at all — the writer was fitting a diff — so a run of lines
+     * is one paragraph and a blank line is what ends it. Reading such a text with [of] breaks every sentence
+     * where the wrapping fell.
+     */
+    fun ofDocument(text: String): Note = Note(documentBlocksOf(text))
   }
 }
 

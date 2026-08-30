@@ -277,8 +277,44 @@ class NoteTest {
     assertThat(resolved.resolvedWith(references)).isEqualTo(resolved)
   }
 
+  /**
+   * The other reading, for text that was wrapped to fit a column rather than typed into a box. Verbatim from
+   * `AndroidReferenceMatchers.ACCOUNT_MANAGER`, because the shape being read here is a real one: Shark's
+   * library leak patterns carry their description as a `"""` block, and the leaks screen draws it.
+   */
+  @Test fun `wrapped prose is one paragraph rather than a block per line`() {
+    val note = Note.ofDocument(WRAPPED_DESCRIPTION)
+
+    assertThat(textOf(note)).isEqualTo(
+      "AccountManager.AmsTask.Response is a stub, and as all stubs it's held in memory by a native ref " +
+        "until the calling side gets GCed, which can happen long after the stub is no longer of use. " +
+        "https://issuetracker.google.com/issues/318303120"
+    )
+  }
+
+  /** Which is what made rendering these as note markdown worth doing: half of them end in one. */
+  @Test fun `a URL in wrapped prose leads to it`() {
+    val links = Note.ofDocument(WRAPPED_DESCRIPTION).blocks.single().spans.mapNotNull { it.link }
+
+    assertThat(links).containsExactly(NoteLink.Web("https://issuetracker.google.com/issues/318303120"))
+  }
+
+  /** And read as a note it would be four blocks, three of them ending mid-sentence. */
+  @Test fun `the same prose read as a note is a block per line`() {
+    assertThat(Note.of(WRAPPED_DESCRIPTION).blocks).hasSize(4)
+  }
+
   private fun spansOf(text: String): List<NoteSpan> = Note.of(text).blocks.single().spans
 
   private fun textOf(note: Note): String =
     note.blocks.joinToString("\n") { block -> block.spans.joinToString("") { it.text } }
+
+  private companion object {
+    val WRAPPED_DESCRIPTION = """
+      AccountManager.AmsTask.Response is a stub, and as all stubs it's held in memory by a
+      native ref until the calling side gets GCed, which can happen long after the stub is no
+      longer of use.
+      https://issuetracker.google.com/issues/318303120
+    """.trimIndent()
+  }
 }

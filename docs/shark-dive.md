@@ -40,6 +40,15 @@ through the `adb` of your Android SDK: pick a device, then a process. Only an ap
 dumped, unless the device's whole build is debuggable (`ro.debuggable=1`, which is what a `userdebug`
 emulator image is), where every process on it can be.
 
+Dumping a heap freezes the app for a moment and pulls tens of megabytes over `adb`.
+
+**A bitmap keeps its pixels outside the Java heap from API 26**, so a heap dump carries them only when it
+was taken with `am dumpheap -b png`, which needs Android 15. On an older device the app offers to fetch
+them instead: that attaches a debugger and has the app compress every bitmap, suspended throughout —
+seconds of fixed cost, plus a fraction of a second per bitmap. It's the same offer as **Bitmaps from the
+live process**, which fetches them for a heap dump already open, as long as the process that wrote it is
+still running.
+
 Each heap dump opens in a window of its own, so two of them stay on screen side by side. Opening one takes
 a few seconds.
 
@@ -69,10 +78,12 @@ a few seconds.
 * Bitmaps are drawn as their own pictures where the dump has the pixels. Android keeps them outside the
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
-  come back to.
+  come back to — kept between runs in `~/.shark-dive/starred`, one address per line, one file per heap dump.
 * **The verdict on the object a tab is on is the first thing "What it is" says** — `Stuck`, `Expected` or
   `Unknown` — and you can overrule it, see [The verdict](#the-verdict).
 * Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
+* **A `?` follows the labels that take more than a label to know.** Hover it for one sentence, click it to
+  read the rest as a tab of the window — it's the [reference](shark-dive-reference.md), shipped with the app.
 
 ## Link to a tab
 

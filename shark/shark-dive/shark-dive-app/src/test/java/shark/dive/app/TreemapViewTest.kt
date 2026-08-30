@@ -36,6 +36,7 @@ import shark.dive.TreemapLayout
 import shark.dive.TreemapPresentation
 import shark.dive.TreemapRect
 import shark.dive.TreemapTree
+import shark.dive.formatObjectCount
 
 /**
  * Covers the wiring between clicks on the canvas and the callbacks reporting what was clicked or pointed
@@ -319,7 +320,7 @@ class TreemapViewTest {
           is CellSubject.Node -> PresentedCell(cell, "node ${subject.node}", CellContent.Object(STRONG))
           is CellSubject.Group -> PresentedCell(
             cell,
-            "${subject.nodeCount} smaller objects",
+            formatObjectCount(subject.nodeCount),
             CellContent.Leftover(STRONG)
           )
           is CellSubject.Own -> PresentedCell(

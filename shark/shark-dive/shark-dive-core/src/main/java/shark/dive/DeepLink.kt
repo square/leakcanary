@@ -129,6 +129,7 @@ data class DeepLink(
       )
       LEAKS_PATH -> Place.Leaks(parameters.all(EXPANDED_PARAMETER).toSet())
       STARRED_PATH -> Place.Starred
+      REFERENCE_PATH -> Place.Reference(parameters.topic(uri))
       AGENT_LOGS_PATH -> Place.AgentLogs
       AGENT_LOG_PATH -> Place.AgentLog(parameters.required(SESSION_PARAMETER, uri))
       else -> throw IllegalArgumentException("\"$path\" is no place of \"$uri\". ${usage()}")
@@ -196,6 +197,21 @@ data class DeepLink(
       }
     }
 
+    /**
+     * Which page of the reference, by its file name: `?topic=leak-fingerprint`.
+     *
+     * By name rather than by [Enum.name], so that a link written down today still opens the same page after
+     * the topics have been reordered or one has been renamed in Kotlin — and so that a link is readable.
+     */
+    private fun List<Pair<String, String>>.topic(uri: String): Topic {
+      val page = required(TOPIC_PARAMETER, uri)
+      return Topic.ofPage(page)
+        ?: throw IllegalArgumentException(
+          "\"$page\" is no page of the reference. Pages are " +
+            Topic.values().joinToString(", ") { it.page } + "."
+        )
+    }
+
     private fun String.toIntOrThrow(
       name: String,
       uri: String
@@ -231,6 +247,7 @@ data class DeepLink(
     internal const val OBJECTS_PATH = "objects"
     internal const val LEAKS_PATH = "leaks"
     internal const val STARRED_PATH = "starred"
+    internal const val REFERENCE_PATH = "reference"
     internal const val AGENT_LOGS_PATH = "agent-logs"
     internal const val AGENT_LOG_PATH = "agent-log"
 
@@ -240,6 +257,7 @@ data class DeepLink(
       OBJECTS_PATH,
       LEAKS_PATH,
       STARRED_PATH,
+      REFERENCE_PATH,
       AGENT_LOGS_PATH,
       AGENT_LOG_PATH
     )
@@ -261,6 +279,7 @@ data class DeepLink(
     internal const val EXACT_PARAMETER = "exact"
     internal const val KINDS_PARAMETER = "kinds"
     internal const val EXPANDED_PARAMETER = "expanded"
+    internal const val TOPIC_PARAMETER = "topic"
     internal const val SESSION_PARAMETER = "session"
 
     internal const val HEX_PREFIX = "0x"
@@ -275,6 +294,7 @@ private fun Place.linkPath(): String = when (this) {
   is Place.Objects -> DeepLink.OBJECTS_PATH
   is Place.Leaks -> DeepLink.LEAKS_PATH
   is Place.Starred -> DeepLink.STARRED_PATH
+  is Place.Reference -> DeepLink.REFERENCE_PATH
   is Place.AgentLogs -> DeepLink.AGENT_LOGS_PATH
   is Place.AgentLog -> DeepLink.AGENT_LOG_PATH
 }
@@ -307,6 +327,7 @@ private fun Place.linkParameters(): List<Pair<String, String>> = when (this) {
   }
   is Place.Leaks -> expandedGroups.sorted().map { DeepLink.EXPANDED_PARAMETER to it }
   is Place.Starred -> emptyList()
+  is Place.Reference -> listOf(DeepLink.TOPIC_PARAMETER to topic.page)
   is Place.AgentLogs -> emptyList()
   is Place.AgentLog -> listOf(DeepLink.SESSION_PARAMETER to sessionId)
 }

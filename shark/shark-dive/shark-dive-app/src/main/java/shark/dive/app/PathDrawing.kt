@@ -44,8 +44,9 @@ import shark.dive.LeakStatus
 import shark.dive.PathReference
 import shark.dive.PathStep
 import shark.dive.ReachabilityStrength
+import shark.dive.ReferencePage
+import shark.dive.Topic
 import shark.dive.formatByteSizeOfTotal
-import shark.dive.formatObjectCount
 import shark.dive.hexObjectId
 import shark.dive.statusText
 
@@ -182,16 +183,17 @@ internal fun PathStepRow(
     if (detail == PathDetail.FULL) {
       step.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
       if (step.retainedCount > 0) {
+        // The same word and the same numbers the details panel and the card at the pointer give an object,
+        // since a step of the chain is one of those objects. See [RETAINED].
         Text(
-          "Retaining ${formatByteSizeOfTotal(step.retainedSize, stronglyReachableByteCount)} in " +
-            formatObjectCount(step.retainedCount),
+          "$RETAINED ${retainedText(step.retainedSize, step.retainedCount, stronglyReachableByteCount)}",
           style = MaterialTheme.typography.bodySmall
         )
       }
     }
     if (step.strength != ReachabilityStrength.STRONG) {
       Text(
-        step.strength.reachabilityText,
+        step.strength.label,
         style = MaterialTheme.typography.bodySmall,
         color = objectStrengthColor(step.strength)
       )
@@ -472,16 +474,17 @@ private fun ReferenceLine(reference: PathReference) {
       style = MaterialTheme.typography.bodySmall
     )
   }
-  // Why this reference and not another, and what is known about a leak somebody else's code holds: both are
-  // paragraphs, so both belong on hover rather than in the chain.
+  // Why this reference and not another, and what is known about a leak somebody else's code holds. One
+  // sentence for the first of those, because the `?` above the chain leads to the rest of it: a step of a
+  // chain is one row of a column of rows, and a paragraph per row is a pane nobody reads twice.
   val explanation = listOfNotNull(
-    FAULTY_REFERENCE_HINT.takeIf { reference.isFaulty },
+    ReferencePage.of(Topic.FAULTY_REFERENCE).hint.takeIf { reference.isFaulty },
     reference.libraryLeak?.description?.takeIf { it.isNotEmpty() }
   )
   if (explanation.isEmpty()) {
     line()
   } else {
-    Hint(explanation.joinToString("\n\n"), line)
+    Hint(explanation.joinToString("\n\n"), content = line)
   }
 }
 
@@ -645,12 +648,6 @@ internal const val LIBRARY_LEAK = "· known library leak"
  * of names, and this is the line to stop on.
  */
 internal const val FAULTY_REFERENCE = "· faulty reference"
-
-/** Why this reference of the chain and not another, which is a paragraph and so sits on hover. */
-internal const val FAULTY_REFERENCE_HINT =
-  "The leak itself: what this reference is read on is expected to be in memory, what it points at should " +
-    "have been gone, so this is the one reference that should have been cleared. Everything under it is " +
-    "only still here because of it, and clearing this one is what would let all of it go."
 
 /** Wide enough for the line, its arrow head and a ring to sit clear of the text beside it. */
 private val GUTTER_WIDTH = 26.dp

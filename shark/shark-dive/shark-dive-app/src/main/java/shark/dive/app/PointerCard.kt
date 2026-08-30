@@ -96,6 +96,8 @@ private fun ObjectLines(
  *
  * The fully qualified class name is the line the map can't draw: a rectangle has room for `42 × Bitmap`
  * and no more, and which `Bitmap` that is, is the whole question a pile of them raises.
+ *
+ * A pile of one class is a node of the tree, so clicking it goes into it and the objects are there.
  */
 @Composable
 private fun ObjectGroupLines(
@@ -106,17 +108,22 @@ private fun ObjectGroupLines(
   summary.className?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
   StrengthLine(summary.strength)
   Text(summary.retainedText(stronglyReachableByteCount), style = MaterialTheme.typography.bodySmall)
-  Text(PILE_OF_OBJECTS, style = MaterialTheme.typography.bodySmall)
 }
 
-/** The children of a rectangle that its subdivision had no room for. See [shark.dive.CellSubject.Group]. */
+/**
+ * The children of a rectangle that its subdivision had no room for. See [shark.dive.CellSubject.Group].
+ *
+ * The other kind of pile, and no node of the tree, so there is nothing to go into. What a click does
+ * instead is root the map at the rectangle they were left out of, which is where there is the room to draw
+ * them one by one. See `TreemapLayout.maxRootChildren`.
+ */
 @Composable
 private fun GroupLines(
   selection: Selection.Group,
   stronglyReachableByteCount: Long
 ) {
   Text(
-    "${selection.nodeCount} smaller objects",
+    formatObjectCount(selection.nodeCount),
     style = MaterialTheme.typography.bodyMedium,
     fontWeight = FontWeight.Bold
   )
@@ -124,10 +131,9 @@ private fun GroupLines(
   // go to if any of them is worth finding.
   Text("Held by ${selection.parentLabel}", style = MaterialTheme.typography.bodySmall)
   Text(
-    "Retains ${formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount)}",
+    "$RETAINED ${formatByteSizeOfTotal(selection.byteCount, stronglyReachableByteCount)}",
     style = MaterialTheme.typography.bodySmall
   )
-  Text(LEFTOVER_OBJECTS, style = MaterialTheme.typography.bodySmall)
 }
 
 /** How firmly what the pointer is on is held, beside the colour the map drew it in. */
@@ -138,38 +144,20 @@ private fun StrengthLine(strength: ReachabilityStrength) {
     verticalAlignment = Alignment.CenterVertically
   ) {
     Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(strength)))
-    Text(strength.reachabilityText, style = MaterialTheme.typography.bodySmall)
+    Text(strength.label, style = MaterialTheme.typography.bodySmall)
   }
 }
 
+// The same two words the details panel labels these numbers with, and the same numbers under them: a card
+// read at a glance and a panel read at leisure are one vocabulary. See [RETAINED].
 private fun HeapObjectSummary.retainedText(stronglyReachableByteCount: Long): String =
-  "Retains ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} in " +
-    formatObjectCount(retainedCount)
+  "$RETAINED ${retainedText(retainedSize, retainedCount, stronglyReachableByteCount)}"
 
-private fun HeapObjectSummary.shallowText(): String =
-  "${formatByteSize(shallowSize)} of its own, dominates ${formatObjectCount(dominatedObjectCount)}"
+private fun HeapObjectSummary.shallowText(): String = "$SHALLOW ${formatByteSize(shallowSize)}"
 
+// How many objects is the bold line above this one, so it isn't said again here.
 private fun ObjectGroupSummary.retainedText(stronglyReachableByteCount: Long): String =
-  "Retains ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)} in " +
-    formatObjectCount(objectCount)
-
-/**
- * What a pile of objects has to say for itself in one line, because a rectangle full of them looks exactly
- * like one object until something says otherwise. The details panel spells out which kind of pile it is.
- *
- * A pile of one class is a node of the tree, so clicking it goes into it and the objects are there. See
- * [LEFTOVER_OBJECTS] for the pile that isn't.
- */
-internal const val PILE_OF_OBJECTS = "Not one object. Click it to reach the objects it stands for."
-
-/**
- * The other kind of pile: what a rectangle's subdivision had no room for. It is no node of the tree, so
- * there is nothing to go into and the promise [PILE_OF_OBJECTS] makes would be a lie here. What a click
- * does instead is root the map at the rectangle they were left out of, which is where there is the room
- * to draw them one by one. See `TreemapLayout.maxRootChildren`.
- */
-internal const val LEFTOVER_OBJECTS =
-  "Not one object. Click it for what holds them, where there is room to draw them one by one."
+  "$RETAINED ${formatByteSizeOfTotal(retainedSize, stronglyReachableByteCount)}"
 
 /**
  * Where a card of [cardSize] goes for a pointer at [pointer] in a view of [viewSize]: below and to the right

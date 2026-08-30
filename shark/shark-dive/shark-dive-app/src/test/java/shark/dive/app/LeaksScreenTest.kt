@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -35,6 +36,8 @@ import shark.dive.LeakSection
 import shark.dive.LeakingObject
 import shark.dive.Place
 import shark.dive.ReachabilityStrength
+import shark.dive.ReferencePage
+import shark.dive.Topic
 import shark.dive.hexObjectId
 import shark.dive.statusText
 
@@ -181,13 +184,83 @@ class LeaksScreenTest {
     diveUiTest {
       // Rendered from leaks rather than read off a heap dump: what is being pinned is how the two ends of a
       // leak are named, and a dump whose leaks have the shape to show it is a dump built for it.
-      setContent { MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}) } }
+      setContent {
+        MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}, {}, {}) }
+      }
 
       // Both ends and a gap for what is between them, then the leak whose two ends are one reference. Each
       // ends on an arrow, because what it points at is the object on the row below.
       onNodeWithText("$FIRST_END $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW $LAST_END $STRETCH_ARROW")
         .assertIsDisplayed()
       onNodeWithText("$ONE_REFERENCE $STRETCH_ARROW").assertIsDisplayed()
+    }
+  }
+
+  /**
+   * All of it, on one line's worth of paragraph, with the URL at the end of it live. Three ellipsized lines
+   * was throwing away the half of these descriptions that says where the workaround is.
+   */
+  @Test fun `a library leak's description is drawn in full`() {
+    diveUiTest {
+      setContent {
+        MaterialTheme { LeaksScreen(LIBRARY_LEAK, false, emptySet(), {}, { _, _ -> }, {}, {}, {}) }
+      }
+
+      onNodeWithText(
+        "AccountManager.AmsTask.Response is a stub, and as all stubs it's held in memory by a native ref " +
+          "until the calling side gets GCed, which can happen long after the stub is no longer of use. " +
+          "https://issuetracker.google.com/issues/318303120"
+      ).assertIsDisplayed()
+    }
+  }
+
+  /** And what to do about somebody else's leak is a page, since it is more than a section heading holds. */
+  @Test fun `the library leaks section leads to the page about them`() {
+    diveUiTest {
+      var explained: Topic? = null
+      setContent {
+        MaterialTheme {
+          LeaksScreen(LIBRARY_LEAK, false, emptySet(), {}, { _, _ -> }, {}, { explained = it }, {})
+        }
+      }
+
+      onNodeWithContentDescription("$MORE_ABOUT ${ReferencePage.of(Topic.LIBRARY_LEAKS).title}")
+        .performClick()
+
+      assertThat(explained).isEqualTo(Topic.LIBRARY_LEAKS)
+    }
+  }
+
+  /**
+   * And a section a strength names says the strength's own name and leads to the one page about the nine of
+   * them: a paragraph per section would be that page written out five more times, in five places that go
+   * stale one at a time.
+   */
+  @Test fun `a section named after a strength leads to the page about strengths`() {
+    diveUiTest {
+      var explained: Topic? = null
+      setContent {
+        MaterialTheme {
+          LeaksScreen(
+            WEAKLY_HELD,
+            false,
+            // Open, since the half of the screen nobody has to act on is folded away until it is asked for.
+            setOf(Place.Leaks.ON_THE_WAY_OUT),
+            {},
+            { _, _ -> },
+            {},
+            { explained = it },
+            {}
+          )
+        }
+      }
+
+      onNodeWithText(ReachabilityStrength.WEAK.label, substring = true).assertIsDisplayed()
+      onNodeWithContentDescription(
+        "$MORE_ABOUT ${ReferencePage.of(Topic.REACHABILITY_STRENGTH).title}"
+      ).performClick()
+
+      assertThat(explained).isEqualTo(Topic.REACHABILITY_STRENGTH)
     }
   }
 
@@ -230,7 +303,7 @@ class LeaksScreenTest {
       // Filtered down to it rather than scrolled to it: the activities of this dump retain the least of
       // anything in it, so they are the last rows of a list that is longer than the window.
       onNode(hasSetTextAction()).performTextInput(LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.'))
-      val listed = "$LEAKING_ACTIVITY_CLASS_NAME instance"
+      val listed = "${LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.')} instance"
       waitUntilAtLeastOneExists(hasText(listed), OPEN_TIMEOUT_MILLIS)
 
       onAllNodesWithText(listed)[0].performClick()
@@ -322,7 +395,7 @@ class LeaksScreenTest {
 
   /** And one of the boxes beside it that colour the map by how firmly an object is held. */
   private fun ComposeUiTest.strengthToggle(): SemanticsNodeInteraction =
-    onNode(hasText(ReachabilityStrength.STRONG.displayName, substring = true) and isToggleable())
+    onNode(hasText(ReachabilityStrength.STRONG.label, substring = true) and isToggleable())
 
   companion object {
     /** The two destroyed activities and the watched object of [leakyHeapDump]. */
@@ -356,6 +429,36 @@ class LeaksScreenTest {
     private const val ONE_REFERENCE = "Holder.activity"
 
     /** Two app leaks, one of each shape. See [LeakGroup.suspectPath]. */
+    /**
+     * Verbatim from `AndroidReferenceMatchers.ACCOUNT_MANAGER`, wrapping and all: what the leaks screen has
+     * to draw is a `"""` block out of Shark, and 51 of the 85 of them end in a URL.
+     */
+    private val LIBRARY_DESCRIPTION = """
+      AccountManager.AmsTask.Response is a stub, and as all stubs it's held in memory by a
+      native ref until the calling side gets GCed, which can happen long after the stub is no
+      longer of use.
+      https://issuetracker.google.com/issues/318303120
+    """.trimIndent()
+
+    private val LIBRARY_LEAK = HeapLeaks(
+      listOf(
+        LeakSection(
+          kind = LeakKind.LIBRARY,
+          groups = listOf(leakGroup(listOf("AmsTask.response"), subtitle = LIBRARY_DESCRIPTION))
+        )
+      )
+    )
+
+    /** One of the five sections a [ReachabilityStrength] names, which are the half nobody has to act on. */
+    private val WEAKLY_HELD = HeapLeaks(
+      listOf(
+        LeakSection(
+          kind = LeakKind.WEAK,
+          groups = listOf(leakGroup(listOf("Cache.entry")))
+        )
+      )
+    )
+
     private val TWO_ENDED_LEAKS = HeapLeaks(
       listOf(
         LeakSection(
@@ -368,11 +471,14 @@ class LeaksScreenTest {
       )
     )
 
-    private fun leakGroup(suspectPath: List<String>) = LeakGroup(
+    private fun leakGroup(
+      suspectPath: List<String>,
+      subtitle: String? = null
+    ) = LeakGroup(
       leakFingerprint = suspectPath.first().sha1OfNothing(),
       title = suspectPath.first(),
       suspectPath = suspectPath,
-      subtitle = null,
+      subtitle = subtitle,
       objects = listOf(
         LeakingObject(
           objectId = suspectPath.first().hashCode().toLong(),

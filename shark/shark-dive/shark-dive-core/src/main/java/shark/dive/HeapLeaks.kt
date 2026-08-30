@@ -60,8 +60,14 @@ data class HeapLeaks(
  */
 enum class LeakKind(
   val title: String,
-  /** What being in this section means, since not one of the titles says it on its own. */
-  val explanation: String,
+  /**
+   * What being in this section means, for the sections whose title doesn't say it on its own.
+   *
+   * Null for the five named after a [ReachabilityStrength]: what being held that firmly means is
+   * [Topic.REACHABILITY_STRENGTH], one page for the nine of them, and a paragraph here saying it again is
+   * the copy that goes stale. Those sections are a title and a `?`.
+   */
+  val explanation: String? = null,
   /**
    * How firmly the objects of this section are held, for the sections that are about that. Null for
    * [APPLICATION] and [LIBRARY], which are about the reference that holds an object rather than how
@@ -74,7 +80,15 @@ enum class LeakKind(
    * nothing else: every other section's groups are a reference, and a reference says what a sentence
    * would have.
    */
-  val subtitle: String? = null
+  val subtitle: String? = null,
+  /**
+   * The page of the reference behind this section's `?`: what to do about a library leak, and what being
+   * held this firmly means for the five sections that are a [strength].
+   *
+   * Null for [APPLICATION], whose [explanation] is the whole of it, and the `?` is simply not drawn — a `?`
+   * leading to a page that says what the line above it already said is a `?` nobody clicks a second time.
+   */
+  val topic: Topic? = null
 ) {
 
   APPLICATION(
@@ -86,45 +100,39 @@ enum class LeakKind(
   LIBRARY(
     "Library leaks",
     "The same thing in code the app doesn't control: the Android framework or a library. Shark recognizes " +
-      "the reference that holds them, so they can be told apart from the app's own — there is usually " +
-      "nothing to do about them but wait for a fix upstream."
+      "the reference that holds them, so they can be told apart from the app's own — which is who fixes " +
+      "them, not whether they need fixing.",
+    topic = Topic.LIBRARY_LEAKS
   ),
 
   SOFT(
-    "Softly reachable",
-    "Objects a soft reference is the last thing holding, which the virtual machine clears when it wants " +
-      "the memory back. So they stay until memory runs short, and then go without the app doing anything.",
-    strength = ReachabilityStrength.SOFT
+    ReachabilityStrength.SOFT.label,
+    strength = ReachabilityStrength.SOFT,
+    topic = Topic.REACHABILITY_STRENGTH
   ),
 
   WEAK(
-    "Weakly reachable",
-    "Objects a weak reference is the last thing holding. The next garbage collection clears it and takes " +
-      "them, whether or not memory is short.",
-    strength = ReachabilityStrength.WEAK
+    ReachabilityStrength.WEAK.label,
+    strength = ReachabilityStrength.WEAK,
+    topic = Topic.REACHABILITY_STRENGTH
   ),
 
   FINALIZER(
-    "Waiting to be finalized",
-    "Objects whose class has a `finalize()` method, reachable only from the queue of objects waiting for " +
-      "it to run. They survive one more collection at least, and longer if finalization is backed up.",
-    strength = ReachabilityStrength.FINALIZER
+    ReachabilityStrength.FINALIZER.label,
+    strength = ReachabilityStrength.FINALIZER,
+    topic = Topic.REACHABILITY_STRENGTH
   ),
 
   PHANTOM(
-    "Phantom reachable",
-    "Objects already finalized and out of the app's reach, held only so that a `Cleaner` or a phantom " +
-      "reference gets to run. On Android that is nearly always a `Cleaner` freeing native memory, which " +
-      "the runtime drains on its own.",
-    strength = ReachabilityStrength.PHANTOM
+    ReachabilityStrength.PHANTOM.label,
+    strength = ReachabilityStrength.PHANTOM,
+    topic = Topic.REACHABILITY_STRENGTH
   ),
 
   UNREACHABLE(
-    "Unreachable",
-    "Objects that were meant to be gone and are: nothing reaches them any more, and the next garbage " +
-      "collection would take them. Listed so that a heap dump whose leaks have all been collected doesn't " +
-      "read as a heap dump nothing looked at.",
+    ReachabilityStrength.UNREACHABLE.label,
     strength = ReachabilityStrength.UNREACHABLE,
+    topic = Topic.REACHABILITY_STRENGTH,
     subtitle = "Nothing reaches these any more: the next garbage collection would take them."
   );
 

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -36,7 +37,7 @@ import shark.dive.hexObjectId
  * clicking one goes there, which is what makes a container reachable without hunting for the pixels of its
  * edge.
  *
- * The names that stand for a pile of objects rather than for one, `400 × Sibling` and `300 smaller objects`,
+ * The names that stand for a pile of objects rather than for one, `400 × Sibling` and `300 objects`,
  * are the other half of it: a rectangle has room for the count and a simple class name and no more, so which
  * pile it is has to be said at the pointer. [DiveAppTest] covers the rest of the window.
  */
@@ -92,9 +93,9 @@ class MapNamesTest {
       // The map has room for `400 × Sibling` and no more, and which Sibling that is, is the question a pile
       // of them raises. So the qualified name is what the pointer gets.
       waitUntilAtLeastOneExists(hasText(SIBLING_CLASS_NAME), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("${formatObjectCount(SIBLING_COUNT)} of one class").assertIsDisplayed()
-      // And that it is a pile at all, because a rectangle full of objects looks exactly like one object.
-      onNodeWithText(PILE_OF_OBJECTS).assertIsDisplayed()
+      // The count is also what says it is a pile at all, because a rectangle full of objects looks exactly
+      // like one object.
+      onNodeWithText(formatObjectCount(SIBLING_COUNT)).assertIsDisplayed()
     }
   }
 
@@ -106,9 +107,11 @@ class MapNamesTest {
 
       // They have nothing in common but the rectangle they were left out of, so that is the whole of what
       // there is to say about them: how many, how much, and which rectangle to go to for any of them.
-      waitUntilAtLeastOneExists(hasText("smaller objects", substring = true), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText("Held by Object[]").assertIsDisplayed()
-      onNodeWithText(LEFTOVER_OBJECTS).assertIsDisplayed()
+      waitUntilAtLeastOneExists(hasText("Held by Object[]"), OPEN_TIMEOUT_MILLIS)
+      // How many is the line above it, and a count is the whole of that line: how many is layout's to
+      // decide, so what the card is held to is that it counts them and says nothing else.
+      onNode(hasText(" objects", substring = true) and hasAnySibling(hasText("Held by Object[]")))
+        .assertIsDisplayed()
     }
   }
 

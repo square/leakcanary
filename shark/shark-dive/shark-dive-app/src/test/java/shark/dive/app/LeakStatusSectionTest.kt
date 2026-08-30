@@ -34,6 +34,8 @@ import shark.dive.LeakStatusFile
 import shark.dive.LeakStatusOverride
 import shark.dive.LeakStatusOverrides
 import shark.dive.Place
+import shark.dive.ReferencePage
+import shark.dive.Topic
 import shark.dive.hexObjectId
 import shark.dive.statusText
 
@@ -244,6 +246,60 @@ class LeakStatusSectionTest {
   }
 
   /**
+   * What the dialog belonging to its tab rather than to the window is for.
+   *
+   * The reason a verdict was given is the case for the other reading, and weighing it against yours is
+   * sometimes going and looking at the object — which a dialog over the window can only offer by being
+   * dismissed, and dismissing it throws away the reason that had been typed. Here it is a tab, and the tab
+   * it was started in is still half set when you come back to it. See [LeakStatusSetter].
+   */
+  @Test fun `going to look at a verdict this one disagrees with leaves it half set`() {
+    diveUiTest {
+      openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
+      changeStatus()
+      choose(LeakStatus.EXPECTED)
+      write(TYPED_REASON)
+      set()
+      waitUntilAtLeastOneExists(hasText("$HOLDER_NAME $CONFLICT_ABOVE"), SAVE_TIMEOUT_MILLIS)
+
+      onNodeWithText("$HOLDER_NAME $CONFLICT_ABOVE").performClick()
+
+      // In front, the way a `?` opens a page: clicking it is asking to read the object, and the tab it was
+      // opened from is where the question waits.
+      // By address, which is what a tab strip of several instances of one class is told apart by.
+      waitUntilAtLeastOneExists(tabOn(heapDump.holderObjectId), OPEN_TIMEOUT_MILLIS)
+      onNode(tabOn(heapDump.activityObjectId)).performClick()
+      onNodeWithText(settingVerdictTitle(ACTIVITY_NAME)).assertIsDisplayed()
+      onNodeWithText(SOLVE_CONFLICTS).assertIsDisplayed()
+      // Nothing written by any of that, which is what makes going to look free.
+      assertThat(statusFile().read().all.map { it.objectId }).containsExactly(heapDump.holderObjectId)
+    }
+  }
+
+  /**
+   * And why two verdicts can disagree at all, which is a paragraph read once above a list read every time.
+   *
+   * The `?` everywhere else in the window opens the reference in a tab, and that is exactly what a dialog
+   * over the window cannot do: the tab would open behind it, unreachable until it was dismissed.
+   */
+  @Test fun `why two verdicts disagree is behind the question mark, in a tab`() {
+    diveUiTest {
+      openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
+      changeStatus()
+      choose(LeakStatus.EXPECTED)
+      write(TYPED_REASON)
+      set()
+      waitUntilAtLeastOneExists(hasText(SOLVE_CONFLICTS), SAVE_TIMEOUT_MILLIS)
+      val page = ReferencePage.of(Topic.CONFLICTING_VERDICTS)
+
+      onNodeWithContentDescription("$MORE_ABOUT ${page.title}").performClick()
+
+      waitUntilAtLeastOneExists(hasText(page.hint), OPEN_TIMEOUT_MILLIS)
+      onNode(hasText(page.title) and isTab()).assertIsDisplayed()
+    }
+  }
+
+  /**
    * The other half of setting a status: the leaks are read through them, so the list changes rather than
    * only the colour of one object. See [shark.dive.HeapDominatorTreemap.findLeaks].
    */
@@ -300,7 +356,7 @@ class LeakStatusSectionTest {
   }
 
   /**
-   * Opens the dialog that sets a status.
+   * Opens the dialog that sets a status, which belongs to the tab the pencil was pressed in.
    *
    * Waits for the button to be enabled rather than pressing it as it is: it stays disabled until the file
    * has been read, which is what keeps a save from deleting statuses still on their way off the disk.
@@ -309,7 +365,7 @@ class LeakStatusSectionTest {
     val pencil = hasText(EDIT_STATUS_GLYPH) and hasClickAction()
     waitUntilAtLeastOneExists(pencil and isEnabled(), RENDER_TIMEOUT_MILLIS)
     onNode(pencil).performClick()
-    onNodeWithText(statusDialogTitle(ACTIVITY_NAME)).assertIsDisplayed()
+    onNodeWithText(settingVerdictTitle(ACTIVITY_NAME)).assertIsDisplayed()
   }
 
   /** Picks one of the three statuses, by the row it is on rather than by the mark beside it. */
@@ -370,6 +426,12 @@ class LeakStatusSectionTest {
 
   private fun isButton(): SemanticsMatcher =
     SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
+
+  private fun isTab(): SemanticsMatcher =
+    SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)
+
+  /** A tab open on one object, which the strip names by class and address. See `HeapDominatorTreemap`. */
+  private fun tabOn(objectId: Long) = hasText(hexObjectId(objectId), substring = true) and isTab()
 
   companion object {
     /** Opening a heap dump and laying its tree out both happen on another thread. */

@@ -91,10 +91,7 @@ internal fun BitmapsFromDeviceDialog(
         verticalArrangement = Arrangement.spacedBy(8.dp)
       ) {
         Text(counts.summary(), style = MaterialTheme.typography.bodyMedium)
-        Text(
-          "This heap dump was written by ${origin.description}.",
-          style = MaterialTheme.typography.bodySmall
-        )
+        Text("Written by ${origin.description}.", style = MaterialTheme.typography.bodySmall)
         HorizontalDivider()
         when (val currentStep = step) {
           FetchStep.Listing -> Waiting(LISTING_DEVICES)
@@ -205,7 +202,7 @@ private fun DeviceHeapDumps.candidatesFor(origin: HeapDumpOrigin): List<DeviceCa
 private val DeviceMatch.explanation: String
   get() = when (this) {
     DeviceMatch.SAME_BUILD -> "Same build as the heap dump."
-    DeviceMatch.SAME_MODEL -> "Same model and API level as the heap dump, but a different build."
+    DeviceMatch.SAME_MODEL -> "Same model and API level, different build."
     DeviceMatch.OTHER -> "Not the device the heap dump came from."
   }
 
@@ -216,19 +213,24 @@ private val DeviceMatch.explanation: String
  */
 private val AndroidDevice.fetchExplanation: String
   get() = if (canDumpBitmaps) {
-    "Its bitmaps come from dumping the process again, which costs it nothing."
+    "From a second heap dump, which costs it nothing."
   } else {
-    "API $sdkInt can't put bitmaps in a heap dump, so they come from attaching a debugger to the " +
-      "process, which suspends the app while they are read."
+    "API $sdkInt: from a debugger, which suspends the app."
   }
 
+/**
+ * How many bitmaps the dump has and how many it has the pixels of, which is why this dialog exists.
+ *
+ * Why the pixels are missing — native memory from API 26, carried only by a dump taken with
+ * `am dumpheap -b png`, which needs Android 15 — is `docs/shark-dive.md` for whoever wants it and
+ * `notes/bitmaps.md` for whoever is changing this, rather than four lines above a list of devices. What
+ * belongs here is the count and the one fact that makes fetching worth doing: the process still has them.
+ */
 private fun BitmapCounts.summary(): String = when {
-  count == 0 -> "This heap dump has no bitmaps in it."
-  withoutImageCount == 0 -> "This heap dump has the pixels of all ${bitmapCountText(count)} in it."
-  else -> "This heap dump has ${bitmapCountText(count)} in it, and the pixels of $withImageCount. " +
-    "From API 26 a bitmap keeps its pixels in native memory, which a heap dump only carries when it " +
-    "was taken with `am dumpheap -b png` — and that needs Android 15. The process that wrote this dump " +
-    "still has them, whichever version it runs."
+  count == 0 -> "No bitmaps in this heap dump."
+  withoutImageCount == 0 -> "Pixels of all ${bitmapCountText(count)}."
+  else -> "${bitmapCountText(count)}, the pixels of $withImageCount. The process that wrote this dump " +
+    "still has the rest."
 }
 
 private fun BitmapCounts.fetchedSummary(): String {
@@ -236,11 +238,9 @@ private fun BitmapCounts.fetchedSummary(): String {
   return if (mismatchedCount == 0) {
     fetched
   } else {
-    "$fetched $mismatchedCount were sent an image of the wrong size, which is a bitmap that has been " +
-      "recycled since the dump and whose address now belongs to another one."
+    "$fetched $mismatchedCount came back the wrong size, which is a bitmap recycled since the dump."
   }
 }
 
 internal const val FETCH_BITMAPS_TITLE = "Bitmaps from the live process"
-internal const val NO_MATCHING_PROCESS =
-  "No process of that app is running on this device, so its bitmaps are gone."
+internal const val NO_MATCHING_PROCESS = "That app isn't running here."

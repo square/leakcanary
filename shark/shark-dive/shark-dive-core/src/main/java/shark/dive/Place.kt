@@ -52,7 +52,7 @@ sealed interface Place {
     val byteCount: Long
   ) : Place {
 
-    override val title: String get() = "$nodeCount smaller objects"
+    override val title: String get() = formatObjectCount(nodeCount)
 
     override val viewRootObjectId: Long get() = parentObjectId
   }
@@ -98,6 +98,20 @@ sealed interface Place {
   data object Starred : Place {
 
     override val title: String get() = STARRED_LABEL
+
+    override val viewRootObjectId: Long? get() = null
+  }
+
+  /**
+   * One page of the reference: what a label on screen means, at more length than a label has room for.
+   *
+   * A place rather than a browser window, so that reading up on what the map is saying is a tab beside the
+   * map — closeable, linkable, and somewhere the back arrow returns from. Which also means the text is the
+   * text this build ships: see [Topic].
+   */
+  data class Reference(val topic: Topic) : Place {
+
+    override val title: String get() = ReferencePage.of(topic).title
 
     override val viewRootObjectId: Long? get() = null
   }
@@ -160,6 +174,9 @@ sealed interface Place {
 
     /** And to what the agents that have worked on a heap dump of this app did. */
     const val AGENT_LOGS_LABEL = "Agent logs"
+
+    /** And to the reference, which the button opens at its first page. Every page leads to the others. */
+    const val REFERENCE_LABEL = "Reference"
   }
 }
 
@@ -185,6 +202,7 @@ fun HeapDominatorTreemap.titleOf(place: Place): String = when (place) {
   is Place.Objects -> place.title
   is Place.Leaks -> place.title
   is Place.Starred -> place.title
+  is Place.Reference -> place.title
   is Place.AgentLogs -> place.title
   is Place.AgentLog -> place.title
 }

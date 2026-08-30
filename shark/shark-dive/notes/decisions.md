@@ -335,10 +335,27 @@ the pointer ends up inside takes the hover off the map — which would close the
 also the gap, and hence nothing in the card being clickable.
 
 **A rectangle that isn't one object gets the card too**, and needs it most. A pile is named on the map by a
-count and a simple class name — `400 × Sibling`, `300 smaller objects` — which is all a rectangle has room
+count and a simple class name — `400 × Sibling`, `300 objects` — which is all a rectangle has room
 for, so the qualified class name, or which rectangle a leftover pile was left out of, fits nowhere but here.
+
+**And a pile is a count, whichever kind of pile it is.** The three used to have a noun each — `300 smaller
+objects`, `400 objects of one class`, `Unreachable` — where the line under the count already said which:
+the class name, the rectangle they were left out of, or the strength. The one bit a reader can act on is
+whether a click goes *into* the pile or roots the map at what it was left out of, and that is said by the
+click rather than by a third noun.
 The card used to be drawn for `Selection.Object` alone, which meant pointing at the one kind of cell whose
 name is incomplete answered nothing at all.
+
+**And an object's sizes are `Retained` and `Shallow`, in those two words, everywhere they are given.** The
+card used to say `Retains 1.2 MB in 57 objects` and `88 B of its own, dominates 12 objects` where the panel
+behind it said `Retained`, `Retained objects`, `Shallow` and `Dominates` as four rows, and a chain step said
+`Retaining …` — three vocabularies for the same two numbers, which a reader has to reconcile before they can
+compare a card with the panel it is covering. `RETAINED`, `SHALLOW` and `retainedText` are the one answer.
+How many objects that is rides on the `Retained` line rather than getting a row, since it is the same fact
+counted the other way; how many an object *immediately* dominates is gone from the window entirely, being the
+count of rectangles drawn inside this one. `Dominates` therefore means one thing now, on the chain, where it
+says which step the map draws the rest inside. An agent still gets `dominatedObjects`, because an agent has
+no picture to read it off.
 
 Both are kept, as two sets of details from the same code: one for what the map is on, one for what the
 pointer is on. Nothing is read when the pointer leaves, and nothing beside the map is blanked as the
@@ -686,11 +703,26 @@ once per heap dump, behind a screen someone asked for, and is capped at the larg
 
 ## Which object it is, said the same way everywhere
 
-Four surfaces name an object: a step of a chain, the card at the pointer, the bar above the map, a row of the
-starred list. All four use `ObjectIdentity` — the class, then the class in full greyed under it, then its
-address — because they are all answering the same question, and a reader who has learnt to skip the grey
-lines on one should not have to learn where they are again on the next. The package on its own line is also
-what keeps a row from wrapping in a pane 300 dp wide.
+Every surface that names an object uses `ObjectIdentity` — the class, then the class in full greyed under it,
+then its address — because they are all answering the same question, and a reader who has learnt to skip the
+grey lines on one should not have to learn where they are again on the next. A step of a chain, the card at
+the pointer, the bar above the map, a row of the object list, a row of the starred list, a leaking object on
+the leaks screen. The package on its own line is also what keeps a row from wrapping in a pane 300 dp wide.
+
+**The rows were the ones that got this wrong, twice, and it is worth saying how.** A list row was written as
+one line of its own — package greyed, class, kind, no address — and the leaks screen's row as another —
+class, kind, address, no package. Neither was a decision; each was written next to the list it was for, and
+each looked consistent from where it was: the two lists of objects agreed with each other, and the leaks row
+agreed with what a leak's address is copied for. What that produced was three spellings of one question,
+which is exactly what "consistency between screens" gets you when the thing to be consistent about is the
+concept. **So the rule is that a naming of an object is a call to `ObjectIdentity`, not a `buildAnnotatedString`
+that looks like one.** `nameStyle` is the only thing a surface picks — the leaks row draws smaller, being
+indented inside the leak it is an instance of.
+
+A list row is that block with the headline under it and the sizes beside it, `ObjectRow`, which both lists of
+objects are built from — so the object list and the starred objects are one table with two contents. Three
+lines a row rather than one costs a screenful about half the objects it used to hold, which is the price of
+an address being readable where a link, a note or an agent's answer put one.
 
 **Which object it is lives above the map, not in the details panel.** It is a different question from the
 rest of that panel — which object, as against what that object holds — and it is what the tab strip and the
@@ -846,6 +878,24 @@ directory it was in, since two runs of one app produce two `heap.hprof`s and the
 inside it, a file per `noteKey` rather than one document with a section per place, so that a save touches only
 the note that was typed into, nothing has to be parsed back out of a document that also holds somebody's own
 headings, and the listing is the index.
+
+## Starred is a working set, kept as addresses and nothing else
+
+Starring is how a handful of objects are held side by side while being compared, since a treemap has no room
+to keep the last rectangle on screen while you look at the next. So it is kept the way the notes and the
+verdicts are: one file per heap dump under `~/.shark-dive/starred`, `StarredFile`, shared by every window on
+that dump, and read once per run before anything is drawn from it.
+
+**Addresses and nothing else.** The first version kept a copy of each object's class, sizes and dominator from
+the moment it was starred, which made the screen a comparison of snapshots — and made a row go stale the
+moment a verdict set by hand changed what something retains, with nothing on screen saying which of the two
+numbers was current. Reading them out of the heap dump again is one small read, the same read every other list
+of objects is, and it is the only way the starred rows and the map can't disagree.
+
+**In the order they were starred**, not sorted: the list somebody built while comparing is the list they
+expect to come back to. And one address per line with a comment at the top, because a working set is
+something to keep, mail or check in — a line that can't be read is skipped with a line in the log rather
+than costing the rest of the file, exactly as `leak-statuses` does.
 
 ## A link names the heap dump and nothing else
 
@@ -1064,6 +1114,26 @@ who can weigh the two.
   `LeakStatusFile.write` of the lot rather than one per status: a save that stopped half way through would
   leave a heap dump whose statuses contradict each other, which is the one state this step exists to
   prevent. It runs `NonCancellable` because the dialog closes as soon as it has.
+
+**It is a dialog of the tab, not of the window.** It was a material3 `AlertDialog`, which draws over the
+whole window, and the conflicts step is what that got wrong. Two things a reader wants there are behind the
+scrim. Why two verdicts can disagree at all is a paragraph — it was 265 characters drawn above the list,
+every time, for somebody who had read it once — and every other label in this window answers that shape with
+a `?` that opens the reference **in a tab**, which behind a window wide scrim is a tab nobody can reach. And
+each verdict being overruled is an *object*: the reason somebody typed for it is the case for the other
+reading, so weighing it against yours is sometimes going and looking, which a modal can only offer by being
+dismissed — and dismissing it throws away the half typed reason it was holding.
+
+So the dialog is drawn by hand instead: the same centred card over the same 32% scrim, inside the `Box` that
+holds the tab's panes rather than over the window, so the screen bar and the tab strip above it still take a
+click. And `SettingVerdict` is state `HeapDumpDive` keeps per tab id rather than `remember`ed inside the
+composable, so switching tabs leaves it where it is and coming back finds the reason half typed. Tab ids are
+never reused (see `Tab.id`), so an entry can only ever be about the tab it was made for, and closing a tab
+drops it. Two smaller differences from `AlertDialog` fall out: a click on the scrim is swallowed rather than
+taken as a dismissal, for the same reason as above, and the scrim is its own childless `Box` because
+`Modifier.clickable` merges the semantics of everything under it, which would have made the whole dialog one
+node to a test. The other three dialogs stay `AlertDialog`s: they are about acquiring a heap dump rather than
+reading one, so there is nothing behind them to go and look at.
 
 **One tab separated file per heap dump, in `~/.shark-dive/leak-statuses`.** Named after the dump the way
 its notes are, and beside them rather than next to the dump, for the same reason: dumps come from device

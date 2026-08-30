@@ -376,26 +376,28 @@ private fun DeviceHeapDumps.readyDevices(): List<AndroidDevice> = connectedDevic
  */
 private val AndroidDevice.dumpableProcesses: String
   get() = when (isDebuggableBuild) {
-    true -> "This build is debuggable (ro.debuggable=1), so any of these can be dumped, the system's own included."
-    false -> "This build is not debuggable (ro.debuggable=0), so only an app built debuggable can be " +
-      "dumped: a release build and every app of the system will refuse."
-    null -> "An app built debuggable can be dumped, and so can anything at all on a device whose build " +
-      "is debuggable. This one didn't say which it is."
+    true -> "ro.debuggable=1 — anything here can be dumped."
+    false -> "ro.debuggable=0 — only an app built debuggable can be dumped."
+    null -> "This device didn't say whether its build is debuggable."
   }
 
-/** Why the fetch is on offer at all, which is the device's Android version, and what it costs. */
+/**
+ * Why the fetch is on offer at all, which is the device's Android version, and what it costs.
+ *
+ * What it costs is a debugger attached and the app compressing every bitmap while suspended — seconds of
+ * fixed cost plus a fraction of a second each — and "suspends the app" is the whole of that worth reading
+ * beside a checkbox: it is the part that is someone else's problem rather than a wait.
+ */
 private val AndroidDevice.fetchBitmapsExplanation: String
   get() {
-    val version = sdkInt?.let { "API $it" } ?: "This device's Android version"
-    return "$version can't put the pixels of a bitmap in a heap dump, so this one will have none. " +
-      "Fetching them attaches a debugger and has the app compress every bitmap, suspended throughout: " +
-      "seconds of fixed cost, plus a fraction of a second per bitmap."
+    val version = sdkInt?.let { "API $it" } ?: "This Android version"
+    return "$version keeps bitmap pixels out of the dump. Fetching suspends the app."
   }
 
 internal const val TAKE_HEAP_DUMP = "Take heap dump…"
 internal const val TAKE_HEAP_DUMP_TITLE = "Take a heap dump off a device"
-internal const val TAKE_HEAP_DUMP_EXPLANATION =
-  "Dumping a heap freezes the app for a moment and pulls tens of megabytes over adb."
+/** Under the title on every step of this, so it is the cost and not a sentence about the cost. */
+internal const val TAKE_HEAP_DUMP_EXPLANATION = "Freezes the app briefly. Tens of megabytes over adb."
 internal const val PICK_A_DEVICE = "Which device?"
 internal const val PICK_A_PROCESS = "Which process?"
 internal const val FETCH_BITMAPS_WITH_DUMP = "Fetch the pixels of its bitmaps too"

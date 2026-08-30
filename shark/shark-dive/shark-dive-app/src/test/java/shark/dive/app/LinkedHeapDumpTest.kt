@@ -31,7 +31,7 @@ class LinkedHeapDumpTest {
       setContentAsking(
         LinkedHeapDump(
           heapDumpName = HEAP_DUMP_NAME,
-          question = "2 heap dumps called $HEAP_DUMP_NAME are open.",
+          question = TWO_OPEN,
           choices = listOf(PIXEL_DUMP, EMULATOR_DUMP),
           place = Place.Starred
         )
@@ -50,7 +50,7 @@ class LinkedHeapDumpTest {
       setContentAsking(
         LinkedHeapDump(
           heapDumpName = HEAP_DUMP_NAME,
-          question = "No heap dump called $HEAP_DUMP_NAME is open here.",
+          question = NONE_OPEN,
           choices = emptyList(),
           place = Place.Starred
         ),
@@ -66,7 +66,7 @@ class LinkedHeapDumpTest {
   }
 
   @Test fun `why it is asking is said in the dialog and behind it`() {
-    val question = "No heap dump called $HEAP_DUMP_NAME is open here."
+    val question = NONE_OPEN
     runComposeUiTest {
       setContentAsking(
         LinkedHeapDump(
@@ -90,7 +90,7 @@ class LinkedHeapDumpTest {
       setContentAsking(
         LinkedHeapDump(
           heapDumpName = HEAP_DUMP_NAME,
-          question = "2 heap dumps called $HEAP_DUMP_NAME are open.",
+          question = TWO_OPEN,
           choices = listOf(PIXEL_DUMP, EMULATOR_DUMP),
           place = Place.Starred
         )
@@ -131,6 +131,15 @@ class LinkedHeapDumpTest {
 
     val PIXEL_DUMP = File("/dumps/pixel/$HEAP_DUMP_NAME")
     val EMULATOR_DUMP = File("/dumps/emulator/$HEAP_DUMP_NAME")
+
+    /**
+     * The two questions `DiveWindows` asks, copied rather than called: which one a link gets is
+     * `DiveWindowTest`'s, and what is being tested here is the dialog, which takes whatever it is handed.
+     * Copied from the real ones all the same, so that reading this file shows what one looks like.
+     */
+    const val TWO_OPEN = "2 open."
+    const val NONE_OPEN = "Nothing here has opened it. Choose the file, or say where it is in the " +
+      "link: &dump=/path/to/$HEAP_DUMP_NAME"
 
     /** Long enough for the dialog to be composed, and it draws nothing that has to be read off disk. */
     const val TIMEOUT_MILLIS = 5_000L
