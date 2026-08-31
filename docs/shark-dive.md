@@ -419,10 +419,13 @@ unexplained steps cannot report a root cause, however sure it is, and what it ge
 objects to go and read.
 
 **What it did is on the *Agent logs* screen**, one row per agent that has connected to the app. Open a row
-and there is every call that agent made, in order and in words — what it did, which object it did it to, and
-the sentence it gave for doing it:
+and there is everything that agent sent, in order and in words — what each call did, which object it did it
+to, and the sentence it gave for doing it:
 
 ```
+08:23:01  Connected
+08:23:01  Sent the notification notifications/initialized
+08:23:02  Asked what the tools are
 08:23:04  Asked which heap dumps are open
           because: Seeing what there is to read before asking anything about it.
 08:23:11  Listed the leaks
@@ -454,6 +457,24 @@ rather than on to an answer:
           reference: the rules can only name one once something below it is known not to belong. […]
 ```
 
+**And so is every other line that arrived** — the three at the top of that session are the handshake. A call
+naming a tool that doesn't exist, a line that wasn't JSON at all, a read that failed: each is a row, and the
+ones nothing could answer say *Failed* rather than *Refused*, which is the opposite claim. A refusal is the
+method working; this is Shark Dive not working.
+
+```
+08:24:02  Called solve_the_leak 0x12d368b8
+          because: Trying my luck.
+          Failed: There is no tool called "solve_the_leak". This server has open_heap_dumps, […]
+08:24:09  Sent something this app could not read
+          Failed: That is not JSON: Unexpected JSON token at offset 0
+```
+
+Which is the point of keeping them: what this screen gets opened for is often why *nothing* happened, and a
+screen holding only the calls that worked is the one screen that can't answer that. It shows in the shape of a
+session — one sent from a shell is a *Connected* per call, `--agent` being a process per call — and the
+`n call(s)` above the rows counts the calls rather than the lines.
+
 **And every row unfolds onto the call itself** — the `▸ {}` under a row opens what the agent sent and what it
 read back, as the text each of them was, so a step you don't follow is one question rather than a dead end:
 
@@ -461,7 +482,7 @@ read back, as the text each of them was, so a step you don't follow is one quest
 11:37:31  Looked at 0x12d368b8
           because: The one App leak: a MainActivity the app watched. Reading what it is before the chain.
           ▾ {}
-            sent:
+            sent over MCP:
               describe_object {
                   "object": "0x12d368b8",
                   "reason": "The one App leak: a MainActivity the app watched. Reading what it is
@@ -484,12 +505,19 @@ read back, as the text each of them was, so a step you don't follow is one quest
 
 What it sent is the tool's own name and then the arguments under it, which is the call as the model wrote it:
 *Looked at* is this window's word for `describe_object`, and the pair is worth having side by side exactly
-when a step doesn't follow from the one before it.
+when a step doesn't follow from the one before it. And *over MCP* is which way in it came — a client holding a
+connection open, or `--agent` typed at this window — which is the one thing about a call that nothing else on
+the screen can tell you, since by the time anything answers one the two are the same protocol on the same
+socket.
 
 Whole, never a first line of it: what you open a call for is the part the sentence left out, so an answer cut
-to fit would be one where the field that misled the agent is the part that got cut. A refused call shows what
-it sent and no answer, its answer having been the refusal already on the row. And a session recorded by an
-older Shark Dive says so rather than opening onto a gap.
+to fit would be one where the field that misled the agent is the part that got cut. And a session recorded by
+an older Shark Dive says so rather than opening onto a gap.
+
+**Including the calls that came to nothing**, which is what this is most worth opening for. A refusal is
+under `answered:` as the agent was handed it, as well as in red on the row; so is an error, if a read failed
+or this app has a bug; so is the answer to a call naming a tool that doesn't exist. The only row with nothing
+under `answered:` is a notification, which is the one kind of message the protocol forbids answering.
 
 The mark is under the row rather than on the verb because a row is a sentence with one link in it, and a fold
 over its first words made hovering light up the half that isn't the link.
@@ -500,9 +528,9 @@ one that said everything, until you open both. Select and copy either half — i
 whoever handed you the dump, into a diff of two runs.
 
 A session is kept in `~/.shark-dive/agents/sessions`, one file per agent that connected and the newest
-hundred kept, a line of JSON per call, each carrying that call's `input` and `output` — so it outlives the
-window and can be read by something other than this app. `agent_log` hands an agent the same text, which is
-how one agent works out where another went wrong. **And the reads each call cost are in the run's log**, in
+hundred kept, a line of JSON per message, each carrying that message's `input` and `output` — so it outlives
+the window and can be read by something other than this app. `agent_log` hands an agent the same text, which
+is how one agent works out where another went wrong. **And the reads each call cost are in the run's log**, in
 `~/.shark-dive/logs`, where the reason it gave is followed by the work it caused:
 
 ```

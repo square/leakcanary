@@ -87,6 +87,62 @@ class AgentSessionFileTest {
   }
 
   @Test
+  fun `a message that reached no tool is a line like any other`() {
+    val file = AgentSessionFile.starting(directory, SERVER_VERSION)
+    file.called(message(method = "tools/list", input = """{"method":"tools/list"}""", output = """{"tools":[]}"""))
+    file.called(message(method = null, input = "this is not JSON", output = "no", error = "That is not JSON"))
+    file.called(call(tool = "list_leaks"))
+
+    // All three, since the full traffic is what a session is: the calls are the subset that got as far as a
+    // tool, and everything else is how it got there or why it didn't. See [AgentSession.toolCalls].
+    val session = AgentSessionFile.sessionsIn(directory).single()
+    assertThat(session.calls).hasSize(3)
+    assertThat(session.toolCalls.map { it.tool }).containsExactly("list_leaks")
+    assertThat(session.errorCount).isEqualTo(1)
+    val unreadable = session.calls[1]
+    assertThat(unreadable.method).isNull()
+    assertThat(unreadable.input).isEqualTo("this is not JSON")
+    assertThat(unreadable.error).isEqualTo("That is not JSON")
+    // Which is what the row of it says, since there is no tool to name it after and no place to lead to.
+    assertThat(unreadable.verb).isEqualTo("Sent something this app could not read")
+    assertThat(unreadable.place).isNull()
+  }
+
+  @Test
+  fun `which way in a message came is read back, and a session says which ways it was talked to`() {
+    val file = AgentSessionFile.starting(directory, SERVER_VERSION)
+    file.called(call(tool = "list_leaks", over = AgentTransport.MCP))
+    file.called(call(tool = "describe_object", over = AgentTransport.CLI))
+
+    // An MCP client's call and a call somebody typed at the window are the same protocol on the same socket
+    // by the time anything answers them, so the door is the only place that knows and this is where it says.
+    val session = AgentSessionFile.sessionsIn(directory).single()
+    assertThat(session.calls.map { it.over })
+      .containsExactly(AgentTransport.MCP, AgentTransport.CLI)
+    assertThat(session.transports).containsExactly(AgentTransport.MCP, AgentTransport.CLI)
+  }
+
+  @Test
+  fun `a session recorded before the way in was kept says nothing rather than guessing one`() {
+    directory.mkdirs()
+    File(directory, "agent-2026-08-25_18-19-48_035-older.jsonl").writeText(
+      """{"agentSession":"older","startedAt":"$STARTED_AT","sharkDive":"1.0.0"}""" + "\n" +
+        """{"at":"$STARTED_AT","tool":"list_leaks","reason":"What the dump says.","millis":3}""" + "\n" +
+        """{"at":"$STARTED_AT","over":"carrier pigeon","tool":"list_leaks","millis":3}""" + "\n"
+    )
+
+    // Null, not MCP: a command line's calls are exactly the ones a guess would label wrongly. And a way in
+    // this build has never heard of reads the same, with a line in the log saying which.
+    val session = AgentSessionFile.sessionsIn(directory).single()
+    assertThat(session.calls.map { it.over }).containsExactly(null, null)
+    assertThat(session.transports).isEmpty()
+    assertThat(log).anyMatch { it.contains("carrier pigeon") }
+    // And a tool call from a build that recorded no method still reads as the one method it can have been.
+    assertThat(session.calls.map { it.method }).containsOnly("tools/call")
+    assertThat(session.toolCalls).hasSize(2)
+  }
+
+  @Test
   fun `a call that was refused says so, and still says what it was about`() {
     val file = AgentSessionFile.starting(directory, SERVER_VERSION)
     file.called(call(tool = "conclude", place = Place.Object(OBJECT_ID), refusal = "Not concluded. 3 steps"))
@@ -252,10 +308,14 @@ class AgentSessionFileTest {
     input: String? = null,
     output: String? = null,
     refusal: String? = null,
+    error: String? = null,
     outcome: String? = null,
+    over: AgentTransport = AgentTransport.MCP,
     openHeapDumps: List<String> = emptyList()
   ) = AgentSessionCall(
     at = STARTED_AT,
+    over = over,
+    method = "tools/call",
     tool = tool,
     reason = reason,
     windowId = WINDOW_ID,
@@ -265,9 +325,35 @@ class AgentSessionFileTest {
     input = input,
     output = output,
     refusal = refusal,
+    error = error,
     outcome = outcome,
     openHeapDumps = openHeapDumps,
     millis = 12L
+  )
+
+  /** A message that reached no tool, which is the rest of what a session holds. See [AgentSessionCall]. */
+  private fun message(
+    method: String?,
+    input: String,
+    output: String? = null,
+    error: String? = null,
+    over: AgentTransport = AgentTransport.MCP
+  ) = AgentSessionCall(
+    at = STARTED_AT,
+    over = over,
+    method = method,
+    tool = null,
+    reason = null,
+    windowId = null,
+    heapDumpPath = null,
+    place = null,
+    arguments = emptyMap(),
+    input = input,
+    output = output,
+    refusal = null,
+    error = error,
+    outcome = null,
+    millis = 3L
   )
 
   private companion object {

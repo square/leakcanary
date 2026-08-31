@@ -29,6 +29,7 @@ import shark.SharkLog
 import shark.dive.Place
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
+import shark.dive.agent.AgentTransport
 import shark.dive.agent.screen
 import shark.dive.agent.subject
 import shark.dive.agent.verb
@@ -214,6 +215,12 @@ private fun List<AgentSession>.byHeapDump(heapDumpFile: File): List<HeapDumpSess
  * look at. A call that went on to another heap dump leads to that dump instead, named on the row: a session is
  * one agent's connection and can read as many dumps as were open, and a row leading nowhere would be the app
  * showing somebody what an agent looked at and then declining to show them the thing.
+ *
+ * **Every message, not only the ones that reached a tool.** The handshake, a `tools/list`, a ping, a call to a
+ * tool this build has never heard of and a line that was not JSON at all are each a row here, because the
+ * question this screen gets opened for is often why *nothing* happened — and a screen that draws the calls
+ * that worked is the one screen that cannot answer it. The cost is visible and worth it: a command line sends
+ * a handshake per call, so a session of typed calls reads as Connected, called, Connected, called.
  */
 @Composable
 internal fun AgentLogScreen(
@@ -365,6 +372,16 @@ private fun AgentCallRow(
           color = MaterialTheme.colorScheme.error
         )
       }
+      // And what could not be answered at all, which is this app failing rather than the surface saying no.
+      // The same red, because both are a call that came to nothing, and a different word because what to do
+      // about them is not the same thing: a refusal is the method working. See [AgentSessionCall.error].
+      call.error?.let { error ->
+        Text(
+          "$FAILED $error",
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.error
+        )
+      }
       // Under everything this window made of the call, because it is the call: last is where a reader
       // arrives having read the sentence and wanted more of it, and it opens where it is.
       ExchangeToggle(isUnfolded) { isUnfolded = !isUnfolded }
@@ -387,9 +404,11 @@ private fun AgentCallRow(
  * same reason — this is data being read closely, not prose being skimmed, and JSON that doesn't line up is
  * JSON nobody reads twice.
  *
- * A refused call has no output here because its answer *was* the refusal, which the row prints in full above.
- * A call with neither says so: a session recorded before this app kept them unfolds onto a sentence rather
- * than onto nothing.
+ * **Including for a call that came to nothing**, which is the case this is most worth unfolding for: the
+ * refusal, the error and the line that was not a message at all are all answers that went back to the agent,
+ * so they are all here as they were sent. A call with nothing at all under `answered:` is a notification —
+ * the one kind of message JSON-RPC forbids answering. A call with neither half says so, since a session
+ * recorded before this app kept them unfolds onto a sentence rather than onto nothing.
  */
 @Composable
 private fun CallExchange(call: AgentSessionCall) {
@@ -404,7 +423,7 @@ private fun CallExchange(call: AgentSessionCall) {
     )
     return
   }
-  input?.let { ExchangeText(SENT, it) }
+  input?.let { ExchangeText(sentLabel(call.over), it) }
   output?.let { ExchangeText(ANSWERED, it) }
 }
 
@@ -527,17 +546,26 @@ private fun AgentSession.title(): String = listOfNotNull(
 ).joinToString(" ")
 
 /**
- * What it did, in numbers: how many calls, how many of those were refused, and which heap dumps it read.
+ * What it did, in numbers: how many calls, how they went, which way in it came, and which dumps it read.
  *
  * The refusals are here rather than only in the session because they are the number worth seeing before
  * opening one: a session that was refused half its calls is a session where the method was being enforced,
- * which is either an agent that was made to go back and look, or a refusal message that isn't landing.
+ * which is either an agent that was made to go back and look, or a refusal message that isn't landing. The
+ * failures are the number that says the opposite — that this app is what went wrong — and they are worth
+ * seeing at the same glance for exactly that reason.
+ *
+ * **The calls, not every message.** A session holds the protocol around them too, and a command line's
+ * investigation is a handshake per call, so counting the lines would make the same work read as twice as much
+ * of it depending on how it was sent. Which is why the way in is a word of its own here. See
+ * [AgentSession.toolCalls].
  */
 private fun AgentSession.summary(): String {
   val dumps = heapDumpPaths.map { File(it).name }
   return listOfNotNull(
-    "${calls.size} call(s)",
+    "${toolCalls.size} call(s)",
     "$refusedCount refused".takeIf { refusedCount > 0 },
+    "$errorCount failed".takeIf { errorCount > 0 },
+    transports.joinToString(", ") { it.words }.takeIf { it.isNotEmpty() },
     dumps.joinToString(", ").takeIf { it.isNotEmpty() },
     sessionId
   ).joinToString(" · ")
@@ -562,6 +590,9 @@ private const val IN = "in"
 
 private const val REFUSED = "Refused:"
 
+/** And where nothing could be answered, which is not the same thing as being told no. */
+private const val FAILED = "Failed:"
+
 /**
  * What opens a call, folded and open: the arrow this app folds everything with, and JSON's braces.
  *
@@ -574,6 +605,20 @@ private const val EXPANDED_EXCHANGE = "$EXPANDED_ARROW {}"
 /** Over the two halves of an unfolded call, which are the call itself rather than a word about it. */
 private const val SENT = "sent:"
 private const val ANSWERED = "answered:"
+
+/**
+ * And which way in it came, on the half that came in.
+ *
+ * Here rather than on the row because it is a property of the line and not of what the line did: an MCP
+ * client's call and a call somebody typed at this window are the same protocol on the same socket by the time
+ * anything answers them, so this is the only thing that says which — and it belongs beside the text it is a
+ * fact about. A session recorded before this app kept it says nothing rather than guessing MCP, since a
+ * command line's calls are exactly the ones that would be labelled wrongly.
+ */
+private fun sentLabel(over: AgentTransport?): String =
+  if (over == null) SENT else "$SENT_OVER ${over.words}:"
+
+private const val SENT_OVER = "sent over"
 
 /**
  * And where a session from an older build has neither.
@@ -610,7 +655,8 @@ private const val NO_HEAP_DUMP_READ = "No heap dump"
  */
 private const val NO_SESSIONS = "No agent has worked on this heap dump."
 
-private const val NOTHING_ASKED = "Connected and asked nothing."
+/** A handshake is a row of this screen now, so an empty session is a client that never spoke at all. */
+private const val NOTHING_ASKED = "Connected and sent nothing."
 
 /** And after a link to a session the newer ones have pushed out, which is the likeliest way to be here. */
 private const val NO_SUCH_SESSION = "No session by that name. The newest hundred are kept."

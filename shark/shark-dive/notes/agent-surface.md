@@ -27,27 +27,33 @@ descriptions that say when to reach for a tool. Re-measure it if the count doubl
 
 ## And what reading somebody else's session costs
 
-`agent_log` without a session id is a line per session and cheap. With one, it is now every call of that
-session *with what each one sent and read back*, which is the only form that answers "why did it do that
-next" — and the numbers are worth knowing before reaching for it. Measured on a five-call session against
-`leak_asynctask_o.hprof`, one `list_leaks` twice, a `describe_object`, a `chain_from_gc_root` and a refused
-`conclude`:
+`agent_log` without a session id is a line per session and cheap. With one, it is now every *message* of that
+session with what each one sent and read back, which is the only form that answers "why did it do that
+next" — and the numbers are worth knowing before reaching for it. Measured against a packaged run on
+`leak_asynctask_o.hprof`: four calls typed at `--agent` (two `list_leaks`, a refused `conclude`, a
+`solve_the_leak` that is no tool) and four messages pushed at the socket by hand (a line that is not JSON, a
+`resources/list`, a `tools/call` with no name, a notification):
 
 | | Measured |
 | --- | --- |
-| The five answers as recorded | 7,783 + 7,783 + 11,935 + 5,364 characters, and none for the refusal |
-| The five calls as sent | 95 + 81 + 150 + 121 + 163 characters — a rounding error beside the answers |
-| The whole `agent_log session=…` answer | 39,615 characters, ≈9,900 tokens |
+| The four tool-call rows | 8,783 + 8,775 + 1,750 + 987 characters — the answer is nearly all of each |
+| The four protocol rows | 37,313 characters, of which **32,976 is four `initialize` answers** |
+| The whole `agent_log session=…` answer | 57,693 characters, ≈14,400 tokens |
 
-So **a session is roughly two thousand tokens a call**, and a thirty-call investigation read in full is most
-of a small context window. That is the tool being used for what it is for rather than a leak — it is the one
-call on this surface whose subject is somebody else's whole investigation — but it means the list form is
-what "worth reading before starting" points at, and the session form is what somebody reaches for when an
-investigation went wrong and the reasons on their own didn't say where.
+So **a tool call is one to two thousand tokens** and a thirty-call investigation read in full is most of a
+small context window. That is the tool being used for what it is for rather than a leak — it is the one call
+on this surface whose subject is somebody else's whole investigation.
+
+**The handshakes are the surprise, and they are a command line's.** `initialize` answers with
+`AgentMethod.INSTRUCTIONS`, and `--agent` is a process per call, so a session of typed calls carries the
+method once per call: 57% of the answer above, handed to a reader that already has the same text in its own
+context. An MCP session pays it once. Nothing about that is a reason to record less — a session that keeps
+only what reached a tool cannot say why nothing did, which is the whole point of keeping the traffic — but if
+`agent_log` needs to be cheaper, **the handshake answers are where to look first**, and the shape to reach
+for is a way to ask for one message's exchange rather than a shorter version of every message's.
 
 Nothing truncates it, deliberately: a session cut to fit is one where the answer that misled an agent is the
-part that got cut. If this needs to be cheaper the answer is a way to ask for *one call's* exchange, not a
-shorter version of every call's.
+part that got cut.
 
 ## What the command line costs, now that there is one
 

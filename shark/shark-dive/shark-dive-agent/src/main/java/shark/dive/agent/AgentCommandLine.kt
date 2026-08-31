@@ -164,9 +164,11 @@ object AgentCommandLine {
   ): Int {
     val toApp = PrintWriter(OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8), true)
     val fromApp = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
-    // The token, and then which session this call is one of: one line, because the alternative is a
-    // handshake that has to be answered before the protocol can start. See [AgentServer].
-    toApp.println("${run.token} $sessionName")
+    // The token, then which session this call is one of, then that it was typed rather than sent by a
+    // client: one line, because the alternative is a handshake that has to be answered before the protocol
+    // can start. Saying so here is the only chance there is — from the next line on this is indistinguishable
+    // from an MCP client, which is the point of it. See [AgentServer] and [AgentTransport].
+    toApp.println("${run.token} $sessionName ${AgentTransport.CLI.recorded}")
     if (fromApp.readLine() != AgentServer.ACCEPTED) {
       say("Shark Dive run ${run.pid} refused the token in ${run.file}, so it is not the run that wrote it")
       return NOTHING_ANSWERED

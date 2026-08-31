@@ -834,6 +834,8 @@ class AgentToolsTest {
     outcome: String? = null
   ) = AgentSessionCall(
     at = Instant.parse("2026-08-26T09:15:01Z"),
+    over = AgentTransport.MCP,
+    method = "tools/call",
     tool = tool,
     reason = reason,
     windowId = window.windowId,
@@ -843,6 +845,7 @@ class AgentToolsTest {
     input = input,
     output = output,
     refusal = refusal,
+    error = null,
     outcome = outcome,
     millis = 3L
   )

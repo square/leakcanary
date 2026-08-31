@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -33,6 +34,7 @@ import shark.dive.HeapDominatorTreemap
 import shark.dive.Place
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
+import shark.dive.agent.AgentTransport
 import shark.dive.exactHexObjectId
 import shark.dive.hexObjectId
 
@@ -162,19 +164,85 @@ class AgentLogsScreenTest {
     }
   }
 
-  @Test fun `a refused call unfolds onto what it sent, its answer being the refusal on the row`() {
+  @Test fun `a refused call unfolds onto the refusal as the agent was handed it`() {
     diveUiTest {
       openAgentLogs(
-        listOf(session(calls = listOf(call(tool = "conclude", output = null, refusal = REFUSAL))))
+        listOf(session(calls = listOf(call(tool = "conclude", output = REFUSAL, refusal = REFUSAL))))
       )
       onNodeWithText(CLIENT, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
       exchangeToggle().performClick()
 
-      // The refusal is already on the row in full, so unfolding adds what was sent and does not print the
-      // same sentence a second time in a box.
+      // Both, and the same sentence twice on purpose: the row is this window's reading — the method said no —
+      // and the box is the text that went back to the agent. Recording only the reading is what "a refused
+      // call returns no answer" looked like from outside.
       waitUntilAtLeastOneExists(hasText(SENT), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("$REFUSED $REFUSAL").assertIsDisplayed()
+      onAllNodesWithText(REFUSAL, substring = true).assertCountEquals(2)
+    }
+  }
+
+  @Test fun `an unfolded call says which way in it came`() {
+    diveUiTest {
+      openAgentLogs(
+        listOf(
+          session(
+            calls = listOf(
+              call(over = AgentTransport.CLI),
+              call(tool = "list_leaks", over = AgentTransport.MCP)
+            )
+          )
+        )
+      )
+      onNodeWithText(CLIENT, substring = true).performClick()
+      waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
+
+      // The one thing about a call that nothing else on the screen can say: by the time anything answers one,
+      // a command line and an MCP client are the same protocol on the same socket.
+      onAllNodesWithText(FOLDED_EXCHANGE)[0].performClick()
+      waitUntilAtLeastOneExists(hasText(SENT_OVER_CLI), OPEN_TIMEOUT_MILLIS)
+      onAllNodesWithText(FOLDED_EXCHANGE)[0].performClick()
+      waitUntilAtLeastOneExists(hasText(SENT_OVER_MCP), OPEN_TIMEOUT_MILLIS)
+      // And the summary above says both, in the order they first appear, since a session with two in it is
+      // somebody typing calls at a window a client is already working in.
+      onNodeWithText("CLI, MCP", substring = true).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `a message that reached no tool is a row of the session like any other`() {
+    diveUiTest {
+      openAgentLogs(
+        listOf(
+          session(
+            calls = listOf(
+              message(method = "initialize", input = HANDSHAKE, output = HANDSHAKE_ANSWER),
+              call()
+            )
+          )
+        )
+      )
+      onNodeWithText(CLIENT, substring = true).performClick()
+
+      // The handshake, in words, because the question this screen gets opened for is often why *nothing*
+      // happened — and it says one call rather than two, the protocol not being what an agent did.
+      waitUntilAtLeastOneExists(hasText(CONNECTED), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(CONNECTED).assertHasNoClickAction()
+      onNodeWithText("1 call(s)", substring = true).assertIsDisplayed()
+      onAllNodesWithText(FOLDED_EXCHANGE)[0].performClick()
+      waitUntilAtLeastOneExists(hasText(HANDSHAKE), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `a call this app could not answer says so, and is not read as a refusal`() {
+    diveUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call(output = FAILURE, error = FAILURE)))))
+      onNodeWithText(CLIENT, substring = true).performClick()
+
+      // Which is the opposite claim from a refusal: one is the method working and this is this app failing,
+      // so a screen with one word for both would be a screen nobody can tell them apart on.
+      waitUntilAtLeastOneExists(hasText("$FAILED $FAILURE"), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(REFUSED, substring = true).assertDoesNotExist()
+      onNodeWithText("1 failed", substring = true).assertIsDisplayed()
     }
   }
 
@@ -404,9 +472,13 @@ class AgentLogsScreenTest {
     input: String? = SENT,
     output: String? = ANSWERED,
     refusal: String? = null,
-    outcome: String? = null
+    error: String? = null,
+    outcome: String? = null,
+    over: AgentTransport? = AgentTransport.MCP
   ) = AgentSessionCall(
     at = STARTED_AT,
+    over = over,
+    method = "tools/call",
     tool = tool,
     reason = REASON,
     windowId = "zvphq4r3",
@@ -416,8 +488,33 @@ class AgentLogsScreenTest {
     input = input,
     output = output,
     refusal = refusal,
+    error = error,
     outcome = outcome,
     millis = 12L
+  )
+
+  /** A message that reached no tool, which is the protocol around them. See [AgentSessionCall]. */
+  private fun message(
+    method: String?,
+    input: String,
+    output: String? = null,
+    error: String? = null
+  ) = AgentSessionCall(
+    at = STARTED_AT,
+    over = AgentTransport.MCP,
+    method = method,
+    tool = null,
+    reason = null,
+    windowId = null,
+    heapDumpPath = null,
+    place = null,
+    arguments = emptyMap(),
+    input = input,
+    output = output,
+    refusal = null,
+    error = error,
+    outcome = null,
+    millis = 3L
   )
 
   /**
@@ -437,6 +534,8 @@ class AgentLogsScreenTest {
   /** The one call that names nothing: the leaks screen is the whole of what it was about. */
   private fun leaksCall() = AgentSessionCall(
     at = STARTED_AT,
+    over = AgentTransport.MCP,
+    method = "tools/call",
     tool = "list_leaks",
     reason = REASON,
     windowId = "zvphq4r3",
@@ -446,6 +545,7 @@ class AgentLogsScreenTest {
     input = SENT,
     output = ANSWERED,
     refusal = null,
+    error = null,
     outcome = null,
     millis = 12L
   )
@@ -456,6 +556,8 @@ class AgentLogsScreenTest {
    */
   private fun wholeDumpCall(tool: String) = AgentSessionCall(
     at = STARTED_AT,
+    over = AgentTransport.MCP,
+    method = "tools/call",
     tool = tool,
     reason = REASON,
     windowId = "zvphq4r3",
@@ -465,6 +567,7 @@ class AgentLogsScreenTest {
     input = SENT,
     output = ANSWERED,
     refusal = null,
+    error = null,
     outcome = null,
     millis = 12L
   )
@@ -472,6 +575,8 @@ class AgentLogsScreenTest {
   /** The first call of most sessions: which dumps are open, answered with the ones that were. */
   private fun openHeapDumpsCall(otherHeapDump: File) = AgentSessionCall(
     at = STARTED_AT,
+    over = AgentTransport.MCP,
+    method = "tools/call",
     tool = "open_heap_dumps",
     reason = REASON,
     windowId = "zvphq4r3",
@@ -482,6 +587,7 @@ class AgentLogsScreenTest {
     input = SENT,
     output = ANSWERED,
     refusal = null,
+    error = null,
     outcome = null,
     openHeapDumps = listOf(heapDump.file.absolutePath, otherHeapDump.absolutePath),
     millis = 12L
@@ -521,8 +627,12 @@ class AgentLogsScreenTest {
     const val REASON = "Checking whether this activity is really destroyed."
     const val REFUSAL = "3 step(s) have no verdict"
 
-    /** In front of a refusal on a row, which is where the answer to a refused call already is. */
+    /** In front of a refusal on a row, and in front of what could not be answered at all. */
     const val REFUSED = "Refused:"
+    const val FAILED = "Failed:"
+
+    /** What a call that nothing could answer was answered with, which is the exception it hit. */
+    const val FAILURE = "java.io.IOException: The heap dump went away mid-read"
 
     /**
      * What a call sent and what came back, as the text they were: the tool's own name and then several lines
@@ -534,6 +644,17 @@ class AgentLogsScreenTest {
 
     /** The mark under a row that opens the call, which is on every row. See `AgentLogsScreen`. */
     const val FOLDED_EXCHANGE = "▸ {}"
+
+    /** Over the half of an unfolded call that came in, which is where the way in is said. */
+    const val SENT_OVER_MCP = "sent over MCP:"
+    const val SENT_OVER_CLI = "sent over CLI:"
+
+    /** A message that reached no tool: the handshake, as it crossed the wire and as it was answered. */
+    const val HANDSHAKE = """{"jsonrpc":"2.0","id":1,"method":"initialize"}"""
+    const val HANDSHAKE_ANSWER = """{"jsonrpc":"2.0","id":1,"result":{}}"""
+
+    /** And what its row says, which is prose about the protocol rather than about a heap dump. */
+    const val CONNECTED = "Connected"
 
     /** And what a row of a session recorded before either of them was kept unfolds onto. */
     const val NOTHING_KEPT = "recorded before Shark Dive kept what was sent and answered"

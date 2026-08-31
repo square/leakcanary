@@ -41,7 +41,15 @@ internal class McpSession(
    * eval scores. One per connection, so that two agents at one heap dump are two files. See
    * [AgentSessionFile].
    */
-  private val sessionFile: AgentSessionFile
+  private val sessionFile: AgentSessionFile,
+  /**
+   * Which way in this session is being spoken through, stamped on every line it writes.
+   *
+   * Told rather than worked out: both adapters arrive here over the same socket speaking the same protocol,
+   * which is what makes them one surface, so the only place that knows is the one that opened the door. See
+   * [AgentTransport].
+   */
+  private val over: AgentTransport
 ) {
 
   /**
@@ -49,41 +57,83 @@ internal class McpSession(
    *
    * Notifications are the null case and it is not optional: JSON-RPC forbids answering a message with no
    * id, and a client that gets one back for `notifications/initialized` treats the session as broken.
+   *
+   * **Every message that arrives here is written down**, answered or refused or unreadable, before this
+   * returns. A log that keeps the calls that worked is a log that cannot answer the question it gets opened
+   * for, which is why nothing came back — so a line that is not JSON, a method this build has never heard
+   * of and a call to a tool that does not exist are each a row of a session like any other. See
+   * [AgentSessionFile].
    */
   suspend fun answer(line: String): String? {
+    val at = Instant.now()
+    val startedAt = System.nanoTime()
     val message = try {
       JSON.parseToJsonElement(line).jsonObject
     } catch (notJson: Exception) {
       SharkLog.d(notJson) { "An agent sent something that is no JSON-RPC message" }
-      return JSON.encodeToString(
-        JsonElement.serializer(),
-        errorResponse(id = null, code = PARSE_ERROR, message = "That is not JSON: $notJson")
-      )
+      val error = "That is not JSON: $notJson"
+      return answered(errorResponse(id = null, code = PARSE_ERROR, message = error), line, null, error, at, startedAt)
     }
     val id = message["id"]
     val method = (message["method"] as? JsonPrimitive)?.content
     if (method == null) {
-      return JSON.encodeToString(
-        JsonElement.serializer(),
-        errorResponse(id, INVALID_REQUEST, "A request needs a \"method\".")
-      )
+      val error = "A request needs a \"method\"."
+      return answered(errorResponse(id, INVALID_REQUEST, error), line, null, error, at, startedAt)
     }
-    // No id is a notification: nothing is waiting for an answer and sending one is a protocol error.
+    val params = message["params"]?.jsonObject ?: EMPTY_PARAMS
+    // No id is a notification: nothing is waiting for an answer and sending one is a protocol error. The
+    // line still goes down, with nothing as what came back, since that is what happened.
     if (id == null) {
       SharkLog.d { "An agent sent the notification $method" }
+      recordMessage(line, method, output = null, error = null, at = at, startedAt = startedAt)
       return null
     }
-    val response = try {
-      successResponse(id, dispatch(method, message["params"]?.jsonObject ?: EMPTY_PARAMS))
+    // Written down by the one place that has a tool's own reading of a call, rather than here.
+    if (method == TOOLS_CALL) {
+      return JSON.encodeToString(
+        JsonElement.serializer(),
+        successResponse(id, callTool(line, params, at, startedAt))
+      )
+    }
+    return try {
+      answered(successResponse(id, dispatch(method, params)), line, method, null, at, startedAt)
     } catch (unknown: UnknownMethod) {
-      errorResponse(id, METHOD_NOT_FOUND, unknown.message)
+      answered(
+        errorResponse(id, METHOD_NOT_FOUND, unknown.message), line, method, unknown.message, at, startedAt
+      )
     } catch (throwable: Throwable) {
       // A read that failed or a bug of ours, either way told to the agent rather than dropped: a client
       // waiting for a response it never gets has no way to tell that from the app having gone away.
       SharkLog.d(throwable) { "An agent's $method failed" }
-      errorResponse(id, INTERNAL_ERROR, throwable.toString())
+      answered(
+        errorResponse(id, INTERNAL_ERROR, throwable.toString()),
+        line,
+        method,
+        throwable.toString(),
+        at,
+        startedAt
+      )
     }
-    return JSON.encodeToString(JsonElement.serializer(), response)
+  }
+
+  /**
+   * The response as the line it goes back as, written down on the way out.
+   *
+   * The whole response for these rather than the text inside it, which is what a call records: there is no
+   * inside to one of these — a `tools/list` answer and a JSON-RPC error are each the whole of what the client
+   * read. See [AgentSessionCall.output].
+   */
+  private fun answered(
+    response: JsonObject,
+    input: String,
+    method: String?,
+    error: String?,
+    at: Instant,
+    startedAt: Long
+  ): String {
+    val text = JSON.encodeToString(JsonElement.serializer(), response)
+    recordMessage(input, method, output = text, error = error, at = at, startedAt = startedAt)
+    return text
   }
 
   private suspend fun dispatch(
@@ -102,7 +152,6 @@ internal class McpSession(
         }
       }
     }
-    "tools/call" -> callTool(params)
     // Answered because clients use it to find out whether this end is still there, and this end is a
     // window someone may have closed.
     "ping" -> buildJsonObject { }
@@ -141,23 +190,36 @@ internal class McpSession(
     }
   }
 
-  private suspend fun callTool(params: JsonObject): JsonObject {
+  /**
+   * One call to a tool, written down whatever became of it.
+   *
+   * Which is four endings and not two: answered, refused, a name no tool of this build has, and no name at
+   * all. The last two are a message that reached no tool, so they are recorded as one — with the name kept
+   * where there was one, since a typo is the whole of what somebody is looking for when a call went nowhere.
+   */
+  private suspend fun callTool(
+    line: String,
+    params: JsonObject,
+    at: Instant,
+    startedAt: Long
+  ): JsonObject {
     val name = (params["name"] as? JsonPrimitive)?.content
-      ?: return toolError("A tools/call needs the \"name\" of a tool.")
-    val tool = tools.byName(name)
-      ?: return toolError(
-        "There is no tool called \"$name\". This server has " +
-          tools.all.joinToString(", ") { it.name } + "."
-      )
+    if (name == null) {
+      val error = "A tools/call needs the \"name\" of a tool."
+      recordMessage(line, TOOLS_CALL, output = error, error = error, at = at, startedAt = startedAt)
+      return toolError(error)
+    }
     val arguments = params["arguments"]?.jsonObject ?: EMPTY_PARAMS
+    val tool = tools.byName(name)
+    if (tool == null) {
+      val error = "There is no tool called \"$name\". This server has " +
+        tools.all.joinToString(", ") { it.name } + "."
+      recordCall(name, arguments, refusal = null, error = error, output = error, at = at, startedAt = startedAt)
+      return toolError(error)
+    }
     // One line per call, before the reads it causes, so that a session log reads as what the agent was
     // trying to learn and then what that cost. See [AgentTools].
     SharkLog.d { "An agent called $name${arguments.logLine()}" }
-    // What the call is about, read before it is made rather than after: a refused call is recorded pointing
-    // at whatever it was asking about, which is most of what makes a refusal worth reading afterwards.
-    val target = tools.target(name, arguments)
-    val at = Instant.now()
-    val startedAt = System.nanoTime()
     return try {
       val answer = tool.call(arguments)
       // Formatted once and then both answered with and written down, so that the text in the session is the
@@ -165,11 +227,11 @@ internal class McpSession(
       val answered = PRETTY_JSON.encodeToString(JsonElement.serializer(), answer)
       // The answer as well as the arguments, because two of them are things the arguments don't say: what
       // was concluded, and which heap dumps were open. See [outcomeOfTool] and [openHeapDumpsOfTool].
-      record(
+      recordCall(
         name,
         arguments,
-        target,
         refusal = null,
+        error = null,
         output = answered,
         outcome = outcomeOfTool(name, answer),
         openHeapDumps = openHeapDumpsOfTool(name, answer),
@@ -181,44 +243,57 @@ internal class McpSession(
       // A refusal is an answer to the agent and not a failure of the server, so it comes back as a tool
       // result the model reads rather than as a JSON-RPC error the client may swallow.
       SharkLog.d { "Refused $name: ${refused.message}" }
-      record(
+      recordCall(
         name,
         arguments,
-        target,
         refusal = refused.message,
-        // Which is the whole of what came back, so there is nothing else to keep: a refusal is text, and
-        // this is it. See [AgentSessionCall.output].
-        output = null,
-        outcome = null,
+        error = null,
+        // The refusal again, and not a duplicate of the field above it: that one is this app's reading —
+        // the method said no — and this is the text the agent was handed. See [AgentSessionCall.output].
+        output = refused.message,
         at = at,
         startedAt = startedAt
       )
       toolError(refused.message)
+    } catch (throwable: Throwable) {
+      // A read that failed or a bug of ours. Caught here rather than left to [answer] so that the call is
+      // written down as a call — pointing at the object it was about, with the reason the agent gave — and
+      // not as a line saying only that something went wrong somewhere.
+      SharkLog.d(throwable) { "An agent's $name failed" }
+      val error = throwable.toString()
+      recordCall(name, arguments, refusal = null, error = error, output = error, at = at, startedAt = startedAt)
+      toolError(error)
     }
   }
 
   /**
-   * Writes the call down, answered or refused.
+   * Writes a call down: answered, refused, failed, or made to a tool this build has never heard of.
    *
    * Here rather than in [AgentTool] because this is the one place that has both halves of a call: what was
    * asked, and what came back. Every call, in the order they were made, is what turns a session into
    * something a person can follow — and the reason for each is the agent's own sentence rather than a
    * paraphrase of it.
    */
-  private fun record(
+  private fun recordCall(
     name: String,
     arguments: JsonObject,
-    target: AgentTarget,
     refusal: String?,
+    error: String?,
     output: String?,
-    outcome: String?,
+    outcome: String? = null,
     openHeapDumps: List<String> = emptyList(),
     at: Instant,
     startedAt: Long
   ) {
+    // What the call is about, read off the arguments rather than out of the answer: a call that was refused,
+    // or that named a tool nothing answers to, is still recorded pointing at whatever it was asking about,
+    // which is most of what makes one worth reading afterwards.
+    val target = tools.target(name, arguments)
     sessionFile.called(
       AgentSessionCall(
         at = at,
+        over = over,
+        method = TOOLS_CALL,
         tool = name,
         reason = (arguments[REASON_ARGUMENT] as? JsonPrimitive)?.content,
         windowId = target.windowId,
@@ -230,8 +305,45 @@ internal class McpSession(
         input = "$name ${PRETTY_JSON.encodeToString(JsonElement.serializer(), arguments)}",
         output = output,
         refusal = refusal,
+        error = error,
         outcome = outcome,
         openHeapDumps = openHeapDumps,
+        millis = (System.nanoTime() - startedAt) / NANOS_PER_MILLI
+      )
+    )
+  }
+
+  /**
+   * And writes down a message that reached no tool, which is the protocol around them.
+   *
+   * The line as it arrived is the whole of what there is to keep for one of these: there is no tool to name
+   * it after, no arguments to read a subject out of, and nowhere in a heap dump for it to lead. Which is why
+   * they are worth keeping — a session that holds only what reached a tool cannot say why nothing did.
+   */
+  private fun recordMessage(
+    input: String,
+    method: String?,
+    output: String?,
+    error: String?,
+    at: Instant,
+    startedAt: Long
+  ) {
+    sessionFile.called(
+      AgentSessionCall(
+        at = at,
+        over = over,
+        method = method,
+        tool = null,
+        reason = null,
+        windowId = null,
+        heapDumpPath = null,
+        place = null,
+        arguments = emptyMap(),
+        input = input,
+        output = output,
+        refusal = null,
+        error = error,
+        outcome = null,
         millis = (System.nanoTime() - startedAt) / NANOS_PER_MILLI
       )
     )
@@ -315,6 +427,9 @@ internal class McpSession(
      * of an initialize. The revision this was written against, so that such a client gets a real answer.
      */
     const val FALLBACK_PROTOCOL_VERSION = "2025-06-18"
+
+    /** The one method that reaches a tool, which is what this whole surface is. */
+    const val TOOLS_CALL = AgentSessionFile.TOOLS_CALL_METHOD
 
     const val PARSE_ERROR = -32700
     const val INVALID_REQUEST = -32600

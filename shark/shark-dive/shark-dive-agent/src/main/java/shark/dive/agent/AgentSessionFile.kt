@@ -38,6 +38,14 @@ import shark.dive.Place
  * and [AgentSessionCall.output] are what the agent sent and what it read back, verbatim, which is what makes
  * a session something to debug and follow along with rather than only a summary to skim.
  *
+ * **Every message, not only the ones that reached a tool.** A line goes down for the handshake, for
+ * `tools/list`, for a ping, for a notification nothing was sent back for, for a method this app has never
+ * heard of, and for a line that was not JSON at all. Which is the whole point of keeping traffic: the
+ * messages worth reading are exactly the ones that went wrong, and a log that keeps what worked and drops
+ * what didn't answers every question except the one it was opened for. [AgentSessionCall.tool] is null for
+ * all of those and [AgentSessionCall.method] says what arrived instead; [AgentSession.toolCalls] is the
+ * subset that reached a tool, for the readers that are counting an investigation rather than reading it.
+ *
  * JSON, one object per line, flushed per line, because the session worth reading is often the one that ended
  * by the agent giving up or the app being killed. A header line naming the session, then a line per call.
  * Beside the notes and the verdicts under `~/.shark-dive`, since it is the same kind of thing: what
@@ -211,9 +219,11 @@ class AgentSessionFile private constructor(
         val read = line.asJsonOrNull(file, index + 1)
         when {
           read == null -> Unit
-          read[TOOL_KEY] != null -> read.asCallOrNull(file, index + 1)?.let { calls += it }
+          // The header first, since it is the one line that is about the session rather than one message of
+          // it — and every message line is stamped with when it arrived, whether or not it named a tool.
           read[SESSION_KEY] != null -> header = header ?: read
-          else -> SharkLog.d { "Skipping line ${index + 1} of $file: it is neither a session nor a call" }
+          read[AT_KEY] != null -> read.asCallOrNull(file, index + 1)?.let { calls += it }
+          else -> SharkLog.d { "Skipping line ${index + 1} of $file: it is neither a session nor a message" }
         }
       }
       return AgentSession(
@@ -255,7 +265,9 @@ class AgentSessionFile private constructor(
 
     private fun AgentSessionCall.asJson(): JsonObject = buildJsonObject {
       put(AT_KEY, at.toString())
-      put(TOOL_KEY, tool)
+      over?.let { put(OVER_KEY, it.recorded) }
+      method?.let { put(METHOD_KEY, it) }
+      tool?.let { put(TOOL_KEY, it) }
       reason?.let { put(REASON_KEY, it) }
       windowId?.let { put(WINDOW_KEY, it) }
       heapDumpPath?.let { put(HEAP_DUMP_KEY, it) }
@@ -263,6 +275,7 @@ class AgentSessionFile private constructor(
       // clickable: the place to go to, and a line the agent's human can paste anywhere. See [DeepLink].
       link()?.let { put(LINK_KEY, it) }
       refusal?.let { put(REFUSAL_KEY, it) }
+      error?.let { put(ERROR_KEY, it) }
       outcome?.let { put(OUTCOME_KEY, it) }
       if (openHeapDumps.isNotEmpty()) {
         putJsonArray(OPEN_HEAP_DUMPS_KEY) { openHeapDumps.forEach { add(it) } }
@@ -283,16 +296,20 @@ class AgentSessionFile private constructor(
       file: File,
       lineNumber: Int
     ): AgentSessionCall? {
-      val tool = text(TOOL_KEY)
       val at = instant(AT_KEY)
-      if (tool == null || at == null) {
-        SharkLog.d { "Skipping line $lineNumber of $file: it says no tool, or no time it was called" }
+      if (at == null) {
+        SharkLog.d { "Skipping line $lineNumber of $file: it says no time it arrived" }
         return null
       }
+      val tool = text(TOOL_KEY)
       val link = text(LINK_KEY)
       val arguments = this[ARGUMENTS_KEY]?.asStringMap().orEmpty()
       return AgentSessionCall(
         at = at,
+        over = text(OVER_KEY)?.let { AgentTransport.ofRecorded(it, file, lineNumber) },
+        // From the tool for a session written before the method was kept: every line there was a tool call,
+        // which is the one method a tool name can have arrived under.
+        method = text(METHOD_KEY) ?: tool?.let { TOOLS_CALL_METHOD },
         tool = tool,
         reason = text(REASON_KEY),
         windowId = text(WINDOW_KEY),
@@ -300,11 +317,12 @@ class AgentSessionFile private constructor(
         // From the tool for a line with no link, which is a session written by a build that recorded no
         // place for a call that named nothing — and it went to the same screen then as it would now.
         place = link?.let { placeOfLinkOrNull(it, file, lineNumber) }
-          ?: screenOfTool(tool, arguments)?.place,
+          ?: tool?.let { screenOfTool(it, arguments)?.place },
         arguments = arguments,
         input = text(INPUT_KEY),
         output = text(OUTPUT_KEY),
         refusal = text(REFUSAL_KEY),
+        error = text(ERROR_KEY),
         outcome = text(OUTCOME_KEY),
         openHeapDumps = this[OPEN_HEAP_DUMPS_KEY].asStrings(),
         millis = text(MILLIS_KEY)?.toLongOrNull() ?: 0L
@@ -401,12 +419,30 @@ class AgentSessionFile private constructor(
     private const val SERVER_KEY = "sharkDive"
 
     private const val AT_KEY = "at"
+
+    /** How the message arrived, and what it asked for. See [AgentSessionCall.over]. */
+    private const val OVER_KEY = "over"
+    private const val METHOD_KEY = "method"
+
+    /**
+     * What a tool call arrives as, which is the method every line of an older session was one of.
+     *
+     * Spelled here rather than beside the protocol it belongs to because [McpSession]'s companion is private
+     * and this one is read from both sides: one string, so that a session read back cannot disagree with the
+     * one written.
+     */
+    internal const val TOOLS_CALL_METHOD = "tools/call"
+
     private const val TOOL_KEY = "tool"
     private const val REASON_KEY = "reason"
     private const val WINDOW_KEY = "window"
     private const val HEAP_DUMP_KEY = "heapDump"
     private const val LINK_KEY = "link"
     private const val REFUSAL_KEY = "refused"
+
+    /** And why this app could not answer at all, which is a different thing. See [AgentSessionCall.error]. */
+    private const val ERROR_KEY = "error"
+
     private const val OUTCOME_KEY = "outcome"
     private const val OPEN_HEAP_DUMPS_KEY = "openHeapDumps"
     private const val MILLIS_KEY = "millis"
@@ -415,6 +451,57 @@ class AgentSessionFile private constructor(
     /** The call as it was sent and the answer as it was read, verbatim. See [AgentSessionCall.input]. */
     private const val INPUT_KEY = "input"
     private const val OUTPUT_KEY = "output"
+  }
+}
+
+/**
+ * Which of the two ways into this app a message came in by. See [AgentSessionCall.over].
+ *
+ * Both end up in the same [McpSession] speaking the same protocol, which is the point of them — a refusal
+ * met on a command line is the refusal an MCP client would have met. So the difference is invisible from
+ * anywhere except the door, and it is worth recording at the door: "the agent sent that" and "I typed that
+ * into a shell" are different claims about the same line, and reading a session is often working out which.
+ */
+enum class AgentTransport(
+  /** How it is written in a session file, and answered to an agent asking what another one did. */
+  val recorded: String,
+  /** And what a person reading the screen is shown, which is what they would call it. */
+  val words: String
+) {
+
+  /** A client holding a connection open, over the pipe or over this process's own stdin. */
+  MCP("mcp", "MCP"),
+
+  /** `--agent <tool> name=value …`, which is a process per call. See [AgentCommandLine]. */
+  CLI("cli", "CLI");
+
+  companion object {
+
+    /**
+     * The transport [recorded] names, or null having said in the run log which line named nothing.
+     *
+     * Null rather than a guess, for the reason a status this app can't read is skipped rather than defaulted:
+     * a session that says it came in a way this build has never heard of is one to look at, and a line
+     * quietly relabelled "MCP" is one nobody looks at.
+     */
+    internal fun ofRecorded(
+      recorded: String,
+      file: File,
+      lineNumber: Int
+    ): AgentTransport? = ofRecordedOrNull(recorded).also {
+      if (it == null) {
+        SharkLog.d { "Line $lineNumber of $file came in over \"$recorded\", which is no way into this build" }
+      }
+    }
+
+    /**
+     * The same lookup for the handshake, where there is no line of a file to name.
+     *
+     * The word crossing the socket is [recorded] rather than a spelling of its own, so that what a connection
+     * says it is and what its lines are written as cannot come apart. See [AgentServer].
+     */
+    internal fun ofRecordedOrNull(recorded: String): AgentTransport? =
+      entries.firstOrNull { it.recorded == recorded }
   }
 }
 
@@ -428,11 +515,27 @@ class AgentSession(
   /** Which build of the app answered it. */
   val serverVersion: String?,
   val file: File,
+  /** Every message of it, in the order it arrived — the protocol around the tools included. */
   val calls: List<AgentSessionCall>
 ) {
 
+  /**
+   * The ones that reached a tool, which is what an investigation is made of.
+   *
+   * For the readers that are counting rather than reading: how many calls a leak took is a number about the
+   * tools, and it would move because a client says hello differently if it counted every message. The screen
+   * draws [calls], because what somebody following an investigation needs is what happened.
+   */
+  val toolCalls: List<AgentSessionCall> get() = calls.filter { it.tool != null }
+
   /** How many of the calls were refused, which is the one number a list of sessions is worth showing. */
   val refusedCount: Int get() = calls.count { it.refusal != null }
+
+  /** And how many this app could not answer at all, which is a different thing. See [AgentSessionCall.error]. */
+  val errorCount: Int get() = calls.count { it.error != null }
+
+  /** Which ways in were used, in the order they first were: one of them for almost every session. */
+  val transports: List<AgentTransport> get() = calls.mapNotNull { it.over }.distinct()
 
   /**
    * Which heap dumps it read, in the order it first read each of them.
@@ -445,7 +548,11 @@ class AgentSession(
 }
 
 /**
- * One call an agent made, and what it did.
+ * One message an agent sent, and what went back.
+ *
+ * Usually a call to a tool, and **not only** a call to a tool: the handshake, `tools/list`, a ping, a
+ * notification, a method this build has never heard of and a line that was not JSON at all are each one of
+ * these too. [tool] is what separates them, and [method] is what a message that reached no tool arrived as.
  *
  * The place is what makes a row of the *Agent logs* screen clickable: it is where the window goes when the
  * row is clicked, so that reading what an agent did and going to look at it are the same move. Null for a
@@ -454,7 +561,26 @@ class AgentSession(
  */
 class AgentSessionCall(
   val at: Instant,
-  val tool: String,
+  /**
+   * Which way it came in: an MCP client's connection, or the `--agent` command line.
+   *
+   * Per message rather than per session, because a session file is a name and either adapter can call
+   * itself by that name — a shell joining what an MCP client started is a thing somebody will do, and then
+   * the header's client is the truth about the first message and about nothing else.
+   *
+   * Null for a session recorded before this was kept.
+   */
+  val over: AgentTransport?,
+  /**
+   * The JSON-RPC method it arrived as, and null for a line this app could not read one out of.
+   *
+   * `tools/call` for every call to a tool, which is what [tool] is the name from. The rest are the protocol
+   * around the tools — `initialize`, `tools/list`, `ping`, the notifications — and they are here because a
+   * session that keeps only what reached a tool cannot answer why nothing did.
+   */
+  val method: String?,
+  /** The tool it called, and null for every message that reached no tool. See [method]. */
+  val tool: String?,
   /** Why the agent said it was making the call, and null for one refused for not saying. */
   val reason: String?,
   val windowId: String?,
@@ -463,8 +589,13 @@ class AgentSessionCall(
   /** The rest of the arguments, by name, with `reason` and `window` left out: they have fields of their own. */
   val arguments: Map<String, String>,
   /**
-   * What the agent sent, as the text it sent: the tool it named and the arguments it named it with,
-   * formatted, nothing left out and nothing added.
+   * What the agent sent, as the text it sent: for a call, the tool it named and the arguments it named it
+   * with, formatted, nothing left out and nothing added — and for every other message, the line as it
+   * arrived.
+   *
+   * The line for those because there is nothing else to have: a message that named no method, or no tool, or
+   * was not JSON at all is one this app could make nothing of, and the bytes are the whole of what there is
+   * to look at.
    *
    * Every other field of a call is *about* the call — the verb, the subject, the place, the arguments the
    * screen puts beside a verb — and every one of them is this app's reading of what happened. This is the
@@ -491,12 +622,29 @@ class AgentSessionCall(
    * investigation afterwards: a step that reads as sound and was made on an answer that said nothing is a
    * step nobody can see the trouble with until they read what the agent read.
    *
-   * Null for a refused call, whose answer text *is* the refusal: it would be the same string twice, on disk
-   * and on the screen, since a row already prints [refusal] in full.
+   * **A refusal and a failure are in here too**, and that is not the same string twice beside [refusal] and
+   * [error]: those two are this app's reading of what happened — one of them says the method sent the agent
+   * back and the other says this app could not answer — and this is the text the agent was actually handed.
+   * A session that keeps the reading and drops the text is one that cannot answer whether what was sent was
+   * what somebody thinks was sent, which is the question a log is opened for.
+   *
+   * For a call it is the text of the tool's answer, which is what the model reads, and for every other
+   * message it is the whole response, which is all there is of one. **Null only where nothing went back**:
+   * a notification, which JSON-RPC forbids answering. And null for a session recorded before this was kept.
    */
   val output: String?,
   /** Why the call was refused, and null for one that was answered. See [AgentRefusal]. */
   val refusal: String?,
+  /**
+   * Why this app could not answer at all, and null for a message it answered.
+   *
+   * Apart from [refusal] because they are opposites in the one way that matters to whoever is reading: a
+   * refusal is the surface working — the method sending an agent back to the heap dump — and this is the
+   * surface failing. A malformed line, a method that doesn't exist, a `tools/call` naming a tool that
+   * doesn't, a handler that threw. Counting the first as the second would say a run was refused into giving
+   * up when what happened is that this app fell over. See `EvalScore`.
+   */
+  val error: String?,
   /**
    * What the call came to, for the calls whose answer is worth a word. See [outcomeOfTool].
    *
@@ -537,15 +685,39 @@ class AgentSessionCall(
  * What the call did, as a couple of words, and never the thing it did it to.
  *
  * Here rather than in the window that draws it because this is where the tool names are: a screen spelling
- * them itself would be a second list of them to keep in step. Every tool has one, which `AgentSessionFileTest`
- * is what keeps true — a tool added without a verb reads as its own name, which is the raw protocol showing
- * through on a screen that exists to not show it.
+ * them itself would be a second list of them to keep in step. Every tool of this build has one, which
+ * `AgentSessionFileTest` is what keeps true — **so a name with no verb is a name this build has no tool for**,
+ * a typo or a tool from a newer one, and it reads as itself unchanged, since the exact string is the whole of
+ * what somebody is looking for when a call went nowhere.
  *
  * **Prose, so it can be drawn as prose.** What a row leads to is [subject] or [screen], and a verb that
  * swallowed the thing it was about — "Listed the leaks" — leaves a row with no part of it to be the link
  * except the whole sentence. So a verb ends where the thing begins, even when that makes it "Listed the".
  */
-val AgentSessionCall.verb: String get() = verbOfTool(tool, arguments) ?: tool.replace('_', ' ')
+val AgentSessionCall.verb: String
+  get() = tool?.let { verbOfTool(it, arguments) ?: "Called $it" } ?: verbOfMethod(method)
+
+/**
+ * And what to call a message that reached no tool, which is the protocol around them.
+ *
+ * In words like every other row, because the screen is one screen: a reader following an investigation should
+ * not have to change how they are reading half way down it to find out that a client said hello. The ones
+ * with no word of their own read as what arrived, which for a method this build has never heard of is the
+ * whole of what is known about it.
+ */
+internal fun verbOfMethod(method: String?): String = when {
+  method == null -> "Sent something this app could not read"
+  method == "initialize" -> "Connected"
+  method == "tools/list" -> "Asked what the tools are"
+  // Which a client sends to find out whether this end is still there, and this end is a window somebody may
+  // have closed.
+  method == "ping" -> "Checked this window is still open"
+  // A call that named no tool, which is the one tools/call that reaches none: an unknown *name* keeps its
+  // name and reads as itself, since a typo is the thing worth seeing.
+  method == "tools/call" -> "Called a tool it did not name"
+  method.startsWith("notifications/") -> "Sent the notification $method"
+  else -> "Sent $method"
+}
 
 /**
  * What the call was about, in the words the window uses for it: an address, a class name, a place.
@@ -569,7 +741,7 @@ val AgentSessionCall.subject: String?
  * titles reads as "Listed the Leaks". Null for a call that named an object — [subject] is that — and for the
  * calls about the app rather than about a heap dump, which have no place of one to go to.
  */
-val AgentSessionCall.screen: String? get() = screenOfTool(tool, arguments)?.words
+val AgentSessionCall.screen: String? get() = tool?.let { screenOfTool(it, arguments)?.words }
 
 /**
  * What the answer to a call came to, as a couple of words, and null when the answer is data rather than a

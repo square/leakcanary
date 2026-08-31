@@ -43,7 +43,10 @@ object AgentStdioServer {
     val session = McpSession(
       AgentTools(heapDumps) { AgentSessionFile.sessionsIn(sessions) },
       serverVersion,
-      sessionFile
+      sessionFile,
+      // A client holding this process's own pipe open, which is MCP however little of the shape around it
+      // there is: there is no socket here and no command line either. See [AgentTransport].
+      over = AgentTransport.MCP
     )
     val reader = BufferedReader(InputStreamReader(System.`in`, Charsets.UTF_8))
     val writer = PrintWriter(OutputStreamWriter(System.out, Charsets.UTF_8), true)

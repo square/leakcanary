@@ -6,6 +6,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
+import shark.dive.agent.AgentTransport
 
 /**
  * What a session is scored as, which is a handful of counts and one string comparison.
@@ -94,6 +95,26 @@ class EvalScoreTest {
   }
 
   @Test
+  fun `the protocol a session also records is no part of what a run is scored on`() {
+    val result = score(
+      calls = listOf(
+        message("initialize"),
+        message("notifications/initialized"),
+        message("tools/list"),
+        call("list_leaks"),
+        concluded(KEY)
+      )
+    )
+
+    // Two calls, not five. A session holds the full traffic on purpose, and a run measured on the lines it
+    // sent is a run whose number moves when the same investigation is typed at a command line instead — which
+    // sends a handshake per call. The time is the calls' too, a handshake being no read of a heap dump.
+    assertThat(result.outcome).isEqualTo(EvalOutcome.RIGHT)
+    assertThat(result.callCount).isEqualTo(2)
+    assertThat(result.readMillis).isEqualTo(24L)
+  }
+
+  @Test
   fun `a run leads back to the session it was read from`() {
     val result = score(calls = listOf(concluded(KEY)))
 
@@ -132,6 +153,8 @@ class EvalScoreTest {
     heapDumpPath: String = HEAP_DUMP_PATH
   ) = AgentSessionCall(
     at = AT,
+    over = AgentTransport.MCP,
+    method = "tools/call",
     tool = tool,
     reason = "Because.",
     windowId = null,
@@ -143,8 +166,34 @@ class EvalScoreTest {
     input = null,
     output = null,
     refusal = refusal,
+    error = null,
     outcome = outcome,
     millis = 12L
+  )
+
+  /**
+   * A message that reached no tool, which a session holds as many of as the transport asked for.
+   *
+   * Nothing here scores one, and that is what the tests using this are about: a run measured on the lines it
+   * sent rather than on the calls it made is a run whose number changes when somebody types the same
+   * investigation at a command line instead. See [AgentSession.toolCalls].
+   */
+  private fun message(method: String) = AgentSessionCall(
+    at = AT,
+    over = AgentTransport.MCP,
+    method = method,
+    tool = null,
+    reason = null,
+    windowId = null,
+    heapDumpPath = null,
+    place = null,
+    arguments = emptyMap(),
+    input = "{\"method\":\"$method\"}",
+    output = "{}",
+    refusal = null,
+    error = null,
+    outcome = null,
+    millis = 40L
   )
 
   private fun EvalResult.asRunLine() = listOf(this).asRunLines()

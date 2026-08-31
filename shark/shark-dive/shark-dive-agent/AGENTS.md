@@ -91,8 +91,24 @@ same string `toolResult` puts in `content[0].text`, formatted once and then both
 down, so that a session can be compared against a client's own transcript character for character. Everything
 else on a call is derived, and a derived field is the one thing that is no use when the question is why an
 investigation went wrong: a step made on an answer that said nothing reads exactly like a step made on one
-that said everything. **A refused call has no `output`**, its answer having been the refusal that is already
-in `refused` — writing it twice would put the same paragraph on disk and on the screen twice over.
+that said everything.
+
+**`output` is what went back, whatever that was.** A refusal is in it as well as in `refused`, and an error as
+well as in `error`, and the two are not the same field said twice: `refused` and `error` are this app's
+reading — the method said no, this app could not answer — and `output` is the text the agent was handed. The
+first version left `output` null for a refusal on the grounds that the refusal was already written down, and
+what that looked like from outside was a call that got no answer at all. **Null on `output` means nothing went
+back**, which is a notification and nothing else.
+
+**And a line goes down for every message, not only the ones that reached a tool.** The handshake, a
+`tools/list`, a ping, a notification, a method this build has never heard of, a `tools/call` with no name or a
+name nothing answers to, and a line that was not JSON: all of them. `tool` is null for the ones that reached
+no tool and `method` says what arrived instead, `AgentSession.toolCalls` is the subset that got as far as a
+tool, and **that distinction is not cosmetic** — the eval counts calls, and a run scored on lines sent would
+have a number that moved with the transport. `AgentSessionCall.over` is which way in a line came, told to
+`McpSession` at construction because a command line and an MCP client are indistinguishable from the moment
+the handshake is past, which is the point of them. The word travels as the last field of `AgentServer`'s
+handshake line, and a connection that says nothing is MCP.
 
 The name is in `input` even though `tool` has it, and that is not an oversight: this field is read as one
 thing, and a set of arguments lifted away from what they are arguments *to* is the one form of a call nobody
@@ -114,8 +130,10 @@ answer printed twice.
 
 **The verbs are here rather than in the app.** `verbOfTool` is beside the tool names, so that a screen never
 spells them itself and drift is one list rather than two. `AgentSessionFileTest` asserts every tool in the
-registry has one; a tool added without a verb reads as its own name, which is the protocol showing through on
-the screen that exists to not show it.
+registry has one — **which is what makes the fallback mean something**: a name `verbOfTool` has no verb for is
+a name this build has no tool for, so a row reading `Called solve_the_leak` is a typo or a tool from a newer
+build, and the name is left exactly as it arrived because that string is what somebody is looking for. A
+message that reached no tool at all reads through `verbOfMethod` instead.
 
 **A verb stops where the thing it was about starts**, which is why several of them end mid-sentence: a row of
 that screen is prose with one link in it, and the link is the thing. So `list_leaks` is "Listed the" and
@@ -152,10 +170,10 @@ to one adapter and not the other is the mistake this shape exists to make imposs
 `notes/agent-surface.md`, which also has what a call costs.
 
 **A process per call would otherwise be a session per call**, and a session is what somebody reads afterwards.
-So the handshake is `token[ sessionName]` on one line, `AgentSessionFile.continuing` appends to the newest file
-whose name carries that id, and a command line defaults to `cli<the shell's pid>` — an agent's calls come out
-of one shell the way its MCP calls come out of one connection. A client that says nothing gets a session of
-its own, which is what every MCP client does.
+So the handshake is `token[ sessionName[ over]]` on one line, `AgentSessionFile.continuing` appends to the
+newest file whose name carries that id, and a command line defaults to `cli<the shell's pid>` — an agent's
+calls come out of one shell the way its MCP calls come out of one connection. A client that says nothing gets
+a session of its own, which is what every MCP client does, and its lines are recorded as MCP.
 
 **The name is checked at both ends**, because it becomes part of a file name: the command line refuses one
 that isn't letters and digits before calling anything, and `AgentServer` serves the connection anyway with a

@@ -158,8 +158,8 @@ object AgentServer {
   }
 
   /**
-   * One connection: the token and optionally a session to join, then a JSON-RPC message per line until the
-   * agent goes away.
+   * One connection: the token, optionally a session to join and which way in it is, then a JSON-RPC message
+   * per line until the agent goes away.
    *
    * **No read timeout**, unlike the link socket. An agent thinking, or waiting for the person at the
    * machine, is a connection with nothing on it for minutes at a time, and a session dropped for being
@@ -194,7 +194,10 @@ object AgentServer {
         // heap dump sees what another one working on it right now has done so far.
         AgentTools(heapDumps) { AgentSessionFile.sessionsIn(sessions) },
         serverVersion,
-        sessionFile
+        sessionFile,
+        // A connection that did not say is a client holding a session open, which is what an MCP one does
+        // and the only thing anything did before the command line existed. See [transport].
+        over = transport(handshake.getOrNull(2))
       )
       while (true) {
         val line = reader.readLine() ?: break
@@ -237,6 +240,24 @@ object AgentServer {
     return AgentSessionFile.continuing(sessions, serverVersion, name)
   }
 
+  /**
+   * Which way in this connection said it is, and MCP for one that said nothing.
+   *
+   * The last word of the handshake, because it is the last chance: from the next line on a command line and an
+   * MCP client are the same protocol on the same socket, which is what makes them one surface rather than two.
+   * A default and not a refusal for the word missing — the bridge sends none, and neither did anything before
+   * the command line existed — and a default for a word this build has no way in for, since a connection
+   * mislabelled is a session to read rather than one to lose. See [AgentTransport].
+   */
+  private fun transport(said: String?): AgentTransport {
+    if (said == null) {
+      return AgentTransport.MCP
+    }
+    return AgentTransport.ofRecordedOrNull(said) ?: AgentTransport.MCP.also {
+      SharkLog.d { "An agent said it was connecting over \"$said\", which is no way in: recording it as MCP" }
+    }
+  }
+
   private fun newToken(): String {
     val bytes = ByteArray(TOKEN_BYTES)
     SecureRandom().nextBytes(bytes)
@@ -264,7 +285,7 @@ object AgentServer {
   internal const val ACCEPTED = "OK"
   internal const val DECLINED = "NO"
 
-  /** Between the token and the session a connection is joining, which is why a name has no spaces in it. */
+  /** Between the token, the session a connection is joining and how, which is why a name has no spaces. */
   private const val HANDSHAKE_SEPARATOR = ' '
   private const val PORT_PROPERTY = "port"
   private const val TOKEN_PROPERTY = "token"

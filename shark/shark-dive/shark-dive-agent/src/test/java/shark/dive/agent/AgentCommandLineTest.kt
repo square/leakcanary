@@ -92,9 +92,19 @@ class AgentCommandLineTest {
     // an investigation is what somebody reads afterwards, and a process per call would have cut it up.
     val session = sessions().single()
     assertThat(session.sessionId).isEqualTo(SESSION_NAME)
-    assertThat(session.calls.map { it.tool }).containsExactly("open_heap_dumps", "list_leaks")
+    assertThat(session.toolCalls.map { it.tool }).containsExactly("open_heap_dumps", "list_leaks")
     // Said once, by the call that started the session, since a file with two headers is two sessions.
     assertThat(session.client).isEqualTo("shark-dive-cli")
+    // And every line of it says it was typed rather than sent by a client — which nothing after the handshake
+    // could tell, this being the same protocol on the same socket an MCP client speaks. Two handshakes in
+    // there, one per process: a session of typed calls reads as Connected, called, Connected, called.
+    assertThat(session.transports).containsExactly(AgentTransport.CLI)
+    assertThat(session.calls.map { it.method }).containsExactly(
+      "initialize",
+      "tools/call",
+      "initialize",
+      "tools/call"
+    )
   }
 
   @Test
