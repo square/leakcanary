@@ -139,6 +139,24 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `one session of the log is what each call sent and what it read back`() {
+    tools = agentTools(
+      FakeAgentHeapDumps(listOf(window)),
+      sessions = listOf(recordedSession("cli7", concluded = "Holder.activity"))
+    )
+
+    val calls = call(AGENT_LOG, "session" to "cli7").array("calls").map { it.jsonObject }
+
+    // Exactly, because an agent asked why an investigation went wrong is looking for the step whose reason
+    // reads fine and whose answer didn't say what the reason assumed. A paraphrase hides that by definition.
+    assertThat(calls.last().text("input")).isEqualTo(CONCLUDE_SENT)
+    assertThat(calls.last().text("output")).isEqualTo(CONCLUDE_ANSWERED)
+    // And a refused call kept what it sent, its answer being the refusal already above it.
+    assertThat(calls.first().text("input")).isEqualTo(REFUSED_CALL_SENT)
+    assertThat(calls.first()["output"]).isEqualTo(JsonNull)
+  }
+
+  @Test
   fun `a session that read another heap dump is refused by name here`() {
     tools = agentTools(
       FakeAgentHeapDumps(listOf(window)),
@@ -792,12 +810,15 @@ class AgentToolsTest {
         tool = "list_leaks",
         heapDumpPath = heapDumpPath,
         reason = "Reading what the dump says about itself.",
+        input = REFUSED_CALL_SENT,
         refusal = "list_leaks needs `reason`, and it was not given."
       ),
       recordedCall(
         tool = "conclude",
         heapDumpPath = heapDumpPath,
         reason = "Naming the reference the chain agrees on.",
+        input = CONCLUDE_SENT,
+        output = CONCLUDE_ANSWERED,
         outcome = concluded
       )
     )
@@ -807,17 +828,24 @@ class AgentToolsTest {
     tool: String,
     heapDumpPath: String,
     reason: String,
+    input: String? = null,
+    output: String? = null,
     refusal: String? = null,
     outcome: String? = null
   ) = AgentSessionCall(
     at = Instant.parse("2026-08-26T09:15:01Z"),
+    over = AgentTransport.MCP,
+    method = "tools/call",
     tool = tool,
     reason = reason,
     windowId = window.windowId,
     heapDumpPath = heapDumpPath,
     place = null,
     arguments = emptyMap(),
+    input = input,
+    output = output,
     refusal = refusal,
+    error = null,
     outcome = outcome,
     millis = 3L
   )
@@ -873,6 +901,18 @@ class AgentToolsTest {
     const val HEAP_DUMP = "heapDump"
     const val OBJECT = "object"
     const val PLACE_LEAKS = "leaks"
+
+    /**
+     * What the calls of a recorded session sent and read back, as the text they were: the tool's own name
+     * and then what was sent to it.
+     *
+     * The refused one has no output, its answer having been the refusal — which is the shape a reader of one
+     * of these has to be able to tell from a call whose answer went missing.
+     */
+    const val REFUSED_CALL_SENT = "list_leaks {\n  \"heapDump\": \"leak.hprof\"\n}"
+    const val CONCLUDE_SENT =
+      "conclude {\n  \"object\": \"0x12d368b8\",\n  \"rootCause\": \"Nothing clears it.\"\n}"
+    const val CONCLUDE_ANSWERED = "{\n  \"concluded\": true\n}"
 
     /**
      * One value of a field of the answer, whatever it is, as text.

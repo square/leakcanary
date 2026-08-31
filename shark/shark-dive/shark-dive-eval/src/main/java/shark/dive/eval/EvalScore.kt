@@ -53,7 +53,11 @@ class EvalResult(
       session: AgentSession,
       heapDumpPath: String
     ): EvalResult {
-      val concludes = session.calls.filter { it.tool == CONCLUDE }
+      // The calls, not every message: a session holds the protocol around them too, and a run scored on how
+      // many handshakes it sent is a number that changes with the transport rather than with the agent. See
+      // [AgentSession.toolCalls].
+      val toolCalls = session.toolCalls
+      val concludes = toolCalls.filter { it.tool == CONCLUDE }
       val concluded = concludes.firstNotNullOfOrNull { it.outcome }
       return EvalResult(
         scenario = scenario.name,
@@ -62,10 +66,10 @@ class EvalResult(
         concluded = concluded,
         key = scenario.key,
         wanderedTo = concludes.mapNotNull { it.heapDumpPath }.firstOrNull { it != heapDumpPath },
-        callCount = session.calls.size,
+        callCount = toolCalls.size,
         refusalCount = session.refusedCount,
         concludeCount = concludes.size,
-        readMillis = session.calls.sumOf { it.millis },
+        readMillis = toolCalls.sumOf { it.millis },
         sessionId = session.sessionId
       )
     }

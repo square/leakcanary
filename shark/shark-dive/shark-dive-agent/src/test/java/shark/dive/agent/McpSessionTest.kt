@@ -46,7 +46,8 @@ class McpSessionTest {
     session = McpSession(
       tools = agentTools(FakeAgentHeapDumps(listOf(window))),
       serverVersion = SERVER_VERSION,
-      sessionFile = AgentSessionFile.starting(sessionsDirectory, SERVER_VERSION)
+      sessionFile = AgentSessionFile.starting(sessionsDirectory, SERVER_VERSION),
+      over = AgentTransport.MCP
     )
   }
 
@@ -207,7 +208,8 @@ class McpSessionTest {
     val session = sessions().single()
     assertThat(session.client).isEqualTo("claude-code 9.9.9")
     assertThat(session.serverVersion).isEqualTo(SERVER_VERSION)
-    val call = session.calls.single()
+    // The handshake is a line of the session too, so the calls are the subset that reached a tool.
+    val call = session.toolCalls.single()
     assertThat(call.verb).isEqualTo("Looked at")
     assertThat(call.subject).isEqualTo(hex(heapDump.holderObjectId))
     assertThat(call.reason).isEqualTo("Checking whether the holder is the singleton it looks like.")
@@ -222,6 +224,47 @@ class McpSessionTest {
     assertThat(link.heapDumpName).isEqualTo(window.heapDumpName)
     assertThat(link.heapDumpPath).isNull()
     assertThat(link.place).isEqualTo(Place.Object(heapDump.holderObjectId))
+  }
+
+  @Test
+  fun `a call is written down as the text that was sent and the text that came back`() {
+    val result = callTool(
+      """{"name":"describe_object","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
+        """"reason":"Reading the holder's fields."}}"""
+    )
+
+    // The same string the model read, not the same JSON printed a second way: what a session is kept for is
+    // following what an agent did, and an answer reformatted on its way to disk is one nobody can compare
+    // against the client's own transcript of it.
+    val call = sessions().single().calls.single()
+    assertThat(call.output).isEqualTo(result.array("content").single().jsonObject.text("text"))
+    // And the call as the model wrote it: the tool it named, then everything it sent, `reason` included —
+    // the derived fields leave that out because they have one of their own, and this is the call rather than
+    // a reading of it. The name because a set of arguments with nothing saying what they are arguments to is
+    // the one form of this that can't be read on its own.
+    assertThat(call.input)
+      .startsWith("describe_object {")
+      .contains(""""object": "${hex(heapDump.holderObjectId)}"""")
+      .contains(""""reason": "Reading the holder's fields."""")
+  }
+
+  @Test
+  fun `a refused call keeps what it sent, its answer being the refusal`() {
+    val result = callTool(
+      """{"name":"conclude","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +
+        """"rootCause":"The holder never lets go.","reason":"I know what this is."}}"""
+    )
+
+    // Both, and not one of them: `refused` is this app's reading — the method said no — and `output` is the
+    // text the agent was handed. Writing only the reading was tried and is what "an answer that isn't logged"
+    // looked like from the outside. See [AgentSessionCall.output].
+    val call = sessions().single().calls.single()
+    val answered = result.array("content").single().jsonObject.text("text")
+    assertThat(call.output).isEqualTo(answered)
+    assertThat(call.refusal).isEqualTo(answered)
+    assertThat(call.input)
+      .startsWith("conclude {")
+      .contains(""""rootCause": "The holder never lets go."""")
   }
 
   @Test
@@ -295,6 +338,90 @@ class McpSessionTest {
     // asked is what it typed, and what it concluded is what the heap dump agreed to. That is the line the
     // *Agent logs* screen ends a session with, and the one the eval marks against an answer key.
     assertThat(sessions().single().calls.last().outcome).isEqualTo(FAULTY_REFERENCE)
+  }
+
+  @Test
+  fun `the protocol around the tools is written down too, and says which way in it came`() {
+    answer(
+      """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18",""" +
+        """"clientInfo":{"name":"claude-code","version":"9.9.9"},"capabilities":{}}}"""
+    )
+    answerOrNull("""{"jsonrpc":"2.0","method":"notifications/initialized"}""")
+    answer("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""")
+    callTool("""{"name":"list_leaks","arguments":{"reason":"Starting with what the dump says."}}""")
+
+    // Every line, in the order it arrived, because the question this gets read for is often why nothing
+    // happened: a session that keeps only the calls that reached a tool cannot answer it.
+    val session = sessions().single()
+    assertThat(session.calls.map { it.verb }).containsExactly(
+      "Connected",
+      "Sent the notification notifications/initialized",
+      "Asked what the tools are",
+      "Listed the"
+    )
+    // And nothing of the protocol pretends to be a call: no tool, nowhere to go, and the calls are the four
+    // lines minus the three. See [AgentSession.toolCalls].
+    assertThat(session.calls.map { it.tool })
+      .containsExactly(null, null, null, "list_leaks")
+    assertThat(session.toolCalls).hasSize(1)
+    assertThat(session.calls.map { it.over }).containsOnly(AgentTransport.MCP)
+  }
+
+  @Test
+  fun `a message with nothing behind it keeps the line and the answer that went back`() {
+    val notJson = answer("this is not JSON")
+    val noMethod = answer("""{"jsonrpc":"2.0","id":4}""")
+
+    // The line as it arrived, since there is nothing else to keep — and the answer, which is the half that
+    // was missing: an agent told "that is not JSON" and a session that recorded nothing is a session saying
+    // this app went quiet.
+    val calls = sessions().single().calls
+    assertThat(calls.map { it.input }).containsExactly("this is not JSON", """{"jsonrpc":"2.0","id":4}""")
+    assertThat(calls.map { it.output }).containsExactly(notJson.toString(), noMethod.toString())
+    assertThat(calls.map { it.method }).containsExactly(null, null)
+    assertThat(calls[0].error).contains("not JSON")
+    assertThat(calls[1].error).contains("method")
+  }
+
+  @Test
+  fun `a method this server does not have is written down as what arrived`() {
+    val answered = answer("""{"jsonrpc":"2.0","id":3,"method":"resources/list"}""")
+
+    val call = sessions().single().calls.single()
+    assertThat(call.method).isEqualTo("resources/list")
+    assertThat(call.verb).isEqualTo("Sent resources/list")
+    assertThat(call.output).isEqualTo(answered.toString())
+    assertThat(call.error).contains("resources/list")
+  }
+
+  @Test
+  fun `a call to a tool this server does not have is written down under the name it used`() {
+    val result = callTool("""{"name":"solve_the_leak","arguments":{"reason":"Trying my luck."}}""")
+
+    // Under the name, because a name nothing answers to is exactly what somebody is looking for when a call
+    // went nowhere — a typo, or a tool from a build newer than this one.
+    val call = sessions().single().calls.single()
+    assertThat(call.tool).isEqualTo("solve_the_leak")
+    // As it arrived, and not tidied into words: every tool of this build has a verb, so a name with none is a
+    // name this build has no tool for, and the exact string is the whole of what a reader is after.
+    assertThat(call.verb).isEqualTo("Called solve_the_leak")
+    assertThat(call.reason).isEqualTo("Trying my luck.")
+    assertThat(call.input).startsWith("solve_the_leak {")
+    assertThat(call.output).isEqualTo(result.array("content").single().jsonObject.text("text"))
+    assertThat(call.error).contains("solve_the_leak").contains("describe_object")
+    // Not a refusal: the surface said no to nothing, this build simply has no such tool.
+    assertThat(call.refusal).isNull()
+  }
+
+  @Test
+  fun `a tools_call that named no tool is written down as the call it was`() {
+    val result = callTool("""{"arguments":{"reason":"Forgot the name."}}""")
+
+    val call = sessions().single().calls.single()
+    assertThat(call.tool).isNull()
+    assertThat(call.method).isEqualTo("tools/call")
+    assertThat(call.verb).isEqualTo("Called a tool it did not name")
+    assertThat(call.output).isEqualTo(result.array("content").single().jsonObject.text("text"))
   }
 
   private fun sessions(): List<AgentSession> = AgentSessionFile.sessionsIn(sessionsDirectory)

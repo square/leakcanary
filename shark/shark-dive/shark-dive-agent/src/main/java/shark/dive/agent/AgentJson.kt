@@ -91,8 +91,16 @@ internal object AgentJson {
     put("session", session.sessionId)
     put("client", session.client)
     put("startedAt", session.startedAt?.toString())
-    put("calls", session.calls.size)
+    // Which way in it was talked to, and usually one: a session with both in it is somebody typing calls at
+    // the window a client is working in, which is worth knowing before reading it.
+    putJsonArray("over") { session.transports.forEach { add(it.recorded) } }
+    // The calls that reached a tool, and not every message of it: the protocol around them is in the session
+    // form below, and counting it here would make a command line's investigation — a handshake per call —
+    // read as twice the work it was. See [AgentSession.toolCalls].
+    put("calls", session.toolCalls.size)
     put("refused", session.refusedCount)
+    // And how many got no answer at all, which is this app failing rather than the surface saying no.
+    put("errors", session.errorCount)
     // What it concluded, which is the one thing a reader is looking for — and null for a session that
     // concluded nothing, which is most of them.
     put("concluded", session.calls.mapNotNull { it.outcome }.lastOrNull())
@@ -100,11 +108,22 @@ internal object AgentJson {
   }
 
   /**
-   * Every call of one session, in the order it made them, with the reason the agent gave for each.
+   * Every call of one session, in the order it made them, with the reason the agent gave for each — and the
+   * exchange itself.
    *
    * The reasons are the point. A session read as a list of tool names is the protocol showing through; read
    * as what was asked and why, it either follows from itself or doesn't — which is the same judgement the
    * person at the window makes on that screen.
+   *
+   * **And `input` and `output` are what the reasons are checked against**, which is why this answer is a long
+   * one: a reason is what the agent said it was doing, and the two of them are what it actually sent and
+   * actually read. An agent asked to work out where another one went wrong cannot do it from a summary,
+   * however well worded — the step that misread an answer reads exactly like the step that read it right.
+   * The same text the window's *Agent logs* screen unfolds a row onto.
+   *
+   * So a session with a hundred calls in it is a large answer, and that is the tool being used as intended
+   * rather than a leak: this is the only call on this surface whose subject is somebody else's whole
+   * investigation. The list without `session` is the short form, and how a reader picks which one to read.
    */
   fun agentSessionCalls(session: AgentSession): JsonObject = buildJsonObject {
     put("session", session.sessionId)
@@ -113,6 +132,11 @@ internal object AgentJson {
       session.calls.forEach { call ->
         addJsonObject {
           put("at", call.at.toString())
+          // Which way in it came, and what arrived: null on `tool` is a message that reached none, and the
+          // method is then the whole of what it was. Not only the calls, because a session that shows the
+          // ones that worked cannot answer why the others didn't. See [AgentSession.calls].
+          put("over", call.over?.recorded)
+          put("method", call.method)
           put("tool", call.tool)
           put("reason", call.reason)
           // What the call was about, as the agent wrote it: an address is that dump's address, and this is
@@ -120,7 +144,14 @@ internal object AgentJson {
           put("about", call.subject)
           put("heapDumpPath", call.heapDumpPath)
           put("refused", call.refusal)
+          // And why nothing could be answered at all, which is a different thing from being told no.
+          put("error", call.error)
           put("outcome", call.outcome)
+          // Last, and in that order, because they are the two long ones and they read as the call: this is
+          // what went out, and this is what came back. Null on both for a session recorded by a build older
+          // than they are; null on `output` alone for a notification nothing was sent back for.
+          put("input", call.input)
+          put("output", call.output)
         }
       }
     }

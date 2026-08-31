@@ -106,7 +106,40 @@ class AgentServerTest {
     // that holds a connection open says nothing and gets a session of its own. See [AgentCommandLineTest].
     val session = sessions().single()
     assertThat(session.sessionId).isEqualTo("cli7")
-    assertThat(session.calls.map { it.tool }).containsExactly("open_heap_dumps")
+    assertThat(session.toolCalls.map { it.tool }).containsExactly("open_heap_dumps")
+    // The ping is in there too, since the full traffic is what a session holds: it reached no tool and it is
+    // still what happened on that connection. See [AgentSessionCall.method].
+    assertThat(session.calls.map { it.method }).containsExactly("ping", "tools/call")
+  }
+
+  @Test
+  fun `a connection that says which way in it is has every line of it recorded that way`() {
+    listen()
+    val run = AgentServer.publishedRuns(directory).single()
+
+    connect(run, sessionName = "cli7", over = AgentTransport.CLI).use { it.ask(CALL_OPEN_HEAP_DUMPS) }
+    // And one that says nothing is a client holding a session open, which is what every MCP client does and
+    // what everything did before the command line existed. See [AgentServer].
+    connect(run).use { it.ask(CALL_OPEN_HEAP_DUMPS) }
+
+    assertThat(sessions().map { it.transports })
+      .containsExactlyInAnyOrder(listOf(AgentTransport.CLI), listOf(AgentTransport.MCP))
+  }
+
+  @Test
+  fun `a connection that names a way in this build has none of is served and recorded as MCP`() {
+    listen()
+    val run = AgentServer.publishedRuns(directory).single()
+
+    connect(run, sessionName = "odd", handshakeSuffix = " carrier-pigeon").use {
+      assertThat(it.accepted).isTrue()
+      it.ask(CALL_OPEN_HEAP_DUMPS)
+    }
+
+    // Served, for the reason a name this cannot use is: the calls are none the worse for it, and refusing the
+    // connection would lose the investigation to protect a label. The log says which word it was.
+    assertThat(sessions().single().transports).containsExactly(AgentTransport.MCP)
+    assertThat(log).anyMatch { it.contains("carrier-pigeon") }
   }
 
   @Test
@@ -155,8 +188,11 @@ class AgentServerTest {
   private fun connect(
     run: AgentServer.PublishedRun,
     token: String = run.token,
-    sessionName: String? = null
-  ): TestClient = TestClient(run.port, token, sessionName)
+    sessionName: String? = null,
+    over: AgentTransport? = null,
+    /** Whatever else a client puts on the handshake, for the words this build has no way in for. */
+    handshakeSuffix: String = ""
+  ): TestClient = TestClient(run.port, token, sessionName, over, handshakeSuffix)
 
   private fun sessions(): List<AgentSession> =
     AgentSessionFile.sessionsIn(AgentServer.sessionsDirectory(directory))
@@ -166,7 +202,10 @@ class AgentServerTest {
     port: Int,
     token: String,
     /** The session this connection joins, which a command line names and a client holding one open doesn't. */
-    sessionName: String?
+    sessionName: String?,
+    /** And which way in it is, which only a command line says. See [AgentTransport]. */
+    over: AgentTransport?,
+    handshakeSuffix: String
   ) : Closeable {
 
     private val socket = Socket(InetAddress.getLoopbackAddress(), port)
@@ -176,7 +215,7 @@ class AgentServerTest {
     val accepted: Boolean
 
     init {
-      toApp.println(listOfNotNull(token, sessionName).joinToString(" "))
+      toApp.println(listOfNotNull(token, sessionName, over?.recorded).joinToString(" ") + handshakeSuffix)
       accepted = fromApp.readLine() == AgentServer.ACCEPTED
     }
 
