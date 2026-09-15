@@ -131,7 +131,9 @@ class AgentStdioBridgeTest {
   @Test
   fun `a run that no longer answers on its port has its file cleared out`() {
     val port = ServerSocket(0).use { it.localPort }
-    val stale = File(directory, "999999${AgentServer.RUN_SUFFIX}")
+    // Named after a process that is running, because that is the case this is about: a run that has ended is
+    // recognised by its pid and never connected to. See `AgentServer.isRunning`.
+    val stale = File(directory, "${ProcessHandle.current().pid()}${AgentServer.RUN_SUFFIX}")
     stale.outputStream().use { output ->
       Properties().apply {
         setProperty("port", port.toString())
