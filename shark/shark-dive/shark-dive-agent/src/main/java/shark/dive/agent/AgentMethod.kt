@@ -91,9 +91,11 @@ internal object AgentMethod {
     **Which copy of the code matters as much as reading it.** A class that changed between two versions is a
     root cause nobody can reproduce and a fix that doesn't apply. The dump itself says which versions:
 
-    - **The OS.** `describe_object` on the `android.os.Build${'$'}VERSION` class: `SDK_INT` is the API level, with
-      `RELEASE`, `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the
-      build fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
+    - **The OS.** A class is an object of the dump like any other, so reading one is two calls: `find_objects`
+      with `className=android.os.Build${'$'}VERSION`, `exactMatch=true` and `kinds=CLASS` for its address, then
+      `describe_object` on that address for its static fields. `SDK_INT` is the API level, with `RELEASE`,
+      `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the build
+      fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
       under `sources/android-<SDK_INT>` — and not `main`, which is years ahead of any device.
     - **The app.** Its `android.content.pm.ApplicationInfo` is in most dumps: `processName` and `dataDir`
       name the app, `sourceDir` is the APK it was installed from, `minSdkVersion` is a field of its own,

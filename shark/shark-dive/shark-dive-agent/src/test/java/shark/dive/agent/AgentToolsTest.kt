@@ -1,6 +1,7 @@
 package shark.dive.agent
 
 import java.time.Instant
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -76,6 +77,23 @@ class AgentToolsTest {
     assertThat(sizes.text("totalBytes").toLong()).isGreaterThan(0)
     assertThat(sizes.text("stronglyReachableBytes").toLong()).isGreaterThan(0)
     assertThat(sizes.array("byStrength")).isNotEmpty
+  }
+
+  @Test
+  fun `a window busy with a read of its own is listed without its sizes rather than waited for`() {
+    // The call every investigation starts with is also the only one that touches every open window, so one
+    // window in the middle of something would otherwise hold up the listing of all of them — measured at 40
+    // seconds behind a leak analysis of a dump the agent had not been asked about. Costs the wait, once.
+    val busy = FakeAgentHeapDump(heapDump.dive, windowId = "busy", beforeRead = { awaitCancellation() })
+    tools = agentTools(FakeAgentHeapDumps(listOf(busy, window)))
+
+    val dumps = call(OPEN_HEAP_DUMPS).array("heapDumps").map { it.jsonObject }
+
+    assertThat(dumps.map { it.text("window") }).containsExactly("busy", window.windowId)
+    assertThat(dumps.first()["sizes"]).isNull()
+    assertThat(dumps.first().text("problem")).contains("busy with a read of its own")
+    // And the window that was free still says everything it says, since one busy window is not the others.
+    assertThat(dumps.last().obj("sizes").text("totalBytes").toLong()).isGreaterThan(0)
   }
 
   @Test
@@ -597,6 +615,17 @@ class AgentToolsTest {
     }
       .isInstanceOf(AgentRefusal::class.java)
       .hasMessageContaining("never a decimal number")
+  }
+
+  @Test
+  fun `a class name is refused with the call that turns it into an address`() {
+    // Which is what the method tells an agent to do with `android.os.Build$VERSION`, and it did: a class is
+    // an object of the dump, and the only thing between its name and its static fields is the lookup.
+    assertThatThrownBy { call("describe_object", OBJECT to "android.os.Build\$VERSION") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("find_objects")
+      .hasMessageContaining("className=android.os.Build\$VERSION")
+      .hasMessageContaining("kinds=CLASS")
   }
 
   @Test
