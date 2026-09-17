@@ -369,7 +369,8 @@ press, because a surface with less than that is one whose answer is "ask your hu
 
 | Tool | What it is |
 | --- | --- |
-| `open_heap_dumps` | Every heap dump open, by the file name the other tools take, with the method to follow. |
+| `open_heap_dump` | The heap dump you gave it, by path or by name: **Open heap dump…** for a file nobody has open, and the window that already has it when somebody does. With the method to follow. |
+| `open_heap_dumps` | Every heap dump open, for an agent that was given none. With the same method. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
@@ -381,11 +382,12 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
 | `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can only half do — no tab, and the link all the same. |
 | `conclude` | The root cause, and the only way to finish. |
-| `open_heap_dump` | **Open heap dump…**, for a file nobody has open yet. |
 | `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
 
-The last three are what make an agent useful when there is nothing open yet: point it at a dump a bug report
-came with, or at a process on a device, and the window it lands in is one you can look over its shoulder in.
+`open_heap_dump` and the last two are what make an agent useful when there is nothing open yet: point it at a
+dump a bug report came with, or at a process on a device, and the window it lands in is one you can look over
+its shoulder in. Naming the dump is the whole of starting — an agent that was handed one never has to ask what
+is open, since the same answer carries the method.
 `dump_heap` takes minutes on a large app and answers once the dump can be read — the steps are in the run's
 log while it works.
 
@@ -471,9 +473,11 @@ method working; this is Shark Dive not working.
 ```
 
 Which is the point of keeping them: what this screen gets opened for is often why *nothing* happened, and a
-screen holding only the calls that worked is the one screen that can't answer that. It shows in the shape of a
-session — one sent from a shell is a *Connected* per call, `--agent` being a process per call — and the
-`n call(s)` above the rows counts the calls rather than the lines.
+screen holding only the calls that worked is the one screen that can't answer that. The `n call(s)` above the
+rows counts the calls rather than the lines, for the same reason. **A command typed at a shell is still one
+row**: `--agent` is a process per call, so each of them connects and says hello before it calls anything, and
+a *Connected* per call would double the length of every shell's session without saying anything the row under
+it doesn't.
 
 **And every row unfolds onto the call itself** — the `▸ {}` under a row opens what the agent sent and what it
 read back, as the text each of them was, so a step you don't follow is one question rather than a dead end:
