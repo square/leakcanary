@@ -51,6 +51,9 @@ internal object AgentJson {
    *
    * The name first because it is what every other call names this dump by — [AgentTools.HEAP_DUMP] — and the
    * window id after it, for the one thing the name can't say: which of two windows on one file.
+   *
+   * None of it is read from the heap dump: the sizes were worked out while opening it and the verdicts are on
+   * disk, which is what lets the listing of every open dump wait on none of them. See [AgentHeapDump.sizes].
    */
   fun heapDump(
     heapDumpName: String,

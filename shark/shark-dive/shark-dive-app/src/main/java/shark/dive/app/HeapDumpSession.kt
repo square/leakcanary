@@ -18,6 +18,7 @@ import shark.CanceledException
 import shark.SharkLog
 import shark.dive.HeapDumpOrigin
 import shark.dive.HeapDive
+import shark.dive.HeapSizes
 
 /**
  * A [HeapDive] with every read of it confined to one background thread.
@@ -48,6 +49,16 @@ class HeapDumpSession private constructor(
    * dive already has.
    */
   val origin: HeapDumpOrigin get() = dive.origin
+
+  /**
+   * How the objects of the heap dump split up by reachability, which was worked out while opening it.
+   *
+   * Not through [read] for the same reason [origin] isn't: it is a handful of numbers the dive already has,
+   * computed by the pass that made it openable. Putting it through the queue would make the one answer that
+   * costs nothing wait behind whatever the window is reading — see [read], and `AgentTools.OPEN_HEAP_DUMPS`,
+   * which lists every open dump and so would wait behind the busiest of them.
+   */
+  val sizes: HeapSizes get() = dive.sizes
 
   /**
    * Runs [block] against the heap dump on the thread that owns it, logging [description] as it starts

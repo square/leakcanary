@@ -9,11 +9,11 @@ Measured off `AgentTools.all` and `AgentMethod.INSTRUCTIONS`, one `tools/list` e
 
 | | Characters | ≈ tokens | Paid |
 | --- | --- | --- | --- |
-| Seventeen tool definitions | 21,123 | 5,280 | Every turn, while the server is connected |
-| The method | 7,845 | 1,960 | Handshake, and again with `open_heap_dumps` |
+| Seventeen tool definitions | 23,132 | 5,780 | Every turn, while the server is connected |
+| The method | 8,157 | 2,040 | Handshake, and again with `open_heap_dump` or `open_heap_dumps` |
 
-So the standing cost of this surface is **7 to 8 k tokens**, around 3.5% of a 200 k window. Parity took the
-tool count from eleven to seventeen and the definitions from 13,116 characters to 21,123 — **a fifth of the
+So the standing cost of this surface is **7 to 8 k tokens**, around 4% of a 200 k window. Parity took the
+tool count from eleven to seventeen and the definitions from 13,116 characters to 23,132 — **a fifth of the
 window's budget for the six tools that mean an agent never has to ask its human to click something**, which
 is the trade this surface exists to make. The sixth is `agent_log`, 1,237 characters of the total, and the
 900 the other sixteen grew by are the two agent-log places added to the sentence naming every place, which
@@ -63,11 +63,11 @@ Measured against a packaged build with one window open on `leak_asynctask_o.hpro
 | | Measured | Paid |
 | --- | --- | --- |
 | One call, JVM start to JSON on stdout | 160–180 ms | Per call |
-| `--agent-help`, all seventeen tools | 14,594 characters, ≈3,650 tokens | Only when read |
+| `--agent-help`, all seventeen tools | 16,232 characters, ≈4,060 tokens | Only when read |
 | `--agent-help <tool>`, one of them | 500–1,250 characters, ≈125–310 tokens | Only when read |
 
 So the standing cost is nothing, and the whole surface as text is *smaller* than the `tools/list` definitions
-of it (14,594 against 21,123) because `reason` is explained once rather than seventeen times. Both
+of it (16,232 against 23,132) because `reason` is explained once rather than seventeen times. Both
 `--agent-help` figures include the invocation path twice, since what it prints is the command to type on this
 machine; a shorter install path is a slightly shorter help.
 
@@ -78,6 +78,28 @@ process-per-call shape costs exactly one thing, and it isn't speed: **a connecti
 gathers an investigation**, which is what `--agent-session=` and `AgentSessionFile.continuing` exist for. A
 call says which session it is one of, defaulting to `cli<the shell's pid>`, so a conversation's calls are one
 row of the *Agent logs* screen the way one held-open MCP connection is.
+
+**What a call does queue behind is the window.** Reads are confined to the heap dump's own thread so that an
+agent sees what the window shows, which means a call costs whatever that window is already doing — and on a
+real dump that can be minutes: a leak analysis of a 4 million object Android dump took 683 s here. That is
+the intended trade for every tool that reads one dump.
+
+**Listing what is open is not one of them, and used to be.** `open_heap_dumps` is the only call that touches
+every open window, and it was doing it through `read` — so with three real dumps open it took **40.7 s**, all
+of it queued behind the leak analysis of a dump the agent had not been asked about, for an answer that is
+mostly file names. The read itself measured 0 ms, because the sizes are a constructor val of `HeapDive`:
+`reachability.sizes`, worked out by the pass that made the dump openable. So there was nothing to time-box —
+what was being waited for was the queue and nothing else. `HeapDive.sizes` is now a property on the seam
+(`HeapDumpSession.sizes`, `AgentHeapDump.sizes`, documented on all three as **not** through `read`, for the
+reason `origin` isn't), and listing touches no heap dump thread at all.
+
+**Nor does opening one queue behind another opening.** `HeapDumpSession.open` gives each dump its own
+single-thread executor named `heap-dump-<file name>` and runs the whole of `HeapDive.open` on it, so three
+dumps index on three threads. Measured headless and warm on the 4 M-object dump, no `-Xmx` set, 16 cores:
+**32,390 ms as one of three at once against 31,411 ms alone**, a 3% cost, with GC pauses of 337 ms against
+155 ms. Three windows taking far longer than that is not the opens colliding — it is each window's own
+post-open reads (the referrer index, the treemap layout, the leak analysis) running beside the other two
+opens, which is the paragraph above rather than this one.
 
 ## What each shape is actually good at
 

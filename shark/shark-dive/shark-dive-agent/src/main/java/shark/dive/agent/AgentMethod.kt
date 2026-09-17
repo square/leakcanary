@@ -4,8 +4,11 @@ package shark.dive.agent
  * The method an agent is asked to follow, which is the part of this surface that isn't data.
  *
  * Handed over twice on purpose: as the `instructions` of the MCP handshake, which some clients show the
- * model and some drop, and again with the answer to [AgentTools.OPEN_HEAP_DUMPS], which is the call every
- * investigation starts with. A method a client dropped is a method nobody followed.
+ * model and some drop, and again with the answer to **either** way of getting a heap dump — the tool named
+ * `open_heap_dump` and [AgentTools.OPEN_HEAP_DUMPS]. One of the two is the first call of every investigation,
+ * whichever of them it is, and a method a client dropped is a method nobody followed. Both of them, rather
+ * than only the listing, because an agent that was handed a heap dump has no reason to ask what is open, and
+ * making it ask in order to be told the method is the surface charging a call for its own documentation.
  *
  * **It is prose because its reader is a language model**, which is the one place in this app where a
  * paragraph beats a label — the window says `Verdict` in one word to someone who already knows what a

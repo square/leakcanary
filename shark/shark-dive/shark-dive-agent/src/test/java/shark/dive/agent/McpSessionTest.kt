@@ -82,8 +82,12 @@ class McpSessionTest {
     val tools = answer("""{"jsonrpc":"2.0","id":2,"method":"tools/list"}""")
       .result().array("tools").map { it.jsonObject }
 
+    // In order, because a client shows them in the order they arrive and a model reads the first few: the
+    // two ways of getting a heap dump are the first two, and `open_heap_dump` — the one an agent that was
+    // handed a dump wants — comes before the listing it used to have to go through.
     assertThat(tools.map { it.text("name") }).containsExactly(
       "open_heap_dumps",
+      "open_heap_dump",
       "list_leaks",
       "agent_log",
       "describe_object",
@@ -97,7 +101,6 @@ class McpSessionTest {
       "take_note",
       "show",
       "conclude",
-      "open_heap_dump",
       "list_devices",
       "dump_heap"
     )

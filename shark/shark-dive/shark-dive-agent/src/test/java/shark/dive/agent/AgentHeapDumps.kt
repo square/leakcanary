@@ -19,8 +19,11 @@ import shark.dive.HeapDive
  * somebody has read the code and recorded what they found, and a two object dump would name its faulty
  * reference with nobody having investigated anything.
  */
-internal fun TemporaryFolder.applicationHoldsActivityThroughHolder(): InvestigationHeapDump {
-  val file = newFile("application-holds-activity-through-holder.hprof")
+internal fun TemporaryFolder.applicationHoldsActivityThroughHolder(
+  /** So that a test about naming one of two open dumps can have two dumps rather than one dump twice. */
+  fileName: String = "application-holds-activity-through-holder.hprof"
+): InvestigationHeapDump {
+  val file = newFile(fileName)
   var applicationObjectId = 0L
   var holderObjectId = 0L
   var activityObjectId = 0L

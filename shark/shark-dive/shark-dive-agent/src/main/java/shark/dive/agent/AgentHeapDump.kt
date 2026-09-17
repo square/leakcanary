@@ -4,6 +4,7 @@ import java.io.File
 import shark.dive.AndroidDevice
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
+import shark.dive.HeapSizes
 import shark.dive.LeakStatusOverride
 import shark.dive.LeakStatusOverrides
 import shark.dive.Place
@@ -35,6 +36,16 @@ interface AgentHeapDump {
 
   /** How an agent names this dump, which is the file name. See [AgentTools.HEAP_DUMP]. */
   val heapDumpName: String get() = File(heapDumpPath).name
+
+  /**
+   * How big the heap dump is and how its objects split up by reachability.
+   *
+   * **Not through [read]**, unlike everything else about a dump, because nothing here is read on demand: it
+   * was all worked out by the pass that made the dump readable at all. Which is what lets
+   * [AgentTools.OPEN_HEAP_DUMPS] answer with the sizes of every open dump without waiting on any of them —
+   * a listing that queued behind each window's current read would take as long as the busiest one, and did.
+   */
+  val sizes: HeapSizes
 
   /**
    * Runs [block] against the open heap dump, wherever the implementation reads one.

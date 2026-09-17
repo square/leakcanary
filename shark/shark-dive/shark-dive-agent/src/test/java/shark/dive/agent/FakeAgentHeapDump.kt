@@ -7,6 +7,7 @@ import shark.dive.AndroidDevice
 import shark.dive.DeepLink
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
+import shark.dive.HeapSizes
 import shark.dive.LeakStatusOverride
 import shark.dive.LeakStatusOverrides
 import shark.dive.Place
@@ -32,6 +33,10 @@ internal class FakeAgentHeapDump(
 ) : AgentHeapDump, Closeable {
 
   override val heapDumpPath: String get() = dive.heapDumpFile.absolutePath
+
+  // Off the dive and not through [read], the way a window's own session hands them over: they were worked out
+  // while opening the dump, and a listing of every open dump waits on none of them. See [AgentHeapDump.sizes].
+  override val sizes: HeapSizes get() = dive.sizes
 
   override var verdicts: LeakStatusOverrides = LeakStatusOverrides.NONE
     private set
