@@ -264,6 +264,21 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `a leak is named here the way the leaks screen names it`() {
+    val groups = call(LIST_LEAKS).array("sections")
+      .flatMap { it.jsonObject.array("groups") }
+      .map { it.jsonObject }
+
+    // One list with two readers — the person watching and the agent working — so a leak named `Holder.activity
+    // →` on the row and spelled out as an array here is two leaks to whoever is reading both. See LeakGroup.name.
+    assertThat(groups.map { it.text("name") }).isNotEmpty.allMatch { it.isNotEmpty() }
+    assertThat(groups.map { it.text("name") }).anyMatch { ACTIVITY_FIELD_NAME in it }
+    // And what is between the two ends of one is on the chain for both of them, rather than in the answer for
+    // one of them: the row draws a gap there and `chain_from_gc_root` is where either reader goes.
+    assertThat(groups.map { it["suspectPath"] }).allMatch { it == null }
+  }
+
+  @Test
   fun `describing an object reads its fields with the address of each value`() {
     val holder = call("describe_object", OBJECT to hex(heapDump.holderObjectId))
 
@@ -924,6 +939,7 @@ class AgentToolsTest {
 
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
     const val OPEN_HEAP_DUMP = "open_heap_dump"
+    const val LIST_LEAKS = "list_leaks"
     const val AGENT_LOG = "agent_log"
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"

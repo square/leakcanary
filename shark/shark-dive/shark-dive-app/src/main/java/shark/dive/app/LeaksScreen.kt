@@ -329,7 +329,9 @@ private fun GroupRow(
       Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Explain(Topic.LEAK_NAME, onExplain) {
           Text(
-            group.nameText(),
+            // The same string an agent listing these leaks is answered with, so that the row somebody is
+            // watching and the answer beside it name one leak one way. See [LeakGroup.name].
+            group.name,
             Modifier.weight(1f, fill = false),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
@@ -603,27 +605,6 @@ private fun HeapLeaks.countText(): String {
 private fun LeakGroup.objectCountText(): String =
   "${objects.size} ${if (objects.size == 1) OBJECT else OBJECTS}"
 
-/**
- * Both ends of what the leak is, and a gap for whatever is between them.
- *
- * One line rather than two, because the ends are the same reference for most leaks and a second line that
- * repeats the first says the row has two names. Which end is which is worth knowing — the first is what to
- * stop holding, the last is where the object that leaked hangs off — and a row of a list is read left to
- * right, so it is the same order the chain is in. See [LeakGroup.suspectPath] and the `leak-name` page of the reference.
- *
- * It ends on an arrow, because what the last reference points at is the row underneath: the references are
- * the leak and the objects below them are what it left behind, which is the whole shape of this list.
- */
-private fun LeakGroup.nameText(): String = when (suspectPath.size) {
-  // A library leak is named by the pattern that recognized it and an unreachable one by its class, and
-  // neither is a reference, so neither points anywhere.
-  0 -> title
-  1 -> "${suspectPath.single()} $STRETCH_ARROW"
-  2 -> "${suspectPath.first()} $STRETCH_ARROW ${suspectPath.last()} $STRETCH_ARROW"
-  else ->
-    "${suspectPath.first()} $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW ${suspectPath.last()} $STRETCH_ARROW"
-}
-
 /** How many objects the leak has past the one on the row above, which is what opening it shows. */
 private fun moreObjectsText(count: Int): String =
   "$count $MORE ${if (count == 1) OBJECT else OBJECTS} $LEAKING_THE_SAME_WAY"
@@ -668,12 +649,6 @@ private const val WATCHED_GLYPH = "◉"
 
 /** What the hash of a leak is called on the row, since a bare 40 characters of hex names nothing. */
 internal const val LEAK_FINGERPRINT = "Leak fingerprint:"
-
-/** Between the two ends of a leak, pointing the way the chain runs: down, away from the GC roots. */
-internal const val STRETCH_ARROW = "→"
-
-/** And what stands in for the references between them, which are on the chain and not on the row. */
-internal const val STRETCH_GAP = "…"
 
 internal const val FOLDED_ARROW = "▸"
 internal const val EXPANDED_ARROW = "▾"
