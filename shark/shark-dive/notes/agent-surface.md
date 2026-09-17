@@ -37,20 +37,29 @@ next" — and the numbers are worth knowing before reaching for it. Measured aga
 | | Measured |
 | --- | --- |
 | The four tool-call rows | 8,783 + 8,775 + 1,750 + 987 characters — the answer is nearly all of each |
-| The four protocol rows | 37,313 characters, of which **32,976 is four `initialize` answers** |
+| The protocol rows | 37,313 characters, of which **32,976 was four `initialize` answers** |
 | The whole `agent_log session=…` answer | 57,693 characters, ≈14,400 tokens |
 
 So **a tool call is one to two thousand tokens** and a thirty-call investigation read in full is most of a
 small context window. That is the tool being used for what it is for rather than a leak — it is the one call
 on this surface whose subject is somebody else's whole investigation.
 
-**The handshakes are the surprise, and they are a command line's.** `initialize` answers with
-`AgentMethod.INSTRUCTIONS`, and `--agent` is a process per call, so a session of typed calls carries the
-method once per call: 57% of the answer above, handed to a reader that already has the same text in its own
-context. An MCP session pays it once. Nothing about that is a reason to record less — a session that keeps
-only what reached a tool cannot say why nothing did, which is the whole point of keeping the traffic — but if
-`agent_log` needs to be cheaper, **the handshake answers are where to look first**, and the shape to reach
-for is a way to ask for one message's exchange rather than a shorter version of every message's.
+**The handshakes were the surprise, and they were a command line's.** `initialize` answers with
+`AgentMethod.INSTRUCTIONS`, and `--agent` is a process per call, so a session of typed calls carried the
+method once per call: 57% of the measurement above, handed to a reader that already had the same text in its
+own context — and, worse than the size, **two rows per command typed**, so the screen drew a shell's four
+calls as eight and read as Connected, called, Connected, called.
+
+`McpSession.isTheCommandLineSayingHello` is the fix, and it is one case and no more: a `--agent` process's own
+`initialize` is not recorded. So one typed command is one row, and the same session recorded today is 24,717
+characters rather than 57,693 — arithmetic on the numbers above, since nothing but those four rows went. What
+that does not do is record less of what a client sent: an MCP session pays for its handshake once and keeps
+it, a line that is not JSON is still a row, and a session that kept only what reached a tool could not say
+why nothing did. Nothing is hidden either — the CLI's connection is in that run's `~/.shark-dive/logs` file,
+and the session still names the client as `shark-dive-cli`.
+
+If `agent_log` needs to be cheaper again, the shape to reach for is a way to ask for one message's exchange
+rather than a shorter version of every message's.
 
 Nothing truncates it, deliberately: a session cut to fit is one where the answer that misled an agent is the
 part that got cut.

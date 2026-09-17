@@ -96,15 +96,12 @@ class AgentCommandLineTest {
     // Said once, by the call that started the session, since a file with two headers is two sessions.
     assertThat(session.client).isEqualTo("shark-dive-cli")
     // And every line of it says it was typed rather than sent by a client — which nothing after the handshake
-    // could tell, this being the same protocol on the same socket an MCP client speaks. Two handshakes in
-    // there, one per process: a session of typed calls reads as Connected, called, Connected, called.
+    // could tell, this being the same protocol on the same socket an MCP client speaks.
     assertThat(session.transports).containsExactly(AgentTransport.CLI)
-    assertThat(session.calls.map { it.method }).containsExactly(
-      "initialize",
-      "tools/call",
-      "initialize",
-      "tools/call"
-    )
+    // **One row per command typed.** Each of these was a process that connected, said who it was and then
+    // made its one call, and recording the hello would draw two commands as four rows — Connected, called,
+    // Connected, called. The client is still named above, and the connection is in this run's log.
+    assertThat(session.calls.map { it.method }).containsExactly("tools/call", "tools/call")
   }
 
   @Test
