@@ -880,21 +880,39 @@ enum class AndroidObjectInspectors : ObjectInspector {
     }
   },
 
+  /**
+   * A binder stub is the object a remote process holds a proxy to, and the runtime keeps it alive until
+   * that proxy is collected — in another process, on another heap, at a time this one has no say in. So a
+   * stub still being here after the activity or service it was made for has gone is the design working,
+   * not a leak, which is why this is the one inspector that reports a framework class as not leaking.
+   *
+   * **It says that about the stub and nothing else.** A not-leaking verdict spreads to what *holds* an
+   * object, never to what it holds, and that is the whole of why this is safe to report: every object
+   * below the stub is still open, and one of them is usually the leak. The label is there to say so,
+   * because the reading that costs an investigation is "the stub is fine, therefore what the stub holds
+   * is fine" — which is the Android framework being assumed right about an object it has never heard of.
+   */
   STUB {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.os.Binder") { instance ->
         val name = instance.instanceClassSimpleName
-        labels += "$name is a binder stub, which by design stays in memory until the process on the" +
-          " other side gets GCed. So a stub outliving the activity or service it was made for is" +
-          " normal, and $name being here is usually not the thing to fix. What it holds is: a stub" +
-          " has to be a *static* class, so that it holds nothing it wasn't given, and every reference" +
-          " it was given has to be clearable and cleared when the work is done. So read what $name" +
-          " holds and decide, object by object, which of those should still be here — that is where" +
-          " the leak is. A compiler generated outer reference (this\$0) means it isn't static, and" +
-          " making it static is the fix; swapping a reference for a WeakReference is not, it only" +
-          " makes the behaviour depend on when a GC runs. If $name is an Android Framework class then" +
-          " it is still holding your objects: file a ticket at" +
-          " https://issuetracker.google.com/issues/new?component=192705 and go on down the chain."
+        notLeakingReasons += "$name is a binder stub, and a stub stays in memory until the process on" +
+          " the other side gets GCed, so outliving what it was made for is by design"
+        labels += "This says nothing about what $name holds. A stub has to be a *static* class, so that" +
+          " it holds nothing it wasn't given, and every reference it was given has to be cleared when" +
+          " the work is done — so read what $name holds and decide, object by object, which of those" +
+          " should still be here. That is where the leak is, and the framework being unable to help it" +
+          " is not the same as the framework being right: an AOSP or library stub holding your object" +
+          " past its life is a bug, it is only a bug you can't edit. What to do about it, in order:" +
+          " if $name is yours, make it static and clear what it holds at the end of the work it was" +
+          " made for — a compiler generated outer reference (this\$0) is what a non-static one looks" +
+          " like here. If it is framework or library code, file a ticket against it —" +
+          " https://issuetracker.google.com/issues/new?component=192705 for the platform — and then" +
+          " fix it from below anyway: the reference that has to go is often further down the chain and" +
+          " in your code, so if the stub holds your callback and your callback holds an activity," +
+          " clearing that activity field in onDestroy ends the leak whoever owns the stub. What is" +
+          " never the fix is swapping a reference for a WeakReference, which only makes the behaviour" +
+          " depend on when a GC runs."
       }
     }
   },

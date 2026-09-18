@@ -3,6 +3,7 @@ package shark
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
+import shark.GcRoot.JniGlobal
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.LeakTraceObject.LeakingStatus.LEAKING
 import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
@@ -113,6 +114,69 @@ class AndroidObjectInspectorsTest {
 
     assertThat(lifecycleRegistry.leakingStatus).isEqualTo(NOT_LEAKING)
     assertThat(lifecycleRegistry.leakingStatusReason).isEqualTo("state is RESUMED")
+  }
+
+  @Test fun `STUB reports a binder stub as not leaking`() {
+    val stub = analyzeBinderStub()
+      .single { it.owningClassSimpleName == "UploadCallbacks\$ResultStub" }
+      .originObject
+
+    assertThat(stub.leakingStatus).isEqualTo(NOT_LEAKING)
+    assertThat(stub.leakingStatusReason)
+      .contains("stays in memory until the process on the other side gets GCed")
+  }
+
+  @Test fun `STUB says nothing about what the stub holds`() {
+    // The whole point of reporting a framework class as not leaking: a not leaking verdict spreads to
+    // what holds an object and never to what it holds, so the object the stub points at is still the
+    // one to read. Reading it as expected too is how an investigation ends up blaming the last
+    // reference of the chain.
+    val held = analyzeBinderStub()
+      .single { it.owningClassSimpleName == "UploadCallbacks" }
+      .originObject
+
+    assertThat(held.leakingStatus).isEqualTo(UNKNOWN)
+  }
+
+  /**
+   * The leak trace of a watched object held by a binder stub through the field a compiler writes for a
+   * non-static inner class, which is the shape every stub leak has.
+   */
+  private fun analyzeBinderStub(): List<LeakTraceReference> {
+    val heapDump = dump {
+      val callbacks = "com.example.UploadCallbacks" instance {
+        field["leaked"] = "com.example.LeakingObject" watchedInstance {}
+      }
+      val stub = instance(
+        clazz(
+          className = "com.example.UploadCallbacks\$ResultStub",
+          superclassId = clazz(className = "android.os.Binder"),
+          fields = listOf("this\$0" to ReferenceHolder::class)
+        ),
+        fields = listOf(callbacks)
+      )
+      // Another process holding a proxy to the stub, which is why the stub is still here.
+      gcRoot(JniGlobal(id = stub.value, jniGlobalRefId = 0))
+    }
+
+    val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
+
+    val analysis = heapDump.openHeapGraph().use { graph ->
+      heapAnalyzer.analyze(
+        heapDumpFile = File("/no/file"),
+        graph = graph,
+        leakingObjectFinder = KeyedWeakReferenceFinder,
+        referenceMatchers = JdkReferenceMatchers.defaults,
+        computeRetainedHeapSize = false,
+        objectInspectors = listOf(
+          ObjectInspectors.KEYED_WEAK_REFERENCE,
+          AndroidObjectInspectors.STUB
+        ),
+        metadataExtractor = MetadataExtractor.NO_OP
+      )
+    } as HeapAnalysisSuccess
+
+    return analysis.applicationLeaks.single().leakTraces.single().referencePath
   }
 
   /**

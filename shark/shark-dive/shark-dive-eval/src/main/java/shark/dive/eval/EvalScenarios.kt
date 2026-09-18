@@ -34,7 +34,9 @@ class EvalScenario internal constructor(
    * destroyed activity at the bottom is the dump's own `STUCK`, so the only verdict a run has to add is an
    * `EXPECTED` above the unknown zone, and `EvalScenariosTest` sets that one without being told where. Spell
    * these out when that isn't true — when the dump's own reading is at neither end of what a run has to
-   * decide, and no rule could guess which object the missing verdict goes on.
+   * decide, and no rule could guess which object the missing verdict goes on. `stub-outlives-its-work` is
+   * the one: the dump reads both ends for itself, a watched activity at the bottom and a binder stub at the
+   * top, and what a run has to add is the `STUCK` in the middle.
    */
   internal val solvedBy: Map<String, LeakStatus> = emptyMap(),
   private val writeHeapDump: (File) -> Unit
@@ -174,10 +176,12 @@ object EvalScenarios {
    * rule backwards, and comes out with `EXPECTED` all the way down and the last reference on the chain as its
    * answer. The rule only runs the one way: a holder of something expected is expected, never the held.
    *
-   * So the verdict that costs something is the `STUCK` on [UPLOAD_CALLBACKS_CLASS_NAME], and the dump carries
-   * the evidence for it rather than asking for taste — `delivered` is true, so the result this object exists
-   * to receive has been received and nothing should still be pointing at it. What the stub points at with the
-   * field a compiler wrote for it is then the leak, and no code anybody could write can clear that field.
+   * So the verdict that costs something is the `STUCK` on [UPLOAD_CALLBACKS_CLASS_NAME], and it is the only
+   * one a run has to add: `AndroidObjectInspectors.STUB` reports the stub itself as not leaking, for the
+   * reason above, which is what puts the top end of the unknown zone there without anybody arguing for it.
+   * The dump carries the evidence for the other end rather than asking for taste — `delivered` is true, so
+   * the result this object exists to receive has been received and nothing should still be pointing at it.
+   * What the stub points at with the field a compiler wrote for it is then the leak.
    *
    * [UPLOAD_BINDING_CLASS_NAME] is the control, and the reason a run can't score here by refusing whatever
    * sits under a stub: a second stub of the same dump, rooted by a JNI global reference the same way, that is
@@ -188,10 +192,7 @@ object EvalScenarios {
     name = "stub-outlives-its-work",
     key = "UploadCallbacks\$ResultStub.this\$0",
     about = "The one object that belongs in memory is a binder stub at the top, and a verdict spreads up",
-    solvedBy = mapOf(
-      RESULT_STUB_CLASS_NAME to LeakStatus.EXPECTED,
-      UPLOAD_CALLBACKS_CLASS_NAME to LeakStatus.STUCK
-    )
+    solvedBy = mapOf(UPLOAD_CALLBACKS_CLASS_NAME to LeakStatus.STUCK)
   ) { file ->
     file.dump {
       androidBuild()

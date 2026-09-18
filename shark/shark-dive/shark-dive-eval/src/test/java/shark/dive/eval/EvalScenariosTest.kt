@@ -95,8 +95,9 @@ class EvalScenariosTest {
    * For a scenario that names none, one: everything above the object that owns the key is meant to be in
    * memory, which a single `EXPECTED` says by spreading upwards, and what is below is stuck already because
    * the dump itself says so. `stub-outlives-its-work` is the one that names its own, and the reason
-   * [EvalScenario.solvedBy] exists — its two ends are a watched activity at the bottom and a binder stub at
-   * the top, so what closes it is a `STUCK` in the middle that nothing here could work out.
+   * [EvalScenario.solvedBy] exists — the dump reads both of its ends by itself, a watched activity at the
+   * bottom and a binder stub the inspectors call not leaking at the top, so what closes it is a `STUCK` in
+   * the middle that nothing here could work out.
    */
   private fun EvalScenario.verdictsThatCloseTheUnknownZone(
     chain: RootPath,
