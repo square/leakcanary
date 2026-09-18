@@ -883,12 +883,18 @@ enum class AndroidObjectInspectors : ObjectInspector {
   STUB {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.os.Binder") { instance ->
-        labels += "${instance.instanceClassSimpleName} is a binder stub. Binder stubs will often be" +
-          " retained long after the associated activity or service is destroyed, as by design stubs" +
-          " are retained until the other side gets GCed. If ${instance.instanceClassSimpleName} is" +
-          " not a *static* inner class then that's most likely the root cause of this leak. Make" +
-          " it static. If ${instance.instanceClassSimpleName} is an Android Framework class, file" +
-          " a ticket here: https://issuetracker.google.com/issues/new?component=192705"
+        val name = instance.instanceClassSimpleName
+        labels += "$name is a binder stub, which by design stays in memory until the process on the" +
+          " other side gets GCed. So a stub outliving the activity or service it was made for is" +
+          " normal, and $name being here is usually not the thing to fix. What it holds is: a stub" +
+          " has to be a *static* class, so that it holds nothing it wasn't given, and every reference" +
+          " it was given has to be clearable and cleared when the work is done. So read what $name" +
+          " holds and decide, object by object, which of those should still be here — that is where" +
+          " the leak is. A compiler generated outer reference (this\$0) means it isn't static, and" +
+          " making it static is the fix; swapping a reference for a WeakReference is not, it only" +
+          " makes the behaviour depend on when a GC runs. If $name is an Android Framework class then" +
+          " it is still holding your objects: file a ticket at" +
+          " https://issuetracker.google.com/issues/new?component=192705 and go on down the chain."
       }
     }
   },
