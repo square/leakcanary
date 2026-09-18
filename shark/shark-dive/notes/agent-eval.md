@@ -133,12 +133,23 @@ the model a surface is measured on. Harder scenarios are what the families below
 
 ## The scenario families
 
-Three exist. The rest are what the synthetic side is *for* — shapes a real dump doesn't happen to contain:
+Four exist. The rest are what the synthetic side is *for* — shapes a real dump doesn't happen to contain:
 
 - ✅ **Two apart** (`two-apart`) — one unexplained step between the verdicts, which is `conclude`'s refusal
   made real.
 - ✅ **A long unknown zone** (`cache-never-evicts`) — four steps of infrastructure with no verdict, rooted at
   a static singleton so that "this belongs in memory" is a fact of the dump rather than an assumption.
+- ✅ **A verdict that spreads the wrong way** (`stub-outlives-its-work`) — a binder stub at the top of the
+  chain, which genuinely belongs in memory, above a request whose work is done. **The only scenario the
+  method can be failed on by reading it backwards**, and the first whose answer needs a `STUCK` of the
+  agent's own rather than the watcher's: the reference is `UploadCallbacks$ResultStub.this$0`, one step below
+  the GC root, and an investigation that lets `EXPECTED` spread *downwards* from the stub comes out with
+  `UploadController.activity` at the bottom instead. Measured on the dump: nothing set names no reference, an
+  `EXPECTED` on the stub alone still names none, and the two readings name those two different strings — so
+  the inversion scores `WRONG` rather than passing for the wrong reason. A second, static stub in the same
+  dump is the control, so refusing whatever sits under a stub is not a way to score here either. This is the
+  shape a real POS dump turned out to have (`ResultReceiver$MyResultReceiver.this$0`), where an opus run
+  read it backwards twice and wrote the inversion down as its reason.
 - ✅ **A real dump** (`real-asynctask`) — 8 MB, real framework classes, and a chain nobody wrote for this eval.
 - **A decoy** — an object that reads like a leak above the real one, where the key is the reference below.
 - **Two candidates** — two references that both cross into stuck, so the answer depends on a verdict the agent
