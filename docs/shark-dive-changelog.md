@@ -173,3 +173,11 @@ uses, without the one for a newly recognized library leak:
   [Open a heap dump](shark-dive.md#open-a-heap-dump), where somebody who wants it goes looking. Same for the
   question a `shark://` link asks when this machine has two heap dumps of that name or none: the title
   already names the file, so the question is now the count and where to look.
+* 🔨 **A class shows the fields it declares, not the 26 the runtime keeps its own state in.** A class dump
+  record has nowhere but its static fields to put `mirror::Class`'s own state, so ART writes it in as pseudo
+  statics named `$class$accessFlags`, `$class$classLoader`, `$class$vtable` and 22 more, plus
+  `$classOverhead` for the bytes the record takes — and they sort before every static the class actually
+  declares. Reading `android.os.Build$VERSION` to find out which Android version a heap dump is from meant
+  26 rows of bookkeeping first, with `SDK_INT` the 43rd field of 48. Both the details panel and an agent's
+  `describe_object` read the same list, so both were paying for it. The `shadow$_klass_` and
+  `shadow$_monitor_` ART puts on every *instance* were already left out; this is the same rule for a class.

@@ -89,6 +89,37 @@ internal fun TemporaryFolder.lastResortHoldersHeapDump(): File {
   return file
 }
 
+/**
+ * A heap dump whose class object carries what ART writes onto one, in the order it writes it.
+ *
+ * A class dump record has nowhere but its static fields to put `mirror::Class`'s own state, so ART
+ * smuggles it in as pseudo statics named `$class$<field>`, and adds `$classOverhead` for the bytes the
+ * record itself takes. The names here are the ones a real dump has — measured on an API 33 dump, which
+ * writes 25 of them — and they sort before every static the class declares.
+ */
+internal fun TemporaryFolder.artClassMetadataHeapDump(): File {
+  val file = newFile("art-class-metadata.hprof")
+  file.dump {
+    // `clazz` makes its own StickyClass root, which is what holds a loaded class in a real dump too.
+    "android.os.Build\$VERSION" clazz {
+      staticField["\$classOverhead"] = ReferenceHolder(primitiveByteArray(ByteArray(296)))
+      staticField["\$class\$accessFlags"] = IntHolder(1)
+      staticField["\$class\$classSize"] = IntHolder(296)
+      staticField["\$class\$name"] = string("android.os.Build\$VERSION")
+      staticField["\$class\$shadow\$_monitor_"] = IntHolder(536870912)
+      staticField["RELEASE"] = string("13")
+      staticField["SDK_INT"] = IntHolder(33)
+    }
+    // A field the app's own code has, spelled the one way a real field starts with a dollar: a suspend
+    // lambda's captured continuation. Filtering by "starts with a dollar" would take this with it.
+    val work = "com.example.Work\$doIt\$1" instance {
+      field["\$continuation"] = string("the rest of doIt")
+    }
+    gcRoot(JniGlobal(id = work.value, jniGlobalRefId = 0))
+  }
+  return file
+}
+
 /** A heap dump with a bitmap in it, whose pixels live in native memory rather than in its fields. */
 internal fun TemporaryFolder.bitmapHeapDump(): File {
   val file = newFile("bitmap.hprof")
