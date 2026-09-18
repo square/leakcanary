@@ -297,11 +297,13 @@ object AgentCommandLine {
     |the heap dump open — or by a window this opens when none is.
     |
     |  $command $AGENT_OPTION <tool> name=value …
-    |  $command $AGENT_OPTION open_heap_dumps reason="Finding out which heap dump is open"
+    |  $command $AGENT_OPTION open_heap_dump path=/path/to/dump.hprof reason="Starting on the dump I was given"
     |  $command $AGENT_OPTION describe_object object=0x7205 reason="Reading the holder's fields"
     |
-    |Start with open_heap_dumps: its answer carries the method to follow, the file names every other tool
-    |names a heap dump by, and whatever verdicts somebody has already recorded about that dump.
+    |Start with open_heap_dump on the heap dump you were given: it opens that file, or hands back the window
+    |that already has it, and its answer carries the method to follow, the name every other tool names that
+    |dump by, and whatever verdicts somebody has already recorded about it. If you were given no heap dump,
+    |open_heap_dumps lists the ones open and carries the same method.
     |
     |Every tool takes `reason`, which is why you are making the call. It is logged beside the reads it causes
     |and read afterwards on the *Agent logs* screen of the window, so write the sentence you would say to the

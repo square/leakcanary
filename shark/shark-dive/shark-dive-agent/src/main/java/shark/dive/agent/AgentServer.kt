@@ -24,8 +24,8 @@ import shark.SharkLog
  * arriving while an investigation is in flight, and an investigation ending when a link handler closed.
  *
  * **Every run publishes itself**, like the links do, because several Shark Dive windows open at once is how this app
- * is used. [AgentStdioBridge] is what picks one, and a run that was killed leaves a file that nothing
- * answers on, which the next reader deletes.
+ * is used. [AgentStdioBridge] is what picks one, and a run that was killed leaves a file behind that the next
+ * reader deletes for it — see [isRunning], which is why the list is runs rather than files.
  *
  * Loopback only, and a caller has to quote the token out of the file — which proves it can read the user's
  * home directory, and therefore that it is the user. Worth spelling out what that is and isn't: this is
@@ -95,6 +95,12 @@ object AgentServer {
   }
 
   private fun read(file: File): PublishedRun? {
+    val pid = file.name.removeSuffix(RUN_SUFFIX)
+    if (!isRunning(pid)) {
+      SharkLog.d { "Run $pid has ended, so nothing answers at $file: deleting it" }
+      file.delete()
+      return null
+    }
     val properties = Properties()
     return try {
       file.inputStream().use { properties.load(it) }
@@ -105,12 +111,35 @@ object AgentServer {
         file.delete()
         null
       } else {
-        PublishedRun(file, file.name.removeSuffix(RUN_SUFFIX), port, token)
+        PublishedRun(file, pid, port, token)
       }
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not read $file, so no agent can be pointed at that run" }
       null
     }
+  }
+
+  /**
+   * Whether the run a file is named after is still there, which is what makes this list a list of runs.
+   *
+   * A run deletes its own file, from a shutdown hook and from the [Closeable] — and **neither of those runs
+   * for a run that was killed**, which is what a force quit, an out of memory and a `kill -9` all are. So the
+   * file outlives the run often enough to matter, and what it costs is not only a stale name in a message:
+   * the list is newest first, so a dead run can be the one a call is sent to, and that call is spent finding
+   * out. Measured here — a window force quit three weeks ago was still being offered to every `--agent` call
+   * beside the live one.
+   *
+   * Asking the OS rather than connecting, because this is read before anything is sent anywhere: the connect
+   * is the [AgentCommandLine] path for a run that is alive and not listening, and it is a timeout rather than
+   * an answer.
+   *
+   * A pid can be reused, so this says a process of that id exists rather than that it is Shark Dive. The
+   * token is what settles the rest — a process holding that port and not this run's token is [DECLINED] —
+   * and a name that is no number names no process, which is a file this never wrote.
+   */
+  private fun isRunning(pid: String): Boolean {
+    val processId = pid.toLongOrNull() ?: return false
+    return ProcessHandle.of(processId).map { it.isAlive }.orElse(false)
   }
 
   private fun write(

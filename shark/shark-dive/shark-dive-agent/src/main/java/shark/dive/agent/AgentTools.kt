@@ -57,6 +57,7 @@ internal class AgentTools(
   /** In the order an investigation uses them, which is the order a client lists them in. */
   val all: List<AgentTool> = listOf(
     openHeapDumps(),
+    openHeapDump(),
     listLeaks(),
     agentLog(),
     describeObject(),
@@ -70,7 +71,6 @@ internal class AgentTools(
     takeNote(),
     show(),
     conclude(),
-    openHeapDump(),
     listDevices(),
     dumpHeap()
   )
@@ -79,29 +79,25 @@ internal class AgentTools(
 
   private fun openHeapDumps() = AgentTool(
     name = OPEN_HEAP_DUMPS,
-    description = "Every heap dump open in Shark Dive right now, with the method to investigate it. " +
-      "Call this first: the file names it hands back are what every other tool names a heap dump by, and " +
-      "the verdicts it lists are the conclusions somebody has already reached about that dump.",
+    description = "Which heap dumps Shark Dive has open right now, with the method to investigate one. For " +
+      "when nobody told you which dump to look at, or when you need the name of one: the file names it " +
+      "hands back are what every other tool names a heap dump by, and the verdicts it lists are what " +
+      "somebody has already concluded. **If you were given a heap dump, call $OPEN_HEAP_DUMP with it " +
+      "instead** — it opens that one, or hands back the window that already has it, and its answer carries " +
+      "the same method. This reads nothing and waits for nothing.",
     schema = schema()
   ) { _ ->
     val dumps = heapDumps.openHeapDumps()
     val indexing = heapDumps.openingHeapDumpPaths()
-    // Read before the JSON is built rather than inside it: a heap dump read suspends, and the JSON builders
-    // don't take a suspending block.
-    val described = dumps.map { dump ->
-      AgentJson.heapDump(
-        heapDumpName = dump.heapDumpName,
-        windowId = dump.windowId,
-        heapDumpPath = dump.heapDumpPath,
-        sizes = dump.read("its sizes, for an agent") { it.sizes },
-        verdicts = dump.verdicts
-      )
-    }
     buildJsonObject {
       // With the answer rather than only in the handshake, because a client that drops the handshake's
       // instructions is a client whose model never saw them. See [AgentMethod].
       put("method", AgentMethod.INSTRUCTIONS)
-      putJsonArray("heapDumps") { described.forEach { add(it) } }
+      // Nothing here is a read of a heap dump: a name, a path, the sizes worked out while opening it and the
+      // verdicts, all of them already in memory. Which is what makes this the one call that touches every
+      // open window and still answers in no time — it used to queue behind each window's current read, and
+      // with three dumps open that was 40 seconds of waiting on a dump the agent had not asked about.
+      putJsonArray("heapDumps") { dumps.forEach { add(describedDump(it)) } }
       // The paths this run was started on, whether or not anything is open: a second dump still indexing while
       // the first one is readable is a dump an agent would otherwise never hear about.
       if (indexing.isNotEmpty()) {
@@ -112,6 +108,73 @@ internal class AgentTools(
       }
     }
   }
+
+  private fun openHeapDump() = AgentTool(
+    name = OPEN_HEAP_DUMP,
+    description = "The heap dump you were given, ready to read, with the method to investigate it. Name it " +
+      "and this answers with it: it opens the file if nobody has it open, and hands back the window that " +
+      "already has it if somebody does, so naming a dump twice never indexes it twice. `$PATH` is an " +
+      "absolute `.hprof` path — a dump a bug report came with, one you took with dump_heap, a second dump " +
+      "of the same app to compare against — or the file name of one that is already open. Opening a large " +
+      "dump is minutes, and this waits for it rather than answering with a window nothing can be read from " +
+      "yet.",
+    schema = schema(
+      PATH to string(
+        "The absolute path of an `.hprof` file on this machine, or the file name of a heap dump that is " +
+          "already open."
+      )
+    )
+  ) { arguments ->
+    val path = arguments.string(PATH)
+    // A name that is already open before a file to open, because a name is what this surface's own answers
+    // are written in: an agent told to investigate `2026-08-31.hprof` has a name and no path, and the window
+    // that has it open is the answer to it. Window ids resolve too, through [resolvedDump], for the reason
+    // every other tool takes one.
+    val already = resolvedDump(path)
+    val dump = already ?: openFile(path)
+    buildJsonObject {
+      // Here as well as in the listing, because this is the other call an investigation can start with and
+      // the method has to reach a model that starts here. See [AgentMethod].
+      put("method", AgentMethod.INSTRUCTIONS)
+      describedDump(dump).forEach { (name, value) -> put(name, value) }
+      // Whether this opened anything, which is the difference between an agent that has just cost somebody a
+      // window and one that joined the window they are watching.
+      put("wasAlreadyOpen", already != null)
+      put("next", NEXT_WITH_A_NEW_DUMP)
+    }
+  }
+
+  /**
+   * Opens the file at [path], refusing a path that is no file here and naming what is open instead.
+   *
+   * The refusal covers both ways in: a path that doesn't exist, and a name nothing open answers to — which
+   * reach this from [openHeapDump] as the same argument and are the same mistake with two spellings.
+   */
+  private suspend fun openFile(path: String): AgentHeapDump {
+    val file = File(path)
+    if (!file.isFile) {
+      val open = heapDumps.openHeapDumps()
+      throw AgentRefusal(
+        "There is no file at $path, and no heap dump open here is called that. A path is an absolute path " +
+          "on the machine Shark Dive is running on, and it has to exist before this can open it; a name is " +
+          "the file name of a dump that is already open. " + if (open.isEmpty()) {
+          "Nothing is open here at all."
+        } else {
+          "Open right now: ${openDumpsText(open)}."
+        }
+      )
+    }
+    return heapDumps.open(file)
+  }
+
+  /** One open heap dump, as both of the calls that name one answer with it. */
+  private fun describedDump(dump: AgentHeapDump): JsonObject = AgentJson.heapDump(
+    heapDumpName = dump.heapDumpName,
+    windowId = dump.windowId,
+    heapDumpPath = dump.heapDumpPath,
+    sizes = dump.sizes,
+    verdicts = dump.verdicts
+  )
 
   private fun listLeaks() = AgentTool(
     name = LIST_LEAKS,
@@ -519,7 +582,7 @@ internal class AgentTools(
       ?: throw AgentRefusal(
         "Not concluded. ${state.summary} Until the chain names one reference, a root cause would be a " +
           "guess about which of those steps is at fault. Read the objects in the unexplained stretch with " +
-          "describe_object, check whether anything else holds them with ways_held, and record what you " +
+          "describe_object, read the code that assigns the field holding each of them, and record what you " +
           "can defend with $SET_VERDICT."
       )
     val reference = requireNotNull(faulty.step.reference)
@@ -557,34 +620,6 @@ internal class AgentTools(
       // The one link most worth handing back: it opens the object this conclusion is about, with the
       // conclusion in its notes. Say it in your answer rather than describing where to click.
       put("link", shown.link)
-    }
-  }
-
-  private fun openHeapDump() = AgentTool(
-    name = OPEN_HEAP_DUMP,
-    description = "Opens a heap dump file in a window of Shark Dive and answers once it can be read, " +
-      "which is the same thing as somebody clicking `Open heap dump…`. For a dump nobody has open yet: a " +
-      "file a bug report came with, one you took with dump_heap, or a second dump of the same app to " +
-      "compare against. Opening a large dump takes a while, and this waits for it.",
-    schema = schema(
-      PATH to string("The absolute path of an `.hprof` file on this machine.")
-    )
-  ) { arguments ->
-    val path = arguments.string(PATH)
-    val file = File(path)
-    if (!file.isFile) {
-      throw AgentRefusal(
-        "There is no file at $path. A path here is a path on the machine Shark Dive is running on, " +
-          "absolute, and it has to exist before this can open it."
-      )
-    }
-    val dump = heapDumps.open(file)
-    buildJsonObject {
-      put("heapDump", dump.heapDumpName)
-      put("window", dump.windowId)
-      put("heapDumpPath", dump.heapDumpPath)
-      put("opened", true)
-      put("next", NEXT_WITH_A_NEW_DUMP)
     }
   }
 
@@ -710,22 +745,20 @@ internal class AgentTools(
       return resolved
     }
     val open = heapDumps.openHeapDumps()
-    // The window id beside each, since that is what tells two windows of one file apart and this is one of
-    // the two moments an agent needs it. The other is being told a place was shown.
-    val dumps = open.joinToString(", ") { "${it.heapDumpName} (${it.windowId}) at ${it.heapDumpPath}" }
+    val dumps = openDumpsText(open)
     throw AgentRefusal(
       when {
         open.isEmpty() ->
-          "No heap dump is open in Shark Dive, so there is nothing to read. Call $OPEN_HEAP_DUMPS."
+          "No heap dump is open in Shark Dive, so there is nothing to read. Call $OPEN_HEAP_DUMP with the " +
+            "path of the dump to investigate, or $OPEN_HEAP_DUMPS to see whether one is on its way."
         asked == null ->
           "${open.size} heap dumps are open, so say which with `$HEAP_DUMP`: $dumps"
-        open.count { it.heapDumpName == asked } > 1 ->
-          "${open.count { it.heapDumpName == asked }} windows have \"$asked\" open, which is how two " +
-            "readings of one dump are compared, so `$HEAP_DUMP` has to be the window id of the one you " +
-            "mean: $dumps"
+        open.count { it.isCalled(asked) } > 1 ->
+          "${open.count { it.isCalled(asked) }} windows have \"$asked\" open, which is how two readings of " +
+            "one dump are compared, so `$HEAP_DUMP` has to be the window id of the one you mean: $dumps"
         else ->
-          "No open heap dump is called \"$asked\", and no window is either. Open heap dumps: $dumps. " +
-            "Call $OPEN_HEAP_DUMPS."
+          "No open heap dump is called \"$asked\", and no window is either. Open heap dumps: $dumps. A " +
+            "dump that isn't there is $OPEN_HEAP_DUMP away."
       }
     )
   }
@@ -741,15 +774,27 @@ internal class AgentTools(
    * so the name is ambiguous exactly there, and answering about either of them would be answering about the
    * wrong one half the time. Ids first, because a file called `abcd2345` is a heap dump somebody has and a
    * window id is ours to hand out.
+   *
+   * And the path, because that is what an agent was *given*: somebody says "investigate
+   * /tmp/crash-4821.hprof", and a surface that takes only the last part of it is a surface that makes an
+   * agent shorten a path it has in front of it. Which is also what lets [openHeapDump] be handed either.
    */
   private fun resolvedDump(asked: String?): AgentHeapDump? {
     val open = heapDumps.openHeapDumps()
     if (asked == null) {
       return open.singleOrNull()
     }
-    return open.firstOrNull { it.windowId == asked }
-      ?: open.filter { it.heapDumpName == asked }.singleOrNull()
+    return open.firstOrNull { it.windowId == asked } ?: open.filter { it.isCalled(asked) }.singleOrNull()
   }
+
+  /**
+   * Whether [asked] names this dump, by any of the three things an agent can have in front of it.
+   *
+   * One predicate rather than three comparisons in each place, because the refusal for an ambiguous name has
+   * to count exactly what [resolvedDump] declined to choose between.
+   */
+  private fun AgentHeapDump.isCalled(asked: String): Boolean =
+    windowId == asked || heapDumpName == asked || heapDumpPath == asked
 
   /**
    * Whatever [block] reads, or null if the arguments wouldn't answer it.
@@ -846,6 +891,16 @@ internal class AgentTools(
       "itself, or $DOMINATOR_TREE to see where its memory has gone."
 
     /**
+     * The open heap dumps as a refusal names them: what to say back, and the window id behind each.
+     *
+     * The window id beside the name, since that is what tells two windows of one file apart and a refusal
+     * about an ambiguous name is one of the two moments an agent needs it. The other is being told a place
+     * was shown.
+     */
+    fun openDumpsText(dumps: List<AgentHeapDump>): String =
+      dumps.joinToString(", ") { "${it.heapDumpName} (${it.windowId}) at ${it.heapDumpPath}" }
+
+    /**
      * How many objects a list comes back with by default, well under
      * [HeapDominatorTreemap.MAX_LISTED_OBJECTS]: an agent reads the whole answer, so 500 rows of JSON is
      * mostly context spent on rows nobody asked about. The match count says what was left out.
@@ -853,8 +908,8 @@ internal class AgentTools(
     const val DEFAULT_LISTED_OBJECTS = 30
 
     fun heapDumpArgument() = string(
-      "Which open heap dump, by file name from ${OPEN_HEAP_DUMPS}. Optional while only one is open, and " +
-        "the window id instead when two windows have the same file open."
+      "Which open heap dump: its file name, or the path you were given, or its window id. Optional while " +
+        "only one is open, and the window id is what tells two windows of the same file apart."
     ).optional()
 
     fun objectId(description: String) =
@@ -1012,8 +1067,8 @@ private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
 }
 
 /**
- * Named out here because the refusal for a path that isn't a heap dump points at it, and because
- * [nothingToRead] is not a method of [AgentTools].
+ * The other call an investigation can start with, and the one to reach for when a dump was named rather than
+ * found. Out here because [nothingToRead] points at it and is not a method of [AgentTools].
  */
 private const val OPEN_HEAP_DUMP = "open_heap_dump"
 

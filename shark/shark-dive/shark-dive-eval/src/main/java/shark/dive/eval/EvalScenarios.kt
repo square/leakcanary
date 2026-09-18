@@ -6,6 +6,7 @@ import shark.HprofWriterHelper
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
+import shark.dive.LeakStatus
 import shark.dump
 
 /**
@@ -25,6 +26,19 @@ class EvalScenario internal constructor(
   val key: String,
   /** What this dump makes an agent do that the others don't, for the table a run prints. */
   val about: String,
+  /**
+   * The verdicts it takes to close this scenario's unknown zone, by the class name of the object each one
+   * is set on — a fixture knows the classes it wrote and not the addresses they land on.
+   *
+   * **Empty for a scenario the heap dump already supplies one end of**, which is most of them: a watched
+   * destroyed activity at the bottom is the dump's own `STUCK`, so the only verdict a run has to add is an
+   * `EXPECTED` above the unknown zone, and `EvalScenariosTest` sets that one without being told where. Spell
+   * these out when that isn't true — when the dump's own reading is at neither end of what a run has to
+   * decide, and no rule could guess which object the missing verdict goes on. `stub-outlives-its-work` is
+   * the one: the dump reads both ends for itself, a watched activity at the bottom and a binder stub at the
+   * top, and what a run has to add is the `STUCK` in the middle.
+   */
+  internal val solvedBy: Map<String, LeakStatus> = emptyMap(),
   private val writeHeapDump: (File) -> Unit
 ) {
 
@@ -66,6 +80,7 @@ object EvalScenarios {
   fun all(repositoryRoot: File): List<EvalScenario> = listOf(
     twoApart(),
     aCacheThatNeverEvicts(),
+    aStubThatOutlivesItsWork(),
     aRealAsyncTaskLeak(repositoryRoot)
   )
 
@@ -151,6 +166,85 @@ object EvalScenarios {
   }
 
   /**
+   * A binder stub that is meant to be in memory, holding a request that has already finished.
+   *
+   * The one scenario where the two ends the dump supplies are the wrong way round for the shortest reading
+   * of the method. What shouldn't be there is at the bottom as usual — a watched destroyed activity — but
+   * the only object anybody can defend as belonging in memory is at the very *top*, and it is a binder stub:
+   * another process holds a proxy to it, so when it goes is not this process's decision and there is nothing
+   * to fix about it being here. An investigation that reads that as licence for what the stub *holds* has the
+   * rule backwards, and comes out with `EXPECTED` all the way down and the last reference on the chain as its
+   * answer. The rule only runs the one way: a holder of something expected is expected, never the held.
+   *
+   * So the verdict that costs something is the `STUCK` on [UPLOAD_CALLBACKS_CLASS_NAME], and it is the only
+   * one a run has to add: `AndroidObjectInspectors.STUB` reports the stub itself as not leaking, for the
+   * reason above, which is what puts the top end of the unknown zone there without anybody arguing for it.
+   * The dump carries the evidence for the other end rather than asking for taste — `delivered` is true, so
+   * the result this object exists to receive has been received and nothing should still be pointing at it.
+   * What the stub points at with the field a compiler wrote for it is then the leak.
+   *
+   * [UPLOAD_BINDING_CLASS_NAME] is the control, and the reason a run can't score here by refusing whatever
+   * sits under a stub: a second stub of the same dump, rooted by a JNI global reference the same way, that is
+   * nothing to fix. Static, so there is no field a compiler wrote, and what it holds is a service that is
+   * running. Deciding between the two is a matter of reading what is around each of them.
+   */
+  private fun aStubThatOutlivesItsWork() = EvalScenario(
+    name = "stub-outlives-its-work",
+    key = "UploadCallbacks\$ResultStub.this\$0",
+    about = "The one object that belongs in memory is a binder stub at the top, and a verdict spreads up",
+    solvedBy = mapOf(UPLOAD_CALLBACKS_CLASS_NAME to LeakStatus.STUCK)
+  ) { file ->
+    file.dump {
+      androidBuild()
+      // Declared once and subclassed twice, the way a dump of a real process has it: what makes an object a
+      // stub is its superclass, which is what `AndroidObjectInspectors.STUB` matches on.
+      val binder = clazz(className = "android.os.Binder")
+      val activity = destroyedActivity()
+      keyedWeakReference(activity)
+      val controller = "com.example.upload.UploadController" instance {
+        field["activity"] = activity
+        field["requestId"] = string("upload-4d1c")
+      }
+      val callbacks = instance(
+        clazz(
+          className = UPLOAD_CALLBACKS_CLASS_NAME,
+          fields = listOf(
+            // The result this object exists to receive, already received. Which is what a run has to point
+            // at to defend the one verdict this scenario is about.
+            "delivered" to BooleanHolder::class,
+            "controller" to ReferenceHolder::class
+          )
+        ),
+        fields = listOf(BooleanHolder(true), controller)
+      )
+      val stub = instance(
+        clazz(
+          className = RESULT_STUB_CLASS_NAME,
+          superclassId = binder,
+          fields = listOf("this\$0" to ReferenceHolder::class)
+        ),
+        fields = listOf(callbacks)
+      )
+      // A JNI global reference on a binder is the other process holding a proxy to it, which is the whole of
+      // why a stub outliving its work is nothing this process did wrong.
+      gcRoot(JniGlobal(id = stub.value, jniGlobalRefId = 0))
+
+      val service = "com.example.upload.UploadService" instance {
+        field["started"] = BooleanHolder(true)
+      }
+      val binding = instance(
+        clazz(
+          className = UPLOAD_BINDING_CLASS_NAME,
+          superclassId = binder,
+          fields = listOf("service" to ReferenceHolder::class)
+        ),
+        fields = listOf(service)
+      )
+      gcRoot(JniGlobal(id = binding.value, jniGlobalRefId = 1))
+    }
+  }
+
+  /**
    * A real Android heap dump of a real leak, which is the one scenario nothing about this repository invented.
    *
    * `leak_asynctask_o.hprof` is the dump `LegacyHprofTest` pins the leaking object and the retained size of,
@@ -218,6 +312,15 @@ const val HEAP_DUMP_FILE_NAME = "heap-dump.hprof"
 private const val HOLDER_CLASS_NAME = "com.example.Holder"
 
 private const val CACHE_ENTRY_CLASS_NAME = "com.example.image.CacheEntry"
+
+/** The stub a remote process holds, which is a non-static inner class and so has a `this$0`. */
+private const val RESULT_STUB_CLASS_NAME = "com.example.upload.UploadCallbacks\$ResultStub"
+
+/** What that `this$0` points at: the object whose work is done, and the one verdict a run has to defend. */
+private const val UPLOAD_CALLBACKS_CLASS_NAME = "com.example.upload.UploadCallbacks"
+
+/** The control, and a stub done right: static, so it holds only what it was given. */
+private const val UPLOAD_BINDING_CLASS_NAME = "com.example.upload.UploadService\$Binding"
 
 /** Where the real dump lives, which is a test resource of `shark-android` and stays one. */
 private const val REAL_ASYNC_TASK_DUMP = "shark/shark-android/src/test/resources/leak_asynctask_o.hprof"

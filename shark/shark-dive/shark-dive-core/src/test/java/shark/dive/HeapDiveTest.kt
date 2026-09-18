@@ -121,6 +121,23 @@ class HeapDiveTest {
     }
   }
 
+  @Test fun `a class lists the fields it declares, not the ones ART keeps its own state in`() {
+    HeapDive.open(testFolder.artClassMetadataHeapDump()).use { dive ->
+      val version = dive.tree.summarize(
+        dive.tree.classObjectIdOrNull("android.os.Build\$VERSION")!!
+      )
+
+      // The first thing anyone reads a class for is a value it declares, and on a real dump 26 rows of
+      // `mirror::Class` came first: `SDK_INT` was the 43rd field of `android.os.Build$VERSION`.
+      assertThat(version.fields.map { "${it.name} = ${it.value}" })
+        .containsExactly("RELEASE = \"13\"", "SDK_INT = 33")
+      // A dollar is how the compiler spells a field of its own too, so the rule is the `$class$` prefix
+      // rather than the dollar.
+      val work = dive.tree.findByLabel("Work\$doIt\$1")
+      assertThat(work.fields.map { it.name }).containsExactly("\$continuation")
+    }
+  }
+
   @Test fun `an array lists its elements, and says how many it left out`() {
     HeapDive.open(testFolder.weaklyReachablePayloadHeapDump()).use { dive ->
       val tree = dive.tree

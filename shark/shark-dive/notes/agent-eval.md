@@ -100,8 +100,10 @@ Three things came out of it:
 
 - **A directory per invocation**, which is the actual fix and is one line of the script.
 - **`WANDERED`.** Scoring compares the heap dump each conclusion was recorded against with the one the run was
-  given, and a mismatch is its own outcome rather than a wrong answer. It is not being removed now that the
-  cause is gone: an eval whose failures look like model failures is worse than no eval.
+  given, and a mismatch is its own outcome rather than a wrong answer. Keeping it after this cause was fixed
+  is what caught the next one — two runs of 2026-09-18 made the same `runs` → `dumps` guess for a different
+  reason, one of them on its first call — so the rule holds generally: an eval whose failures look like model
+  failures is worse than no eval.
 - **`AgentHeapDumps.openingHeapDumpPaths`.** Not the cause, but the reason the first of the two had nothing
   better to do: its first call asked what was open 2.6 seconds in, the dump it had been started on was still
   indexing, and the answer said nothing was open without naming the path the run had been pointed at. An agent
@@ -131,14 +133,98 @@ concluded, in 9 calls against opus's 15. That is the surface working as designed
 the model a surface is measured on. Harder scenarios are what the families below are for, and the cost per run
 ($0.23 to $1.07) is what says how many repetitions of them are affordable.
 
+## `stub-outlives-its-work`, before and after the stub work, 2026-09-18
+
+The first two-arm run of this script: the same scenario, five repetitions, opus, against two builds of the
+app — `65f9ac898`, the commit before any of the binder-stub work, and `a133e42ab`, with
+`AndroidObjectInspectors.STUB` reporting a stub as not leaking and saying what to do about what it holds.
+Each arm needs its own `SHARK_EVAL_DIR`, since the script starts by deleting it.
+
+| Arm | Right | Wrong | Refused | No conclusion | Wandered | Calls (median) | Cost | Seconds |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `65f9ac898`, before | 5/5 | 0/5 | 0/5 | 0/5 | 0/5 | 18 | $4.02 | 173 |
+| `a133e42ab`, after | 3/5 | 0/5 | 0/5 | 0/5 | 2/5 | 18 | $4.26 | 194 |
+
+**The scenario cannot show this change working, because opus was already at 5/5 without it**, and that is
+the result rather than a caveat on it. It is the ceiling problem of the 2026-08-25 baseline again, and it
+was foreseeable: the fixture is nine objects with `delivered = true` written into the one that matters, so
+the evidence is *on screen* the moment the chain is read. What the change is for is a 327 MB dump of a real
+app where the same reasoning has to be found among thousands of objects, and that is where the headroom is.
+So a synthetic scenario is the wrong instrument for an inspector that supplies an argument rather than a
+fact — it measures whether the argument is *reachable*, and here it always was.
+
+Neither is the 3/5 a regression, and the two `WANDERED` runs are worth reading before anyone treats it as
+one — see below. Calls, turns and cost are the same in both arms to within the noise of five runs.
+
+### The real dump is where it showed, and this is what a scenario can't measure
+
+The same 327 MB dump, the same prompt, the same model, with the session data cleared so that nothing of the
+earlier run was there to read — twice, a day apart, either side of the change. Both runs named the leak;
+what changed is where they cut the chain, and the whole chain is four objects long:
+
+| | 2026-09-17, before | 2026-09-18, after |
+| --- | --- | --- |
+| `ResultReceiver$MyResultReceiver` (the stub) | `EXPECTED`, by hand | `EXPECTED`, by the inspector |
+| `GetCredentialController$resultReceiver$1` | `EXPECTED` | `EXPECTED` |
+| `GetCredentialController` | **`EXPECTED`** | **`STUCK`** |
+| `MainActivity` | `STUCK` | `STUCK` |
+| named the leak | `GetCredentialController.context` | `…$resultReceiver$1.this$0` |
+
+The before run reasoned that the two `this$0`s above the controller are compiler generated and unclearable,
+carried that down to the controller as well, and landed on the last reference of the chain — which accounts
+for 1.32 MB of the 4.37 MB, since the other 3.06 MB hangs off the controller's `callback`. The after run
+argued the controller *on its own evidence*: its continuation is `CompletedExceptionally` with a
+`NoCredentialException`, its `cancellationSignal` has `mIsCanceled = false`, so the request it exists for was
+delivered and it should be garbage. That is the object-by-object reading the label now asks for, and it moves
+the cut one step up, onto a reference that accounts for all of it.
+
+Two things it also got that the run before didn't: the upstream fix is in **1.7.0-alpha01**, not the
+alpha03 the earlier run named — verified here by diffing the two published sources jars, `val context` →
+`context`, a `WeakReference`, `callback = emptyCallback()`, and both base controllers dropping their own
+`private val context` — and it made **no `ways_held` call** at all, where the run before spent one on 4.6 KB
+of chain it already had. $7.01 and 16 minutes against $6.10 and 13.
+
+So the measurement that answered the question was one run on a real dump, not five on a fixture, and that is
+worth remembering the next time a scenario is written to catch something a real dump did: a scenario pins the
+*shape* against regression, and it is at ceiling from the day it is written.
+
+### A wander with a different cause: nothing tells an agent a dump is already open
+
+Both of them opened `…/dumps/N/heap-dump.hprof`, the same `runs` → `dumps` swap as the 2026-08-25 pair, and
+one of them, `edcc4aa3`, did it **as its very first tool call** — before reading anything, so the earlier
+explanation (an agent with a pre-solved dump going to look for a real one) can't be it. It then investigated
+its own dump correctly, set the `STUCK` on `UploadCallbacks` citing `delivered == true`, concluded
+`UploadCallbacks$ResultStub.this$0` — the key — and then repeated the conclusion against the guessed path,
+which is the one scoring read. `215cbfc0` opened `dumps/4` first, never touched its own, and concluded
+correctly about the scenario that dump belongs to.
+
+A throwaway probe settled where the path came from: a `claude --print` asked from a run's working directory
+to list every path in its context named the cwd and `~/.claude/CLAUDE.md` and nothing else. So the model
+derived `dumps/N` from `runs/N` rather than reading it anywhere, and what makes that the obvious move is
+still the hole `AgentHeapDumps.openingHeapDumpPaths` was opened for: `--no-ui` opens the run's dump in the
+background, **nothing in the session says so**, and `open_heap_dump` wants a path. An agent with no path and
+a tool that needs one invents one. Naming the already-open dump in what a session starts with is the fix,
+and it is in the product rather than in the eval, exactly like the first one.
+
 ## The scenario families
 
-Three exist. The rest are what the synthetic side is *for* — shapes a real dump doesn't happen to contain:
+Four exist. The rest are what the synthetic side is *for* — shapes a real dump doesn't happen to contain:
 
 - ✅ **Two apart** (`two-apart`) — one unexplained step between the verdicts, which is `conclude`'s refusal
   made real.
 - ✅ **A long unknown zone** (`cache-never-evicts`) — four steps of infrastructure with no verdict, rooted at
   a static singleton so that "this belongs in memory" is a fact of the dump rather than an assumption.
+- ✅ **A verdict that spreads the wrong way** (`stub-outlives-its-work`) — a binder stub at the top of the
+  chain, which genuinely belongs in memory, above a request whose work is done. **The only scenario the
+  method can be failed on by reading it backwards**, and the first whose answer needs a `STUCK` of the
+  agent's own rather than the watcher's: the reference is `UploadCallbacks$ResultStub.this$0`, one step below
+  the GC root, and an investigation that lets `EXPECTED` spread *downwards* from the stub comes out with
+  `UploadController.activity` at the bottom instead. Measured on the dump: nothing set names no reference, an
+  `EXPECTED` on the stub alone still names none, and the two readings name those two different strings — so
+  the inversion scores `WRONG` rather than passing for the wrong reason. A second, static stub in the same
+  dump is the control, so refusing whatever sits under a stub is not a way to score here either. This is the
+  shape a real POS dump turned out to have (`ResultReceiver$MyResultReceiver.this$0`), where an opus run
+  read it backwards twice and wrote the inversion down as its reason.
 - ✅ **A real dump** (`real-asynctask`) — 8 MB, real framework classes, and a chain nobody wrote for this eval.
 - **A decoy** — an object that reads like a leak above the real one, where the key is the reference below.
 - **Two candidates** — two references that both cross into stuck, so the answer depends on a verdict the agent

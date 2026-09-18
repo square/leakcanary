@@ -51,6 +51,9 @@ internal object AgentJson {
    *
    * The name first because it is what every other call names this dump by — [AgentTools.HEAP_DUMP] — and the
    * window id after it, for the one thing the name can't say: which of two windows on one file.
+   *
+   * None of it is read from the heap dump: the sizes were worked out while opening it and the verdicts are on
+   * disk, which is what lets the listing of every open dump wait on none of them. See [AgentHeapDump.sizes].
    */
   fun heapDump(
     heapDumpName: String,
@@ -292,7 +295,15 @@ internal object AgentJson {
     }
   }
 
-  /** The leaks screen: what is stuck in this dump, gathered the way the window gathers it. */
+  /**
+   * The leaks screen: what is stuck in this dump, gathered the way the window gathers it.
+   *
+   * **Field for field what that screen shows**, which is a rule and not a coincidence: the person watching
+   * and the agent working are reading one list, and a leak that reads as one thing on the screen and another
+   * in the answer is a conversation where neither of them can point at anything. So a leak is its [name] —
+   * both ends of the suspect path, exactly as the row draws it — and the references between them are on the
+   * chain for both readers rather than spelled out for one of them.
+   */
   fun leaks(leaks: HeapLeaks): JsonObject = buildJsonObject {
     put("objectCount", leaks.objectCount)
     put("leakingObjectCount", leaks.leakingObjectCount)
@@ -312,11 +323,10 @@ internal object AgentJson {
             section.groups.forEach { group ->
               addJsonObject {
                 put("leakFingerprint", group.leakFingerprint)
-                put("title", group.title)
+                // What the leak is, in the words the row of the leaks screen is drawn with: the reference to
+                // stop holding, then the one the stuck objects hang off. See [LeakGroup.name].
+                put("name", group.name)
                 put("subtitle", group.subtitle)
-                // The references the leak *is*, which is what a leak investigation ends at and therefore
-                // the thing an agent must not have to reconstruct from a chain.
-                putJsonArray("suspectPath") { group.suspectPath.forEach { add(it) } }
                 put("retainedBytes", group.retainedSize)
                 putJsonArray("objects") {
                   group.objects.forEach { leaking ->
@@ -334,9 +344,19 @@ internal object AgentJson {
                       val watcher = leaking.watcher
                       if (watcher != null) {
                         putJsonObject("watchedBecause") {
+                          // The `KeyedWeakReference` itself, because the row this answers with is a link on
+                          // the screen: it is the leak seen from the watcher's side, and an agent that can
+                          // read every other object of the dump should be able to open this one.
+                          put("object", exactHexObjectId(watcher.weakReferenceObjectId))
                           put("key", watcher.key)
                           put("description", watcher.description)
-                          put("retainedMillis", watcher.retainedDurationMillis)
+                          // How long before the dump the app handed it over, which the row says too. Null in
+                          // heap dumps written before LeakCanary 2.0 alpha 3.
+                          put("handedOverMillis", watcher.watchDurationMillis)
+                          // Whether it survived a collection, which is what makes it a leak rather than a
+                          // watcher holding a reference that had already been cleared.
+                          put("isRetained", watcher.isRetained)
+                          put("retainedMillis", watcher.retainedDurationMillis?.takeIf { watcher.isRetained })
                         }
                       }
                     }

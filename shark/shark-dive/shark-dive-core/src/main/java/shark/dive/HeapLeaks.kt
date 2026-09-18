@@ -234,7 +234,36 @@ data class LeakGroup(
 
   /** Bytes the objects of this leak retain together, which is what the leak is costing. */
   val retainedSize: Long get() = objects.sumOf { it.retainedSize }
+
+  /**
+   * What this leak is called wherever one is listed: both ends of [suspectPath], and a gap for the rest.
+   *
+   * One line rather than the whole path, because the ends are the same reference for most leaks and both of
+   * them are worth reading — the first says what to stop holding, the last says where the object that leaked
+   * hangs off. What is between them is on the chain, which is `chain_from_gc_root` for a reader who is an
+   * agent and the object view for one at the window, and is the same walk for both.
+   *
+   * **Here rather than in either surface**, because the leaks screen and the answer an agent is listed these
+   * in are the same list: a leak named one way on the screen and another way in the JSON is two leaks to
+   * whoever is reading both, which is the person watching an agent work. Ends on an arrow for the same reason
+   * on both — what the last reference points at is the objects of the leak, listed under this either way.
+   */
+  val name: String get() = when (suspectPath.size) {
+    // A library leak is named by the pattern that recognized it and an unreachable one by its class, and
+    // neither is a reference, so neither points anywhere.
+    0 -> title
+    1 -> "${suspectPath.single()} $LEAK_NAME_ARROW"
+    2 -> "${suspectPath.first()} $LEAK_NAME_ARROW ${suspectPath.last()} $LEAK_NAME_ARROW"
+    else -> "${suspectPath.first()} $LEAK_NAME_ARROW $LEAK_NAME_GAP $LEAK_NAME_ARROW " +
+      "${suspectPath.last()} $LEAK_NAME_ARROW"
+  }
 }
+
+/** Between the two ends of a leak's name, pointing the way the chain runs: down, away from the GC roots. */
+const val LEAK_NAME_ARROW = "→"
+
+/** And what stands in for the references between them, which are on the chain and not in the name. */
+const val LEAK_NAME_GAP = "…"
 
 /**
  * Hex, lowercase, the way every tool that prints a SHA-1 prints one — and the way

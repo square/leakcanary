@@ -110,6 +110,15 @@ have a number that moved with the transport. `AgentSessionCall.over` is which wa
 the handshake is past, which is the point of them. The word travels as the last field of `AgentServer`'s
 handshake line, and a connection that says nothing is MCP.
 
+**With one exception, and it is about what a row of that screen is.** `--agent` is a process per call, so a
+`tools/call` typed at a window arrives behind an `initialize` of its own and one typed command was drawn as
+two rows — Connected, called, Connected, called, which is what a screen reading an investigation is least
+able to afford. `McpSession.isTheCommandLineSayingHello` drops that one message: **`initialize` over the CLI
+transport, and nothing else.** An MCP client's handshake is still a row, since a client connects once and
+what its handshake says is worth having. Nothing about the CLI's connection is lost — the client name goes on
+the session from the same message, and `An agent connected:` is in that run's log file — so what went is a
+row saying a process started, said hello and did the thing the next row already names.
+
 The name is in `input` even though `tool` has it, and that is not an oversight: this field is read as one
 thing, and a set of arguments lifted away from what they are arguments *to* is the one form of a call nobody
 can read on its own.

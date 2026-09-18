@@ -63,6 +63,10 @@ internal class McpSession(
    * for, which is why nothing came back — so a line that is not JSON, a method this build has never heard
    * of and a call to a tool that does not exist are each a row of a session like any other. See
    * [AgentSessionFile].
+   *
+   * **One exception**, and it is about a session being one row per thing the agent did: a command line's
+   * handshake is part of the command that follows it rather than a message of its own. See
+   * [isTheCommandLineSayingHello].
    */
   suspend fun answer(line: String): String? {
     val at = Instant.now()
@@ -140,7 +144,7 @@ internal class McpSession(
     method: String,
     params: JsonObject
   ): JsonObject = when (method) {
-    "initialize" -> initialize(params)
+    INITIALIZE -> initialize(params)
     "tools/list" -> buildJsonObject {
       putJsonArray("tools") {
         tools.all.forEach { tool ->
@@ -184,8 +188,8 @@ internal class McpSession(
         put("name", SERVER_NAME)
         put("version", serverVersion)
       }
-      // Some clients show this to the model and some drop it, which is why AgentMethod is handed over with
-      // the first tool answer as well.
+      // Some clients show this to the model and some drop it, and a `--agent` call never has a handshake the
+      // model sees at all — which is why both ways of getting a heap dump hand AgentMethod over again.
       put("instructions", AgentMethod.INSTRUCTIONS)
     }
   }
@@ -328,6 +332,9 @@ internal class McpSession(
     at: Instant,
     startedAt: Long
   ) {
+    if (isTheCommandLineSayingHello(method)) {
+      return
+    }
     sessionFile.called(
       AgentSessionCall(
         at = at,
@@ -348,6 +355,26 @@ internal class McpSession(
       )
     )
   }
+
+  /**
+   * Whether this message is a command line introducing itself, which is part of the call after it.
+   *
+   * **One typed command is one row.** `--agent` is a process per call, and every one of those processes
+   * opens the socket, says who is calling and then makes its one `tools/call` — so recording the handshake
+   * would draw a session of thirty commands as sixty rows reading *Connected, called, Connected, called*,
+   * and make `agent_log` answer with an `initialize` answer per call, which was 57% of it. What that record
+   * is of is the transport rather than the investigation, and the transport is [AgentSessionCall.over].
+   *
+   * Nothing is hidden by it: the connection is in this run's log through [initialize], which says who
+   * connected, and what the client called itself is on the session's first line. The one thing a reader
+   * loses is a command that connected and then died before it could call anything, which is a command that
+   * did nothing to the heap dump and whose error went to its own stderr.
+   *
+   * Only the command line. An MCP client's handshake is a message in its own right — one per session rather
+   * than one per call, and often the last thing that happened before a client gave up.
+   */
+  private fun isTheCommandLineSayingHello(method: String?): Boolean =
+    over == AgentTransport.CLI && method == INITIALIZE
 
   private fun toolResult(
     result: JsonObject,
@@ -430,6 +457,9 @@ internal class McpSession(
 
     /** The one method that reaches a tool, which is what this whole surface is. */
     const val TOOLS_CALL = AgentSessionFile.TOOLS_CALL_METHOD
+
+    /** And the one that reaches none and is still worth answering: a client saying who it is. */
+    const val INITIALIZE = "initialize"
 
     const val PARSE_ERROR = -32700
     const val INVALID_REQUEST = -32600

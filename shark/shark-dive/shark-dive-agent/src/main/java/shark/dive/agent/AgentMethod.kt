@@ -4,8 +4,11 @@ package shark.dive.agent
  * The method an agent is asked to follow, which is the part of this surface that isn't data.
  *
  * Handed over twice on purpose: as the `instructions` of the MCP handshake, which some clients show the
- * model and some drop, and again with the answer to [AgentTools.OPEN_HEAP_DUMPS], which is the call every
- * investigation starts with. A method a client dropped is a method nobody followed.
+ * model and some drop, and again with the answer to **either** way of getting a heap dump — the tool named
+ * `open_heap_dump` and [AgentTools.OPEN_HEAP_DUMPS]. One of the two is the first call of every investigation,
+ * whichever of them it is, and a method a client dropped is a method nobody followed. Both of them, rather
+ * than only the listing, because an agent that was handed a heap dump has no reason to ask what is open, and
+ * making it ask in order to be told the method is the surface charging a call for its own documentation.
  *
  * **It is prose because its reader is a language model**, which is the one place in this app where a
  * paragraph beats a label — the window says `Verdict` in one word to someone who already knows what a
@@ -68,8 +71,6 @@ internal object AgentMethod {
     4. **Attack what is left.** This is the part that takes work, and it is where the tools earn their
        keep:
        - `describe_object` on an object in the unknown zone. Read its fields and its inspector labels.
-       - `ways_held` when you need to know whether a reference really is the only thing holding something.
-         One chain says how it is held; this says whether there is another way.
        - `find_objects` on a class you have assumed something about. Two instances of a class you took for
          a singleton is the answer to a surprising number of leaks: the object on the chain is not the
          instance you think it is.
@@ -91,9 +92,11 @@ internal object AgentMethod {
     **Which copy of the code matters as much as reading it.** A class that changed between two versions is a
     root cause nobody can reproduce and a fix that doesn't apply. The dump itself says which versions:
 
-    - **The OS.** `describe_object` on the `android.os.Build${'$'}VERSION` class: `SDK_INT` is the API level, with
-      `RELEASE`, `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the
-      build fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
+    - **The OS.** A class is an object of the dump like any other, so reading one is two calls: `find_objects`
+      with `className=android.os.Build${'$'}VERSION`, `exactMatch=true` and `kinds=CLASS` for its address, then
+      `describe_object` on that address for its static fields. `SDK_INT` is the API level, with `RELEASE`,
+      `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the build
+      fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
       under `sources/android-<SDK_INT>` — and not `main`, which is years ahead of any device.
     - **The app.** Its `android.content.pm.ApplicationInfo` is in most dumps: `processName` and `dataDir`
       name the app, `sourceDir` is the APK it was installed from, `minSdkVersion` is a field of its own,
@@ -104,15 +107,17 @@ internal object AgentMethod {
       lockfile, or read the versions out of the APK at `sourceDir`, and then read that library at that tag. A
       leak fixed two releases ago is worth finding out about before writing anything else.
     - **Nothing to read?** Decompile. The APK is at `sourceDir` on the device the dump came from, the
-      dependencies are jars, and a decompiler answers most of what a verdict needs. Compiler-generated names
-      are evidence in themselves: `this${'$'}0` is an inner class holding what it was declared in, `val${'$'}x` is a
-      captured local, and neither can be cleared by any code anybody could write.
+      dependencies are jars, and a decompiler answers most of what a verdict needs.
 
     Then **say which version of what you read**. "Nothing clears this in onDestroy" about a class the app
     doesn't ship is the confident wrong answer this section exists to stop.
 
     ## Rules you will be held to
 
+    - **One chain is the whole investigation.** Any path from a GC root to a stuck object is a good path,
+      and whether something else holds that object too changes nothing: one path is one leak to fix. So never
+      go looking for other holders. The questions are which of these objects should have been gone, and which
+      reference is keeping them — never whether this reference is the only one.
     - **Every verdict needs a reason another reader can check.** A field value, an inspector label, the
       app's own watcher record, a line of source. Not "this is probably a cache" and not "activities are
       usually leaked this way". `set_verdict` refuses a blank reason, and a reason that isn't evidence is

@@ -17,23 +17,25 @@ is leaking still has a biggest object.
 
 ## Start by working out which case you are in
 
-**Something is already open.** Ask, and the answer carries the method to follow, the file names every other
-tool names a dump by, and any verdicts somebody has already reached:
+**You were given a heap dump** — a file that came with a bug report, one you took earlier, or one somebody
+already has open. Say which, and that is the whole of starting:
 
 ```bash
-"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --agent open_heap_dumps \
-  reason="Finding out what is already open"
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --agent open_heap_dump \
+  path=/absolute/path/bug-4821.hprof reason="The dump the report came with"
+```
+
+`path` takes the file, or the name of a dump already open — so this never opens a second copy of one somebody
+is looking at, and `wasAlreadyOpen` in the answer says which happened. It answers once the dump is readable,
+which on a large one is a wait rather than a moment. **Don't ask what is open first**; this is the call.
+
+**You were given nothing.** Then ask what is open, and pick:
+
+```bash
+… --agent open_heap_dumps reason="Finding out what is already open"
 ```
 
 If that says nothing is open, it opened a window for you, so the same command again lists it.
-
-**You have a file.** A dump that came with a bug report, or one you took earlier:
-
-```bash
-… --agent open_heap_dump path=/absolute/path/bug-4821.hprof reason="The dump the report came with"
-```
-
-It answers once the dump is readable, which on a large one is a wait rather than a moment.
 
 **You need to take one.** From a device or emulator `adb` is connected to:
 
@@ -102,8 +104,9 @@ link, since a link names the heap dump rather than a window.
 
 ## What to do with it
 
-**The method comes with the tools.** `open_heap_dumps` hands back the whole of it — what a leak is, the three
-zones of a chain, how a verdict spreads, and the order that finds the faulty reference. Follow that; it is
+**The method comes with the tools.** Whichever of the two calls above got you a heap dump hands back the whole
+of it — what a leak is, the three zones of a chain, how a verdict spreads, and the order that finds the faulty
+reference. There is nothing to ask for separately. Follow that; it is
 [the LeakCanary method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it, and
 it does not need repeating here.
 

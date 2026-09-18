@@ -150,7 +150,7 @@ internal class AgentArguments(
   ): Long = objectIdOfHex(text) ?: throw AgentRefusal(
     "`$name` of $toolName is \"$text\", which is no object address. An address is \"$HEX_PREFIX\" and up " +
       "to 16 hexadecimal digits, exactly as this surface writes one — never a decimal number, since a " +
-      "64 bit address does not survive being one in JSON."
+      "64 bit address does not survive being one in JSON." + lookItUpInstead(text)
   )
 
   private fun wrongType(
@@ -158,6 +158,28 @@ internal class AgentArguments(
     expected: String,
     value: Any
   ) = AgentRefusal("`$name` of $toolName has to be $expected, and it was \"$value\".")
+}
+
+/**
+ * The call that turns a class name into the address this wanted, for the one wrong value that has one.
+ *
+ * **A class is an object of the heap dump like any other**, with an address and fields — its static ones —
+ * so `describe_object` on `android.os.Build${'$'}VERSION` is exactly the right thing to want, and the only thing
+ * missing is the lookup. Which is why this is here rather than in a tool: told only that its class name is no
+ * address, an agent has to guess that a second tool is what turns one into the other, and the method text
+ * shipped in `open_heap_dumps` sent it here in the first place. See [AgentMethod].
+ *
+ * A name with a dot or a `${'$'}` in it, since those are the two things a class name has that nothing else sent
+ * here does. A bare `Bitmap` gets the plain refusal: it is as likely to be a typo as a class.
+ */
+private fun lookItUpInstead(text: String): String {
+  val looksLikeAClassName = text.firstOrNull()?.isLetter() == true && text.any { it == '.' || it == '$' }
+  if (!looksLikeAClassName) {
+    return ""
+  }
+  return " \"$text\" reads as a class name, and a class is an object of this heap dump with an address of " +
+    "its own: `find_objects` with `className=$text`, `exactMatch=true` and `kinds=CLASS` answers with that " +
+    "address, and describing it reads the class's static fields."
 }
 
 /** One argument of a tool: what it is, and whether a call without it is a call at all. */

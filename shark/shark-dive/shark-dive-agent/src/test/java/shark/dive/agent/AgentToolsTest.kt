@@ -1,6 +1,7 @@
 package shark.dive.agent
 
 import java.time.Instant
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonNull
@@ -76,6 +77,22 @@ class AgentToolsTest {
     assertThat(sizes.text("totalBytes").toLong()).isGreaterThan(0)
     assertThat(sizes.text("stronglyReachableBytes").toLong()).isGreaterThan(0)
     assertThat(sizes.array("byStrength")).isNotEmpty
+  }
+
+  @Test
+  fun `a window busy with a read of its own is listed in full rather than waited for`() {
+    // This is the one call whose subject is every open window at once, so a window in the middle of something
+    // would hold up the listing of all of them — measured at 40 seconds behind a leak analysis of a dump the
+    // agent had not been asked about, for an answer that is file names and numbers already in memory. A read
+    // that never comes back is the whole of what that costs, which is why this window's does not.
+    val busy = FakeAgentHeapDump(heapDump.dive, windowId = "busy", beforeRead = { awaitCancellation() })
+    tools = agentTools(FakeAgentHeapDumps(listOf(busy, window)))
+
+    val dumps = call(OPEN_HEAP_DUMPS).array("heapDumps").map { it.jsonObject }
+
+    assertThat(dumps.map { it.text("window") }).containsExactly("busy", window.windowId)
+    assertThat(dumps.first().obj("sizes").text("totalBytes").toLong()).isGreaterThan(0)
+    assertThat(busy.reads).isEmpty()
   }
 
   @Test
@@ -243,6 +260,21 @@ class AgentToolsTest {
     assertThat(objects.map { it.jsonObject.text("object") })
       .contains(exactHexObjectId(heapDump.activityObjectId))
     assertThat(objects.map { it.jsonObject.text("className") }).contains(ACTIVITY_CLASS_NAME)
+  }
+
+  @Test
+  fun `a leak is named here the way the leaks screen names it`() {
+    val groups = call(LIST_LEAKS).array("sections")
+      .flatMap { it.jsonObject.array("groups") }
+      .map { it.jsonObject }
+
+    // One list with two readers — the person watching and the agent working — so a leak named `Holder.activity
+    // →` on the row and spelled out as an array here is two leaks to whoever is reading both. See LeakGroup.name.
+    assertThat(groups.map { it.text("name") }).isNotEmpty.allMatch { it.isNotEmpty() }
+    assertThat(groups.map { it.text("name") }).anyMatch { ACTIVITY_FIELD_NAME in it }
+    // And what is between the two ends of one is on the chain for both of them, rather than in the answer for
+    // one of them: the row draws a gap there and `chain_from_gc_root` is where either reader goes.
+    assertThat(groups.map { it["suspectPath"] }).allMatch { it == null }
   }
 
   @Test
@@ -600,6 +632,17 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `a class name is refused with the call that turns it into an address`() {
+    // Which is what the method tells an agent to do with `android.os.Build$VERSION`, and it did: a class is
+    // an object of the dump, and the only thing between its name and its static fields is the lookup.
+    assertThatThrownBy { call("describe_object", OBJECT to "android.os.Build\$VERSION") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("find_objects")
+      .hasMessageContaining("className=android.os.Build\$VERSION")
+      .hasMessageContaining("kinds=CLASS")
+  }
+
+  @Test
   fun `an address of no object of this heap dump is refused as one`() {
     assertThatThrownBy { call("describe_object", OBJECT to "0x1") }
       .isInstanceOf(AgentRefusal::class.java)
@@ -689,14 +732,60 @@ class AgentToolsTest {
   @Test
   fun `a heap dump nobody has open can be opened by its path`() {
     val other = FakeAgentHeapDump(heapDump.dive, windowId = "openedwindow")
-    val heapDumps = FakeAgentHeapDumps(listOf(window), opens = { other })
+    val heapDumps = FakeAgentHeapDumps(opens = { other })
     tools = agentTools(heapDumps)
 
-    val answer = call("open_heap_dump", "path" to heapDump.dive.heapDumpFile.absolutePath)
+    val answer = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.absolutePath)
 
     assertThat(answer.text("window")).isEqualTo("openedwindow")
-    assertThat(answer.text("opened")).isEqualTo("true")
+    assertThat(answer.text("wasAlreadyOpen")).isEqualTo("false")
     assertThat(heapDumps.opened).containsExactly(heapDump.dive.heapDumpFile)
+    // The method with it, because this is the other call an investigation can start with: an agent that was
+    // given a heap dump opens it and never asks what else is open, and it has to be told how to work.
+    assertThat(answer.text("method")).isEqualTo(AgentMethod.INSTRUCTIONS)
+  }
+
+  @Test
+  fun `a heap dump somebody already has open is handed over rather than opened again`() {
+    // What an agent pointed at a dump does first, and it must not cost a second window and a second index of
+    // the same gigabyte — nor a listing of every dump on the machine to find out that this one is already up.
+    val heapDumps = FakeAgentHeapDumps(listOf(window))
+    tools = agentTools(heapDumps)
+
+    val answer = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.absolutePath)
+
+    assertThat(answer.text("window")).isEqualTo(window.windowId)
+    assertThat(answer.text("wasAlreadyOpen")).isEqualTo("true")
+    assertThat(heapDumps.opened).isEmpty()
+  }
+
+  @Test
+  fun `a heap dump already open can be named by its file name rather than its path`() {
+    // An agent is as often told "investigate leak.hprof" as given a path, and the name is what every answer
+    // on this surface is written in — so a name that names an open window is that window.
+    val heapDumps = FakeAgentHeapDumps(listOf(window))
+    tools = agentTools(heapDumps)
+
+    val answer = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.name)
+
+    assertThat(answer.text("window")).isEqualTo(window.windowId)
+    assertThat(heapDumps.opened).isEmpty()
+  }
+
+  @Test
+  fun `a call can name its heap dump by the path it was given`() {
+    val second = temporaryFolder.applicationHoldsActivityThroughHolder("another-dump.hprof")
+    second.use {
+      tools = agentTools(
+        FakeAgentHeapDumps(listOf(window, FakeAgentHeapDump(second.dive, windowId = "secondwindow")))
+      )
+
+      val answer = call(LIST_LEAKS, HEAP_DUMP to heapDump.dive.heapDumpFile.absolutePath)
+
+      // Two dumps are open, so this resolved by path or not at all: shortening a path to a file name is work
+      // for an agent that has the path in front of it.
+      assertThat(answer.text("objectCount").toInt()).isGreaterThan(0)
+    }
   }
 
   @Test
@@ -704,9 +793,12 @@ class AgentToolsTest {
     val heapDumps = FakeAgentHeapDumps(listOf(window))
     tools = agentTools(heapDumps)
 
-    assertThatThrownBy { call("open_heap_dump", "path" to "/no/such/dump.hprof") }
+    assertThatThrownBy { call(OPEN_HEAP_DUMP, "path" to "/no/such/dump.hprof") }
       .isInstanceOf(AgentRefusal::class.java)
       .hasMessageContaining("There is no file at /no/such/dump.hprof")
+      // And what is open, since the same argument takes a name: a name nothing answers to lands here too, and
+      // the list is what says which name was meant.
+      .hasMessageContaining(window.windowId)
 
     assertThat(heapDumps.opened).isEmpty()
   }
@@ -895,6 +987,7 @@ class AgentToolsTest {
 
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
     const val OPEN_HEAP_DUMP = "open_heap_dump"
+    const val LIST_LEAKS = "list_leaks"
     const val AGENT_LOG = "agent_log"
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
