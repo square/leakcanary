@@ -71,8 +71,6 @@ internal object AgentMethod {
     4. **Attack what is left.** This is the part that takes work, and it is where the tools earn their
        keep:
        - `describe_object` on an object in the unknown zone. Read its fields and its inspector labels.
-       - `ways_held` when you need to know whether a reference really is the only thing holding something.
-         One chain says how it is held; this says whether there is another way.
        - `find_objects` on a class you have assumed something about. Two instances of a class you took for
          a singleton is the answer to a surprising number of leaks: the object on the chain is not the
          instance you think it is.
@@ -109,15 +107,17 @@ internal object AgentMethod {
       lockfile, or read the versions out of the APK at `sourceDir`, and then read that library at that tag. A
       leak fixed two releases ago is worth finding out about before writing anything else.
     - **Nothing to read?** Decompile. The APK is at `sourceDir` on the device the dump came from, the
-      dependencies are jars, and a decompiler answers most of what a verdict needs. Compiler-generated names
-      are evidence in themselves: `this${'$'}0` is an inner class holding what it was declared in, `val${'$'}x` is a
-      captured local, and neither can be cleared by any code anybody could write.
+      dependencies are jars, and a decompiler answers most of what a verdict needs.
 
     Then **say which version of what you read**. "Nothing clears this in onDestroy" about a class the app
     doesn't ship is the confident wrong answer this section exists to stop.
 
     ## Rules you will be held to
 
+    - **One chain is the whole investigation.** Any path from a GC root to a stuck object is a good path,
+      and whether something else holds that object too changes nothing: one path is one leak to fix. So never
+      go looking for other holders. The questions are which of these objects should have been gone, and which
+      reference is keeping them — never whether this reference is the only one.
     - **Every verdict needs a reason another reader can check.** A field value, an inspector label, the
       app's own watcher record, a line of source. Not "this is probably a cache" and not "activities are
       usually leaked this way". `set_verdict` refuses a blank reason, and a reason that isn't evidence is

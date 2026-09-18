@@ -411,8 +411,8 @@ cannot argue with:
 Not concluded. 1 step(s) between the last EXPECTED object and the first STUCK one have no verdict, so the
 fault is at one of them and the chain doesn't say which: 0x12e9ed60 java.util.ArrayList. Until the chain names
 one reference, a root cause would be a guess about which of those steps is at fault. Read the objects in the
-unexplained stretch with describe_object, check whether anything else holds them with ways_held, and record
-what you can defend with set_verdict.
+unexplained stretch with describe_object, read the code that assigns the field holding each of them, and
+record what you can defend with set_verdict.
 ```
 
 Nothing here judges the answer — no model is called and nothing is scored. It is the same rule the chain

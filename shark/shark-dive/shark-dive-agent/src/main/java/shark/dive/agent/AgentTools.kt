@@ -582,7 +582,7 @@ internal class AgentTools(
       ?: throw AgentRefusal(
         "Not concluded. ${state.summary} Until the chain names one reference, a root cause would be a " +
           "guess about which of those steps is at fault. Read the objects in the unexplained stretch with " +
-          "describe_object, check whether anything else holds them with ways_held, and record what you " +
+          "describe_object, read the code that assigns the field holding each of them, and record what you " +
           "can defend with $SET_VERDICT."
       )
     val reference = requireNotNull(faulty.step.reference)
