@@ -5,6 +5,7 @@ import shark.GcRoot.JniGlobal
 import shark.HprofWriterHelper
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
+import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 import shark.dive.LeakStatus
 import shark.dump
@@ -81,6 +82,7 @@ object EvalScenarios {
     twoApart(),
     aCacheThatNeverEvicts(),
     aStubThatOutlivesItsWork(),
+    aStubHoldingSomethingWithNoStateOfItsOwn(),
     aRealAsyncTaskLeak(repositoryRoot)
   )
 
@@ -245,6 +247,103 @@ object EvalScenarios {
   }
 
   /**
+   * The same inversion as [aStubThatOutlivesItsWork], with the evidence moved off the object the verdict
+   * goes on — which is the half of that scenario a run can pass without doing.
+   *
+   * `stub-outlives-its-work` writes `delivered = true` onto the very object a run has to call `STUCK`, so a
+   * run scores there by reading one field of one object, and an investigation that asks "does this object
+   * have a field that says done?" is indistinguishable from one that asks "is this object's work done?".
+   * Those come apart on a real dump, where the object under a stub is usually a dispatcher with no state at
+   * all — a `ResultReceiver` subclass whose only field is the `this$0` a compiler wrote — and the run this
+   * scenario exists because of read exactly that object as `EXPECTED` on the grounds that a 24-byte object
+   * with nothing to clear cannot be the defect. It scored 5/5 on `stub-outlives-its-work` while doing it.
+   *
+   * So here [SEARCH_RECEIVER_CLASS_NAME] has one field and it is `this$0`, and the only evidence in the dump
+   * that its work is finished is two steps below it: the controller it forwards into is already holding the
+   * [SEARCH_RESULTS_CLASS_NAME] it was waiting for. A run has to read past the object it is judging to
+   * defend the verdict, which is what the method's "is this object's work done?" asks for and what reading a
+   * flag off the object never exercises.
+   *
+   * **The wrong answer is one step down**, and it is the one worth scoring against: `STUCK` on the
+   * controller with the receiver left `EXPECTED` names `SearchResultReceiver.this$0` instead, which is the
+   * same shape of mistake the earlier scenario catches and reached by a different argument — not the
+   * framework being assumed right, but a reference nobody can clear being assumed innocent.
+   *
+   * [SYNC_RECEIVER_CLASS_NAME] is the control, and it is a stub holding a stateless receiver too: the
+   * difference is entirely in what the controller two steps down holds, an outstanding request rather than
+   * an answer. So "the thing under a stub with no state of its own is stuck" is not a rule that scores here
+   * either.
+   */
+  private fun aStubHoldingSomethingWithNoStateOfItsOwn() = EvalScenario(
+    name = "stub-holds-no-state",
+    key = "SearchResultReceiver\$Transport.this\$0",
+    about = "The object under the stub has no state, so what says its work is done is two steps below it",
+    solvedBy = mapOf(SEARCH_RECEIVER_CLASS_NAME to LeakStatus.STUCK)
+  ) { file ->
+    file.dump {
+      androidBuild()
+      val binder = clazz(className = "android.os.Binder")
+
+      val activity = destroyedActivity()
+      keyedWeakReference(activity)
+      // The answer the whole chain exists to deliver, already delivered. Which is the only thing in this
+      // dump that says the receiver above has nothing left to do, and it is not on the receiver.
+      val results = SEARCH_RESULTS_CLASS_NAME instance {
+        field["rowCount"] = IntHolder(12)
+        field["query"] = string("flat white")
+      }
+      val controller = "com.example.search.SearchController" instance {
+        field["activity"] = activity
+        field["results"] = results
+      }
+      val receiver = instance(
+        clazz(
+          className = SEARCH_RECEIVER_CLASS_NAME,
+          // One field, and a compiler wrote it: there is nothing on this object to read a verdict off, and
+          // nothing about it anybody could clear.
+          fields = listOf("this\$0" to ReferenceHolder::class)
+        ),
+        fields = listOf(controller)
+      )
+      val transport = instance(
+        clazz(
+          className = "$SEARCH_RECEIVER_CLASS_NAME\$Transport",
+          superclassId = binder,
+          fields = listOf("this\$0" to ReferenceHolder::class)
+        ),
+        fields = listOf(receiver)
+      )
+      gcRoot(JniGlobal(id = transport.value, jniGlobalRefId = 0))
+
+      // The control: the same four objects, and a request that hasn't come back. Nothing under it is
+      // watched and no activity is below it, so it is not a leak — it is what a run has to tell the one
+      // above apart from, and the only difference is two steps down from the stub.
+      val request = "com.example.sync.SyncRequest" instance {
+        field["startedAtUptimeMillis"] = LongHolder(41_200)
+      }
+      val syncController = "com.example.sync.SyncController" instance {
+        field["request"] = request
+      }
+      val syncReceiver = instance(
+        clazz(
+          className = SYNC_RECEIVER_CLASS_NAME,
+          fields = listOf("this\$0" to ReferenceHolder::class)
+        ),
+        fields = listOf(syncController)
+      )
+      val syncTransport = instance(
+        clazz(
+          className = "$SYNC_RECEIVER_CLASS_NAME\$Transport",
+          superclassId = binder,
+          fields = listOf("this\$0" to ReferenceHolder::class)
+        ),
+        fields = listOf(syncReceiver)
+      )
+      gcRoot(JniGlobal(id = syncTransport.value, jniGlobalRefId = 1))
+    }
+  }
+
+  /**
    * A real Android heap dump of a real leak, which is the one scenario nothing about this repository invented.
    *
    * `leak_asynctask_o.hprof` is the dump `LegacyHprofTest` pins the leaking object and the retained size of,
@@ -321,6 +420,18 @@ private const val UPLOAD_CALLBACKS_CLASS_NAME = "com.example.upload.UploadCallba
 
 /** The control, and a stub done right: static, so it holds only what it was given. */
 private const val UPLOAD_BINDING_CLASS_NAME = "com.example.upload.UploadService\$Binding"
+
+/**
+ * A receiver whose only field is the `this$0` a compiler wrote, which is what the object under a stub looks
+ * like on a real dump — and the one verdict `stub-holds-no-state` is about.
+ */
+private const val SEARCH_RECEIVER_CLASS_NAME = "com.example.search.SearchResultReceiver"
+
+/** What says that receiver's work is done, two steps below the object the verdict goes on. */
+private const val SEARCH_RESULTS_CLASS_NAME = "com.example.search.SearchResults"
+
+/** The control: the same stateless receiver under a stub, over a request that hasn't come back. */
+private const val SYNC_RECEIVER_CLASS_NAME = "com.example.sync.SyncResultReceiver"
 
 /** Where the real dump lives, which is a test resource of `shark-android` and stays one. */
 private const val REAL_ASYNC_TASK_DUMP = "shark/shark-android/src/test/resources/leak_asynctask_o.hprof"

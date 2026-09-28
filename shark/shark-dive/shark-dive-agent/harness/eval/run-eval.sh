@@ -186,6 +186,13 @@ set_up_run() {
 # `--strict-mcp-config` for the same reason the interactive harness uses it: no other MCP server, and no
 # memory of this project. Your own ~/.claude/CLAUDE.md still loads, which is the one thing this cannot keep
 # out.
+#
+# `client.json` is the one object `--output-format json` prints — cost, turn count, token usage, stop reason
+# and the final answer — and it is **not** a transcript: the model's own turns, and the thinking between two
+# tool calls, are only in the client's session file. Which is why **nothing here turns session persistence
+# off.** `--print` already starts a fresh session, so the isolation this eval wants is had for free, and
+# `--no-session-persistence` bought none of it while throwing away the half of a run that says *why* a call
+# was made. It was here for four commits and the run it made unreadable is in `notes/agent-eval.md`.
 run_client() {
   local directory="$1" model="$2"
   (
@@ -198,9 +205,35 @@ run_client() {
       --allowedTools "mcp__shark-dive" \
       --tools "" \
       --output-format json \
-      --no-session-persistence \
       >"$directory/client.json" 2>"$directory/client.stderr"
   )
+  copy_client_transcript "$directory"
+}
+
+# The client's own record of the run, beside the two this eval writes.
+#
+# Found by session id rather than by rebuilding the path, because where Claude Code keeps a transcript is its
+# business: it is under ~/.claude/projects in a directory named after the working directory, and a rule for
+# turning one into the other is a rule that breaks silently on the next release. The id is in `client.json`,
+# a run has a working directory of its own, and `find` is the whole of what that costs.
+#
+# A run that timed out or died has no id and so no transcript, which is exactly when the Shark Dive session
+# log is the one to read: it has every call that was made before the client stopped.
+copy_client_transcript() {
+  local directory="$1"
+  local session_id
+  session_id="$(sed -n 's/.*"session_id":"\([^"]*\)".*/\1/p' "$directory/client.json" 2>/dev/null)"
+  if [[ -z "$session_id" ]]; then
+    echo "  no session id in client.json, so no client transcript — read the Shark Dive session instead" >&2
+    return 0
+  fi
+  local transcript
+  transcript="$(find "$HOME/.claude/projects" -name "$session_id.jsonl" -print -quit 2>/dev/null)"
+  if [[ -z "$transcript" ]]; then
+    echo "  no transcript found for session $session_id under ~/.claude/projects" >&2
+    return 0
+  fi
+  cp "$transcript" "$directory/client-transcript.jsonl"
 }
 
 # `timeout` is GNU, and macOS has it only if coreutils is installed. Without one, the run is unbounded and
