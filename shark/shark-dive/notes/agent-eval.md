@@ -241,6 +241,9 @@ the standard input bug above. So a `RIGHT` here says nothing about whether the s
 the answer, which is the only thing this eval exists to measure. Read it as the shape of a table and not as a
 number to beat; the first honest baseline is whatever is run after the fix.
 
+**And `two-apart` is not the same dump any more**, so even its call counts are about a fixture that no longer
+exists — see the scenario's entry below for what it was and why it had to change.
+
 Shark Dive 1.0.0, `claude` 2.1.223, one repetition each, $3.33 and 13 minutes for the six. One repetition
 is a smoke test and not a measurement — five is what a result worth arguing from takes — but it is the number
 this table is honest about.
@@ -379,8 +382,18 @@ product rather than in the eval, exactly like the first one.
 
 Five exist. The rest are what the synthetic side is *for* — shapes a real dump doesn't happen to contain:
 
-- ✅ **Two apart** (`two-apart`) — one unexplained step between the verdicts, which is `conclude`'s refusal
-  made real.
+- ✅ **Two apart** (`two-apart`) — one object with no verdict between the verdicts, so **two** candidate
+  references, which is `conclude`'s refusal made real: the application holding a settings store, and the
+  store holding a destroyed activity in a field called `context`. The key is the second. What decides it is on
+  the middle object and readable off the dump — the store has three writes outstanding, so it is not done with
+  its work and belongs in memory, and the field name says what was wanted there was the application context.
+  **It used to be a `Holder` whose only field was the activity, and that was not a fair scenario**: nothing in
+  the dump distinguished `ExampleApplication.holder` from `Holder.activity`, and the little evidence there was
+  pointed the wrong way, since an object whose one field is a dead activity reads as done with its work. Two
+  runs that did everything the method asks answered `ExampleApplication.holder` and were scored `WRONG`. A
+  scenario whose answer is the author's intention rather than the dump's content measures nothing, whichever
+  way the number comes out — and the old fixture's key was also the class name in `AgentMethod`'s worked
+  example, which is the eighth channel above.
 - ✅ **A long unknown zone** (`cache-never-evicts`) — four steps of infrastructure with no verdict, rooted at
   a static singleton so that "this belongs in memory" is a fact of the dump rather than an assumption.
 - ✅ **A verdict that spreads the wrong way** (`stub-outlives-its-work`) — a binder stub at the top of the

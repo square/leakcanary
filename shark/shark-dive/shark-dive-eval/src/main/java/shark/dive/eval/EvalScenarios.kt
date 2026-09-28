@@ -92,30 +92,47 @@ object EvalScenarios {
   ): EvalScenario? = all(repositoryRoot).firstOrNull { it.name == name }
 
   /**
-   * The smallest dump that takes an investigation: one unexplained object between the two the heap dump can
-   * read for itself.
+   * The smallest dump that takes an investigation: one object with no verdict between the two the heap dump
+   * can read for itself.
    *
-   * Which is `conclude`'s refusal made real. The application belongs in memory and the activity is destroyed,
-   * so a surface that named a faulty reference off the dump alone would answer `App.holder` — and the answer
-   * is one step further down, reachable only by someone deciding what the holder is for. A run that fails
-   * here fails at the first thing the method asks for.
+   * Which is `conclude`'s refusal made real. The application belongs in memory and the activity is watched and
+   * destroyed, so what is left between them is **two** references — `ExampleApplication.settings` and
+   * `SettingsStore.context` — and a surface that named one of them off the dump alone would be guessing
+   * between them. What decides is the verdict on the one object in between, and the dump carries the evidence
+   * for it: [SETTINGS_STORE_CLASS_NAME] has three writes outstanding, so its own work is not finished and it
+   * belongs in memory, which leaves the reference below it as the only candidate. A run that fails here fails
+   * at the first thing the method asks for.
+   *
+   * **It used to be a `Holder` whose only field was the activity, and that was not a fair scenario.** An
+   * object whose whole job is holding a destroyed activity reads as done with its work, so the dump's own
+   * evidence pointed at `ExampleApplication.holder` while the key said `Holder.activity` — and two runs that
+   * did everything the method asks answered the first. A scenario whose answer is the author's intention
+   * rather than the dump's content measures nothing, whichever way the score comes out.
    */
   private fun twoApart() = EvalScenario(
     name = "two-apart",
-    key = "Holder.activity",
-    about = "One unexplained step between what belongs in memory and what shouldn't be there"
+    key = "SettingsStore.context",
+    about = "One object with no verdict between what belongs in memory and what shouldn't be there"
   ) { file ->
     file.dump {
       androidBuild()
       val activity = destroyedActivity()
-      val holder = HOLDER_CLASS_NAME instance { field["activity"] = activity }
+      // The app's own record that it is done with this activity, which is the bottom end of the unknown zone.
+      keyedWeakReference(activity)
+      val settings = SETTINGS_STORE_CLASS_NAME instance {
+        // An activity where the application context was wanted, which is the leak and a root cause somebody
+        // can act on: this object outlives every screen, so the context it is built with has to as well.
+        field["context"] = activity
+        // And what says this object's work is not done, which is the one verdict a run has to defend.
+        field["pendingWrites"] = IntHolder(3)
+      }
       val application = instance(
         clazz(
           className = "com.example.ExampleApplication",
           superclassId = clazz(className = "android.app.Application"),
-          fields = listOf("holder" to ReferenceHolder::class)
+          fields = listOf("settings" to ReferenceHolder::class)
         ),
-        fields = listOf(holder)
+        fields = listOf(settings)
       )
       gcRoot(JniGlobal(id = application.value, jniGlobalRefId = 0))
     }
@@ -408,7 +425,11 @@ private fun HprofWriterHelper.androidBuild() {
 /** What every scenario's dump is called, whichever scenario it is. See [EvalScenario.writeHeapDumpIn]. */
 const val HEAP_DUMP_FILE_NAME = "heap-dump.hprof"
 
-private const val HOLDER_CLASS_NAME = "com.example.Holder"
+/**
+ * An app-scoped store built with an activity for a context, and the one object `two-apart` asks for a verdict
+ * on. It has state of its own and outstanding work, which is what makes the verdict readable off the dump.
+ */
+private const val SETTINGS_STORE_CLASS_NAME = "com.example.SettingsStore"
 
 private const val CACHE_ENTRY_CLASS_NAME = "com.example.image.CacheEntry"
 
