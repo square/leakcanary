@@ -50,16 +50,12 @@ dump in it has nothing to list. So that is the case where you need a file — as
 large app, and one call that does not come back until it is readable. A process can only be dumped if the app
 was built debuggable or the whole device build is; `list_devices` says which.
 
-**And before investigating anything, read what has already been tried on that dump:**
-
-```bash
-… --agent agent_log reason="Finding out whether somebody has already been through this"
-```
-
-An investigation somebody already ran is either the answer or the half of the dump not worth doing again.
-Adding `session=<id>` reads one of them call by call, each with the exact text it sent and read back — which
-is how you tell a step that read an answer from one that misread it, and a long answer for that reason, so
-reach for it when a run went wrong rather than as a matter of course.
+**Whichever case it was, the answer says whether anybody has been here.** An untouched heap dump is the
+normal case, so there is nothing to ask: `alreadyWorkedOn` is in that answer only when somebody left verdicts
+or a note behind, and it says which tool reads what — `read_notes` for what they found, `agent_log` for how
+they got there when their conclusion looks wrong. **So don't open with `agent_log`**; a dump nobody has
+touched makes it a call spent on "nobody has been here", and the call that opened the dump has already said
+so.
 
 ## The command line
 
