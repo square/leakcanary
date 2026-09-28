@@ -580,6 +580,20 @@ An agent's verdicts are verdicts like any other: they say `set by hand` on every
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the
 last thing this surface is for — the disagreement is about a reason you can read, not about who said it.
 
+## Everything it keeps is in one directory
+
+The notes, the verdicts, the starred objects, the agent sessions, the logs and the record of where each heap
+dump was are all under `~/.shark-dive`, and **`SHARK_DIVE_DIR` puts them somewhere else**:
+
+```bash
+SHARK_DIVE_DIR=~/second-opinion open -a "Shark Dive" --args path/to/dump.hprof
+```
+
+Which is a second set of notes and verdicts over the same heap dumps, kept apart from the first — for reading
+a dump again without yesterday's conclusions in front of you, or for a run whose verdicts shouldn't end up in
+yours. Set it for every process that should share those files: a window started this way, the `--agent` calls
+made at it, and an MCP server launched from a config file all read the variable from their own environment.
+
 ## Reporting a problem
 
 Bug reports go to the [LeakCanary issue tracker](https://github.com/square/leakcanary/issues). Every run

@@ -95,6 +95,13 @@ uses, without the one for a newly recognized library leak:
   another went wrong. Kept in `~/.shark-dive/agents/sessions`, one file per session and the newest hundred
   kept, so a session outlives the window it was worked in.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+* ✨ **`SHARK_DIVE_DIR` moves everything the app keeps between runs**, which is the notes, the verdicts, the
+  starred objects, the agent sessions, the logs and the record of where each heap dump was — one directory,
+  `~/.shark-dive` unless that variable names another. So a second set of notes over the same dumps is possible
+  without touching the first, which is what measuring an agent against a heap dump needs: a scored run must not
+  write its verdicts into yours, or read somebody else's conclusion as its own starting point. An environment
+  variable rather than an option because a dive is several processes that have to agree on it — `--agent` runs
+  the app again to open a window, and an MCP client launches the server from a config file.
 * ✨ **The chain marks the faulty reference**: the one step going from an `Expected` object straight to a
   `Stuck` one reads `Holder.activity · faulty reference`, which is the leak itself rather than one of the
   objects it left behind, and the same reference the **Leaks** screen names that leak after. A chain whose

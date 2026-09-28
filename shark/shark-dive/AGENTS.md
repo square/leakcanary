@@ -227,6 +227,13 @@ shows it.
 `~/.shark-dive/logs/shark-dive-<when-it-started>.log`, one file per run, the newest
 `SessionLog.KEEP_SESSION_COUNT` kept and the rest deleted as a run starts.
 
+**`~/.shark-dive` is only the default**, and every path in this file that begins with it is really under
+`SHARK_DIVE_DIRECTORY` — `sharkDiveDirectory()` in `DiveLogging.kt`, which reads `SHARK_DIVE_DIR`. It is an
+environment variable rather than an option because a dive is several processes that have to agree: `--agent`
+runs the app again to open a window, and an MCP client launches the server from a config file. What asked for
+it is `notes/agent-eval.md`, whose runs must not write into the notes of whoever started them, and it is
+worth having on its own — a second set of notes over the same dumps is a thing to want.
+
 **So ask for that file when someone reports something odd**, and read it before guessing. It holds the
 environment (JVM, OS, heap limit — a dump too large for Shark Dive runs out of exactly that), every
 step of opening the dump with its duration, and every read of it through `HeapDumpSession.read` with
@@ -684,7 +691,7 @@ Design decisions and findings, kept current as the work proceeds:
 - `notes/agent-surface.md` — what the MCP surface costs a client in tokens, measured, and why a CLI and a
   skill are adapters over the same registry rather than second implementations
 - `notes/agent-eval.md` — how well an agent solves a leak, scored with no model doing the scoring: the answer
-  keys, the three ways a run gets handed its own answer, and the baseline to beat
+  keys, the six ways a run gets handed its own answer, and the baseline to beat
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

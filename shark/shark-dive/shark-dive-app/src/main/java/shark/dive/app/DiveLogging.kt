@@ -112,8 +112,34 @@ private class Loggers(private val loggers: List<SharkLog.Logger>) : SharkLog.Log
 /**
  * Where this app keeps what it writes: under the user's home directory rather than beside the heap dump or
  * in the working directory, so that every run reads and writes the same place however it was started.
+ *
+ * [SHARK_DIVE_DIRECTORY_VARIABLE] moves it, and what that is for is a run whose reads and writes must not be
+ * mixed with a person's own. Everything under here is keyed by heap dump rather than by run — the notes, the
+ * verdicts, the stars, the agent sessions, the record of where each dump was — so two runs on one machine are
+ * one investigation unless they are pointed at different directories. Which is the eval's problem exactly: it
+ * drives an agent with nobody watching, over dumps that must not appear in somebody's window and must not put
+ * verdicts in their files. See `shark-dive-agent/harness/eval/run-eval.sh`.
  */
-internal val SHARK_DIVE_DIRECTORY = File(System.getProperty("user.home"), ".shark-dive")
+internal val SHARK_DIVE_DIRECTORY = sharkDiveDirectory()
+
+/**
+ * Read from the environment rather than from the command line, because the processes that have to agree on it
+ * are not all started by whoever set it: an `--agent` call opens a window by running this app again, and an
+ * MCP client launches the server from a config file it wrote. An environment variable is the one thing all
+ * three inherit.
+ */
+internal fun sharkDiveDirectory(
+  environment: Map<String, String> = System.getenv(),
+  homeDirectory: String = System.getProperty("user.home")
+): File = environment[SHARK_DIVE_DIRECTORY_VARIABLE]
+  ?.takeIf { it.isNotBlank() }
+  ?.let { File(it) }
+  ?: File(homeDirectory, SHARK_DIVE_DIRECTORY_NAME)
+
+/** See [sharkDiveDirectory]. */
+internal const val SHARK_DIVE_DIRECTORY_VARIABLE = "SHARK_DIVE_DIR"
+
+private const val SHARK_DIVE_DIRECTORY_NAME = ".shark-dive"
 
 /** One file per run. See [SessionLog]. */
 private val LOG_DIRECTORY = File(SHARK_DIVE_DIRECTORY, "logs")
