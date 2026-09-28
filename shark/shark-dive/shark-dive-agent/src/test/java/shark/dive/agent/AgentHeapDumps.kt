@@ -123,3 +123,9 @@ internal const val HOLDER_FIELD_NAME = "holder"
 
 /** How a chain spells the reference at fault once the holder is known to belong in memory. */
 internal const val FAULTY_REFERENCE = "Holder.$ACTIVITY_FIELD_NAME"
+
+/**
+ * And how it spells the reference above it, which is the other candidate while the holder has no verdict:
+ * one object with no verdict leaves two references, and its own verdict is what rules one of them out.
+ */
+internal const val SUSPECT_REFERENCE_ABOVE = "ExampleApplication.$HOLDER_FIELD_NAME"

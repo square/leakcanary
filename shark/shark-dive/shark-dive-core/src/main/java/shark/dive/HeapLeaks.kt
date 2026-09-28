@@ -44,10 +44,12 @@ data class HeapLeaks(
  * Which kind of thing a leak is, which is what splits the screen into sections.
  *
  * The split is what makes the list actionable, and it is a split in two halves. The first two are leaks to
- * do something about: the app's own are the ones to go and fix, the library ones are somebody else's and
- * are mostly there so they don't get mistaken for the app's. The rest are objects that shouldn't be in
- * memory and are on their way out of it anyway, a section per way — the garbage collector clears every one
- * of these strengths on its own, so nothing in the app has to change for the bytes to come back.
+ * investigate, split by whether Shark recognised the reference holding them: a recognised one is somebody
+ * else's code, and is set apart mostly so it isn't mistaken for the app's. That says who is likely to own
+ * the fix and not whether there is one — plenty of leaks are held by a reference nobody can clear, and that
+ * is a fact about the fix rather than about the leak. The rest are objects that shouldn't be in memory and
+ * are on their way out of it anyway, a section per way — the garbage collector clears every one of these
+ * strengths on its own, so nothing in the app has to change for the bytes to come back.
  *
  * LeakCanary reports none of that second half and can't tell one from another: its analysis follows no
  * soft, weak or phantom referent, so everything below the rule here is an object no GC root reaches as far
@@ -93,8 +95,10 @@ enum class LeakKind(
 
   APPLICATION(
     "App leaks",
-    "Objects the app itself keeps in memory after it was done with them. Each of these is a leak to fix, " +
-      "in code the app controls."
+    "Objects the app itself was done with, and something is still holding. Each one is a leak to " +
+      "investigate, and it is here rather than under library leaks because nothing on the way to it is a " +
+      "reference Shark recognises — usually the app's own code, and which reference is at fault is what " +
+      "settles that."
   ),
 
   LIBRARY(

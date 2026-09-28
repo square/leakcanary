@@ -131,7 +131,7 @@ this way, each of which was several before:
 | How firmly an object is held | `ReachabilityStrength.label`, nine names, plus the one page behind the `?` |
 | An object's two sizes | `RETAINED`, `SHALLOW` and `retainedText` in `DetailsPanel.kt` |
 | A rectangle that isn't one object | `formatObjectCount` — a count, whichever kind of pile it is |
-| Which reference a leak is | `PathReference.leakLabel()`, and `RootPath.faultyReference()` |
+| Which reference a leak is | `PathReference.leakLabel()`, `RootPath.faultyReference()`, and `RootPath.suspectReferences()` while it is still several |
 | Whether an object is meant to be in memory | `LeakStatus`: `STUCK`, `EXPECTED`, `UNKNOWN`, nothing else |
 | What a place is called | `Place.title` |
 
@@ -176,8 +176,15 @@ what it shows.
 whole stretch between the two verdicts, is what a leak is *named* after — `suspectSubpath`, and Shark's leak
 fingerprint — so it is tempting to mark the top of it, which is what the first version did and what
 `notes/decisions.md` records as wrong: a chain whose objects all have no verdict got its top reference marked
-for being where the walk started. A longer stretch is a fault at one of several steps with nothing saying
-which, and nothing drawn is the answer for that.
+for being where the walk started. A longer stretch is a fault at one of several references with nothing
+saying which, and nothing drawn is the answer for that.
+
+**And a stretch is counted in references, never in objects.** One object with no verdict between the two ends
+leaves *two* candidates — the reference into it and the reference out of it — and what rules one of them out is
+that object's own verdict. So a surface with a stretch left says which references those are and which objects
+to go and decide about, and never a number: "one step between the verdicts" is a count that reads as an answer
+and is neither of the two things a reader can act on. `RootPath.suspectReferences()` is the candidates and
+`ChainVerdicts` is that shape for an agent, both over `suspectReferenceIndexes`.
 
 **And it is named in one place, `PathReference.leakLabel()`.** Four surfaces say which reference a leak is —
 the row of the leaks screen, the `Leak solved` section above the chain, the `faultyReference` an agent is

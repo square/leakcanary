@@ -286,6 +286,30 @@ internal object AgentJson {
     putJsonArray("steps") { path.steps.forEach { add(rootPathStep(it)) } }
   }
 
+  /**
+   * What the verdicts on a chain add up to, which is the field that says whether the investigation is over.
+   *
+   * **References and objects, never a count of steps.** A chain narrowed to a single object with no verdict
+   * has two candidate references — the one into that object and the one out of it — so a number of steps in
+   * between is a figure that reads as an answer and is neither of the two things there is to do something
+   * about. [ChainVerdicts.suspectReferences] is the candidates, in the words the leaks screen names the same
+   * leak with, and `undecidedObjects` is what to go and settle: each verdict there rules out one of them.
+   */
+  fun chainVerdicts(verdicts: ChainVerdicts): JsonObject = buildJsonObject {
+    put("state", verdicts.state.name)
+    put("canConclude", verdicts.canConclude)
+    putJsonArray("suspectReferences") { verdicts.suspectReferences.forEach { add(it) } }
+    putJsonArray("undecidedObjects") {
+      verdicts.undecided.forEach { step ->
+        addJsonObject {
+          put("object", exactHexObjectId(step.step.objectId))
+          put("className", step.step.className)
+        }
+      }
+    }
+    put("next", verdicts.next)
+  }
+
   /** Every way an object is held, which is what a single chain cannot say. */
   fun independentPaths(paths: IndependentPaths): JsonObject = buildJsonObject {
     put("pathCount", paths.paths.size)
@@ -323,8 +347,8 @@ internal object AgentJson {
           // Absent for the five sections a reachability strength names, whose title is the whole of what
           // they are. See LeakKind.explanation.
           section.kind.explanation?.let { put("explanation", it) }
-          // Whether this is a leak to fix or an object the collector will take on its own, which is the
-          // split that makes the list actionable. See LeakKind.isOnTheWayOut.
+          // Whether this is a leak to investigate or an object the collector will take on its own, which is
+          // the split that makes the list actionable. See LeakKind.isOnTheWayOut.
           put("isOnTheWayOut", section.kind.isOnTheWayOut)
           put("objectCount", section.objectCount)
           putJsonArray("groups") {
@@ -420,7 +444,11 @@ internal object AgentJson {
     putJsonArray("inspectorLabels") { step.inspectorLabels.forEach { add(it) } }
     put("verdict", step.leakStatus.name)
     put("verdictReason", step.leakStatusReason)
-    put("isInspectable", step.isInspectable)
+    // PathStep.isTreeNode is not here, and cannot be false on anything an agent reads: both path walks
+    // refuse a target the tree has no node for, and an object whose bytes are folded into another one has
+    // no incoming reference for a walk to arrive by either. It is the window's field — whether the map has
+    // a rectangle to open — and on a chain it is a word that always says the same thing, repeated on every
+    // step of every chain, and again on the chain set_verdict reads back after each verdict.
     val reference = step.reference
     if (reference != null) {
       putJsonObject("reference") {

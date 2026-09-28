@@ -39,15 +39,18 @@ client because saying no is all it does — nothing here ever calls a model.
 - `set_verdict` refuses a blank reason (through `LeakStatusOverride`'s own `require`) and refuses a verdict
   that contradicts one already recorded unless it is told to flip it.
 - `conclude` refuses until the heap dump agrees that **one** reference is at fault, and the refusal says which
-  of the three reasons it is: nothing `STUCK`, nothing `EXPECTED` above it, or *these* steps in between
-  with no verdict. Same rule as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it,
-  because the three ways it answers null are three different things to do next.
+  of the five reasons it is: no chain at all, nothing `STUCK`, nothing `EXPECTED` above it, *these* references
+  still candidates with *those* objects in between having no verdict, or a reference the object above no longer
+  reads. `ChainState` is that list, and the refusal names the candidates rather than counting them. Same rule
+  as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it, because the ways it answers
+  null are different things to do next.
 - Every tool takes a `reason`, and it is enforced in `AgentTool.call` rather than only asked for in the
   schema: a client is free to ignore a schema.
 
 So a change that makes any of these easier to satisfy is a change that removes the reason this module exists.
-An agent that has narrowed a chain to three unexplained steps must not be able to report a root cause, however
-confident it is. `AgentToolsTest` walks that exact story — refused, then a verdict, then concluded — and it is
+An agent that has narrowed a chain to two candidate references must not be able to report a root cause, however
+confident it is — and two is the narrowest a chain gets before it names one, since a single object with no
+verdict leaves the reference into it and the reference out of it. `AgentToolsTest` walks that exact story — refused, then a verdict, then concluded — and it is
 the test to keep working.
 
 The `reason` is traceability and not a quality gate. Asking a model to explain itself does not make it right,

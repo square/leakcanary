@@ -312,17 +312,29 @@ class AgentToolsTest {
     // Which is the field an agent reads to know whether it is done, so an unsolved chain has to leave it
     // out rather than answer with something that could be mistaken for a name.
     assertThat(answer.obj("chain")["faultyReference"]).isEqualTo(JsonNull)
-    assertThat(answer.text("whatTheChainSays"))
-      .contains("1 step(s)")
-      .contains(hex(heapDump.holderObjectId))
-      .contains(HOLDER_CLASS_NAME)
+    val says = answer.obj("whatTheChainSays")
+    assertThat(says.text("state")).isEqualTo(ChainState.NARROWED.name)
+    assertThat(says.text("canConclude")).isEqualTo("false")
+    // Counted in references and not in objects, which is the thing to get right about a narrowed chain: one
+    // object with no verdict leaves the reference into it and the reference out of it, and its own verdict
+    // rules one of them out. So the candidates are two and the object to decide about is one.
+    assertThat(says.array("suspectReferences").map { it.jsonPrimitive.content })
+      .containsExactly(SUSPECT_REFERENCE_ABOVE, FAULTY_REFERENCE)
+    val undecided = says.array("undecidedObjects").map { it.jsonObject }
+    assertThat(undecided.map { it.text("object") }).containsExactly(hex(heapDump.holderObjectId))
+    assertThat(undecided.map { it.text("className") }).containsExactly(HOLDER_CLASS_NAME)
+    assertThat(says.text("next")).contains("describe_object").contains(SET_VERDICT)
   }
 
   @Test
   fun `a chain with nothing stuck on it says that is why it names nothing`() {
     val answer = call("chain_from_gc_root", OBJECT to hex(heapDump.applicationObjectId))
 
-    assertThat(answer.text("whatTheChainSays")).contains("Nothing on this chain")
+    val says = answer.obj("whatTheChainSays")
+    assertThat(says.text("state")).isEqualTo(ChainState.NOTHING_STUCK.name)
+    // Nothing to be at fault, so nothing named: a chain with no stuck object on it has no candidates either.
+    assertThat(says.array("suspectReferences")).isEmpty()
+    assertThat(says.text("next")).contains(LeakStatus.STUCK.name)
   }
 
   @Test
@@ -336,8 +348,10 @@ class AgentToolsTest {
     }
       .isInstanceOf(AgentRefusal::class.java)
       .hasMessageContaining("Not concluded")
-      .hasMessageContaining("1 step(s)")
-      .hasMessageContaining(HOLDER_CLASS_NAME)
+      // The two references it is left with, named, rather than a count of the objects between them: a
+      // refusal that says "one step has no verdict" is one an agent can read as naming that step.
+      .hasMessageContaining(SUSPECT_REFERENCE_ABOVE)
+      .hasMessageContaining(FAULTY_REFERENCE)
       .hasMessageContaining("describe_object")
 
     assertThat(window.notes).isEmpty()
@@ -355,8 +369,14 @@ class AgentToolsTest {
 
     assertThat(answer.text("set")).isEqualTo("true")
     assertThat(answer.text("verdictsFlipped")).isEqualTo("0")
-    assertThat(answer.text("canConclude")).isEqualTo("true")
-    assertThat(answer.text("whatTheChainSays")).contains("$FAULTY_REFERENCE is the faulty reference")
+    val says = answer.obj("whatTheChainSays")
+    assertThat(says.text("state")).isEqualTo(ChainState.SOLVED.name)
+    assertThat(says.text("canConclude")).isEqualTo("true")
+    // One candidate left, which is the same fact as the investigation being over.
+    assertThat(says.array("suspectReferences").map { it.jsonPrimitive.content })
+      .containsExactly(FAULTY_REFERENCE)
+    assertThat(says.array("undecidedObjects")).isEmpty()
+    assertThat(says.text("next")).contains("$FAULTY_REFERENCE is the faulty reference")
     val faulty = answer.obj("chain").array("steps")
       .single { it.jsonObject["reference"]?.jsonObject?.text("isFaulty") == "true" }
       .jsonObject

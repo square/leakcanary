@@ -197,6 +197,18 @@ internal fun List<PathStep>.suspectReferenceIndexes(): List<Int> {
 }
 
 /**
+ * The same references as the words a leak is named with: [PathReference.leakLabel] for each of
+ * [suspectReferenceIndexes].
+ *
+ * One function rather than one per reader, because the point of these words is that the row of the leaks
+ * screen, the chain under it and the answer an agent is handed are the same strings — a leak that reads as
+ * one thing on a screen and another in an answer is a conversation where neither reader can point at
+ * anything. See [LeakGroup.suspectPath] and `shark.dive.suspectReferences`.
+ */
+internal fun List<PathStep>.suspectReferenceLabels(): List<String> =
+  suspectReferenceIndexes().map { this[it].reference!!.leakLabel() }
+
+/**
  * Which reference of a path is **the faulty reference** — the one that should have been cleared — as an index
  * into it, or null when the path doesn't say which one that is.
  *

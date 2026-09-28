@@ -23,6 +23,7 @@ import shark.dive.leakLabel
 import shark.dive.leakStatusConflictsWith
 import shark.dive.nodeIdText
 import shark.dive.outlineOf
+import shark.dive.suspectReferences
 
 /**
  * Everything an agent can do to an open heap dump, as MCP tools.
@@ -35,7 +36,7 @@ import shark.dive.outlineOf
  * - **A verdict needs a reason**, and a reason that contradicts the ones already set has to say so. Enforced
  *   by `shark.dive.LeakStatusOverride` and by [SET_VERDICT] refusing conflicts it wasn't told to solve.
  * - **[CONCLUDE] is refused until the heap dump agrees** that one reference is at fault. Which is the whole
- *   point: an agent that has narrowed a chain to three unexplained steps cannot report a root cause, however
+ *   point: an agent that has narrowed a chain to two candidate references cannot report a root cause, however
  *   confident it is, because the software will not let it.
  *
  * Every tool also takes a mandatory `reason`, logged beside the reads it caused. That is traceability and
@@ -203,7 +204,7 @@ internal class AgentTools(
     description = "What this heap dump says shouldn't be in memory, gathered into the leaks those objects " +
       "are instances of. The heap dump's own answer and the place to start: objects the app itself handed " +
       "to LeakCanary and said it was done with are the strongest evidence a dump carries. Sections marked " +
-      "isOnTheWayOut are objects the garbage collector will take on its own — not leaks to fix.",
+      "isOnTheWayOut are objects the garbage collector will take on its own — nothing to investigate there.",
     schema = schema(HEAP_DUMP to heapDumpArgument())
   ) { arguments ->
     val dump = arguments.heapDump()
@@ -256,7 +257,7 @@ internal class AgentTools(
   }
 
   private fun describeObject() = AgentTool(
-    name = "describe_object",
+    name = DESCRIBE_OBJECT,
     description = "What one object is: its class, what the inspectors made of it, its verdict and the " +
       "reason under it, what it retains, what dominates it, and every field with the address of each " +
       "field's value. Reading fields is how a guess about an object becomes evidence.",
@@ -290,7 +291,7 @@ internal class AgentTools(
     val path = dump.readRootPath(objectId)
     buildJsonObject {
       put("chain", AgentJson.rootPath(path))
-      put("whatTheChainSays", path.verdictState().summary)
+      put("whatTheChainSays", AgentJson.chainVerdicts(path.verdictState()))
     }
   }
 
@@ -462,10 +463,8 @@ internal class AgentTools(
             "here answers with it."
         )
       } else {
-        val state = path.verdictState()
         put("chain", AgentJson.rootPath(path))
-        put("whatTheChainSays", state.summary)
-        put("canConclude", state.faultyStep != null)
+        put("whatTheChainSays", AgentJson.chainVerdicts(path.verdictState()))
       }
     }
   }
@@ -600,12 +599,13 @@ internal class AgentTools(
     val objectId = arguments.objectId(OBJECT)
     val path = dump.readRootPath(objectId)
     val state = path.verdictState()
+    // What is left to do rather than a paragraph that fits every refusal: the five ways a chain names no
+    // reference are five different things to go and do, and one tail about "the unexplained stretch" is
+    // wrong about three of them — there is no stretch on a chain that doesn't exist.
     val faulty = state.faultyStep
       ?: throw AgentRefusal(
-        "Not concluded. ${state.summary} Until the chain names one reference, a root cause would be a " +
-          "guess about which of those steps is at fault. Read the objects in the unexplained stretch with " +
-          "describe_object, read the code that assigns the field holding each of them, and record what you " +
-          "can defend with $SET_VERDICT."
+        "Not concluded. A root cause names the one reference a chain is the leak of, and this chain leaves " +
+          state.suspectReferences.ifEmpty { listOf("none") }.joinToString(", ") + ". ${state.next}"
       )
     val reference = requireNotNull(faulty.step.reference)
     val note = conclusionNote(
@@ -862,8 +862,6 @@ internal class AgentTools(
 
     /** What every investigation starts with, named because three messages point at it. */
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
-    const val SET_VERDICT = "set_verdict"
-    const val CONCLUDE = "conclude"
 
     /** Named because another tool's description tells an agent to call it, or its own says what it is. */
     const val LIST_LEAKS = "list_leaks"
@@ -976,23 +974,54 @@ internal class AgentTarget(
 )
 
 /**
- * What the verdicts on a chain add up to: whether one reference is at fault, and what to say when none is.
+ * What the verdicts on a chain add up to: whether one reference is at fault, which references it could be,
+ * and what to do next when the chain doesn't say which.
  *
  * The same rule `shark.dive.faultyReferenceIndexOrNull` applies, read off the chain rather than asked
- * of it, because the three ways a chain names no reference are three different things to do next — and
- * telling an agent which of them it is, is most of what [AgentTools.CONCLUDE] refusing is worth.
+ * of it, because the ways a chain names no reference are different things to do next — and telling an agent
+ * which of them it is, is most of what [CONCLUDE] refusing is worth.
+ *
+ * **Said in references and in objects, never in a count of steps.** A chain narrowed to one object with no
+ * verdict has two candidate references, the one into that object and the one out of it, and what decides
+ * between them is that object's own verdict — so "one step in between" is a number that reads as an answer
+ * and is neither of the two things a reader needs. [suspectReferences] is the candidates, exactly as the
+ * leaks screen names them, and [undecided] is the objects to go and decide.
  */
-private class ChainVerdicts(
+internal class ChainVerdicts(
   val faultyStep: RootPathStep?,
-  val summary: String
-)
+  /** Which of the shapes the verdicts are in, which is the field to branch on rather than parse [next]. */
+  val state: ChainState,
+  /** The references the leak could be. See [shark.dive.suspectReferences]. */
+  val suspectReferences: List<String>,
+  /** The objects between the two verdicts that have none, whose verdicts are what narrow the candidates. */
+  val undecided: List<RootPathStep>,
+  /** What to do about it, which for a chain that names one reference is what [CONCLUDE] asks for. */
+  val next: String
+) {
+  /** Whether [CONCLUDE] will take an answer, which is the same fact as the chain naming one. */
+  val canConclude: Boolean get() = faultyStep != null
+}
+
+/** The shapes a chain's verdicts come in, of which one is an investigation that is over. */
+internal enum class ChainState {
+  NO_CHAIN,
+  NOTHING_STUCK,
+  NOTHING_EXPECTED_ABOVE,
+  NARROWED,
+  REFERENCE_UNREADABLE,
+  SOLVED
+}
 
 private fun RootPath.verdictState(): ChainVerdicts {
   val steps = steps
+  val suspects = suspectReferences()
   if (steps.isEmpty()) {
     return ChainVerdicts(
       faultyStep = null,
-      summary = "Nothing this heap dump was walked from reaches that object, so there is no chain to read."
+      state = ChainState.NO_CHAIN,
+      suspectReferences = suspects,
+      undecided = emptyList(),
+      next = "Nothing this heap dump was walked from reaches that object, so there is no chain to read."
     )
   }
   val firstStuck = steps.indexOfFirst { it.step.leakStatus == LeakStatus.STUCK }
@@ -1000,46 +1029,68 @@ private fun RootPath.verdictState(): ChainVerdicts {
   if (firstStuck == -1) {
     return ChainVerdicts(
       faultyStep = null,
-      summary = "Nothing on this chain of ${steps.size} steps is ${LeakStatus.STUCK.name}, so it points " +
-        "at no reference: the rules can only name one once something below it is known not to belong."
+      state = ChainState.NOTHING_STUCK,
+      suspectReferences = suspects,
+      undecided = emptyList(),
+      next = "No object on this chain is ${LeakStatus.STUCK.name}, so there is no fault for a reference to " +
+        "be at: one is named only once an object below it is known not to belong. Record the object whose " +
+        "work you can show is done as ${LeakStatus.STUCK.name}, and the chain narrows from there."
     )
   }
   if (lastExpected == -1) {
     return ChainVerdicts(
       faultyStep = null,
-      summary = "The chain has a ${LeakStatus.STUCK.name} object at step ${firstStuck + 1} of " +
-        "${steps.size} and nothing above it is ${LeakStatus.EXPECTED.name}. So whatever holds it may " +
-        "be something that should have let go too, and the fault could be further up than this chain " +
-        "knows: find the highest object here that is meant to be in memory and record it."
+      state = ChainState.NOTHING_EXPECTED_ABOVE,
+      suspectReferences = suspects,
+      undecided = emptyList(),
+      next = "${steps[firstStuck].text()} is ${LeakStatus.STUCK.name} and nothing above it is " +
+        "${LeakStatus.EXPECTED.name}, so whatever holds it may be something that should have let go too " +
+        "and the fault could be further up than this chain reaches. Find the highest object here that is " +
+        "meant to be in memory and record it as ${LeakStatus.EXPECTED.name}."
     )
   }
   if (firstStuck != lastExpected + 1) {
-    val unexplained = (lastExpected + 1 until firstStuck).map { steps[it] }
+    val undecided = (lastExpected + 1 until firstStuck).map { steps[it] }
     return ChainVerdicts(
       faultyStep = null,
-      summary = "${unexplained.size} step(s) between the last ${LeakStatus.EXPECTED.name} object and " +
-        "the first ${LeakStatus.STUCK.name} one have no verdict, so the fault is at one of them and the " +
-        "chain doesn't say which: " +
-        unexplained.joinToString(", ") { "${exactHexObjectId(it.step.objectId)} ${it.step.className}" } +
-        "."
+      state = ChainState.NARROWED,
+      suspectReferences = suspects,
+      undecided = undecided,
+      next = "The fault is at one of those references, and what settles which is the objects between them " +
+        "that have no verdict: one undecided object leaves the reference into it and the reference out of " +
+        "it, and its own verdict rules one of them out. They are " +
+        undecided.joinToString(", ") { it.text() } + ". So work out whether each of them is done with its " +
+        "work — its fields with $DESCRIBE_OBJECT, and the code that assigns the field holding the object " +
+        "below it — and record that with $SET_VERDICT."
     )
   }
   val faulty = steps[firstStuck]
   val reference = faulty.step.reference
     ?: return ChainVerdicts(
       faultyStep = null,
-      summary = "One reference crosses from ${LeakStatus.EXPECTED.name} to " +
-        "${LeakStatus.STUCK.name} here, but reading the object above again didn't find the field it was " +
-        "reached through, so there is no reference to name."
+      state = ChainState.REFERENCE_UNREADABLE,
+      suspectReferences = suspects,
+      undecided = emptyList(),
+      next = "${faulty.text()} is the one ${LeakStatus.STUCK.name} object under an " +
+        "${LeakStatus.EXPECTED.name} one, but reading the object above it again didn't find the field it " +
+        "was reached through, so there is no reference to name. $DESCRIBE_OBJECT on the object above says " +
+        "which fields it does have."
     )
   return ChainVerdicts(
     faultyStep = faulty,
-    summary = "${reference.leakLabel()} is the faulty reference: the one step from " +
-      "an object meant to be in memory to one that should be gone."
+    state = ChainState.SOLVED,
+    suspectReferences = suspects,
+    undecided = emptyList(),
+    next = "${reference.leakLabel()} is the faulty reference: it is read on an object meant to be in " +
+      "memory and points at one that should be gone. What is left is how that field came to still be set, " +
+      "which is what $CONCLUDE asks for."
   )
 }
 
-/** What [AgentTools.CONCLUDE] writes into the notes, which is the investigation's answer where it belongs. */
+/** One step of a chain as a sentence names it: the address, then the class. */
+private fun RootPathStep.text(): String = "${exactHexObjectId(step.objectId)} ${step.className}"
+
+/** What [CONCLUDE] writes into the notes, which is the investigation's answer where it belongs. */
 private fun conclusionNote(
   reference: String,
   rootCause: String,
@@ -1081,10 +1132,11 @@ private fun LeakStatusConflict.asSentence(): String {
 }
 
 /**
- * Refuses an id that is no single object of the heap dump, which is three different mistakes.
+ * Refuses an id that is no single object of the heap dump, which is four different mistakes.
  *
- * `summarize` throws on a pile id and the chain walks refuse the root, so the alternative to this is a
- * message about the app's internals reaching an agent that asked a reasonable question.
+ * `summarize` throws on a pile id and on an object the tree has no node for, and the chain walks refuse the
+ * root, so the alternative to this is a message about the app's internals reaching an agent that asked a
+ * reasonable question.
  */
 private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
   val refusal = when {
@@ -1097,6 +1149,14 @@ private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
     tree.objectNameOrNull(this) == null ->
       "${exactHexObjectId(this)} is no object of this heap dump. An address is only an address of the dump " +
         "it was read from, so one copied from another dump — or from another window — names nothing here."
+    // An address of a folded object only ever arrives from outside this surface — a note, another tool, a
+    // profiler — since nothing here hands one out: a field whose value is folded has no `valueObject`. So
+    // it is a reasonable question with an answer, and the answer is that the object it is part of is the
+    // one to read.
+    this !in tree ->
+      "${exactHexObjectId(this)} has its bytes counted inside another object — a string's characters, a " +
+        "wrapper array's boxed numbers — so nothing this heap dump was walked from points at it and no " +
+        "chain reaches it. Read the object it is part of instead."
     else -> return
   }
   throw AgentRefusal(refusal)
@@ -1107,6 +1167,17 @@ private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
  * found. Out here because [nothingToRead] points at it and is not a method of [AgentTools].
  */
 private const val OPEN_HEAP_DUMP = "open_heap_dump"
+
+/**
+ * And the three names [verdictState] sends an agent to, out here for the same reason: what a chain's verdicts
+ * leave to do is the next call to make, and working that out is not a method of [AgentTools] either.
+ *
+ * Constants rather than the names written into those sentences, so that renaming a tool is one edit and a
+ * sentence pointing at a tool that no longer exists is a compile error.
+ */
+private const val DESCRIBE_OBJECT = "describe_object"
+private const val SET_VERDICT = "set_verdict"
+private const val CONCLUDE = "conclude"
 
 /**
  * What `open_heap_dumps` answers when there is nothing to read, which depends on whether there is about to be.

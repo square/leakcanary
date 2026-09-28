@@ -68,6 +68,21 @@ fun RootPath.faultyReference(): PathReference? =
   steps.firstNotNullOfOrNull { step -> step.step.reference?.takeIf { it.isFaulty } }
 
 /**
+ * Which references this chain says the leak could be — [faultyReference] and nothing else once the verdicts
+ * narrow to one, and the whole stretch between them while they haven't.
+ *
+ * **Counted in references and not in objects**, which is the thing to get right about a narrowed chain: one
+ * object with no verdict between the two ends leaves *two* candidates, the reference into it and the
+ * reference out of it, and what decides between them is that object's own verdict. So a reader with a
+ * stretch left has one question, and it is about an object rather than about a reference: is this object's
+ * work done?
+ *
+ * Empty for a chain with nothing stuck on it. The same words the leaks screen names a leak with — see
+ * [suspectReferenceLabels].
+ */
+fun RootPath.suspectReferences(): List<String> = steps.map { it.step }.suspectReferenceLabels()
+
+/**
  * The part of this chain below [objectId], or null when no step of it is that object.
  *
  * What the chain to the rectangle under the pointer has to add to the chain already on screen: the object
