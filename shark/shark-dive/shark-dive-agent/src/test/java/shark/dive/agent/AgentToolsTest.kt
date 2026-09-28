@@ -760,6 +760,26 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `a dump nobody has worked on says so, and one somebody has says what to read`() {
+    val untouched = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.name)
+
+    // The normal case, and what makes a count worth more here than advice: an agent that reads a zero and an
+    // empty list of verdicts knows nobody has been here without spending a call to find out.
+    assertThat(untouched.text("placesWithANote")).isEqualTo("0")
+    assertThat(untouched.array("verdictsSetByHand")).isEmpty()
+    assertThat(untouched.keys).doesNotContain("alreadyWorkedOn")
+
+    call("take_note", "place" to hex(heapDump.holderObjectId), "text" to "The holder is a static singleton.")
+
+    val worked = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.name)
+
+    // And only then is there something to say, which is the other half of it: this sentence used to be in
+    // `agent_log`'s own description, where every agent on every dump read it.
+    assertThat(worked.text("placesWithANote")).isEqualTo("1")
+    assertThat(worked.text("alreadyWorkedOn")).contains("read_notes").contains(AGENT_LOG)
+  }
+
+  @Test
   fun `a heap dump already open can be named by its file name rather than its path`() {
     // An agent is as often told "investigate leak.hprof" as given a path, and the name is what every answer
     // on this surface is written in — so a name that names an open window is that window.

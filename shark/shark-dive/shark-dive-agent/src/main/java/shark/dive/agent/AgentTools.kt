@@ -89,15 +89,16 @@ internal class AgentTools(
   ) { _ ->
     val dumps = heapDumps.openHeapDumps()
     val indexing = heapDumps.openingHeapDumpPaths()
+    val described = dumps.map { describedDump(it) }
     buildJsonObject {
       // With the answer rather than only in the handshake, because a client that drops the handshake's
       // instructions is a client whose model never saw them. See [AgentMethod].
       put("method", AgentMethod.INSTRUCTIONS)
-      // Nothing here is a read of a heap dump: a name, a path, the sizes worked out while opening it and the
-      // verdicts, all of them already in memory. Which is what makes this the one call that touches every
-      // open window and still answers in no time — it used to queue behind each window's current read, and
-      // with three dumps open that was 40 seconds of waiting on a dump the agent had not asked about.
-      putJsonArray("heapDumps") { dumps.forEach { add(describedDump(it)) } }
+      // Nothing here is a read of a heap dump: a name, a path, the sizes worked out while opening it, the
+      // verdicts, and a directory listed for the notes. Which is what makes this the one call that touches
+      // every open window and still answers in no time — it used to queue behind each window's current read,
+      // and with three dumps open that was 40 seconds of waiting on a dump the agent had not asked about.
+      putJsonArray("heapDumps") { described.forEach { add(it) } }
       // The paths this run was started on, whether or not anything is open: a second dump still indexing while
       // the first one is readable is a dump an agent would otherwise never hear about.
       if (indexing.isNotEmpty()) {
@@ -132,11 +133,12 @@ internal class AgentTools(
     // every other tool takes one.
     val already = resolvedDump(path)
     val dump = already ?: openFile(path)
+    val described = describedDump(dump)
     buildJsonObject {
       // Here as well as in the listing, because this is the other call an investigation can start with and
       // the method has to reach a model that starts here. See [AgentMethod].
       put("method", AgentMethod.INSTRUCTIONS)
-      describedDump(dump).forEach { (name, value) -> put(name, value) }
+      described.forEach { (name, value) -> put(name, value) }
       // Whether this opened anything, which is the difference between an agent that has just cost somebody a
       // window and one that joined the window they are watching.
       put("wasAlreadyOpen", already != null)
@@ -167,14 +169,34 @@ internal class AgentTools(
     return heapDumps.open(file)
   }
 
-  /** One open heap dump, as both of the calls that name one answer with it. */
-  private fun describedDump(dump: AgentHeapDump): JsonObject = AgentJson.heapDump(
-    heapDumpName = dump.heapDumpName,
-    windowId = dump.windowId,
-    heapDumpPath = dump.heapDumpPath,
-    sizes = dump.sizes,
-    verdicts = dump.verdicts
-  )
+  /**
+   * One open heap dump, as both of the calls that name one answer with it.
+   *
+   * Suspending for the notes, which are a directory listing rather than a read of the heap dump — so the
+   * listing of every open dump still waits on nothing, which is the property its own comment is about.
+   */
+  private suspend fun describedDump(dump: AgentHeapDump): JsonObject {
+    val notedPlaces = dump.notedPlaces().size
+    val described = AgentJson.heapDump(
+      heapDumpName = dump.heapDumpName,
+      windowId = dump.windowId,
+      heapDumpPath = dump.heapDumpPath,
+      sizes = dump.sizes,
+      verdicts = dump.verdicts,
+      placesWithANote = notedPlaces
+    )
+    if (notedPlaces == 0 && dump.verdicts.isEmpty) {
+      return described
+    }
+    return buildJsonObject {
+      described.forEach { (name, value) -> put(name, value) }
+      // Only when there is something, which is what makes it worth reading. $AGENT_LOG used to recommend
+      // itself in its own description, to every agent on every dump, and the recommendation was wrong for
+      // nearly all of them: an untouched heap dump is the normal case and a call that answers "nobody has
+      // been here" is a call spent on what this field already said.
+      put("alreadyWorkedOn", ALREADY_WORKED_ON)
+    }
+  }
 
   private fun listLeaks() = AgentTool(
     name = LIST_LEAKS,
@@ -194,10 +216,10 @@ internal class AgentTools(
     description = "What has already been done to this heap dump, by you and by anybody else: one entry per " +
       "session, newest first, with what it concluded and how many of its calls were refused — and with " +
       "`$SESSION`, every call of one session in order, each with the reason the agent gave and the exact " +
-      "text it sent and read back. The " +
-      "window's *Agent logs* screen, which is where a person reads the same thing. Worth reading before " +
-      "starting: an investigation somebody already ran is either the answer or the half of the dump not " +
-      "worth doing again. Sessions of earlier runs of the app are in it, and so is this one.",
+      "text it sent and read back. The window's *Agent logs* screen, which is where a person reads the same " +
+      "thing. **What an earlier investigation found is $READ_NOTES**; this is how it got there, which is " +
+      "what to read when a conclusion looks wrong or a run was abandoned. Sessions of earlier runs of the " +
+      "app are in it, and so is this one.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
       SESSION to string(
@@ -470,7 +492,7 @@ internal class AgentTools(
   }
 
   private fun readNotes() = AgentTool(
-    name = "read_notes",
+    name = READ_NOTES,
     description = "What has already been written about this heap dump — by the person at the window, by " +
       "you earlier, or by whoever read it last. Without `$PLACE`, every place that has a note, so that an " +
       "investigation starts from what is known rather than on top of it. With one, that note in full. " +
@@ -504,7 +526,7 @@ internal class AgentTools(
     description = "Writes markdown into the notes of one place in this heap dump, which is where the " +
       "person at the window reads them and what the next reader of this dump finds. Appends by default, " +
       "leaving whatever was there; `$REPLACE` true puts yours in place of it, which is what correcting " +
-      "something you wrote earlier is — read it first with read_notes. Notes are kept between runs of the " +
+      "something you wrote earlier is — read it first with $READ_NOTES. Notes are kept between runs of the " +
       "app. Write what you found and where you looked, not what you are about to do.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
@@ -846,6 +868,7 @@ internal class AgentTools(
     /** Named because another tool's description tells an agent to call it, or its own says what it is. */
     const val LIST_LEAKS = "list_leaks"
     const val AGENT_LOG = "agent_log"
+    const val READ_NOTES = "read_notes"
     const val FIND_OBJECTS = "find_objects"
     const val DOMINATOR_TREE = "dominator_tree"
 
@@ -889,6 +912,19 @@ internal class AgentTools(
      */
     const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this heap dump to see what it says about " +
       "itself, or $DOMINATOR_TREE to see where its memory has gone."
+
+    /**
+     * What to do about a heap dump somebody has already worked on, said only when one has — see
+     * [describedDump].
+     *
+     * This is the recommendation [AGENT_LOG] used to make in its own description, where it reached every agent
+     * on every dump and was wrong for nearly all of them. It belongs on the answer that knows: the notes and
+     * the verdicts are in that answer, so a dump with neither needs no advice about reading them.
+     */
+    const val ALREADY_WORKED_ON = "Somebody has already worked on this heap dump. Call $READ_NOTES before " +
+      "investigating: what they found is either the answer or the half of this dump not worth doing again. " +
+      "$AGENT_LOG has the sessions behind it, call by call, which is what to read when their conclusion " +
+      "looks wrong."
 
     /**
      * The open heap dumps as a refusal names them: what to say back, and the window id behind each.

@@ -52,15 +52,18 @@ internal object AgentJson {
    * The name first because it is what every other call names this dump by — [AgentTools.HEAP_DUMP] — and the
    * window id after it, for the one thing the name can't say: which of two windows on one file.
    *
-   * None of it is read from the heap dump: the sizes were worked out while opening it and the verdicts are on
-   * disk, which is what lets the listing of every open dump wait on none of them. See [AgentHeapDump.sizes].
+   * None of it is read from the heap dump: the sizes were worked out while opening it and the verdicts and the
+   * notes are on disk — [placesWithANote] is a directory listing — which is what lets the listing of every
+   * open dump wait on none of them. See [AgentHeapDump.sizes].
    */
   fun heapDump(
     heapDumpName: String,
     windowId: String,
     heapDumpPath: String,
     sizes: HeapSizes,
-    verdicts: LeakStatusOverrides
+    verdicts: LeakStatusOverrides,
+    /** How many places of this dump somebody has written about, as [AgentHeapDump.notedPlaces] counts them. */
+    placesWithANote: Int
   ): JsonObject = buildJsonObject {
     put("heapDump", heapDumpName)
     put("window", windowId)
@@ -82,6 +85,11 @@ internal object AgentJson {
       }
     }
     put("verdictsSetByHand", verdicts(verdicts))
+    // Whether anybody has been here, which is the question every investigation opens with and whose answer is
+    // nearly always nobody. This and the verdicts above are what work on a heap dump leaves behind — a
+    // finished investigation sets verdicts and writes a note, since `conclude` requires the one and writes the
+    // other — so an agent that reads them here spends no call finding out there is nothing to read.
+    put("placesWithANote", placesWithANote)
   }
 
   /**
