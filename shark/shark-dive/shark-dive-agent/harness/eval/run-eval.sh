@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Measures whether an agent can solve a leak through Shark Dive's MCP surface, and scores it by string
+# Measures whether an agent can solve a leak through Shark Dive's agent surface, and scores it by string
 # comparison and counting. No model marks anything: see shark/shark-dive/notes/agent-eval.md.
 #
 # One run is one scenario, one model, one repetition, and one session file. The heap dumps and the scoring
@@ -10,11 +10,17 @@
 #   ./run-eval.sh                                        every scenario, the default model, once each
 #   ./run-eval.sh --scenarios two-apart --repetitions 5   one scenario, five times
 #   ./run-eval.sh --models opus,sonnet                    two models over the same dumps, in one table
+#   ./run-eval.sh --transport mcp                         the same runs through an MCP client instead
 #
 # Costs money and needs the network, so it is not in CI. Run it before and after a change to the method or a
 # refusal and commit the table it prints, or the change is a prompt change nobody reviewed.
 #
-# **Four things here are about keeping a run from being told the answer**, and all four were found by running
+# **Nothing here opens the heap dump.** The agent is told where the file is and how to reach Shark Dive, and
+# opening it is the first thing it has to get right — which is the first thing a person has to get right too,
+# and the part `.claude/skills/shark-dive/SKILL.md` exists to carry. An eval that handed over a dump already
+# open measured every step of an investigation except the one that starts it. See `prompt_for`.
+#
+# **Six things here are about keeping a run from being told the answer**, and all of them were found by running
 # it rather than by thinking about it — see `set_up_run`. A run that leaks its own answer scores well and
 # measures nothing, which is the one failure of an eval that doesn't announce itself.
 
@@ -22,7 +28,7 @@ set -euo pipefail
 
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../../.." && pwd)"
 readonly APP_PATH="shark/shark-dive/shark-dive-app/build/compose/binaries/main/app/Shark Dive.app"
-readonly SESSIONS_DIRECTORY="$HOME/.shark-dive/agents/sessions"
+readonly SKILL_PATH=".claude/skills/shark-dive"
 readonly TEMPORARY_DIRECTORY="${TMPDIR:-/tmp}"
 readonly EVAL_DIRECTORY="${SHARK_EVAL_DIR:-${TEMPORARY_DIRECTORY%/}/shark-dive-eval}"
 # Every invocation gets a directory of its own, named for when it started, because notes and verdicts are kept
@@ -30,40 +36,54 @@ readonly EVAL_DIRECTORY="${SHARK_EVAL_DIR:-${TEMPORARY_DIRECTORY%/}/shark-dive-e
 # concerned, and the second agent to be given it opens a dump somebody else already solved. Which is not a
 # hypothetical — see `set_up_run`.
 readonly RUN_SET="$EVAL_DIRECTORY/$(date +%Y-%m-%d_%H-%M-%S)"
+# Where Shark Dive keeps what it writes, for this eval only: the runs it publishes, the sessions, the notes,
+# the verdicts, the record of where each heap dump was. Every process an agent starts inherits it, which is
+# the whole reason it is an environment variable — see `sharkDiveDirectory` in `DiveLogging.kt`.
+readonly SHARK_DIVE_DIR="$RUN_SET/shark-dive"
+export SHARK_DIVE_DIR
+readonly SESSIONS_DIRECTORY="$SHARK_DIVE_DIR/agents/sessions"
+readonly PUBLISHED_RUNS_DIRECTORY="$SHARK_DIVE_DIR/agents"
+# And where the client keeps its own configuration, for the same reason: without this the agent is handed
+# every skill and every CLAUDE.md of whoever ran the eval. Measured: 71 skills on this machine, one of them
+# about investigating memory leaks. See `run_client`.
+readonly CLIENT_CONFIG_DIRECTORY="$RUN_SET/claude"
 readonly EVAL_MODULE=":shark:shark-dive:shark-dive-eval"
 # Long enough for a real dump to be indexed and an investigation to run, short enough that a client which
 # hung on a refusal doesn't hold the whole eval. A run that hits it is scored for what it did before it.
 readonly RUN_TIMEOUT_SECONDS="${SHARK_EVAL_TIMEOUT:-900}"
-
-# What every run of every scenario is asked, and it says nothing about how to investigate. What the agent
-# follows has to come from the server, or the eval is measuring this file.
-readonly PROMPT="A heap dump is open in Shark Dive, which you can reach through its MCP tools. Something \
-in it is leaking. Find the root cause."
+readonly CLOSING_WAIT_SECONDS=15
 
 main() {
-  local scenarios="all" models="opus" repetitions=1
+  local scenarios="all" models="opus" repetitions=1 transport="cli"
   while (($#)); do
     case "$1" in
       --scenarios) scenarios="$2"; shift 2 ;;
       --models | --model) models="$2"; shift 2 ;;
       --repetitions) repetitions="$2"; shift 2 ;;
+      --transport) transport="$2"; shift 2 ;;
       --help | -h) usage; exit 0 ;;
       *) echo "Unknown option $1" >&2; usage >&2; exit 1 ;;
     esac
   done
+  case "$transport" in
+    cli | mcp) ;;
+    *) echo "There is no \"$transport\" transport. It is cli or mcp." >&2; exit 1 ;;
+  esac
 
   require_client
 
   # The sets before this one, because each is a directory of heap dumps and one of them is 8 MB. Which means a
   # run is readable in a window until the next eval starts and not after it, so read a failure before rerunning.
   rm -rf "$EVAL_DIRECTORY"
-  mkdir -p "$RUN_SET/dumps" "$RUN_SET/runs"
+  mkdir -p "$RUN_SET/dumps" "$RUN_SET/runs" "$SESSIONS_DIRECTORY" "$CLIENT_CONFIG_DIRECTORY"
   local app
-  app="$(built_app)"
+  app="$(bundle_for_the_eval)"
 
   echo "Writing the scenario heap dumps into $RUN_SET/dumps."
   local scenario_lines
   scenario_lines="$(eval_module scenarios "$RUN_SET/dumps" "$REPO_ROOT")"
+
+  echo "Reaching Shark Dive over the $transport transport. $(what_the_transport_is "$transport")"
 
   local runs="$RUN_SET/runs.tsv"
   : >"$runs"
@@ -83,7 +103,7 @@ main() {
     for model in ${models//,/ }; do
       for ((repetition = 1; repetition <= repetitions; repetition++)); do
         run_number=$((run_number + 1))
-        run_once "$app" "$name" "$dump" "$model" "$repetition" "$run_number" "$runs"
+        run_once "$app" "$transport" "$name" "$dump" "$model" "$repetition" "$run_number" "$runs"
       done
     done
   done <<<"$scenario_lines"
@@ -94,25 +114,37 @@ main() {
   eval_module score "$runs" "$REPO_ROOT" "$SESSIONS_DIRECTORY"
   cat <<END
 
-Every run has a directory of its own under $RUN_SET/runs: what it was, what the client reported, and
-the heap dump as that run saw it. What the agent did call by call is on the *Agent logs* screen of a window
-opened on that dump, with the notes and the verdicts it left:
+Every run has a directory of its own under $RUN_SET/runs: what it was, what it was asked, what the client
+reported, the client's own transcript, and the heap dump as that run saw it. What the agent did call by call
+is on the *Agent logs* screen of a window opened on that dump, with the notes and the verdicts it left:
 
-  ./gradlew :shark:shark-dive:shark-dive-app:runNamed \\
-    --args="--title=\\"Eval\\" $RUN_SET/runs/1/heap-dump.hprof"
+  SHARK_DIVE_DIR="$SHARK_DIVE_DIR" \\
+    "$app/Contents/MacOS/Shark Dive" --title="Eval run 1" $RUN_SET/runs/1/heap-dump.hprof
+
+That variable is not optional: everything these runs wrote is under it rather than in ~/.shark-dive, so a
+window started without it opens the same dump with none of the investigation on it.
 END
 }
 
 # One agent, one scenario, one repetition. Appends a line to the runs file naming the session it produced.
 run_once() {
-  local app="$1" scenario="$2" dump="$3" model="$4" repetition="$5" run_number="$6" runs="$7"
+  local app="$1" transport="$2" scenario="$3" dump="$4" model="$5" repetition="$6" run_number="$7" runs="$8"
   local directory
-  directory="$(set_up_run "$scenario" "$dump" "$model" "$repetition" "$run_number")"
-  write_mcp_config "$app" "$directory"
+  directory="$(set_up_run "$scenario" "$dump" "$model" "$repetition" "$transport" "$run_number")"
+  install_the_skill "$directory"
+  if [[ "$transport" == "mcp" ]]; then
+    write_mcp_config "$app" "$directory"
+  fi
+  prompt_for "$transport" "$app" "$directory" >"$directory/prompt.txt"
 
-  # Which session files existed before, because the client starts the server and the server names its own
-  # session file: the new one is the difference. The alternative is parsing timestamps out of file names,
-  # which two runs a second apart would get wrong.
+  # Nothing of the run before this one, because `open_heap_dumps` lists every published run and the first
+  # thing the skill says to do when you were given nothing is ask what is open. A window left up is this
+  # eval offering the previous scenario to the next agent.
+  close_the_runs
+
+  # Which session files existed before, because the server names its own session file and the new one is the
+  # difference. The alternative is parsing timestamps out of file names, which two runs a second apart would
+  # get wrong.
   local before
   before="$(session_files)"
 
@@ -122,7 +154,7 @@ run_once() {
   # Deliberately not `set -e`'s business: a client that exits non-zero — a timeout, a refusal it gave up on,
   # a crash — is a run to score for what it did rather than an eval to abandon. The session file is written
   # per call, so whatever it managed is on disk.
-  if ! run_client "$directory" "$model"; then
+  if ! run_client "$transport" "$directory" "$model"; then
     echo "    the client exited non-zero, which the session still says what happened up to"
   fi
   ended="$(date +%s)"
@@ -130,19 +162,20 @@ run_once() {
   local session
   session="$(comm -13 <(echo "$before") <(session_files) | head -1)"
   if [[ -z "$session" ]]; then
-    echo "    no session was written: the server never got as far as a handshake. See $directory/client.stderr"
+    echo "    no session was written: nothing ever reached Shark Dive. See $directory/client.stderr"
     return 0
   fi
-  # The dump as this run's server was pointed at it, because scoring checks that the conclusion was about it:
-  # a run that ended up in another heap dump measured nothing, and is not a wrong answer. See EvalOutcome.
+  # The dump this run was set up around, because scoring checks that the conclusion was about it: a run that
+  # ended up in another heap dump measured nothing, and is not a wrong answer. See EvalOutcome.WANDERED.
   printf '%s\t%s\t%s\t%s\n' "$scenario" "$model" "$session" "$directory/heap-dump.hprof" >>"$runs"
   echo "    $((ended - started))s, session $session"
 }
 
 # One run's own directory, and it prints where it is.
 #
-# Four things about the shape of it are what keep a run from being handed its own answer. Each was a run that
-# scored well and measured nothing:
+# Six things about the shape of it are what keep a run from being handed its own answer. Each was a run that
+# scored well and measured nothing, or — for the last two — a way in that opened the moment the agent got a
+# shell:
 #
 # **The heap dump is called `heap-dump.hprof`, whatever the scenario is**, and the scenario's own dump sits in a
 # numbered directory rather than a named one. An agent is answered with the path of the dump it is reading, so a
@@ -153,39 +186,99 @@ run_once() {
 # **A run's dump is in a directory of its own, and every invocation's runs are under [RUN_SET].** Notes and
 # verdicts are kept per heap dump, keyed by the file name and the directory it is in — so five runs over one
 # path would be one run and four agents reading the conclusion of the first, and `runs/3` reused by the next
-# eval a week later is that same agent again. A symlink rather than a copy: the key is not the resolved path, so
-# the identity is fresh and the 8 MB is not copied five times.
+# eval a week later is that same agent again. A **hard link** rather than a copy, so the 8 MB is not written
+# five times, and rather than a symlink because a symlink has a resolved path and an agent with a shell
+# resolves things: `realpath` on one of those lands in the shared `dumps` directory, which is one identity for
+# every run of that scenario and the wrong file to be scored against.
 #
-# **The client's working directory holds nothing but its MCP config.** Its own environment lists that
-# directory in what it is told, so the other scenarios' dumps being in it is the eval naming every answer at
-# once. Which is exactly what the first run of this script did: it opened all three and solved all three.
+# **The client's working directory holds nothing but its configuration and the skill.** Its own environment
+# lists that directory in what it is told, so the other scenarios' dumps being in it is the eval naming every
+# answer at once. Which is exactly what the first run of this script did: it opened all three and solved all
+# three.
 #
-# **And a run that wandered anyway is scored as having wandered**, not as having answered wrongly. Two did,
-# before [RUN_SET] existed: given a dump the previous eval had already solved — same path, so the same notes and
+# **Shark Dive's own state directory is this eval's, not the person's.** [SHARK_DIVE_DIR], inherited by every
+# process a run starts. Without it an agent asking what is open is shown whatever dives are up on the machine,
+# `open_heap_dump` on a file somebody already investigated hands back their verdicts, and the eval writes its
+# notes into their notes.
+#
+# **And the client's configuration directory is this eval's too**, so what a run has to work with is the
+# surface and not this machine: 71 skills are installed here, one of them about investigating memory leaks in
+# an iOS app, and every one of them would have been in the system prompt of every run.
+#
+# **A run that wandered anyway is scored as having wandered**, not as having answered wrongly. Two did, before
+# [RUN_SET] existed: given a dump the previous eval had already solved — same path, so the same notes and
 # verdicts — an agent that has nothing left to investigate goes looking for a dump that does, and both of them
-# guessed a path in this eval's own directory and investigated that instead. The check stays now that the cause
-# is gone, because that is how this eval reports its own failure rather than blaming a model for one.
+# guessed a path in this eval's own directory and investigated that instead. **This is the only one of the six
+# that is a guarantee**, and it has to be, because the `cli` transport hands the agent a shell: no arrangement
+# of paths hides a file from a process that can run `find`. What the others buy is that nothing *invites* a
+# wrong dump; what this buys is that taking the invitation can never look like a pass.
 set_up_run() {
-  local scenario="$1" dump="$2" model="$3" repetition="$4" run_number="$5"
+  local scenario="$1" dump="$2" model="$3" repetition="$4" transport="$5" run_number="$6"
   local directory="$RUN_SET/runs/$run_number"
   mkdir -p "$directory/cwd"
-  ln -sf "$dump" "$directory/heap-dump.hprof"
+  ln -f "$dump" "$directory/heap-dump.hprof"
   # Beside the run rather than in it, so that a directory of numbers is still readable afterwards.
-  printf '%s\t%s\t%s\n' "$scenario" "$model" "$repetition" >"$directory/what.txt"
+  printf '%s\t%s\t%s\t%s\n' "$scenario" "$model" "$repetition" "$transport" >"$directory/what.txt"
   echo "$directory"
+}
+
+# The skill this repository ships, in the working directory of the run, so that what is measured is the skill
+# people get rather than a copy of it written for the eval.
+#
+# It is the whole of how a run is meant to start — which launcher to find, that `--agent-help` is the tool
+# list, that an address is `0x…`, that a refusal is the next thing to do — and **a client discovers it by its
+# description alone**, from the one sentence of frontmatter. So a run that never invokes it is a finding about
+# that sentence rather than about the model, and the client transcript beside each run is where that shows.
+#
+# Copied rather than symlinked because a symlink out of a temporary directory into the checkout is a skill the
+# client may decline to load, and because a run has to stay readable after the checkout has moved on.
+install_the_skill() {
+  local directory="$1"
+  mkdir -p "$directory/cwd/.claude/skills"
+  cp -R "$REPO_ROOT/$SKILL_PATH" "$directory/cwd/.claude/skills/"
+}
+
+# What a run is asked, and it says three things: where the heap dump is, how to reach Shark Dive, and that
+# something in it is leaking.
+#
+# **Not how to investigate.** What the agent follows has to come from the surface — the method arrives with
+# whichever call opens the dump — or the eval is measuring this function. And not which tool to call either:
+# opening the dump is a step of the investigation, and the one the skill is most of.
+#
+# The launcher is named rather than left to be found, which is the one concession. The skill says to look in
+# /Applications and ~/Applications, and this app is in neither: it is a copy of a build, in a temporary
+# directory, so a run told to go and find it would be measuring an `ls` this eval's own shape breaks.
+prompt_for() {
+  local transport="$1" app="$2" directory="$3"
+  local surface
+  case "$transport" in
+    cli) surface="Shark Dive is installed on this machine. Its launcher is \"$app/Contents/MacOS/Shark Dive\"." ;;
+    mcp) surface="Shark Dive is connected to you as an MCP server called shark-dive." ;;
+  esac
+  cat <<END
+Something in the heap dump at $directory/heap-dump.hprof is leaking. Find the root cause.
+
+$surface
+END
 }
 
 # The client, with nothing of this machine to work with but the heap dump.
 #
-# `--tools ""` turns off every built-in tool, which is the control that makes the number mean something: the
-# heap dump and the tool descriptions are then the whole of what the model has, so a change in the score is a
-# change in this surface rather than in what it managed to read off the disk. The method tells an agent to go
-# and read the code, and it is right to — but a scenario that measures *that* has to ship the code to read,
-# which none of these do yet.
+# **The tools are the transport and nothing else.** `cli` gets `Bash` — to run the launcher — and `Skill`, to
+# load the one in its working directory. `mcp` gets the MCP tools and no built-in tool at all, because over
+# MCP the surface arrives in band: the schemas are in the client's context and there is nothing to discover.
+# So the two arms are the comparison `notes/agent-surface.md` argues about — what the command line has to pay
+# a skill to say, against what MCP spends context to have said for it.
 #
-# `--strict-mcp-config` for the same reason the interactive harness uses it: no other MCP server, and no
-# memory of this project. Your own ~/.claude/CLAUDE.md still loads, which is the one thing this cannot keep
-# out.
+# **`Bash` is a hole in the `cli` arm and it is a bounded one.** An agent with a shell can read the hprof by
+# hand, and nothing here can stop it. What keeps that from becoming a score is that scoring reads what
+# `conclude` recorded, and `conclude` refuses until the chain has been narrowed through the surface — so the
+# shell can make a run *faster* at guessing, and cannot make a run that skipped the method look like one that
+# followed it. The client transcript beside each run is where a run that reached for `strings` shows up.
+#
+# `--strict-mcp-config` for the same reason the interactive harness uses it: no other MCP server. Together
+# with [CLIENT_CONFIG_DIRECTORY] that is the whole of this machine kept out, ~/.claude/CLAUDE.md included,
+# which the harness cannot do because a person's own skills are what it is there to let them use.
 #
 # `client.json` is the one object `--output-format json` prints — cost, turn count, token usage, stop reason
 # and the final answer — and it is **not** a transcript: the model's own turns, and the thinking between two
@@ -194,16 +287,21 @@ set_up_run() {
 # `--no-session-persistence` bought none of it while throwing away the half of a run that says *why* a call
 # was made. It was here for four commits and the run it made unreadable is in `notes/agent-eval.md`.
 run_client() {
-  local directory="$1" model="$2"
+  local transport="$1" directory="$2" model="$3"
+  local -a of_the_transport
+  if [[ "$transport" == "cli" ]]; then
+    of_the_transport=(--tools "Bash,Skill" --allowedTools "Bash Skill")
+  else
+    of_the_transport=(--tools "" --allowedTools "mcp__shark-dive" --mcp-config mcp.json)
+  fi
   (
     cd "$directory/cwd"
+    export CLAUDE_CONFIG_DIR="$CLIENT_CONFIG_DIRECTORY"
     timeout_command "$RUN_TIMEOUT_SECONDS" claude \
-      --print "$PROMPT" \
+      --print "$(cat "$directory/prompt.txt")" \
       --model "$model" \
-      --mcp-config mcp.json \
       --strict-mcp-config \
-      --allowedTools "mcp__shark-dive" \
-      --tools "" \
+      "${of_the_transport[@]}" \
       --output-format json \
       >"$directory/client.json" 2>"$directory/client.stderr"
   )
@@ -213,12 +311,14 @@ run_client() {
 # The client's own record of the run, beside the two this eval writes.
 #
 # Found by session id rather than by rebuilding the path, because where Claude Code keeps a transcript is its
-# business: it is under ~/.claude/projects in a directory named after the working directory, and a rule for
-# turning one into the other is a rule that breaks silently on the next release. The id is in `client.json`,
-# a run has a working directory of its own, and `find` is the whole of what that costs.
+# business: it is under the client's configuration directory in a directory named after the working directory,
+# and a rule for turning one into the other is a rule that breaks silently on the next release. The id is in
+# `client.json`, a run has a working directory of its own, and `find` is the whole of what that costs.
 #
 # A run that timed out or died has no id and so no transcript, which is exactly when the Shark Dive session
 # log is the one to read: it has every call that was made before the client stopped.
+#
+# `claude-code-log` renders one of these as a page to read: `claude-code-log convert <the file> -o run.html`.
 copy_client_transcript() {
   local directory="$1"
   local session_id
@@ -228,12 +328,44 @@ copy_client_transcript() {
     return 0
   fi
   local transcript
-  transcript="$(find "$HOME/.claude/projects" -name "$session_id.jsonl" -print -quit 2>/dev/null)"
+  transcript="$(find "$CLIENT_CONFIG_DIRECTORY/projects" -name "$session_id.jsonl" -print -quit 2>/dev/null)"
   if [[ -z "$transcript" ]]; then
-    echo "  no transcript found for session $session_id under ~/.claude/projects" >&2
+    echo "  no transcript found for session $session_id under $CLIENT_CONFIG_DIRECTORY/projects" >&2
     return 0
   fi
   cp "$transcript" "$directory/client-transcript.jsonl"
+}
+
+# Ends every Shark Dive this eval has published, and only those: [PUBLISHED_RUNS_DIRECTORY] is under
+# [SHARK_DIVE_DIR], so a person's own dives are not in it and cannot be killed from here.
+#
+# One window per run is the cost of the `cli` transport — a command line talks to a run over a socket, and a
+# `--no-ui` server publishes none — and thirty windows left open would be thirty indexed heap dumps and a
+# machine nobody can use. Killed between runs rather than at the end so that each agent's `open_heap_dumps`
+# answers with its own dump or with nothing.
+close_the_runs() {
+  local file pid waited=0
+  local -a pids=()
+  for file in "$PUBLISHED_RUNS_DIRECTORY"/*.agent; do
+    [[ -e "$file" ]] || continue
+    pid="$(basename "$file" .agent)"
+    if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      pids+=("$pid")
+    fi
+    rm -f "$file"
+  done
+  ((${#pids[@]})) || return 0
+  while ((waited < CLOSING_WAIT_SECONDS)); do
+    local alive=0
+    for pid in "${pids[@]}"; do
+      kill -0 "$pid" 2>/dev/null && alive=1
+    done
+    ((alive)) || return 0
+    sleep 1
+    ((waited++))
+  done
+  echo "  ${#pids[@]} Shark Dive run(s) did not end within ${CLOSING_WAIT_SECONDS}s: ${pids[*]}" >&2
 }
 
 # `timeout` is GNU, and macOS has it only if coreutils is installed. Without one, the run is unbounded and
@@ -251,11 +383,17 @@ timeout_command() {
   fi
 }
 
-# The server the client launches: this app, answering from its own process with no window.
+# The MCP arm's server: this app, answering from its own process with no window.
 #
-# `--no-ui` rather than a window per run, because thirty windows is thirty indexed heap dumps and nobody is
-# watching any of them. What an investigation leaves behind is on disk either way, so the run is still
-# readable in a window afterwards — which is the last thing this script prints.
+# **No heap dump on the command line**, which is the difference between measuring an investigation and
+# measuring the end of one. A dump named here is one already open before the agent has said anything, and the
+# agent is then told a path it has no way to connect to what it can see — so it calls `open_heap_dump` with
+# the path it was given, which is a *second* dump as far as this server is concerned unless the two strings
+# match exactly. That is what `EvalOutcome.WANDERED` was catching.
+#
+# `--no-ui` rather than a window, because over MCP the client owns the server's lifetime and there is nothing
+# for a window to add: what an investigation leaves behind is files either way, so the run is still readable
+# in a window afterwards — which is the last thing this script prints.
 write_mcp_config() {
   local app="$1" directory="$2"
   cat >"$directory/cwd/mcp.json" <<END
@@ -263,14 +401,23 @@ write_mcp_config() {
   "mcpServers": {
     "shark-dive": {
       "command": "$app/Contents/MacOS/Shark Dive",
-      "args": ["--mcp-stdio", "--no-ui", "$directory/heap-dump.hprof"]
+      "args": ["--mcp-stdio", "--no-ui"]
     }
   }
 }
 END
 }
 
-built_app() {
+# The app the runs launch: a copy of the packaged one, and it prints where it put it.
+#
+# A copy for the two reasons `start-harness.sh` copies — `build/compose` is deleted by the next Compose task,
+# and a window whose bundle went out from under it dies; and the dock reads the file name of the bundle, so a
+# name of its own is how somebody tells the eval's windows from their own — plus one that is this script's:
+# it is under [RUN_SET], so the app a run was measured with is deleted with the run set and a table can never
+# be read against a build that has moved on.
+#
+# `cp -c` clones rather than copies, so 240 MB of jlinked runtime costs 80 ms and no disk on APFS.
+bundle_for_the_eval() {
   local built="$REPO_ROOT/$APP_PATH"
   echo "Building the app. jlink takes about a minute the first time." >&2
   (cd "$REPO_ROOT" && ./gradlew --quiet :shark:shark-dive:shark-dive-app:createDistributable)
@@ -278,7 +425,13 @@ built_app() {
     echo "The app was not built at $built" >&2
     exit 1
   fi
-  echo "$built"
+  local copy="$RUN_SET/Shark Dive Eval.app"
+  cp -Rc "$built" "$copy" 2>/dev/null || cp -R "$built" "$copy"
+  local plist="$copy/Contents/Info.plist"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleName Shark Dive Eval" "$plist" >/dev/null
+  /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Shark Dive Eval" "$plist" >/dev/null 2>&1 ||
+    /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Shark Dive Eval" "$plist" >/dev/null
+  echo "$copy"
 }
 
 # The eval module, on stdout, with Gradle's own noise on stderr where it belongs.
@@ -288,6 +441,13 @@ eval_module() {
 
 session_files() {
   ls "$SESSIONS_DIRECTORY" 2>/dev/null | sort || true
+}
+
+what_the_transport_is() {
+  case "$1" in
+    cli) echo "One process per call, against a window each run opens for itself, with the skill to find it by." ;;
+    mcp) echo "A server per run with no window, and the tools in the client's context." ;;
+  esac
 }
 
 require_client() {
@@ -307,12 +467,16 @@ END
 usage() {
   cat <<END
 Usage: run-eval.sh [--scenarios all|<name>,<name>] [--models <name>,<name>] [--repetitions <n>]
+                   [--transport cli|mcp]
 
   --scenarios    Which to run, comma separated. Default: all.
   --models       What to pass the client as its model, comma separated. Default: opus. A weak model is
                  where a surface is measured: a strong one papers over a bad description.
   --repetitions  Runs per scenario, reported as x/n rather than averaged, because a model is not
                  deterministic. Default: 1, and 5 is what a result worth committing takes.
+  --transport    Which adapter the agent reaches Shark Dive through. Default: cli — a shell and the skill
+                 this repository ships, which is what somebody who installed the app has. \`mcp\` is a
+                 client configured with the server instead. One per invocation, so a table is one surface.
 END
 }
 

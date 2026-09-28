@@ -5,6 +5,7 @@ An eval of the agent surface. `shark-dive-eval` is the heap dumps and the scorin
 
 ```bash
 shark/shark-dive/shark-dive-agent/harness/eval/run-eval.sh --models opus,sonnet --repetitions 5
+shark/shark-dive/shark-dive-agent/harness/eval/run-eval.sh --scenarios two-apart --transport mcp
 ```
 
 ## What it is for
@@ -59,11 +60,55 @@ better even if its pass rate hasn't moved**, which is why those are two columns 
 Not scored, deliberately: whether a verdict contradicts the key. It would take resolving the addresses in the
 arguments against an open dump, and a verdict that was wrong and then corrected is not a worse run.
 
-## Four ways a run gets handed its own answer
+## Getting to the heap dump is part of what is measured
 
-All four of these were runs that scored well or failed for the wrong reason, and every one was found by running
-the script rather than by reading it. They live in `set_up_run`, and they are the part of this worth knowing
-before changing anything:
+**The eval opens nothing.** A run is given the skill, `.claude/skills/shark-dive/SKILL.md` copied into its
+working directory, and a prompt that says where the file is and where the launcher is — and then it is on its
+own. Which is how anybody meets this app: a dump arrives with a bug report, and the first question is what to
+run. Earlier versions of this script started the app on the run's dump and handed the agent a live session, so
+every number was about a surface reached halfway through; `open_heap_dump` is the most-called tool here and it
+was the one the eval could say nothing about.
+
+`--transport` picks how the calls get there, and **both arms are the same tools**, which is the point of
+`notes/agent-surface.md`'s two adapters:
+
+- **`cli`, the default.** The client is given `Bash` and `Skill` and nothing else, and it runs
+  `"…/Shark Dive" --agent <tool> name=value …`. A window per run, because `--no-ui` publishes no port and no
+  token and so cannot be reached by a command line at all — which is why a run closes its windows before the
+  next one starts.
+- **`mcp`.** An MCP config pinned to this run, `["--mcp-stdio", "--no-ui"]` with **no path after it**, so the
+  dump the agent opens is the one it went and found.
+
+The default is `cli` because that is how an agent will actually arrive: a shell and a skill, no client
+configuration, nothing to restart. The `mcp` arm stays because the schemas are in band there and the two
+adapters can drift.
+
+**A shell is a hole, and it is a bounded one.** An agent given `Bash` can `find` the dumps directory, or read
+the hprof with `strings`. What stops that mattering is that nothing about a *score* is on the filesystem: the
+key is in `shark-dive-eval`, and an answer only counts once `conclude` has accepted it, which takes verdicts
+the heap dump agrees with. So a shell buys a faster guess at where to look and cannot make a skipped method
+look like a followed one. `WANDERED` is what catches it reading the wrong dump.
+
+### The eval's own state has to be somewhere else, and one bug says why
+
+The `cli` arm is several processes per run, so what they agree on has to be an environment variable —
+`SHARK_DIVE_DIR`, `sharkDiveDirectory` in `DiveLogging.kt`. Which is also the setting worth having for reasons
+that have nothing to do with the eval: a second dive with its own notes is a thing to want.
+
+And the third product bug this eval found is one only the `cli` arm could have found.
+`AgentCommandLine.defaultSessionName` keyed a session on the parent process's id, documented as a shell
+living as long as the conversation does. **Claude Code runs every command it issues in a `zsh -c` of its
+own**, so one nine-call investigation wrote nine session files and drew nine rows of the *Agent logs* screen —
+the artefact this eval is scored off, and the screen a person reads over an agent's shoulder. The fix walks up
+past a shell that was handed one command, and it needs both halves of that test: a name alone walks past
+`claude -c`, which merges two conversations, and a `-c` alone walks past an interactive shell, which merges
+somebody's terminal tabs.
+
+## Six ways a run gets handed its own answer
+
+Every one of these was a run that scored well or failed for the wrong reason, and every one was found by
+running the script rather than by reading it. They live in `set_up_run`, and they are the part of this worth
+knowing before changing anything:
 
 - **The heap dump's file name.** An agent is answered with the path of what it is reading, so a dump called
   `cache-never-evicts.hprof` names the answer before it has read a byte. Every run's dump is
@@ -71,16 +116,32 @@ before changing anything:
   fourth item below is why the name has to be off the filesystem entirely and not merely off this run's copy.
 - **The client's working directory.** Its own environment lists that directory in what the model is told. With
   the three dumps in it, the first run of this script opened all three and solved all three — one session,
-  three conclusions, and a score that meant nothing. A run's working directory now holds one file: its MCP
-  config.
+  three conclusions, and a score that meant nothing. A run's working directory now holds its configuration and
+  the skill, and no heap dump at all.
 - **The notes and the verdicts of the run before, and of the eval before that one.** They are kept per heap
   dump, keyed by file name and directory, so five repetitions over one path are one investigation and four
   agents reading the first one's conclusion — which the very first run demonstrated by calling `read_notes`
-  third. Each run gets a directory of its own with a symlink in it, since the key doesn't resolve symlinks, and
-  every invocation puts its runs under a directory named for when it started. That second half was missing for
-  a day, and the next item is what it cost.
+  third. Each run gets a directory of its own with a **hard link** in it, and every invocation puts its runs
+  under a directory named for when it started. That second half was missing for a day, and the item below is
+  what it cost. The link was a symlink until the `cli` transport arrived: a symlink has a resolved path and an
+  agent with a shell resolves things, so `realpath` lands in the shared `dumps` directory — one identity for
+  every repetition of that scenario, and the wrong file to be scored against.
+- **Shark Dive's own state directory.** `SHARK_DIVE_DIR`, so the runs it publishes, the sessions, the notes,
+  the verdicts and the record of where each dump was are this eval's and not the person's. Without it an agent
+  asking what is open is shown whatever dives are up on the machine, and the eval writes its notes into
+  theirs. It is an environment variable because every process a run starts has to agree on it — a `--agent`
+  call opens a window by running the app again, and an MCP client launches the server from a config file —
+  see `sharkDiveDirectory` in `DiveLogging.kt`.
+- **The client's own configuration directory.** `CLAUDE_CONFIG_DIR`, for the same reason one step out: what a
+  run has to work with is the surface and not this machine. Measured here, 71 installed skills, one of them
+  about investigating memory leaks in an iOS app, and every one of them would have been in the system prompt
+  of every run — along with `~/.claude/CLAUDE.md`.
 - **An agent with nothing left to investigate goes and finds something.** Worth reading in full: it is the one
   that would have been written up as a model failing.
+
+**Only the last one is a guarantee**, and it has to be, because the `cli` transport hands the agent a shell:
+no arrangement of paths hides a file from a process that can run `find`. What the other five buy is that
+nothing *invites* a wrong dump; what `WANDERED` buys is that taking the invitation can never look like a pass.
 
 ### The two runs that wandered
 
@@ -280,22 +341,30 @@ things** — a run that went wrong usually needs two of them:
   tokens, stop reason, and the final answer. Not a transcript, which is what makes it short.
 - `client-transcript.jsonl` — the client's own session file, copied in by `copy_client_transcript`. The
   model's turns, and the thinking between two tool calls, which is the only place a run says *why* it did
-  what it did. Absent for a run that timed out or died before printing a session id.
+  what it did. Absent for a run that timed out or died before printing a session id. Readable as a page with
+  [`claude-code-log`](https://github.com/daaain/claude-code-log) — `claude-code-log convert <the file> -o
+  run.html` — which is worth it for a run somebody is being shown rather than one being grepped.
 - The Shark Dive session — every call with its `reason`, arguments, answer and duration, including the
   refused ones. Present for every run that connected at all, which is why it is the one to read when the
   other two are missing.
 
-The session goes where every other session goes,
-so **a run is readable in a window afterwards** — open that run's `heap-dump.hprof` and the *Agent logs* screen
-has the whole investigation, call by call, with the verdicts and the note the agent wrote on the tabs it left.
-That is the artefact to look at when a scenario fails: a score says which runs to read, and the log says why.
+The sessions go where every session of that invocation goes, which is its own `shark-dive` directory beside
+the runs, so **a run is readable in a window afterwards** — with that directory named, since it is the state
+Shark Dive was writing at the time:
+
+```bash
+SHARK_DIVE_DIR="$TMPDIR/shark-dive-eval/<when it started>/shark-dive" \
+  open -a /Applications/"Shark Dive.app" --args --title="Eval run 3" \
+  "$TMPDIR/shark-dive-eval/<when it started>/runs/3/heap-dump.hprof"
+```
+
+The *Agent logs* screen then has the whole investigation, call by call, with the verdicts and the note the
+agent left on its tabs. That is the artefact to look at when a scenario fails: a score says which runs to
+read, and the log says why. It is also what makes an eval leave nothing in `~/.shark-dive` to clear up —
+the notes, the `leak-statuses` files and the record of where each dump was are all in there with it.
 
 Until the next eval, which deletes the ones before it: an 8 MB dump per run adds up, and the run that has to be
 read is the one that just failed. So read a failure before rerunning.
-
-An eval also leaves one `~/.shark-dive/notes` directory and one `leak-statuses` file per run, which is what
-makes the above work. They can go once the runs have been read, and nothing depends on them going: the paths
-they are keyed to belong to an eval that has already been deleted.
 
 ## Planned: a question that isn't a leak
 

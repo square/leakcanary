@@ -311,6 +311,8 @@ neither of them looks like anything in a unit test.
 **And `harness/eval` is the measured half of the same idea.** The harness shows how one investigation goes;
 the eval runs an agent against a dump whose faulty reference is already known and scores whether it found it,
 by string comparison and counting, with no model marking anything. So it is what says whether a change to a
-description or a refusal made things better rather than only different.
-`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the three ways a run gets handed its own
+description or a refusal made things better rather than only different. **It opens nothing for the agent** —
+a run gets the skill and a prompt saying where the file is, and `--transport cli|mcp` picks which of the two
+adapters above its calls arrive through.
+`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the six ways a run gets handed its own
 answer, each of which was a score that meant nothing.

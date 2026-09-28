@@ -35,7 +35,8 @@ which on a large one is a wait rather than a moment. **Don't ask what is open fi
 … --agent open_heap_dumps reason="Finding out what is already open"
 ```
 
-If that says nothing is open, it opened a window for you, so the same command again lists it.
+An empty answer means nothing is open anywhere: the call started a window for you, but a window with no heap
+dump in it has nothing to list. So that is the case where you need a file — ask for the path, or take one.
 
 **You need to take one.** From a device or emulator `adb` is connected to:
 
@@ -86,8 +87,9 @@ reach for it when a run went wrong rather than as a matter of course.
   The `shark://` link `show` and `conclude` answer with names the dump too, so it still opens after this run
   has ended: **put those links in your reply** rather than describing which screen to open.
 - `--agent-run=<pid>` picks between several open runs. `--agent-session=<name>` says which investigation these
-  calls are one of; by default one shell is one session, so what you did reads as one row of that screen
-  rather than a row per call.
+  calls are one of; by default the calls of one conversation are gathered into one, however many shells they
+  arrived in, so what you did reads as one row of that screen rather than a row per call. Pass it when your
+  calls come from processes with nothing in common.
 
 **Over MCP instead, if your client can be configured**, which gets the same tools with their schemas in band:
 
