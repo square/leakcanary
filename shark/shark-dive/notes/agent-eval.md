@@ -104,12 +104,17 @@ past a shell that was handed one command, and it needs both halves of that test:
 `claude -c`, which merges two conversations, and a `-c` alone walks past an interactive shell, which merges
 somebody's terminal tabs.
 
-## Six ways a run gets handed its own answer
+## Seven ways a run gets handed its own answer
 
 Every one of these was a run that scored well or failed for the wrong reason, and every one was found by
-running the script rather than by reading it. They live in `set_up_run`, and they are the part of this worth
-knowing before changing anything:
+running the script rather than by reading it. Six are about the shape of a run's directory and live in
+`set_up_run`; the seventh is about what the client inherits from the script and lives in `run_client`. They
+are the part of this worth knowing before changing anything:
 
+- **The script's own standard input.** The client reads the standard input it was started with and appends it
+  to the prompt, and what this script had on standard input was the scenario table — every scenario's name,
+  dump path and **answer key**. So every run was handed every key, its own included. Worth reading in full
+  below: it is the one that voided the numbers in this file.
 - **The heap dump's file name.** An agent is answered with the path of what it is reading, so a dump called
   `cache-never-evicts.hprof` names the answer before it has read a byte. Every run's dump is
   `heap-dump.hprof`, and the scenario's own copy sits in a numbered directory rather than a named one — the
@@ -139,9 +144,48 @@ knowing before changing anything:
 - **An agent with nothing left to investigate goes and finds something.** Worth reading in full: it is the one
   that would have been written up as a model failing.
 
-**Only the last one is a guarantee**, and it has to be, because the `cli` transport hands the agent a shell:
-no arrangement of paths hides a file from a process that can run `find`. What the other five buy is that
-nothing *invites* a wrong dump; what `WANDERED` buys is that taking the invitation can never look like a pass.
+**Only `WANDERED` is a guarantee**, and it has to be, because the `cli` transport hands the agent a shell: no
+arrangement of paths hides a file from a process that can run `find`. What the other six buy is that nothing
+*invites* a wrong dump; what `WANDERED` buys is that taking the invitation can never look like a pass.
+
+### Standard input, and why every number below it is void
+
+The loop over scenarios was `while IFS=$'\t' read -r name dump key about; do … done <<<"$scenario_lines"`, and
+the client was started inside it with no redirection of standard input. Claude Code reads its standard input
+and appends it to the prompt — and reads a seekable one **from offset 0**, not from wherever the loop's `read`
+had got to. So the first user message of every run was the two sentences of `prompt_for` followed by the whole
+table: five names, five dump paths, five answer keys, five descriptions.
+
+Every version of this script has done that, from the commit that introduced it (`fb7aa3e18`, 2026-08-25)
+onwards, so **every table in this file was produced by runs that were shown the answer**, and so was every
+number in the pull request that added the stub scenarios.
+
+Nothing failed. It was found by rendering a run's `client-transcript.jsonl` as a page and reading the first
+user message, which is where the table had been in plain text all along — so the argument for keeping that
+artefact and actually looking at it is this section.
+
+Two things kept it hidden for a month:
+
+- **The obvious probe understates it.** `cat` in the loop body reads from where `read` left off, so it shows
+  the scenarios the loop *hasn't reached yet* and not the one the run is about — which reads like a harness
+  leaking its other scenarios, a lesser bug, rather than one handing over the key in play. Only a test with
+  the real client shows the whole table, because only the real client seeks to 0. Reproduced with a
+  one-word prompt in a loop of the same shape: the run's first user message was `Reply with the single word
+  OK.` and then all three lines of a three-line fixture.
+- **The failure looked like a filter.** The client *consumed* the input, so the loop ended after the first
+  scenario it ran. `./run-eval.sh` with no arguments printed one scenario and then `Scoring.`, which is a
+  table missing four rows — indistinguishable from having asked for one scenario.
+
+Fixed three times over, any one of which would have done it: `</dev/null` on the client, the table moved to
+file descriptor 3, and the answer key no longer printed by `scenarios` at all. The third is the one worth
+having on its own, since an answer that is never written to a stream cannot leak down a path nobody thought
+of — scoring reads each key out of `EvalScenarios` and prints it in the line per run, which is where anybody
+watching should have been reading it.
+
+**The lesson for the next thing that gets added to this script: a child process inherits more than its
+arguments.** Everything else in this section is about paths, because paths are what an agent asks about — and
+the leak that actually mattered was a file descriptor nobody had thought of as an input at all. Anything this
+script has open when it starts a client is part of the prompt.
 
 ### The two runs that wandered
 
@@ -152,19 +196,22 @@ faulty reference already named. Its own words for what it did next, in the reaso
 > The dump open in the window is already concluded (CacheEntry.activity). Opening the real 8 MB dump for this
 > run, which has no verdicts on it yet, to investigate it.
 
-The path it opened was a guess — `runs/3/heap-dump.hprof` with `runs` swapped for `dumps` — and it landed on
-another scenario's dump, which it then investigated properly and concluded correctly about. Scored against the
-scenario it had been given, that is a confidently wrong answer. It is nothing of the kind, and the day before,
+The path it opened, `…/dumps/N/heap-dump.hprof`, was read rather than guessed — that is the standard input bug
+again, and it was written up here as a guess for a month — and it landed on another scenario's dump, which it
+then investigated properly and concluded correctly about. Scored against the scenario it had been given, that
+is a confidently wrong answer. It is nothing of the kind, and the day before,
 the same thing had been written down as sonnet getting a leak wrong.
 
 Three things came out of it:
 
-- **A directory per invocation**, which is the actual fix and is one line of the script.
+- **A directory per invocation**, one line of the script, which took away the *motive* — an agent handed a
+  dump somebody else had already solved. It was read as the whole fix, and it wasn't: the path this run
+  opened instead was being printed into its prompt, and that took another month to find.
 - **`WANDERED`.** Scoring compares the heap dump each conclusion was recorded against with the one the run was
-  given, and a mismatch is its own outcome rather than a wrong answer. Keeping it after this cause was fixed
-  is what caught the next one — two runs of 2026-09-18 made the same `runs` → `dumps` guess for a different
-  reason, one of them on its first call — so the rule holds generally: an eval whose failures look like model
-  failures is worse than no eval.
+  given, and a mismatch is its own outcome rather than a wrong answer. Keeping it after the motive was taken
+  away is what caught the next two — 2026-09-18, the same `…/dumps/N` path, one of them on its first call —
+  which is the evidence the standard input bug was sitting in the whole time, unread. So the rule holds
+  generally: an eval whose failures look like model failures is worse than no eval.
 - **`AgentHeapDumps.openingHeapDumpPaths`.** Not the cause, but the reason the first of the two had nothing
   better to do: its first call asked what was open 2.6 seconds in, the dump it had been started on was still
   indexing, and the answer said nothing was open without naming the path the run had been pointed at. An agent
@@ -172,7 +219,12 @@ Three things came out of it:
   an agent connecting to a window that is still indexing falls into exactly the same one — and it is the first
   thing this eval found that was worth fixing in the app.
 
-## Baseline, 2026-08-25
+## Baseline, 2026-08-25 — void, kept as history
+
+**Every run in this table was shown the answer key**, its own and the other four, appended to its prompt by
+the standard input bug above. So a `RIGHT` here says nothing about whether the surface can be investigated to
+the answer, which is the only thing this eval exists to measure. Read it as the shape of a table and not as a
+number to beat; the first honest baseline is whatever is run after the fix.
 
 Shark Dive 1.0.0, `claude` 2.1.223, one repetition each, $3.33 and 13 minutes for the six. One repetition
 is a smoke test and not a measurement — five is what a result worth arguing from takes — but it is the number
@@ -187,14 +239,22 @@ this table is honest about.
 | real-asynctask | opus | 1/1 | 0/1 | 0/1 | 0/1 | 0/1 | 28 | 0 |
 | real-asynctask | sonnet | 1/1 | 0/1 | 0/1 | 0/1 | 0/1 | 16 | 0 |
 
-Six for six, which is a ceiling and therefore not much of a baseline: **these three scenarios cannot show a
-change to the method or a refusal making anything better**, only worse. What the numbers to beat are is the
+Six for six was read at the time as the scenarios being at their ceiling, and the argument still holds as far
+as it goes — **these three scenarios cannot show a change to the method or a refusal making anything better**,
+only worse. But an eval that hands over the key is at a ceiling whatever it measures, and that is the better
+explanation of a perfect column: six for six was never evidence about these dumps. What the numbers to beat are is the
 call counts, and the one row worth pointing at is sonnet on `two-apart` — refused once, set a verdict, then
 concluded, in 9 calls against opus's 15. That is the surface working as designed on the weaker model, which is
 the model a surface is measured on. Harder scenarios are what the families below are for, and the cost per run
 ($0.23 to $1.07) is what says how many repetitions of them are affordable.
 
-## `stub-outlives-its-work`, before and after the stub work, 2026-09-18
+## `stub-outlives-its-work`, before and after the stub work, 2026-09-18 — void, kept as history
+
+**Void for the same reason as the baseline**: all ten runs had `UploadCallbacks$ResultStub.this$0`, the key
+for this very scenario, in their prompts. Both arms of a two-arm comparison were contaminated equally, so the
+*difference* between them is not obviously wrong — but neither arm measures an investigation, and 5/5 in the
+before arm is what the argument below is built on. It is kept because the section under it is about a real
+dump investigated by hand, which the bug never touched.
 
 The first two-arm run of this script: the same scenario, five repetitions, opus, against two builds of the
 app — `65f9ac898`, the commit before any of the binder-stub work, and `a133e42ab`, with
@@ -207,9 +267,10 @@ Each arm needs its own `SHARK_EVAL_DIR`, since the script starts by deleting it.
 | `a133e42ab`, after | 3/5 | 0/5 | 0/5 | 0/5 | 2/5 | 18 | $4.26 | 194 |
 
 **The scenario cannot show this change working, because opus was already at 5/5 without it**, and that is
-the result rather than a caveat on it. It is the ceiling problem of the 2026-08-25 baseline again, and it
-was foreseeable: the fixture is nine objects with `delivered = true` written into the one that matters, so
-the evidence is *on screen* the moment the chain is read. What the change is for is a 327 MB dump of a real
+the result rather than a caveat on it. The 5/5 is void, so that sentence now rests on the fixture rather than
+on the runs — which is where it always had its force, and it was foreseeable from the fixture alone: nine
+objects with `delivered = true` written into the one that matters, so the evidence is *on screen* the moment
+the chain is read. What the change is for is a 327 MB dump of a real
 app where the same reasoning has to be found among thousands of objects, and that is where the headroom is.
 So a synthetic scenario is the wrong instrument for an inspector that supplies an argument rather than a
 fact — it measures whether the argument is *reachable*, and here it always was.
@@ -272,23 +333,32 @@ Both sentences are now in the method's rules and in `AndroidObjectInspectors.STU
 run scores there by reading one field and never has to ask what the object is for. 5/5 on it said nothing
 about the reading above.
 
-### A wander with a different cause: nothing tells an agent a dump is already open
+### The two wanders were not a guess: the path was in the prompt
 
 Both of them opened `…/dumps/N/heap-dump.hprof`, the same `runs` → `dumps` swap as the 2026-08-25 pair, and
-one of them, `edcc4aa3`, did it **as its very first tool call** — before reading anything, so the earlier
-explanation (an agent with a pre-solved dump going to look for a real one) can't be it. It then investigated
-its own dump correctly, set the `STUCK` on `UploadCallbacks` citing `delivered == true`, concluded
-`UploadCallbacks$ResultStub.this$0` — the key — and then repeated the conclusion against the guessed path,
-which is the one scoring read. `215cbfc0` opened `dumps/4` first, never touched its own, and concluded
+one of them, `edcc4aa3`, did it **as its very first tool call** — before reading anything. It then
+investigated its own dump correctly, set the `STUCK` on `UploadCallbacks` citing `delivered == true`,
+concluded `UploadCallbacks$ResultStub.this$0` — the key — and then repeated the conclusion against the other
+path, which is the one scoring read. `215cbfc0` opened `dumps/4` first, never touched its own, and concluded
 correctly about the scenario that dump belongs to.
 
-A throwaway probe settled where the path came from: a `claude --print` asked from a run's working directory
-to list every path in its context named the cwd and `~/.claude/CLAUDE.md` and nothing else. So the model
-derived `dumps/N` from `runs/N` rather than reading it anywhere, and what makes that the obvious move is
-still the hole `AgentHeapDumps.openingHeapDumpPaths` was opened for: `--no-ui` opens the run's dump in the
-background, **nothing in the session says so**, and `open_heap_dump` wants a path. An agent with no path and
-a tool that needs one invents one. Naming the already-open dump in what a session starts with is the fix,
-and it is in the product rather than in the eval, exactly like the first one.
+**They read those paths, they didn't derive them.** The scenario table is exactly `<name> <RUN_SET>/dumps/N/
+heap-dump.hprof <key> <description>` per line, and the standard input bug put all five lines in every prompt,
+so `dumps/N` was in front of both of them — in the first run's case before it had called anything. An agent
+opening one of five heap dumps it was handed the paths of is not wandering, it is doing as it was told.
+
+That replaces what was written here, and the probe it was written from is worth keeping as the mistake:
+a `claude --print` asked from a run's working directory to list every path in its context named the cwd and
+`~/.claude/CLAUDE.md` and nothing else, which was read as the model deriving `dumps/N` from `runs/N`. The
+probe was run by hand, from a terminal, so it had a terminal on standard input — **the one thing about a run
+that mattered was the thing the probe changed**. A probe of what a process is handed has to be launched the
+way that process is launched.
+
+What survives is the product hole underneath, because it is the reason a path was worth reaching for at all:
+`--no-ui` opens the run's dump in the background, **nothing in the session says so**, and `open_heap_dump`
+wants a path. An agent with no path and a tool that needs one goes looking for one. Naming the already-open
+dump in what a session starts with is the fix, `AgentHeapDumps.openingHeapDumpPaths`, and it is in the
+product rather than in the eval, exactly like the first one.
 
 ## The scenario families
 

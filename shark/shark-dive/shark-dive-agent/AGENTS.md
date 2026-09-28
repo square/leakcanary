@@ -314,5 +314,6 @@ by string comparison and counting, with no model marking anything. So it is what
 description or a refusal made things better rather than only different. **It opens nothing for the agent** —
 a run gets the skill and a prompt saying where the file is, and `--transport cli|mcp` picks which of the two
 adapters above its calls arrive through.
-`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the six ways a run gets handed its own
-answer, each of which was a score that meant nothing.
+`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the seven ways a run gets handed its own
+answer, each of which was a score that meant nothing. The seventh voided every number this eval has ever
+produced, so read that section before quoting a table from it.

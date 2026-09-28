@@ -691,7 +691,7 @@ Design decisions and findings, kept current as the work proceeds:
 - `notes/agent-surface.md` — what the MCP surface costs a client in tokens, measured, and why a CLI and a
   skill are adapters over the same registry rather than second implementations
 - `notes/agent-eval.md` — how well an agent solves a leak, scored with no model doing the scoring: the answer
-  keys, the six ways a run gets handed its own answer, and the baseline to beat
+  keys, the seven ways a run gets handed its own answer, and why every table in it is void
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

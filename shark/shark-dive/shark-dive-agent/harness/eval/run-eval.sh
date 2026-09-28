@@ -20,9 +20,10 @@
 # and the part `.claude/skills/shark-dive/SKILL.md` exists to carry. An eval that handed over a dump already
 # open measured every step of an investigation except the one that starts it. See `prompt_for`.
 #
-# **Six things here are about keeping a run from being told the answer**, and all of them were found by running
-# it rather than by thinking about it — see `set_up_run`. A run that leaks its own answer scores well and
-# measures nothing, which is the one failure of an eval that doesn't announce itself.
+# **Seven things here are about keeping a run from being told the answer**, and all of them were found by
+# running it rather than by thinking about it: six about the shape of a run's directory, in `set_up_run`, and
+# one about what the client inherits from this script, in `run_client`. A run that leaks its own answer scores
+# well and measures nothing, which is the one failure of an eval that doesn't announce itself.
 
 set -euo pipefail
 
@@ -88,8 +89,13 @@ main() {
   local runs="$RUN_SET/runs.tsv"
   : >"$runs"
   local run_number=0
-  local name dump key about
-  while IFS=$'\t' read -r name dump key about; do
+  local name dump about
+  # On descriptor 3 rather than standard input, because **a child inherits standard input** and what this
+  # streams is about the answer. The client read it, and the answer key used to be on it: see `run_client`, and
+  # `writeScenarios` for why the key is no longer printed at all. A descriptor a child knows nothing about
+  # cannot be read by one, and cannot be drained by one either — which is the other half of what happened,
+  # since a loop whose input has been swallowed ends after the run that swallowed it.
+  while IFS=$'\t' read -r -u 3 name dump about; do
     if [[ "$scenarios" != "all" && ",$scenarios," != *",$name,"* ]]; then
       # Said rather than skipped silently: a table of one scenario looks exactly like a table of all of them
       # that only one of them passed.
@@ -98,7 +104,6 @@ main() {
     fi
     echo
     echo "$name — $about"
-    echo "  the answer is $key, and nothing the agent is told mentions it"
     local model repetition
     for model in ${models//,/ }; do
       for ((repetition = 1; repetition <= repetitions; repetition++)); do
@@ -106,7 +111,7 @@ main() {
         run_once "$app" "$transport" "$name" "$dump" "$model" "$repetition" "$run_number" "$runs"
       done
     done
-  done <<<"$scenario_lines"
+  done 3<<<"$scenario_lines"
 
   echo
   echo "Scoring."
@@ -286,6 +291,24 @@ END
 # off.** `--print` already starts a fresh session, so the isolation this eval wants is had for free, and
 # `--no-session-persistence` bought none of it while throwing away the half of a run that says *why* a call
 # was made. It was here for four commits and the run it made unreadable is in `notes/agent-eval.md`.
+#
+# **`</dev/null`, and it is the difference between measuring an agent and pasting it the answer key.** This
+# client reads its standard input and appends it to the prompt, and the standard input it inherited here was
+# the scenario table — name, dump, **answer key**, description, one line each — which the scenario loop in
+# `main` used to stream in on standard input. Every run of this eval was handed every key, its own included,
+# under the two sentences it was asked. Found by reading a rendered transcript rather than by anything
+# failing, and reproduced with a one-word prompt in a loop of the same shape.
+#
+# Two things made it invisible. A shell built-in reads such an input from where the loop's `read` left it, so
+# the obvious check — `cat` in the loop body — shows the lines the loop hasn't reached yet and *not* the one
+# the run is about, which reads like a harness leaking the other scenarios and not this one. And the client
+# consumed what it read, so the loop ended after the first scenario it ran: `./run-eval.sh` with no arguments
+# printed one scenario and then `Scoring.`, which is a table missing four rows rather than an error.
+#
+# Three things close it and any one of them would have: this redirection, the table being on a descriptor of
+# its own so that a child inheriting standard input inherits nothing, and the answer key no longer being
+# printed by `scenarios` at all. The third is the one that would have made the other two unnecessary, which is
+# the argument for it — a stream that never carries the answer cannot leak it down a path nobody thought of.
 run_client() {
   local transport="$1" directory="$2" model="$3"
   local -a of_the_transport
@@ -303,6 +326,7 @@ run_client() {
       --strict-mcp-config \
       "${of_the_transport[@]}" \
       --output-format json \
+      </dev/null \
       >"$directory/client.json" 2>"$directory/client.stderr"
   )
   copy_client_transcript "$directory"
