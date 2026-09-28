@@ -180,8 +180,12 @@ to one adapter and not the other is the mistake this shape exists to make imposs
 
 **A process per call would otherwise be a session per call**, and a session is what somebody reads afterwards.
 So the handshake is `token[ sessionName[ over]]` on one line, `AgentSessionFile.continuing` appends to the
-newest file whose name carries that id, and a command line defaults to `cli<the shell's pid>` — an agent's
-calls come out of one shell the way its MCP calls come out of one connection. A client that says nothing gets
+newest file whose name carries that id, and a command line defaults to `cli<a pid above it>` —
+`defaultSessionName`, which **walks** rather than taking the parent, because the shell an agent's call arrives
+in is one command long. Claude Code runs each of its commands in a `zsh -c` of its own, so the parent is a
+session per call again, measured as nine session files for one nine-call investigation; a shell that was handed
+a command is walked past and what drove it is the session. Read that KDoc before changing it — the walk tests
+both the name and the `-c`, and either half alone merges sessions that have to stay apart. A client that says nothing gets
 a session of its own, which is what every MCP client does, and its lines are recorded as MCP.
 
 **The name is checked at both ends**, because it becomes part of a file name: the command line refuses one
