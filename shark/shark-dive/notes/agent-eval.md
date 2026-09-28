@@ -188,6 +188,29 @@ So the measurement that answered the question was one run on a real dump, not fi
 worth remembering the next time a scenario is written to catch something a real dump did: a scenario pins the
 *shape* against regression, and it is at ceiling from the day it is written.
 
+#### The after run is still one object short, and the reason is the row the table repeats
+
+Read the `EXPECTED` on `GetCredentialController$resultReceiver$1` again: it is the same in both columns, and
+it is wrong in both. That receiver exists to receive one result, the result arrived — which is what
+`CompletedExceptionally` on the continuation below it says — so its work is done and it should not still be
+reachable. The verdict on it is `STUCK`, and the leak is then
+`ResultReceiver$MyResultReceiver.this$0`, one step above what the after run named.
+
+Which matters more than one row of a table, because **the after run reached that `EXPECTED` by the before
+run's argument**, on a smaller scale: the receiver is a 24-byte dispatcher whose only field is a `this$0` a
+compiler wrote, so there is nothing on it to read and nothing about it anybody can clear, and an
+investigation concludes it cannot be the defect and moves down. The before run made that inference twice and
+lost 3.06 MB by it; the after run made it once and lost the reference. So the change fixed the deference to
+the framework — "the stub is not leaking, therefore what it holds is not either" — and left the harder half
+standing: **a reference you cannot clear is still a reference that shouldn't be held**, and whether anybody
+can clear it is a question about the fix rather than about the verdict.
+
+Both sentences are now in the method's rules and in `AndroidObjectInspectors.STUB`, and
+`stub-holds-no-state` is the scenario that can fail a run for the second one, which
+`stub-outlives-its-work` cannot: it writes `delivered = true` onto the very object the verdict goes on, so a
+run scores there by reading one field and never has to ask what the object is for. 5/5 on it said nothing
+about the reading above.
+
 ### A wander with a different cause: nothing tells an agent a dump is already open
 
 Both of them opened `…/dumps/N/heap-dump.hprof`, the same `runs` → `dumps` swap as the 2026-08-25 pair, and

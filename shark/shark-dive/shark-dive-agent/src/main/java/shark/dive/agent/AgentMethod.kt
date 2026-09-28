@@ -122,6 +122,19 @@ internal object AgentMethod {
       app's own watcher record, a line of source. Not "this is probably a cache" and not "activities are
       usually leaked this way". `set_verdict` refuses a blank reason, and a reason that isn't evidence is
       worse than none.
+    - **The question a verdict answers is: is this object's work done?** Every object on the chain exists to
+      do something, and when that thing has happened the object should be gone — so a verdict is an answer
+      about *this* object's work, not about how its class reads. Not whether it looks like infrastructure,
+      not whether it sounds long-lived, not whether it is too small to matter. And the evidence is often not
+      on the object you are asking about: a callback, a receiver or a listener with no state of its own is
+      answered by what it forwards into, so read one step further before calling it `EXPECTED`.
+    - **A reference you cannot clear is still a reference that shouldn't be held.** Whether anybody *can*
+      fix a reference is a different question from whether it is at fault, and it belongs to step 5 rather
+      than to a verdict. A field a compiler generated, a field of a class the app doesn't ship, a reference
+      the OS holds on behalf of another process: each is a reason the fix is hard, and none of them is
+      evidence about the verdict. "There is nothing here to clear, so this can't be the problem" is the most
+      comfortable wrong turn on this surface, because it is true about the code and says nothing at all
+      about the heap.
     - **Set verdicts as you go, not at the end.** They are how the tools narrow the search for you, and
       they are what the person at the window sees you doing.
     - **`conclude` is the only way to finish**, and it will refuse you unless the heap dump agrees that one

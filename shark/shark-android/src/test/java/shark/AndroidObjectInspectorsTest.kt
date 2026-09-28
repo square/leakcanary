@@ -126,6 +126,18 @@ class AndroidObjectInspectorsTest {
       .contains("stays in memory until the process on the other side gets GCed")
   }
 
+  @Test fun `STUB says the test for what it holds is whether that work is done`() {
+    // Both halves of the reading this label exists to stop, and the second is the one an earlier version
+    // left out: deference to the framework, and then treating a reference nobody can clear as innocent.
+    val stub = analyzeBinderStub()
+      .single { it.owningClassSimpleName == "UploadCallbacks\$ResultStub" }
+      .originObject
+
+    assertThat(stub.labels.single())
+      .contains("ask of each object whether the work it was made for is finished")
+      .contains("a reference you can't clear is still a reference that shouldn't be there")
+  }
+
   @Test fun `STUB says nothing about what the stub holds`() {
     // The whole point of reporting a framework class as not leaking: a not leaking verdict spreads to
     // what holds an object and never to what it holds, so the object the stub points at is still the

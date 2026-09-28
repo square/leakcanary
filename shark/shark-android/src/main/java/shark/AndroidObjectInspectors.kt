@@ -891,6 +891,16 @@ enum class AndroidObjectInspectors : ObjectInspector {
    * below the stub is still open, and one of them is usually the leak. The label is there to say so,
    * because the reading that costs an investigation is "the stub is fine, therefore what the stub holds
    * is fine" — which is the Android framework being assumed right about an object it has never heard of.
+   *
+   * **And the test for what it holds is whether that object's work is done, not whether the reference could
+   * have been cleared.** Which is the second way this reads backwards, and the harder one to catch, because
+   * it looks like engineering judgement rather than deference: the field from a stub is a `this$0` a compiler
+   * wrote, in a class the app doesn't ship, so an investigation concludes there is nothing here to clear and
+   * moves the fault one step down the chain to a field somebody owns. That is true about the code and no
+   * evidence at all about the heap. A receiver whose result has arrived should not still be reachable
+   * however it came to be held, so the reference out of the stub is the faulty one, and the fix being
+   * somebody else's — or being to stop the object under the stub existing at all — is the next question
+   * rather than a reason to answer this one differently.
    */
   STUB {
     override fun inspect(reporter: ObjectReporter) {
@@ -900,8 +910,11 @@ enum class AndroidObjectInspectors : ObjectInspector {
           " the other side gets GCed, so outliving what it was made for is by design"
         labels += "This says nothing about what $name holds. A stub has to be a *static* class, so that" +
           " it holds nothing it wasn't given, and every reference it was given has to be cleared when" +
-          " the work is done — so read what $name holds and decide, object by object, which of those" +
-          " should still be here. That is where the leak is, and the framework being unable to help it" +
+          " the work is done — so read what $name holds and ask of each object whether the work it was" +
+          " made for is finished. If it is, that object is leaking, and it is leaking however it came to" +
+          " be held: a reference you can't clear is still a reference that shouldn't be there, so" +
+          " \"there is no field here to clear\" is a fact about the code and not a verdict about the" +
+          " heap. That is where the leak is, and the framework being unable to help it" +
           " is not the same as the framework being right: an AOSP or library stub holding your object" +
           " past its life is a bug, it is only a bug you can't edit. What to do about it, in order:" +
           " if $name is yours, make it static and clear what it holds at the end of the work it was" +
