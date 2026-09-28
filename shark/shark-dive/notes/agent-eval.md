@@ -273,7 +273,19 @@ Five exist. The rest are what the synthetic side is *for* — shapes a real dump
 ## What the runs leave behind
 
 Every run is a directory under `$TMPDIR/shark-dive-eval/<when it started>/runs`: the heap dump as that run
-saw it, what the client reported, and which scenario it was. The session goes where every other session goes,
+saw it, what the client reported, and which scenario it was. **Three artefacts, and they are three different
+things** — a run that went wrong usually needs two of them:
+
+- `client.json` — the one object `--output-format json` prints. Cost, turns, token usage including thinking
+  tokens, stop reason, and the final answer. Not a transcript, which is what makes it short.
+- `client-transcript.jsonl` — the client's own session file, copied in by `copy_client_transcript`. The
+  model's turns, and the thinking between two tool calls, which is the only place a run says *why* it did
+  what it did. Absent for a run that timed out or died before printing a session id.
+- The Shark Dive session — every call with its `reason`, arguments, answer and duration, including the
+  refused ones. Present for every run that connected at all, which is why it is the one to read when the
+  other two are missing.
+
+The session goes where every other session goes,
 so **a run is readable in a window afterwards** — open that run's `heap-dump.hprof` and the *Agent logs* screen
 has the whole investigation, call by call, with the verdicts and the note the agent wrote on the tabs it left.
 That is the artefact to look at when a scenario fails: a score says which runs to read, and the log says why.
