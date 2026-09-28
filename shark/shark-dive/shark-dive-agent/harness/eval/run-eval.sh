@@ -23,7 +23,9 @@
 # **Seven things here are about keeping a run from being told the answer**, and all of them were found by
 # running it rather than by thinking about it: six about the shape of a run's directory, in `set_up_run`, and
 # one about what the client inherits from this script, in `run_client`. A run that leaks its own answer scores
-# well and measures nothing, which is the one failure of an eval that doesn't announce itself.
+# well and measures nothing, which is the one failure of an eval that doesn't announce itself. An eighth is in
+# the product rather than in here — a worked example in `AgentMethod` that named a real reference — so the
+# notes count eight and this script can only close seven of them.
 
 set -euo pipefail
 

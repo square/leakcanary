@@ -104,12 +104,13 @@ past a shell that was handed one command, and it needs both halves of that test:
 `claude -c`, which merges two conversations, and a `-c` alone walks past an interactive shell, which merges
 somebody's terminal tabs.
 
-## Seven ways a run gets handed its own answer
+## Eight ways a run gets handed its own answer
 
 Every one of these was a run that scored well or failed for the wrong reason, and every one was found by
-running the script rather than by reading it. Six are about the shape of a run's directory and live in
-`set_up_run`; the seventh is about what the client inherits from the script and lives in `run_client`. They
-are the part of this worth knowing before changing anything:
+running the script rather than by reading it. Five are about the shape of a run's directory, one is about what
+the client inherits from the script and lives in `run_client`, one is what an agent does when a run leaves it
+nothing to investigate, and the last is not in the harness at all — it was in the method this surface hands
+every agent. They are the part of this worth knowing before changing anything:
 
 - **The script's own standard input.** The client reads the standard input it was started with and appends it
   to the prompt, and what this script had on standard input was the scenario table — every scenario's name,
@@ -143,10 +144,24 @@ are the part of this worth knowing before changing anything:
   of every run — along with `~/.claude/CLAUDE.md`.
 - **An agent with nothing left to investigate goes and finds something.** Worth reading in full: it is the one
   that would have been written up as a model failing.
+- **The method's own worked example.** `AgentMethod`'s closing paragraph asks for an answer that links the
+  reference, and it showed what that looks like with `Holder.activity` — which is `com.example.Holder`, this
+  repository's fixture name everywhere, and was also the answer key of `two-apart`. So the first tool result of
+  every run of that scenario contained its key, in the one string on this surface that arrives before the agent
+  has asked the heap dump anything. Nobody planted it; the example was written from the same fixture the tests
+  are written from, which is exactly how this kind of thing gets in. The example is now `Owner.field`, a shape
+  rather than a reference, and the KDoc on `AgentMethod.WRAPPED` says why so that the next concrete example
+  doesn't go back in.
 
 **Only `WANDERED` is a guarantee**, and it has to be, because the `cli` transport hands the agent a shell: no
-arrangement of paths hides a file from a process that can run `find`. What the other six buy is that nothing
+arrangement of paths hides a file from a process that can run `find`. What the other seven buy is that nothing
 *invites* a wrong dump; what `WANDERED` buys is that taking the invitation can never look like a pass.
+
+**And the last one generalises past the harness.** Six of these are paths and environment variables, which is
+to say things a script controls; that one was a sentence in the product, and no arrangement of directories
+would ever have caught it. Anything a run reads before it reads the heap dump — the method, a tool description,
+a refusal, the skill — is a channel, so a concrete class name written into any of them is worth checking
+against `EvalScenarios` before it lands.
 
 ### Standard input, and why every number below it is void
 

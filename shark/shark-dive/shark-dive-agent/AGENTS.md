@@ -314,6 +314,9 @@ by string comparison and counting, with no model marking anything. So it is what
 description or a refusal made things better rather than only different. **It opens nothing for the agent** —
 a run gets the skill and a prompt saying where the file is, and `--transport cli|mcp` picks which of the two
 adapters above its calls arrive through.
-`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the seven ways a run gets handed its own
-answer, each of which was a score that meant nothing. The seventh voided every number this eval has ever
-produced, so read that section before quoting a table from it.
+`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the eight ways a run gets handed its own
+answer, each of which was a score that meant nothing. One of them voided every number this eval has ever
+produced, so read that section before quoting a table from it. **The eighth is in this module**: a worked
+example in `AgentMethod` named a real reference, which was a scenario's key, in the first tool result of every
+run. So a class name written into anything here — a description, a refusal, the method — is worth checking
+against `EvalScenarios` first.

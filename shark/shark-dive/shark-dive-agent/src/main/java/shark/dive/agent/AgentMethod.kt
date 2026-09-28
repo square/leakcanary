@@ -1,5 +1,7 @@
 package shark.dive.agent
 
+import shark.dive.unwrappedMarkdown
+
 /**
  * The method an agent is asked to follow, which is the part of this surface that isn't data.
  *
@@ -13,7 +15,7 @@ package shark.dive.agent
  * **It is prose because its reader is a language model**, which is the one place in this app where a
  * paragraph beats a label — the window says `Verdict` in one word to someone who already knows what a
  * verdict is for. What keeps the prose honest is that the tools enforce the two claims it can't make on its
- * own: a verdict is refused without a reason, and [AgentTools.CONCLUDE] is refused until the heap dump
+ * own: a verdict is refused without a reason, and `conclude` is refused until the heap dump
  * itself says one reference is at fault. So the method describes what the tools will hold you to rather
  * than asking to be trusted.
  *
@@ -23,12 +25,17 @@ package shark.dive.agent
 internal object AgentMethod {
 
   /**
-   * What to do with a heap dump, in the order it works.
+   * [INSTRUCTIONS] as it is written here, wrapped at the column the rest of this repository is.
    *
    * Kept in one string rather than assembled from the tool descriptions, because it is an argument and not
    * a list: each step is worth doing because of the step before it.
+   *
+   * **And no example in it names a real leak.** `Owner.field` is the shape a reference is spelled in rather
+   * than a reference, because this text is the first thing every eval run reads, before it has asked the heap
+   * dump anything: a concrete `Holder.activity` in here is one scenario's answer key printed into its own
+   * first tool result, which is exactly the kind of channel `shark/shark-dive/notes/agent-eval.md` counts.
    */
-  val INSTRUCTIONS = """
+  private val WRAPPED = """
     You are reading a heap dump through Shark Dive, a window a person may be watching. Everything you
     ask is a read of that dump, and everything you conclude is written into it where the next reader — a
     colleague, another agent, the same person in a month — will find it.
@@ -151,7 +158,20 @@ internal object AgentMethod {
       it opens that exact object, in this heap dump, with your notes on it. A link names the dump rather than
       the window, so it still works once this run has ended — it opens the file again. Whoever asked you can
       click it while reading your answer, and again next week. So write "the leak is
-      `Holder.activity`(shark://…)" rather than describing which screen to open and what to click — a link
-      is the difference between an answer they have to take your word for and one they can go and look at.
+      `Owner.field`(shark://…)", with the reference this dump named, rather than describing which screen to
+      open and what to click — a link is the difference between an answer they have to take your word for and
+      one they can go and look at.
   """.trimIndent()
+
+  /**
+   * What to do with a heap dump, in the order it works.
+   *
+   * [unwrappedMarkdown] because the reader is a model reading text and not a diff. Handed over as [WRAPPED]
+   * is written, every sentence of it arrives broken at whatever column this file happened to wrap at — inside
+   * a JSON string, where each of those breaks is a visible `\n`. So the wrapping is undone once, here rather
+   * than at each of the three places the method is handed over, and what is left of the line breaks is the
+   * ones that mean something: the blank line between two paragraphs, and the one in front of a heading or an
+   * item. Same reading `shark.dive.Note.ofDocument` gives a page of the reference, for the same reason.
+   */
+  val INSTRUCTIONS = unwrappedMarkdown(WRAPPED)
 }
