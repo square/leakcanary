@@ -177,7 +177,7 @@ internal object AgentJson {
       addJsonObject {
         put("object", exactHexObjectId(override.objectId))
         put("verdict", override.status.name)
-        put("reason", override.reason)
+        put("why", override.reason)
       }
     }
   }

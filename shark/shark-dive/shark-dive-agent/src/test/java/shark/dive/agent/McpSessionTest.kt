@@ -329,7 +329,8 @@ class McpSessionTest {
   fun `a call that concluded is written down with the reference it concluded on`() {
     callTool(
       """{"name":"set_verdict","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
-        """"verdict":"EXPECTED","reason":"Holder.INSTANCE is a static singleton."}}"""
+        """"verdict":"EXPECTED","why":"Holder.INSTANCE is a static singleton.",""" +
+        """"reason":"Ruling out the object above the activity."}}"""
     )
     callTool(
       """{"name":"conclude","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +

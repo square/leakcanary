@@ -15,7 +15,7 @@ import shark.dive.unwrappedMarkdown
  * **It is prose because its reader is a language model**, which is the one place in this app where a
  * paragraph beats a label — the window says `Verdict` in one word to someone who already knows what a
  * verdict is for. What keeps the prose honest is that the tools enforce the two claims it can't make on its
- * own: a verdict is refused without a reason, and `conclude` is refused until the heap dump
+ * own: a verdict is refused without a `why`, and `conclude` is refused until the heap dump
  * itself says one reference is at fault. So the method describes what the tools will hold you to rather
  * than asking to be trusted.
  *
@@ -125,10 +125,10 @@ internal object AgentMethod {
       and whether something else holds that object too changes nothing: one path is one leak to fix. So never
       go looking for other holders. The questions are which of these objects should have been gone, and which
       reference is keeping them — never whether this reference is the only one.
-    - **Every verdict needs a reason another reader can check.** A field value, an inspector label, the
+    - **Every verdict needs a `why` another reader can check.** A field value, an inspector label, the
       app's own watcher record, a line of source. Not "this is probably a cache" and not "activities are
-      usually leaked this way". `set_verdict` refuses a blank reason, and a reason that isn't evidence is
-      worse than none.
+      usually leaked this way". `set_verdict` takes that as `why` and refuses a blank one, it is kept with
+      the verdict in this heap dump, and a `why` that isn't evidence is worse than none.
     - **The question a verdict answers is: is this object's work done?** Every object on the chain exists to
       do something, and when that thing has happened the object should be gone — so a verdict is an answer
       about *this* object's work, not about how its class reads. Not whether it looks like infrastructure,

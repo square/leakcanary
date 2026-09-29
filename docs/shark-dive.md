@@ -378,7 +378,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `ways_held` | Every way an object is held, rather than the one chain — the *X ways from here* list. |
 | `find_objects` | The object list, by class name. |
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
-| `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
+| `set_verdict`, `clear_verdict` | The pencil, with the *Why* required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
 | `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can only half do — no tab, and the link all the same. |
 | `conclude` | The root cause, and the only way to finish. |
@@ -400,9 +400,12 @@ cannot argue with:
   matters more than it sounds: `find_objects` given `query`, the name of the window's own search box, would
   otherwise match nothing in particular and answer with the biggest objects in the heap dump, and a list of
   the wrong objects reads exactly like an answer.
-* **A verdict needs a reason another reader can check**, exactly like one you typed, and it is kept with the
-  verdict in the same file as yours. A verdict that contradicts one already recorded is refused with the list
-  of what it disagrees with, the same way the window asks you.
+* **A verdict needs a `why` another reader can check**, exactly like one you typed, and it is kept with the
+  verdict in the same file as yours and drawn in the same *Why* box. It is a separate argument from the
+  `reason` above, because the two outlive each other by different amounts: a `reason` is a line of one
+  session's log, and a `why` is what the next person to open this dump reads off it. A verdict that
+  contradicts one already recorded is refused with the list of what it disagrees with, the same way the
+  window asks you.
 * **`conclude` is refused until the heap dump agrees that one reference is at fault** — one object above it
   recorded as `Expected`, the object below it recorded as `Stuck`, and nothing unexplained in between. Reporting
   a root cause before that gets this back:

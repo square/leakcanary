@@ -405,16 +405,23 @@ internal class AgentTools(
     description = "Records that an object is meant to be in memory (EXPECTED) or should be gone " +
       "(STUCK), which is how the search narrows: a verdict spreads along every chain through that " +
       "object, and naming the stuck object you are investigating as `chainTo` answers with what its " +
-      "chain says once yours is on it. The `reason` is the " +
-      "verdict's reason and is kept with it — make it something the next reader can check, a field value " +
-      "or a line of source rather than a hunch. Refuses a verdict that contradicts one already set " +
-      "unless solveConflicts is true, in which case the ones it disagrees with are flipped and say so.",
+      "chain says once yours is on it. The `$WHY` is kept with the verdict and is what the next reader has " +
+      "to go on — a field value or a line of source rather than a hunch. Refuses a verdict that " +
+      "contradicts one already set unless solveConflicts is true, in which case the ones it disagrees with " +
+      "are flipped and say so.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
       OBJECT to objectId("The object to record a verdict about."),
       VERDICT to enumString(
         "STUCK for an object that should be gone, EXPECTED for one that is meant to be here.",
         listOf(LeakStatus.STUCK.name, LeakStatus.EXPECTED.name)
+      ),
+      WHY to string(
+        "The evidence for that verdict, which is kept with it in this heap dump and is what somebody " +
+          "reading it next has to check it by: the field value you read, the inspector label, the app's own " +
+          "watcher record, the line of source. Not \"probably a cache\" — a verdict whose why isn't evidence " +
+          "is worse than no verdict. This is the box the window labels Why, so what you write here is what " +
+          "the person at the machine reads."
       ),
       CHAIN_TO to objectId(
         "The stuck object you are investigating, which is what the answer reads the chain to: a verdict is " +
@@ -430,7 +437,7 @@ internal class AgentTools(
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
     val status = arguments.verdict()
-    val override = LeakStatusOverride(objectId, status, arguments.reason)
+    val override = LeakStatusOverride(objectId, status, arguments.string(WHY))
     val conflicts = dump.read(
       "what setting ${exactHexObjectId(objectId)} to $status disagrees with, for an agent"
     ) { dive ->
@@ -445,7 +452,7 @@ internal class AgentTools(
           "all be read off one chain. Either your verdict is wrong, or theirs is:\n" +
           conflicts.joinToString("\n") { it.asSentence() } +
           "\nCall $SET_VERDICT again with $SOLVE_CONFLICTS true to keep yours and flip those, and say in " +
-          "your reason why."
+          "`$WHY` what makes yours the reading to keep."
       )
     }
     dump.setVerdict(override, conflicts.map { it.solved })
@@ -486,7 +493,7 @@ internal class AgentTools(
     buildJsonObject {
       put("cleared", true)
       put("was", existing.status.name)
-      put("itsReason", existing.reason)
+      put(WHY, existing.reason)
     }
   }
 
@@ -552,16 +559,20 @@ internal class AgentTools(
   }
 
   private fun show() = AgentTool(
-    name = "show",
-    description = "Opens a place in a tab of this window and brings the window to the front, so that what " +
+    name = SHOW,
+    description = "Opens an object in a tab of this window and brings the window to the front, so that what " +
       "you are looking at is what the person at the machine is looking at. Use it when you reach something " +
       "that matters rather than for every step. It answers with a `shark://` link to that place: put that " +
       "link in your reply to whoever asked you, because clicking it opens the place again, later, without " +
-      "you.",
-    schema = schema(HEAP_DUMP to heapDumpArgument(), PLACE to place())
+      "you. `$PLACE` instead of `$OBJECT` shows a screen of this heap dump rather than one object.",
+    schema = schema(
+      HEAP_DUMP to heapDumpArgument(),
+      OBJECT to objectId("The object to show, which is what showing something usually is.").optional(),
+      PLACE to place().optional()
+    )
   ) { arguments ->
     val dump = arguments.heapDump()
-    val place = arguments.place()
+    val place = arguments.placeToShow()
     val shown = dump.show(place)
     buildJsonObject {
       put("shown", shown.problem == null)
@@ -880,13 +891,25 @@ internal class AgentTools(
      */
     const val HEAP_DUMP = "heapDump"
     const val SESSION = "session"
-    const val OBJECT = "object"
     const val FROM = "from"
     const val CLASS_NAME = "className"
     const val EXACT_MATCH = "exactMatch"
     const val KINDS = "kinds"
     const val LIMIT = "limit"
     const val VERDICT = "verdict"
+
+    /**
+     * The evidence a verdict is kept with, which is a different thing from the `reason` a call is made for.
+     *
+     * Named after the box the window puts it in — `LeakStatusSection`'s `Why` — because that is where what an
+     * agent writes here ends up, and the person reading it has the label rather than this schema. It was
+     * `reason` for a while, which read as one argument doing two jobs: every other tool's `reason` is why this
+     * call was made and goes in the session log, and here it was also the verdict's own justification, kept in
+     * the heap dump's `leak-statuses` file for months. Measured on a round of eval runs, a model handed that
+     * tool sent both — a long `why` with the field values in it and a one-line `reason` — and had four calls
+     * refused for an argument this surface didn't take. Two jobs, so two arguments.
+     */
+    const val WHY = "why"
     const val CHAIN_TO = "chainTo"
     const val SOLVE_CONFLICTS = "solveConflicts"
     const val TEXT = "text"
@@ -1178,6 +1201,51 @@ private const val OPEN_HEAP_DUMP = "open_heap_dump"
 private const val DESCRIBE_OBJECT = "describe_object"
 private const val SET_VERDICT = "set_verdict"
 private const val CONCLUDE = "conclude"
+
+/** And this one because [placeToShow] and [nothingToShow] are out here saying what it takes. */
+private const val SHOW = "show"
+
+/**
+ * What `show` was asked to put on screen: an object like every other tool takes, or a screen as a [PLACE].
+ *
+ * Two arguments for one subject, which nothing else here has, and the reason is measured: `show` is the call an
+ * agent makes with an address already in its hand, straight after [DESCRIBE_OBJECT] or `chain_from_gc_root`,
+ * and it wrote `object=0x…` — the name the rest of the surface uses — at a tool that took `place` alone. So the
+ * common case is spelled the common way, and the places that are not one object keep the one vocabulary that
+ * names them.
+ */
+private fun AgentArguments.placeToShow(): Place {
+  val objectText = optionalString(OBJECT)
+  val placeText = optionalString(PLACE)
+  nothingToShow(objectText, placeText)?.let { throw AgentRefusal(it) }
+  return if (objectText != null) {
+    Place.Object(objectIdOf(OBJECT, objectText))
+  } else {
+    place()
+  }
+}
+
+/**
+ * Why a `show` call has nothing to open, and null when it names exactly one thing.
+ *
+ * Either of the two arguments, never both: a call naming an object and a screen has said two things and there
+ * is no reading of it that isn't a guess. And a place sent to `$OBJECT` is answered before the address is read,
+ * so that a screen named by the wrong argument gets the right argument rather than the refusal for an address
+ * that isn't one — see [showItInstead], which is where the words a place is spelled with live.
+ */
+private fun nothingToShow(
+  objectText: String?,
+  placeText: String?
+): String? = when {
+  objectText != null && placeText != null ->
+    "$SHOW was given both `$OBJECT` ($objectText) and `$PLACE` ($placeText), which are two places to open " +
+      "in one call. Name the one you meant: `$OBJECT` for an object, `$PLACE` for a screen."
+  objectText != null -> showItInstead(objectText)?.let { "Nothing shown. $it" }
+  placeText != null -> null
+  else ->
+    "$SHOW needs to be told what to show: `$OBJECT` with an object's `$HEX_PREFIX…` address, which is what " +
+      "showing something usually is, or `$PLACE` with a screen of this heap dump. $PLACES_ARE"
+}
 
 /**
  * What `open_heap_dumps` answers when there is nothing to read, which depends on whether there is about to be.

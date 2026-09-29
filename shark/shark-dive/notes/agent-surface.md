@@ -9,21 +9,50 @@ Measured off `AgentTools.all` and `AgentMethod.INSTRUCTIONS`, one `tools/list` e
 
 | | Characters | ≈ tokens | Paid |
 | --- | --- | --- | --- |
-| Seventeen tool definitions | 23,132 | 5,780 | Every turn, while the server is connected |
-| The method | 8,157 | 2,040 | Handshake, and again with `open_heap_dump` or `open_heap_dumps` |
+| Seventeen tool definitions | 23,851 | 5,960 | Every turn, while the server is connected |
+| The method | 9,372 | 2,340 | Handshake — **cut to 2,048 characters, see below** — and in full with `open_heap_dump` or `open_heap_dumps` |
 
-So the standing cost of this surface is **7 to 8 k tokens**, around 4% of a 200 k window. Parity took the
+So the standing cost of this surface is **around 8 k tokens**, about 4% of a 200 k window. Parity took the
 tool count from eleven to seventeen and the definitions from 13,116 characters to 23,132 — **a fifth of the
 window's budget for the six tools that mean an agent never has to ask its human to click something**, which
 is the trade this surface exists to make. The sixth is `agent_log`, 1,237 characters of the total, and the
 900 the other sixteen grew by are the two agent-log places added to the sentence naming every place, which
-`show`, `read_notes` and `take_note` all repeat. The method then grew by half again for the section on reading the
+`show`, `read_notes` and `take_note` all repeat. The 719 since are two arguments a measured round of eval runs
+said were missing: `show` taking an `object` like every other tool rather than a `place` alone, and
+`set_verdict` taking the verdict's own `why` as well as the `reason` the call was made for. The method then
+grew by half again for the section on reading the
 code at the version the dump is of, which is the one part of the method the tools cannot enforce at all and
 the part that decides whether an answer is a root cause or a reference. The published horror stories are still an order of magnitude worse:
 GitHub's server is ~17.6 k tokens of definitions, and three servers together have been measured at 143 k. The
 mitigations that shipped in 2026 (Anthropic's tool search, code execution over MCP) are aimed at that scale.
 **This surface is not where a context window goes to die**, and a per-tool cost of ~300 tokens is what buys
 descriptions that say when to reach for a tool. Re-measure it if the count doubles again.
+
+## The handshake copy of the method arrives cut to a fifth
+
+Claude Code caps **every MCP tool description and every server `instructions` at 2,048 characters**, for every
+server in the session, and the cap is a documented one:
+`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` is the environment variable that changes it, added in the
+[Claude Code changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) — "Added
+`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` to change the 2,048-character cap on MCP tool descriptions and server
+instructions for every MCP server in the session". The method is 9,372 characters, so **what a Claude Code
+session is handed at the handshake is the first 22% of it** and the rest is dropped before the model sees
+anything.
+
+Two things follow, and the first is why nothing here needs fixing. **The second hand-over is the one that
+delivers the method**: `open_heap_dump` and `open_heap_dumps` put it in a tool *result*, and a result is a
+different budget — `MAX_MCP_OUTPUT_TOKENS` defaults to 25,000 tokens (`var C=0.5,l=1600,P=25000` in the
+bundle inside `~/.local/share/claude/versions/2.1.280`, the `P` that read of the variable falls back to),
+which the whole method is a tenth of.
+So handing the method over twice, which was written down here as insurance against a client that drops
+`instructions`, turns out to be the only reason a Claude Code session ever reads the end of it. Handing it over
+*only* at the handshake would have been a method nobody could follow, and nothing in the protocol would have
+said so.
+
+The other is that **the cap does not touch the tool definitions**, which is worth having measured rather than
+assumed: the longest description in the registry is `chain_from_gc_root` at 652 characters, a third of the cap,
+and none of the seventeen is within 1,300 of it. So a description can go on saying when to reach for its tool.
+What would silently lose text is the one thing not to write — a tool whose description is a page.
 
 ## And what reading somebody else's session costs
 
@@ -72,13 +101,16 @@ Measured against a packaged build with one window open on `leak_asynctask_o.hpro
 | | Measured | Paid |
 | --- | --- | --- |
 | One call, JVM start to JSON on stdout | 160–180 ms | Per call |
-| `--agent-help`, all seventeen tools | 16,232 characters, ≈4,060 tokens | Only when read |
-| `--agent-help <tool>`, one of them | 500–1,250 characters, ≈125–310 tokens | Only when read |
+| `--agent-help`, all seventeen tools | 17,263 characters, ≈4,320 tokens | Only when read |
+| `--agent-help <tool>`, one of them | 500–2,045 characters, ≈125–510 tokens | Only when read |
 
 So the standing cost is nothing, and the whole surface as text is *smaller* than the `tools/list` definitions
-of it (16,232 against 23,132) because `reason` is explained once rather than seventeen times. Both
+of it (17,263 against 23,851) because `reason` is explained once rather than seventeen times. Both
 `--agent-help` figures include the invocation path twice, since what it prints is the command to type on this
-machine; a shorter install path is a slightly shorter help.
+machine; a shorter install path is a slightly shorter help — these were measured with
+`/Applications/Shark Dive.app/Contents/MacOS/Shark Dive`, the `.dmg` install path. The largest single tool's
+help is `set_verdict` at 2,045 characters, which is a tool with two justifications to explain and is the one
+to watch: the help for one tool is worth being the short answer.
 
 **A call from a shell is not a slower call.** It reaches the same window over the loopback socket the run
 already publishes, so the heap dump is the one that was parsed and indexed once and the read queues on that

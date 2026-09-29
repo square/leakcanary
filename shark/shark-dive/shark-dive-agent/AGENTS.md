@@ -36,8 +36,12 @@ two deliberate exceptions, `AgentServer`/`AgentStdioBridge`/`AgentHeapDump*` bec
 The whole point of this being a server rather than a library is that **it can say no**, and it works with any
 client because saying no is all it does — nothing here ever calls a model.
 
-- `set_verdict` refuses a blank reason (through `LeakStatusOverride`'s own `require`) and refuses a verdict
-  that contradicts one already recorded unless it is told to flip it.
+- `set_verdict` refuses a blank `why` (through `LeakStatusOverride`'s own `require`) and refuses a verdict
+  that contradicts one already recorded unless it is told to flip it. **`why` is the verdict's own
+  justification and `reason` is why the call was made**, which is two arguments for what was one: the `why` is
+  kept in the dump's `leak-statuses` file and drawn in the window's *Why* box for as long as anybody reads
+  that dump, and the `reason` is a line of this session's log like every other tool's. A model handed the
+  single `reason` sent both anyway — see `WHY`'s KDoc for the measurement — so the surface now takes both.
 - `conclude` refuses until the heap dump agrees that **one** reference is at fault, and the refusal says which
   of the five reasons it is: no chain at all, nothing `STUCK`, nothing `EXPECTED` above it, *these* references
   still candidates with *those* objects in between having no verdict, or a reference the object above no longer

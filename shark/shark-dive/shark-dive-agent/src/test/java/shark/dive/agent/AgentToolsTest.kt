@@ -364,7 +364,7 @@ class AgentToolsTest {
       OBJECT to hex(heapDump.holderObjectId),
       "verdict" to LeakStatus.EXPECTED.name,
       "chainTo" to hex(heapDump.activityObjectId),
-      "reason" to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
+      WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
 
     assertThat(answer.text("set")).isEqualTo("true")
@@ -392,7 +392,7 @@ class AgentToolsTest {
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
       "verdict" to LeakStatus.EXPECTED.name,
-      "reason" to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
+      WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
 
     assertThat(answer.text("set")).isEqualTo("true")
@@ -400,18 +400,43 @@ class AgentToolsTest {
     assertThat(answer["chain"]).isNull()
   }
 
+  /**
+   * The two justifications a `set_verdict` call carries, which are one argument each on purpose.
+   *
+   * `reason` is why this call was made and lives as long as this session's log; the `why` is the verdict's
+   * own and stays in the heap dump's `leak-statuses` file for whoever reads it next. Asserting that the
+   * `reason` is *not* what got kept is the half worth having: it is what they were before, and one argument
+   * doing both jobs is what had a model sending both names and getting refused.
+   */
   @Test
-  fun `the reason of a call is the reason kept with the verdict`() {
+  fun `the why is kept with the verdict, and the reason of the call is not`() {
     call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
       "verdict" to LeakStatus.EXPECTED.name,
-      "reason" to "Holder.INSTANCE is a static singleton."
+      WHY to "Holder.INSTANCE is a static singleton.",
+      "reason" to "Ruling out the object above the activity."
     )
 
     val verdict = window.verdicts[heapDump.holderObjectId]
     assertThat(verdict?.status).isEqualTo(LeakStatus.EXPECTED)
     assertThat(verdict?.reason).isEqualTo("Holder.INSTANCE is a static singleton.")
+  }
+
+  @Test
+  fun `a verdict with no why is refused, since the next reader has nothing else to check it by`() {
+    assertThatThrownBy {
+      call(
+        SET_VERDICT,
+        OBJECT to hex(heapDump.holderObjectId),
+        "verdict" to LeakStatus.EXPECTED.name,
+        "reason" to "Ruling out the object above the activity."
+      )
+    }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("needs `$WHY`")
+
+    assertThat(window.verdicts.isEmpty).isTrue()
   }
 
   @Test
@@ -469,7 +494,7 @@ class AgentToolsTest {
         SET_VERDICT,
         OBJECT to hex(heapDump.applicationObjectId),
         "verdict" to LeakStatus.STUCK.name,
-        "reason" to "This isn't the real Application, it is a copy left over from a test."
+        WHY to "This isn't the real Application, it is a copy left over from a test."
       )
     }
       .isInstanceOf(AgentRefusal::class.java)
@@ -488,7 +513,7 @@ class AgentToolsTest {
       OBJECT to hex(heapDump.applicationObjectId),
       "verdict" to LeakStatus.STUCK.name,
       "solveConflicts" to "true",
-      "reason" to "This isn't the real Application, it is a copy left over from a test."
+      WHY to "This isn't the real Application, it is a copy left over from a test."
     )
 
     assertThat(answer.text("verdictsFlipped")).isEqualTo("1")
@@ -504,7 +529,7 @@ class AgentToolsTest {
         SET_VERDICT,
         OBJECT to hex(heapDump.holderObjectId),
         "verdict" to LeakStatus.UNKNOWN.name,
-        "reason" to "I could not work out what this is."
+        WHY to "I could not work out what this is."
       )
     }
       .isInstanceOf(AgentRefusal::class.java)
@@ -518,7 +543,7 @@ class AgentToolsTest {
     val answer = call("clear_verdict", OBJECT to hex(heapDump.holderObjectId))
 
     assertThat(answer.text("was")).isEqualTo(LeakStatus.EXPECTED.name)
-    assertThat(answer.text("itsReason")).contains("static singleton")
+    assertThat(answer.text(WHY)).contains("static singleton")
     assertThat(window.verdicts.isEmpty).isTrue()
 
     assertThatThrownBy { call("clear_verdict", OBJECT to hex(heapDump.holderObjectId)) }
@@ -617,13 +642,71 @@ class AgentToolsTest {
       .hasMessageContaining("is no place of a heap dump")
   }
 
+  /**
+   * Showing one object, asked for the way the rest of this surface asks about one.
+   *
+   * Which is the call `show` is nearly always made as — an agent reaches it holding an address, straight
+   * after `describe_object` — and it is the one that used to be refused, `place` having been the only name
+   * this tool took.
+   */
   @Test
-  fun `showing a place answers with the link to it`() {
-    val answer = call("show", "place" to hex(heapDump.activityObjectId))
+  fun `an object is shown under the name every other tool takes one by`() {
+    val answer = call("show", OBJECT to hex(heapDump.activityObjectId))
 
+    assertThat(window.shown).containsExactly(Place.Object(heapDump.activityObjectId))
     // The half of showing that outlives the call: an agent writing its answer somewhere else has this to
     // point at, where "open the window and click the activity" is a set of instructions.
     assertThatLinkOpens(answer, heapDump.activityObjectId)
+  }
+
+  /**
+   * The two arguments, either and never both, since a call naming a screen and an object has said two things.
+   *
+   * Both refusals matter for the same reason the tool takes two names at all: this is the one tool on the
+   * surface with a choice to get wrong, so what it says has to be the next call rather than that the last one
+   * was wrong.
+   */
+  @Test
+  fun `showing nothing and showing two things are both refused with what to name`() {
+    assertThatThrownBy { call("show") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("needs to be told what to show")
+      .hasMessageContaining("`$OBJECT`")
+      .hasMessageContaining("`place`")
+
+    assertThatThrownBy {
+      call("show", OBJECT to hex(heapDump.activityObjectId), "place" to PLACE_LEAKS)
+    }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("two places to open in one call")
+
+    assertThat(window.shown).isEmpty()
+  }
+
+  /**
+   * A screen asked for as an object, answered with the syntax that shows it rather than with "that is no
+   * address".
+   *
+   * The mistake this half exists for is the mirror of the one above: every tool here takes `$OBJECT`, so that
+   * is the name an agent reaches for when what it wants shown is a screen, and a class name is the other thing
+   * it reaches for — many objects rather than one, which the object list is for.
+   */
+  @Test
+  fun `a screen or a class name asked for as an object is answered with the syntax that shows it`() {
+    assertThatThrownBy { call("show", OBJECT to PLACE_LEAKS) }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("`place=$PLACE_LEAKS`")
+
+    assertThatThrownBy { call("show", OBJECT to HOLDER_CLASS_NAME) }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("`place=objects:$HOLDER_CLASS_NAME`")
+
+    // And a word that is neither gets the refusal for an address, which is what it is.
+    assertThatThrownBy { call("show", OBJECT to "the leak") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("is no object address")
+
+    assertThat(window.shown).isEmpty()
   }
 
   @Test
@@ -916,7 +999,7 @@ class AgentToolsTest {
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
       "verdict" to LeakStatus.EXPECTED.name,
-      "reason" to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
+      WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
   }
 
@@ -1033,6 +1116,7 @@ class AgentToolsTest {
     const val CONCLUDE = "conclude"
     const val HEAP_DUMP = "heapDump"
     const val OBJECT = "object"
+    const val WHY = "why"
     const val PLACE_LEAKS = "leaks"
 
     /**

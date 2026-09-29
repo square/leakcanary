@@ -270,3 +270,12 @@ private val REASON_PROPERTY = string(
 
 /** How every address on this surface starts. See [AgentJson]. */
 internal const val HEX_PREFIX = "0x"
+
+/**
+ * What every tool calls the object it is about, out here beside the spelling of one.
+ *
+ * Top level rather than a constant of [AgentTools] because a refusal about a place has to be able to name it:
+ * `show` takes an object like the rest of the surface, so the sentence that sends a screen to `place` instead
+ * is written where the places are. See [showItInstead].
+ */
+internal const val OBJECT = "object"

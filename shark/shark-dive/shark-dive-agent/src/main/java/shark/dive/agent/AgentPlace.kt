@@ -18,19 +18,53 @@ import shark.dive.exactHexObjectId
  */
 internal fun AgentArguments.place(): Place {
   val text = string(PLACE)
-  return when {
-    text.startsWith(HEX_PREFIX) -> Place.Object(objectIdOf(PLACE, text))
-    text == PLACE_LEAKS -> Place.Leaks()
-    text == PLACE_OBJECTS -> Place.Objects()
-    text == PLACE_STARRED -> Place.Starred
-    text == PLACE_AGENT_LOGS -> Place.AgentLogs
-    text.startsWith("$PLACE_AGENT_LOGS$PLACE_SEPARATOR") ->
-      Place.AgentLog(text.substringAfter(PLACE_SEPARATOR))
-    text.startsWith("$PLACE_OBJECTS$PLACE_SEPARATOR") -> Place.Objects(
-      ObjectListFilter(query = text.substringAfter(PLACE_SEPARATOR))
-    )
-    else -> throw AgentRefusal("\"$text\" is no place of a heap dump. $PLACES_ARE")
+  if (text.startsWith(HEX_PREFIX)) {
+    return Place.Object(objectIdOf(PLACE, text))
   }
+  return screenOrNull(text) ?: throw AgentRefusal("\"$text\" is no place of a heap dump. $PLACES_ARE")
+}
+
+/**
+ * Every place that is a screen rather than one object, and null for a word that names none of them.
+ *
+ * Split out of [place] because `show` has to ask the question without the refusal: it takes an `object` like
+ * every other tool, and an agent that writes `object=leaks` has named a real place by the wrong argument,
+ * which is one sentence to fix rather than the refusal for an address that isn't one. See [showItInstead].
+ */
+private fun screenOrNull(text: String): Place? = when {
+  text == PLACE_LEAKS -> Place.Leaks()
+  text == PLACE_OBJECTS -> Place.Objects()
+  text == PLACE_STARRED -> Place.Starred
+  text == PLACE_AGENT_LOGS -> Place.AgentLogs
+  text.startsWith("$PLACE_AGENT_LOGS$PLACE_SEPARATOR") ->
+    Place.AgentLog(text.substringAfter(PLACE_SEPARATOR))
+  text.startsWith("$PLACE_OBJECTS$PLACE_SEPARATOR") -> Place.Objects(
+    ObjectListFilter(query = text.substringAfter(PLACE_SEPARATOR))
+  )
+  else -> null
+}
+
+/**
+ * How to show something that is a place and not an object, or null for a word that is neither.
+ *
+ * The `show` half of what `lookItUpInstead` is for a class name in [AgentTool]: every tool on this surface
+ * takes the object it is about as `object`, so that is what an agent reaches for when it wants a screen shown
+ * too — and "leaks is no object address" is a true sentence that leaves it no better off. Here
+ * rather than in `show` because the words a place is spelled with are this file's, and a refusal that offers
+ * a syntax the parser above doesn't accept is worse than no offer.
+ */
+internal fun showItInstead(text: String): String? {
+  if (screenOrNull(text) != null) {
+    return "\"$text\" is a place of this heap dump rather than an object of it, so `$PLACE=$text` is what " +
+      "shows it. `$OBJECT` is for an object's `$HEX_PREFIX…` address."
+  }
+  val looksLikeAClassName = text.firstOrNull()?.isLetter() == true && text.any { it == '.' || it == '$' }
+  if (!looksLikeAClassName) {
+    return null
+  }
+  return "\"$text\" reads as a class name, which is many objects rather than one: " +
+    "`$PLACE=$PLACE_OBJECTS$PLACE_SEPARATOR$text` shows the list of its instances, and `$OBJECT` takes the " +
+    "`$HEX_PREFIX…` address of the one you mean."
 }
 
 /**
@@ -74,7 +108,7 @@ private const val PLACE_AGENT_LOGS = "agent-logs"
 private const val PLACE_SEPARATOR = ":"
 
 /** Every place there is, said the one way, since a schema and a refusal both have to list them. */
-private const val PLACES_ARE =
+internal const val PLACES_ARE =
   "A place is an object's `0x…` address, \"$PLACE_LEAKS\", \"$PLACE_OBJECTS\", " +
     "\"$PLACE_OBJECTS$PLACE_SEPARATOR<class name>\", \"$PLACE_STARRED\", \"$PLACE_AGENT_LOGS\" or " +
     "\"$PLACE_AGENT_LOGS$PLACE_SEPARATOR<session id>\"."
