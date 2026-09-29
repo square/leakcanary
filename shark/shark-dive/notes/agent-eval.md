@@ -144,14 +144,15 @@ every agent. They are the part of this worth knowing before changing anything:
   of every run — along with `~/.claude/CLAUDE.md`.
 - **An agent with nothing left to investigate goes and finds something.** Worth reading in full: it is the one
   that would have been written up as a model failing.
-- **The method's own worked example.** `AgentMethod`'s closing paragraph asks for an answer that links the
-  reference, and it showed what that looks like with `Holder.activity` — which is `com.example.Holder`, this
+- **The method's own worked example.** The paragraph asking for an answer that links the reference showed what
+  that looks like with `Holder.activity` — which is `com.example.Holder`, this
   repository's fixture name everywhere, and was also the answer key of `two-apart`. So the first tool result of
   every run of that scenario contained its key, in the one string on this surface that arrives before the agent
   has asked the heap dump anything. Nobody planted it; the example was written from the same fixture the tests
   are written from, which is exactly how this kind of thing gets in. The example is now `Owner.field`, a shape
-  rather than a reference, and the KDoc on `AgentMethod.WRAPPED` says why so that the next concrete example
-  doesn't go back in.
+  rather than a reference, and `AgentMethod`'s own KDoc says why — on the object rather than on either of the
+  two texts, since the rule is about both of them, so that the next concrete example doesn't go back in
+  whichever half it would have been written into.
 
 **Only `WANDERED` is a guarantee**, and it has to be, because the `cli` transport hands the agent a shell: no
 arrangement of paths hides a file from a process that can run `find`. What the other seven buy is that nothing

@@ -59,10 +59,13 @@ class AgentToolsTest {
   }
 
   @Test
-  fun `open heap dumps hands over the method with the dump`() {
+  fun `open heap dumps says which dumps are open and hands over no method`() {
     val answer = call(OPEN_HEAP_DUMPS)
 
-    assertThat(answer.text("method")).isEqualTo(AgentMethod.INSTRUCTIONS)
+    // The leak method is `list_leaks`'s answer and nowhere else on this surface, so asking what is open does
+    // not hand an agent the whole of how to narrow a chain before it knows the question is a leak at all.
+    // See [AgentMethod].
+    assertThat(answer.keys).doesNotContain(METHOD)
     val dumps = answer.array("heapDumps")
     assertThat(dumps).hasSize(1)
     assertThat(dumps.first().jsonObject.text("window")).isEqualTo(window.windowId)
@@ -248,6 +251,20 @@ class AgentToolsTest {
     assertThatThrownBy { callWith("list_leaks", buildJsonObject { }) }
       .isInstanceOf(AgentRefusal::class.java)
       .hasMessageContaining("list_leaks needs `reason`")
+  }
+
+  @Test
+  fun `the leaks answer leads with the method, which no other tool carries`() {
+    val leaks = call(LIST_LEAKS)
+
+    // Here and here only, which is what makes calling this the first step of a leak investigation rather than
+    // a step an agent can skip: everything about narrowing a chain arrives beside the objects to narrow one
+    // for. See [AgentMethod].
+    assertThat(leaks.text(METHOD)).isEqualTo(AgentMethod.LEAK)
+    assertThat(leaks.text(METHOD)).contains("The leak is the one reference that crosses")
+    // And it is the leak half alone: how to work on this surface at all is a session's own instructions, sent
+    // once however many tools it goes on to call. See `McpSessionTest`.
+    assertThat(leaks.text(METHOD)).doesNotContain(AgentMethod.SURFACE)
   }
 
   @Test
@@ -843,9 +860,11 @@ class AgentToolsTest {
     assertThat(answer.text("window")).isEqualTo("openedwindow")
     assertThat(answer.text("wasAlreadyOpen")).isEqualTo("false")
     assertThat(heapDumps.opened).containsExactly(heapDump.dive.heapDumpFile)
-    // The method with it, because this is the other call an investigation can start with: an agent that was
-    // given a heap dump opens it and never asks what else is open, and it has to be told how to work.
-    assertThat(answer.text("method")).isEqualTo(AgentMethod.INSTRUCTIONS)
+    // And no method, which is the other half of moving it: this is the first call of most investigations, so
+    // it used to be the place the whole of it was handed over. What is here instead is the sentence saying
+    // which call has it, because an investigation that skipped that call is one that never read it.
+    assertThat(answer.keys).doesNotContain(METHOD)
+    assertThat(answer.text("next")).contains(LIST_LEAKS)
   }
 
   @Test
@@ -1118,6 +1137,9 @@ class AgentToolsTest {
     const val OBJECT = "object"
     const val WHY = "why"
     const val PLACE_LEAKS = "leaks"
+
+    /** The field the method travels in, which one tool's answer has and no other's does. */
+    const val METHOD = "method"
 
     /**
      * What the calls of a recorded session sent and read back, as the text they were: the tool's own name

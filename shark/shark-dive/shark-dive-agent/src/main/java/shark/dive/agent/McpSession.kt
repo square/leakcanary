@@ -53,6 +53,15 @@ internal class McpSession(
 ) {
 
   /**
+   * Whether this session has already been handed [AgentMethod.SURFACE], which it is exactly once.
+   *
+   * Starts from the file rather than from false, because a session is not a connection: `--agent` is a
+   * process per call, so a `McpSession` is one typed command and the session it belongs to is whatever
+   * [AgentSessionFile] joined. See [AgentSessionFile.hasAnsweredACall] and [withTheSurface].
+   */
+  private var hasHandedOverTheSurface = sessionFile.hasAnsweredACall
+
+  /**
    * Answers one message, or null for one that wants no answer.
    *
    * Notifications are the null case and it is not optional: JSON-RPC forbids answering a message with no
@@ -189,8 +198,8 @@ internal class McpSession(
         put("version", serverVersion)
       }
       // Some clients show this to the model and some drop it, and a `--agent` call never has a handshake the
-      // model sees at all — which is why both ways of getting a heap dump hand AgentMethod over again.
-      put("instructions", AgentMethod.INSTRUCTIONS)
+      // model sees at all — which is why [withTheSurface] hands the same text over again.
+      put("instructions", AgentMethod.SURFACE)
     }
   }
 
@@ -225,7 +234,7 @@ internal class McpSession(
     // trying to learn and then what that cost. See [AgentTools].
     SharkLog.d { "An agent called $name${arguments.logLine()}" }
     return try {
-      val answer = tool.call(arguments)
+      val answer = withTheSurface(tool.call(arguments))
       // Formatted once and then both answered with and written down, so that the text in the session is the
       // text the model read rather than the same object printed a second way. See [AgentSessionCall.output].
       val answered = PRETTY_JSON.encodeToString(JsonElement.serializer(), answer)
@@ -267,6 +276,39 @@ internal class McpSession(
       val error = throwable.toString()
       recordCall(name, arguments, refusal = null, error = error, output = error, at = at, startedAt = startedAt)
       toolError(error)
+    }
+  }
+
+  /**
+   * [answer] with [AgentMethod.SURFACE] in front of it, for the first answered call of a session.
+   *
+   * **The handshake is not enough on its own**, twice over: some MCP clients drop a server's `instructions`
+   * and never show the model a word of them, and a `--agent` command line sends an `initialize` whose result
+   * it discards — see [AgentCommandLine], which null-checks it for liveness and reads nothing out of it. So
+   * the text also travels as a tool result, where nothing drops it and nothing truncates it.
+   *
+   * **Once per session, and a session is not this object.** A command line is a process per call, so the flag
+   * starts from what the session file already holds: the second typed command of an investigation finds a
+   * session whose first call was answered and adds nothing. Which is the one thing this must not get wrong in
+   * the other direction either — `AgentSessionFile.hasAnsweredACall` looks for an *answered* call rather than
+   * for a line, because a first command that was refused was handed no `structuredContent` to carry this in
+   * (see [toolError]) and a session that counted it would be one where nobody ever read the surface.
+   *
+   * **Prepended into the one [AgentMethod.FIELD] rather than added beside it.** `list_leaks` answers with
+   * [AgentMethod.LEAK] in that field, and a call that is both the first of its session and that one gets both
+   * halves as one text in the order they are meant to be read. Two keys would be a second `method` a model
+   * has to notice, and a JSON object cannot have the same one twice.
+   */
+  private fun withTheSurface(answer: JsonObject): JsonObject {
+    if (hasHandedOverTheSurface) {
+      return answer
+    }
+    hasHandedOverTheSurface = true
+    val method = (answer[AgentMethod.FIELD] as? JsonPrimitive)?.content
+    return buildJsonObject {
+      // First, because it is the part that says how to work here, and a model reads an answer from the top.
+      put(AgentMethod.FIELD, listOfNotNull(AgentMethod.SURFACE, method).joinToString("\n\n"))
+      answer.forEach { (name, value) -> if (name != AgentMethod.FIELD) put(name, value) }
     }
   }
 

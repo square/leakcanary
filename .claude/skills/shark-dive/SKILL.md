@@ -102,11 +102,11 @@ link, since a link names the heap dump rather than a window.
 
 ## What to do with it
 
-**The method comes with the tools.** Whichever of the two calls above got you a heap dump hands back the whole
-of it — what a leak is, the three zones of a chain, how a verdict spreads, and the order that finds the faulty
-reference. There is nothing to ask for separately. Follow that; it is
-[the LeakCanary method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it, and
-it does not need repeating here.
+**The method comes with `list_leaks`.** Its answer leads with the whole of it — what a leak is, the three
+zones of a chain, how a verdict spreads, and the order that finds the faulty reference — so anything about a
+leak starts there, whether or not you opened the dump yourself. There is nothing to ask for separately. Follow
+it; it is [the LeakCanary method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools
+enforce it, and it does not need repeating here.
 
 Two things about it that are easy to miss:
 

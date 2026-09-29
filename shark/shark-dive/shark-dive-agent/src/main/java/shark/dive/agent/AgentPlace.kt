@@ -75,8 +75,8 @@ internal fun showItInstead(text: String): String? {
  * another size.
  *
  * The other, a page of the reference, has no name here on purpose. It is what a *person* reads to find out
- * what a label on screen means; the method is what an agent is handed for the same thing, twice, and
- * sending it to read the human's copy would be the same prose a third time. See `AgentMethod`.
+ * what a label on screen means; the method is what an agent is handed for the same thing, and sending it to
+ * read the human's copy would be the same prose over again. See `AgentMethod`.
  */
 internal fun placeText(place: Place): String? = when (place) {
   is Place.Object -> exactHexObjectId(place.objectId)
