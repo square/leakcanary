@@ -310,8 +310,8 @@ in both directions — it swaps `System.in` and `System.out` around the bridge, 
 of input, because a real client keeps stdin open until it has its answer.
 
 **The harness is how the thing this module is for actually gets tested.** It builds the packaged app, opens
-one heap dump in it, and writes an MCP config pinned to that run plus a prompt that says nothing but "find the
-root cause" — so what the agent follows is the method the server handed it. Then read
+one heap dump in it, and stages the skill beside a prompt that says nothing but "find the root cause" and
+which run to say it to — so what the agent follows is the method the surface handed it. Then read
 `~/.shark-dive/logs`: a run that went well and a run that guessed look completely different there, and
 neither of them looks like anything in a unit test.
 
@@ -319,8 +319,11 @@ neither of them looks like anything in a unit test.
 the eval runs an agent against a dump whose faulty reference is already known and scores whether it found it,
 by string comparison and counting, with no model marking anything. So it is what says whether a change to a
 description or a refusal made things better rather than only different. **It opens nothing for the agent** —
-a run gets the skill and a prompt saying where the file is, and `--transport cli|mcp` picks which of the two
-adapters above its calls arrive through.
+a run gets the skill and a prompt saying where the heap dump and the launcher are, and opens the window
+itself. **Both scripts reach the surface over `--agent`**, the way somebody who installed the app would;
+what the MCP adapters do under a real client is `AgentToolsTest` and `AgentStdioBridgeTest`'s job, not a
+second arm of the eval — `shark/shark-dive/notes/agent-eval.md` has why that arm was measuring three
+things at once.
 `shark/shark-dive/notes/agent-eval.md` has the answer keys — and the eight ways a run gets handed its own
 answer, each of which was a score that meant nothing. One of them voided every number this eval has ever
 produced, so read that section before quoting a table from it. **The eighth is in this module**: a worked
