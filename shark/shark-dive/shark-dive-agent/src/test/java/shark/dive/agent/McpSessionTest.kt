@@ -57,17 +57,90 @@ class McpSessionTest {
   }
 
   @Test
-  fun `the handshake echoes the version the client asked for and hands over the method`() {
+  fun `the handshake echoes the version the client asked for and says how to work here`() {
     val result = answer(
       """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2099-01-01",""" +
         """"clientInfo":{"name":"a client from the future"},"capabilities":{}}}"""
     ).result()
 
     assertThat(result.text("protocolVersion")).isEqualTo("2099-01-01")
-    assertThat(result.text("instructions")).isEqualTo(AgentMethod.INSTRUCTIONS)
+    // How to work here, and not how to find a leak: the leak method is `list_leaks`'s answer, and a client
+    // that shows a server's instructions to its model shows them whatever that model was asked about.
+    assertThat(result.text("instructions")).isEqualTo(AgentMethod.SURFACE)
     assertThat(result.obj("serverInfo").text("name")).isEqualTo("shark-dive")
     assertThat(result.obj("serverInfo").text("version")).isEqualTo(SERVER_VERSION)
     assertThat(result.obj("capabilities")["tools"]).isNotNull
+  }
+
+  @Test
+  fun `the first answered call of a session says how to work here, and no call after it does`() {
+    val first = callTool(
+      """{"name":"describe_object","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
+        """"reason":"Reading the holder's fields."}}"""
+    ).obj("structuredContent")
+    val second = callTool(
+      """{"name":"describe_object","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +
+        """"reason":"And the activity's."}}"""
+    ).obj("structuredContent")
+
+    // Because the handshake is not enough: a client is free to drop a server's `instructions` and never show
+    // the model a word of them, and a `--agent` command line discards the result of its own handshake. So the
+    // text travels as a tool result as well — once, on the first thing the session was answered with.
+    assertThat(first.text(METHOD)).isEqualTo(AgentMethod.SURFACE)
+    assertThat(second.keys).doesNotContain(METHOD)
+  }
+
+  @Test
+  fun `a first call that asked for the leaks is answered with both halves of the method, as one`() {
+    val leaks = callTool(
+      """{"name":"list_leaks","arguments":{"reason":"Starting with what the dump says."}}"""
+    ).obj("structuredContent")
+
+    // One field with both halves in the order they are meant to be read, rather than a second `method` a
+    // model has to notice — which a JSON object could not have anyway. See `McpSession.withTheSurface`.
+    assertThat(leaks.text(METHOD)).isEqualTo(AgentMethod.SURFACE + "\n\n" + AgentMethod.LEAK)
+    assertThat(leaks.text("objectCount")).isNotEmpty()
+  }
+
+  @Test
+  fun `a first call that was refused does not use up the one that says how to work here`() {
+    val refused = callTool(
+      """{"name":"conclude","arguments":{"object":"${hex(heapDump.activityObjectId)}",""" +
+        """"rootCause":"The holder never lets go.","reason":"I know what this is."}}"""
+    )
+    val answered = callTool(
+      """{"name":"describe_object","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
+        """"reason":"Going back to look at the holder."}}"""
+    ).obj("structuredContent")
+
+    // A refusal is text alone — `toolError` sends no `structuredContent` — so a session that counted one as
+    // delivery would be a session nobody was ever told how to work in. Which is the case that rules out
+    // `AgentSessionFile.isHeaderWritten` as the flag: a refused first call writes the header.
+    assertThat(refused["structuredContent"]).isNull()
+    assertThat(answered.text(METHOD)).isEqualTo(AgentMethod.SURFACE)
+  }
+
+  @Test
+  fun `a command line joining a session that has been answered is not told how to work here again`() {
+    val sessionId = "cli4821"
+    // `--agent` is a process per call, so a session is not a connection: each typed command opens the socket,
+    // joins the session by name and makes its one call, and the one after it is a `McpSession` that has never
+    // answered anything. Which is why the flag is read off the file rather than held here — and why these are
+    // built one after the other, as the two processes are. See [AgentSessionFile.hasAnsweredACall].
+    val firstAnswer = callTool(
+      """{"name":"list_leaks","arguments":{"reason":"What it says."}}""",
+      on = joining(sessionId)
+    )
+    val secondAnswer = callTool(
+      """{"name":"describe_object","arguments":{"object":"${hex(heapDump.holderObjectId)}",""" +
+        """"reason":"The holder next."}}""",
+      on = joining(sessionId)
+    )
+
+    assertThat(firstAnswer.obj("structuredContent").text(METHOD))
+      .startsWith(AgentMethod.SURFACE)
+    assertThat(secondAnswer.obj("structuredContent").keys).doesNotContain(METHOD)
+    assertThat(sessions().single().sessionId).isEqualTo(sessionId)
   }
 
   @Test
@@ -430,15 +503,37 @@ class McpSessionTest {
 
   private fun sessions(): List<AgentSession> = AgentSessionFile.sessionsIn(sessionsDirectory)
 
-  private fun callTool(params: String): JsonObject =
-    answer("""{"jsonrpc":"2.0","id":9,"method":"tools/call","params":$params}""").result()
+  /** One typed `--agent` command's worth of session, joining the one called [sessionId]. */
+  private fun joining(sessionId: String) = McpSession(
+    tools = agentTools(FakeAgentHeapDumps(listOf(window))),
+    serverVersion = SERVER_VERSION,
+    sessionFile = AgentSessionFile.continuing(sessionsDirectory, SERVER_VERSION, sessionId),
+    over = AgentTransport.CLI
+  )
 
-  private fun answer(line: String): JsonObject = requireNotNull(answerOrNull(line)) {
+  /**
+   * One call, to [session] or to another one of it.
+   *
+   * Another one because a `--agent` command line is a process per call and therefore a [McpSession] per call,
+   * so anything that is once per *session* has to be tried across two of these against one session file.
+   */
+  private fun callTool(
+    params: String,
+    on: McpSession = session
+  ): JsonObject = answer("""{"jsonrpc":"2.0","id":9,"method":"tools/call","params":$params}""", on).result()
+
+  private fun answer(
+    line: String,
+    on: McpSession = session
+  ): JsonObject = requireNotNull(answerOrNull(line, on)) {
     "Nothing was answered to $line"
   }
 
-  private fun answerOrNull(line: String): JsonObject? = runBlocking {
-    session.answer(line)?.let { JSON.parseToJsonElement(it).jsonObject }
+  private fun answerOrNull(
+    line: String,
+    on: McpSession = session
+  ): JsonObject? = runBlocking {
+    on.answer(line)?.let { JSON.parseToJsonElement(it).jsonObject }
   }
 
   private fun hex(objectId: Long) = exactHexObjectId(objectId)
@@ -446,6 +541,9 @@ class McpSessionTest {
   private companion object {
 
     const val SERVER_VERSION = "1.2.3"
+
+    /** The field of an answer the method travels in. See [AgentMethod.FIELD]. */
+    const val METHOD = "method"
 
     val JSON = Json
 

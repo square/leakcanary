@@ -59,7 +59,17 @@ class AgentSessionFile private constructor(
   private val startedAt: Instant,
   private val serverVersion: String,
   /** Whether the file already says whose session it is, which a call joining one finds true. */
-  private var isHeaderWritten: Boolean
+  private var isHeaderWritten: Boolean,
+  /**
+   * Whether a call of this session has already been answered, which is what the surface's own instructions
+   * are handed over once per. See `McpSession.withTheSurface`.
+   *
+   * **Not [isHeaderWritten], which is the flag that looks like it.** A header is written by the first line
+   * of any kind — a handshake, a call that was refused, a message that reached no tool — and a session whose
+   * first typed command was refused is one where nothing has yet carried a tool result at all. So this is
+   * its own question, read off the file for a session being joined.
+   */
+  val hasAnsweredACall: Boolean
 ) {
 
   /**
@@ -145,7 +155,8 @@ class AgentSessionFile private constructor(
         sessionId = sessionId,
         startedAt = startedAt,
         serverVersion = serverVersion,
-        isHeaderWritten = false
+        isHeaderWritten = false,
+        hasAnsweredACall = false
       )
     }
 
@@ -178,8 +189,31 @@ class AgentSessionFile private constructor(
         sessionId = sessionId,
         startedAt = startedAt,
         serverVersion = serverVersion,
-        isHeaderWritten = true
+        isHeaderWritten = true,
+        hasAnsweredACall = answeredACallIn(existing)
       )
+    }
+
+    /**
+     * Whether [file] already holds a call that was answered, which is what [hasAnsweredACall] is read from.
+     *
+     * Stops at the first one, so joining a session normally costs the header line and the line after it
+     * however long the session has run. **An answered call is a line that named a tool and recorded neither a
+     * refusal nor an error**: those are the two endings the agent was handed text alone for, with no tool
+     * result for anything to be carried in.
+     */
+    private fun answeredACallIn(file: File): Boolean = try {
+      file.bufferedReader().use { reader ->
+        reader.lineSequence().withIndex().any { (index, line) ->
+          val read = line.asJsonOrNull(file, index + 1)
+          read != null && read[TOOL_KEY] != null && read[REFUSAL_KEY] == null && read[ERROR_KEY] == null
+        }
+      }
+    } catch (throwable: Throwable) {
+      // Answering as if nothing had been, which is the cheap half of being wrong here: a paragraph handed
+      // over a second time, against a session that was never handed it at all.
+      SharkLog.d(throwable) { "Could not read the agent session log $file" }
+      false
     }
 
     /**

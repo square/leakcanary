@@ -166,8 +166,8 @@ internal class AgentArguments(
  * **A class is an object of the heap dump like any other**, with an address and fields — its static ones —
  * so `describe_object` on `android.os.Build${'$'}VERSION` is exactly the right thing to want, and the only thing
  * missing is the lookup. Which is why this is here rather than in a tool: told only that its class name is no
- * address, an agent has to guess that a second tool is what turns one into the other, and the method text
- * shipped in `open_heap_dumps` sent it here in the first place. See [AgentMethod].
+ * address, an agent has to guess that a second tool is what turns one into the other, and the method
+ * `list_leaks` answers with sent it here in the first place. See [AgentMethod].
  *
  * A name with a dot or a `${'$'}` in it, since those are the two things a class name has that nothing else sent
  * here does. A bare `Bitmap` gets the plain refusal: it is as likely to be a typo as a class.

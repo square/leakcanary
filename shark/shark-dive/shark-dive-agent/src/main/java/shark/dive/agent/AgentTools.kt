@@ -80,21 +80,17 @@ internal class AgentTools(
 
   private fun openHeapDumps() = AgentTool(
     name = OPEN_HEAP_DUMPS,
-    description = "Which heap dumps Shark Dive has open right now, with the method to investigate one. For " +
-      "when nobody told you which dump to look at, or when you need the name of one: the file names it " +
-      "hands back are what every other tool names a heap dump by, and the verdicts it lists are what " +
-      "somebody has already concluded. **If you were given a heap dump, call $OPEN_HEAP_DUMP with it " +
-      "instead** — it opens that one, or hands back the window that already has it, and its answer carries " +
-      "the same method. This reads nothing and waits for nothing.",
+    description = "Which heap dumps Shark Dive has open right now. For when nobody told you which dump to " +
+      "look at, or when you need the name of one: the file names it hands back are what every other tool " +
+      "names a heap dump by, and the verdicts it lists are what somebody has already concluded. **If you " +
+      "were given a heap dump, call $OPEN_HEAP_DUMP with it instead** — it opens that one, or hands back " +
+      "the window that already has it. This reads nothing and waits for nothing.",
     schema = schema()
   ) { _ ->
     val dumps = heapDumps.openHeapDumps()
     val indexing = heapDumps.openingHeapDumpPaths()
     val described = dumps.map { describedDump(it) }
     buildJsonObject {
-      // With the answer rather than only in the handshake, because a client that drops the handshake's
-      // instructions is a client whose model never saw them. See [AgentMethod].
-      put("method", AgentMethod.INSTRUCTIONS)
       // Nothing here is a read of a heap dump: a name, a path, the sizes worked out while opening it, the
       // verdicts, and a directory listed for the notes. Which is what makes this the one call that touches
       // every open window and still answers in no time — it used to queue behind each window's current read,
@@ -113,13 +109,12 @@ internal class AgentTools(
 
   private fun openHeapDump() = AgentTool(
     name = OPEN_HEAP_DUMP,
-    description = "The heap dump you were given, ready to read, with the method to investigate it. Name it " +
-      "and this answers with it: it opens the file if nobody has it open, and hands back the window that " +
-      "already has it if somebody does, so naming a dump twice never indexes it twice. `$PATH` is an " +
-      "absolute `.hprof` path — a dump a bug report came with, one you took with dump_heap, a second dump " +
-      "of the same app to compare against — or the file name of one that is already open. Opening a large " +
-      "dump is minutes, and this waits for it rather than answering with a window nothing can be read from " +
-      "yet.",
+    description = "The heap dump you were given, ready to read. Name it and this answers with it: it opens " +
+      "the file if nobody has it open, and hands back the window that already has it if somebody does, so " +
+      "naming a dump twice never indexes it twice. `$PATH` is an absolute `.hprof` path — a dump a bug " +
+      "report came with, one you took with dump_heap, a second dump of the same app to compare against — or " +
+      "the file name of one that is already open. Opening a large dump is minutes, and this waits for it " +
+      "rather than answering with a window nothing can be read from yet.",
     schema = schema(
       PATH to string(
         "The absolute path of an `.hprof` file on this machine, or the file name of a heap dump that is " +
@@ -136,9 +131,6 @@ internal class AgentTools(
     val dump = already ?: openFile(path)
     val described = describedDump(dump)
     buildJsonObject {
-      // Here as well as in the listing, because this is the other call an investigation can start with and
-      // the method has to reach a model that starts here. See [AgentMethod].
-      put("method", AgentMethod.INSTRUCTIONS)
       described.forEach { (name, value) -> put(name, value) }
       // Whether this opened anything, which is the difference between an agent that has just cost somebody a
       // window and one that joined the window they are watching.
@@ -201,15 +193,22 @@ internal class AgentTools(
 
   private fun listLeaks() = AgentTool(
     name = LIST_LEAKS,
-    description = "What this heap dump says shouldn't be in memory, gathered into the leaks those objects " +
-      "are instances of. The heap dump's own answer and the place to start: objects the app itself handed " +
-      "to LeakCanary and said it was done with are the strongest evidence a dump carries. Sections marked " +
-      "isOnTheWayOut are objects the garbage collector will take on its own — nothing to investigate there.",
+    description = "What this heap dump says shouldn't be in memory, **and the method for working out why**. " +
+      "Call this first for anything about a leak and read the method it answers with: objects the app " +
+      "itself handed to LeakCanary and said it was done with are the strongest evidence a dump carries, " +
+      "gathered into the leaks those objects are instances of. Sections marked isOnTheWayOut are objects " +
+      "the garbage collector will take on its own — nothing to investigate there. This is the leak question " +
+      "only: what the memory has gone on is $DOMINATOR_TREE.",
     schema = schema(HEAP_DUMP to heapDumpArgument())
   ) { arguments ->
     val dump = arguments.heapDump()
     val leaks = dump.read("the leaks, for an agent") { it.tree.findLeaks(dump.verdicts) }
-    AgentJson.leaks(leaks)
+    buildJsonObject {
+      // Leading the one answer on this surface that carries it, which is what makes calling this the first
+      // step of a leak investigation rather than a step an agent can skip. See [AgentMethod].
+      put(AgentMethod.FIELD, AgentMethod.LEAK)
+      AgentJson.leaks(leaks).forEach { (name, value) -> put(name, value) }
+    }
   }
 
   private fun agentLog() = AgentTool(
@@ -928,11 +927,17 @@ internal class AgentTools(
      *
      * Both questions, because a dump is not always a leak. A dump somebody took because the app was using a
      * gigabyte is a dominator tree, and being pointed only at the leaks is being pointed away from the
-     * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in `list_leaks` that
+     * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in [LIST_LEAKS] that
      * walking a tree would take an hour to reach.
+     *
+     * **And it says where the leak method is**, because this is the answer that used to carry it. Opening a
+     * dump is the first call of most investigations and the method is no longer in its answer, so a sentence
+     * saying which call has it is what keeps the one that skipped [LIST_LEAKS] from being an investigation
+     * that never read it by accident. See [AgentMethod].
      */
-    const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this heap dump to see what it says about " +
-      "itself, or $DOMINATOR_TREE to see where its memory has gone."
+    const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this heap dump for anything about a leak: its " +
+      "answer carries the method, and this one does not. Call $DOMINATOR_TREE instead if the question is " +
+      "where the memory has gone."
 
     /**
      * What to do about a heap dump somebody has already worked on, said only when one has — see

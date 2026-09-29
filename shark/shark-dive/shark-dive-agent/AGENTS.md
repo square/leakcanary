@@ -15,7 +15,7 @@ being talked to by a program that is not this app.
 | `AgentHeapDump.kt` | The seam: one open heap dump, as everything here sees it. The app implements it over a window; the tests implement it over a `HeapDive` and three fields. |
 | `AgentTools.kt` | Every tool, each a name, a schema and one read. Where the refusals are. |
 | `AgentPlace.kt` | Where a tab is, as one string an agent can be answered with and hand back. Both directions. |
-| `AgentMethod.kt` | The method, as prose handed to the model twice. |
+| `AgentMethod.kt` | The method, as two texts: how to work here at all, and how to find a faulty reference. |
 | `AgentJson.kt` | Shark Dive's model as JSON. |
 | `AgentTool.kt` | One tool, its arguments read strictly, and `AgentRefusal`. |
 | `McpSession.kt` | JSON-RPC, one message per line. |
@@ -324,6 +324,6 @@ adapters above its calls arrive through.
 `shark/shark-dive/notes/agent-eval.md` has the answer keys — and the eight ways a run gets handed its own
 answer, each of which was a score that meant nothing. One of them voided every number this eval has ever
 produced, so read that section before quoting a table from it. **The eighth is in this module**: a worked
-example in `AgentMethod` named a real reference, which was a scenario's key, in the first tool result of every
-run. So a class name written into anything here — a description, a refusal, the method — is worth checking
-against `EvalScenarios` first.
+example in `AgentMethod` named a real reference, which was a scenario's key, in the text every run is handed
+before it has read anything. So a class name written into anything here — a description, a refusal, either
+half of the method — is worth checking against `EvalScenarios` first.

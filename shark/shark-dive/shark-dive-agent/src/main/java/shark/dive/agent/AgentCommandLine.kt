@@ -354,9 +354,10 @@ object AgentCommandLine {
     |  $command $AGENT_OPTION describe_object object=0x7205 reason="Reading the holder's fields"
     |
     |Start with open_heap_dump on the heap dump you were given: it opens that file, or hands back the window
-    |that already has it, and its answer carries the method to follow, the name every other tool names that
-    |dump by, and whatever verdicts somebody has already recorded about it. If you were given no heap dump,
-    |open_heap_dumps lists the ones open and carries the same method.
+    |that already has it, and its answer carries the name every other tool names that dump by and whatever
+    |verdicts somebody has already recorded about it. If you were given no heap dump, open_heap_dumps lists
+    |the ones open. Then, for anything about a leak, list_leaks: its answer carries the method to follow —
+    |what a leak is, and the order that finds the faulty reference — and no other call on this surface does.
     |
     |Every tool takes `reason`, which is why you are making the call. It is logged beside the reads it causes
     |and read afterwards on the *Agent logs* screen of the window, so write the sentence you would say to the
