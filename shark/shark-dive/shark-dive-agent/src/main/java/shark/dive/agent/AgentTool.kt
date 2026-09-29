@@ -239,7 +239,7 @@ internal fun enumArray(
 /**
  * The schema of a tool's arguments, with `reason` added to every one of them.
  *
- * Added here rather than written out eleven times, so that there is no tool it can be forgotten on: a
+ * Added here rather than written out once per tool, so that there is no tool it can be forgotten on: a
  * command with no reason recorded beside it is the gap this surface exists to close. See [AgentTools].
  */
 internal fun schema(vararg properties: Pair<String, AgentProperty>): JsonObject {

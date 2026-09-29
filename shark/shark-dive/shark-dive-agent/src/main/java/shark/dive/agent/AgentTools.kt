@@ -871,7 +871,7 @@ internal class AgentTools(
 
   private companion object {
 
-    /** What every investigation starts with, named because three messages point at it. */
+    /** What every investigation starts with, named because other messages point an agent at it. */
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
 
     /** Named because another tool's description tells an agent to call it, or its own says what it is. */

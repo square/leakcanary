@@ -99,8 +99,8 @@ object AgentCommandLine {
    * Every tool of this build as text: what each is for, and the arguments it takes.
    *
    * Generated from the same registry `tools/list` answers from, so a tool cannot be on one and missing from
-   * the other — which is the rule this adapter is under. [toolName] narrows it to one, because a surface of
-   * sixteen tools is worth reading a piece at a time.
+   * the other — which is the rule this adapter is under. [toolName] narrows it to one, because a surface this
+   * size is worth reading a piece at a time.
    *
    * Answered with no run of the app and no heap dump anywhere, since it describes a build rather than
    * anything open: an agent reads this *before* there is something to read. [NoHeapDumpToDescribe] is what
@@ -466,7 +466,7 @@ private class HelpArgument(
 private fun AgentTool.helpText(): String = buildString {
   appendLine(name)
   appendLine("  $description")
-  // `reason` is on every tool and is said once, in the preamble: sixteen copies of the same paragraph is a
+  // `reason` is on every tool and is said once, in the preamble: a copy of the same paragraph per tool is a
   // sixth of the help, and the one argument nobody needs reminding of per tool is the mandatory one.
   arguments().filter { it.name != REASON_ARGUMENT }.forEach { appendLine("  ${it.helpLine()}") }
 }
