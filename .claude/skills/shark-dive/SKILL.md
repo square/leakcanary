@@ -111,8 +111,8 @@ it does not need repeating here.
 Two things about it that are easy to miss:
 
 - **`conclude` will refuse you** until the heap dump agrees that one reference is at fault, and the refusal
-  says which of the three reasons it is. That is the surface working. Go and do what it says — usually
-  `set_verdict` on the object it named — rather than reporting a root cause it would not accept.
+  says what is in the way of that rather than only saying no. That is the surface working. Go and do what it
+  says — usually `set_verdict` on the object it named — rather than reporting a root cause it would not accept.
 - **Isolating the reference is not the root cause.** It says where the problem is, not how it happened, so the
   method sends you to the code at the version this dump is of, and tells you how to work out which version
   that is.

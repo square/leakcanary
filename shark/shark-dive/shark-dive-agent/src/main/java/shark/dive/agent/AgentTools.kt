@@ -871,7 +871,7 @@ internal class AgentTools(
 
   private companion object {
 
-    /** What every investigation starts with, named because three messages point at it. */
+    /** What every investigation starts with, named because other messages point an agent at it. */
     const val OPEN_HEAP_DUMPS = "open_heap_dumps"
 
     /** Named because another tool's description tells an agent to call it, or its own says what it is. */
@@ -1253,6 +1253,14 @@ private fun nothingToShow(
  * The indexing case names the path rather than alluding to it, because an agent that is told nothing is open
  * and is not told where its heap dump is has one move left, which is to guess a path — and one guessed another
  * heap dump on the same machine and investigated that instead. See [AgentHeapDumps.openingHeapDumpPaths].
+ *
+ * **This is a `problem` on an answer and not an [AgentRefusal]**, which reads like an oversight — nothing is
+ * open, so the call could not do what it was for — and is the only shape that works. An empty listing *is*
+ * the answer to "what is open", and a refusal is text alone: `McpSession.toolError` sends no
+ * `structuredContent`, and `AgentCommandLine.printed` prints that text to stderr and nothing else. So
+ * refusing here would throw away the whole structured answer, starting with the very paths the paragraph
+ * above exists to name. Same shape as `agent_log` and `list_devices` with nothing to list, and the refusal
+ * for a call that needs a dump is [heapDump]'s, which every tool that reads one goes through.
  */
 private fun nothingToRead(indexing: List<String>): String = if (indexing.isEmpty()) {
   "No heap dump is open yet. Call $OPEN_HEAP_DUMP with the path of an `.hprof` file, or dump_heap to take " +
