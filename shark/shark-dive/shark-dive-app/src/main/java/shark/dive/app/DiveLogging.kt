@@ -14,15 +14,10 @@ import shark.dive.formatByteSize
  * heap dump was open, what was read off it and how long each read took, which read failed and with
  * what. See [SessionLog], and [LOG_DIRECTORY] for where the files are.
  */
-internal fun installLogging(
-  /**
-   * Where the diagnostics go besides the file, which is stdout for a run from a terminal and **stderr for
-   * one talking MCP over stdio**: there, stdout is the protocol, and a log line in the middle of a JSON-RPC
-   * stream is a session the client reports as broken. See `shark.dive.agent.AgentStdioServer`.
-   */
-  diagnostics: PrintStream = System.out
-): Closeable {
-  val streamLogger = StreamLogger(diagnostics)
+internal fun installLogging(): Closeable {
+  // Besides the file, on stdout, which is where a run from a terminal shows them. Nothing installs this for a
+  // run that is answering one `--agent` call — there, stdout carries the answer.
+  val streamLogger = StreamLogger(System.out)
   val sessionLog = try {
     SessionLog.openIn(LOG_DIRECTORY)
   } catch (throwable: Throwable) {
@@ -124,9 +119,8 @@ internal val SHARK_DIVE_DIRECTORY = sharkDiveDirectory()
 
 /**
  * Read from the environment rather than from the command line, because the processes that have to agree on it
- * are not all started by whoever set it: an `--agent` call opens a window by running this app again, and an
- * MCP client launches the server from a config file it wrote. An environment variable is the one thing all
- * three inherit.
+ * are not all started by whoever set it: an `--agent` call opens a window by running this app again, and every
+ * call after it reaches that window. An environment variable is the one thing they all inherit.
  */
 internal fun sharkDiveDirectory(
   environment: Map<String, String> = System.getenv(),

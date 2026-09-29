@@ -61,12 +61,9 @@ fun main(args: Array<String>) {
   if (deliveredToAnotherRun(args)) {
     return
   }
-  // And a run asked to be a pipe between an agent and another run opens no window and, more to the point,
-  // installs no logging: stdout is the protocol in that mode, and one log line in the middle of it is a
-  // session the agent's client reports as broken. See [AgentStdioBridge].
-  agentBridgeExitCode(args)?.let { exitProcess(it) }
-  // And a run asked to make one call from a shell prints the answer and ends, for the same reason: what is
-  // on stdout is what whoever typed it is reading. See [AgentCommandLine].
+  // And a run asked to make one call from a shell prints the answer and ends, opening no window and, more to
+  // the point, installing no logging: stdout carries the answer, and a log line in the middle of it is JSON
+  // whoever typed the command cannot parse. See [AgentCommandLine].
   agentCommandExitCode(args)?.let { exitProcess(it) }
   // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
   // stdout as well as in the window — and in a file, so that a session someone reports on can be read

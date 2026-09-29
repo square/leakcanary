@@ -262,59 +262,12 @@ verdict has just moved.
 !!! tip "Never dive alone"
     Take your agent with you.
 
-The window is also an **[MCP](https://modelcontextprotocol.io) server**, so an agent — Claude Code, Cursor,
-whatever you use — investigates *the heap dump you have open* rather than one of its own. It reads the same
-tree, sets verdicts you watch appear, puts what it is looking at on your screen, and writes what it concluded
-into the notes where you and the next reader will find it.
+**Every screen and every button of this app is also a command**, so an agent — Claude Code, Cursor, whatever
+you use — investigates *the heap dump you have open* rather than one of its own. It reads the same tree, sets
+verdicts you watch appear, puts what it is looking at on your screen, and writes what it concluded into the
+notes where you and the next reader will find it.
 
-Point your client at the app itself:
-
-```json
-{
-  "mcpServers": {
-    "shark-dive": {
-      "command": "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive",
-      "args": ["--mcp-stdio"]
-    }
-  }
-}
-```
-
-That is the app's own launcher, and `--mcp-stdio` makes this copy of it a pipe to the window already open
-rather than a second window. Nothing else to install and no port to configure: it talks to the run that
-started most recently, says which one that was, and takes `--agent-run=<pid>` when several Shark Dive windows are
-open.
-
-**A window open before you start is not a requirement.** If nothing is running, this opens one — and if the
-command line named a heap dump, that window opens it, so the same configuration works whether or not you got
-there first:
-
-```json
-"args": ["--mcp-stdio", "--title=For an agent", "/Users/you/dumps/bug-4821.hprof"]
-```
-
-The window it opens outlives the agent's session, which is the point: whatever it concluded is on the tabs it
-left open when you come back to it.
-
-**And there is a case with no screen at all** — a build server, a heap dump on the far end of an ssh session,
-or something driving an agent with nobody watching. Add `--no-ui` and the tools are served from that process
-instead of piped to a window:
-
-```json
-"args": ["--mcp-stdio", "--no-ui", "/var/dumps/bug-4821.hprof"]
-```
-
-Everything works the same except `show`, which has nowhere to put a tab and says so rather than answering that
-it showed you something. It still hands back the `shark://` link, which names the heap dump: nobody saw the
-place, and the link opens it for the next reader on the machine the dump is on. Nothing else changes, because **notes and verdicts
-were never on the screen** — they are files
-beside the heap dump, so a dump investigated over ssh today opens in a window tomorrow with the verdicts, the
-reasons and the conclusion already on it.
-
-### Or from a shell, with nothing configured
-
-The same tools are a command away, for an agent whose client speaks no MCP and for one that has a terminal and
-hasn't been set up with anything:
+There is nothing to install and nothing to configure. The app's own launcher takes the call:
 
 ```bash
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --agent-help
@@ -323,20 +276,34 @@ hasn't been set up with anything:
 ```
 
 `--agent-help` prints every tool with its arguments; `--agent-help <tool>` prints one of them. A call goes to
-the window that has the heap dump open — the same socket the MCP pipe uses — or opens one when nothing is
-running. It exits 0 with the answer as JSON on stdout, **2 when the call was refused**, with the refusal on
-stderr where a script can read it, and 1 when there was nothing to answer it.
+the window that has the heap dump open, over a loopback socket every run of the app publishes, so no port to
+configure either: it talks to the run that started most recently, says which one that was, and takes
+`--agent-run=<pid>` when several Shark Dive windows are open.
+
+It exits 0 with the answer as JSON on stdout, **2 when the call was refused**, with the refusal on stderr
+where a script can read it, and 1 when there was nothing to answer it. Which matters more than it sounds: a
+refusal is the surface working, so an agent that treats a non-zero exit as a failure to retry is one that
+never reads the sentence telling it what to do instead.
+
+**A window open before you start is not a requirement.** If nothing is running, the first call opens one, and
+it outlives the agent's session — which is the point: whatever it concluded is on the tabs it left open when
+you come back to it.
 
 Calls from one shell are one session, so what an agent did reads as one row of the *Agent logs* screen rather
-than a row per command. `--agent-session=<name>` says so explicitly, and `--agent-run=<pid>` picks between
-several Shark Dive windows.
+than a row per command. `--agent-session=<name>` says so explicitly, for an agent whose calls come from
+processes with nothing in common.
+
+**And there is no MCP server**, deliberately. A command line is what an agent reaches for without being
+configured at all: nothing to install, nothing to point at a config file, no server running until a call is
+made — and you can type the same call the agent just made, read the same answer, and pipe it into `jq`. What
+an agent needs instead is to be told any of this exists, which is the skill below.
 
 ### The skill
 
 An agent still has to be told that any of this exists. This repository carries a
-[skill](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) that does it — the three
-ways in, the command line, and what to do with an answer — and every client that reads the standard (Claude
-Code, Codex, Cursor, Gemini CLI) picks it up from the same directory:
+[skill](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) that does it — where the
+launcher is, how to start from a dump, a device or nothing at all, and what to do with an answer — and every
+client that reads the standard (Claude Code, Codex, Cursor, Gemini CLI) picks it up from the same directory:
 
 ```bash
 git clone git@github.com:square/leakcanary.git
@@ -348,13 +315,16 @@ into opening the dump in a window you can watch.
 
 Then ask for what you actually want. This is the whole prompt the session below was given:
 
-> A heap dump is open in Shark Dive, which you can reach through its MCP tools. Something in it is
+> A heap dump is open in Shark Dive, which you can reach with its `--agent` command line. Something in it is
 > leaking. Find the root cause.
 
-**The method comes with the tools**, so it doesn't have to come from you. The handshake hands over what a
+**The method comes with the tools**, so it doesn't have to come from you. `list_leaks` answers with what a
 leak is — one bad reference, the three zones of a chain, the rules that spread a verdict up and down it — and
 the order that finds it, which is [the LeakCanary
-method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it.
+method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it. It rides on the
+answer to the call an agent was going to make anyway, since **the one thing an agent is certain to read is
+what it asked for**: nothing is spent on a session that turned out not to be about a leak, and nothing is
+spent on the second call of one that is.
 
 **Including the part that isn't in the heap dump at all.** Isolating the reference says *where* the problem
 is, not how it happened, and stopping there is the most common way an investigation fails — so the method
@@ -380,7 +350,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
 | `set_verdict`, `clear_verdict` | The pencil, with the *Why* required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
-| `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can only half do — no tab, and the link all the same. |
+| `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. |
 | `conclude` | The root cause, and the only way to finish. |
 | `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
 
@@ -428,9 +398,6 @@ and there is everything that agent sent, in order and in words — what each cal
 to, and the sentence it gave for doing it:
 
 ```
-08:23:01  Connected
-08:23:01  Sent the notification notifications/initialized
-08:23:02  Asked what the tools are
 08:23:04  Asked which heap dumps are open
           because: Seeing what there is to read before asking anything about it.
 08:23:11  Listed the leaks
@@ -462,25 +429,26 @@ rather than on to an answer:
           reference: the rules can only name one once something below it is known not to belong. […]
 ```
 
-**And so is every other line that arrived** — the three at the top of that session are the handshake. A call
-naming a tool that doesn't exist, a line that wasn't JSON at all, a read that failed: each is a row, and the
-ones nothing could answer say *Failed* rather than *Refused*, which is the opposite claim. A refusal is the
-method working; this is Shark Dive not working.
+**And so is every line that arrived and reached no tool.** A call naming a tool that doesn't exist, a line
+that wasn't JSON at all, a read that failed: each is a row, and the ones nothing could answer say *Failed*
+rather than *Refused*, which is the opposite claim. A refusal is the method working; this is Shark Dive not
+working.
 
 ```
 08:24:02  Called solve_the_leak 0x12d368b8
           because: Trying my luck.
-          Failed: There is no tool called "solve_the_leak". This server has open_heap_dumps, […]
+          Failed: There is no tool called "solve_the_leak". This build has open_heap_dumps, […]
 08:24:09  Sent something this app could not read
-          Failed: That is not JSON: Unexpected JSON token at offset 0
+          Failed: That is not one JSON object.
 ```
 
 Which is the point of keeping them: what this screen gets opened for is often why *nothing* happened, and a
 screen holding only the calls that worked is the one screen that can't answer that. The `n call(s)` above the
-rows counts the calls rather than the lines, for the same reason. **A command typed at a shell is still one
-row**: `--agent` is a process per call, so each of them connects and says hello before it calls anything, and
-a *Connected* per call would double the length of every shell's session without saying anything the row under
-it doesn't.
+rows counts the calls rather than the lines, for the same reason.
+
+**One command typed is one row**, however many calls a shell makes: `--agent` is a process per call, and each
+of those connects, makes its one call and ends, so nothing crosses that socket but the call itself. There is
+no hello in front of it to draw.
 
 **And every row unfolds onto the call itself** — the `▸ {}` under a row opens what the agent sent and what it
 read back, as the text each of them was, so a step you don't follow is one question rather than a dead end:
@@ -489,7 +457,7 @@ read back, as the text each of them was, so a step you don't follow is one quest
 11:37:31  Looked at 0x12d368b8
           because: The one App leak: a MainActivity the app watched. Reading what it is before the chain.
           ▾ {}
-            sent over MCP:
+            sent:
               describe_object {
                   "object": "0x12d368b8",
                   "reason": "The one App leak: a MainActivity the app watched. Reading what it is
@@ -512,10 +480,7 @@ read back, as the text each of them was, so a step you don't follow is one quest
 
 What it sent is the tool's own name and then the arguments under it, which is the call as the model wrote it:
 *Looked at* is this window's word for `describe_object`, and the pair is worth having side by side exactly
-when a step doesn't follow from the one before it. And *over MCP* is which way in it came — a client holding a
-connection open, or `--agent` typed at this window — which is the one thing about a call that nothing else on
-the screen can tell you, since by the time anything answers one the two are the same protocol on the same
-socket.
+when a step doesn't follow from the one before it.
 
 Whole, never a first line of it: what you open a call for is the part the sentence left out, so an answer cut
 to fit would be one where the field that misled the agent is the part that got cut. And a session recorded by
@@ -523,8 +488,9 @@ an older Shark Dive says so rather than opening onto a gap.
 
 **Including the calls that came to nothing**, which is what this is most worth opening for. A refusal is
 under `answered:` as the agent was handed it, as well as in red on the row; so is an error, if a read failed
-or this app has a bug; so is the answer to a call naming a tool that doesn't exist. The only row with nothing
-under `answered:` is a notification, which is the one kind of message the protocol forbids answering.
+or this app has a bug; so is the answer to a call naming a tool that doesn't exist. Every line that arrived
+was answered with something, so a row with nothing under `answered:` means the app was killed while the call
+was in flight — which is the one failure an agent can't tell from this app having gone quiet.
 
 The mark is under the row rather than on the verb because a row is a sentence with one link in it, and a fold
 over its first words made hovering light up the half that isn't the link.
@@ -594,8 +560,10 @@ SHARK_DIVE_DIR=~/second-opinion open -a "Shark Dive" --args path/to/dump.hprof
 
 Which is a second set of notes and verdicts over the same heap dumps, kept apart from the first — for reading
 a dump again without yesterday's conclusions in front of you, or for a run whose verdicts shouldn't end up in
-yours. Set it for every process that should share those files: a window started this way, the `--agent` calls
-made at it, and an MCP server launched from a config file all read the variable from their own environment.
+yours. Set it for every process that should share those files: a window started this way and each of the
+`--agent` calls made at it read the variable from their own environment, and a call from a shell that doesn't
+export it won't even find that window — where a run publishes its port is under that directory too, so it
+looks in `~/.shark-dive`, finds nothing and opens a window of its own.
 
 ## Reporting a problem
 

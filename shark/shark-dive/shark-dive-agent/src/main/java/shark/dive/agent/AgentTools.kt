@@ -26,7 +26,7 @@ import shark.dive.outlineOf
 import shark.dive.suspectReferences
 
 /**
- * Everything an agent can do to an open heap dump, as MCP tools.
+ * Everything an agent can do to an open heap dump, as named tools with schemas.
  *
  * Thin on purpose. Shark Dive already answers every question the method asks — a chain with its verdicts,
  * every way an object is held, the leaks gathered the way LeakCanary gathers them — so a tool here is a
@@ -1261,11 +1261,11 @@ private fun nothingToShow(
  *
  * **This is a `problem` on an answer and not an [AgentRefusal]**, which reads like an oversight — nothing is
  * open, so the call could not do what it was for — and is the only shape that works. An empty listing *is*
- * the answer to "what is open", and a refusal is text alone: `McpSession.toolError` sends no
- * `structuredContent`, and `AgentCommandLine.printed` prints that text to stderr and nothing else. So
- * refusing here would throw away the whole structured answer, starting with the very paths the paragraph
- * above exists to name. Same shape as `agent_log` and `list_devices` with nothing to list, and the refusal
- * for a call that needs a dump is [heapDump]'s, which every tool that reads one goes through.
+ * the answer to "what is open", and a refusal is text alone: `AgentWire.refusal` carries a message and no
+ * answer, and `AgentCommandLine.printed` prints that text to stderr and nothing else. So refusing here would
+ * throw away the whole structured answer, starting with the very paths the paragraph above exists to name.
+ * Same shape as `agent_log` and `list_devices` with nothing to list, and the refusal for a call that needs a
+ * dump is [heapDump]'s, which every tool that reads one goes through.
  */
 private fun nothingToRead(indexing: List<String>): String = if (indexing.isEmpty()) {
   "No heap dump is open yet. Call $OPEN_HEAP_DUMP with the path of an `.hprof` file, or dump_heap to take " +

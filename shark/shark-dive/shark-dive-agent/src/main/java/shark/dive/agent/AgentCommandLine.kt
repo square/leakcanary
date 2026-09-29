@@ -8,35 +8,32 @@ import java.io.PrintWriter
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.putJsonObject
 import shark.dive.AndroidDevice
 import shark.dive.DeviceProcess
 
 /**
- * One tool call typed rather than spoken over a session: `--agent <tool> name=value …`.
+ * The whole way in: `--agent <tool> name=value …`, one call typed at a window that is already open.
  *
- * The second adapter over the registry in [AgentTools], and deliberately not a second surface: all it does is
- * turn a command line into a `tools/call` and print what came back, so a refusal met here is the same refusal
- * thrown by the same handler. See `notes/agent-surface.md`.
+ * **Argument translation and nothing else.** It turns a command line into the one line [AgentWire] describes,
+ * prints what came back and exits with what happened, so a refusal met here was thrown by the tool's own
+ * handler in [AgentTools]. Everything that decides anything is on the other end of the socket, which is what
+ * keeps this from being a second surface with rules of its own. See `notes/agent-surface.md`.
  *
- * **It talks to the window that is already open**, over the loopback socket every run publishes — the same
- * one [AgentStdioBridge] pipes to. So a call from here is as cheap as one made over MCP: the heap dump was
- * parsed and indexed once, in the window somebody is watching, and this queues on that window's own reading
- * thread. Being a process per call costs exactly one thing, which is that a connection can no longer be what
- * gathers an investigation. See [SESSION_OPTION].
+ * **It talks to the window that is already open**, over the loopback socket every run publishes. So being a
+ * process per call costs the connect and nothing else: the heap dump was parsed and indexed once, in the
+ * window somebody is watching, and this queues on that window's own reading thread. What it does cost is that
+ * a process cannot be what gathers an investigation, which is what [SESSION_OPTION] is for.
  *
- * Why have it at all, given the pipe: it is what an agent reaches for without being configured, it costs
- * nothing until it is run, it pipes into `grep`, and it is the only one of the two that an agent whose client
- * speaks no MCP can use.
+ * Why a command line rather than something an agent's client is configured with: it is what an agent reaches
+ * for without being configured at all, it costs nothing until it is run, it pipes into `jq`, and a person
+ * watching can type the same call the agent just made.
  */
 object AgentCommandLine {
 
@@ -98,9 +95,9 @@ object AgentCommandLine {
   /**
    * Every tool of this build as text: what each is for, and the arguments it takes.
    *
-   * Generated from the same registry `tools/list` answers from, so a tool cannot be on one and missing from
-   * the other — which is the rule this adapter is under. [toolName] narrows it to one, because a surface this
-   * size is worth reading a piece at a time.
+   * Generated from [AgentTools.all], which is the same list every call is answered out of, so a tool cannot be
+   * in this text and missing from the surface or the other way round. [toolName] narrows it to one, because a
+   * surface this size is worth reading a piece at a time.
    *
    * Answered with no run of the app and no heap dump anywhere, since it describes a build rather than
    * anything open: an agent reads this *before* there is something to read. [NoHeapDumpToDescribe] is what
@@ -145,18 +142,18 @@ object AgentCommandLine {
    * What a call joins when nothing said: the nearest process above this one that outlives a single call, which
    * is the shell an investigation is typed in, or the agent driving that shell.
    *
-   * A held-open connection is what gathers an MCP session, so a process per call has to find something that
-   * plays that part, and the obvious candidate is the parent — a person's shell lives as long as their
-   * conversation does. **It is the wrong answer for the agent this exists for.** Claude Code runs every
-   * command it issues in a `zsh -c` of its own, so the parent's id is a session per call again: measured, one
-   * investigation of nine calls wrote nine session files and drew nine rows of the *Agent logs* screen.
+   * A connection held open for a whole investigation would gather its own calls, so a process per call has to
+   * find something that plays that part, and the obvious candidate is the parent — a person's shell lives as
+   * long as their conversation does. **It is the wrong answer for the agent this exists for.** Claude Code runs
+   * every command it issues in a `zsh -c` of its own, so the parent's id is a session per call again: measured,
+   * one investigation of nine calls wrote nine session files and drew nine rows of the *Agent logs* screen.
    *
    * So a shell that was handed one command to run is walked past — it ends with that command, which is the
    * definition of what cannot gather calls — and its parent is the session instead. For an agent that is the
-   * client, whose life is the conversation; for a person it is still their own shell, which has no command on
-   * its command line, and a shell per terminal tab is what they would expect. Falls back to this process,
-   * which is a session per call: an ancestry that cannot be read is calls that cannot be gathered, and a row
-   * each is better than landing in somebody else's session.
+   * agent's own process, whose life is the conversation; for a person it is still their own shell, which has no
+   * command on its command line, and a shell per terminal tab is what they would expect. Falls back to this
+   * process, which is a session per call: an ancestry that cannot be read is calls that cannot be gathered, and
+   * a row each is better than landing in somebody else's session.
    */
   fun defaultSessionName(): String = sessionName(ProcessHandle.current())
 
@@ -217,87 +214,54 @@ object AgentCommandLine {
   ): Int {
     val toApp = PrintWriter(OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8), true)
     val fromApp = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
-    // The token, then which session this call is one of, then that it was typed rather than sent by a
-    // client: one line, because the alternative is a handshake that has to be answered before the protocol
-    // can start. Saying so here is the only chance there is — from the next line on this is indistinguishable
-    // from an MCP client, which is the point of it. See [AgentServer] and [AgentTransport].
-    toApp.println("${run.token} $sessionName ${AgentTransport.CLI.recorded}")
+    // The token and then which session this call is one of, on one line, because a process per call would
+    // otherwise be a session per call and a session is what somebody reads afterwards. See [AgentServer].
+    toApp.println("${run.token} $sessionName")
     if (fromApp.readLine() != AgentServer.ACCEPTED) {
       say("Shark Dive run ${run.pid} refused the token in ${run.file}, so it is not the run that wrote it")
       return NOTHING_ANSWERED
     }
-    // Says who is calling, which is what puts a client name in a session's first line. Nothing else here
-    // needs it: the tools are the same whether or not anybody introduced themselves.
-    if (ask(toApp, fromApp, INITIALIZE_ID, "initialize", initializeParameters()) == null) {
-      return NOTHING_ANSWERED
-    }
-    val result = ask(
-      toApp,
-      fromApp,
-      CALL_ID,
-      "tools/call",
-      buildJsonObject {
-        put("name", toolName)
-        put("arguments", arguments)
-      }
-    ) ?: return NOTHING_ANSWERED
-    return printed(result)
-  }
-
-  /** One JSON-RPC call and its answer, or null having said on stderr why there wasn't one. */
-  private fun ask(
-    toApp: PrintWriter,
-    fromApp: BufferedReader,
-    id: Int,
-    method: String,
-    parameters: JsonObject
-  ): JsonObject? {
-    val message = buildJsonObject {
-      put("jsonrpc", JSONRPC_VERSION)
-      put("id", id)
-      put("method", method)
-      put("params", parameters)
-    }
-    toApp.println(JSON.encodeToString(JsonElement.serializer(), message))
+    toApp.println(AgentWire.encode(AgentWire.call(toolName, arguments)))
     val line = fromApp.readLine()
     if (line == null) {
-      say("Shark Dive stopped answering during $method, so the window it was in has gone")
-      return null
+      say("Shark Dive stopped answering during $toolName, so the window it was in has gone")
+      return NOTHING_ANSWERED
     }
-    val answer = try {
-      JSON.parseToJsonElement(line) as? JsonObject
-    } catch (notJson: Exception) {
-      say("Shark Dive answered $method with something that is no JSON-RPC message: $notJson")
-      return null
+    val response = AgentWire.decodeOrNull(line)
+    if (response == null) {
+      say("Shark Dive answered $toolName with something that is no JSON object: $line")
+      return NOTHING_ANSWERED
     }
-    val error = answer?.get("error") as? JsonObject
-    if (error != null) {
-      // Not a refusal: a refusal is an answer a tool gave. This is the app failing to answer at all.
-      say("Shark Dive could not answer $method: ${(error["message"] as? JsonPrimitive)?.content}")
-      return null
-    }
-    return answer?.get("result") as? JsonObject
+    return printed(toolName, response)
   }
 
   /**
-   * Puts the answer on stdout, or the refusal on stderr, and says which happened in the exit code.
+   * Puts the answer on stdout and anything else on stderr, and says which happened in the exit code.
    *
-   * Two streams and two codes because **a refusal is not a failure of the command**: it is what the surface
-   * answered, and its message is the next thing to do. So a shell keeping stdout for the JSON still shows
-   * the sentence, and a script can tell "it said no" from "there was nothing to ask".
+   * Two streams and three codes because **a refusal is not a failure of the command**: it is what the surface
+   * answered, and its message is the next thing to do. So a shell keeping stdout for the JSON still shows the
+   * sentence, and a script can tell "it said no" from "nothing answered", which is the difference between
+   * going and reading something and going and looking at the app's log.
    */
-  private fun printed(result: JsonObject): Int {
-    val text = ((result["content"] as? JsonArray)?.firstOrNull() as? JsonObject)
-      ?.let { (it["text"] as? JsonPrimitive)?.content }
-    if ((result["isError"] as? JsonPrimitive)?.content == "true") {
-      say(text ?: "The call was refused, and the refusal said nothing.")
+  private fun printed(
+    toolName: String,
+    response: JsonObject
+  ): Int {
+    AgentWire.refusalOf(response)?.let { refusal ->
+      say(refusal)
       return REFUSED
     }
-    val structured = result["structuredContent"] as? JsonObject
+    AgentWire.failureOf(response)?.let { failure ->
+      say("Shark Dive could not answer $toolName: $failure")
+      return NOTHING_ANSWERED
+    }
+    val answer = AgentWire.answerOf(response)
+    if (answer == null) {
+      say("Shark Dive answered $toolName with no answer, no refusal and no failure: $response")
+      return NOTHING_ANSWERED
+    }
     val out = PrintWriter(OutputStreamWriter(System.out, Charsets.UTF_8), true)
-    out.println(
-      structured?.let { PRETTY_JSON.encodeToString(JsonElement.serializer(), it) } ?: text.orEmpty()
-    )
+    out.println(AgentWire.pretty(answer))
     out.flush()
     return ANSWERED
   }
@@ -338,13 +302,6 @@ object AgentCommandLine {
   /** The tools of this build, described. Built per call, so nothing here is shared between threads. */
   private fun described(): List<AgentTool> = AgentTools(NoHeapDumpToDescribe) { nothingToDescribeWith() }.all
 
-  private fun initializeParameters(): JsonObject = buildJsonObject {
-    put("protocolVersion", PROTOCOL_VERSION)
-    putJsonObject("clientInfo") {
-      put("name", CLIENT_NAME)
-    }
-  }
-
   private fun preamble(command: String): String = """
     |Shark Dive's heap dump tools, from a shell. One call per command, answered by the window that has
     |the heap dump open — or by a window this opens when none is.
@@ -383,10 +340,12 @@ object AgentCommandLine {
   const val ANSWERED = 0
 
   /**
-   * Nothing answered: no run to talk to, one that has gone, or a command line this could not read.
+   * Nothing answered: no run to talk to, one that has gone, a command line this could not read, or a call the
+   * app could not answer at all.
    *
-   * The same code [AgentStdioBridge] ends with for the same case and for the same reason: a command that did
-   * nothing has to fail, or whatever ran it carries on as though it had an answer.
+   * A command that did nothing has to fail, or whatever ran it carries on as though it had an answer. The
+   * last of the four is why this is not the same code as a refusal: a read that threw is the app falling over
+   * and the next thing to do about it is in `~/.shark-dive/logs`, not in the message. See [REFUSED].
    */
   const val NOTHING_ANSWERED = 1
 
@@ -407,8 +366,8 @@ object AgentCommandLine {
    */
   const val SESSION_OPTION = "--agent-session="
 
-  /** Which run to call, spelled the way the pipe spells it. See [AgentStdioBridge.PID_OPTION]. */
-  const val PID_OPTION = AgentStdioBridge.PID_OPTION
+  /** Which run to call, for a machine with several windows open. See `shark.dive.app.DiveArguments`. */
+  const val PID_OPTION = "--agent-run="
 
   /** How the session of a call from here is named, so that a file says what made it. */
   private const val SESSION_NAME_PREFIX = "cli"
@@ -425,32 +384,106 @@ object AgentCommandLine {
   /** See [defaultSessionName]. A shell inside a shell inside a shell, and then some. */
   private const val MAX_COMMAND_SHELLS_WALKED_PAST = 4
 
-  /** What the window's *Agent logs* screen says connected, for a session started from a shell. */
-  private const val CLIENT_NAME = "shark-dive-cli"
-
   /** Wide enough for the longest option above, since the descriptions read as a column or as nothing. */
   private const val OPTION_WIDTH = 24
 
   private const val LIST_SEPARATOR = ','
 
-  private const val JSONRPC_VERSION = "2.0"
-
-  /** The revision this was written against, which the app echoes back. See [McpSession]. */
-  private const val PROTOCOL_VERSION = "2025-06-18"
-
-  private const val INITIALIZE_ID = 1
-  private const val CALL_ID = 2
-
   private const val CONNECT_TIMEOUT_MILLIS = 1_000
 
-  private val JSON = Json { ignoreUnknownKeys = true }
+  /** How long a call waits for a run that ought to be there already, before saying there is none. */
+  private const val DEFAULT_RUN_WAIT_MILLIS = 10_000L
 
   /**
-   * Indented, because the reader is either a person or a model reading a chain of twenty steps.
+   * How long a window opened for an agent is given to publish itself.
    *
-   * The same shape the text of an MCP answer is in, so that what an agent reads is the same either way.
+   * A lot longer than a wait for one that should already be there, because it covers a cold JVM, Compose
+   * starting and jlink's runtime being paged in — and because the alternative to waiting is telling an agent
+   * there is no window while one is in the middle of appearing.
    */
-  private val PRETTY_JSON = Json(JSON) { prettyPrint = true }
+  private const val OPENING_WAIT_MILLIS = 60_000L
+
+  private const val POLL_MILLIS = 250L
+
+  /**
+   * The run of the app to talk to, opening one if there is none, and null for a machine where there was never
+   * going to be one.
+   */
+  private fun waitForRun(
+    directory: File,
+    pid: String?,
+    waitMillis: Long,
+    /**
+     * How to open a window to investigate in when no run of the app is open, and null to wait for one.
+     *
+     * Because the alternative is an agent whose only answer is "ask somebody to launch Shark Dive", and a
+     * window opened here is a window the person at the machine can then watch — which is the whole reason
+     * this surface is a window rather than a library. Not called when a run was asked for by [pid]: that
+     * names a window, and opening a different one would be answering about the wrong heap dump.
+     */
+    openAWindow: (() -> Unit)?
+  ): AgentServer.PublishedRun? {
+    var waited = 0L
+    var deadline = waitMillis
+    var opened = false
+    // Naming a run names a window and therefore a heap dump, so opening a different one would be answering
+    // about the wrong dump: for that command line there is nothing to open, only something to wait for.
+    val opensAWindow = openAWindow != null && pid == null
+    while (true) {
+      val runs = AgentServer.publishedRuns(directory)
+      val run = if (pid == null) runs.firstOrNull() else runs.firstOrNull { it.pid == pid }
+      if (run == null && !opened && opensAWindow) {
+        say("No Shark Dive is running, so one is being opened to investigate in.")
+        requireNotNull(openAWindow).invoke()
+        opened = true
+        // From here rather than from the start, because what is being waited for changed: a JVM starting,
+        // Compose coming up and a window appearing, rather than a file that may already be there.
+        deadline = waited + OPENING_WAIT_MILLIS
+      }
+      if (run != null) {
+        if (pid == null && runs.size > 1) {
+          // Which run a call ends up in is worth saying rather than leaving to be worked out from what heap
+          // dump it finds open: several Shark Dive windows at once is the normal way this app is used.
+          say(
+            "${runs.size} Shark Dive runs are open; talking to ${run.pid}, the one that started most " +
+              "recently. Pass $PID_OPTION<pid> to pick another: " + runs.joinToString(", ") { it.pid }
+          )
+        }
+        return run
+      }
+      if (waited >= deadline) {
+        say(nothingToTalkTo(directory, pid, opened))
+        return null
+      }
+      Thread.sleep(POLL_MILLIS)
+      waited += POLL_MILLIS
+    }
+  }
+
+  private fun nothingToTalkTo(
+    directory: File,
+    pid: String?,
+    opened: Boolean
+  ): String = if (pid == null && opened) {
+    "A Shark Dive run was started and has not published itself in ${OPENING_WAIT_MILLIS / 1000} seconds, " +
+      "so something went wrong opening it. Its log is in the newest file under ~/.shark-dive/logs."
+  } else if (pid == null) {
+    "No Shark Dive is running, so there is no heap dump to investigate. Open one — every run of the app " +
+      "publishes itself in $directory — and start this again."
+  } else {
+    "No Shark Dive run is $pid. Open runs: " +
+      AgentServer.publishedRuns(directory).joinToString(", ") { it.pid }.ifEmpty { "none" }
+  }
+}
+
+/**
+ * On stderr, always: where a shell shows what a command is doing, and where whatever ran it collects that.
+ *
+ * Not through `SharkLog`: this process installs none of the app's logging, since that writes to stdout and
+ * stdout is where the answer goes.
+ */
+internal fun say(message: String) {
+  System.err.println("[shark-dive] $message")
 }
 
 internal fun Char.isAsciiLetter(): Boolean = this in 'a'..'z' || this in 'A'..'Z'

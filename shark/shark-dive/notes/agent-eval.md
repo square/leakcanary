@@ -69,24 +69,22 @@ run. Earlier versions of this script started the app on the run's dump and hande
 every number was about a surface reached halfway through; `open_heap_dump` is the most-called tool here and it
 was the one the eval could say nothing about.
 
-**The calls arrive over the command line, and that is the only way they arrive.** The client is given `Bash`
-and `Skill` and nothing else, and it runs `"…/Shark Dive" --agent <tool> name=value …`. A window per run,
-because `--no-ui` publishes no port and no token and so cannot be reached by a command line at all — which is
-why a run closes its windows before the next one starts.
+**The calls arrive over the command line, which is the only way they arrive anywhere.** The client is given
+`Bash` and `Skill` and nothing else, and it runs `"…/Shark Dive" --agent <tool> name=value …`. A window per
+run, since a call reaches the tools by connecting to one — which is why a run closes its windows before the
+next one starts.
 
-**There was a `--transport mcp` arm and it is gone.** It configured the client with
-`["--mcp-stdio", "--no-ui"]` and gave it the MCP tools instead of a shell. Two reasons it went, and the first
-is the one that matters: **the command line is how an agent actually arrives** — a shell and a skill, no
-client configuration and nothing to restart — so the numbers that decide whether a description or a refusal
-got better have to come from that arm, and a second arm scored beside it is a second set of numbers nobody
-acts on. The second is that the arms were not comparable in the way a table implies. They differ in the tools
-the client has, in whether the surface is in band or discovered, and in whether a window exists — three
+**There was a `--transport mcp` arm, and both it and the server it scored are gone.** It configured the client
+with `["--mcp-stdio", "--no-ui"]` and gave it the MCP tools instead of a shell. The arm went first, before the
+server did, and for a reason worth keeping: **the command line is how an agent actually arrives** — a shell
+and a skill, no client configuration and nothing to restart — so the numbers that decide whether a description
+or a refusal got better have to come from that arm, and a second arm scored beside it is a second set of
+numbers nobody acts on. The arms were not comparable in the way a table implies either. They differed in the
+tools the client has, in whether the surface is in band or discovered, and in whether a window exists — three
 variables at once, which is a demonstration and not a measurement.
 
-What the comparison was for has not gone away: the two adapters can drift, and `notes/agent-surface.md` is
-still where what each costs a client is written down. That drift is a thing to test in
-`AgentToolsTest`/`AgentStdioBridgeTest`, where it is cheap and deterministic, rather than by paying for a
-model to demonstrate it.
+Which is also the argument that decided the surface: see `notes/agent-surface.md` for what each shape cost,
+measured, and why one way in is what is left.
 
 **A shell is a hole, and it is a bounded one.** An agent given `Bash` can `find` the dumps directory, or read
 the hprof with `strings`. What stops that mattering is that nothing about a *score* is on the filesystem: the
@@ -378,11 +376,11 @@ probe was run by hand, from a terminal, so it had a terminal on standard input �
 that mattered was the thing the probe changed**. A probe of what a process is handed has to be launched the
 way that process is launched.
 
-What survives is the product hole underneath, because it is the reason a path was worth reaching for at all:
-`--no-ui` opens the run's dump in the background, **nothing in the session says so**, and `open_heap_dump`
-wants a path. An agent with no path and a tool that needs one goes looking for one. Naming the already-open
-dump in what a session starts with is the fix, `AgentHeapDumps.openingHeapDumpPaths`, and it is in the
-product rather than in the eval, exactly like the first one.
+What survives is the product hole underneath, because it is the reason a path was worth reaching for at all: a
+window can be part way through opening a dump, **nothing in the session says so**, and `open_heap_dump` wants
+a path. An agent with no path and a tool that needs one goes looking for one. Naming the dump that is opening
+in what a session starts with is the fix, `AgentHeapDumps.openingHeapDumpPaths`, and it is in the product
+rather than in the eval, exactly like the first one.
 
 ## The scenario families
 

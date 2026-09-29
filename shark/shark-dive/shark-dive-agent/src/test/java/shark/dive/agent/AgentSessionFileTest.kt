@@ -32,7 +32,6 @@ class AgentSessionFileTest {
   @Test
   fun `a session is read back as it was written`() {
     val file = AgentSessionFile.starting(directory, SERVER_VERSION, startedAt = STARTED_AT)
-    file.opened(client = "claude-code 9.9.9", protocolVersion = "2025-06-18")
     file.called(
       call(
         tool = "describe_object",
@@ -45,7 +44,6 @@ class AgentSessionFileTest {
     val session = AgentSessionFile.sessionsIn(directory).single()
     assertThat(session.sessionId).isEqualTo(file.sessionId)
     assertThat(session.startedAt).isEqualTo(STARTED_AT)
-    assertThat(session.client).isEqualTo("claude-code 9.9.9")
     assertThat(session.serverVersion).isEqualTo(SERVER_VERSION)
     val call = session.calls.single()
     assertThat(call.tool).isEqualTo("describe_object")
@@ -87,59 +85,24 @@ class AgentSessionFileTest {
   }
 
   @Test
-  fun `a message that reached no tool is a line like any other`() {
+  fun `a line that reached no tool is a line like any other`() {
     val file = AgentSessionFile.starting(directory, SERVER_VERSION)
-    file.called(message(method = "tools/list", input = """{"method":"tools/list"}""", output = """{"tools":[]}"""))
-    file.called(message(method = null, input = "this is not JSON", output = "no", error = "That is not JSON"))
+    file.called(unreadable(input = "this is not JSON", failure = "That is not one JSON object."))
     file.called(call(tool = "list_leaks"))
 
-    // All three, since the full traffic is what a session is: the calls are the subset that got as far as a
-    // tool, and everything else is how it got there or why it didn't. See [AgentSession.toolCalls].
+    // Both, since the full traffic is what a session is: the calls are the subset that got as far as a tool,
+    // and everything else is why nothing did. See [AgentSession.toolCalls].
     val session = AgentSessionFile.sessionsIn(directory).single()
-    assertThat(session.calls).hasSize(3)
+    assertThat(session.calls).hasSize(2)
     assertThat(session.toolCalls.map { it.tool }).containsExactly("list_leaks")
     assertThat(session.errorCount).isEqualTo(1)
-    val unreadable = session.calls[1]
-    assertThat(unreadable.method).isNull()
-    assertThat(unreadable.input).isEqualTo("this is not JSON")
-    assertThat(unreadable.error).isEqualTo("That is not JSON")
+    val line = session.calls.first()
+    assertThat(line.tool).isNull()
+    assertThat(line.input).isEqualTo("this is not JSON")
+    assertThat(line.error).isEqualTo("That is not one JSON object.")
     // Which is what the row of it says, since there is no tool to name it after and no place to lead to.
-    assertThat(unreadable.verb).isEqualTo("Sent something this app could not read")
-    assertThat(unreadable.place).isNull()
-  }
-
-  @Test
-  fun `which way in a message came is read back, and a session says which ways it was talked to`() {
-    val file = AgentSessionFile.starting(directory, SERVER_VERSION)
-    file.called(call(tool = "list_leaks", over = AgentTransport.MCP))
-    file.called(call(tool = "describe_object", over = AgentTransport.CLI))
-
-    // An MCP client's call and a call somebody typed at the window are the same protocol on the same socket
-    // by the time anything answers them, so the door is the only place that knows and this is where it says.
-    val session = AgentSessionFile.sessionsIn(directory).single()
-    assertThat(session.calls.map { it.over })
-      .containsExactly(AgentTransport.MCP, AgentTransport.CLI)
-    assertThat(session.transports).containsExactly(AgentTransport.MCP, AgentTransport.CLI)
-  }
-
-  @Test
-  fun `a session recorded before the way in was kept says nothing rather than guessing one`() {
-    directory.mkdirs()
-    File(directory, "agent-2026-08-25_18-19-48_035-older.jsonl").writeText(
-      """{"agentSession":"older","startedAt":"$STARTED_AT","sharkDive":"1.0.0"}""" + "\n" +
-        """{"at":"$STARTED_AT","tool":"list_leaks","reason":"What the dump says.","millis":3}""" + "\n" +
-        """{"at":"$STARTED_AT","over":"carrier pigeon","tool":"list_leaks","millis":3}""" + "\n"
-    )
-
-    // Null, not MCP: a command line's calls are exactly the ones a guess would label wrongly. And a way in
-    // this build has never heard of reads the same, with a line in the log saying which.
-    val session = AgentSessionFile.sessionsIn(directory).single()
-    assertThat(session.calls.map { it.over }).containsExactly(null, null)
-    assertThat(session.transports).isEmpty()
-    assertThat(log).anyMatch { it.contains("carrier pigeon") }
-    // And a tool call from a build that recorded no method still reads as the one method it can have been.
-    assertThat(session.calls.map { it.method }).containsOnly("tools/call")
-    assertThat(session.toolCalls).hasSize(2)
+    assertThat(line.verb).isEqualTo("Sent something this app could not read")
+    assertThat(line.place).isNull()
   }
 
   @Test
@@ -184,7 +147,6 @@ class AgentSessionFileTest {
   @Test
   fun `a session whose last line was cut off keeps the calls before it`() {
     val file = AgentSessionFile.starting(directory, SERVER_VERSION)
-    file.opened(client = "a client", protocolVersion = null)
     file.called(call(tool = "list_leaks", place = Place.Leaks()))
     // Which is what a session whose app was killed mid-write looks like on disk.
     file.file.appendText("""{"at":"2026-08-25T18:19:48.0""")
@@ -197,16 +159,16 @@ class AgentSessionFileTest {
   @Test
   fun `newest first, whichever order the files were listed in`() {
     AgentSessionFile.starting(directory, SERVER_VERSION, startedAt = STARTED_AT, sessionId = "aaaaaaaa")
-      .opened(client = "the older agent", protocolVersion = null)
+      .called(call(tool = "list_leaks"))
     AgentSessionFile.starting(
       directory,
       SERVER_VERSION,
       startedAt = STARTED_AT.plusSeconds(60),
       sessionId = "bbbbbbbb"
-    ).opened(client = "the newer agent", protocolVersion = null)
+    ).called(call(tool = "list_leaks"))
 
-    assertThat(AgentSessionFile.sessionsIn(directory).map { it.client })
-      .containsExactly("the newer agent", "the older agent")
+    assertThat(AgentSessionFile.sessionsIn(directory).map { it.sessionId })
+      .containsExactly("bbbbbbbb", "aaaaaaaa")
   }
 
   @Test
@@ -218,11 +180,11 @@ class AgentSessionFileTest {
         startedAt = STARTED_AT.plusSeconds(index.toLong()),
         sessionId = "session$index",
         keepSessionCount = 2
-      ).opened(client = "agent $index", protocolVersion = null)
+      ).called(call(tool = "list_leaks"))
     }
 
-    assertThat(AgentSessionFile.sessionsIn(directory).map { it.client })
-      .containsExactly("agent 3", "agent 2")
+    assertThat(AgentSessionFile.sessionsIn(directory).map { it.sessionId })
+      .containsExactly("session3", "session2")
   }
 
   @Test
@@ -310,12 +272,9 @@ class AgentSessionFileTest {
     refusal: String? = null,
     error: String? = null,
     outcome: String? = null,
-    over: AgentTransport = AgentTransport.MCP,
     openHeapDumps: List<String> = emptyList()
   ) = AgentSessionCall(
     at = STARTED_AT,
-    over = over,
-    method = "tools/call",
     tool = tool,
     reason = reason,
     windowId = WINDOW_ID,
@@ -331,17 +290,17 @@ class AgentSessionFileTest {
     millis = 12L
   )
 
-  /** A message that reached no tool, which is the rest of what a session holds. See [AgentSessionCall]. */
-  private fun message(
-    method: String?,
+  /**
+   * A line this app could make no call of, which is the rest of what a session holds. See [AgentConnection].
+   *
+   * The failure is in `output` as well as in `error`, and that is not the same string twice: one is this app's
+   * reading of what happened and the other is the text the agent was handed.
+   */
+  private fun unreadable(
     input: String,
-    output: String? = null,
-    error: String? = null,
-    over: AgentTransport = AgentTransport.MCP
+    failure: String
   ) = AgentSessionCall(
     at = STARTED_AT,
-    over = over,
-    method = method,
     tool = null,
     reason = null,
     windowId = null,
@@ -349,9 +308,9 @@ class AgentSessionFileTest {
     place = null,
     arguments = emptyMap(),
     input = input,
-    output = output,
+    output = failure,
     refusal = null,
-    error = error,
+    error = failure,
     outcome = null,
     millis = 3L
   )

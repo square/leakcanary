@@ -22,8 +22,6 @@ import shark.dive.agent.AgentRefusal
 import shark.dive.agent.AgentServer
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionFile
-import shark.dive.agent.AgentStdioBridge
-import shark.dive.agent.AgentStdioServer
 import shark.dive.agent.ShownPlace
 import shark.dive.placeOfNoteKeyOrNull
 
@@ -119,7 +117,7 @@ internal abstract class RunAgentHeapDumps(
  *
  * Which is also why opening a dump and taking one off a device end in a window here rather than in a file
  * path: they are the two buttons above the map, and an agent pressing one has to end up somewhere its human
- * can follow it to. [HeadlessAgentHeapDumps] is the same surface for a run that has no window at all.
+ * can follow it to.
  */
 internal class WindowAgentHeapDumps(
   private val windows: DiveWindows,
@@ -178,49 +176,14 @@ internal class WindowAgentHeapDumps(
 }
 
 /**
- * Whether this process was started to talk MCP over stdio, and what to exit with if it was. Null for every
- * other command line, which is the app opening windows.
+ * Whether this process was started to make one tool call from a shell, and what to exit with if it was. Null
+ * for every other command line, which is the app opening windows.
  *
- * Answered before anything else in `main` and before any logging is installed, because the app's logger
- * writes to stdout and in this mode **stdout is the protocol**. Which of the two shapes it is depends only on
- * whether there is a screen to investigate on: [AgentStdioBridge] pipes to a window, and [NO_UI_OPTION]
- * serves the tools from this process.
- */
-internal fun agentBridgeExitCode(args: Array<String>): Int? {
-  if (MCP_STDIO_OPTION !in args) {
-    return null
-  }
-  val arguments = try {
-    windowArguments(args)
-  } catch (invalidArguments: IllegalArgumentException) {
-    // On stderr, where an MCP client collects a server's log, since there is no window and no console to
-    // print a usage message to.
-    saidToTheClient(invalidArguments.message.orEmpty())
-    return UNREADABLE_COMMAND_LINE
-  }
-  if (NO_UI_OPTION in args) {
-    return serveAgentsWithNoWindow(arguments)
-  }
-  val pid = args.firstOrNull { it.startsWith(AgentStdioBridge.PID_OPTION) }
-    ?.removePrefix(AgentStdioBridge.PID_OPTION)
-  return AgentStdioBridge.run(
-    directory = AGENT_RUNS_DIRECTORY,
-    pid = pid,
-    // So that an agent pointed at a machine where nothing is open gets a heap dump to investigate and its
-    // human gets a window to watch it in, rather than being told to go and launch something. Declined when
-    // this run has no way of knowing what started it — see [relaunchCommand].
-    openAWindow = relaunchCommand()?.let { command -> { openAnotherRun(command, arguments) } }
-  )
-}
-
-/**
- * Whether this process was started to make one tool call from a shell, and what to exit with if it was.
+ * The whole way in: an agent — or a person — typing one command at a window that is already up. See
+ * [AgentCommandLine].
  *
- * The other adapter over the same tools: `--mcp-stdio` is a client holding a session open, and this is an
- * agent — or a person — typing one command at a window that is already up. See [AgentCommandLine].
- *
- * Answered before any logging is installed for the reason the pipe is: **stdout carries the answer**, and a
- * log line in the middle of it is JSON that whatever ran this cannot parse.
+ * Answered before anything else in `main` and before any logging is installed, because **stdout carries the
+ * answer** and a log line in the middle of it is JSON that whatever ran this cannot parse.
  */
 internal fun agentCommandExitCode(args: Array<String>): Int? {
   val helpIndex = args.indexOf(AgentCommandLine.HELP_OPTION)
@@ -239,18 +202,20 @@ internal fun agentCommandExitCode(args: Array<String>): Int? {
     // Everything that isn't the call is the command line of the window this may have to open.
     windowArguments(args, toolName)
   } catch (invalidArguments: IllegalArgumentException) {
-    saidToTheClient(invalidArguments.message.orEmpty())
+    saidToTheCaller(invalidArguments.message.orEmpty())
     return UNREADABLE_COMMAND_LINE
   }
   return AgentCommandLine.run(
     directory = AGENT_RUNS_DIRECTORY,
     words = listOfNotNull(toolName) + args.filter { AgentCommandLine.isCallArgument(it) },
-    pid = args.optionValue(AgentStdioBridge.PID_OPTION),
+    pid = args.optionValue(AgentCommandLine.PID_OPTION),
     sessionName = args.optionValue(AgentCommandLine.SESSION_OPTION)
       ?: AgentCommandLine.defaultSessionName(),
-    // The same window a client that found nothing open gets, and here it is worth more: the next call from
-    // this shell finds that run published and talks to it, so one command line opening a window is what
-    // makes every command after it cheap.
+    // So that a call at a machine where nothing is open gets a heap dump to investigate and its human gets a
+    // window to watch it in, rather than being told to go and launch something. Worth more than it looks: the
+    // next call from this shell finds that run published and talks to it, so one command line opening a window
+    // is what makes every command after it cheap. Declined when this run has no way of knowing what started
+    // it — see [relaunchCommand].
     openAWindow = relaunchCommand()?.let { command -> { openAnotherRun(command, arguments) } }
   )
 }
@@ -287,9 +252,9 @@ private fun Array<String>.optionValue(option: String): String? =
   firstOrNull { it.startsWith(option) }?.removePrefix(option)
 
 /** What a word of the command line has to be to reach an agent rather than a window. */
-private fun String.isAgentOption(): Boolean = this == MCP_STDIO_OPTION || this == NO_UI_OPTION ||
+private fun String.isAgentOption(): Boolean =
   this == AgentCommandLine.AGENT_OPTION || this == AgentCommandLine.HELP_OPTION ||
-  startsWith(AgentStdioBridge.PID_OPTION) || startsWith(AgentCommandLine.SESSION_OPTION)
+    startsWith(AgentCommandLine.PID_OPTION) || startsWith(AgentCommandLine.SESSION_OPTION)
 
 /**
  * What to type to run this app, for the examples in the help.
@@ -303,41 +268,14 @@ private fun commandToRunThis(): String {
 }
 
 /**
- * Answers an agent's calls from this process, with no window anywhere.
- *
- * For a machine with no screen — a build server, or a heap dump on the far end of an ssh session — and for
- * anything that drives an agent without a person watching, which is what the eval is. Everything an
- * investigation leaves behind is on disk either way, so a dump worked on here opens in a window later with
- * the notes and the verdicts on it. See [HeadlessAgentHeapDumps].
- */
-private fun serveAgentsWithNoWindow(arguments: DiveArguments): Int {
-  // On stderr, because stdout is the protocol and the tools run in this process: unlike the bridge, the heap
-  // dump's own diagnostics are in this stream too, and every one of them would be a broken JSON-RPC message.
-  // The log file is written as usual, which is what makes a headless session as readable as a windowed one.
-  return installLogging(System.err).use {
-    SharkLog.d { "Answering an agent over stdio, with no window" }
-    HeadlessAgentHeapDumps(
-      deviceHeapDumps = commandLineDeviceHeapDumps(),
-      heapDumpFiles = arguments.heapDumpFiles
-    ).use { heapDumps ->
-      AgentStdioServer.run(
-        heapDumps = heapDumps,
-        serverVersion = SharkDiveVersion.current,
-        sessions = AgentServer.sessionsDirectory(AGENT_RUNS_DIRECTORY)
-      )
-    }
-  }
-}
-
-/**
  * Starts another Shark Dive, with a window, and leaves it running.
  *
- * **Deliberately outliving this process.** The bridge ends when the agent's client closes the pipe, and the
- * window it opened is the whole point: whoever is at the machine reads the notes and the verdicts afterwards,
- * on the tabs the agent left open.
+ * **Deliberately outliving this process.** A command line ends with its one answer, and the window it opened is
+ * the whole point: the calls after it reach that window, and whoever is at the machine reads the notes and the
+ * verdicts afterwards, on the tabs the agent left open.
  *
- * With the same command line this run was given, so that a client configured to investigate one heap dump
- * opens a window on that dump rather than an empty one the agent then has to fill.
+ * With the same command line this run was given, so that a call pointed at one heap dump opens a window on that
+ * dump rather than an empty one the agent then has to fill.
  */
 private fun openAnotherRun(
   command: List<String>,
@@ -353,17 +291,17 @@ private fun openAnotherRun(
       .redirectError(ProcessBuilder.Redirect.INHERIT)
       .start()
   } catch (throwable: Throwable) {
-    saidToTheClient("Could not start a window with ${titled.joinToString(" ")}: $throwable")
+    saidToTheCaller("Could not start a window with ${titled.joinToString(" ")}: $throwable")
   }
 }
 
 /**
- * On stderr, always, which is where an MCP client collects what a server has to say.
+ * On stderr, always, which is the stream a caller keeping stdout for the JSON still sees.
  *
- * Not through `SharkLog`, and not only because stdout is the protocol: this is said before any logging has
- * been installed, by the two paths that end before there is anything to install it for.
+ * Not through `SharkLog`, and not only because stdout carries the answer: this is said before any logging has
+ * been installed, by the path that ends before there is anything to install it for.
  */
-private fun saidToTheClient(message: String) {
+private fun saidToTheCaller(message: String) {
   System.err.println("[shark-dive] $message")
 }
 
@@ -393,11 +331,11 @@ private fun DiveWindow.agentHeapDump(open: OpenHeapDump): AgentHeapDump =
   }
 
 /**
- * One open heap dump, as the agent surface sees it, however this run came by it.
+ * One open heap dump, as the agent surface sees it.
  *
- * One class rather than one per kind of run, because what differs between a window and a machine with no
- * screen is a single call: where [show] puts a place. Everything else — the reads, the verdicts, the notes and
- * every refusal about them — is about the heap dump and the files beside it, which are the same either way.
+ * Where a place goes is a parameter rather than a method to override, because it is the one thing about an open
+ * dump that is the window's rather than the dump's. Everything else — the reads, the verdicts, the notes and
+ * every refusal about them — is about the heap dump and the files beside it.
  */
 internal class OpenAgentHeapDump(
   override val windowId: String,
@@ -533,25 +471,14 @@ internal fun agentSessions(): List<AgentSession> =
 /** Beside the runs answering links, the notes, the statuses and the logs. See [AgentServer]. */
 internal val AGENT_RUNS_DIRECTORY = File(SHARK_DIVE_DIRECTORY, "agents")
 
-/** What a command says to talk MCP over stdio rather than open a window. See [AgentStdioBridge]. */
-internal const val MCP_STDIO_OPTION = "--mcp-stdio"
-
-/**
- * What a command says to answer an agent from this process rather than pipe it to a window.
- *
- * Only meaningful with [MCP_STDIO_OPTION], and deliberately not a way to run the app without a UI: the app
- * *is* its windows, so a run that opened none and served nobody would sit there doing nothing. A command line
- * with this and no `--mcp-stdio` is a window, which is the one thing it can't have meant.
- */
-internal const val NO_UI_OPTION = "--no-ui"
-
 /** What a window opened for an agent that found none is called, since nobody typed a title for it. */
 private const val AGENT_WINDOW_TITLE = "Opened for an agent"
 
 /**
  * What this process ends with when the command line it was given doesn't read.
  *
- * A failure rather than a message and a window, because a client that launched this has nowhere to show one:
- * an MCP server that starts and lists no tools reads as a server with no tools.
+ * A failure rather than a message and a window, because a call is one command: whatever ran it reads an exit
+ * code and the message on stderr, and a window it did not ask for is not an answer. See
+ * [AgentCommandLine.NOTHING_ANSWERED].
  */
 private const val UNREADABLE_COMMAND_LINE = 1

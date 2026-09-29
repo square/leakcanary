@@ -44,8 +44,9 @@ class EvalResult(
     /**
      * Scores [session] against [scenario], which is a walk over the calls and no more than that.
      *
-     * [model] is what ran it, which the session file has no idea about: an MCP server is told the name of the
-     * client and never the name of the model behind it.
+     * [model] is what ran it, which the session file has no idea about: a call arrives as a token, a session
+     * name and a line of JSON, and nothing on that surface names the model behind it. So it is the eval's own
+     * knowledge of which model it launched, passed in here rather than read off the session.
      */
     fun of(
       scenario: EvalScenario,
@@ -53,9 +54,8 @@ class EvalResult(
       session: AgentSession,
       heapDumpPath: String
     ): EvalResult {
-      // The calls, not every message: a session holds the protocol around them too, and a run scored on how
-      // many handshakes it sent is a number that changes with the transport rather than with the agent. See
-      // [AgentSession.toolCalls].
+      // The calls, not every line: a session records what it could not read as well as what it answered, and
+      // a run scored on lines sent would count a typo against the agent's work. See [AgentSession.toolCalls].
       val toolCalls = session.toolCalls
       val concludes = toolCalls.filter { it.tool == CONCLUDE }
       val concluded = concludes.firstNotNullOfOrNull { it.outcome }

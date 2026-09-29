@@ -263,7 +263,7 @@ class AgentToolsTest {
     assertThat(leaks.text(METHOD)).isEqualTo(AgentMethod.LEAK)
     assertThat(leaks.text(METHOD)).contains("The leak is the one reference that crosses")
     // And it is the leak half alone: how to work on this surface at all is a session's own instructions, sent
-    // once however many tools it goes on to call. See `McpSessionTest`.
+    // once however many tools it goes on to call. See `AgentConnectionTest`.
     assertThat(leaks.text(METHOD)).doesNotContain(AgentMethod.SURFACE)
   }
 
@@ -1036,7 +1036,6 @@ class AgentToolsTest {
   ) = AgentSession(
     sessionId = sessionId,
     startedAt = Instant.parse("2026-08-26T09:15:00Z"),
-    client = "claude-code 9.9.9",
     serverVersion = "1.2.3",
     file = temporaryFolder.newFile("agent-$sessionId.jsonl"),
     calls = listOf(
@@ -1068,8 +1067,6 @@ class AgentToolsTest {
     outcome: String? = null
   ) = AgentSessionCall(
     at = Instant.parse("2026-08-26T09:15:01Z"),
-    over = AgentTransport.MCP,
-    method = "tools/call",
     tool = tool,
     reason = reason,
     windowId = window.windowId,
@@ -1156,9 +1153,9 @@ class AgentToolsTest {
     /**
      * One value of a field of the answer, whatever it is, as text.
      *
-     * As text because that is what a client of this protocol reads a JSON value as at the far end of a
-     * socket, and because an assertion that has to say which of `jsonPrimitive`, `boolean` and `long` a
-     * field is, is an assertion about kotlinx rather than about the answer.
+     * As text because that is what an agent reads a JSON value as at the far end of a socket, and because an
+     * assertion that has to say which of `jsonPrimitive`, `boolean` and `long` a field is, is an assertion
+     * about kotlinx rather than about the answer.
      */
     fun JsonObject.text(name: String): String =
       requireNotNull(this[name]) { "$name is not in $this" }.jsonPrimitive.content

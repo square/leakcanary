@@ -29,7 +29,6 @@ import shark.SharkLog
 import shark.dive.Place
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
-import shark.dive.agent.AgentTransport
 import shark.dive.agent.screen
 import shark.dive.agent.subject
 import shark.dive.agent.verb
@@ -216,16 +215,13 @@ private fun List<AgentSession>.byHeapDump(heapDumpFile: File): List<HeapDumpSess
  * one agent's connection and can read as many dumps as were open, and a row leading nowhere would be the app
  * showing somebody what an agent looked at and then declining to show them the thing.
  *
- * **Every message, not only the ones that reached a tool.** A `tools/list`, a ping, a call to a tool this
- * build has never heard of and a line that was not JSON at all are each a row here, because the question this
- * screen gets opened for is often why *nothing* happened — and a screen that draws the calls that worked is
- * the one screen that cannot answer it.
+ * **Every line, not only the ones that reached a tool.** A call to a tool this build has never heard of, one
+ * naming no tool at all and a line that was not JSON are each a row here, because the question this screen
+ * gets opened for is often why *nothing* happened — and a screen that draws the calls that worked is the one
+ * screen that cannot answer it.
  *
- * **But one row per thing the agent did**, which is not the same as one row per message: `--agent` is a
- * process per call and each of them says hello before it calls anything, so a session of thirty typed
- * commands read as sixty rows — *Connected, called, Connected, called*. Those handshakes are no longer
- * recorded, and a command is a row. See `McpSession.isTheCommandLineSayingHello`, which is also where the
- * one thing that costs a reader is written down.
+ * **And one row per thing the agent did**, which is what a line each way buys: `--agent` is a process per
+ * call, and a session of thirty typed commands is thirty rows.
  */
 @Composable
 internal fun AgentLogScreen(
@@ -410,10 +406,9 @@ private fun AgentCallRow(
  * JSON nobody reads twice.
  *
  * **Including for a call that came to nothing**, which is the case this is most worth unfolding for: the
- * refusal, the error and the line that was not a message at all are all answers that went back to the agent,
- * so they are all here as they were sent. A call with nothing at all under `answered:` is a notification —
- * the one kind of message JSON-RPC forbids answering. A call with neither half says so, since a session
- * recorded before this app kept them unfolds onto a sentence rather than onto nothing.
+ * refusal, the error and the line that was no call at all are all answers that went back to the agent, so
+ * they are all here as they were sent. A call with neither half says so, since a session recorded before this
+ * app kept them unfolds onto a sentence rather than onto nothing.
  */
 @Composable
 private fun CallExchange(call: AgentSessionCall) {
@@ -428,7 +423,7 @@ private fun CallExchange(call: AgentSessionCall) {
     )
     return
   }
-  input?.let { ExchangeText(sentLabel(call.over), it) }
+  input?.let { ExchangeText(SENT, it) }
   output?.let { ExchangeText(ANSWERED, it) }
 }
 
@@ -544,14 +539,20 @@ private fun LinkText(
   modifier: Modifier
 ) = Text(text, modifier, style = MaterialTheme.typography.bodyMedium, color = LINK_COLOR)
 
-/** What a session is called: who connected, and when. */
+/**
+ * What a session is called, which is when it started and nothing else.
+ *
+ * Nothing names who was at the other end, because nothing on this surface is told: a call arrives as a token,
+ * a session name and a line of JSON. Which is why the name is in [summary] — the session id an agent was
+ * handed is the one string that identifies the run to whoever is comparing this screen against a transcript.
+ */
 private fun AgentSession.title(): String = listOfNotNull(
-  client ?: A_CLIENT_THAT_DID_NOT_SAY,
+  AN_AGENT,
   startedAt?.let { "at ${it.clockTime()}" }
 ).joinToString(" ")
 
 /**
- * What it did, in numbers: how many calls, how they went, which way in it came, and which dumps it read.
+ * What it did, in numbers: how many calls, how they went, and which dumps it read.
  *
  * The refusals are here rather than only in the session because they are the number worth seeing before
  * opening one: a session that was refused half its calls is a session where the method was being enforced,
@@ -559,10 +560,9 @@ private fun AgentSession.title(): String = listOfNotNull(
  * failures are the number that says the opposite — that this app is what went wrong — and they are worth
  * seeing at the same glance for exactly that reason.
  *
- * **The calls, not every message.** A session holds the protocol around them too, and a command line's
- * investigation is a handshake per call, so counting the lines would make the same work read as twice as much
- * of it depending on how it was sent. Which is why the way in is a word of its own here. See
- * [AgentSession.toolCalls].
+ * **The calls, not every line.** A line that reached no tool is a row of this screen like any other — a line
+ * this app could not read is exactly what somebody comes here to find — but it is not work the agent did, and
+ * a number that counts it reads as work. See [AgentSession.toolCalls].
  */
 private fun AgentSession.summary(): String {
   val dumps = heapDumpPaths.map { File(it).name }
@@ -570,7 +570,6 @@ private fun AgentSession.summary(): String {
     "${toolCalls.size} call(s)",
     "$refusedCount refused".takeIf { refusedCount > 0 },
     "$errorCount failed".takeIf { errorCount > 0 },
-    transports.joinToString(", ") { it.words }.takeIf { it.isNotEmpty() },
     dumps.joinToString(", ").takeIf { it.isNotEmpty() },
     sessionId
   ).joinToString(" · ")
@@ -612,20 +611,6 @@ private const val SENT = "sent:"
 private const val ANSWERED = "answered:"
 
 /**
- * And which way in it came, on the half that came in.
- *
- * Here rather than on the row because it is a property of the line and not of what the line did: an MCP
- * client's call and a call somebody typed at this window are the same protocol on the same socket by the time
- * anything answers them, so this is the only thing that says which — and it belongs beside the text it is a
- * fact about. A session recorded before this app kept it says nothing rather than guessing MCP, since a
- * command line's calls are exactly the ones that would be labelled wrongly.
- */
-private fun sentLabel(over: AgentTransport?): String =
-  if (over == null) SENT else "$SENT_OVER ${over.words}:"
-
-private const val SENT_OVER = "sent over"
-
-/**
  * And where a session from an older build has neither.
  *
  * Rather than a fold that opens onto an empty gap, which reads as an app that lost the answer instead of one
@@ -635,7 +620,8 @@ private const val NOTHING_KEPT =
   "This session was recorded before Shark Dive kept what was sent and answered, so only the line above it " +
     "is left."
 
-private const val A_CLIENT_THAT_DID_NOT_SAY = "An agent"
+/** What every session is called, there being nothing else this app is told about who connected. */
+private const val AN_AGENT = "An agent"
 
 /** After the heap dump this window has open, which is the one group of sessions that is read here. */
 private const val THIS_HEAP_DUMP = "this heap dump"
@@ -649,18 +635,23 @@ private const val MISSING_HEAP_DUMP = "missing"
 /** How far what a row opens sits in from the mark that opened it, which is that mark's own width. */
 private val UNFOLDED_INSET = 20.dp
 
-/** And over the sessions of a client that connected and read nothing, which no window can be about. */
+/** And over the sessions of an agent that connected and read nothing, which no window can be about. */
 private const val NO_HEAP_DUMP_READ = "No heap dump"
 
 /**
  * Over a heap dump nothing has been handed to yet.
  *
- * What it is and how to point an MCP client at this window is [docs/shark-dive.md], not a paragraph on a
- * screen somebody reached by pressing *Agent logs*: they know what an agent is by the time they are here.
+ * What it is and how to hand a heap dump to an agent is [docs/shark-dive.md], not a paragraph on a screen
+ * somebody reached by pressing *Agent logs*: they know what an agent is by the time they are here.
  */
 private const val NO_SESSIONS = "No agent has worked on this heap dump."
 
-/** A handshake is a row of this screen now, so an empty session is a client that never spoke at all. */
+/**
+ * And over a session whose file holds a header and no calls at all.
+ *
+ * Which is a connection that was accepted and then closed without a line — a run that was interrupted, or a
+ * name typed at a shell to see what it did.
+ */
 private const val NOTHING_ASKED = "Connected and sent nothing."
 
 /** And after a link to a session the newer ones have pushed out, which is the likeliest way to be here. */

@@ -1,6 +1,6 @@
 ---
 name: shark-dive
-description: "Use when investigating an Android or JVM heap dump (.hprof): what is leaking and why, what is holding an object, what the biggest objects are, what a process is spending its memory on. Drives Shark Dive, which reads the dump in a window a person can watch, from a shell or over MCP."
+description: "Use when investigating an Android or JVM heap dump (.hprof): what is leaking and why, what is holding an object, what the biggest objects are, what a process is spending its memory on. Drives Shark Dive from a shell, which reads the dump in a window a person can watch."
 allowed-tools:
   - Bash
 ---
@@ -87,18 +87,9 @@ so.
   arrived in, so what you did reads as one row of that screen rather than a row per call. Pass it when your
   calls come from processes with nothing in common.
 
-**Over MCP instead, if your client can be configured**, which gets the same tools with their schemas in band:
-
-```json
-{ "mcpServers": { "shark-dive": {
-  "command": "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive",
-  "args": ["--mcp-stdio"]
-} } }
-```
-
-Add `--no-ui` for a machine with no screen — a build server, or a dump at the far end of an ssh session.
-Everything works the same except `show`, which has nowhere to put a tab and says so; it still answers with the
-link, since a link names the heap dump rather than a window.
+**That command line is the whole surface** — there is nothing to configure, and no MCP server to point a client
+at. The app needs a window somewhere, which is the point of it: a call with nothing running opens one, and
+whoever is at the machine can then watch what you do.
 
 ## What to do with it
 

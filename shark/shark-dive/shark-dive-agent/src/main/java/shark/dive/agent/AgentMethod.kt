@@ -18,10 +18,10 @@ import shark.dive.unwrappedMarkdown
  * describes rather than a call or two ahead of it; `list_leaks`'s own description is what points a model
  * there, and [AgentTools.NEXT_WITH_A_NEW_DUMP] is what the answer that opened the dump says instead.
  *
- * **[SURFACE] is handed over twice on purpose**, because it is the half that a session asking anything at all
- * needs: as the `instructions` of the MCP handshake, which some clients show the model and some drop, and
- * again on the first answered call of a session, which is what reaches the ones that drop it and the `--agent`
- * command line, whose handshake no model ever sees. See `McpSession.withTheSurface`.
+ * **[SURFACE] arrives on the first answered call of a session**, because it is the half that a session asking
+ * anything at all needs and because a tool result is the one thing an agent is certain to read: it asked for
+ * the answer. There is nothing in front of a call to put it in — a caller is a socket, a line and a read — and
+ * that is the better place for it anyway. See [AgentConnection.withTheSurface].
  *
  * **And no example in either text names a real leak.** `Owner.field` is the shape a reference is spelled in
  * rather than a reference, because an eval run reads the method before it has asked the heap dump anything: a
@@ -47,17 +47,17 @@ internal object AgentMethod {
    * Out here rather than in either of them because [SURFACE] is prepended to whatever [LEAK] already put
    * there — one field with both halves of the method in it, rather than two fields a reader has to notice
    * the second of — so the name has to be the same string in `AgentTools.listLeaks` and
-   * `McpSession.withTheSurface`, or that prepending silently becomes a second copy.
+   * [AgentConnection.withTheSurface], or that prepending silently becomes a second copy.
    */
   const val FIELD = "method"
 
   /**
    * [SURFACE] as it is written here, wrapped at the column the rest of this repository is.
    *
-   * Short on purpose, and the shortest thing on this surface that has to survive a client: Claude Code cuts
-   * an MCP server's `instructions` at 2,048 characters, which the whole method did not fit in and this does.
-   * So what a session is told about working here is the same text however it connected, and the long half
-   * travels as a tool result, where nothing truncates it.
+   * **Short on purpose, because every session pays for it** — this is the one text a session asking anything
+   * at all is handed, so a paragraph added here is a paragraph read by an agent that only wanted to know which
+   * heap dumps are open. [LEAK] is five times the size and is read by the investigations it is about.
+   * `shark/shark-dive/notes/agent-surface.md` has the measurement.
    */
   private val WRAPPED_SURFACE = """
     You are reading a heap dump through Shark Dive, a window a person may be watching. Everything you

@@ -14,12 +14,12 @@ import org.junit.rules.TemporaryFolder
 import shark.dive.exactHexObjectId
 
 /**
- * A tool call typed at a window that is already open, which is the other adapter over the same tools.
+ * A tool call typed at a window that is already open, which is the whole of how this app is talked to.
  *
  * Two things here are worth a test and the rest is translation. **A refusal has to come back as a refusal** —
  * the message on stderr and an exit code of its own, since the whole method rests on an agent being told no
- * in words it can act on. And **a shell's worth of calls has to be one session**: a connection is what
- * gathers an MCP investigation, and a process per call has nothing to gather it with unless it says which
+ * in words it can act on. And **a shell's worth of calls has to be one session**: a connection held open
+ * would gather an investigation, and a process per call has nothing to gather it with unless it says which
  * session it is joining — and **which process it joins is a walk rather than the parent**, since the shell an
  * agent's call arrives in is one command long. See [AgentServerTest] for the socket under this.
  */
@@ -64,8 +64,8 @@ class AgentCommandLineTest {
     )
 
     assertThat(exitCode).isEqualTo(AgentCommandLine.ANSWERED)
-    // Indented, and the same JSON an MCP client is answered with: a person reads this one and a model reads
-    // the other, and neither of them is reading a different surface.
+    // Indented, because the reader of a typed call is a person as often as a model, and the answer is the
+    // tool's own object either way rather than a second rendering of it for the terminal.
     assertThat(printed()).contains(HOLDER_CLASS_NAME).contains("\n  ")
     assertThat(window.reads).isNotEmpty
   }
@@ -95,15 +95,10 @@ class AgentCommandLineTest {
     val session = sessions().single()
     assertThat(session.sessionId).isEqualTo(SESSION_NAME)
     assertThat(session.toolCalls.map { it.tool }).containsExactly("open_heap_dumps", "list_leaks")
-    // Said once, by the call that started the session, since a file with two headers is two sessions.
-    assertThat(session.client).isEqualTo("shark-dive-cli")
-    // And every line of it says it was typed rather than sent by a client — which nothing after the handshake
-    // could tell, this being the same protocol on the same socket an MCP client speaks.
-    assertThat(session.transports).containsExactly(AgentTransport.CLI)
-    // **One row per command typed.** Each of these was a process that connected, said who it was and then
-    // made its one call, and recording the hello would draw two commands as four rows — Connected, called,
-    // Connected, called. The client is still named above, and the connection is in this run's log.
-    assertThat(session.calls.map { it.method }).containsExactly("tools/call", "tools/call")
+    // **One row per command typed**, which is what there is to record: a process connects, makes its one
+    // call and ends, so nothing crosses this socket that isn't the call itself. Which connection each of them
+    // was is in this run's log.
+    assertThat(session.calls).hasSize(2)
   }
 
   @Test
@@ -187,7 +182,7 @@ class AgentCommandLineTest {
   fun `a call from a shell given one command joins whatever drove that shell`() {
     // How an agent's calls arrive: Claude Code runs each of them in a shell of its own, so the shell is one
     // command long and the session has to be the process above it — the one whose life is the conversation.
-    // Which is this test JVM here, standing in for the client.
+    // Which is this test JVM here, standing in for whatever drove the shell.
     val shell = shellRunning(listOf("/bin/sh", "-c", "sleep $SHELL_SECONDS; :"))
 
     val name = AgentCommandLine.sessionName(shell.theCommandItRan())
@@ -217,7 +212,7 @@ class AgentCommandLineTest {
 
   @Test
   fun `something that is not a shell is where the walk stops, whatever its options are`() {
-    // The two that make the name half of it earn its keep: `-c` resumes a conversation for the very client
+    // The two that make the name half of it earn its keep: `-c` resumes a conversation for the very agent
     // this is about, and walking past it would gather that conversation and the next into one session. And a
     // JVM's `-cp` is a short option with a `c` in it, so a walk reading options alone would go past the app
     // itself — the process every call here is made from.

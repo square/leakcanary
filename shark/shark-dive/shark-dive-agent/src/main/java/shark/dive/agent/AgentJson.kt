@@ -100,14 +100,9 @@ internal object AgentJson {
    */
   fun agentSession(session: AgentSession): JsonObject = buildJsonObject {
     put("session", session.sessionId)
-    put("client", session.client)
     put("startedAt", session.startedAt?.toString())
-    // Which way in it was talked to, and usually one: a session with both in it is somebody typing calls at
-    // the window a client is working in, which is worth knowing before reading it.
-    putJsonArray("over") { session.transports.forEach { add(it.recorded) } }
-    // The calls that reached a tool, and not every message of it: the protocol around them is in the session
-    // form below, and counting it here would make a command line's investigation — a handshake per call —
-    // read as twice the work it was. See [AgentSession.toolCalls].
+    // The calls that reached a tool, and not every line of it: a line naming a tool this build hasn't is not
+    // a step of an investigation, and it is in the session form below. See [AgentSession.toolCalls].
     put("calls", session.toolCalls.size)
     put("refused", session.refusedCount)
     // And how many got no answer at all, which is this app failing rather than the surface saying no.
@@ -138,16 +133,13 @@ internal object AgentJson {
    */
   fun agentSessionCalls(session: AgentSession): JsonObject = buildJsonObject {
     put("session", session.sessionId)
-    put("client", session.client)
     putJsonArray("calls") {
       session.calls.forEach { call ->
         addJsonObject {
           put("at", call.at.toString())
-          // Which way in it came, and what arrived: null on `tool` is a message that reached none, and the
-          // method is then the whole of what it was. Not only the calls, because a session that shows the
-          // ones that worked cannot answer why the others didn't. See [AgentSession.calls].
-          put("over", call.over?.recorded)
-          put("method", call.method)
+          // Null on `tool` is a line that reached none, and `input` is then the whole of what it was. Not only
+          // the calls, because a session that shows the ones that worked cannot answer why the others didn't.
+          // See [AgentSession.calls].
           put("tool", call.tool)
           put("reason", call.reason)
           // What the call was about, as the agent wrote it: an address is that dump's address, and this is
@@ -160,7 +152,7 @@ internal object AgentJson {
           put("outcome", call.outcome)
           // Last, and in that order, because they are the two long ones and they read as the call: this is
           // what went out, and this is what came back. Null on both for a session recorded by a build older
-          // than they are; null on `output` alone for a notification nothing was sent back for.
+          // than they are.
           put("input", call.input)
           put("output", call.output)
         }

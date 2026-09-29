@@ -47,24 +47,22 @@ uses, without the one for a newly recognized library leak:
   object as stuck makes it a leak and takes whatever it holds off the list. Kept between runs in
   `~/.shark-dive/leak-statuses`, one file per heap dump.
   See [The verdict](shark-dive.md#the-verdict).
-* ✨ **Hand a heap dump to an agent**: the window is an MCP server too, so an agent investigates the heap dump
-  you have open — the same tree, the same verdicts, the same notes — and `show` puts what it is looking at on
-  your screen. What it can be held to is the point: every call has to say why it was made and lands in the
-  run's log beside the reads it caused, a verdict needs a reason another reader can check exactly as yours
-  does, and reporting a root cause is refused until the chain names one faulty reference. There is no screen
-  it can't reach and no button it can't press — the treemap as a tree of retained sizes, the notes read and
-  rewritten as well as added to, `Open heap dump…` for a file nobody has open, and `Take heap dump…` down to
-  picking the process off a device — because a surface with less than that answers "ask your human to click
-  something". Point any MCP client at the installed app with `--mcp-stdio`.
-  See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
-* ✨ **An agent no longer needs a window to have been opened for it.** With nothing running, `--mcp-stdio`
-  opens one — on the heap dump its command line named, if it named one — and leaves it open for whoever comes
-  back to it. And with `--no-ui`, the tools are served from that process with no window anywhere, for a build
-  server or a heap dump at the end of an ssh session: everything works the same except `show`, which says it
-  has nowhere to put a tab rather than answering that it showed you something — and hands back the link all
-  the same, since a link names the heap dump, so whoever reads the answer can open the place nobody saw.
-  Notes and verdicts were never on the screen, so a heap dump investigated with no window opens in one later
-  with all of it on.
+* ✨ **Hand a heap dump to an agent**: every screen and button of the window is also a command, so an agent
+  investigates the heap dump you have open — the same tree, the same verdicts, the same notes — and `show` puts
+  what it is looking at on your screen. What it can be held to is the point: every call has to say why it was
+  made and lands in the run's log beside the reads it caused, a verdict needs a reason another reader can check
+  exactly as yours does, and reporting a root cause is refused until the chain names one faulty reference.
+  There is no screen it can't reach and no button it can't press — the treemap as a tree of retained sizes, the
+  notes read and rewritten as well as added to, `Open heap dump…` for a file nobody has open, and
+  `Take heap dump…` down to picking the process off a device — because a surface with less than that answers
+  "ask your human to click something". `--agent <tool> name=value` at the installed app is the whole of how to
+  reach it, with nothing to configure and no server to point anything at, and `--agent-help` prints the tools
+  there are. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+* ✨ **An agent doesn't need a window to have been opened for it.** With nothing running, a call opens one — on
+  the heap dump its command line named, if it named one — and leaves it open for whoever comes back to it,
+  which is what makes every call after the first one cheap: the dump is parsed and indexed once, in the window
+  somebody is watching. A call exits 0 with the answer as JSON on stdout, 2 when it was refused, with the
+  refusal on stderr where a script can read it, and 1 when there was nothing to answer it.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **The method sends an agent to the code, at the version the heap dump is of.** Isolating the reference
   says where the problem is and not how it happened, so the method that comes with the tools also says how to
@@ -86,12 +84,11 @@ uses, without the one for a newly recognized library leak:
   taken on an answer that said everything until you open both. The `▸ {}` under a row is what opens it, and
   what was sent names the tool the agent called as well as what it sent to it — `describe_object` beside the
   window's own word for it, which is the pair worth having when a step doesn't follow. **The full traffic, not
-  only the calls that worked**: a client's handshake, a call naming a tool that doesn't exist and a line that
-  wasn't JSON are rows too, a refusal and an error are under `answered:` as the agent was handed them, and
-  each row says whether it came in over MCP or from `--agent` at a shell — because what this screen gets
-  opened for is often why *nothing* happened. One command typed at a shell is one row, though: `--agent` is a
-  process per call, so each of them says hello before it calls anything, and drawing that would make every
-  typed command two rows. `agent_log` hands an agent the same text, so one agent can work out where
+  only the calls that worked**: a call naming a tool that doesn't exist and a line that wasn't JSON are rows
+  too, and a refusal and an error are under `answered:` as the agent was handed them — because what this screen
+  gets opened for is often why *nothing* happened. The `n call(s)` above the rows counts the calls that reached
+  a tool rather than the lines that arrived, so the number is work the agent did and not whatever it happened
+  to send. `agent_log` hands an agent the same text, so one agent can work out where
   another went wrong. Kept in `~/.shark-dive/agents/sessions`, one file per session and the newest hundred
   kept, so a session outlives the window it was worked in.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
@@ -100,8 +97,9 @@ uses, without the one for a newly recognized library leak:
   `~/.shark-dive` unless that variable names another. So a second set of notes over the same dumps is possible
   without touching the first, which is what measuring an agent against a heap dump needs: a scored run must not
   write its verdicts into yours, or read somebody else's conclusion as its own starting point. An environment
-  variable rather than an option because a dive is several processes that have to agree on it — `--agent` runs
-  the app again to open a window, and an MCP client launches the server from a config file.
+  variable rather than an option because a dive is several processes that have to agree on it: `--agent` is a
+  process per call, each of them finding the window it talks to under that directory, and one of them runs the
+  app again to open a window when there is none.
 * ✨ **The chain marks the faulty reference**: the one step going from an `Expected` object straight to a
   `Stuck` one reads `Holder.activity · faulty reference`, which is the leak itself rather than one of the
   objects it left behind, and the same reference the **Leaks** screen names that leak after. A chain whose

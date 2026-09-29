@@ -18,9 +18,9 @@ import org.junit.rules.TemporaryFolder
 /**
  * How an agent finds this run of the app and gets served by it, over a real socket.
  *
- * What is being tested is the half of this that isn't the protocol: a run publishing where it answers, a
- * token being the whole of who may talk to it, and a file left behind by a run that is gone being cleared out
- * by whoever reads it next. [McpSessionTest] covers what is said once a connection is up.
+ * What is being tested is the half of this that isn't the calls: a run publishing where it answers, a token
+ * being the whole of who may talk to it, and a file left behind by a run that is gone being cleared out by
+ * whoever reads it next. [AgentConnectionTest] covers what is said once a connection is up.
  */
 class AgentServerTest {
 
@@ -59,16 +59,13 @@ class AgentServerTest {
 
     connect(run).use { client ->
       assertThat(client.accepted).isTrue()
-      val answer = client.ask(
-        """{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"open_heap_dumps",""" +
-          """"arguments":{"reason":"Finding out what is open."}}}"""
-      )
+      val answer = client.ask(CALL_OPEN_HEAP_DUMPS)
       assertThat(answer).contains(heapDump.dive.heapDumpFile.name).contains(window.windowId)
     }
   }
 
   @Test
-  fun `a client that quotes the wrong token is not listened to`() {
+  fun `a caller that quotes the wrong token is not listened to`() {
     listen()
     val run = AgentServer.publishedRuns(directory).single()
 
@@ -76,7 +73,7 @@ class AgentServerTest {
       assertThat(client.accepted).isFalse()
     }
 
-    // And the run is still there for a client that has the right one, since a wrong token is a stale file
+    // And the run is still there for a caller that has the right one, since a wrong token is a stale file
     // being read far more often than it is anything to worry about.
     connect(run).use { client -> assertThat(client.accepted).isTrue() }
   }
@@ -88,10 +85,13 @@ class AgentServerTest {
 
     connect(run).use { first ->
       connect(run).use { second ->
-        assertThat(first.ask(PING)).contains("\"id\":1")
-        assertThat(second.ask(PING)).contains("\"id\":1")
+        assertThat(first.ask(CALL_OPEN_HEAP_DUMPS)).contains(window.windowId)
+        assertThat(second.ask(CALL_OPEN_HEAP_DUMPS)).contains(window.windowId)
       }
     }
+
+    // A file each, because a connection that named no session is an investigation of its own.
+    assertThat(sessions()).hasSize(2)
   }
 
   @Test
@@ -99,47 +99,17 @@ class AgentServerTest {
     listen()
     val run = AgentServer.publishedRuns(directory).single()
 
-    connect(run, sessionName = "cli7").use { it.ask(PING) }
+    connect(run, sessionName = "cli7").use { it.ask(NOT_A_CALL) }
     connect(run, sessionName = "cli7").use { it.ask(CALL_OPEN_HEAP_DUMPS) }
 
-    // What a command line needs of this end: a connection per call, and one file to read them in. A client
-    // that holds a connection open says nothing and gets a session of its own. See [AgentCommandLineTest].
+    // What a command line needs of this end: a connection per call, and one file to read them in. A
+    // connection that names nothing gets a session of its own. See [AgentCommandLineTest].
     val session = sessions().single()
     assertThat(session.sessionId).isEqualTo("cli7")
     assertThat(session.toolCalls.map { it.tool }).containsExactly("open_heap_dumps")
-    // The ping is in there too, since the full traffic is what a session holds: it reached no tool and it is
-    // still what happened on that connection. See [AgentSessionCall.method].
-    assertThat(session.calls.map { it.method }).containsExactly("ping", "tools/call")
-  }
-
-  @Test
-  fun `a connection that says which way in it is has every line of it recorded that way`() {
-    listen()
-    val run = AgentServer.publishedRuns(directory).single()
-
-    connect(run, sessionName = "cli7", over = AgentTransport.CLI).use { it.ask(CALL_OPEN_HEAP_DUMPS) }
-    // And one that says nothing is a client holding a session open, which is what every MCP client does and
-    // what everything did before the command line existed. See [AgentServer].
-    connect(run).use { it.ask(CALL_OPEN_HEAP_DUMPS) }
-
-    assertThat(sessions().map { it.transports })
-      .containsExactlyInAnyOrder(listOf(AgentTransport.CLI), listOf(AgentTransport.MCP))
-  }
-
-  @Test
-  fun `a connection that names a way in this build has none of is served and recorded as MCP`() {
-    listen()
-    val run = AgentServer.publishedRuns(directory).single()
-
-    connect(run, sessionName = "odd", handshakeSuffix = " carrier-pigeon").use {
-      assertThat(it.accepted).isTrue()
-      it.ask(CALL_OPEN_HEAP_DUMPS)
-    }
-
-    // Served, for the reason a name this cannot use is: the calls are none the worse for it, and refusing the
-    // connection would lose the investigation to protect a label. The log says which word it was.
-    assertThat(sessions().single().transports).containsExactly(AgentTransport.MCP)
-    assertThat(log).anyMatch { it.contains("carrier-pigeon") }
+    // The line that was no call is in there too, since the full traffic is what a session holds: it reached
+    // no tool and it is still what happened on that connection. See [AgentSessionCall.tool].
+    assertThat(session.calls.map { it.tool }).containsExactly(null, "open_heap_dumps")
   }
 
   @Test
@@ -206,11 +176,8 @@ class AgentServerTest {
   private fun connect(
     run: AgentServer.PublishedRun,
     token: String = run.token,
-    sessionName: String? = null,
-    over: AgentTransport? = null,
-    /** Whatever else a client puts on the handshake, for the words this build has no way in for. */
-    handshakeSuffix: String = ""
-  ): TestClient = TestClient(run.port, token, sessionName, over, handshakeSuffix)
+    sessionName: String? = null
+  ): TestClient = TestClient(run.port, token, sessionName)
 
   private fun sessions(): List<AgentSession> =
     AgentSessionFile.sessionsIn(AgentServer.sessionsDirectory(directory))
@@ -219,11 +186,8 @@ class AgentServerTest {
   private class TestClient(
     port: Int,
     token: String,
-    /** The session this connection joins, which a command line names and a client holding one open doesn't. */
-    sessionName: String?,
-    /** And which way in it is, which only a command line says. See [AgentTransport]. */
-    over: AgentTransport?,
-    handshakeSuffix: String
+    /** The session this connection joins, which a command line names and nothing else does. */
+    sessionName: String?
   ) : Closeable {
 
     private val socket = Socket(InetAddress.getLoopbackAddress(), port)
@@ -233,7 +197,7 @@ class AgentServerTest {
     val accepted: Boolean
 
     init {
-      toApp.println(listOfNotNull(token, sessionName, over?.recorded).joinToString(" ") + handshakeSuffix)
+      toApp.println(listOfNotNull(token, sessionName).joinToString(" "))
       accepted = fromApp.readLine() == AgentServer.ACCEPTED
     }
 
@@ -257,10 +221,10 @@ class AgentServerTest {
      */
     const val NO_SUCH_PROCESS = Long.MAX_VALUE
 
-    const val PING = """{"jsonrpc":"2.0","id":1,"method":"ping"}"""
+    /** A line that reaches no tool, which is a row of a session like any other. See [AgentConnection]. */
+    const val NOT_A_CALL = "this is not one JSON object"
 
     const val CALL_OPEN_HEAP_DUMPS =
-      """{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"open_heap_dumps",""" +
-        """"arguments":{"reason":"Finding out what is open."}}}"""
+      """{"tool":"open_heap_dumps","arguments":{"reason":"Finding out what is open."}}"""
   }
 }

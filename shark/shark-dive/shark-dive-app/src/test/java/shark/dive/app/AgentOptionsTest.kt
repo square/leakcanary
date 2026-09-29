@@ -5,15 +5,13 @@ import java.io.PrintStream
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.dive.agent.AgentCommandLine
-import shark.dive.agent.AgentStdioBridge
 
 /**
- * Which command lines reach an agent rather than a window, answered before anything else in `main`.
+ * Which command lines are a call rather than a window, answered before anything else in `main`.
  *
- * The cases here are the ones that end without talking to anybody, and they are the only ones a test can
- * drive: everything else either pipes stdio to a window, serves the tools until a client closes its end, or
- * calls a run of the app that whoever is running the tests may have open. `HeadlessAgentHeapDumpsTest` covers
- * what is served, and `AgentCommandLineTest` in `shark-dive-agent` covers a call over a real socket.
+ * The cases here are the ones that end without talking to anybody, which is what a test can drive: a call
+ * itself reaches a run of the app that whoever is running the tests may have open, and `AgentCommandLineTest`
+ * in `shark-dive-agent` covers one over a real socket.
  *
  * What is worth pinning here is the **split**: a command line carries both a call and the window that may
  * have to be opened to answer it, and mistaking one for the other means an argument opened as a heap dump.
@@ -22,38 +20,22 @@ class AgentOptionsTest {
 
   @Test
   fun `an ordinary command line is a window`() {
-    assertThat(agentBridgeExitCode(arrayOf("--title=Windowed", "dump.hprof"))).isNull()
-    // `--no-ui` on its own is not a way to run the app with no window: there would be nothing to run.
-    assertThat(agentBridgeExitCode(arrayOf(NO_UI_OPTION))).isNull()
     assertThat(agentCommandExitCode(arrayOf("--title=Windowed", "dump.hprof"))).isNull()
   }
 
   @Test
   fun `a command line that does not read is a failure rather than a message`() {
-    // A client that launched this has nowhere to show a usage message, so the exit code is what says so.
-    assertThat(agentBridgeExitCode(arrayOf(MCP_STDIO_OPTION, NO_UI_OPTION, "--titel=Typo"))).isEqualTo(1)
+    val exitCode = onItsOwnStreams {
+      agentCommandExitCode(arrayOf(AgentCommandLine.AGENT_OPTION, "list_leaks", "--titel=Typo"))
+    }
+
+    // Whatever typed this reads an exit code and the sentence on stderr, so a window it did not ask for is
+    // not an answer to a command line nobody can read.
+    assertThat(exitCode).isEqualTo(1)
   }
 
   @Test
-  fun `what is left of a server's command line is a window's`() {
-    val arguments = windowArguments(
-      arrayOf(
-        MCP_STDIO_OPTION,
-        NO_UI_OPTION,
-        "${AgentStdioBridge.PID_OPTION}12345",
-        "--title=For an agent",
-        "dump.hprof"
-      )
-    )
-
-    // The heap dump and the title survive, and the three server options are not taken for heap dumps: a
-    // window saying `--no-ui` could not be read is what that mistake looks like.
-    assertThat(arguments.heapDumpFiles.map { it.name }).containsExactly("dump.hprof")
-    assertThat(arguments.titlePrefix).isEqualTo("For an agent")
-  }
-
-  @Test
-  fun `what is left of a call's command line is a window's too`() {
+  fun `what is left of a call's command line is a window's`() {
     val arguments = windowArguments(
       arrayOf(
         AgentCommandLine.AGENT_OPTION,
@@ -61,14 +43,17 @@ class AgentOptionsTest {
         "object=0x7205",
         "reason=Reading the holder's fields.",
         "${AgentCommandLine.SESSION_OPTION}cli99",
+        "${AgentCommandLine.PID_OPTION}12345",
         "--title=For an agent",
         "dump.hprof"
       ),
       toolName = "describe_object"
     )
 
-    // The tool and its arguments are the call, and what remains is the window this would open to answer it —
-    // which is the same window a command line with no call in it would have opened.
+    // The tool, its arguments and the two options that say which run and which session are the call, and what
+    // remains is the window this would open to answer it — which is the same window a command line with no
+    // call in it would have opened. A window saying `--session=cli99` could not be read as a heap dump is
+    // what getting this wrong looks like.
     assertThat(arguments.heapDumpFiles.map { it.name }).containsExactly("dump.hprof")
     assertThat(arguments.titlePrefix).isEqualTo("For an agent")
   }
