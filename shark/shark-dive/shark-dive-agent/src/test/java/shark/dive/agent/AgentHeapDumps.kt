@@ -19,8 +19,11 @@ import shark.dive.HeapDive
  * somebody has read the code and recorded what they found, and a two object dump would name its faulty
  * reference with nobody having investigated anything.
  */
-internal fun TemporaryFolder.applicationHoldsActivityThroughHolder(): InvestigationHeapDump {
-  val file = newFile("application-holds-activity-through-holder.hprof")
+internal fun TemporaryFolder.applicationHoldsActivityThroughHolder(
+  /** So that a test about naming one of two open dumps can have two dumps rather than one dump twice. */
+  fileName: String = "application-holds-activity-through-holder.hprof"
+): InvestigationHeapDump {
+  val file = newFile(fileName)
   var applicationObjectId = 0L
   var holderObjectId = 0L
   var activityObjectId = 0L
@@ -120,3 +123,9 @@ internal const val HOLDER_FIELD_NAME = "holder"
 
 /** How a chain spells the reference at fault once the holder is known to belong in memory. */
 internal const val FAULTY_REFERENCE = "Holder.$ACTIVITY_FIELD_NAME"
+
+/**
+ * And how it spells the reference above it, which is the other candidate while the holder has no verdict:
+ * one object with no verdict leaves two references, and its own verdict is what rules one of them out.
+ */
+internal const val SUSPECT_REFERENCE_ABOVE = "ExampleApplication.$HOLDER_FIELD_NAME"

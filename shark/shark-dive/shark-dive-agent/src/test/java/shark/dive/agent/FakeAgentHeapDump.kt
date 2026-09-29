@@ -7,6 +7,7 @@ import shark.dive.AndroidDevice
 import shark.dive.DeepLink
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
+import shark.dive.HeapSizes
 import shark.dive.LeakStatusOverride
 import shark.dive.LeakStatusOverrides
 import shark.dive.Place
@@ -20,10 +21,22 @@ import shark.dive.Place
  */
 internal class FakeAgentHeapDump(
   private val dive: HeapDive,
-  override val windowId: String = "testwindow"
+  override val windowId: String = "testwindow",
+  /**
+   * What every read waits on first, for the tests about a window that is busy.
+   *
+   * The app confines reads to the heap dump's own thread and they queue there, so a window in the middle of
+   * a leak analysis is a tool call that hasn't come back — which is a state a fake that answers instantly
+   * has no way of being in, and one that decides what `open_heap_dumps` is worth.
+   */
+  private val beforeRead: suspend () -> Unit = {}
 ) : AgentHeapDump, Closeable {
 
   override val heapDumpPath: String get() = dive.heapDumpFile.absolutePath
+
+  // Off the dive and not through [read], the way a window's own session hands them over: they were worked out
+  // while opening the dump, and a listing of every open dump waits on none of them. See [AgentHeapDump.sizes].
+  override val sizes: HeapSizes get() = dive.sizes
 
   override var verdicts: LeakStatusOverrides = LeakStatusOverrides.NONE
     private set
@@ -41,6 +54,7 @@ internal class FakeAgentHeapDump(
     description: String,
     block: (HeapDive) -> T
   ): T {
+    beforeRead()
     reads += description
     // Logged as well as recorded, because the window's own `HeapDumpSession.read` logs every read: what a
     // session log has to show is the reason for a call and then the reads it caused, in that order, and a

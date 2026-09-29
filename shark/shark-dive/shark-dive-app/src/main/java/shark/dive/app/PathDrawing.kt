@@ -163,7 +163,7 @@ internal fun PathStepRow(
         typeName = step.kind.typeName,
         objectId = step.objectId,
         // Folded objects are drawn nowhere on the map: a string's characters are counted inside the string.
-        onOpen = if (step.isInspectable) ({ openIn -> onOpen(step.objectId, openIn) }) else null,
+        onOpen = if (step.isTreeNode) ({ openIn -> onOpen(step.objectId, openIn) }) else null,
         onCopyLink = { onCopyLink(step.objectId) }
       )
     } else {

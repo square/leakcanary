@@ -1,16 +1,21 @@
 package shark.dive.agent
 
+import shark.dive.unwrappedMarkdown
+
 /**
  * The method an agent is asked to follow, which is the part of this surface that isn't data.
  *
  * Handed over twice on purpose: as the `instructions` of the MCP handshake, which some clients show the
- * model and some drop, and again with the answer to [AgentTools.OPEN_HEAP_DUMPS], which is the call every
- * investigation starts with. A method a client dropped is a method nobody followed.
+ * model and some drop, and again with the answer to **either** way of getting a heap dump — the tool named
+ * `open_heap_dump` and [AgentTools.OPEN_HEAP_DUMPS]. One of the two is the first call of every investigation,
+ * whichever of them it is, and a method a client dropped is a method nobody followed. Both of them, rather
+ * than only the listing, because an agent that was handed a heap dump has no reason to ask what is open, and
+ * making it ask in order to be told the method is the surface charging a call for its own documentation.
  *
  * **It is prose because its reader is a language model**, which is the one place in this app where a
  * paragraph beats a label — the window says `Verdict` in one word to someone who already knows what a
  * verdict is for. What keeps the prose honest is that the tools enforce the two claims it can't make on its
- * own: a verdict is refused without a reason, and [AgentTools.CONCLUDE] is refused until the heap dump
+ * own: a verdict is refused without a `why`, and `conclude` is refused until the heap dump
  * itself says one reference is at fault. So the method describes what the tools will hold you to rather
  * than asking to be trusted.
  *
@@ -20,12 +25,17 @@ package shark.dive.agent
 internal object AgentMethod {
 
   /**
-   * What to do with a heap dump, in the order it works.
+   * [INSTRUCTIONS] as it is written here, wrapped at the column the rest of this repository is.
    *
    * Kept in one string rather than assembled from the tool descriptions, because it is an argument and not
    * a list: each step is worth doing because of the step before it.
+   *
+   * **And no example in it names a real leak.** `Owner.field` is the shape a reference is spelled in rather
+   * than a reference, because this text is the first thing every eval run reads, before it has asked the heap
+   * dump anything: a concrete `Holder.activity` in here is one scenario's answer key printed into its own
+   * first tool result, which is exactly the kind of channel `shark/shark-dive/notes/agent-eval.md` counts.
    */
-  val INSTRUCTIONS = """
+  private val WRAPPED = """
     You are reading a heap dump through Shark Dive, a window a person may be watching. Everything you
     ask is a read of that dump, and everything you conclude is written into it where the next reader — a
     colleague, another agent, the same person in a month — will find it.
@@ -68,8 +78,6 @@ internal object AgentMethod {
     4. **Attack what is left.** This is the part that takes work, and it is where the tools earn their
        keep:
        - `describe_object` on an object in the unknown zone. Read its fields and its inspector labels.
-       - `ways_held` when you need to know whether a reference really is the only thing holding something.
-         One chain says how it is held; this says whether there is another way.
        - `find_objects` on a class you have assumed something about. Two instances of a class you took for
          a singleton is the answer to a surprising number of leaks: the object on the chain is not the
          instance you think it is.
@@ -91,9 +99,11 @@ internal object AgentMethod {
     **Which copy of the code matters as much as reading it.** A class that changed between two versions is a
     root cause nobody can reproduce and a fix that doesn't apply. The dump itself says which versions:
 
-    - **The OS.** `describe_object` on the `android.os.Build${'$'}VERSION` class: `SDK_INT` is the API level, with
-      `RELEASE`, `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the
-      build fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
+    - **The OS.** A class is an object of the dump like any other, so reading one is two calls: `find_objects`
+      with `className=android.os.Build${'$'}VERSION`, `exactMatch=true` and `kinds=CLASS` for its address, then
+      `describe_object` on that address for its static fields. `SDK_INT` is the API level, with `RELEASE`,
+      `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the build
+      fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
       under `sources/android-<SDK_INT>` — and not `main`, which is years ahead of any device.
     - **The app.** Its `android.content.pm.ApplicationInfo` is in most dumps: `processName` and `dataDir`
       name the app, `sourceDir` is the APK it was installed from, `minSdkVersion` is a field of its own,
@@ -104,19 +114,34 @@ internal object AgentMethod {
       lockfile, or read the versions out of the APK at `sourceDir`, and then read that library at that tag. A
       leak fixed two releases ago is worth finding out about before writing anything else.
     - **Nothing to read?** Decompile. The APK is at `sourceDir` on the device the dump came from, the
-      dependencies are jars, and a decompiler answers most of what a verdict needs. Compiler-generated names
-      are evidence in themselves: `this${'$'}0` is an inner class holding what it was declared in, `val${'$'}x` is a
-      captured local, and neither can be cleared by any code anybody could write.
+      dependencies are jars, and a decompiler answers most of what a verdict needs.
 
     Then **say which version of what you read**. "Nothing clears this in onDestroy" about a class the app
     doesn't ship is the confident wrong answer this section exists to stop.
 
     ## Rules you will be held to
 
-    - **Every verdict needs a reason another reader can check.** A field value, an inspector label, the
+    - **One chain is the whole investigation.** Any path from a GC root to a stuck object is a good path,
+      and whether something else holds that object too changes nothing: one path is one leak to fix. So never
+      go looking for other holders. The questions are which of these objects should have been gone, and which
+      reference is keeping them — never whether this reference is the only one.
+    - **Every verdict needs a `why` another reader can check.** A field value, an inspector label, the
       app's own watcher record, a line of source. Not "this is probably a cache" and not "activities are
-      usually leaked this way". `set_verdict` refuses a blank reason, and a reason that isn't evidence is
-      worse than none.
+      usually leaked this way". `set_verdict` takes that as `why` and refuses a blank one, it is kept with
+      the verdict in this heap dump, and a `why` that isn't evidence is worse than none.
+    - **The question a verdict answers is: is this object's work done?** Every object on the chain exists to
+      do something, and when that thing has happened the object should be gone — so a verdict is an answer
+      about *this* object's work, not about how its class reads. Not whether it looks like infrastructure,
+      not whether it sounds long-lived, not whether it is too small to matter. And the evidence is often not
+      on the object you are asking about: a callback, a receiver or a listener with no state of its own is
+      answered by what it forwards into, so read one step further before calling it `EXPECTED`.
+    - **A reference you cannot clear is still a reference that shouldn't be held.** Whether anybody *can*
+      fix a reference is a different question from whether it is at fault, and it belongs to step 5 rather
+      than to a verdict. A field a compiler generated, a field of a class the app doesn't ship, a reference
+      the OS holds on behalf of another process: each is a reason the fix is hard, and none of them is
+      evidence about the verdict. "There is nothing here to clear, so this can't be the problem" is the most
+      comfortable wrong turn on this surface, because it is true about the code and says nothing at all
+      about the heap.
     - **Set verdicts as you go, not at the end.** They are how the tools narrow the search for you, and
       they are what the person at the window sees you doing.
     - **`conclude` is the only way to finish**, and it will refuse you unless the heap dump agrees that one
@@ -133,7 +158,20 @@ internal object AgentMethod {
       it opens that exact object, in this heap dump, with your notes on it. A link names the dump rather than
       the window, so it still works once this run has ended — it opens the file again. Whoever asked you can
       click it while reading your answer, and again next week. So write "the leak is
-      `Holder.activity`(shark://…)" rather than describing which screen to open and what to click — a link
-      is the difference between an answer they have to take your word for and one they can go and look at.
+      `Owner.field`(shark://…)", with the reference this dump named, rather than describing which screen to
+      open and what to click — a link is the difference between an answer they have to take your word for and
+      one they can go and look at.
   """.trimIndent()
+
+  /**
+   * What to do with a heap dump, in the order it works.
+   *
+   * [unwrappedMarkdown] because the reader is a model reading text and not a diff. Handed over as [WRAPPED]
+   * is written, every sentence of it arrives broken at whatever column this file happened to wrap at — inside
+   * a JSON string, where each of those breaks is a visible `\n`. So the wrapping is undone once, here rather
+   * than at each of the three places the method is handed over, and what is left of the line breaks is the
+   * ones that mean something: the blank line between two paragraphs, and the one in front of a heading or an
+   * item. Same reading `shark.dive.Note.ofDocument` gives a page of the reference, for the same reason.
+   */
+  val INSTRUCTIONS = unwrappedMarkdown(WRAPPED)
 }

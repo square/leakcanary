@@ -86,13 +86,22 @@ uses, without the one for a newly recognized library leak:
   taken on an answer that said everything until you open both. The `▸ {}` under a row is what opens it, and
   what was sent names the tool the agent called as well as what it sent to it — `describe_object` beside the
   window's own word for it, which is the pair worth having when a step doesn't follow. **The full traffic, not
-  only the calls that worked**: the handshake, a call naming a tool that doesn't exist and a line that wasn't
-  JSON are rows too, a refusal and an error are under `answered:` as the agent was handed them, and each row
-  says whether it came in over MCP or from `--agent` at a shell — because what this screen gets opened for is
-  often why *nothing* happened. `agent_log` hands an agent the same text, so one agent can work out where
+  only the calls that worked**: a client's handshake, a call naming a tool that doesn't exist and a line that
+  wasn't JSON are rows too, a refusal and an error are under `answered:` as the agent was handed them, and
+  each row says whether it came in over MCP or from `--agent` at a shell — because what this screen gets
+  opened for is often why *nothing* happened. One command typed at a shell is one row, though: `--agent` is a
+  process per call, so each of them says hello before it calls anything, and drawing that would make every
+  typed command two rows. `agent_log` hands an agent the same text, so one agent can work out where
   another went wrong. Kept in `~/.shark-dive/agents/sessions`, one file per session and the newest hundred
   kept, so a session outlives the window it was worked in.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+* ✨ **`SHARK_DIVE_DIR` moves everything the app keeps between runs**, which is the notes, the verdicts, the
+  starred objects, the agent sessions, the logs and the record of where each heap dump was — one directory,
+  `~/.shark-dive` unless that variable names another. So a second set of notes over the same dumps is possible
+  without touching the first, which is what measuring an agent against a heap dump needs: a scored run must not
+  write its verdicts into yours, or read somebody else's conclusion as its own starting point. An environment
+  variable rather than an option because a dive is several processes that have to agree on it — `--agent` runs
+  the app again to open a window, and an MCP client launches the server from a config file.
 * ✨ **The chain marks the faulty reference**: the one step going from an `Expected` object straight to a
   `Stuck` one reads `Holder.activity · faulty reference`, which is the leak itself rather than one of the
   objects it left behind, and the same reference the **Leaks** screen names that leak after. A chain whose
@@ -171,3 +180,11 @@ uses, without the one for a newly recognized library leak:
   [Open a heap dump](shark-dive.md#open-a-heap-dump), where somebody who wants it goes looking. Same for the
   question a `shark://` link asks when this machine has two heap dumps of that name or none: the title
   already names the file, so the question is now the count and where to look.
+* 🔨 **A class shows the fields it declares, not the 26 the runtime keeps its own state in.** A class dump
+  record has nowhere but its static fields to put `mirror::Class`'s own state, so ART writes it in as pseudo
+  statics named `$class$accessFlags`, `$class$classLoader`, `$class$vtable` and 22 more, plus
+  `$classOverhead` for the bytes the record takes — and they sort before every static the class actually
+  declares. Reading `android.os.Build$VERSION` to find out which Android version a heap dump is from meant
+  26 rows of bookkeeping first, with `SDK_INT` the 43rd field of 48. Both the details panel and an agent's
+  `describe_object` read the same list, so both were paying for it. The `shadow$_klass_` and
+  `shadow$_monitor_` ART puts on every *instance* were already left out; this is the same rule for a class.

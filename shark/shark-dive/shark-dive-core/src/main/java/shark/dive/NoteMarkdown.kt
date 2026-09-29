@@ -56,37 +56,53 @@ internal fun noteBlocksOf(text: String): List<NoteBlock> {
  *
  * Everything else is [noteBlocksOf]'s, headings and links and fences and all, so a page reads in the window
  * the way a note does and there is one parser to be wrong.
+ *
+ * The blank lines [unwrappedMarkdown] keeps are dropped here, once they have done their work of separating
+ * two paragraphs: they would otherwise be empty paragraphs drawn as blank space on top of the spacing the
+ * window already puts between blocks. Dropped as blocks rather than as lines, so that a blank line inside a
+ * fence — the one place a blank line is the content — is left alone by the same code.
  */
-internal fun documentBlocksOf(text: String): List<NoteBlock> = noteBlocksOf(unwrapped(text))
+internal fun documentBlocksOf(text: String): List<NoteBlock> =
+  noteBlocksOf(unwrappedMarkdown(text)).filterNot { it is NoteBlock.Paragraph && it.spans.isEmpty() }
 
 /**
- * The same markdown with each paragraph on one line, which is the shape [noteBlocksOf] reads.
+ * The same markdown with each paragraph, and each item of a list, on one line.
  *
- * Blank lines go with the wrapping they separated: they were the paragraph break, and once the paragraphs
- * are one line each they would be empty paragraphs drawn as blank space on top of the spacing the window
- * already puts between blocks. Inside a fence every line is left exactly as it is, blank ones included —
- * code is the one place a line break is the content.
+ * That is the shape [noteBlocksOf] reads, and it is also the shape to hand a language model: a text wrapped
+ * to fit a file arrives with every sentence broken at whatever column the source happened to use, and inside
+ * a JSON string each of those breaks is a visible `\n`. So the wrapping is undone and what is left is the
+ * line breaks that mean something — the blank line between two paragraphs, and the one before a heading or
+ * an item. Inside a fence every line is left exactly as it is, blank ones included, because code is the one
+ * place a line break is the content.
  */
-private fun unwrapped(text: String): String {
+fun unwrappedMarkdown(text: String): String {
   val unwrapped = mutableListOf<String>()
   var isCode = false
   var isParagraph = false
+  var isItem = false
   text.split('\n').map { it.removeSuffix("\r") }.forEach { line ->
     when {
       line.trimStart().startsWith(CODE_FENCE) -> {
         isCode = !isCode
         isParagraph = false
+        isItem = false
         unwrapped += line
       }
       isCode -> unwrapped += line
-      line.isBlank() -> isParagraph = false
-      // A heading, a bullet, a quote or a rule is a block of its own, so it neither continues the
-      // paragraph above it nor is continued by the line below.
+      line.isBlank() -> {
+        isParagraph = false
+        isItem = false
+        unwrapped += ""
+      }
+      // A heading, a bullet, a quote or a rule starts a block of its own rather than continuing the
+      // paragraph above it. An item is then continued by the lines under it, the way any wrapped list is
+      // written; a heading, a quote and a rule are one line each and are continued by nothing.
       !isProse(line) -> {
         isParagraph = false
+        isItem = ITEM.matches(line)
         unwrapped += line
       }
-      isParagraph -> unwrapped[unwrapped.lastIndex] = "${unwrapped.last()} ${line.trim()}"
+      isParagraph || isItem -> unwrapped[unwrapped.lastIndex] = "${unwrapped.last()} ${line.trim()}"
       else -> {
         isParagraph = true
         unwrapped += line.trim()

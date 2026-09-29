@@ -170,8 +170,26 @@ class AgentServerTest {
   }
 
   @Test
+  fun `a run that was killed is taken off the list by whoever reads it next`() {
+    // A file that reads as a perfectly good run and names a process that has gone, which is what a force
+    // quit, an out of memory and a `kill -9` all leave behind: the shutdown hook and the Closeable that
+    // delete it are the two things a killed run doesn't get to do.
+    val killed = File(directory, "$NO_SUCH_PROCESS${AgentServer.RUN_SUFFIX}")
+    killed.writeText("port=54028\ntoken=${"0".repeat(32)}")
+    listen()
+
+    val runs = AgentServer.publishedRuns(directory)
+
+    assertThat(runs.map { it.pid }).containsExactly(ProcessHandle.current().pid().toString())
+    assertThat(killed).doesNotExist()
+    assertThat(log).anyMatch { it.contains("has ended") }
+  }
+
+  @Test
   fun `a file that names no run is deleted by whoever reads it`() {
-    val nonsense = File(directory, "1234${AgentServer.RUN_SUFFIX}")
+    // Named after a process that is running, since a name that isn't is a run that has ended and is cleared
+    // out before anything reads the file at all.
+    val nonsense = File(directory, "${ProcessHandle.current().pid()}${AgentServer.RUN_SUFFIX}")
     nonsense.writeText("this file is not a published run")
 
     assertThat(AgentServer.publishedRuns(directory)).isEmpty()
@@ -230,6 +248,14 @@ class AgentServerTest {
   }
 
   private companion object {
+
+    /**
+     * A process id no machine issues, so that a file named after it is a run that has ended.
+     *
+     * Rather than a big-looking number: Linux allows pids up to 2^22, so a test picking 999999 is one that
+     * passes until the machine running it is busy enough to have reached that pid.
+     */
+    const val NO_SUCH_PROCESS = Long.MAX_VALUE
 
     const val PING = """{"jsonrpc":"2.0","id":1,"method":"ping"}"""
 

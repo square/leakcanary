@@ -36,18 +36,25 @@ two deliberate exceptions, `AgentServer`/`AgentStdioBridge`/`AgentHeapDump*` bec
 The whole point of this being a server rather than a library is that **it can say no**, and it works with any
 client because saying no is all it does — nothing here ever calls a model.
 
-- `set_verdict` refuses a blank reason (through `LeakStatusOverride`'s own `require`) and refuses a verdict
-  that contradicts one already recorded unless it is told to flip it.
+- `set_verdict` refuses a blank `why` (through `LeakStatusOverride`'s own `require`) and refuses a verdict
+  that contradicts one already recorded unless it is told to flip it. **`why` is the verdict's own
+  justification and `reason` is why the call was made**, which is two arguments for what was one: the `why` is
+  kept in the dump's `leak-statuses` file and drawn in the window's *Why* box for as long as anybody reads
+  that dump, and the `reason` is a line of this session's log like every other tool's. A model handed the
+  single `reason` sent both anyway — see `WHY`'s KDoc for the measurement — so the surface now takes both.
 - `conclude` refuses until the heap dump agrees that **one** reference is at fault, and the refusal says which
-  of the three reasons it is: nothing `STUCK`, nothing `EXPECTED` above it, or *these* steps in between
-  with no verdict. Same rule as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it,
-  because the three ways it answers null are three different things to do next.
+  of the five reasons it is: no chain at all, nothing `STUCK`, nothing `EXPECTED` above it, *these* references
+  still candidates with *those* objects in between having no verdict, or a reference the object above no longer
+  reads. `ChainState` is that list, and the refusal names the candidates rather than counting them. Same rule
+  as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it, because the ways it answers
+  null are different things to do next.
 - Every tool takes a `reason`, and it is enforced in `AgentTool.call` rather than only asked for in the
   schema: a client is free to ignore a schema.
 
 So a change that makes any of these easier to satisfy is a change that removes the reason this module exists.
-An agent that has narrowed a chain to three unexplained steps must not be able to report a root cause, however
-confident it is. `AgentToolsTest` walks that exact story — refused, then a verdict, then concluded — and it is
+An agent that has narrowed a chain to two candidate references must not be able to report a root cause, however
+confident it is — and two is the narrowest a chain gets before it names one, since a single object with no
+verdict leaves the reference into it and the reference out of it. `AgentToolsTest` walks that exact story — refused, then a verdict, then concluded — and it is
 the test to keep working.
 
 The `reason` is traceability and not a quality gate. Asking a model to explain itself does not make it right,
@@ -110,6 +117,15 @@ have a number that moved with the transport. `AgentSessionCall.over` is which wa
 the handshake is past, which is the point of them. The word travels as the last field of `AgentServer`'s
 handshake line, and a connection that says nothing is MCP.
 
+**With one exception, and it is about what a row of that screen is.** `--agent` is a process per call, so a
+`tools/call` typed at a window arrives behind an `initialize` of its own and one typed command was drawn as
+two rows — Connected, called, Connected, called, which is what a screen reading an investigation is least
+able to afford. `McpSession.isTheCommandLineSayingHello` drops that one message: **`initialize` over the CLI
+transport, and nothing else.** An MCP client's handshake is still a row, since a client connects once and
+what its handshake says is worth having. Nothing about the CLI's connection is lost — the client name goes on
+the session from the same message, and `An agent connected:` is in that run's log file — so what went is a
+row saying a process started, said hello and did the thing the next row already names.
+
 The name is in `input` even though `tool` has it, and that is not an oversight: this field is read as one
 thing, and a set of arguments lifted away from what they are arguments *to* is the one form of a call nobody
 can read on its own.
@@ -171,8 +187,12 @@ to one adapter and not the other is the mistake this shape exists to make imposs
 
 **A process per call would otherwise be a session per call**, and a session is what somebody reads afterwards.
 So the handshake is `token[ sessionName[ over]]` on one line, `AgentSessionFile.continuing` appends to the
-newest file whose name carries that id, and a command line defaults to `cli<the shell's pid>` — an agent's
-calls come out of one shell the way its MCP calls come out of one connection. A client that says nothing gets
+newest file whose name carries that id, and a command line defaults to `cli<a pid above it>` —
+`defaultSessionName`, which **walks** rather than taking the parent, because the shell an agent's call arrives
+in is one command long. Claude Code runs each of its commands in a `zsh -c` of its own, so the parent is a
+session per call again, measured as nine session files for one nine-call investigation; a shell that was handed
+a command is walked past and what drove it is the session. Read that KDoc before changing it — the walk tests
+both the name and the `-c`, and either half alone merges sessions that have to stay apart. A client that says nothing gets
 a session of its own, which is what every MCP client does, and its lines are recorded as MCP.
 
 **The name is checked at both ends**, because it becomes part of a file name: the command line refuses one
@@ -298,6 +318,12 @@ neither of them looks like anything in a unit test.
 **And `harness/eval` is the measured half of the same idea.** The harness shows how one investigation goes;
 the eval runs an agent against a dump whose faulty reference is already known and scores whether it found it,
 by string comparison and counting, with no model marking anything. So it is what says whether a change to a
-description or a refusal made things better rather than only different.
-`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the three ways a run gets handed its own
-answer, each of which was a score that meant nothing.
+description or a refusal made things better rather than only different. **It opens nothing for the agent** —
+a run gets the skill and a prompt saying where the file is, and `--transport cli|mcp` picks which of the two
+adapters above its calls arrive through.
+`shark/shark-dive/notes/agent-eval.md` has the answer keys — and the eight ways a run gets handed its own
+answer, each of which was a score that meant nothing. One of them voided every number this eval has ever
+produced, so read that section before quoting a table from it. **The eighth is in this module**: a worked
+example in `AgentMethod` named a real reference, which was a scenario's key, in the first tool result of every
+run. So a class name written into anything here — a description, a refusal, the method — is worth checking
+against `EvalScenarios` first.

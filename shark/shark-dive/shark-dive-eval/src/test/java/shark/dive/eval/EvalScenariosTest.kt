@@ -23,7 +23,7 @@ import shark.dive.leakLabel
  * or passes for the wrong reason, and the eval would report that as a fact about the models.
  *
  * So each case here does the one thing the method asks an agent to do and no more: find the leak, get the
- * chain, set the one verdict that closes the unknown zone, and read off what the chain then names. Which is
+ * chain, set the verdicts that close the unknown zone, and read off what the chain then names. Which is
  * also why it is the test to run after touching the tools — it is the shortest thing in this repository that
  * says the surface can be finished.
  */
@@ -45,19 +45,16 @@ class EvalScenariosTest {
               "What it does have: ${chain.references()}"
           )
           .isGreaterThan(0)
-        // Everything above the object that owns the key is meant to be in memory, which one verdict says:
-        // an EXPECTED spreads upwards. What is below is stuck already, because the dump itself says so.
-        val owner = chain.steps[keyIndex - 1].step.objectId
+        val verdicts = scenario.verdictsThatCloseTheUnknownZone(chain, keyIndex)
         val solved = dive.tree.rootPathTo(
           objectId = chain.steps.last().step.objectId,
-          overrides = LeakStatusOverrides.of(
-            listOf(
-              LeakStatusOverride(owner, LeakStatus.EXPECTED, "The scenario says this belongs in memory.")
-            )
-          )
+          overrides = LeakStatusOverrides.of(verdicts)
         )
         assertThat(solved.faultyReference()?.leakLabel())
-          .describedAs("${scenario.name} was not solved by one verdict on the owner of ${scenario.key}")
+          .describedAs(
+            "${scenario.name} was not solved by the ${verdicts.size} verdict(s) that should close it: " +
+              verdicts.joinToString { it.reason }
+          )
           .isEqualTo(scenario.key)
       }
     }
@@ -88,6 +85,36 @@ class EvalScenariosTest {
           .describedAs("${scenario.name} has no leak of the app's own for list_leaks to answer with")
           .isGreaterThan(0)
       }
+    }
+  }
+
+  /**
+   * The verdicts to set before reading the chain back, which is the whole of what an agent adds to a heap
+   * dump before it can conclude.
+   *
+   * For a scenario that names none, one: everything above the object that owns the key is meant to be in
+   * memory, which a single `EXPECTED` says by spreading upwards, and what is below is stuck already because
+   * the dump itself says so. `stub-outlives-its-work` is the one that names its own, and the reason
+   * [EvalScenario.solvedBy] exists — the dump reads both of its ends by itself, a watched activity at the
+   * bottom and a binder stub the inspectors call not leaking at the top, so what closes it is a `STUCK` in
+   * the middle that nothing here could work out.
+   */
+  private fun EvalScenario.verdictsThatCloseTheUnknownZone(
+    chain: RootPath,
+    keyIndex: Int
+  ): List<LeakStatusOverride> {
+    if (solvedBy.isEmpty()) {
+      val owner = chain.steps[keyIndex - 1].step
+      return listOf(
+        LeakStatusOverride(owner.objectId, LeakStatus.EXPECTED, "${owner.className} belongs in memory.")
+      )
+    }
+    return solvedBy.map { (className, status) ->
+      val step = chain.steps.map { it.step }.firstOrNull { it.className == className }
+      assertThat(step)
+        .describedAs("$name says $className is $status, and its chain has no object of that class")
+        .isNotNull
+      LeakStatusOverride(step!!.objectId, status, "$className is $status.")
     }
   }
 

@@ -17,23 +17,26 @@ is leaking still has a biggest object.
 
 ## Start by working out which case you are in
 
-**Something is already open.** Ask, and the answer carries the method to follow, the file names every other
-tool names a dump by, and any verdicts somebody has already reached:
+**You were given a heap dump** — a file that came with a bug report, one you took earlier, or one somebody
+already has open. Say which, and that is the whole of starting:
 
 ```bash
-"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --agent open_heap_dumps \
-  reason="Finding out what is already open"
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --agent open_heap_dump \
+  path=/absolute/path/bug-4821.hprof reason="The dump the report came with"
 ```
 
-If that says nothing is open, it opened a window for you, so the same command again lists it.
+`path` takes the file, or the name of a dump already open — so this never opens a second copy of one somebody
+is looking at, and `wasAlreadyOpen` in the answer says which happened. It answers once the dump is readable,
+which on a large one is a wait rather than a moment. **Don't ask what is open first**; this is the call.
 
-**You have a file.** A dump that came with a bug report, or one you took earlier:
+**You were given nothing.** Then ask what is open, and pick:
 
 ```bash
-… --agent open_heap_dump path=/absolute/path/bug-4821.hprof reason="The dump the report came with"
+… --agent open_heap_dumps reason="Finding out what is already open"
 ```
 
-It answers once the dump is readable, which on a large one is a wait rather than a moment.
+An empty answer means nothing is open anywhere: the call started a window for you, but a window with no heap
+dump in it has nothing to list. So that is the case where you need a file — ask for the path, or take one.
 
 **You need to take one.** From a device or emulator `adb` is connected to:
 
@@ -47,16 +50,12 @@ It answers once the dump is readable, which on a large one is a wait rather than
 large app, and one call that does not come back until it is readable. A process can only be dumped if the app
 was built debuggable or the whole device build is; `list_devices` says which.
 
-**And before investigating anything, read what has already been tried on that dump:**
-
-```bash
-… --agent agent_log reason="Finding out whether somebody has already been through this"
-```
-
-An investigation somebody already ran is either the answer or the half of the dump not worth doing again.
-Adding `session=<id>` reads one of them call by call, each with the exact text it sent and read back — which
-is how you tell a step that read an answer from one that misread it, and a long answer for that reason, so
-reach for it when a run went wrong rather than as a matter of course.
+**Whichever case it was, the answer says whether anybody has been here.** An untouched heap dump is the
+normal case, so there is nothing to ask: `alreadyWorkedOn` is in that answer only when somebody left verdicts
+or a note behind, and it says which tool reads what — `read_notes` for what they found, `agent_log` for how
+they got there when their conclusion looks wrong. **So don't open with `agent_log`**; a dump nobody has
+touched makes it a call spent on "nobody has been here", and the call that opened the dump has already said
+so.
 
 ## The command line
 
@@ -84,8 +83,9 @@ reach for it when a run went wrong rather than as a matter of course.
   The `shark://` link `show` and `conclude` answer with names the dump too, so it still opens after this run
   has ended: **put those links in your reply** rather than describing which screen to open.
 - `--agent-run=<pid>` picks between several open runs. `--agent-session=<name>` says which investigation these
-  calls are one of; by default one shell is one session, so what you did reads as one row of that screen
-  rather than a row per call.
+  calls are one of; by default the calls of one conversation are gathered into one, however many shells they
+  arrived in, so what you did reads as one row of that screen rather than a row per call. Pass it when your
+  calls come from processes with nothing in common.
 
 **Over MCP instead, if your client can be configured**, which gets the same tools with their schemas in band:
 
@@ -102,8 +102,9 @@ link, since a link names the heap dump rather than a window.
 
 ## What to do with it
 
-**The method comes with the tools.** `open_heap_dumps` hands back the whole of it — what a leak is, the three
-zones of a chain, how a verdict spreads, and the order that finds the faulty reference. Follow that; it is
+**The method comes with the tools.** Whichever of the two calls above got you a heap dump hands back the whole
+of it — what a leak is, the three zones of a chain, how a verdict spreads, and the order that finds the faulty
+reference. There is nothing to ask for separately. Follow that; it is
 [the LeakCanary method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it, and
 it does not need repeating here.
 

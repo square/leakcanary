@@ -44,10 +44,12 @@ data class HeapLeaks(
  * Which kind of thing a leak is, which is what splits the screen into sections.
  *
  * The split is what makes the list actionable, and it is a split in two halves. The first two are leaks to
- * do something about: the app's own are the ones to go and fix, the library ones are somebody else's and
- * are mostly there so they don't get mistaken for the app's. The rest are objects that shouldn't be in
- * memory and are on their way out of it anyway, a section per way — the garbage collector clears every one
- * of these strengths on its own, so nothing in the app has to change for the bytes to come back.
+ * investigate, split by whether Shark recognised the reference holding them: a recognised one is somebody
+ * else's code, and is set apart mostly so it isn't mistaken for the app's. That says who is likely to own
+ * the fix and not whether there is one — plenty of leaks are held by a reference nobody can clear, and that
+ * is a fact about the fix rather than about the leak. The rest are objects that shouldn't be in memory and
+ * are on their way out of it anyway, a section per way — the garbage collector clears every one of these
+ * strengths on its own, so nothing in the app has to change for the bytes to come back.
  *
  * LeakCanary reports none of that second half and can't tell one from another: its analysis follows no
  * soft, weak or phantom referent, so everything below the rule here is an object no GC root reaches as far
@@ -93,8 +95,10 @@ enum class LeakKind(
 
   APPLICATION(
     "App leaks",
-    "Objects the app itself keeps in memory after it was done with them. Each of these is a leak to fix, " +
-      "in code the app controls."
+    "Objects the app itself was done with, and something is still holding. Each one is a leak to " +
+      "investigate, and it is here rather than under library leaks because nothing on the way to it is a " +
+      "reference Shark recognises — usually the app's own code, and which reference is at fault is what " +
+      "settles that."
   ),
 
   LIBRARY(
@@ -234,7 +238,36 @@ data class LeakGroup(
 
   /** Bytes the objects of this leak retain together, which is what the leak is costing. */
   val retainedSize: Long get() = objects.sumOf { it.retainedSize }
+
+  /**
+   * What this leak is called wherever one is listed: both ends of [suspectPath], and a gap for the rest.
+   *
+   * One line rather than the whole path, because the ends are the same reference for most leaks and both of
+   * them are worth reading — the first says what to stop holding, the last says where the object that leaked
+   * hangs off. What is between them is on the chain, which is `chain_from_gc_root` for a reader who is an
+   * agent and the object view for one at the window, and is the same walk for both.
+   *
+   * **Here rather than in either surface**, because the leaks screen and the answer an agent is listed these
+   * in are the same list: a leak named one way on the screen and another way in the JSON is two leaks to
+   * whoever is reading both, which is the person watching an agent work. Ends on an arrow for the same reason
+   * on both — what the last reference points at is the objects of the leak, listed under this either way.
+   */
+  val name: String get() = when (suspectPath.size) {
+    // A library leak is named by the pattern that recognized it and an unreachable one by its class, and
+    // neither is a reference, so neither points anywhere.
+    0 -> title
+    1 -> "${suspectPath.single()} $LEAK_NAME_ARROW"
+    2 -> "${suspectPath.first()} $LEAK_NAME_ARROW ${suspectPath.last()} $LEAK_NAME_ARROW"
+    else -> "${suspectPath.first()} $LEAK_NAME_ARROW $LEAK_NAME_GAP $LEAK_NAME_ARROW " +
+      "${suspectPath.last()} $LEAK_NAME_ARROW"
+  }
 }
+
+/** Between the two ends of a leak's name, pointing the way the chain runs: down, away from the GC roots. */
+const val LEAK_NAME_ARROW = "→"
+
+/** And what stands in for the references between them, which are on the chain and not in the name. */
+const val LEAK_NAME_GAP = "…"
 
 /**
  * Hex, lowercase, the way every tool that prints a SHA-1 prints one — and the way

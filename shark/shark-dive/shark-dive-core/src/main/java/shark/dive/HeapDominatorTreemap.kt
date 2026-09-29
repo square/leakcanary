@@ -205,7 +205,8 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * This tree's node for [nodeId], which every object of the heap dump has one of.
+   * This tree's node for [nodeId], which every object of the heap dump has one of but the folded ones — see
+   * [contains].
    *
    * Not [Map.getValue], whose "Key 21474836480 is missing in the map" is what asking this tree about an
    * object of another heap dump reads as, three frames below whatever asked.
@@ -214,7 +215,13 @@ class HeapDominatorTreemap internal constructor(
     "$nodeId is no node of this tree, which has ${nodes.size} of them. Ask contains() first."
   }
 
-  /** Whether [objectId] is a node of this tree, which every object of the heap dump is. */
+  /**
+   * Whether [objectId] is a node of this tree, which every object of the heap dump is except the ones whose
+   * bytes are counted inside another one: a string's characters, the boxed numbers of a wrapper array. Those
+   * are objects nothing points at as far as any reference reader is concerned, so the tree has nowhere to
+   * put them and the map draws them nowhere. See [ReferenceStrengthReader.foldedObjectIdsOf], and
+   * [PathStep.isTreeNode] for the reader this answers for.
+   */
   operator fun contains(objectId: Long): Boolean = if (isPileId(objectId)) {
     objectId in topLevel.groups
   } else {
@@ -1204,8 +1211,7 @@ class HeapDominatorTreemap internal constructor(
    * opens from it are one reference said twice. Where it isn't, the row names the whole stretch and the chain
    * marks nothing, since which of those references is at fault is exactly what isn't known.
    */
-  private fun suspectSubpath(steps: List<PathStep>): List<String> =
-    steps.suspectReferenceIndexes().map { steps[it].reference!!.leakLabel() }
+  private fun suspectSubpath(steps: List<PathStep>): List<String> = steps.suspectReferenceLabels()
 
   /** One leaking object and which leak it is an instance of, before the instances are gathered. */
   private class FoundLeak(
@@ -1416,7 +1422,7 @@ class HeapDominatorTreemap internal constructor(
         leakStatus = LeakStatus.UNKNOWN,
         leakStatusReason = null,
         reference = reference,
-        isInspectable = objectId in nodes
+        isTreeNode = objectId in nodes
       ),
       inspected = reporter.inspected(className, overrides)
     )
@@ -1853,8 +1859,20 @@ class HeapDominatorTreemap internal constructor(
     /**
      * ART gives every object a `shadow$_klass_` and a `shadow$_monitor_`: the class pointer and the
      * lock word. They're the runtime's business, and they're on every object in the list otherwise.
+     *
+     * A class object gets far more of it, and all of it first, because a class dump record has only
+     * static fields to put anything in: ART writes `mirror::Class`'s own instance fields as pseudo
+     * statics named `$class$<field>` — 25 of them on a real dump, `$class$accessFlags` through
+     * `$class$vtable`, plus its own `$class$shadow$_klass_` and `$class$shadow$_monitor_` — and
+     * `$classOverhead` for the bytes the record itself takes. They sort before every real static, so
+     * reading `android.os.Build$VERSION` meant 26 rows of runtime bookkeeping before `SDK_INT`.
+     * Nothing a compiler emits is named that way, `$classOverhead` aside; a Kotlin `$continuation` or
+     * `this$0` is a field of the app's and stays.
      */
-    private val HeapField.isRuntimeInternal: Boolean get() = name.startsWith("shadow\$_")
+    private val HeapField.isRuntimeInternal: Boolean
+      get() = name.startsWith("shadow\$_") ||
+        name.startsWith("\$class\$") ||
+        name == "\$classOverhead"
 
     private fun gcRootLabel(gcRoot: GcRoot): String = "GC root: " + when (gcRoot) {
       is JniGlobal -> "JNI global reference"

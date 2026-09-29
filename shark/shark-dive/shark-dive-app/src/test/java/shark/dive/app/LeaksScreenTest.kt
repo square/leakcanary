@@ -29,6 +29,8 @@ import shark.dive.AdbOutput
 import shark.dive.DeviceHeapDumps
 import shark.dive.HeapLeaks
 import shark.dive.HeapObjectKind
+import shark.dive.LEAK_NAME_ARROW
+import shark.dive.LEAK_NAME_GAP
 import shark.dive.LeakGroup
 import shark.dive.LeakKind
 import shark.dive.LeakStatus
@@ -189,10 +191,12 @@ class LeaksScreenTest {
       }
 
       // Both ends and a gap for what is between them, then the leak whose two ends are one reference. Each
-      // ends on an arrow, because what it points at is the object on the row below.
-      onNodeWithText("$FIRST_END $STRETCH_ARROW $STRETCH_GAP $STRETCH_ARROW $LAST_END $STRETCH_ARROW")
+      // ends on an arrow, because what it points at is the object on the row below. Spelled out here rather
+      // than read off [LeakGroup.name], which is where the row gets it and is also what an agent is answered
+      // with — a test asserting that string against itself would pin nothing.
+      onNodeWithText("$FIRST_END $LEAK_NAME_ARROW $LEAK_NAME_GAP $LEAK_NAME_ARROW $LAST_END $LEAK_NAME_ARROW")
         .assertIsDisplayed()
-      onNodeWithText("$ONE_REFERENCE $STRETCH_ARROW").assertIsDisplayed()
+      onNodeWithText("$ONE_REFERENCE $LEAK_NAME_ARROW").assertIsDisplayed()
     }
   }
 

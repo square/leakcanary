@@ -9,21 +9,50 @@ Measured off `AgentTools.all` and `AgentMethod.INSTRUCTIONS`, one `tools/list` e
 
 | | Characters | ≈ tokens | Paid |
 | --- | --- | --- | --- |
-| Seventeen tool definitions | 21,123 | 5,280 | Every turn, while the server is connected |
-| The method | 7,845 | 1,960 | Handshake, and again with `open_heap_dumps` |
+| Seventeen tool definitions | 23,851 | 5,960 | Every turn, while the server is connected |
+| The method | 9,372 | 2,340 | Handshake — **cut to 2,048 characters, see below** — and in full with `open_heap_dump` or `open_heap_dumps` |
 
-So the standing cost of this surface is **7 to 8 k tokens**, around 3.5% of a 200 k window. Parity took the
-tool count from eleven to seventeen and the definitions from 13,116 characters to 21,123 — **a fifth of the
+So the standing cost of this surface is **around 8 k tokens**, about 4% of a 200 k window. Parity took the
+tool count from eleven to seventeen and the definitions from 13,116 characters to 23,132 — **a fifth of the
 window's budget for the six tools that mean an agent never has to ask its human to click something**, which
 is the trade this surface exists to make. The sixth is `agent_log`, 1,237 characters of the total, and the
 900 the other sixteen grew by are the two agent-log places added to the sentence naming every place, which
-`show`, `read_notes` and `take_note` all repeat. The method then grew by half again for the section on reading the
+`show`, `read_notes` and `take_note` all repeat. The 719 since are two arguments a measured round of eval runs
+said were missing: `show` taking an `object` like every other tool rather than a `place` alone, and
+`set_verdict` taking the verdict's own `why` as well as the `reason` the call was made for. The method then
+grew by half again for the section on reading the
 code at the version the dump is of, which is the one part of the method the tools cannot enforce at all and
 the part that decides whether an answer is a root cause or a reference. The published horror stories are still an order of magnitude worse:
 GitHub's server is ~17.6 k tokens of definitions, and three servers together have been measured at 143 k. The
 mitigations that shipped in 2026 (Anthropic's tool search, code execution over MCP) are aimed at that scale.
 **This surface is not where a context window goes to die**, and a per-tool cost of ~300 tokens is what buys
 descriptions that say when to reach for a tool. Re-measure it if the count doubles again.
+
+## The handshake copy of the method arrives cut to a fifth
+
+Claude Code caps **every MCP tool description and every server `instructions` at 2,048 characters**, for every
+server in the session, and the cap is a documented one:
+`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` is the environment variable that changes it, added in the
+[Claude Code changelog](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) — "Added
+`CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` to change the 2,048-character cap on MCP tool descriptions and server
+instructions for every MCP server in the session". The method is 9,372 characters, so **what a Claude Code
+session is handed at the handshake is the first 22% of it** and the rest is dropped before the model sees
+anything.
+
+Two things follow, and the first is why nothing here needs fixing. **The second hand-over is the one that
+delivers the method**: `open_heap_dump` and `open_heap_dumps` put it in a tool *result*, and a result is a
+different budget — `MAX_MCP_OUTPUT_TOKENS` defaults to 25,000 tokens (`var C=0.5,l=1600,P=25000` in the
+bundle inside `~/.local/share/claude/versions/2.1.280`, the `P` that read of the variable falls back to),
+which the whole method is a tenth of.
+So handing the method over twice, which was written down here as insurance against a client that drops
+`instructions`, turns out to be the only reason a Claude Code session ever reads the end of it. Handing it over
+*only* at the handshake would have been a method nobody could follow, and nothing in the protocol would have
+said so.
+
+The other is that **the cap does not touch the tool definitions**, which is worth having measured rather than
+assumed: the longest description in the registry is `chain_from_gc_root` at 652 characters, a third of the cap,
+and none of the seventeen is within 1,300 of it. So a description can go on saying when to reach for its tool.
+What would silently lose text is the one thing not to write — a tool whose description is a page.
 
 ## And what reading somebody else's session costs
 
@@ -37,20 +66,29 @@ next" — and the numbers are worth knowing before reaching for it. Measured aga
 | | Measured |
 | --- | --- |
 | The four tool-call rows | 8,783 + 8,775 + 1,750 + 987 characters — the answer is nearly all of each |
-| The four protocol rows | 37,313 characters, of which **32,976 is four `initialize` answers** |
+| The protocol rows | 37,313 characters, of which **32,976 was four `initialize` answers** |
 | The whole `agent_log session=…` answer | 57,693 characters, ≈14,400 tokens |
 
 So **a tool call is one to two thousand tokens** and a thirty-call investigation read in full is most of a
 small context window. That is the tool being used for what it is for rather than a leak — it is the one call
 on this surface whose subject is somebody else's whole investigation.
 
-**The handshakes are the surprise, and they are a command line's.** `initialize` answers with
-`AgentMethod.INSTRUCTIONS`, and `--agent` is a process per call, so a session of typed calls carries the
-method once per call: 57% of the answer above, handed to a reader that already has the same text in its own
-context. An MCP session pays it once. Nothing about that is a reason to record less — a session that keeps
-only what reached a tool cannot say why nothing did, which is the whole point of keeping the traffic — but if
-`agent_log` needs to be cheaper, **the handshake answers are where to look first**, and the shape to reach
-for is a way to ask for one message's exchange rather than a shorter version of every message's.
+**The handshakes were the surprise, and they were a command line's.** `initialize` answers with
+`AgentMethod.INSTRUCTIONS`, and `--agent` is a process per call, so a session of typed calls carried the
+method once per call: 57% of the measurement above, handed to a reader that already had the same text in its
+own context — and, worse than the size, **two rows per command typed**, so the screen drew a shell's four
+calls as eight and read as Connected, called, Connected, called.
+
+`McpSession.isTheCommandLineSayingHello` is the fix, and it is one case and no more: a `--agent` process's own
+`initialize` is not recorded. So one typed command is one row, and the same session recorded today is 24,717
+characters rather than 57,693 — arithmetic on the numbers above, since nothing but those four rows went. What
+that does not do is record less of what a client sent: an MCP session pays for its handshake once and keeps
+it, a line that is not JSON is still a row, and a session that kept only what reached a tool could not say
+why nothing did. Nothing is hidden either — the CLI's connection is in that run's `~/.shark-dive/logs` file,
+and the session still names the client as `shark-dive-cli`.
+
+If `agent_log` needs to be cheaper again, the shape to reach for is a way to ask for one message's exchange
+rather than a shorter version of every message's.
 
 Nothing truncates it, deliberately: a session cut to fit is one where the answer that misled an agent is the
 part that got cut.
@@ -63,13 +101,16 @@ Measured against a packaged build with one window open on `leak_asynctask_o.hpro
 | | Measured | Paid |
 | --- | --- | --- |
 | One call, JVM start to JSON on stdout | 160–180 ms | Per call |
-| `--agent-help`, all seventeen tools | 14,594 characters, ≈3,650 tokens | Only when read |
-| `--agent-help <tool>`, one of them | 500–1,250 characters, ≈125–310 tokens | Only when read |
+| `--agent-help`, all seventeen tools | 17,263 characters, ≈4,320 tokens | Only when read |
+| `--agent-help <tool>`, one of them | 500–2,045 characters, ≈125–510 tokens | Only when read |
 
 So the standing cost is nothing, and the whole surface as text is *smaller* than the `tools/list` definitions
-of it (14,594 against 21,123) because `reason` is explained once rather than seventeen times. Both
+of it (17,263 against 23,851) because `reason` is explained once rather than seventeen times. Both
 `--agent-help` figures include the invocation path twice, since what it prints is the command to type on this
-machine; a shorter install path is a slightly shorter help.
+machine; a shorter install path is a slightly shorter help — these were measured with
+`/Applications/Shark Dive.app/Contents/MacOS/Shark Dive`, the `.dmg` install path. The largest single tool's
+help is `set_verdict` at 2,045 characters, which is a tool with two justifications to explain and is the one
+to watch: the help for one tool is worth being the short answer.
 
 **A call from a shell is not a slower call.** It reaches the same window over the loopback socket the run
 already publishes, so the heap dump is the one that was parsed and indexed once and the read queues on that
@@ -78,6 +119,28 @@ process-per-call shape costs exactly one thing, and it isn't speed: **a connecti
 gathers an investigation**, which is what `--agent-session=` and `AgentSessionFile.continuing` exist for. A
 call says which session it is one of, defaulting to `cli<the shell's pid>`, so a conversation's calls are one
 row of the *Agent logs* screen the way one held-open MCP connection is.
+
+**What a call does queue behind is the window.** Reads are confined to the heap dump's own thread so that an
+agent sees what the window shows, which means a call costs whatever that window is already doing — and on a
+real dump that can be minutes: a leak analysis of a 4 million object Android dump took 683 s here. That is
+the intended trade for every tool that reads one dump.
+
+**Listing what is open is not one of them, and used to be.** `open_heap_dumps` is the only call that touches
+every open window, and it was doing it through `read` — so with three real dumps open it took **40.7 s**, all
+of it queued behind the leak analysis of a dump the agent had not been asked about, for an answer that is
+mostly file names. The read itself measured 0 ms, because the sizes are a constructor val of `HeapDive`:
+`reachability.sizes`, worked out by the pass that made the dump openable. So there was nothing to time-box —
+what was being waited for was the queue and nothing else. `HeapDive.sizes` is now a property on the seam
+(`HeapDumpSession.sizes`, `AgentHeapDump.sizes`, documented on all three as **not** through `read`, for the
+reason `origin` isn't), and listing touches no heap dump thread at all.
+
+**Nor does opening one queue behind another opening.** `HeapDumpSession.open` gives each dump its own
+single-thread executor named `heap-dump-<file name>` and runs the whole of `HeapDive.open` on it, so three
+dumps index on three threads. Measured headless and warm on the 4 M-object dump, no `-Xmx` set, 16 cores:
+**32,390 ms as one of three at once against 31,411 ms alone**, a 3% cost, with GC pauses of 337 ms against
+155 ms. Three windows taking far longer than that is not the opens colliding — it is each window's own
+post-open reads (the referrer index, the treemap layout, the leak analysis) running beside the other two
+opens, which is the paragraph above rather than this one.
 
 ## What each shape is actually good at
 

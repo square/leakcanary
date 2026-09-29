@@ -369,7 +369,8 @@ press, because a surface with less than that is one whose answer is "ask your hu
 
 | Tool | What it is |
 | --- | --- |
-| `open_heap_dumps` | Every heap dump open, by the file name the other tools take, with the method to follow. |
+| `open_heap_dump` | The heap dump you gave it, by path or by name: **Open heap dump…** for a file nobody has open, and the window that already has it when somebody does. With the method to follow. |
+| `open_heap_dumps` | Every heap dump open, for an agent that was given none. With the same method. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
@@ -377,15 +378,16 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `ways_held` | Every way an object is held, rather than the one chain — the *X ways from here* list. |
 | `find_objects` | The object list, by class name. |
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
-| `set_verdict`, `clear_verdict` | The pencil, with the reason required the same way. |
+| `set_verdict`, `clear_verdict` | The pencil, with the *Why* required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
 | `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. The one tool a `--no-ui` run can only half do — no tab, and the link all the same. |
 | `conclude` | The root cause, and the only way to finish. |
-| `open_heap_dump` | **Open heap dump…**, for a file nobody has open yet. |
 | `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
 
-The last three are what make an agent useful when there is nothing open yet: point it at a dump a bug report
-came with, or at a process on a device, and the window it lands in is one you can look over its shoulder in.
+`open_heap_dump` and the last two are what make an agent useful when there is nothing open yet: point it at a
+dump a bug report came with, or at a process on a device, and the window it lands in is one you can look over
+its shoulder in. Naming the dump is the whole of starting — an agent that was handed one never has to ask what
+is open, since the same answer carries the method.
 `dump_heap` takes minutes on a large app and answers once the dump can be read — the steps are in the run's
 log while it works.
 
@@ -398,9 +400,12 @@ cannot argue with:
   matters more than it sounds: `find_objects` given `query`, the name of the window's own search box, would
   otherwise match nothing in particular and answer with the biggest objects in the heap dump, and a list of
   the wrong objects reads exactly like an answer.
-* **A verdict needs a reason another reader can check**, exactly like one you typed, and it is kept with the
-  verdict in the same file as yours. A verdict that contradicts one already recorded is refused with the list
-  of what it disagrees with, the same way the window asks you.
+* **A verdict needs a `why` another reader can check**, exactly like one you typed, and it is kept with the
+  verdict in the same file as yours and drawn in the same *Why* box. It is a separate argument from the
+  `reason` above, because the two outlive each other by different amounts: a `reason` is a line of one
+  session's log, and a `why` is what the next person to open this dump reads off it. A verdict that
+  contradicts one already recorded is refused with the list of what it disagrees with, the same way the
+  window asks you.
 * **`conclude` is refused until the heap dump agrees that one reference is at fault** — one object above it
   recorded as `Expected`, the object below it recorded as `Stuck`, and nothing unexplained in between. Reporting
   a root cause before that gets this back:
@@ -409,8 +414,8 @@ cannot argue with:
 Not concluded. 1 step(s) between the last EXPECTED object and the first STUCK one have no verdict, so the
 fault is at one of them and the chain doesn't say which: 0x12e9ed60 java.util.ArrayList. Until the chain names
 one reference, a root cause would be a guess about which of those steps is at fault. Read the objects in the
-unexplained stretch with describe_object, check whether anything else holds them with ways_held, and record
-what you can defend with set_verdict.
+unexplained stretch with describe_object, read the code that assigns the field holding each of them, and
+record what you can defend with set_verdict.
 ```
 
 Nothing here judges the answer — no model is called and nothing is scored. It is the same rule the chain
@@ -471,9 +476,11 @@ method working; this is Shark Dive not working.
 ```
 
 Which is the point of keeping them: what this screen gets opened for is often why *nothing* happened, and a
-screen holding only the calls that worked is the one screen that can't answer that. It shows in the shape of a
-session — one sent from a shell is a *Connected* per call, `--agent` being a process per call — and the
-`n call(s)` above the rows counts the calls rather than the lines.
+screen holding only the calls that worked is the one screen that can't answer that. The `n call(s)` above the
+rows counts the calls rather than the lines, for the same reason. **A command typed at a shell is still one
+row**: `--agent` is a process per call, so each of them connects and says hello before it calls anything, and
+a *Connected* per call would double the length of every shell's session without saying anything the row under
+it doesn't.
 
 **And every row unfolds onto the call itself** — the `▸ {}` under a row opens what the agent sent and what it
 read back, as the text each of them was, so a step you don't follow is one question rather than a dead end:
@@ -575,6 +582,20 @@ enough to read: it names the heap dump, and where that file is, is looked up.
 An agent's verdicts are verdicts like any other: they say `set by hand` on every chain that runs through the
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the
 last thing this surface is for — the disagreement is about a reason you can read, not about who said it.
+
+## Everything it keeps is in one directory
+
+The notes, the verdicts, the starred objects, the agent sessions, the logs and the record of where each heap
+dump was are all under `~/.shark-dive`, and **`SHARK_DIVE_DIR` puts them somewhere else**:
+
+```bash
+SHARK_DIVE_DIR=~/second-opinion open -a "Shark Dive" --args path/to/dump.hprof
+```
+
+Which is a second set of notes and verdicts over the same heap dumps, kept apart from the first — for reading
+a dump again without yesterday's conclusions in front of you, or for a run whose verdicts shouldn't end up in
+yours. Set it for every process that should share those files: a window started this way, the `--agent` calls
+made at it, and an MCP server launched from a config file all read the variable from their own environment.
 
 ## Reporting a problem
 

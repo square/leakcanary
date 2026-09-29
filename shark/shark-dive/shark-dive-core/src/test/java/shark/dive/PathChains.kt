@@ -29,7 +29,7 @@ internal fun pathStep(objectId: Long): PathStep = PathStep(
   leakStatus = LeakStatus.UNKNOWN,
   leakStatusReason = null,
   reference = null,
-  isInspectable = true
+  isTreeNode = true
 )
 
 internal fun List<RootPathStep>.objectIds(): List<Long> = map { it.step.objectId }

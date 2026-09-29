@@ -113,8 +113,12 @@ data class PathStep(
   val leakStatusReason: String?,
   /** How the step before points at this one. Null for the first step of a path a GC root starts. */
   val reference: PathReference?,
-  /** Whether the object is in the tree and can therefore be opened. */
-  val isInspectable: Boolean
+  /**
+   * Whether the dominator tree has a node for this object, which is every object of a heap dump except the
+   * ones Shark counts inside another one — a string's characters, the boxed primitives of a wrapper array.
+   * False means the map draws it nowhere, so there is nothing for the window to open.
+   */
+  val isTreeNode: Boolean
 )
 
 /** The reference from one step of a path to the next. See [PathStep.reference]. */

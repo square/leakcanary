@@ -142,17 +142,70 @@ object AgentCommandLine {
   }
 
   /**
-   * What a call joins when nothing said: the process that ran it, which for an agent is its shell.
+   * What a call joins when nothing said: the nearest process above this one that outlives a single call, which
+   * is the shell an investigation is typed in, or the agent driving that shell.
    *
-   * A shell lives as long as the conversation does and an agent's calls are commands in it, so its process
-   * id gathers an investigation the way one held-open connection gathers an MCP one. Falls back to this
-   * process, which is a session per call — a shell that cannot be named is one whose calls cannot be
-   * gathered, and a row each is better than landing in somebody else's session.
+   * A held-open connection is what gathers an MCP session, so a process per call has to find something that
+   * plays that part, and the obvious candidate is the parent — a person's shell lives as long as their
+   * conversation does. **It is the wrong answer for the agent this exists for.** Claude Code runs every
+   * command it issues in a `zsh -c` of its own, so the parent's id is a session per call again: measured, one
+   * investigation of nine calls wrote nine session files and drew nine rows of the *Agent logs* screen.
+   *
+   * So a shell that was handed one command to run is walked past — it ends with that command, which is the
+   * definition of what cannot gather calls — and its parent is the session instead. For an agent that is the
+   * client, whose life is the conversation; for a person it is still their own shell, which has no command on
+   * its command line, and a shell per terminal tab is what they would expect. Falls back to this process,
+   * which is a session per call: an ancestry that cannot be read is calls that cannot be gathered, and a row
+   * each is better than landing in somebody else's session.
    */
-  fun defaultSessionName(): String {
-    val current = ProcessHandle.current()
-    val pid = current.parent().map { it.pid() }.orElse(current.pid())
-    return "$SESSION_NAME_PREFIX$pid"
+  fun defaultSessionName(): String = sessionName(ProcessHandle.current())
+
+  /**
+   * [defaultSessionName] from anywhere in a process tree, which is how it is tested: a test can start a shell
+   * and find what it ran, and cannot be the thing the shell ran.
+   */
+  internal fun sessionName(start: ProcessHandle): String {
+    var session = start
+    // Bounded because this walks a tree read one handle at a time, and a cycle in it would be a hang in
+    // something every call goes through.
+    repeat(MAX_COMMAND_SHELLS_WALKED_PAST + 1) {
+      val parent = session.parent().orElse(null) ?: return "$SESSION_NAME_PREFIX${session.pid()}"
+      session = parent
+      val information = parent.info()
+      val ranOneCommand = ranOneCommand(
+        command = information.command().orElse(null),
+        arguments = information.arguments().orElse(emptyArray()).asList()
+      )
+      if (!ranOneCommand) return "$SESSION_NAME_PREFIX${parent.pid()}"
+    }
+    return "$SESSION_NAME_PREFIX${session.pid()}"
+  }
+
+  /**
+   * Whether a process is a shell that was given one command, `sh -c "…"`, and therefore ends when that
+   * command does. See [defaultSessionName].
+   *
+   * Both halves are needed. Without the name, anything carrying a `-c` is walked past — `claude -c` resumes a
+   * conversation — and the session would land on whatever launched *that*, gathering separate conversations
+   * into one. Without the `-c`, an interactive shell is walked past too, and a person's session would be
+   * their terminal, which merges the tabs and panes they opened precisely to keep work apart.
+   *
+   * A name this doesn't know is a shell whose calls go back to being a session each, which is what makes the
+   * list safe to be incomplete. The option is read a letter at a time because a short option carries
+   * others — `-lc` is a login shell running one command — and `--` begins something else entirely.
+   */
+  internal fun ranOneCommand(
+    /** As [ProcessHandle.Info.command] has it, a path, and null for a process this one may not read. */
+    command: String?,
+    arguments: List<String>
+  ): Boolean {
+    val name = command?.substringAfterLast('/') ?: return false
+    if (name !in COMMAND_SHELLS) {
+      return false
+    }
+    return arguments.any { argument ->
+      argument.length > 1 && argument.startsWith("-") && !argument.startsWith("--") && 'c' in argument
+    }
   }
 
   private fun call(
@@ -297,11 +350,13 @@ object AgentCommandLine {
     |the heap dump open — or by a window this opens when none is.
     |
     |  $command $AGENT_OPTION <tool> name=value …
-    |  $command $AGENT_OPTION open_heap_dumps reason="Finding out which heap dump is open"
+    |  $command $AGENT_OPTION open_heap_dump path=/path/to/dump.hprof reason="Starting on the dump I was given"
     |  $command $AGENT_OPTION describe_object object=0x7205 reason="Reading the holder's fields"
     |
-    |Start with open_heap_dumps: its answer carries the method to follow, the file names every other tool
-    |names a heap dump by, and whatever verdicts somebody has already recorded about that dump.
+    |Start with open_heap_dump on the heap dump you were given: it opens that file, or hands back the window
+    |that already has it, and its answer carries the method to follow, the name every other tool names that
+    |dump by, and whatever verdicts somebody has already recorded about it. If you were given no heap dump,
+    |open_heap_dumps lists the ones open and carries the same method.
     |
     |Every tool takes `reason`, which is why you are making the call. It is logged beside the reads it causes
     |and read afterwards on the *Agent logs* screen of the window, so write the sentence you would say to the
@@ -356,6 +411,18 @@ object AgentCommandLine {
 
   /** How the session of a call from here is named, so that a file says what made it. */
   private const val SESSION_NAME_PREFIX = "cli"
+
+  /**
+   * The names [ranOneCommand] will walk past, when one of them was given a command. Every shell an agent or a
+   * terminal on a developer machine is likely to start a command with; a name missing from it costs that
+   * shell's calls being a session each, which is what they were for every shell before this list existed.
+   */
+  private val COMMAND_SHELLS = setOf(
+    "sh", "bash", "zsh", "dash", "ksh", "mksh", "ash", "fish", "csh", "tcsh", "nu", "pwsh"
+  )
+
+  /** See [defaultSessionName]. A shell inside a shell inside a shell, and then some. */
+  private const val MAX_COMMAND_SHELLS_WALKED_PAST = 4
 
   /** What the window's *Agent logs* screen says connected, for a session started from a shell. */
   private const val CLIENT_NAME = "shark-dive-cli"

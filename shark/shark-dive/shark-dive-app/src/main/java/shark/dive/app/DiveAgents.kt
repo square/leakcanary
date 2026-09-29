@@ -11,6 +11,7 @@ import shark.dive.DeepLink
 import shark.dive.DeviceHeapDumps
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
+import shark.dive.HeapSizes
 import shark.dive.LeakStatusOverride
 import shark.dive.LeakStatusOverrides
 import shark.dive.Place
@@ -406,6 +407,8 @@ internal class OpenAgentHeapDump(
 ) : AgentHeapDump {
 
   override val heapDumpPath: String get() = open.session.heapDumpFile.absolutePath
+
+  override val sizes: HeapSizes get() = open.session.sizes
 
   override suspend fun <T> read(
     description: String,

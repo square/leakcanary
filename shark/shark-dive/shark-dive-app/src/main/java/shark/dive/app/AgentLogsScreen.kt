@@ -216,11 +216,16 @@ private fun List<AgentSession>.byHeapDump(heapDumpFile: File): List<HeapDumpSess
  * one agent's connection and can read as many dumps as were open, and a row leading nowhere would be the app
  * showing somebody what an agent looked at and then declining to show them the thing.
  *
- * **Every message, not only the ones that reached a tool.** The handshake, a `tools/list`, a ping, a call to a
- * tool this build has never heard of and a line that was not JSON at all are each a row here, because the
- * question this screen gets opened for is often why *nothing* happened — and a screen that draws the calls
- * that worked is the one screen that cannot answer it. The cost is visible and worth it: a command line sends
- * a handshake per call, so a session of typed calls reads as Connected, called, Connected, called.
+ * **Every message, not only the ones that reached a tool.** A `tools/list`, a ping, a call to a tool this
+ * build has never heard of and a line that was not JSON at all are each a row here, because the question this
+ * screen gets opened for is often why *nothing* happened — and a screen that draws the calls that worked is
+ * the one screen that cannot answer it.
+ *
+ * **But one row per thing the agent did**, which is not the same as one row per message: `--agent` is a
+ * process per call and each of them says hello before it calls anything, so a session of thirty typed
+ * commands read as sixty rows — *Connected, called, Connected, called*. Those handshakes are no longer
+ * recorded, and a command is a row. See `McpSession.isTheCommandLineSayingHello`, which is also where the
+ * one thing that costs a reader is written down.
  */
 @Composable
 internal fun AgentLogScreen(

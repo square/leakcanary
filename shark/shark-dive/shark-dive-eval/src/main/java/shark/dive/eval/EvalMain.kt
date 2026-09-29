@@ -34,9 +34,18 @@ fun main(args: Array<String>) {
 /**
  * Writes every scenario's heap dump into a directory, and says on stdout what it wrote.
  *
- * One line per scenario, tab separated, because the caller is a shell script: the name, the file, the key and
- * what the scenario is about. The key is printed for whoever is reading the run rather than for the script —
- * scoring reads it back out of this module, so a key can never drift between the two halves.
+ * One line per scenario, tab separated, because the caller is a shell script: the name, the file, and what the
+ * scenario is about.
+ *
+ * **The answer key is not on it.** It was, and nothing in the script needed it — it was printed only so that
+ * whoever was watching a run could see what the answer was. What that cost: the script streamed these lines
+ * into the loop that starts a client, the client read the standard input it inherited, and so every run of
+ * the eval was handed every key, its own included, under the two sentences it was asked. `run_client` in
+ * `run-eval.sh` has the mechanism and the two redirections that also close it. This is the third way of
+ * closing it and the one worth having on its own: an answer that is never written to a stream cannot leak
+ * down a path nobody thought of. What it costs is that a key is no longer printed before the run it belongs
+ * to — `asRunLines` prints one against any run that concluded something else, which is the case where
+ * knowing it settles anything, and [EvalScenarios] is where it is written down.
  *
  * A numbered directory each, so that **no path an agent could reach spells the scenario's name**: the name says
  * what the leak is, and this is the eval's answer key. The number is this listing's order and nothing else, and
@@ -47,7 +56,7 @@ private fun writeScenarios(args: List<String>) {
   val repositoryRoot = File(args.getOrNull(1) ?: ".")
   EvalScenarios.all(repositoryRoot).forEachIndexed { index, scenario ->
     val file = scenario.writeHeapDumpIn(File(directory, "${index + 1}"))
-    println(listOf(scenario.name, file.absolutePath, scenario.key, scenario.about).joinToString("\t"))
+    println(listOf(scenario.name, file.absolutePath, scenario.about).joinToString("\t"))
   }
 }
 
@@ -135,7 +144,7 @@ private val USAGE = """
 
     scenarios <directory> [repository root]
         Writes every scenario's heap dump into <directory>. Prints one tab separated line per scenario:
-        name, heap dump, answer key, what it is about.
+        name, heap dump, what it is about. Deliberately not the answer key — see writeScenarios.
 
     score <runs file> [repository root] [sessions directory]
         Scores the runs recorded in <runs file>, one tab separated line each: scenario, model, session file
