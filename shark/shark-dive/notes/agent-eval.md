@@ -5,7 +5,7 @@ An eval of the agent surface. `shark-dive-eval` is the heap dumps and the scorin
 
 ```bash
 shark/shark-dive/shark-dive-agent/harness/eval/run-eval.sh --models opus,sonnet --repetitions 5
-shark/shark-dive/shark-dive-agent/harness/eval/run-eval.sh --scenarios two-apart --transport mcp
+shark/shark-dive/shark-dive-agent/harness/eval/run-eval.sh --scenarios two-apart --repetitions 5
 ```
 
 ## What it is for
@@ -69,19 +69,24 @@ run. Earlier versions of this script started the app on the run's dump and hande
 every number was about a surface reached halfway through; `open_heap_dump` is the most-called tool here and it
 was the one the eval could say nothing about.
 
-`--transport` picks how the calls get there, and **both arms are the same tools**, which is the point of
-`notes/agent-surface.md`'s two adapters:
+**The calls arrive over the command line, and that is the only way they arrive.** The client is given `Bash`
+and `Skill` and nothing else, and it runs `"…/Shark Dive" --agent <tool> name=value …`. A window per run,
+because `--no-ui` publishes no port and no token and so cannot be reached by a command line at all — which is
+why a run closes its windows before the next one starts.
 
-- **`cli`, the default.** The client is given `Bash` and `Skill` and nothing else, and it runs
-  `"…/Shark Dive" --agent <tool> name=value …`. A window per run, because `--no-ui` publishes no port and no
-  token and so cannot be reached by a command line at all — which is why a run closes its windows before the
-  next one starts.
-- **`mcp`.** An MCP config pinned to this run, `["--mcp-stdio", "--no-ui"]` with **no path after it**, so the
-  dump the agent opens is the one it went and found.
+**There was a `--transport mcp` arm and it is gone.** It configured the client with
+`["--mcp-stdio", "--no-ui"]` and gave it the MCP tools instead of a shell. Two reasons it went, and the first
+is the one that matters: **the command line is how an agent actually arrives** — a shell and a skill, no
+client configuration and nothing to restart — so the numbers that decide whether a description or a refusal
+got better have to come from that arm, and a second arm scored beside it is a second set of numbers nobody
+acts on. The second is that the arms were not comparable in the way a table implies. They differ in the tools
+the client has, in whether the surface is in band or discovered, and in whether a window exists — three
+variables at once, which is a demonstration and not a measurement.
 
-The default is `cli` because that is how an agent will actually arrive: a shell and a skill, no client
-configuration, nothing to restart. The `mcp` arm stays because the schemas are in band there and the two
-adapters can drift.
+What the comparison was for has not gone away: the two adapters can drift, and `notes/agent-surface.md` is
+still where what each costs a client is written down. That drift is a thing to test in
+`AgentToolsTest`/`AgentStdioBridgeTest`, where it is cheap and deterministic, rather than by paying for a
+model to demonstrate it.
 
 **A shell is a hole, and it is a bounded one.** An agent given `Bash` can `find` the dumps directory, or read
 the hprof with `strings`. What stops that mattering is that nothing about a *score* is on the filesystem: the
@@ -129,15 +134,15 @@ every agent. They are the part of this worth knowing before changing anything:
   agents reading the first one's conclusion — which the very first run demonstrated by calling `read_notes`
   third. Each run gets a directory of its own with a **hard link** in it, and every invocation puts its runs
   under a directory named for when it started. That second half was missing for a day, and the item below is
-  what it cost. The link was a symlink until the `cli` transport arrived: a symlink has a resolved path and an
+  what it cost. The link was a symlink until the agent got a shell: a symlink has a resolved path and an
   agent with a shell resolves things, so `realpath` lands in the shared `dumps` directory — one identity for
   every repetition of that scenario, and the wrong file to be scored against.
 - **Shark Dive's own state directory.** `SHARK_DIVE_DIR`, so the runs it publishes, the sessions, the notes,
   the verdicts and the record of where each dump was are this eval's and not the person's. Without it an agent
   asking what is open is shown whatever dives are up on the machine, and the eval writes its notes into
-  theirs. It is an environment variable because every process a run starts has to agree on it — a `--agent`
-  call opens a window by running the app again, and an MCP client launches the server from a config file —
-  see `sharkDiveDirectory` in `DiveLogging.kt`.
+  theirs. It is an environment variable because every process a run starts has to agree on it, and an `--agent`
+  call starts one: it opens a window by running the app again. See `sharkDiveDirectory` in `DiveLogging.kt`,
+  which has the rest of why it is a variable rather than an option.
 - **The client's own configuration directory.** `CLAUDE_CONFIG_DIR`, for the same reason one step out: what a
   run has to work with is the surface and not this machine. Measured here, 71 installed skills, one of them
   about investigating memory leaks in an iOS app, and every one of them would have been in the system prompt
@@ -153,9 +158,9 @@ every agent. They are the part of this worth knowing before changing anything:
   rather than a reference, and the KDoc on `AgentMethod.WRAPPED` says why so that the next concrete example
   doesn't go back in.
 
-**Only `WANDERED` is a guarantee**, and it has to be, because the `cli` transport hands the agent a shell: no
-arrangement of paths hides a file from a process that can run `find`. What the other seven buy is that nothing
-*invites* a wrong dump; what `WANDERED` buys is that taking the invitation can never look like a pass.
+**Only `WANDERED` is a guarantee**, and it has to be, because the agent has a shell: no arrangement of paths
+hides a file from a process that can run `find`. What the other seven buy is that nothing *invites* a wrong
+dump; what `WANDERED` buys is that taking the invitation can never look like a pass.
 
 **And the last one generalises past the harness.** Six of these are paths and environment variables, which is
 to say things a script controls; that one was a sentence in the product, and no arrangement of directories
