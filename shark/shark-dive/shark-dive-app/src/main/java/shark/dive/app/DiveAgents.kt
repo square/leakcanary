@@ -2,6 +2,7 @@ package shark.dive.app
 
 import androidx.compose.runtime.snapshotFlow
 import java.io.File
+import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -35,8 +36,17 @@ import shark.dive.placeOfNoteKeyOrNull
 internal fun listenForAgents(
   windows: DiveWindows,
   deviceHeapDumps: DeviceHeapDumps
-) = AgentServer.listen(
-  heapDumps = WindowAgentHeapDumps(windows, deviceHeapDumps),
+) = listenForAgents(WindowAgentHeapDumps(windows, deviceHeapDumps))
+
+/**
+ * How this app publishes itself to agents, whatever it has open.
+ *
+ * One place, because **a run with no window is published exactly like a run with windows** — same directory,
+ * same handshake, same sessions — so that `--agent` finds either without being told which it is talking to.
+ * The two differ in the heap dumps they hand over and nothing else. See [HeadlessAgentHeapDumps].
+ */
+internal fun listenForAgents(heapDumps: AgentHeapDumps) = AgentServer.listen(
+  heapDumps = heapDumps,
   serverVersion = SharkDiveVersion.current,
   directory = AGENT_RUNS_DIRECTORY
 )
@@ -197,6 +207,16 @@ internal fun agentCommandExitCode(args: Array<String>): Int? {
     println(AgentCommandLine.help(command = commandToRunThis(), toolName = args.toolNameAt(helpIndex)))
     return 0
   }
+  if (NO_UI_OPTION in args) {
+    // Rather than stripped and quietly ignored, which is what it would be: a call reaches whatever is already
+    // published, and how that run was started is no part of making one. The message is the two commands,
+    // because a machine with no screen is where somebody types this and where being told nothing costs most.
+    saidToTheCaller(
+      "$NO_UI_OPTION starts a run that answers agents with no window; it is not part of a call. Start one " +
+        "with `$NO_UI_OPTION <heap dump>`, leave it running, and make the call again without $NO_UI_OPTION."
+    )
+    return UNREADABLE_COMMAND_LINE
+  }
   val toolName = args.toolNameAt(callIndex)
   val arguments = try {
     // Everything that isn't the call is the command line of the window this may have to open.
@@ -218,6 +238,63 @@ internal fun agentCommandExitCode(args: Array<String>): Int? {
     // it — see [relaunchCommand].
     openAWindow = relaunchCommand()?.let { command -> { openAnotherRun(command, arguments) } }
   )
+}
+
+/**
+ * Whether this process was started to answer agents with no window, and what to exit with if it was. Null for
+ * every other command line.
+ *
+ * **A run rather than a way in.** `--no-ui` opens no window and publishes the same socket every run publishes,
+ * so `--agent` reaches it exactly as it reaches a window and nothing on the calling side knows the difference
+ * — which is what makes a machine with no screen, a build agent or a box over ssh, a machine this surface
+ * works on. A headless mode with a transport of its own is what the MCP server had, and
+ * `shark/shark-dive/notes/agent-surface.md` has why that is the half of it that went.
+ *
+ * What it costs is one call: `show` has nowhere to put a tab and hands back a link instead of claiming
+ * somebody saw it. See [HeadlessAgentHeapDumps].
+ *
+ * Answered in `main` after a call and before any window, since a run with no window has no reason to start
+ * Compose — and on a machine with no display, starting it is how this would die.
+ */
+internal fun headlessAgentExitCode(args: Array<String>): Int? {
+  if (NO_UI_OPTION !in args) {
+    return null
+  }
+  val arguments = try {
+    // The heap dumps to open as this comes up, which is the whole of what is left once the option is off.
+    windowArguments(args)
+  } catch (invalidArguments: IllegalArgumentException) {
+    saidToTheCaller(invalidArguments.message.orEmpty())
+    return UNREADABLE_COMMAND_LINE
+  }
+  return serveAgentsWithNoWindow(arguments)
+}
+
+/**
+ * Publishes this run, answers agents, and blocks for as long as the process lives.
+ *
+ * Logging as usual — stdout and a file — because nothing here is a protocol: whoever started this reads every
+ * call and the reads it caused in the terminal it is running in, which is the closest thing to watching a
+ * window that a machine with no screen has. The MCP server had to put this on stderr, stdout being the pipe.
+ *
+ * **Nothing ends it but being killed**, which is what a server is, and nothing is left behind when it is: the
+ * file naming this run is deleted by the shutdown hook [AgentServer.listen] installs.
+ */
+private fun serveAgentsWithNoWindow(arguments: DiveArguments): Int {
+  installLogging().use {
+    SharkLog.d { "Started with $NO_UI_OPTION, so this run has no window and every call it answers is here" }
+    HeadlessAgentHeapDumps(
+      deviceHeapDumps = commandLineDeviceHeapDumps(),
+      heapDumpFiles = arguments.heapDumpFiles
+    ).use { heapDumps ->
+      listenForAgents(heapDumps).use {
+        // Nothing counts this down. Calls are answered on the socket's own threads, so what this thread has
+        // left to do is keep the process they are in alive.
+        CountDownLatch(1).await()
+      }
+    }
+  }
+  return 0
 }
 
 /**
@@ -254,6 +331,7 @@ private fun Array<String>.optionValue(option: String): String? =
 /** What a word of the command line has to be to reach an agent rather than a window. */
 private fun String.isAgentOption(): Boolean =
   this == AgentCommandLine.AGENT_OPTION || this == AgentCommandLine.HELP_OPTION ||
+    this == NO_UI_OPTION ||
     startsWith(AgentCommandLine.PID_OPTION) || startsWith(AgentCommandLine.SESSION_OPTION)
 
 /**
@@ -262,7 +340,7 @@ private fun String.isAgentOption(): Boolean =
  * The launcher of a packaged install, which is a path somebody can copy — and the generic name for a run
  * from source, where the real command line is a JVM and a classpath nobody wants printed at them.
  */
-private fun commandToRunThis(): String {
+internal fun commandToRunThis(): String {
   val launcher = launcherPathOrNull() ?: return "shark-dive"
   return if (' ' in launcher) "\"$launcher\"" else launcher
 }
@@ -301,7 +379,7 @@ private fun openAnotherRun(
  * Not through `SharkLog`, and not only because stdout carries the answer: this is said before any logging has
  * been installed, by the path that ends before there is anything to install it for.
  */
-private fun saidToTheCaller(message: String) {
+internal fun saidToTheCaller(message: String) {
   System.err.println("[shark-dive] $message")
 }
 
@@ -475,10 +553,18 @@ internal val AGENT_RUNS_DIRECTORY = File(SHARK_DIVE_DIRECTORY, "agents")
 private const val AGENT_WINDOW_TITLE = "Opened for an agent"
 
 /**
+ * Answer agents and open no window, for a machine that has no screen to open one on.
+ *
+ * Named after what it does *not* do, rather than `--headless` or `--server`, because every run of this app is a
+ * server to an agent and only some of them have a user interface. See [headlessAgentExitCode].
+ */
+internal const val NO_UI_OPTION = "--no-ui"
+
+/**
  * What this process ends with when the command line it was given doesn't read.
  *
  * A failure rather than a message and a window, because a call is one command: whatever ran it reads an exit
  * code and the message on stderr, and a window it did not ask for is not an answer. See
  * [AgentCommandLine.NOTHING_ANSWERED].
  */
-private const val UNREADABLE_COMMAND_LINE = 1
+internal const val UNREADABLE_COMMAND_LINE = 1

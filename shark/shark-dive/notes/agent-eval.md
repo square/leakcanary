@@ -75,8 +75,9 @@ run, since a call reaches the tools by connecting to one — which is why a run 
 next one starts.
 
 **There was a `--transport mcp` arm, and both it and the server it scored are gone.** It configured the client
-with `["--mcp-stdio", "--no-ui"]` and gave it the MCP tools instead of a shell. The arm went first, before the
-server did, and for a reason worth keeping: **the command line is how an agent actually arrives** — a shell
+with `["--mcp-stdio", "--no-ui"]` — a process the client launched itself, answering over its stdio pipe with no
+window, `--no-ui` being what suppressed the window rather than the run mode of the same name today — and gave
+it the MCP tools instead of a shell. The arm went first, before the server did, and for a reason worth keeping: **the command line is how an agent actually arrives** — a shell
 and a skill, no client configuration and nothing to restart — so the numbers that decide whether a description
 or a refusal got better have to come from that arm, and a second arm scored beside it is a second set of
 numbers nobody acts on. The arms were not comparable in the way a table implies either. They differed in the

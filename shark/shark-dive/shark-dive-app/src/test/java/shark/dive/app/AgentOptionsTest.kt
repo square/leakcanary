@@ -20,7 +20,59 @@ class AgentOptionsTest {
 
   @Test
   fun `an ordinary command line is a window`() {
-    assertThat(agentCommandExitCode(arrayOf("--title=Windowed", "dump.hprof"))).isNull()
+    val args = arrayOf("--title=Windowed", "dump.hprof")
+
+    assertThat(agentCommandExitCode(args)).isNull()
+    assertThat(headlessAgentExitCode(args)).isNull()
+    assertThat(helpExitCode(args)).isNull()
+  }
+
+  @Test
+  fun `the help names the agent half of the command line as well as the window's`() {
+    HELP_SPELLINGS.forEach { option ->
+      val printed = ByteArrayOutputStream()
+
+      val exitCode = onItsOwnStreams(printed) { helpExitCode(arrayOf(option)) }
+
+      // Both spellings, because this is the one command an agent types at a program nothing has told it
+      // about, and a program that answers `--help` and not `-h` reads as one with no help at all.
+      assertThat(exitCode).describedAs(option).isZero
+      // And every way in is in it. What this replaced was `Unknown option --help` and a usage line naming
+      // the window's options alone, which answers that there is no agent surface here.
+      assertThat(printed.toString(Charsets.UTF_8.name())).describedAs(option)
+        .contains("--title")
+        .contains("shark://")
+        .contains(AgentCommandLine.AGENT_OPTION)
+        .contains(AgentCommandLine.HELP_OPTION)
+        .contains(AgentCommandLine.PID_OPTION)
+        .contains(AgentCommandLine.SESSION_OPTION)
+        .contains(NO_UI_OPTION)
+    }
+  }
+
+  @Test
+  fun `a call that also says no window is told to start one rather than having it ignored`() {
+    val said = ByteArrayOutputStream()
+
+    val exitCode = onItsOwnStreams(said = said) {
+      agentCommandExitCode(arrayOf(AgentCommandLine.AGENT_OPTION, "list_leaks", NO_UI_OPTION))
+    }
+
+    // Rather than stripped and quietly dropped, which is what it would otherwise be: a call reaches whatever
+    // is already published, so there is no run for this word to make. And the message is the two commands,
+    // since a machine with no screen is where somebody types this.
+    assertThat(exitCode).isEqualTo(1)
+    assertThat(said.toString(Charsets.UTF_8.name())).contains(NO_UI_OPTION)
+  }
+
+  @Test
+  fun `no window is no part of what a window is opened with`() {
+    val arguments = windowArguments(arrayOf(NO_UI_OPTION, "--title=Over ssh", "dump.hprof"))
+
+    // The one thing that has to hold for a run with no window to be a run of this app: what is left is an
+    // ordinary command line. A heap dump called `--no-ui` is what getting this wrong looks like.
+    assertThat(arguments.heapDumpFiles.map { it.name }).containsExactly("dump.hprof")
+    assertThat(arguments.titlePrefix).isEqualTo("Over ssh")
   }
 
   @Test
@@ -80,24 +132,32 @@ class AgentOptionsTest {
   }
 
   /**
-   * Runs [block] with stdout and stderr taken over, since these two paths write to both.
+   * Runs [block] with stdout and stderr taken over, since these paths write to both.
    *
-   * A test that let them through would put the help of sixteen tools in the middle of the test report, and
-   * the messages beside it read as failures of whatever ran next.
+   * A test that let them through would put the help of seventeen tools in the middle of the test report, and
+   * the messages beside it read as failures of whatever ran next. Two streams rather than one because which
+   * of them a line went to is half of what these paths promise: [printed] is an answer, [said] is everything
+   * else. See `AgentCommandLine.printed`.
    */
   private fun onItsOwnStreams(
     printed: ByteArrayOutputStream = ByteArrayOutputStream(),
+    said: ByteArrayOutputStream = ByteArrayOutputStream(),
     block: () -> Int?
   ): Int? {
     val previousOut = System.out
     val previousErr = System.err
     System.setOut(PrintStream(printed, true, Charsets.UTF_8.name()))
-    System.setErr(PrintStream(ByteArrayOutputStream(), true, Charsets.UTF_8.name()))
+    System.setErr(PrintStream(said, true, Charsets.UTF_8.name()))
     return try {
       block()
     } finally {
       System.setOut(previousOut)
       System.setErr(previousErr)
     }
+  }
+
+  companion object {
+    /** Spelled here rather than read off the app, so that dropping one of the two fails this test. */
+    private val HELP_SPELLINGS = listOf("--help", "-h")
   }
 }

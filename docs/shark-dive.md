@@ -293,10 +293,37 @@ Calls from one shell are one session, so what an agent did reads as one row of t
 than a row per command. `--agent-session=<name>` says so explicitly, for an agent whose calls come from
 processes with nothing in common.
 
-**And there is no MCP server**, deliberately. A command line is what an agent reaches for without being
-configured at all: nothing to install, nothing to point at a config file, no server running until a call is
-made — and you can type the same call the agent just made, read the same answer, and pipe it into `jq`. What
-an agent needs instead is to be told any of this exists, which is the skill below.
+### And a case with no screen at all
+
+A build server, a heap dump on the far end of an ssh session, or something driving an agent with nobody
+watching. Start a run with `--no-ui` and leave it going:
+
+```bash
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --no-ui /var/dumps/bug-4821.hprof &
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
+  --agent list_leaks reason="Starting from what the dump says about itself"
+```
+
+It opens no window, indexes the dumps named on its command line as it comes up, and publishes itself exactly
+as a run with windows does — so the calls are the same calls, and an agent need not be told which kind of run
+it is talking to. Naming a dump there is a head start rather than the only way in: `open_heap_dump` works
+against this run like any other, and asking it for a dump that is still being indexed joins that open instead
+of starting a second one.
+
+Everything works the same except `show`, which has nowhere to put a tab and says so rather than answering that
+it showed you something. It still hands back the `shark://` link, which names the heap dump: nobody saw the
+place, and the link opens it for the next reader on the machine the dump is on. Nothing else changes, because
+**notes and verdicts were never on the screen** — they are files beside the heap dump, so a dump investigated
+over ssh today opens in a window tomorrow with the verdicts, the reasons and the conclusion already on it.
+
+`--help` prints every option of the command line, `--no-ui` and the rest of the agent ones included.
+
+### And no MCP server
+
+That one is deliberate. A command line is what an agent reaches for without being configured at all: nothing
+to install, nothing to point at a config file, no server running until a call is made — and you can type the
+same call the agent just made, read the same answer, and pipe it into `jq`. What an agent needs instead is to
+be told any of this exists, which is the skill below.
 
 ### The skill
 

@@ -64,6 +64,20 @@ uses, without the one for a newly recognized library leak:
   somebody is watching. A call exits 0 with the answer as JSON on stdout, 2 when it was refused, with the
   refusal on stderr where a script can read it, and 1 when there was nothing to answer it.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+* ✨ **And no screen at all is a case too.** `--no-ui <heap dump>` starts a run that opens no window, indexes
+  what it was given, and publishes itself exactly as a run with windows does — so the calls against it are the
+  same calls and an agent need not be told which kind of run it is talking to. For a build server, a heap dump
+  at the far end of an ssh session, or an agent working with nobody watching. Everything works the same except
+  `show`, which says it has nowhere to put a tab rather than answering that it showed you something, and hands
+  back the link all the same, since a link names the heap dump: whoever reads the answer can open the place
+  nobody saw. Notes and verdicts were never on the screen, so a heap dump investigated with no window opens in
+  one later with all of it on. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+* ✨ **`--help` is the whole command line in one place** — the heap dumps and the title a window takes, the
+  `shark://` links it follows, and every one of the agent options, `--no-ui` included. Which is what a program
+  handed nothing but the launcher reaches for first, and what it used to get was `Unknown option --help` and a
+  usage line with no mention of any of the above. `--agent-help` is still the tools themselves. And a command
+  line that genuinely doesn't read now says so on stderr and ends with a failing exit code, rather than in the
+  middle of the run's own diagnostics and with the code for success.
 * ✨ **The method sends an agent to the code, at the version the heap dump is of.** Isolating the reference
   says where the problem is and not how it happened, so the method that comes with the tools also says how to
   work out which framework, app and library versions this dump is of — and what to ask for rather than guess,

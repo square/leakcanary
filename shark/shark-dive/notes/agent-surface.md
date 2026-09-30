@@ -10,9 +10,14 @@ against a packaged build, not estimated.
 No protocol, no handshake to negotiate, nothing to discover: a socket, a line, a read.
 
 It was three ways in. An [MCP](https://modelcontextprotocol.io) server over a stdio pipe a client launched
-(`--mcp-stdio`), the same tools served with no window anywhere (`--no-ui`), and this. The measurements below
-are what decided that the third one is the whole of it — and the ones about MCP are kept rather than deleted,
-because what it cost is the argument, and an argument whose numbers have been thrown away is a preference.
+(`--mcp-stdio`), the same tools served from that same process with no window and no socket (`--no-ui`), and
+this. The measurements below are what decided that the third one is the whole of it — and the ones about MCP
+are kept rather than deleted, because what it cost is the argument, and an argument whose numbers have been
+thrown away is a preference.
+
+**`--no-ui` is still here and is no longer a way in.** It is a run of this app with nothing drawing it,
+publishing the same socket a window's run publishes, so a call reaches it without knowing which kind of run it
+is. *So: one core, one adapter* has what that leaves to build.
 
 ## What the command line costs
 
@@ -295,12 +300,17 @@ client-shaped row on a screen meant for an investigation, and the one case
 (`isTheCommandLineSayingHello`) that existed to undo the handshake's cost. **What it must never become again
 is two places that decide whether an investigation may conclude.**
 
-**`--no-ui` went with it**, which is worth being explicit about because it was a capability rather than a
-transport: the same tools served from the bridge process, no window, no `<pid>.agent` file, `show` answering
-with a link and saying it had nowhere to put a tab. Its only client was an MCP client, so it left with one. If
-a headless case comes back — a build server, a dump at the end of an ssh session — the shape to build is not
-that one: it is a run that opens no window and **publishes the socket anyway**, so that `--agent` reaches it
-exactly as it reaches a window, and one surface stays one surface.
+**`--no-ui` stayed, rebuilt around the socket.** It is worth being explicit about because it was a capability
+rather than a transport, and the MCP version of it was a transport as well: the same tools served from the
+bridge process, no window, and no `<pid>.agent` file, so its only client was an MCP client and it could have
+had no other. What it is now is a run of the app that opens no window and **publishes the socket anyway**, so
+`--agent` reaches it exactly as it reaches a window and nothing on the calling side knows which it is talking
+to. One surface stays one surface, and a build server or a box over ssh is a machine this works on.
+
+`HeadlessAgentHeapDumps` is the whole of the difference, and it is two answers and one refusal to answer:
+which dumps are open, what opening one means, and `show` handing back a link and saying it had nowhere to put
+a tab. Everything else — the notes, the verdicts, the sessions — is the same files a window reads, which is
+what makes an investigation over ssh today one a window opens tomorrow.
 
 ## Where the skill lives, and how an agent finds it
 
@@ -328,6 +338,18 @@ because there is nothing on `PATH` — the bundle is `/Applications/Shark Dive.a
 gets quoted, and the name was deliberately given that space once Block's signing service could take it (see
 `packageName` in the app's build script). What would remove the quoting for good is a launcher shim on `PATH`,
 which is a separate decision about writing outside the bundle.
+
+**And `--help` is how the surface is found with no skill at all.** Every other way an agent is told this
+exists is outside the build — a skill somebody staged, a line in a README, a person pasting a command — and
+the one thing true of all of them is that a program an agent has only been handed the path to gets `--help`
+typed at it, and `-h` next. Neither was an option here. Both fell through to `DiveArguments.parse`, which
+answered `Unknown option --help` and a usage line naming `--title` and the heap dumps and no agent option at
+all, *after* `installLogging()` had printed the JVM, the heap limit and the log path over it — and exited 0.
+So the single most likely command an agent can type answered that this surface does not exist, successfully.
+`DiveHelp.kt` is both spellings, answered before any logging, naming the window's half of the command line and
+the agent's, and pointing at `--agent-help` for the tools themselves. The two smaller dead ends were already
+covered: a bare `--agent` says it needs a tool name and where the list is, and a tool name nothing answers to
+lists every tool in the build.
 
 Progressive disclosure is why a skill is the right home for the *pointer* and the answers are the right home
 for the *method*: ~80 tokens of name and description at rest, the body loaded only for a session actually

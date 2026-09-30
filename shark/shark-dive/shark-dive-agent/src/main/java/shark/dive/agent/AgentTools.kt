@@ -213,19 +213,20 @@ internal class AgentTools(
 
   private fun agentLog() = AgentTool(
     name = AGENT_LOG,
-    description = "What has already been done to this heap dump, by you and by anybody else: one entry per " +
-      "session, newest first, with what it concluded and how many of its calls were refused — and with " +
-      "`$SESSION`, every call of one session in order, each with the reason the agent gave and the exact " +
-      "text it sent and read back. The window's *Agent logs* screen, which is where a person reads the same " +
-      "thing. **What an earlier investigation found is $READ_NOTES**; this is how it got there, which is " +
-      "what to read when a conclusion looks wrong or a run was abandoned. Sessions of earlier runs of the " +
-      "app are in it, and so is this one.",
+    description = "**For debugging an agent rather than for investigating a heap dump.** One entry per " +
+      "session that read this dump, newest first, with what it concluded and how many of its calls were " +
+      "refused — and with `$SESSION`, every call that session made in order, each with the reason the agent " +
+      "gave and the exact text it sent and read back. What that answers is why an investigation went the way " +
+      "it did: a conclusion that looks wrong, a run that was abandoned, a step taken on an answer that said " +
+      "nothing. **It is not how you take up earlier work.** What an earlier investigation found is " +
+      "$READ_NOTES, written for the next reader; what this dump says shouldn't be in memory is $LIST_LEAKS. " +
+      "This is somebody else's transcript. The window's *Agent logs* screen is the same thing for a person.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
       SESSION to string(
         "Optional: one session's id, from the list, to read every call it made, with what each call sent " +
-          "and what it got back. A long answer, and the only way to tell a step that read an answer from " +
-          "one that misread it."
+          "and what it got back. The longest answer on this surface, and the only way to tell a step that " +
+          "read an answer from one that misread it."
       ).optional()
     )
   ) { arguments ->

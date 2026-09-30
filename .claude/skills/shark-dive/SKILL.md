@@ -91,6 +91,17 @@ so.
 at. The app needs a window somewhere, which is the point of it: a call with nothing running opens one, and
 whoever is at the machine can then watch what you do.
 
+**Unless there is no screen to open one on** — a build machine, or the far end of an ssh session. Then start a
+run that opens no window, leave it going, and call it exactly as above:
+
+```bash
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --no-ui /absolute/path/bug-4821.hprof &
+```
+
+Everything works the same except `show`, which says nobody saw it and hands back the `shark://` link all the
+same — so put the link in your reply and whoever has a screen opens what you were looking at, with your notes
+and verdicts on it.
+
 ## What to do with it
 
 **The method comes with `list_leaks`.** Its answer leads with the whole of it — what a leak is, the three

@@ -73,10 +73,17 @@ internal data class DiveArguments(
       )
     }
 
-    /** Shown with whatever was wrong, so that the message says what to type instead. */
+    /**
+     * Shown with whatever was wrong, so that the message says what to type instead.
+     *
+     * It names `--agent` rather than only `--help`, because this line is the window's half of the command
+     * line and there is an agent's half: a command line meant for that half read as an unknown option
+     * followed by a usage line with no `--agent` in it, which says the surface it was reaching for does not
+     * exist. See `DiveHelp.kt`.
+     */
     private val USAGE =
       "Usage: shark-dive [$TITLE_OPTION=\"<window title prefix>\"] [<heap dump>…] " +
-        "[${DeepLink.SCHEME}://<window>/<place>…]"
+        "[${DeepLink.SCHEME}://<window>/<place>…]. --help prints every option, including --agent."
   }
 }
 
