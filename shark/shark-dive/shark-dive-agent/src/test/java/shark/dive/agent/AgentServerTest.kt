@@ -196,15 +196,30 @@ class AgentServerTest {
   }
 
   @Test
-  fun `a file that names no run is deleted by whoever reads it`() {
-    // Named after a process that is running, since a name that isn't is a run that has ended and is cleared
-    // out before anything reads the file at all.
+  fun `a file that names no run is left alone while the process it names is running`() {
+    // Which is a file being written right now, or one written by a build older than one of the properties: a
+    // run that something can still talk to either way, and a run a reader deletes the address of is a run
+    // nothing can ever reach again. Named after a process that is running, since a name that isn't is a run
+    // that has ended and is cleared out before anything reads the file at all.
     val nonsense = File(directory, "${ProcessHandle.current().pid()}${AgentServer.RUN_SUFFIX}")
     nonsense.writeText("this file is not a published run")
 
     assertThat(AgentServer.publishedRuns(directory)).isEmpty()
-    assertThat(nonsense).doesNotExist()
+    assertThat(nonsense).exists()
     assertThat(log).anyMatch { it.contains("names no run") }
+  }
+
+  @Test
+  fun `the name a run is written under before it is published is not one readers look for`() {
+    // Which is the whole of publishing in one step: the file is written beside the name and moved onto it, so
+    // what a reader can see while it is being written is nothing at all. Written by hand here, since the real
+    // one exists for microseconds — and a publish this one is in the way of is a publish that has to work.
+    val halfWritten = File(directory, "${ProcessHandle.current().pid()}${AgentServer.RUN_SUFFIX}.writing")
+    halfWritten.writeText("#Where this Shark Dive run answers agents")
+
+    listen()
+
+    assertThat(AgentServer.publishedRuns(directory).map { it.buildSha }).containsExactly(BUILD_SHA)
   }
 
   private fun listen(dump: AgentHeapDump = window): Closeable = AgentServer.listen(

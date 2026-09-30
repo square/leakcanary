@@ -10,6 +10,8 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.security.SecureRandom
 import java.util.Properties
 import java.util.concurrent.atomic.AtomicInteger
@@ -110,6 +112,20 @@ object AgentServer {
     return files.sortedByDescending { it.lastModified() }.mapNotNull { file -> read(file) }
   }
 
+  /**
+   * The run a file names, and null for a file that names none this can use.
+   *
+   * **A file naming a process that is running is left where it is, whatever is in it**, and the delete is only
+   * for one that names a process that has gone. That is the half worth writing down, because it cost a run: a
+   * `--no-ui` run logged itself as published, the command line that had just started it never saw the file, the
+   * file was gone afterwards, and the run stayed alive and unreachable for the rest of its life — a JVM holding
+   * a heap dump nothing could ever ask about, while the command that started it waited its full sixty seconds
+   * and then said something had gone wrong opening it. Nothing else reads this directory, so what deleted it was
+   * this, reading the file in the moment between its creation and its contents. [write] closes that moment, and
+   * this is the other half of it: the two reasons a live run's file might not parse — being written right now,
+   * and being written by a build older than one of these properties — are both runs that something can still
+   * talk to, and neither is this reader's to delete.
+   */
   private fun read(file: File): PublishedRun? {
     val pid = file.name.removeSuffix(RUN_SUFFIX)
     if (!isRunning(pid)) {
@@ -120,12 +136,11 @@ object AgentServer {
     val properties = Properties()
     return try {
       file.inputStream().use { properties.load(it) }
+      // Every one of the four properties is what a call needs before it sends anything, so a file missing any
+      // of them names nothing a call can use — which a run of a build older than those properties is too, and
+      // it is still that build's run to talk to.
       runOf(file, pid, properties) ?: run {
-        // Every one of the four properties is what a call needs before it sends anything, so a file missing
-        // any of them names nothing a call can use. Which is also how a run of a build older than those
-        // properties is dealt with: it is a run this command line could not talk to anyway.
-        SharkLog.d { "$file does not say where and what run it is, so it names no run: deleting it" }
-        file.delete()
+        SharkLog.d { "$file does not say where and what run $pid is, so it names no run this can use" }
         null
       }
     } catch (throwable: Throwable) {
@@ -170,6 +185,15 @@ object AgentServer {
     return ProcessHandle.of(processId).map { it.isAlive }.orElse(false)
   }
 
+  /**
+   * Publishes this run, by writing the file beside the name and moving it onto it in one step.
+   *
+   * **A reader is watching this directory while this is written**, and one of them is the command line that
+   * started this run, reading it every 250 milliseconds — so a file written straight into the name it is looked
+   * for under is a run that can be found half published. What that used to cost is in [read]. The name it is
+   * written under deliberately does not end in [RUN_SUFFIX], so it is not in the list at all until it is
+   * complete, and it is a sibling so that the move is a rename inside one directory.
+   */
   private fun write(
     file: File,
     port: Int,
@@ -184,11 +208,14 @@ object AgentServer {
       setProperty(BUILD_SHA_PROPERTY, buildSha)
       setProperty(WINDOW_PROPERTY, hasWindow.toString())
     }
-    file.outputStream().use { properties.store(it, "Where this Shark Dive run answers agents") }
+    val writing = File(file.parentFile, "${file.name}$WRITING_SUFFIX")
+    writing.outputStream().use { properties.store(it, "Where this Shark Dive run answers agents") }
     // Best effort, and only worth anything on a machine with more than one user on it: the token is what
-    // this is protecting, and a token nobody can read is a run no agent can reach.
-    file.setReadable(false, false)
-    file.setReadable(true, true)
+    // this is protecting, and a token nobody can read is a run no agent can reach. Before the move, so that
+    // there is no moment in which the token is published and readable by anybody.
+    writing.setReadable(false, false)
+    writing.setReadable(true, true)
+    Files.move(writing.toPath(), file.toPath(), StandardCopyOption.ATOMIC_MOVE)
   }
 
   /**
@@ -368,6 +395,9 @@ object AgentServer {
 
   /** Beside the runs answering links, the notes and the logs, which is everything else this app keeps. */
   internal const val RUN_SUFFIX = ".agent"
+
+  /** After [RUN_SUFFIX] rather than instead of it, so that neither name is ever the other. See [write]. */
+  private const val WRITING_SUFFIX = ".writing"
 
   /** Under the directory the runs publish themselves in, since a session is a run being talked to. */
   private const val SESSIONS_DIRECTORY = "sessions"

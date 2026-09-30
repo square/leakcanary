@@ -115,6 +115,23 @@ So there are three filters, in this order, and then either one run or a message:
   to mean one. Measured: `2 Shark Dive runs are open, so which heap dumps there are to read depends on which of
   them you meant. Pass --run=<pid> to say: 43049 (with no window), 42481 (with no window).`
 
+**A reader deletes the file of a run that has ended, and of nothing else** — which is the correction the first
+filter needed, and it cost a run to find. A `--no-ui` run logged itself as published, the command line that had
+just started it never saw the file, the file was gone afterwards, and the run stayed alive and unreachable for
+the rest of its life: a JVM holding a nine megabyte heap dump that nothing could ever ask about again, while the
+command that started it waited its full sixty seconds and then reported that something had gone wrong opening
+it. Nothing but the command line reads that directory, so what deleted the file was the poll that read it in the
+moment between its creation and its contents, found no `port` in it, and cleared it out as a file naming no run.
+
+Two changes, because the moment and the deletion are separately wrong. `AgentServer.write` now writes the file
+under a name that does not end in `.agent` and **moves it onto the name readers watch**, so a half published run
+is not in the list at all. And a file that names a *live* process is left exactly where it is, whatever is in
+it: the two reasons one might not parse are being written right now and being written by a build older than one
+of these properties, and the second of those is a run its own build's command line can still talk to. Measured
+after: five `--no-ui` opens in a row, every one of them answered, at 1.6 to 2.6 seconds each — and a command
+against `~/.shark-dive` cleared out the four files of runs that had ended and left the one file a live run of an
+older build had published with two properties in it.
+
 **`--run=` and not `--agent-run=`.** The option names a run of Shark Dive, and this surface is designed for
 agents and typed by people — an option named after one of its two readers is an option the other one is
 entitled to think is not meant for them.
