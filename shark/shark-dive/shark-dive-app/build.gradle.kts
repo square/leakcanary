@@ -64,7 +64,39 @@ tasks.withType<JavaExec>().matching { it.name == "run" }.configureEach {
 }
 
 /**
- * Writes the version onto the classpath, which is how [shark.dive.app.SharkDiveVersion] reads it.
+ * The commit this is being built from, short, and `unknown` when there is no reading it.
+ *
+ * What reads it is the agent command line, which only ever talks to a run of its own build — see
+ * `shark.dive.agent.AgentServer.PublishedRun.buildSha`. So what it has to do is *differ* between two builds
+ * of one version, and `unknown` is fine for the case where nothing can be read: two such runs match each
+ * other, which is all a command line needs of it.
+ *
+ * No `-dirty` suffix on purpose. Every edit of a source file would then be a sha of its own, which makes a
+ * run published before the edit unreachable from the command line built after it — and building the command
+ * line is what one does *to* talk to that run.
+ *
+ * `.git` is a file rather than a directory in a worktree, which `exists()` covers and `isDirectory` would
+ * not: this app is worked on in worktrees.
+ */
+val buildSha: String = if (rootProject.file(".git").exists()) {
+  // Whatever goes wrong here is a build that still has to produce an app: git missing from the PATH, a
+  // worktree whose git directory has been deleted, a shallow copy with no HEAD.
+  runCatching {
+    providers.exec {
+      commandLine("git", "rev-parse", "--short", "HEAD")
+      workingDir = rootProject.rootDir
+    }.standardOutput.asText.get().trim()
+  }.getOrElse { failure ->
+    logger.info("Could not read the build sha, so this build has none: $failure")
+    "unknown"
+  }
+} else {
+  "unknown"
+}
+
+/**
+ * Writes the version and the build sha onto the classpath, which is how [shark.dive.app.SharkDiveVersion]
+ * reads them.
  *
  * A generated resource rather than a jar manifest attribute, because `run` and the tests put class
  * directories on the classpath rather than the jar, so `Package.getImplementationVersion()` is null for
@@ -74,6 +106,7 @@ tasks.withType<JavaExec>().matching { it.name == "run" }.configureEach {
 val writeVersionResource by tasks.registering(WriteProperties::class) {
   destinationFile = layout.buildDirectory.file("generated/version/shark-dive-version.properties")
   property("version", diveVersion)
+  property("buildSha", buildSha)
 }
 
 sourceSets.main {

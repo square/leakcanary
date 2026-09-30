@@ -64,10 +64,10 @@ fun main(args: Array<String>) {
   // And a command line asking what this app takes is answered with text and nothing else, before anything
   // here can print over it. See [helpExitCode].
   helpExitCode(args)?.let { exitProcess(it) }
-  // And a run asked to make one call from a shell prints the answer and ends, opening no window and, more to
-  // the point, installing no logging: stdout carries the answer, and a log line in the middle of it is JSON
-  // whoever typed the command cannot parse. See [AgentCommandLine].
-  agentCommandExitCode(args)?.let { exitProcess(it) }
+  // And a run asked to run one command from a shell prints the answer and ends, opening no window and, more
+  // to the point, installing no logging: stdout carries the answer, and a log line in the middle of it is
+  // JSON whoever typed the command cannot parse. See [AgentCommandLine].
+  cliExitCode(args)?.let { exitProcess(it) }
   // And a run that answers agents with a window nowhere, which is this same app with nothing drawing it: a
   // build server or a box over ssh has no screen for the rest of this function. See [headlessAgentExitCode].
   headlessAgentExitCode(args)?.let { exitProcess(it) }
@@ -180,17 +180,22 @@ private fun diveApplication(
   LaunchedEffect(updateNotice) {
     withContext(Dispatchers.IO) { UpdateCheck().check() }?.let { updateNotice.offer(it) }
   }
+  // The app is its windows, so a run with none left has nothing to come back to. **One place for that rule**,
+  // rather than in the close button, because there are two ways the last window goes — somebody closing it,
+  // and `close_heap_dump` on the dump it was drawing — and a run left up with nothing open is a socket
+  // somebody has to go and kill. Safe on the way up: `diveWindows` always makes at least one.
+  val nothingOpen = windows.isEmpty()
+  LaunchedEffect(nothingOpen) {
+    if (nothingOpen) {
+      SharkLog.d { "No window is left open, so this run is over" }
+      exitApplication()
+    }
+  }
   windows.forEach { window ->
     // Keyed on the window, so that closing one doesn't hand its size and position to the next one along.
     key(window) {
       Window(
-        onCloseRequest = {
-          windows -= window
-          // The app is its windows, so there is nothing left to come back to.
-          if (windows.isEmpty()) {
-            exitApplication()
-          }
-        },
+        onCloseRequest = { windows -= window },
         title = window.title,
         // What Windows and Linux show in the title bar and the window list. macOS takes the dock icon
         // from the process instead, which the build script sets.

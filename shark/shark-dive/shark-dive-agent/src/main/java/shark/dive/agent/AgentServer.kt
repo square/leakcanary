@@ -12,6 +12,7 @@ import java.net.Socket
 import java.net.SocketException
 import java.security.SecureRandom
 import java.util.Properties
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.runBlocking
 import shark.SharkLog
 
@@ -45,6 +46,16 @@ object AgentServer {
     heapDumps: AgentHeapDumps,
     /** Which build is answering, for the handshake. */
     serverVersion: String,
+    /**
+     * Which commit this run was built from, which is what [AgentCommandLine] filters runs by. See
+     * [PublishedRun.buildSha].
+     */
+    buildSha: String,
+    /**
+     * Whether this run draws windows, which is the one thing about a run a command line has to know before it
+     * connects. See [PublishedRun.hasWindow].
+     */
+    hasWindow: Boolean,
     /** Where the file naming this run goes, which is `~/.shark-dive/agents` for the real app. */
     directory: File
   ): Closeable {
@@ -57,11 +68,15 @@ object AgentServer {
     val token = newToken()
     val file = File(directory, "${ProcessHandle.current().pid()}$RUN_SUFFIX")
     return try {
-      write(file, serverSocket.localPort, token)
-      SharkLog.d { "Answering agents on port ${serverSocket.localPort}, published as $file" }
+      write(file, serverSocket.localPort, token, buildSha, hasWindow)
+      SharkLog.d {
+        "Answering agents on port ${serverSocket.localPort}, published as $file: built from $buildSha, " +
+          if (hasWindow) "with windows" else "with no window"
+      }
       val sessions = sessionsDirectory(directory)
+      val callsInFlight = AtomicInteger()
       val thread = Thread(
-        { accept(serverSocket, token, heapDumps, serverVersion, sessions) },
+        { accept(serverSocket, token, heapDumps, serverVersion, sessions, callsInFlight) },
         THREAD_NAME
       ).apply {
         isDaemon = true
@@ -71,6 +86,7 @@ object AgentServer {
       Closeable {
         file.delete()
         serverSocket.close()
+        letAnswersOut(callsInFlight)
         thread.interrupt()
       }
     } catch (throwable: Throwable) {
@@ -104,19 +120,31 @@ object AgentServer {
     val properties = Properties()
     return try {
       file.inputStream().use { properties.load(it) }
-      val port = properties.getProperty(PORT_PROPERTY)?.toIntOrNull()
-      val token = properties.getProperty(TOKEN_PROPERTY)
-      if (port == null || token == null) {
-        SharkLog.d { "$file says no port and token, so it names no run: deleting it" }
+      runOf(file, pid, properties) ?: run {
+        // Every one of the four properties is what a call needs before it sends anything, so a file missing
+        // any of them names nothing a call can use. Which is also how a run of a build older than those
+        // properties is dealt with: it is a run this command line could not talk to anyway.
+        SharkLog.d { "$file does not say where and what run it is, so it names no run: deleting it" }
         file.delete()
         null
-      } else {
-        PublishedRun(file, pid, port, token)
       }
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not read $file, so no agent can be pointed at that run" }
       null
     }
+  }
+
+  /** The run a file names, and null for a file that is missing any of the four things a call needs. */
+  private fun runOf(
+    file: File,
+    pid: String,
+    properties: Properties
+  ): PublishedRun? {
+    val port = properties.getProperty(PORT_PROPERTY)?.toIntOrNull() ?: return null
+    val token = properties.getProperty(TOKEN_PROPERTY) ?: return null
+    val buildSha = properties.getProperty(BUILD_SHA_PROPERTY) ?: return null
+    val hasWindow = properties.getProperty(WINDOW_PROPERTY)?.toBooleanStrictOrNull() ?: return null
+    return PublishedRun(file, pid, port, token, buildSha, hasWindow)
   }
 
   /**
@@ -126,7 +154,7 @@ object AgentServer {
    * for a run that was killed**, which is what a force quit, an out of memory and a `kill -9` all are. So the
    * file outlives the run often enough to matter, and what it costs is not only a stale name in a message:
    * the list is newest first, so a dead run can be the one a call is sent to, and that call is spent finding
-   * out. Measured here — a window force quit three weeks ago was still being offered to every `--agent` call
+   * out. Measured here — a window force quit three weeks ago was still being offered to every `--cli` call
    * beside the live one.
    *
    * Asking the OS rather than connecting, because this is read before anything is sent anywhere: the connect
@@ -145,12 +173,16 @@ object AgentServer {
   private fun write(
     file: File,
     port: Int,
-    token: String
+    token: String,
+    buildSha: String,
+    hasWindow: Boolean
   ) {
     file.parentFile.mkdirs()
     val properties = Properties().apply {
       setProperty(PORT_PROPERTY, port.toString())
       setProperty(TOKEN_PROPERTY, token)
+      setProperty(BUILD_SHA_PROPERTY, buildSha)
+      setProperty(WINDOW_PROPERTY, hasWindow.toString())
     }
     file.outputStream().use { properties.store(it, "Where this Shark Dive run answers agents") }
     // Best effort, and only worth anything on a machine with more than one user on it: the token is what
@@ -159,12 +191,36 @@ object AgentServer {
     file.setReadable(true, true)
   }
 
+  /**
+   * Waits for whatever is mid-call to have written its answer, because **a run ends while one is being made**.
+   *
+   * `close_heap_dump` on the last dump open ends the run, so the process this is serving from is on its way out
+   * while the answer saying so is still on this thread — and the connection threads are daemons, so nothing
+   * else holds the JVM open for them. Without this, the command that worked reads as "Shark Dive stopped
+   * answering", which is the one thing a caller must not be told about a call that did what it said.
+   *
+   * Bounded, and short, because what it is waiting for is a `println` on a loopback socket of an answer that is
+   * already built. A call still *working* — `dump_heap`, minutes of `adb` — is cut off as it is today: this
+   * costs it the wait and then goes, rather than holding a closing app open for the length of a heap dump.
+   */
+  private fun letAnswersOut(callsInFlight: AtomicInteger) {
+    var waited = 0L
+    while (callsInFlight.get() > 0 && waited < ANSWER_DRAIN_MILLIS) {
+      Thread.sleep(DRAIN_POLL_MILLIS)
+      waited += DRAIN_POLL_MILLIS
+    }
+    if (callsInFlight.get() > 0) {
+      SharkLog.d { "Stopped answering agents with ${callsInFlight.get()} calls still being worked on" }
+    }
+  }
+
   private fun accept(
     serverSocket: ServerSocket,
     token: String,
     heapDumps: AgentHeapDumps,
     serverVersion: String,
-    sessions: File
+    sessions: File,
+    callsInFlight: AtomicInteger
   ) {
     while (!serverSocket.isClosed) {
       try {
@@ -172,7 +228,7 @@ object AgentServer {
         // A thread per agent, because a session is held open for as long as the agent is working and two
         // agents on one heap dump is a thing to allow rather than to serialise: what they would queue on
         // is the heap dump's own thread, which is where reads belong anyway.
-        Thread({ serve(socket, token, heapDumps, serverVersion, sessions) }, THREAD_NAME).apply {
+        Thread({ serve(socket, token, heapDumps, serverVersion, sessions, callsInFlight) }, THREAD_NAME).apply {
           isDaemon = true
           start()
         }
@@ -199,7 +255,8 @@ object AgentServer {
     token: String,
     heapDumps: AgentHeapDumps,
     serverVersion: String,
-    sessions: File
+    sessions: File,
+    callsInFlight: AtomicInteger
   ) {
     socket.use {
       val reader = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
@@ -228,10 +285,17 @@ object AgentServer {
         if (line.isBlank()) {
           continue
         }
-        // Blocking on this thread rather than a scope of our own: a call is answered before the next is
-        // read, which is what an agent sends anyway, and the reads inside suspend onto the heap dump's
-        // thread where they belong.
-        writer.println(runBlocking { connection.answer(line) })
+        // Counted around the answer *and the writing of it*, which is what [letAnswersOut] waits on: the
+        // call that ends this run is answered from here while the run is going away underneath.
+        callsInFlight.incrementAndGet()
+        try {
+          // Blocking on this thread rather than a scope of our own: a call is answered before the next is
+          // read, which is what an agent sends anyway, and the reads inside suspend onto the heap dump's
+          // thread where they belong.
+          writer.println(runBlocking { connection.answer(line) })
+        } finally {
+          callsInFlight.decrementAndGet()
+        }
       }
       SharkLog.d { "An agent disconnected" }
     }
@@ -272,12 +336,35 @@ object AgentServer {
     /** The process id, which is what the file is named after and what identifies a run to a person. */
     val pid: String,
     val port: Int,
-    val token: String
+    val token: String,
+    /**
+     * The commit this run was built from, which is what makes a machine in the middle of a branch usable.
+     *
+     * A command line only ever talks to a run of its own build — see [AgentCommandLine] — because a tool
+     * renamed on this branch is a refusal from the window still running last week's, and it arrives as "there
+     * is no tool called that" rather than as "that window is a different build". Which is the normal state of
+     * this machine while the surface is being worked on: the run from the last branch is still up.
+     */
+    val buildSha: String,
+    /**
+     * Whether this run draws windows.
+     *
+     * Written down rather than asked over the socket because it decides *whether to connect at all*: opening a
+     * heap dump with no window and opening one in a window are two things to want, and a run is one or the
+     * other for the life of it — see `shark.dive.app.HeadlessAgentHeapDumps`. So a command line that asked for
+     * the other kind says so before it makes a call, rather than after one opened a gigabyte in the wrong
+     * place.
+     */
+    val hasWindow: Boolean
   )
 
   private const val ANY_FREE_PORT = 0
   private const val BACKLOG = 8
   private const val TOKEN_BYTES = 16
+
+  /** How long a run on its way out gives an answer to get onto the socket. See [letAnswersOut]. */
+  private const val ANSWER_DRAIN_MILLIS = 2_000L
+  private const val DRAIN_POLL_MILLIS = 10L
 
   /** Beside the runs answering links, the notes and the logs, which is everything else this app keeps. */
   internal const val RUN_SUFFIX = ".agent"
@@ -291,5 +378,7 @@ object AgentServer {
   private const val HANDSHAKE_SEPARATOR = ' '
   private const val PORT_PROPERTY = "port"
   private const val TOKEN_PROPERTY = "token"
+  private const val BUILD_SHA_PROPERTY = "buildSha"
+  private const val WINDOW_PROPERTY = "window"
   private const val THREAD_NAME = "shark-dive-agents"
 }

@@ -16,7 +16,7 @@ import shark.dive.formatByteSize
  */
 internal fun installLogging(): Closeable {
   // Besides the file, on stdout, which is where a run from a terminal shows them. Nothing installs this for a
-  // run that is answering one `--agent` call — there, stdout carries the answer.
+  // run that is answering one `--cli` call — there, stdout carries the answer.
   val streamLogger = StreamLogger(System.out)
   val sessionLog = try {
     SessionLog.openIn(LOG_DIRECTORY)
@@ -119,7 +119,7 @@ internal val SHARK_DIVE_DIRECTORY = sharkDiveDirectory()
 
 /**
  * Read from the environment rather than from the command line, because the processes that have to agree on it
- * are not all started by whoever set it: an `--agent` call opens a window by running this app again, and every
+ * are not all started by whoever set it: a `--cli` command opens a run by running this app again, and every
  * call after it reaches that window. An environment variable is the one thing they all inherit.
  */
 internal fun sharkDiveDirectory(

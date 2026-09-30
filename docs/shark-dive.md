@@ -270,45 +270,61 @@ notes where you and the next reader will find it.
 There is nothing to install and nothing to configure. The app's own launcher takes the call:
 
 ```bash
-"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --agent-help
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --help
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --agent list_leaks reason="Starting from what the dump says about itself"
+  --cli open_heap_dump path=/var/dumps/bug-4821.hprof reason="The dump the report came with"
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
+  --cli list_leaks heapDump=bug-4821.hprof reason="Starting from what the dump says about itself"
 ```
 
-`--agent-help` prints every tool with its arguments; `--agent-help <tool>` prints one of them. A call goes to
-the window that has the heap dump open, over a loopback socket every run of the app publishes, so no port to
-configure either: it talks to the run that started most recently, says which one that was, and takes
-`--agent-run=<pid>` when several Shark Dive windows are open.
+**`--cli` goes on every command**, and it is what tells a command from a run of the app: the same launcher with
+a heap dump after it opens a window, so nothing here is inferred from a command name arriving. `--help` prints
+every command with a line each, `--help <command>` prints one of them in full, and both answer with no run
+open and no heap dump anywhere — which is the state an agent reads them in.
+
+**There are two ways in and everything else names a heap dump.** `open_heap_dump` opens the file you were
+given, or joins the run that already has it, and answers with the name every other command names that dump by;
+`list_heap_dumps` is that name for an agent that was given no file. After those, `heapDump=<file name>` is on
+every call, so each one says which dump it is about.
+
+A call goes to the run that has the dump open, over a loopback socket every run of the app publishes, so
+there is no port to configure either. **Two runs open is an error rather than a guess**: the call names them
+and asks for `--run=<pid>`, since which heap dumps there are to read would otherwise depend on what else is on
+the machine. And a call only reaches a run built from the same commit as the launcher that made it, so a window
+left over from another checkout is never a command that has quietly changed meaning.
 
 It exits 0 with the answer as JSON on stdout, **2 when the call was refused**, with the refusal on stderr
 where a script can read it, and 1 when there was nothing to answer it. Which matters more than it sounds: a
 refusal is the surface working, so an agent that treats a non-zero exit as a failure to retry is one that
 never reads the sentence telling it what to do instead.
 
-**A window open before you start is not a requirement.** If nothing is running, the first call opens one, and
-it outlives the agent's session — which is the point: whatever it concluded is on the tabs it left open when
-you come back to it.
+**A window open before you start is not a requirement.** With nothing running, `open_heap_dump` starts a run
+and waits for it — and it is the only command that does, because it is the only one that says which dump the
+run should have. The run outlives the agent's session, which is the point: whatever it concluded is on the tabs
+it left open when you come back to it. `close_heap_dump` is the other end of that, and closing the last dump
+open ends the run, so an agent that finishes tidily leaves no window on your screen.
 
-Calls from one shell are one session, so what an agent did reads as one row of the *Agent logs* screen rather
-than a row per command. `--agent-session=<name>` says so explicitly, for an agent whose calls come from
-processes with nothing in common.
+`--session=<name>` says which investigation a set of calls is one of, and **an agent is expected to pass one**,
+with its own session id in the name: what you did then reads as one row of the *Agent logs* screen, and
+somebody reviewing the agent's own logs can search that id and find the investigation beside them. Left off,
+the calls of one shell are gathered for you, which is the case a person is in.
 
 ### And a case with no screen at all
 
 A build server, a heap dump on the far end of an ssh session, or something driving an agent with nobody
-watching. Start a run with `--no-ui` and leave it going:
+watching. Open the dump in a run that draws nothing:
 
 ```bash
-"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --no-ui /var/dumps/bug-4821.hprof &
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --cli open_heap_dump --no-ui \
+  path=/var/dumps/bug-4821.hprof reason="No display on this machine"
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --agent list_leaks reason="Starting from what the dump says about itself"
+  --cli list_leaks heapDump=bug-4821.hprof reason="Starting from what the dump says about itself"
 ```
 
-It opens no window, indexes the dumps named on its command line as it comes up, and publishes itself exactly
-as a run with windows does — so the calls are the same calls, and an agent need not be told which kind of run
-it is talking to. Naming a dump there is a head start rather than the only way in: `open_heap_dump` works
-against this run like any other, and asking it for a dump that is still being indexed joins that open instead
-of starting a second one.
+That run draws no window and publishes itself exactly as a run with windows does — so every call after the
+first is the same call, and nothing has to be told which kind of run it is talking to. `--no-ui` goes with
+`open_heap_dump` and no other command, because what it picks is the kind of run to open a dump in rather than
+anything about one dump; asking for the wrong kind is refused either way round rather than papered over.
 
 Everything works the same except `show`, which has nowhere to put a tab and says so rather than answering that
 it showed you something. It still hands back the `shark://` link, which names the heap dump: nobody saw the
@@ -316,7 +332,9 @@ place, and the link opens it for the next reader on the machine the dump is on. 
 **notes and verdicts were never on the screen** — they are files beside the heap dump, so a dump investigated
 over ssh today opens in a window tomorrow with the verdicts, the reasons and the conclusion already on it.
 
-`--help` prints every option of the command line, `--no-ui` and the rest of the agent ones included.
+`--help` prints every option of the command line, the ones above included, and `--cli` with nothing after it
+prints exactly that — so a launcher typed with no idea what it takes answers with all of it and reaches for
+nothing.
 
 ### And no MCP server
 
@@ -342,16 +360,17 @@ into opening the dump in a window you can watch.
 
 Then ask for what you actually want. This is the whole prompt the session below was given:
 
-> A heap dump is open in Shark Dive, which you can reach with its `--agent` command line. Something in it is
+> A heap dump is open in Shark Dive, which you can reach with its `--cli` command line. Something in it is
 > leaking. Find the root cause.
 
-**The method comes with the tools**, so it doesn't have to come from you. `list_leaks` answers with what a
-leak is — one bad reference, the three zones of a chain, the rules that spread a verdict up and down it — and
-the order that finds it, which is [the LeakCanary
-method](https://engineering.block.xyz/blog/the-leakcanary-method) as the tools enforce it. It rides on the
-answer to the call an agent was going to make anyway, since **the one thing an agent is certain to read is
-what it asked for**: nothing is spent on a session that turned out not to be about a leak, and nothing is
-spent on the second call of one that is.
+**The method comes with the commands**, so it doesn't have to come from you. `--leak-investigation-help` is
+what a leak is — one bad reference, the three zones of a chain, the rules that spread a verdict up and down
+it — and the order that finds it, which is [the LeakCanary
+method](https://engineering.block.xyz/blog/the-leakcanary-method) as the commands enforce it. Two things point
+at it: the first answer of a session says what the surface is and that this is where the method is, and
+`list_leaks` — the call an agent makes first — says to read it before the first chain. It is a text this build
+carries rather than a field of an answer, which is what keeps an investigation of six leaks from reading the
+whole method six times.
 
 **Including the part that isn't in the heap dump at all.** Isolating the reference says *where* the problem
 is, not how it happened, and stopping there is the most common way an investigation fails — so the method
@@ -364,10 +383,11 @@ is no source to read. What it can't work out — the app's own version number is
 **Everything the window can do, it can do** — there is no screen an agent can't reach and no button it can't
 press, because a surface with less than that is one whose answer is "ask your human to click something":
 
-| Tool | What it is |
+| Command | What it is |
 | --- | --- |
-| `open_heap_dump` | The heap dump you gave it, by path or by name: **Open heap dump…** for a file nobody has open, and the window that already has it when somebody does. With the method to follow. |
-| `open_heap_dumps` | Every heap dump open, for an agent that was given none. With the same method. |
+| `open_heap_dump` | The heap dump you gave it, by path or by name: **Open heap dump…** for a file nobody has open, and the window that already has it when somebody does. The one way in. |
+| `list_heap_dumps` | Every heap dump open, for an agent that was given none, and the name each of the rest goes on to use. |
+| `close_heap_dump` | Done with a dump: the window closes, and closing the last one ends the run. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
@@ -384,11 +404,11 @@ press, because a surface with less than that is one whose answer is "ask your hu
 `open_heap_dump` and the last two are what make an agent useful when there is nothing open yet: point it at a
 dump a bug report came with, or at a process on a device, and the window it lands in is one you can look over
 its shoulder in. Naming the dump is the whole of starting — an agent that was handed one never has to ask what
-is open, since the same answer carries the method.
-`dump_heap` takes minutes on a large app and answers once the dump can be read — the steps are in the run's
-log while it works.
+is open. **Those two are also the only calls with a wait worth planning for**, both of them minutes on a large
+app, because both answer once the dump can actually be read rather than once it has been named; the steps are
+in the run's log while they work. Everything else in the table is a read of something already indexed.
 
-**And the tools refuse.** That is the part worth knowing about, because it is what an agent's confidence
+**And the commands refuse.** That is the part worth knowing about, because it is what an agent's confidence
 cannot argue with:
 
 * **Every call has to say why it was made.** A call with none is refused — *describe_object needs `reason`,
@@ -464,7 +484,7 @@ working.
 ```
 08:24:02  Called solve_the_leak 0x12d368b8
           because: Trying my luck.
-          Failed: There is no tool called "solve_the_leak". This build has open_heap_dumps, […]
+          Failed: There is no tool called "solve_the_leak". This build has open_heap_dump, […]
 08:24:09  Sent something this app could not read
           Failed: That is not one JSON object.
 ```
@@ -473,7 +493,7 @@ Which is the point of keeping them: what this screen gets opened for is often wh
 screen holding only the calls that worked is the one screen that can't answer that. The `n call(s)` above the
 rows counts the calls rather than the lines, for the same reason.
 
-**One command typed is one row**, however many calls a shell makes: `--agent` is a process per call, and each
+**One command typed is one row**, however many calls a shell makes: `--cli` is a process per call, and each
 of those connects, makes its one call and ends, so nothing crosses that socket but the call itself. There is
 no hello in front of it to draw.
 
@@ -534,7 +554,7 @@ is how one agent works out where another went wrong. **And the reads each call c
 `~/.shark-dive/logs`, where the reason it gave is followed by the work it caused:
 
 ```
-18:19:48.035 [shark-dive-agents] An agent called chain_from_gc_root(object=0x12d368b8, window=zvphq4r3)
+18:19:48.035 [shark-dive-agents] An agent called chain_from_gc_root(heapDump=leak_asynctask_o.hprof, object=0x12d368b8)
   because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is true. Getting the
   chain from a GC root to see every reference holding it and where the faulty one might be.
 18:19:48.038 [heap-dump-leak_asynctask_o.hprof] Reading the chain to 0x12d368b8, for an agent
@@ -588,7 +608,7 @@ SHARK_DIVE_DIR=~/second-opinion open -a "Shark Dive" --args path/to/dump.hprof
 Which is a second set of notes and verdicts over the same heap dumps, kept apart from the first — for reading
 a dump again without yesterday's conclusions in front of you, or for a run whose verdicts shouldn't end up in
 yours. Set it for every process that should share those files: a window started this way and each of the
-`--agent` calls made at it read the variable from their own environment, and a call from a shell that doesn't
+`--cli` calls made at it read the variable from their own environment, and a call from a shell that doesn't
 export it won't even find that window — where a run publishes its port is under that directory too, so it
 looks in `~/.shark-dive`, finds nothing and opens a window of its own.
 

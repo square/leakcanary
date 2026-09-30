@@ -49,7 +49,6 @@ class AgentSessionFileTest {
     assertThat(call.tool).isEqualTo("describe_object")
     assertThat(call.reason).isEqualTo("Reading the holder's fields.")
     assertThat(call.place).isEqualTo(Place.Object(OBJECT_ID))
-    assertThat(call.windowId).isEqualTo(WINDOW_ID)
     assertThat(call.heapDumpPath).isEqualTo("/dumps/leak.hprof")
     assertThat(call.arguments).containsEntry("object", "0x12d368b8")
     assertThat(call.millis).isEqualTo(12L)
@@ -232,13 +231,13 @@ class AgentSessionFileTest {
     val answered = buildJsonObject {
       putJsonArray("heapDumps") {
         addJsonObject {
-          put("window", WINDOW_ID)
+          put("heapDump", "leak.hprof")
           put("heapDumpPath", "/dumps/leak.hprof")
         }
       }
     }
 
-    assertThat(openHeapDumpsOfTool("open_heap_dumps", answered)).containsExactly("/dumps/leak.hprof")
+    assertThat(openHeapDumpsOfTool(LIST_HEAP_DUMPS, answered)).containsExactly("/dumps/leak.hprof")
     // Every other call is about a heap dump rather than about which ones there are, and a row of them
     // listing the dumps would be the window's own state printed against somebody's investigation.
     assertThat(openHeapDumpsOfTool("list_leaks", answered)).isEmpty()
@@ -248,11 +247,11 @@ class AgentSessionFileTest {
   fun `the heap dumps a call was answered with are read back as somewhere to go`() {
     val file = AgentSessionFile.starting(directory, SERVER_VERSION)
     file.called(
-      call(tool = "open_heap_dumps", openHeapDumps = listOf("/dumps/leak.hprof", "/dumps/other.hprof"))
+      call(tool = LIST_HEAP_DUMPS, openHeapDumps = listOf("/dumps/leak.hprof", "/dumps/other.hprof"))
     )
 
     // In the order they were open in, because that is the order the window unfolds them in — and paths,
-    // since the window ids beside them belonged to a run that has ended by the time this is read.
+    // since a path is what opens a dump whose run has ended by the time this is read.
     assertThat(AgentSessionFile.sessionsIn(directory).single().calls.single().openHeapDumps)
       .containsExactly("/dumps/leak.hprof", "/dumps/other.hprof")
   }
@@ -277,7 +276,6 @@ class AgentSessionFileTest {
     at = STARTED_AT,
     tool = tool,
     reason = reason,
-    windowId = WINDOW_ID,
     heapDumpPath = "/dumps/leak.hprof",
     place = place,
     arguments = arguments,
@@ -303,7 +301,6 @@ class AgentSessionFileTest {
     at = STARTED_AT,
     tool = null,
     reason = null,
-    windowId = null,
     heapDumpPath = null,
     place = null,
     arguments = emptyMap(),
@@ -317,6 +314,14 @@ class AgentSessionFileTest {
 
   private companion object {
     const val SERVER_VERSION = "1.2.3"
+
+    /**
+     * A field only the sessions already on this machine have, which this build neither writes nor reads.
+     *
+     * Which is why it is still in the two hand-written lines below: a session written by an older build has
+     * `window` on every call, and the one thing that must not happen when a field goes is those files
+     * becoming unreadable. See [AgentSessionCall.link].
+     */
     const val WINDOW_ID = "zvphq4r3"
     const val OBJECT_ID = 0x12d368b8L
 

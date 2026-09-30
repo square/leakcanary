@@ -70,9 +70,9 @@ every number was about a surface reached halfway through; `open_heap_dump` is th
 was the one the eval could say nothing about.
 
 **The calls arrive over the command line, which is the only way they arrive anywhere.** The client is given
-`Bash` and `Skill` and nothing else, and it runs `"…/Shark Dive" --agent <tool> name=value …`. A window per
-run, since a call reaches the tools by connecting to one — which is why a run closes its windows before the
-next one starts.
+`Bash` and `Skill` and nothing else, and it runs `"…/Shark Dive" --cli <command> name=value …`. A window per
+run, since a call reaches the commands by connecting to one — which is why a run closes its windows before the
+next one starts, and why every run of this eval is one an agent's own `open_heap_dump` started.
 
 **There was a `--transport mcp` arm, and both it and the server it scored are gone.** It configured the client
 with `["--mcp-stdio", "--no-ui"]` — a process the client launched itself, answering over its stdio pipe with no
@@ -139,8 +139,8 @@ every agent. They are the part of this worth knowing before changing anything:
 - **Shark Dive's own state directory.** `SHARK_DIVE_DIR`, so the runs it publishes, the sessions, the notes,
   the verdicts and the record of where each dump was are this eval's and not the person's. Without it an agent
   asking what is open is shown whatever dives are up on the machine, and the eval writes its notes into
-  theirs. It is an environment variable because every process a run starts has to agree on it, and an `--agent`
-  call starts one: it opens a window by running the app again. See `sharkDiveDirectory` in `DiveLogging.kt`,
+  theirs. It is an environment variable because every process a run starts has to agree on it, and an `--cli`
+  call starts one: `open_heap_dump` with nothing running opens a window by running the app again. See `sharkDiveDirectory` in `DiveLogging.kt`,
   which has the rest of why it is a variable rather than an option.
 - **The client's own configuration directory.** `CLAUDE_CONFIG_DIR`, for the same reason one step out: what a
   run has to work with is the surface and not this machine. Measured here, 71 installed skills, one of them

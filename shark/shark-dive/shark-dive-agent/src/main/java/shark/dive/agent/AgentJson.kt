@@ -47,10 +47,10 @@ import shark.dive.leakLabel
 internal object AgentJson {
 
   /**
-   * Which heap dump, in which window, how big it is, and what has been concluded about it so far.
+   * Which heap dump, how big it is, and what has been concluded about it so far.
    *
    * The name first because it is what every other call names this dump by — [AgentTools.HEAP_DUMP] — and the
-   * window id after it, for the one thing the name can't say: which of two windows on one file.
+   * path after it, since a name is only unambiguous within one run and a path is what a reply quotes.
    *
    * None of it is read from the heap dump: the sizes were worked out while opening it and the verdicts and the
    * notes are on disk — [placesWithANote] is a directory listing — which is what lets the listing of every
@@ -58,7 +58,6 @@ internal object AgentJson {
    */
   fun heapDump(
     heapDumpName: String,
-    windowId: String,
     heapDumpPath: String,
     sizes: HeapSizes,
     verdicts: LeakStatusOverrides,
@@ -66,7 +65,6 @@ internal object AgentJson {
     placesWithANote: Int
   ): JsonObject = buildJsonObject {
     put("heapDump", heapDumpName)
-    put("window", windowId)
     put("heapDumpPath", heapDumpPath)
     putJsonObject("sizes") {
       put("totalBytes", sizes.totalByteCount)

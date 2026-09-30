@@ -120,12 +120,15 @@ class AgentConnectionTest {
   }
 
   @Test
-  fun `a first call that asked for the leaks is answered with both halves of the method, as one`() {
+  fun `a first call that asked for the leaks is answered with how to work here and nothing longer`() {
     val leaks = answered(call("list_leaks", """"reason":"Starting with what the dump says.""""))
 
-    // One field with both halves in the order they are meant to be read, rather than a second `method` a
-    // model has to notice — which a JSON object could not have anyway. See `AgentConnection.withTheSurface`.
-    assertThat(leaks.text(METHOD)).isEqualTo(AgentMethod.SURFACE + "\n\n" + AgentMethod.LEAK)
+    // This answer used to carry both halves in this one field, because asking for the leaks is where an
+    // investigation starts — and an investigation of four leaks is four of these, each handing over the same
+    // five paragraphs again. So the other half is text this build prints, read once. See
+    // [AgentCommandLine.LEAK_METHOD_OPTION] and `AgentConnection.withTheSurface`.
+    assertThat(leaks.text(METHOD)).isEqualTo(AgentMethod.SURFACE)
+    assertThat(leaks.text(METHOD)).doesNotContain(AgentMethod.LEAK)
     assertThat(leaks.text("objectCount")).isNotEmpty()
   }
 
@@ -144,7 +147,7 @@ class AgentConnectionTest {
   @Test
   fun `a second process joining a session that has been answered is not told how to work here again`() {
     val sessionId = "cli4821"
-    // `--agent` is a process per call, so a session is not a connection: each typed command opens the socket,
+    // `--cli` is a process per call, so a session is not a connection: each typed command opens the socket,
     // joins the session by name and makes its one call, and the one after it is an [AgentConnection] that has
     // never answered anything. Which is why the flag is read off the file rather than held in memory — and
     // why these are built one after the other, as the two processes are.
@@ -273,7 +276,7 @@ class AgentConnectionTest {
 
   @Test
   fun `the call that asks which heap dumps are open is written down with the ones that were`() {
-    answer(call("open_heap_dumps", """"reason":"Seeing what there is.""""))
+    answer(call(LIST_HEAP_DUMPS, """"reason":"Seeing what there is."""", heapDump = null))
 
     // Off the answer, like a conclusion and unlike everything else: this is the one call whose subject is
     // the app rather than a heap dump, and a row saying it asked without saying what it heard is a row that
@@ -344,7 +347,7 @@ class AgentConnectionTest {
 
   private fun sessions(): List<AgentSession> = AgentSessionFile.sessionsIn(sessionsDirectory)
 
-  /** One typed `--agent` command's worth of connection, joining the session called [sessionId]. */
+  /** One typed `--cli` command's worth of connection, joining the session called [sessionId]. */
   private fun joining(sessionId: String) = AgentConnection(
     tools = agentTools(FakeAgentHeapDumps(listOf(window))),
     sessionFile = AgentSessionFile.continuing(sessionsDirectory, SERVER_VERSION, sessionId)
@@ -353,7 +356,7 @@ class AgentConnectionTest {
   /**
    * One line in, and the object that went back.
    *
-   * [on] because a `--agent` command line is a process per call and therefore an [AgentConnection] per call,
+   * [on] because a `--cli` command line is a process per call and therefore an [AgentConnection] per call,
    * so anything that is once per *session* has to be tried across two of these against one session file.
    */
   private fun answer(
@@ -372,10 +375,22 @@ class AgentConnectionTest {
     return requireNotNull(AgentWire.answerOf(response)) { "No answer in $response" }
   }
 
+  /**
+   * One line in, as an agent types it: the tool, which heap dump it is about, and the rest.
+   *
+   * The dump is filled in because every tool that reads one requires it to be named — there is no call about
+   * "the dump that is open" on this surface — and a test that spelled the same name at every call site would
+   * be testing that it can spell it. [heapDump] is null for the calls that are about this app rather than
+   * about a heap dump. See [AgentTools] and [`AgentToolsTest.call`].
+   */
   private fun call(
     tool: String,
-    arguments: String
-  ) = """{"tool":"$tool","arguments":{$arguments}}"""
+    arguments: String,
+    heapDump: String? = window.heapDumpName
+  ): String {
+    val named = heapDump?.let { """"heapDump":"$it",""" }.orEmpty()
+    return """{"tool":"$tool","arguments":{$named$arguments}}"""
+  }
 
   private fun describeHolder(reason: String) = call(
     "describe_object",

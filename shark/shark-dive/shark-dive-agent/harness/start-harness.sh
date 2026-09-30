@@ -8,7 +8,7 @@
 # the skill staged where a session started here will find it, and a prompt that says no more than "find the
 # root cause" plus which run to say it to.
 #
-# **The agent reaches the window over the command line** — `--agent <tool> name=value` against the launcher —
+# **The agent reaches the window over the command line** — `--cli <command> name=value` against the launcher —
 # which is what somebody who installed the app has. There is no MCP config here and no `--mcp-config` in the
 # command this prints; `--strict-mcp-config` is still passed, and does the opposite job, keeping every MCP
 # server on the machine out of the session.
@@ -124,11 +124,11 @@ install_the_skill() {
 # Deliberately says nothing about how to investigate. The method the agent follows has to come from the
 # surface, or the experiment is measuring this file.
 #
-# It does say which run to talk to, and that part is not a hint: `--agent-run` pins the calls to the window
-# this script just opened, and without it they go to whichever run published last. Whoever is running this has
-# other dives open — that is what the app is like — so an unpinned session would be investigating a heap dump
-# nobody set up. The eval needs no such line because it ends every other run of its own first, which is a
-# thing this script must not do to somebody's screen.
+# It does say which run to talk to, and that part is not a hint: `--run` pins the calls to the window this
+# script just opened. Whoever is running this has other dives open — that is what the app is like — and a
+# command that finds two runs of this build refuses until one is named, so without this line the session's
+# first call is an error about somebody else's window. The eval needs no such line because it ends every other
+# run of its own first, which is a thing this script must not do to somebody's screen.
 write_prompt() {
   local launcher="$1" pid="$2"
   cat >"$HARNESS_DIRECTORY/prompt.txt" <<END
@@ -137,7 +137,9 @@ A heap dump is open in Shark Dive. Something in it is leaking. Find the root cau
 Shark Dive is installed on this machine. Its launcher is "$launcher", and the run that has the heap dump open
 is $pid, so every call looks like:
 
-    "$launcher" --agent-run=$pid --agent <tool> name=value …
+    "$launcher" --cli <command> name=value … --run=$pid
+
+"\$launcher" --help is every command with a line each, and --help <command> is one of them in full.
 END
 }
 

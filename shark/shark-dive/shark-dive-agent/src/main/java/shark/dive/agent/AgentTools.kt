@@ -57,8 +57,9 @@ internal class AgentTools(
 
   /** In the order an investigation uses them, which is the order a client lists them in. */
   val all: List<AgentTool> = listOf(
-    openHeapDumps(),
     openHeapDump(),
+    listHeapDumps(),
+    closeHeapDump(),
     listLeaks(),
     agentLog(),
     describeObject(),
@@ -78,13 +79,14 @@ internal class AgentTools(
 
   fun byName(name: String): AgentTool? = all.firstOrNull { it.name == name }
 
-  private fun openHeapDumps() = AgentTool(
-    name = OPEN_HEAP_DUMPS,
+  private fun listHeapDumps() = AgentTool(
+    name = LIST_HEAP_DUMPS,
+    summary = "Which heap dumps are open, and what every other command names them by.",
     description = "Which heap dumps Shark Dive has open right now. For when nobody told you which dump to " +
       "look at, or when you need the name of one: the file names it hands back are what every other tool " +
       "names a heap dump by, and the verdicts it lists are what somebody has already concluded. **If you " +
-      "were given a heap dump, call $OPEN_HEAP_DUMP with it instead** — it opens that one, or hands back " +
-      "the window that already has it. This reads nothing and waits for nothing.",
+      "were given a heap dump, call $OPEN_HEAP_DUMP with it instead** — it opens that one, or joins the " +
+      "open of it that is already there. This reads nothing and waits for nothing.",
     schema = schema()
   ) { _ ->
     val dumps = heapDumps.openHeapDumps()
@@ -109,12 +111,14 @@ internal class AgentTools(
 
   private fun openHeapDump() = AgentTool(
     name = OPEN_HEAP_DUMP,
-    description = "The heap dump you were given, ready to read. Name it and this answers with it: it opens " +
-      "the file if nobody has it open, and hands back the window that already has it if somebody does, so " +
-      "naming a dump twice never indexes it twice. `$PATH` is an absolute `.hprof` path — a dump a bug " +
-      "report came with, one you took with dump_heap, a second dump of the same app to compare against — or " +
-      "the file name of one that is already open. Opening a large dump is minutes, and this waits for it " +
-      "rather than answering with a window nothing can be read from yet.",
+    summary = "Opens a heap dump, or joins the open of it that is already there. Start here.",
+    description = "The heap dump you were given, ready to read, and **the call every investigation starts " +
+      "with**. Name it and this answers with it: it opens the file if nobody has it open, and joins the open " +
+      "of it that is already there if somebody does, so naming a dump twice never indexes it twice. `$PATH` " +
+      "is an absolute `.hprof` path — a dump a bug report came with, one you took with dump_heap, a second " +
+      "dump of the same app to compare against — or the file name of one that is already open. Opening a " +
+      "large dump is minutes, and this waits for it rather than answering with a name nothing can be read " +
+      "from yet.",
     schema = schema(
       PATH to string(
         "The absolute path of an `.hprof` file on this machine, or the file name of a heap dump that is " +
@@ -124,9 +128,8 @@ internal class AgentTools(
   ) { arguments ->
     val path = arguments.string(PATH)
     // A name that is already open before a file to open, because a name is what this surface's own answers
-    // are written in: an agent told to investigate `2026-08-31.hprof` has a name and no path, and the window
-    // that has it open is the answer to it. Window ids resolve too, through [resolvedDump], for the reason
-    // every other tool takes one.
+    // are written in: an agent told to investigate `2026-08-31.hprof` has a name and no path, and the dump
+    // already open under that name is the answer to it.
     val already = resolvedDump(path)
     val dump = already ?: openFile(path)
     val described = describedDump(dump)
@@ -136,6 +139,40 @@ internal class AgentTools(
       // window and one that joined the window they are watching.
       put("wasAlreadyOpen", already != null)
       put("next", NEXT_WITH_A_NEW_DUMP)
+    }
+  }
+
+  private fun closeHeapDump() = AgentTool(
+    name = CLOSE_HEAP_DUMP,
+    summary = "Closes a heap dump, and ends the run when it was the last one open.",
+    description = "Closes one heap dump and the window drawing it, which is what finishing with a dump is: " +
+      "an open heap dump is an indexed gigabyte and a window on somebody's screen. **Closing the last one " +
+      "ends the run**, so a run opened to investigate in goes away rather than being left for whoever is at " +
+      "the machine to notice. Nothing is lost by it — the notes and the verdicts are on disk, and a " +
+      "`shark://` link to a place of this dump still opens it afterwards. Don't close a dump you didn't open " +
+      "unless you were asked to: somebody may be reading it.",
+    schema = schema(HEAP_DUMP to heapDumpArgument())
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val name = dump.heapDumpName
+    val path = dump.heapDumpPath
+    val wasTheLastOne = heapDumps.openHeapDumps().size == 1
+    heapDumps.close(dump)
+    buildJsonObject {
+      put("closed", name)
+      put("heapDumpPath", path)
+      // What became of the run, because it is the difference between a command that can be followed by another
+      // one and a command after which there is nothing to talk to.
+      put("runEnded", wasTheLastOne)
+      put(
+        "next",
+        if (wasTheLastOne) {
+          "That was the last heap dump open, so this run is ending: the next $OPEN_HEAP_DUMP starts a new " +
+            "one. Your notes and verdicts are on disk and open with the dump."
+        } else {
+          "Still open: " + openDumpsText(heapDumps.openHeapDumps()) + "."
+        }
+      )
     }
   }
 
@@ -172,7 +209,6 @@ internal class AgentTools(
     val notedPlaces = dump.notedPlaces().size
     val described = AgentJson.heapDump(
       heapDumpName = dump.heapDumpName,
-      windowId = dump.windowId,
       heapDumpPath = dump.heapDumpPath,
       sizes = dump.sizes,
       verdicts = dump.verdicts,
@@ -193,26 +229,24 @@ internal class AgentTools(
 
   private fun listLeaks() = AgentTool(
     name = LIST_LEAKS,
-    description = "What this heap dump says shouldn't be in memory, **and the method for working out why**. " +
-      "Call this first for anything about a leak and read the method it answers with: objects the app " +
-      "itself handed to LeakCanary and said it was done with are the strongest evidence a dump carries, " +
-      "gathered into the leaks those objects are instances of. Sections marked isOnTheWayOut are objects " +
-      "the garbage collector will take on its own — nothing to investigate there. This is the leak question " +
-      "only: what the memory has gone on is $DOMINATOR_TREE.",
+    summary = "What this heap dump says shouldn't be in memory.",
+    description = "What this heap dump says shouldn't be in memory: objects the app itself handed to " +
+      "LeakCanary and said it was done with, which are the strongest evidence a dump carries, gathered into " +
+      "the leaks those objects are instances of. Sections marked isOnTheWayOut are objects the garbage " +
+      "collector will take on its own — nothing to investigate there. This is the leak question only: what " +
+      "the memory has gone on is $DOMINATOR_TREE. **How to work out why one of these is still in memory is " +
+      "${AgentCommandLine.LEAK_METHOD_OPTION}**, which is text this build carries: read it once, before the " +
+      "first chain.",
     schema = schema(HEAP_DUMP to heapDumpArgument())
   ) { arguments ->
     val dump = arguments.heapDump()
     val leaks = dump.read("the leaks, for an agent") { it.tree.findLeaks(dump.verdicts) }
-    buildJsonObject {
-      // Leading the one answer on this surface that carries it, which is what makes calling this the first
-      // step of a leak investigation rather than a step an agent can skip. See [AgentMethod].
-      put(AgentMethod.FIELD, AgentMethod.LEAK)
-      AgentJson.leaks(leaks).forEach { (name, value) -> put(name, value) }
-    }
+    AgentJson.leaks(leaks)
   }
 
   private fun agentLog() = AgentTool(
     name = AGENT_LOG,
+    summary = "What earlier sessions did to this heap dump, call by call.",
     description = "**For debugging an agent rather than for investigating a heap dump.** One entry per " +
       "session that read this dump, newest first, with what it concluded and how many of its calls were " +
       "refused — and with `$SESSION`, every call that session made in order, each with the reason the agent " +
@@ -258,10 +292,11 @@ internal class AgentTools(
 
   private fun describeObject() = AgentTool(
     name = DESCRIBE_OBJECT,
+    summary = "One object in full: its class, labels, verdict, sizes and every field.",
     description = "What one object is: its class, what the inspectors made of it, its verdict and the " +
       "reason under it, what it retains, what dominates it, and every field with the address of each " +
       "field's value. Reading fields is how a guess about an object becomes evidence.",
-    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectId("The object to describe."))
+    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectIdArgument("The object to describe."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
@@ -277,6 +312,7 @@ internal class AgentTools(
 
   private fun chainFromGcRoot() = AgentTool(
     name = "chain_from_gc_root",
+    summary = "The shortest chain of references from a GC root down to one object.",
     description = "The shortest chain of references from a GC root down to this object, which is where the " +
       "leak is. Every step carries its verdict, the reason for it, the inspectors' labels and the field " +
       "the step above points through. faultyReference is what the chain names the leak — the one reference " +
@@ -284,7 +320,7 @@ internal class AgentTools(
       "chain in the window. It is null while the verdicts don't yet cross from EXPECTED to STUCK at a " +
       "single reference, which is the state an investigation works towards and what conclude requires. " +
       "Steps marked isDominator are the ones every path to the object goes through.",
-    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectId("The object to walk up from."))
+    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectIdArgument("The object to walk up from."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
@@ -297,14 +333,15 @@ internal class AgentTools(
 
   private fun waysHeld() = AgentTool(
     name = "ways_held",
+    summary = "Every way an object is held, rather than the one chain.",
     description = "Every way an object is held, rather than the one chain. This is what answers \"is that " +
       "reference really the only thing keeping it in memory?\" — a question a single chain cannot answer, " +
       "and one that decides whether clearing a field would free anything at all. Give `from` to ask only " +
       "about the ways between that object and this one.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
-      OBJECT to objectId("The object being held."),
-      FROM to objectId("Optional: only the ways this object holds it, rather than from the GC roots.")
+      OBJECT to objectIdArgument("The object being held."),
+      FROM to objectIdArgument("Optional: only the ways this object holds it, rather than from the GC roots.")
         .optional()
     )
   ) { arguments ->
@@ -326,6 +363,7 @@ internal class AgentTools(
 
   private fun findObjects() = AgentTool(
     name = FIND_OBJECTS,
+    summary = "The objects whose class name matches, largest retained size first.",
     description = "The objects of this heap dump whose class name matches, largest retained size first, " +
       "with how many matched in total. Use it on a class you have assumed something about: two instances " +
       "of a class you took for a singleton is the answer to a surprising number of leaks, because the " +
@@ -365,13 +403,14 @@ internal class AgentTools(
 
   private fun dominatorTree() = AgentTool(
     name = DOMINATOR_TREE,
+    summary = "Where the memory has gone, as the tree the window draws as a treemap.",
     description = "Where the memory has gone: what holds the most of it, what holds the most of that, and " +
       "so on. The tree the window draws as a treemap, without the pixels. Start at the whole heap dump and " +
       "give `object` to walk down from one node. This answers \"why is this app using 400 MB\" — for " +
       "\"why is this object still here\", read its chain instead.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
-      OBJECT to objectId("Optional: the node to walk down from, the whole heap dump by default.")
+      OBJECT to objectIdArgument("Optional: the node to walk down from, the whole heap dump by default.")
         .optional(),
       MAX_DEPTH to integer(
         "How many levels down, at most $MAX_OUTLINE_DEPTH. $DEFAULT_OUTLINE_DEPTH by default."
@@ -402,6 +441,7 @@ internal class AgentTools(
 
   private fun setVerdict() = AgentTool(
     name = SET_VERDICT,
+    summary = "Records that an object is meant to be in memory, or should be gone.",
     description = "Records that an object is meant to be in memory (EXPECTED) or should be gone " +
       "(STUCK), which is how the search narrows: a verdict spreads along every chain through that " +
       "object, and naming the stuck object you are investigating as `chainTo` answers with what its " +
@@ -411,7 +451,7 @@ internal class AgentTools(
       "are flipped and say so.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
-      OBJECT to objectId("The object to record a verdict about."),
+      OBJECT to objectIdArgument("The object to record a verdict about."),
       VERDICT to enumString(
         "STUCK for an object that should be gone, EXPECTED for one that is meant to be here.",
         listOf(LeakStatus.STUCK.name, LeakStatus.EXPECTED.name)
@@ -423,7 +463,7 @@ internal class AgentTools(
           "is worse than no verdict. This is the box the window labels Why, so what you write here is what " +
           "the person at the machine reads."
       ),
-      CHAIN_TO to objectId(
+      CHAIN_TO to objectIdArgument(
         "The stuck object you are investigating, which is what the answer reads the chain to: a verdict is " +
           "worth setting for what it does to that chain, and this is where you see the unexplained stretch " +
           "narrow. Not the object of this verdict — one recorded as EXPECTED is above the leak, so the " +
@@ -478,10 +518,11 @@ internal class AgentTools(
 
   private fun clearVerdict() = AgentTool(
     name = "clear_verdict",
+    summary = "Takes a verdict back off an object.",
     description = "Takes a verdict off an object, so the heap dump says what it says about it again. For " +
       "a verdict of yours that the evidence turned out not to support — leaving a wrong one in place is " +
       "worse than never setting it, because everything below it reads as stuck because of it.",
-    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectId("The object to take the verdict off."))
+    schema = schema(HEAP_DUMP to heapDumpArgument(), OBJECT to objectIdArgument("The object to take the verdict off."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
@@ -499,6 +540,7 @@ internal class AgentTools(
 
   private fun readNotes() = AgentTool(
     name = READ_NOTES,
+    summary = "What has already been written about this heap dump.",
     description = "What has already been written about this heap dump — by the person at the window, by " +
       "you earlier, or by whoever read it last. Without `$PLACE`, every place that has a note, so that an " +
       "investigation starts from what is known rather than on top of it. With one, that note in full. " +
@@ -529,6 +571,7 @@ internal class AgentTools(
 
   private fun takeNote() = AgentTool(
     name = "take_note",
+    summary = "Writes markdown into the notes of one place of this heap dump.",
     description = "Writes markdown into the notes of one place in this heap dump, which is where the " +
       "person at the window reads them and what the next reader of this dump finds. Appends by default, " +
       "leaving whatever was there; `$REPLACE` true puts yours in place of it, which is what correcting " +
@@ -560,6 +603,7 @@ internal class AgentTools(
 
   private fun show() = AgentTool(
     name = SHOW,
+    summary = "Opens a place in the window, and answers with a link to it.",
     description = "Opens an object in a tab of this window and brings the window to the front, so that what " +
       "you are looking at is what the person at the machine is looking at. Use it when you reach something " +
       "that matters rather than for every step. It answers with a `shark://` link to that place: put that " +
@@ -567,7 +611,7 @@ internal class AgentTools(
       "you. `$PLACE` instead of `$OBJECT` shows a screen of this heap dump rather than one object.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
-      OBJECT to objectId("The object to show, which is what showing something usually is.").optional(),
+      OBJECT to objectIdArgument("The object to show, which is what showing something usually is.").optional(),
       PLACE to place().optional()
     )
   ) { arguments ->
@@ -584,6 +628,7 @@ internal class AgentTools(
 
   private fun conclude() = AgentTool(
     name = CONCLUDE,
+    summary = "Reports the root cause of one leak, and the only way to finish one.",
     description = "Reports the root cause of one leak, and the only way to finish an investigation. " +
       "**Refused unless this heap dump agrees that a single reference is at fault**: one object above it " +
       "recorded as EXPECTED, the object below it recorded as STUCK, and nothing unexplained in " +
@@ -593,7 +638,7 @@ internal class AgentTools(
       "object and shown in the window.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
-      OBJECT to objectId("The stuck object whose being in memory is being explained."),
+      OBJECT to objectIdArgument("The stuck object whose being in memory is being explained."),
       ROOT_CAUSE to string(
         "How the faulty reference came to still be set: what assigned it, what should have cleared it, " +
           "and why it didn't."
@@ -648,7 +693,7 @@ internal class AgentTools(
       put(
         "writtenTo",
         "the notes of ${exactHexObjectId(objectId)}" +
-          if (shown.problem == null) ", and shown in window ${dump.windowId}" else ". ${shown.problem}"
+          if (shown.problem == null) ", and shown in the window" else ". ${shown.problem}"
       )
       // The one link most worth handing back: it opens the object this conclusion is about, with the
       // conclusion in its notes. Say it in your answer rather than describing where to click.
@@ -658,6 +703,7 @@ internal class AgentTools(
 
   private fun listDevices() = AgentTool(
     name = "list_devices",
+    summary = "The Android devices adb is connected to, and one device's processes.",
     description = "The Android devices `adb` is connected to, and with `$DEVICE`, the app processes of one " +
       "of them. What the window's `Take heap dump` button asks. A process can only be dumped if the app " +
       "was built debuggable or the whole build is (dumpsAnyProcess), and `adb` is the only thing here that " +
@@ -689,6 +735,7 @@ internal class AgentTools(
 
   private fun dumpHeap() = AgentTool(
     name = "dump_heap",
+    summary = "Takes a heap dump off a device and opens it. Minutes, on a large app.",
     description = "Takes a heap dump of a running process, opens it in a window of Shark Dive and " +
       "answers once it can be read — the whole of what the window's `Take heap dump` button does. " +
       "**Minutes, on a large app**: the device writes the dump, it is pulled over `adb`, and then opened. " +
@@ -706,7 +753,6 @@ internal class AgentTools(
     )
     buildJsonObject {
       put("heapDump", dump.heapDumpName)
-      put("window", dump.windowId)
       put("heapDumpPath", dump.heapDumpPath)
       put("dumped", true)
       put("next", NEXT_WITH_A_NEW_DUMP)
@@ -721,7 +767,7 @@ internal class AgentTools(
     }
 
   /**
-   * Which window and which place a call was about, for the log of the session it was made in.
+   * Which heap dump and which place a call was about, for the log of the session it was made in.
    *
    * Read off the arguments rather than out of the handler, so that a call that was refused is recorded
    * pointing at whatever it was asking about — which is most of what makes a refusal worth reading
@@ -733,65 +779,26 @@ internal class AgentTools(
     arguments: JsonObject
   ): AgentTarget {
     val read = AgentArguments(name, arguments)
-    val dump = read.orNull { resolvedDump(optionalString(HEAP_DUMP)) }
+    val dump = read.orNull { optionalString(HEAP_DUMP)?.let { asked -> resolvedDump(asked) } }
     val place = read.orNull { placeOrNull(name) }
     return AgentTarget(
-      windowId = dump?.windowId,
       heapDumpPath = dump?.heapDumpPath,
       place = place
     )
   }
 
-  /**
-   * Which place of the heap dump a call is about, from what it was given rather than from which tool it is.
-   *
-   * By argument name, so that a tool added here is described by this without being listed in it: everything
-   * about an object takes `object`, everything about a place takes `place`, the search takes a class name and
-   * one session of the log takes its id.
-   *
-   * The tools whose subject is in none of them go through [screenOfTool], which is where the screens an
-   * agent names by naming nothing live: the leaks, the log as a list, and the two that mean the whole heap
-   * dump when they are given no object — the tree from its root, and the object list unfiltered. Every one of
-   * them has to be there, because **anything an agent can do that the window can do leads somewhere in the
-   * window**: a call with no place is a row of the *Agent logs* screen that shows a reader what was looked at
-   * and then declines to show them the thing. The words that row draws come off the same list, so a screen
-   * cannot be reachable and unnamed or named and unreachable.
-   *
-   * What is left with no place is the calls about the app rather than about a heap dump — which dumps are
-   * open, which devices are connected, opening a file, taking a dump — and `read_notes` with no place,
-   * whose answer is the list of places that have notes, which is the tab strip rather than a screen.
-   */
-  private fun AgentArguments.placeOrNull(name: String): Place? = when {
-    optionalString(PLACE) != null -> place()
-    optionalString(OBJECT) != null -> Place.Object(objectId(OBJECT))
-    optionalString(CLASS_NAME) != null -> Place.Objects(ObjectListFilter(query = string(CLASS_NAME)))
-    optionalString(SESSION) != null -> Place.AgentLog(string(SESSION))
-    // No arguments, since nothing above matched: what is left is what the tool means on its own.
-    else -> screenOfTool(name, emptyMap())?.place
-  }
-
   /** Which heap dump a call is about, or a refusal naming the ones that are open. */
   private fun AgentArguments.heapDump(): AgentHeapDump {
-    val asked = optionalString(HEAP_DUMP)
-    val resolved = resolvedDump(asked)
-    if (resolved != null) {
-      return resolved
-    }
+    val asked = string(HEAP_DUMP)
+    resolvedDump(asked)?.let { return it }
     val open = heapDumps.openHeapDumps()
-    val dumps = openDumpsText(open)
     throw AgentRefusal(
-      when {
-        open.isEmpty() ->
-          "No heap dump is open in Shark Dive, so there is nothing to read. Call $OPEN_HEAP_DUMP with the " +
-            "path of the dump to investigate, or $OPEN_HEAP_DUMPS to see whether one is on its way."
-        asked == null ->
-          "${open.size} heap dumps are open, so say which with `$HEAP_DUMP`: $dumps"
-        open.count { it.isCalled(asked) } > 1 ->
-          "${open.count { it.isCalled(asked) }} windows have \"$asked\" open, which is how two readings of " +
-            "one dump are compared, so `$HEAP_DUMP` has to be the window id of the one you mean: $dumps"
-        else ->
-          "No open heap dump is called \"$asked\", and no window is either. Open heap dumps: $dumps. A " +
-            "dump that isn't there is $OPEN_HEAP_DUMP away."
+      if (open.isEmpty()) {
+        "No heap dump is open in Shark Dive, so there is nothing to read. Call $OPEN_HEAP_DUMP with the " +
+          "path of the dump to investigate."
+      } else {
+        "No open heap dump is called \"$asked\". Open right now: ${openDumpsText(open)}. A dump that isn't " +
+          "there is $OPEN_HEAP_DUMP away."
       }
     )
   }
@@ -799,205 +806,26 @@ internal class AgentTools(
   /**
    * The heap dump a call names, and null for one that names none of the open ones.
    *
-   * One open dump needs no naming, which is most sessions. More than one always does, and **the file name is
-   * what it is named by**: that is what an agent has read in every answer and what it can say back without
-   * copying an id, and it goes on meaning the same thing after the window it was opened in has closed.
+   * **The file is the whole of how one is named**, by its name or by the path it was given as. Which is
+   * unambiguous because a run opens a file once: [openHeapDump] on a dump this run already has open joins that
+   * open rather than making a second, so there is never a second reading of one file here to tell apart. Two
+   * readings being compared is two runs, and a command line says which with `--run=`.
    *
-   * A window id is taken too, and has to be: the same file open twice is how two readings of it are compared,
-   * so the name is ambiguous exactly there, and answering about either of them would be answering about the
-   * wrong one half the time. Ids first, because a file called `abcd2345` is a heap dump somebody has and a
-   * window id is ours to hand out.
-   *
-   * And the path, because that is what an agent was *given*: somebody says "investigate
-   * /tmp/crash-4821.hprof", and a surface that takes only the last part of it is a surface that makes an
-   * agent shorten a path it has in front of it. Which is also what lets [openHeapDump] be handed either.
+   * Both spellings, because both are things an agent has in front of it: somebody says "investigate
+   * /tmp/crash-4821.hprof", and a surface that takes only the last part of that is one that makes an agent
+   * shorten a path it was handed; while every answer here writes the name, so that is what it can say back.
    */
-  private fun resolvedDump(asked: String?): AgentHeapDump? {
-    val open = heapDumps.openHeapDumps()
-    if (asked == null) {
-      return open.singleOrNull()
-    }
-    return open.firstOrNull { it.windowId == asked } ?: open.filter { it.isCalled(asked) }.singleOrNull()
-  }
-
-  /**
-   * Whether [asked] names this dump, by any of the three things an agent can have in front of it.
-   *
-   * One predicate rather than three comparisons in each place, because the refusal for an ambiguous name has
-   * to count exactly what [resolvedDump] declined to choose between.
-   */
-  private fun AgentHeapDump.isCalled(asked: String): Boolean =
-    windowId == asked || heapDumpName == asked || heapDumpPath == asked
-
-  /**
-   * Whatever [block] reads, or null if the arguments wouldn't answer it.
-   *
-   * Only for [target], and that is the whole of why it exists: describing a call must not refuse one. The
-   * handler reads the same arguments a moment later and refuses with a message written for the agent, which
-   * is where a bad address belongs.
-   */
-  private fun <T> AgentArguments.orNull(block: AgentArguments.() -> T?): T? = try {
-    block()
-  } catch (refused: AgentRefusal) {
-    null
-  }
-
-  private fun AgentArguments.verdict(): LeakStatus {
-    val text = string(VERDICT)
-    val status = LeakStatus.values().firstOrNull { it.name.equals(text, ignoreCase = true) }
-      ?: throw AgentRefusal(
-        "\"$text\" is no verdict. It is ${LeakStatus.STUCK.name} for an object that should be gone or " +
-          "${LeakStatus.EXPECTED.name} for one that is meant to be here."
-      )
-    if (status == LeakStatus.UNKNOWN) {
-      throw AgentRefusal(
-        "${LeakStatus.UNKNOWN.name} is what an object with no verdict already is, so setting it says " +
-          "nothing. To take a verdict back off an object, call clear_verdict."
-      )
-    }
-    return status
-  }
-
-  private fun AgentArguments.kinds(): Set<HeapObjectKind> {
-    val names = stringList(KINDS) ?: return HeapObjectKind.values().toSet()
-    return names.map { name ->
-      HeapObjectKind.values().firstOrNull { it.name.equals(name, ignoreCase = true) }
-        ?: throw AgentRefusal(
-          "\"$name\" is no object kind. They are " +
-            HeapObjectKind.values().joinToString(", ") { it.name } + "."
-        )
-    }.toSet()
-  }
-
-  private companion object {
-
-    /** What every investigation starts with, named because other messages point an agent at it. */
-    const val OPEN_HEAP_DUMPS = "open_heap_dumps"
-
-    /** Named because another tool's description tells an agent to call it, or its own says what it is. */
-    const val LIST_LEAKS = "list_leaks"
-    const val AGENT_LOG = "agent_log"
-    const val READ_NOTES = "read_notes"
-    const val FIND_OBJECTS = "find_objects"
-    const val DOMINATOR_TREE = "dominator_tree"
-
-    /**
-     * Which heap dump a call is about: a file name, or a window id where a file name can't say.
-     *
-     * Named after the dump rather than after the window it is open in, because that is what it is — every
-     * place an agent can ask about belongs to the heap dump, the file name is in every answer it has read,
-     * and a window id is eight characters it would have to copy. See [resolvedDump] for the ordering, and
-     * `shark.dive.DeepLink`, which is the same choice made for a link.
-     */
-    const val HEAP_DUMP = "heapDump"
-    const val SESSION = "session"
-    const val FROM = "from"
-    const val CLASS_NAME = "className"
-    const val EXACT_MATCH = "exactMatch"
-    const val KINDS = "kinds"
-    const val LIMIT = "limit"
-    const val VERDICT = "verdict"
-
-    /**
-     * The evidence a verdict is kept with, which is a different thing from the `reason` a call is made for.
-     *
-     * Named after the box the window puts it in — `LeakStatusSection`'s `Why` — because that is where what an
-     * agent writes here ends up, and the person reading it has the label rather than this schema. It was
-     * `reason` for a while, which read as one argument doing two jobs: every other tool's `reason` is why this
-     * call was made and goes in the session log, and here it was also the verdict's own justification, kept in
-     * the heap dump's `leak-statuses` file for months. Measured on a round of eval runs, a model handed that
-     * tool sent both — a long `why` with the field values in it and a one-line `reason` — and had four calls
-     * refused for an argument this surface didn't take. Two jobs, so two arguments.
-     */
-    const val WHY = "why"
-    const val CHAIN_TO = "chainTo"
-    const val SOLVE_CONFLICTS = "solveConflicts"
-    const val TEXT = "text"
-    const val REPLACE = "replace"
-    const val MAX_DEPTH = "maxDepth"
-    const val MAX_CHILDREN = "maxChildren"
-    const val PATH = "path"
-    const val DEVICE = "device"
-    const val PROCESS = "process"
-    const val ROOT_CAUSE = "rootCause"
-    const val HOW_TO_REPRODUCE = "howToReproduce"
-    const val NOT_CHECKED = "notChecked"
-
-    /**
-     * What to do with a heap dump that has just been opened, whichever tool opened it.
-     *
-     * Both questions, because a dump is not always a leak. A dump somebody took because the app was using a
-     * gigabyte is a dominator tree, and being pointed only at the leaks is being pointed away from the
-     * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in [LIST_LEAKS] that
-     * walking a tree would take an hour to reach.
-     *
-     * **And it says where the leak method is**, because this is the answer that used to carry it. Opening a
-     * dump is the first call of most investigations and the method is no longer in its answer, so a sentence
-     * saying which call has it is what keeps the one that skipped [LIST_LEAKS] from being an investigation
-     * that never read it by accident. See [AgentMethod].
-     */
-    const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this heap dump for anything about a leak: its " +
-      "answer carries the method, and this one does not. Call $DOMINATOR_TREE instead if the question is " +
-      "where the memory has gone."
-
-    /**
-     * What to do about a heap dump somebody has already worked on, said only when one has — see
-     * [describedDump].
-     *
-     * This is the recommendation [AGENT_LOG] used to make in its own description, where it reached every agent
-     * on every dump and was wrong for nearly all of them. It belongs on the answer that knows: the notes and
-     * the verdicts are in that answer, so a dump with neither needs no advice about reading them.
-     */
-    const val ALREADY_WORKED_ON = "Somebody has already worked on this heap dump. Call $READ_NOTES before " +
-      "investigating: what they found is either the answer or the half of this dump not worth doing again. " +
-      "$AGENT_LOG has the sessions behind it, call by call, which is what to read when their conclusion " +
-      "looks wrong."
-
-    /**
-     * The open heap dumps as a refusal names them: what to say back, and the window id behind each.
-     *
-     * The window id beside the name, since that is what tells two windows of one file apart and a refusal
-     * about an ambiguous name is one of the two moments an agent needs it. The other is being told a place
-     * was shown.
-     */
-    fun openDumpsText(dumps: List<AgentHeapDump>): String =
-      dumps.joinToString(", ") { "${it.heapDumpName} (${it.windowId}) at ${it.heapDumpPath}" }
-
-    /**
-     * How many objects a list comes back with by default, well under
-     * [HeapDominatorTreemap.MAX_LISTED_OBJECTS]: an agent reads the whole answer, so 500 rows of JSON is
-     * mostly context spent on rows nobody asked about. The match count says what was left out.
-     */
-    const val DEFAULT_LISTED_OBJECTS = 30
-
-    fun heapDumpArgument() = string(
-      "Which open heap dump: its file name, or the path you were given, or its window id. Optional while " +
-        "only one is open, and the window id is what tells two windows of the same file apart."
-    ).optional()
-
-    fun objectId(description: String) =
-      string("$description An address as ${OPEN_HEAP_DUMPS} and every chain spells one: `0x…`.")
-
-    /**
-     * How far down the dominator tree one call will walk, and how wide.
-     *
-     * A cap rather than a warning because the answer is a tree: ten levels of ten children is 10^10 nodes,
-     * each of them a read of the heap dump, and a model that asked for it would have been waiting for the
-     * rest of the day. Five of fifteen is a long screenful.
-     */
-    const val MAX_OUTLINE_DEPTH = 5
-    const val MAX_OUTLINE_CHILDREN = 15
-  }
+  private fun resolvedDump(asked: String): AgentHeapDump? =
+    heapDumps.openHeapDumps().firstOrNull { it.isCalled(asked) }
 }
 
 /**
- * What a call was about: which window, which heap dump, and which place of it.
+ * What a call was about: which heap dump, and which place of it.
  *
  * Only for the session log, which is the one reader that needs this without needing the answer: a row of the
  * *Agent logs* screen is a verb, a subject and somewhere to go when it is clicked. See [AgentSessionCall].
  */
 internal class AgentTarget(
-  val windowId: String?,
   val heapDumpPath: String?,
   val place: Place?
 )
@@ -1192,24 +1020,210 @@ private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
 }
 
 /**
- * The other call an investigation can start with, and the one to reach for when a dump was named rather than
- * found. Out here because [nothingToRead] points at it and is not a method of [AgentTools].
- */
-private const val OPEN_HEAP_DUMP = "open_heap_dump"
-
-/**
- * And the three names [verdictState] sends an agent to, out here for the same reason: what a chain's verdicts
- * leave to do is the next call to make, and working that out is not a method of [AgentTools] either.
+ * The words this surface is spelled with: the tools something else names, the arguments they take, and the
+ * sentences several of them say.
  *
- * Constants rather than the names written into those sentences, so that renaming a tool is one edit and a
- * sentence pointing at a tool that no longer exists is a compile error.
+ * Out here rather than inside [AgentTools] because a name belongs to the surface rather than to the class that
+ * registers it, and that class is not the only thing here saying one — [nothingToRead], [nothingToShow] and
+ * [verdictState] are top level functions writing tool names into their sentences, and [AgentCommandLine] writes
+ * the two ways in into its help.
+ *
+ * Constants rather than the name written into each sentence, so that renaming a tool is one edit and a sentence
+ * pointing at a tool that no longer exists is a compile error. Which is also why only some tools are named
+ * here: a tool nothing but its own registration mentions needs no constant, and a list of all eighteen would
+ * say that every one of them is spoken about somewhere.
+ *
+ * In the order [AgentTools.all] is in, which is the order an investigation uses them.
  */
+internal const val OPEN_HEAP_DUMP = "open_heap_dump"
+internal const val LIST_HEAP_DUMPS = "list_heap_dumps"
+private const val CLOSE_HEAP_DUMP = "close_heap_dump"
+private const val LIST_LEAKS = "list_leaks"
+private const val AGENT_LOG = "agent_log"
 private const val DESCRIBE_OBJECT = "describe_object"
+private const val FIND_OBJECTS = "find_objects"
+private const val DOMINATOR_TREE = "dominator_tree"
 private const val SET_VERDICT = "set_verdict"
+private const val READ_NOTES = "read_notes"
+private const val SHOW = "show"
 private const val CONCLUDE = "conclude"
 
-/** And this one because [placeToShow] and [nothingToShow] are out here saying what it takes. */
-private const val SHOW = "show"
+/**
+ * Which heap dump a call is about: its file name, or the path it was given as.
+ *
+ * **Required on every command that reads one**, which is what makes each call explicit about the dump it
+ * is aimed at. It was optional while only one was open, which read as a convenience and is the one default
+ * worth refusing: a second dump opening — from a link, from a person at the machine, from the other agent
+ * on the same run — silently turns every call that relied on it into a refusal, and the sessions it
+ * happened in are the ones where the agent had the name in its hand all along.
+ *
+ * See [resolvedDump] for what names one, and `shark.dive.DeepLink`, which names a heap dump for the same
+ * reason.
+ */
+private const val HEAP_DUMP = "heapDump"
+private const val SESSION = "session"
+private const val FROM = "from"
+private const val CLASS_NAME = "className"
+private const val EXACT_MATCH = "exactMatch"
+private const val KINDS = "kinds"
+private const val LIMIT = "limit"
+private const val VERDICT = "verdict"
+
+/**
+ * The evidence a verdict is kept with, which is a different thing from the `reason` a call is made for.
+ *
+ * Named after the box the window puts it in — `LeakStatusSection`'s `Why` — because that is where what an
+ * agent writes here ends up, and the person reading it has the label rather than this schema. It was
+ * `reason` for a while, which read as one argument doing two jobs: every other tool's `reason` is why this
+ * call was made and goes in the session log, and here it was also the verdict's own justification, kept in
+ * the heap dump's `leak-statuses` file for months. Measured on a round of eval runs, a model handed that
+ * tool sent both — a long `why` with the field values in it and a one-line `reason` — and had four calls
+ * refused for an argument this surface didn't take. Two jobs, so two arguments.
+ */
+private const val WHY = "why"
+private const val CHAIN_TO = "chainTo"
+private const val SOLVE_CONFLICTS = "solveConflicts"
+private const val TEXT = "text"
+private const val REPLACE = "replace"
+private const val MAX_DEPTH = "maxDepth"
+private const val MAX_CHILDREN = "maxChildren"
+private const val PATH = "path"
+private const val DEVICE = "device"
+private const val PROCESS = "process"
+private const val ROOT_CAUSE = "rootCause"
+private const val HOW_TO_REPRODUCE = "howToReproduce"
+private const val NOT_CHECKED = "notChecked"
+
+/**
+ * What to do with a heap dump that has just been opened, whichever tool opened it.
+ *
+ * Both questions, because a dump is not always a leak. A dump somebody took because the app was using a
+ * gigabyte is a dominator tree, and being pointed only at the leaks is being pointed away from the
+ * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in [LIST_LEAKS] that
+ * walking a tree would take an hour to reach.
+ *
+ * **And it says where the leak method is**, which is no longer any answer: it is
+ * [AgentCommandLine.LEAK_METHOD_OPTION], text this build carries. Opening a dump is the first call of most
+ * investigations, so a sentence saying where the method is, is what keeps an investigation from being one
+ * that never read it by accident. See [AgentMethod].
+ */
+private const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this heap dump for anything about a leak, and " +
+  "read ${AgentCommandLine.LEAK_METHOD_OPTION} once before the first chain: that is where the method is. " +
+  "Call $DOMINATOR_TREE instead if the question is where the memory has gone."
+
+/**
+ * What to do about a heap dump somebody has already worked on, said only when one has — see
+ * [describedDump].
+ *
+ * This is the recommendation [AGENT_LOG] used to make in its own description, where it reached every agent
+ * on every dump and was wrong for nearly all of them. It belongs on the answer that knows: the notes and
+ * the verdicts are in that answer, so a dump with neither needs no advice about reading them.
+ */
+private const val ALREADY_WORKED_ON = "Somebody has already worked on this heap dump. Call $READ_NOTES before " +
+  "investigating: what they found is either the answer or the half of this dump not worth doing again. " +
+  "$AGENT_LOG has the sessions behind it, call by call, which is what to read when their conclusion " +
+  "looks wrong."
+
+/** The open heap dumps as a message names them: what to say back, and where each file is. */
+private fun openDumpsText(dumps: List<AgentHeapDump>): String =
+  dumps.joinToString(", ") { "${it.heapDumpName} at ${it.heapDumpPath}" }
+
+/**
+ * How many objects a list comes back with by default, well under
+ * [HeapDominatorTreemap.MAX_LISTED_OBJECTS]: an agent reads the whole answer, so 500 rows of JSON is
+ * mostly context spent on rows nobody asked about. The match count says what was left out.
+ */
+private const val DEFAULT_LISTED_OBJECTS = 30
+
+private fun heapDumpArgument() = string(
+  "Which open heap dump: its file name, or the path you were given. $LIST_HEAP_DUMPS is the ones there " +
+    "are, and $OPEN_HEAP_DUMP answers with the name of the one it opened."
+)
+
+private fun objectIdArgument(description: String) =
+  string("$description An address as every answer here spells one: `0x…`.")
+
+/**
+ * How far down the dominator tree one call will walk, and how wide.
+ *
+ * A cap rather than a warning because the answer is a tree: ten levels of ten children is 10^10 nodes,
+ * each of them a read of the heap dump, and a model that asked for it would have been waiting for the
+ * rest of the day. Five of fifteen is a long screenful.
+ */
+private const val MAX_OUTLINE_DEPTH = 5
+private const val MAX_OUTLINE_CHILDREN = 15
+
+/**
+ * Which place of the heap dump a call is about, from what it was given rather than from which tool it is.
+ *
+ * By argument name, so that a tool added here is described by this without being listed in it: everything
+ * about an object takes `object`, everything about a place takes `place`, the search takes a class name and
+ * one session of the log takes its id.
+ *
+ * The tools whose subject is in none of them go through [screenOfTool], which is where the screens an
+ * agent names by naming nothing live: the leaks, the log as a list, and the two that mean the whole heap
+ * dump when they are given no object — the tree from its root, and the object list unfiltered. Every one of
+ * them has to be there, because **anything an agent can do that the window can do leads somewhere in the
+ * window**: a call with no place is a row of the *Agent logs* screen that shows a reader what was looked at
+ * and then declines to show them the thing. The words that row draws come off the same list, so a screen
+ * cannot be reachable and unnamed or named and unreachable.
+ *
+ * What is left with no place is the calls about the app rather than about a heap dump — which dumps are
+ * open, which devices are connected, opening a file, taking a dump — and `read_notes` with no place,
+ * whose answer is the list of places that have notes, which is the tab strip rather than a screen.
+ */
+private fun AgentArguments.placeOrNull(name: String): Place? = when {
+  optionalString(PLACE) != null -> place()
+  optionalString(OBJECT) != null -> Place.Object(objectId(OBJECT))
+  optionalString(CLASS_NAME) != null -> Place.Objects(ObjectListFilter(query = string(CLASS_NAME)))
+  optionalString(SESSION) != null -> Place.AgentLog(string(SESSION))
+  // No arguments, since nothing above matched: what is left is what the tool means on its own.
+  else -> screenOfTool(name, emptyMap())?.place
+}
+
+/** Whether [asked] names this dump, by either of the two things an agent can have in front of it. */
+private fun AgentHeapDump.isCalled(asked: String): Boolean =
+  heapDumpName == asked || heapDumpPath == asked
+
+/**
+ * Whatever [block] reads, or null if the arguments wouldn't answer it.
+ *
+ * Only for [target], and that is the whole of why it exists: describing a call must not refuse one. The
+ * handler reads the same arguments a moment later and refuses with a message written for the agent, which
+ * is where a bad address belongs.
+ */
+private fun <T> AgentArguments.orNull(block: AgentArguments.() -> T?): T? = try {
+  block()
+} catch (refused: AgentRefusal) {
+  null
+}
+
+private fun AgentArguments.verdict(): LeakStatus {
+  val text = string(VERDICT)
+  val status = LeakStatus.values().firstOrNull { it.name.equals(text, ignoreCase = true) }
+    ?: throw AgentRefusal(
+      "\"$text\" is no verdict. It is ${LeakStatus.STUCK.name} for an object that should be gone or " +
+        "${LeakStatus.EXPECTED.name} for one that is meant to be here."
+    )
+  if (status == LeakStatus.UNKNOWN) {
+    throw AgentRefusal(
+      "${LeakStatus.UNKNOWN.name} is what an object with no verdict already is, so setting it says " +
+        "nothing. To take a verdict back off an object, call clear_verdict."
+    )
+  }
+  return status
+}
+
+private fun AgentArguments.kinds(): Set<HeapObjectKind> {
+  val names = stringList(KINDS) ?: return HeapObjectKind.values().toSet()
+  return names.map { name ->
+    HeapObjectKind.values().firstOrNull { it.name.equals(name, ignoreCase = true) }
+      ?: throw AgentRefusal(
+        "\"$name\" is no object kind. They are " +
+          HeapObjectKind.values().joinToString(", ") { it.name } + "."
+      )
+  }.toSet()
+}
 
 /**
  * What `show` was asked to put on screen: an object like every other tool takes, or a screen as a [PLACE].
@@ -1254,7 +1268,7 @@ private fun nothingToShow(
 }
 
 /**
- * What `open_heap_dumps` answers when there is nothing to read, which depends on whether there is about to be.
+ * What `list_heap_dumps` answers when there is nothing to read, which depends on whether there is about to be.
  *
  * The indexing case names the path rather than alluding to it, because an agent that is told nothing is open
  * and is not told where its heap dump is has one move left, which is to guess a path — and one guessed another

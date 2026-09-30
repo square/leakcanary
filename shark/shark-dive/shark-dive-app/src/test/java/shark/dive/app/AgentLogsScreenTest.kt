@@ -442,7 +442,6 @@ class AgentLogsScreenTest {
     at = STARTED_AT,
     tool = tool,
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDumpPath,
     place = Place.Object(activityObjectId()),
     arguments = mapOf("object" to hex(activityObjectId())),
@@ -462,7 +461,6 @@ class AgentLogsScreenTest {
     at = STARTED_AT,
     tool = null,
     reason = null,
-    windowId = null,
     heapDumpPath = null,
     place = null,
     arguments = emptyMap(),
@@ -493,7 +491,6 @@ class AgentLogsScreenTest {
     at = STARTED_AT,
     tool = "list_leaks",
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDump.file.absolutePath,
     place = Place.Leaks(),
     arguments = emptyMap(),
@@ -513,7 +510,6 @@ class AgentLogsScreenTest {
     at = STARTED_AT,
     tool = tool,
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDump.file.absolutePath,
     place = if (tool == "find_objects") Place.Objects() else Place.wholeHeapDump(),
     arguments = emptyMap(),
@@ -528,9 +524,8 @@ class AgentLogsScreenTest {
   /** The first call of most sessions: which dumps are open, answered with the ones that were. */
   private fun openHeapDumpsCall(otherHeapDump: File) = AgentSessionCall(
     at = STARTED_AT,
-    tool = "open_heap_dumps",
+    tool = "list_heap_dumps",
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDump.file.absolutePath,
     // Nowhere to go: this one asks the app rather than a heap dump. What it came back with is where it goes.
     place = null,

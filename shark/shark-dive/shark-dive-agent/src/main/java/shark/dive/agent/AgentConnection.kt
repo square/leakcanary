@@ -11,8 +11,8 @@ import shark.SharkLog
  * One agent talking to this app: a call per line in, an answer per line back. See [AgentWire].
  *
  * **There is no protocol here beyond naming a tool.** No handshake to answer, nothing to discover, no
- * capabilities to agree on — what the tools are is `--agent-help`, which is text this build carries and needs
- * no window to print, and how to work here arrives in the first answer rather than in front of it. So a
+ * capabilities to agree on — what the commands are is `--help`, which is text this build carries and needs no
+ * run to print, and how to work here arrives in the first answer rather than in front of it. So a
  * caller is a socket, a line and a read, which is the whole of what [AgentCommandLine] does.
  *
  * A connection holds no state of its own. What an investigation accumulates — the verdicts, the notes — lives
@@ -32,8 +32,8 @@ internal class AgentConnection(
   /**
    * Whether this session has already been handed [AgentMethod.SURFACE], which it is exactly once.
    *
-   * Starts from the file rather than from false, because a session is not a connection: `--agent` is a
-   * process per call, so an [AgentConnection] is one typed command and the session it belongs to is whatever
+   * Starts from the file rather than from false, because a session is not a connection: `--cli` is a process
+   * per call, so an [AgentConnection] is one typed command and the session it belongs to is whatever
    * [AgentSessionFile] joined. See [AgentSessionFile.hasAnsweredACall] and [withTheSurface].
    */
   private var hasHandedOverTheSurface = sessionFile.hasAnsweredACall
@@ -152,21 +152,20 @@ internal class AgentConnection(
    * for a line, because a first command that was refused carried no answer for this to be in, and a session
    * that counted it would be one where nobody ever read the surface.
    *
-   * **Prepended into the one [AgentMethod.FIELD] rather than added beside it.** `list_leaks` answers with
-   * [AgentMethod.LEAK] in that field, and a call that is both the first of its session and that one gets both
-   * halves as one text in the order they are meant to be read. Two keys would be a second `method` a model
-   * has to notice, and a JSON object cannot have the same one twice.
+   * **And it is the only half of the method that travels in an answer.** [AgentMethod.LEAK] was in this same
+   * field of `list_leaks`, which is why this used to merge the two, and it is now
+   * [AgentCommandLine.LEAK_METHOD_OPTION] — text a session reads once, rather than a field an investigation of
+   * four leaks was handed four times.
    */
   private fun withTheSurface(answer: JsonObject): JsonObject {
     if (hasHandedOverTheSurface) {
       return answer
     }
     hasHandedOverTheSurface = true
-    val method = (answer[AgentMethod.FIELD] as? JsonPrimitive)?.content
     return buildJsonObject {
       // First, because it is the part that says how to work here, and a model reads an answer from the top.
-      put(AgentMethod.FIELD, listOfNotNull(AgentMethod.SURFACE, method).joinToString("\n\n"))
-      answer.forEach { (name, value) -> if (name != AgentMethod.FIELD) put(name, value) }
+      put(AgentMethod.FIELD, AgentMethod.SURFACE)
+      answer.forEach { (name, value) -> put(name, value) }
     }
   }
 
@@ -198,7 +197,6 @@ internal class AgentConnection(
         at = at,
         tool = name,
         reason = (arguments[REASON_ARGUMENT] as? JsonPrimitive)?.content,
-        windowId = target.windowId,
         heapDumpPath = target.heapDumpPath,
         place = target.place,
         arguments = arguments.recorded(),
@@ -234,7 +232,6 @@ internal class AgentConnection(
         at = at,
         tool = null,
         reason = null,
-        windowId = null,
         heapDumpPath = null,
         place = null,
         arguments = emptyMap(),
@@ -254,20 +251,17 @@ internal class AgentConnection(
     /** What the agent said it was after, which every tool takes. See [AgentTool]. */
     const val REASON_ARGUMENT = "reason"
 
-    /** Which window a call names, which the session log keeps as a field of its own. */
-    const val WINDOW_ARGUMENT = "window"
-
     const val NANOS_PER_MILLI = 1_000_000L
 
     /**
      * The rest of the arguments, as text, for the row a session log keeps.
      *
-     * Without the two that have fields of their own, and never as the JSON that arrived: what this is read
-     * back for is a screen that says what an agent did in words, so a value here is one the window can put
-     * beside a verb.
+     * Without the one that has a field of its own, and never as the JSON that arrived: what this is read back
+     * for is a screen that says what an agent did in words, so a value here is one the window can put beside a
+     * verb.
      */
     fun JsonObject.recorded(): Map<String, String> =
-      filterKeys { it != REASON_ARGUMENT && it != WINDOW_ARGUMENT }
+      filterKeys { it != REASON_ARGUMENT }
         .mapValues { (_, value) -> (value as? JsonPrimitive)?.content ?: value.toString() }
 
     /**

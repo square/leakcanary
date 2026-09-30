@@ -15,6 +15,7 @@ import shark.dive.HeapDumpPaths
 import shark.dive.LeakStatus
 import shark.dive.LeakStatusOverride
 import shark.dive.Place
+import shark.dive.agent.AgentCommandLine
 import shark.dive.agent.AgentRefusal
 
 /**
@@ -38,7 +39,7 @@ class HeadlessAgentHeapDumpsTest {
     headless(file).use { heapDumps ->
       val dump = runBlocking { heapDumps.open(file) }
 
-      assertThat(heapDumps.openHeapDumps().map { it.windowId }).containsExactly(dump.windowId)
+      assertThat(heapDumps.openHeapDumps()).containsExactly(dump)
       assertThat(dump.heapDumpPath).isEqualTo(file.absolutePath)
     }
   }
@@ -67,9 +68,10 @@ class HeadlessAgentHeapDumpsTest {
       val first = runBlocking { heapDumps.open(file) }
       val second = runBlocking { heapDumps.open(file) }
 
-      // Not merely equal ids: a second open would be a second index of the same file, on a second thread,
-      // writing the notes of the first.
-      assertThat(second.windowId).isEqualTo(first.windowId)
+      // The same object, not merely one of the same path: a second open would be a second index of the same
+      // file, on a second thread, writing the notes of the first. Which is what lets a command say "open this
+      // dump" without first asking whether it already is — see [AgentCommandLine.OPEN_HEAP_DUMP].
+      assertThat(second).isSameAs(first)
       assertThat(heapDumps.openHeapDumps()).hasSize(1)
     }
   }
@@ -84,7 +86,7 @@ class HeadlessAgentHeapDumpsTest {
       val shown = dump.show(Place.Leaks())
 
       assertThat(shown.problem)
-        .contains(NO_UI_OPTION)
+        .contains(AgentCommandLine.NO_UI_OPTION)
         .contains(file.name)
       // And a link all the same, which is the half of it an agent passes on: a link names the heap dump rather
       // than a window, so one from a run with no window opens this file for whoever clicks it. Nothing but the

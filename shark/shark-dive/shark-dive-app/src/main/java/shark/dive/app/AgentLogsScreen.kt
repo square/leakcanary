@@ -220,7 +220,7 @@ private fun List<AgentSession>.byHeapDump(heapDumpFile: File): List<HeapDumpSess
  * gets opened for is often why *nothing* happened — and a screen that draws the calls that worked is the one
  * screen that cannot answer it.
  *
- * **And one row per thing the agent did**, which is what a line each way buys: `--agent` is a process per
+ * **And one row per thing the agent did**, which is what a line each way buys: `--cli` is a process per
  * call, and a session of thirty typed commands is thirty rows.
  */
 @Composable

@@ -20,6 +20,17 @@ import shark.dive.objectIdOfHex
  */
 internal class AgentTool(
   val name: String,
+  /**
+   * One line, for the list of every command there is — `--help` — where the descriptions below would be
+   * several screens.
+   *
+   * Written rather than taken as the first sentence of [description], because the two are read at different
+   * moments and answer different questions. This one is read by somebody choosing *which* command, so it says
+   * what the command is about and nothing about when to reach for it; the description is read after that choice
+   * and is where the method, the warnings and the pointers at other tools belong. Deriving one from the other
+   * would make the list a function of where a full stop happens to fall.
+   */
+  val summary: String,
   val description: String,
   /** JSON Schema for the arguments, which is what a client validates against before calling. */
   val schema: JsonObject,

@@ -6,7 +6,7 @@ against a packaged build, not estimated.
 
 ## There is one way in, and this note is why
 
-`--agent <tool> name=value …`, a process per call, answered by the run that already has the heap dump open.
+`--cli <command> name=value …`, a process per call, answered by the run that already has the heap dump open.
 No protocol, no handshake to negotiate, nothing to discover: a socket, a line, a read.
 
 It was three ways in. An [MCP](https://modelcontextprotocol.io) server over a stdio pipe a client launched
@@ -21,41 +21,57 @@ is. *So: one core, one adapter* has what that leaves to build.
 
 ## What the command line costs
 
-`--agent <tool> name=value …` is a process per call, and the thing to know is what that *doesn't* cost.
-Measured against a packaged build with one window open on `leak_asynctask_o.hprof`:
+`--cli <command> name=value …` is a process per call, and the thing to know is what that *doesn't* cost.
+Measured against a packaged build of `df043f985`, `SHARK_DIVE_DIR` pointed at a scratch directory, with one
+run open on `leak_asynctask_o.hprof` and no window:
 
 | | Measured | Paid |
 | --- | --- | --- |
-| One call, JVM start to JSON on stdout | 170 ms | Per call |
-| `--agent-help`, all seventeen tools | 17,923 characters, ≈4,480 tokens | Only when read |
-| `--agent-help <tool>`, one of them | 424–2,068 characters, ≈105–520 tokens | Only when read |
+| One call, JVM start to JSON on stdout | 153 ms | Per call |
+| `--help`, the whole surface: every option and all eighteen commands, one line each | 4,580 characters, ≈1,145 tokens | Only when read |
+| `--help <command>`, one of them in full | 871–2,524 characters, ≈220–630 tokens | Only when read |
+| `--leak-investigation-help`, the method for finding a faulty reference | 7,913 characters, ≈1,980 tokens | Once per investigation |
 
 So **the standing cost is nothing** — no server is running, no definitions are in a context window, and a
-session that never reaches for a heap dump never pays for this surface at all. The whole surface as text is
-also *smaller* than MCP's `tools/list` definitions of it were, 17,923 characters against 23,877, because
-`reason` is explained once rather than seventeen times.
+session that never reaches for a heap dump never pays for this surface at all.
+
+**And what the whole surface costs to read is now a quarter of what it was**, 4,580 characters against 17,923,
+because `--help` lists a one-line summary per command and `--help <command>` is where the full description and
+every argument are. That is the split worth keeping: the list is what an agent reads to find the command, the
+description is what it reads to call one, and the version that printed every description in the list was
+paying 4,480 tokens to answer "what is here". MCP's `tools/list` was 23,877 characters of the same thing, every
+turn. The largest single command is `set_verdict` at 2,524 characters — two justifications to explain — and it
+is the one to watch, because the help for one command is worth being the short answer.
 
 The full help includes the invocation path three times, since what it prints is the command to type on this
-machine, so a shorter install path is a shorter help: these were measured from
-`…/build/compose/binaries/main/app/Shark Dive.app/Contents/MacOS/Shark Dive`, and the same text off a `.dmg`
-install is 17,608 characters. A single tool's help doesn't repeat the path at all. The largest of those is
-`set_verdict` at 2,068 characters, which is the tool with two justifications to explain and the one to watch:
-the help for one tool is worth being the short answer.
+machine, so a shorter install path is a shorter help: measured from
+`…/build/compose/binaries/main/app/Shark Dive.app/Contents/MacOS/Shark Dive`. A single command's help doesn't
+repeat the path at all.
+
+**`--cli` with nothing after it prints exactly that help**, byte for byte, exit 0 and nothing on stderr —
+`diff` says identical, and so do `-h` and `--help`. Which is the point: the one command line that is a
+question about this program rather than a call to a run of it reaches no run at all, opens nothing, and
+answers immediately.
 
 **A call from a shell is not a slower call.** It reaches the same window over the loopback socket the run
 already publishes, so the heap dump is the one that was parsed and indexed once and the read queues on that
-window's own thread — the 170 ms is a JVM starting and a socket, not a heap dump being reopened, and the wire
+window's own thread — the 153 ms is a JVM starting and a socket, not a heap dump being reopened, and the wire
 trace below puts 23 ms of it between the connect and the answer. The process-per-call shape costs exactly one
 thing, and it isn't speed: **a connection can no longer be what gathers an investigation**, which is what
-`--agent-session=` and `AgentSessionFile.continuing` exist for. A call says which session it is one of,
+`--session=` and `AgentSessionFile.continuing` exist for. A call says which session it is one of,
 defaulting to `cli<the shell's pid>`, so a conversation's calls are one row of the *Agent logs* screen.
+
+**Measured, and it holds across runs as well as across processes**: five calls typed as five separate
+commands, two of them answered by a different run of the app — `--run=` aimed one at the second — are **one
+session file with five rows and a header**, because the sessions directory belongs to `SHARK_DIVE_DIR` rather
+than to a run. So an investigation that outlived the run it started in still reads as one thing.
 
 **What a call does queue behind is the window.** Reads are confined to the heap dump's own thread so that an
 agent sees what the window shows, which means a call costs whatever that window is already doing — and on a
 real dump that can be minutes: a leak analysis of a 4 million object Android dump took 683 s here. That is
 the intended trade for every tool that reads one dump.
 
-**Listing what is open is not one of them, and used to be.** `open_heap_dumps` is the only call that touches
+**Listing what is open is not one of them, and used to be.** `list_heap_dumps` is the only call that touches
 every open window, and it was doing it through `read` — so with three real dumps open it took **40.7 s**, all
 of it queued behind the leak analysis of a dump the agent had not been asked about, for an answer that is
 mostly file names. The read itself measured 0 ms, because the sizes are a constructor val of `HeapDive`:
@@ -71,6 +87,93 @@ dumps index on three threads. Measured headless and warm on the 4 M-object dump,
 155 ms. Three windows taking far longer than that is not the opens colliding — it is each window's own
 post-open reads (the referrer index, the treemap layout, the leak analysis) running beside the other two
 opens, which is the paragraph above rather than this one.
+
+## One run, and how a command gets one to talk to
+
+**A command expects exactly one run of this build, and every part of this section follows from that.** Several
+runs of Shark Dive at once is how the app is used — a window per heap dump — but *several runs of the app*, each
+with its own set of dumps open, is a different thing, and it is what made the version before this one answer
+about whichever run happened to have started most recently. That is a command whose heap dump depends on what
+else is on the machine.
+
+So there are three filters, in this order, and then either one run or a message:
+
+- **The pid is alive.** `AgentServer.isRunning`, asked of the OS rather than by connecting, because this is
+  read before anything is sent. A run deletes its own file from a shutdown hook and from the `Closeable`, and
+  **neither of those runs for a run that was killed** — a force quit, an out of memory, a `kill -9` — so the
+  file outlives the run often enough to matter. Measured before this existed: a window force quit three weeks
+  earlier was still being offered to every call beside the live one.
+- **The build sha matches.** `PublishedRun.buildSha`, written into the file as the run starts. This is the one
+  that makes a machine in the middle of a branch usable: the window still running last week's build refuses a
+  command this build renamed, and it refuses it as *there is no command called that* rather than as *that
+  window is a different build*. Which is the normal state of this machine while the surface is being worked on.
+  A run named by `--run=<pid>` that is a different build gets that sentence explicitly, since a pid somebody
+  typed deserves better than reading as no run at all.
+- **Then: one, none, or too many.** One is the call. None is either a run being started — see below — or a
+  message saying so, with the `open_heap_dump` command line to type and the directory runs publish themselves
+  in. Too many is an error naming each of them by pid and by whether it draws windows, and `--run=<pid>` is how
+  to mean one. Measured: `2 Shark Dive runs are open, so which heap dumps there are to read depends on which of
+  them you meant. Pass --run=<pid> to say: 43049 (with no window), 42481 (with no window).`
+
+**`--run=` and not `--agent-run=`.** The option names a run of Shark Dive, and this surface is designed for
+agents and typed by people — an option named after one of its two readers is an option the other one is
+entitled to think is not meant for them.
+
+**Only `open_heap_dump` starts a run.** "No run, so start one" narrowed, deliberately: every other command is
+a question *about* a run, and a question answered by a run this command line just started is a question
+answered with nothing — indistinguishable, from the outside, from a run that was already there and had nothing
+open. So the rest are refused with the next step as the message. It costs the wait: measured at **10.4
+seconds** for a `list_heap_dumps` with nothing running, which is `DEFAULT_RUN_WAIT_MILLIS` spent on a run that
+might still be coming up before concluding there is none. That wait is what covers a window somebody launched
+by hand a moment ago — the harness does exactly that — and it lands only on the path that was going to be
+refused.
+
+### Starting one has to survive the command that started it
+
+The spec asked for forking, and asked to be walked through the alternatives if forking brought problems. It
+does, and the problem is not the one forking is usually asked about. A child of this process **already**
+survives it exiting; it is reparented to `launchd`. What kills the run is a signal aimed at a process *group*:
+closing a terminal sends `SIGHUP` to its foreground process group, a JVM dies on `SIGHUP`, and anything that
+kills a command by its group — which is what a coding agent's harness does — takes the run with it.
+
+Three routes measured, against the packaged launcher:
+
+| Route | Starter returns | Run's ppid | Run's pgid | Run's session |
+| --- | --- | --- | --- | --- |
+| `ProcessBuilder`, a plain child | not waited on | 1 once the caller exits | **the caller's** | the caller's |
+| `sh -c 'set -m; "$@" &'` | 0.01 s, rc 0 | 1 | its own | still the caller's |
+| `open -n -a <bundle> --args …` | 0.09 s, rc 0 | 1 | its own | **1 (launchd), no tty** |
+
+`detached()` in `shark/shark-dive/shark-dive-app/src/main/java/shark/dive/app/DiveAgents.kt` picks the third
+for a packaged install, the second for a run from a JVM classpath where there is no bundle to name, and the
+plain child where neither is available. Confirmed on the real thing: a run started by
+`--cli open_heap_dump --no-ui` came out `ppid 1, pgid itself, session 0, tty ??`, with the command that started
+it returning in **1.566 s** — a heap dump open and answered, not a process handed off and hoped for.
+
+What the `open` route costs, and neither is a surprise once written down: it hands back **no pid**, which is
+free here because what waits for the run is the command line watching the directory runs publish themselves in,
+exactly as it would for a run somebody else started; and it gives the run **the root directory** to work in, so
+every path handed over has to be absolute, which they are — `DiveArguments` holds `File`s and `openAnotherRun`
+spells them `absolutePath`.
+
+**And both streams are discarded rather than inherited**, which is the mirror image of the same problem: a run
+holding the stderr this process inherited is a command that *appears never to finish*, for anything reading
+until end of file. So the diagnostics go where every other diagnostic goes, `~/.shark-dive/logs`, and the one
+case a log file cannot cover — a run that died before it could open one — is a run that never published itself,
+which is exactly what the caller is told.
+
+### And closing the last heap dump ends the run
+
+A run **is** its heap dumps: one with none left has nothing to come back to, and leaving it up leaves the
+two-runs error waiting for the next command. So `close_heap_dump` on the last one ends the run, which needs one
+thing that is easy to miss — **the answer has to get out while the run goes away underneath it**. The
+connection threads are daemons, so nothing else holds the JVM open for them, and without
+`AgentServer.letAnswersOut` the command that did exactly what it said reads as *Shark Dive stopped answering*.
+Bounded and short, because what it waits for is a `println` of an answer already built; a call still *working*
+is cut off as before, rather than holding a closing app open for the length of a `dump_heap`.
+
+Measured end to end: `close_heap_dump` on the only dump of a run answered `"runEnded": true` with the next step
+in it, exit 0, and the run's `.agent` file was gone and its process ended a second later.
 
 ## Two texts, because there are two budgets
 
@@ -88,21 +191,32 @@ is 30,000 characters, and every answer on this surface is under it except one: s
 `AgentMethod` is split in two against that, and against a second thing the caps make plain: **a session
 should not pay for a method it isn't following.**
 
-- **`SURFACE`, 1,819 characters**, is how to work on this surface at all: the reason on every call, the window
+- **`SURFACE`, 1,901 characters**, is how to work on this surface at all: the reason on every call, the window
   somebody is watching, the `shark://` links to hand back, the gap to admit, and one sentence saying that
-  anything about a leak starts at `list_leaks`. `AgentConnection.withTheSurface` prepends it to the first
-  *answered* call of a session, exactly once, which is read off the session file rather than held in memory
-  because a process per call has no memory. It is the one text every session pays, so it stays the short one.
-  Measured: a first `open_heap_dumps` answers 3,980 characters where the same call answers 2,132 after.
-- **`LEAK`, 7,920 characters**, is what a leak is, how a verdict spreads, the order to work in, and reading
-  the code at the version the dump is of. It travels in `list_leaks`'s answer and nowhere else, so the call
-  that pays for it is the call it is the method for, and a session that only ever asks where the memory went
-  never pays it at all. Measured: `list_leaks` answers 14,477 characters as a session's second call, and
-  16,312 as its first — `SURFACE`, a blank line, `LEAK`, 9,741 characters of method in one field.
+  anything about a leak starts by reading `--leak-investigation-help`. `AgentConnection.withTheSurface`
+  prepends it to the first *answered* call of a session, exactly once, which is read off the session file
+  rather than held in memory because a process per call has no memory. It is the one text every session pays,
+  so it stays the short one. Measured: a first `open_heap_dump` answers 3,802 characters, half of which is this.
+- **`LEAK`, 7,913 characters as `--leak-investigation-help` prints it**, is what a leak is, how a verdict
+  spreads, the order to work in, and reading the code at the version the dump is of. **It is a read rather
+  than an answer**, which is the half of this that changed: it was a field of every `list_leaks` answer, and
+  a `list_leaks` answers the same text whether it is the first call of an investigation or the fourth. So an
+  investigation of three leaks read the whole method three times, for a text that is about the chain rather
+  than about the list. Now it is one command, answered locally with no run and no heap dump, and read once by
+  the session that has a leak to work on.
 
-**An investigation of a leak that never called `list_leaks` therefore never read the leak method**, and that
-is the intended consequence rather than a hole to patch. `conclude` is what holds it: an investigation that
-skipped the method has not narrowed a chain to one reference, so it cannot finish.
+**Measured, and this is the largest single cut in the redesign**: `list_leaks` on `leak_asynctask_o.hprof`
+answers **6,481 characters**, the same on its second call as on its first, where it answered 14,477 as a
+second call and 16,312 as a first. A 55% cut on the call an investigation makes most, and it is the method
+that left rather than any of the leaks.
+
+**An investigation of a leak that never read `--leak-investigation-help` therefore never read the leak
+method**, and that is the intended consequence rather than a hole to patch — the same consequence as before,
+moved from one call to another. `conclude` is what holds it: an investigation that skipped the method has not
+narrowed a chain to one reference, so it cannot finish. What is different is that the pointer is now in three
+places an agent will see before it needs it — `SURFACE` on the first answer, the option column of `--help`,
+and the closing paragraph of the command list — because a text nothing hands over is a text only a careful
+reader finds.
 
 **The split was forced by MCP's caps and is kept because it was right anyway.** Claude Code caps every MCP
 tool description and every server `instructions` at 2,048 characters — `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH`
@@ -112,8 +226,8 @@ changes it, and the cap is documented in the
 first 22%** and the rest was dropped before the model saw anything. What made that survivable was that a tool
 *result* was a different budget, `MAX_MCP_OUTPUT_TOKENS`, 25,000 tokens by default, which the whole method was
 a tenth of — so `open_heap_dump` carried the lot, and that copy was the only reason a session ever read the
-end of it. Two budgets, one text that fitted neither well: the same reason the split still holds now that both
-halves travel in answers.
+end of it. Two budgets, one text that fitted neither well: the same reason the split still holds now that
+neither budget exists and the leak half travels in no answer at all.
 
 ## What MCP cost here
 
@@ -135,11 +249,11 @@ dump, against nothing.
 Worth keeping from that measurement: **the cap never touched the tool definitions**, measured rather than
 assumed — the longest description was `chain_from_gc_root` at 652 characters, a third of the cap, and none of
 the seventeen was within 1,300 of it. So a description can go on saying when to reach for its tool, in
-`--agent-help` as it did in a schema. What would silently lose text is the one thing not to write: a tool whose
-description is a page.
+`--help <command>` as it did in a schema. What would silently lose text is the one thing not to write: a
+command whose description is a page.
 
 And the shape of the traffic, which is the part the command line fixed rather than made cheaper. `initialize`
-answered with the method, and `--agent` was a process per call, so **a session of typed calls carried the
+answered with the method, and a call was a process per call, so **a session of typed calls carried the
 handshake once per call**: 32,976 characters of `initialize` answers in a nine-call trace, 57% of the session
 file, handed to a reader that already had the same text. Worse than the size was the drawing — **two rows per
 typed command**, so the *Agent logs* screen read as Connected, called, Connected, called.
@@ -148,42 +262,51 @@ protocol: one command typed is one row because nothing crosses the socket but th
 
 **So don't reintroduce anything in front of the call.** A capabilities exchange, a `hello`, a version
 negotiation: each of them is a row of a screen saying a process started and did the thing the next row already
-names, and there is nothing for one to carry. What the tools are is `--agent-help`, text this build prints with
+names, and there is nothing for one to carry. What the commands are is `--help`, text this build prints with
 no window and no heap dump. How to work here arrives in the first *answer*, which is the one thing an agent is
 certain to read, because it asked for it.
 
 ## And what reading somebody else's session costs
 
-`agent_log` without a session id is a line per session and cheap: 1,349 characters for the two sessions of the
+`agent_log` without a session id is a line per session and cheap: 1,348 characters for the two sessions of the
 trace below. With one, it is every line of that session with what was sent and what came back, which is the
-only form that answers "why did it do that next" — and it is the one answer on this surface big enough to hit
-the caller's own cap. Measured against the `flowtrace` session below, nine calls:
+only form that answers "why did it do that next" — and it is the one answer on this surface anywhere near the
+caller's own cap. Measured against the `flowtrace` session below, six calls:
 
 | | Measured |
 | --- | --- |
-| The six tool-call rows | 3,980 + 2,132 + 2,132 + 14,477 + 139 + 853 characters of answer |
-| The three that reached no tool | 28 + 34 + 282 characters — the failure, and nothing else to keep |
-| The session file on disk | 30,050 characters, ten lines: a header and nine calls |
-| The whole `agent_log session=…` answer | 33,035 characters, ≈8,260 tokens |
+| The six rows' answers | 3,801 + 2,098 + 2,098 + 6,480 + 139 + 853 characters |
+| The session file on disk | 20,358 characters, seven lines: a header and six calls |
+| The whole `agent_log session=…` answer | 20,840 characters, ≈5,210 tokens |
 
-So **a tool call is one to four thousand characters and the answer is nearly all of it**, a `list_leaks` that
-carried the method is half the session on its own, and a thirty-call investigation read in full is most of a
-small context window. That is the tool being used for what it is for rather than a leak — it is the one call
-on this surface whose subject is somebody else's whole investigation.
+So **a call is one to four thousand characters and the answer is nearly all of it**, the two refusals are the
+two cheapest rows in the session, and a thirty-call investigation read in full is most of a small context
+window. That is the tool being used for what it is for rather than a leak — it is the one call on this surface
+whose subject is somebody else's whole investigation.
 
-**And at 33,035 characters it is over Claude Code's 30,000**, so what a Claude Code session actually gets is a
-2 KB preview and a path to read. Which works, and is worth knowing before concluding that `agent_log` returned
-nothing. If it needs to be cheaper, the shape to reach for is a way to ask for one call's exchange rather than
-a shorter version of every call's. Nothing truncates it here, deliberately: a session cut to fit is one where
-the answer that misled an agent is the part that got cut.
+**The version of this measurement before the redesign hit Claude Code's 30,000-character cap**: nine calls,
+33,035 characters, of which a single `list_leaks` carrying the leak method was 14,477. What a Claude Code
+session got was a 2 KB preview and a path to read. Moving that method to `--leak-investigation-help` is most of
+why this trace's six calls are 20,840 — but the two traces are six calls and nine, so **that is not a
+like-for-like number and the cap has not gone away**: a long investigation still passes it, and the shape to
+reach for then is a way to ask for one call's exchange rather than a shorter version of every call's. Nothing
+truncates it here, deliberately: a session cut to fit is one where the answer that misled an agent is the part
+that got cut.
 
 ## The flow, end to end, traced
 
-Every number and every line below was read off one run: a packaged build of this branch, one window on
+Every number and every line below was read off one run: a packaged build of `df043f985`, one run open on
 `shark/shark-android/src/test/resources/leak_asynctask_o.hprof`, and a logging relay in front of that run's
 socket so both directions are on the record. `SHARK_DIVE_DIR` pointed at a scratch directory, which is what
 keeps a trace out of the notes and logs of whoever is running it — see `sharkDiveDirectory()` in
-`shark/shark-dive/shark-dive-app/src/main/java/shark/dive/app/DiveLogging.kt`.
+`shark/shark-dive/shark-dive-app/src/main/java/shark/dive/app/DiveLogging.kt:125`.
+
+The relay is worth describing, because **the two-runs rule is what makes one possible**. It reads the real
+run's file, listens on a port of its own, and writes a second `.agent` file naming that port with the same
+token, the same `buildSha` and the same `window=` — so it publishes itself as a run of this build. That makes
+two, which every command then refuses until one is named, and `--run=<the relay's pid>` is how the trace was
+aimed through it. The file has to be called `<a live pid>.agent`, since `AgentServer.isRunning` deletes one
+named after a process that has gone.
 
 ### The pieces, and what each one is handed
 
@@ -193,32 +316,32 @@ window's own, which is `shark/shark-dive/shark-dive-app/src/main/java/shark/dive
 | Piece | Process | In | Out |
 | --- | --- | --- | --- |
 | The window, `Main.kt` | The app: one per run, many windows | A heap dump on its command line | A window, and one `<pid>.agent` file |
-| `AgentServer.listen`, `AgentServer.kt:44` | A daemon thread of that process | A loopback connection | A thread per connection, with an `AgentConnection` on it |
-| `~/.shark-dive/agents/<pid>.agent` | A file, written as the run starts | — | `port=`, `token=`, readable by its owner alone |
+| `AgentServer.listen`, `AgentServer.kt:45` | A daemon thread of that process | A loopback connection | A thread per connection, with an `AgentConnection` on it |
+| `~/.shark-dive/agents/<pid>.agent` | A file, written as the run starts | — | `port=`, `token=`, `buildSha=`, `window=`, readable by its owner alone |
 | `AgentConnection.answer`, `AgentConnection.kt:49` | That thread | One line of JSON per call | One line back, and a line of the session file |
 | `AgentWire.kt` | Neither end's, which is the point | A call, or an answer | The two keys each of them is |
-| `AgentTools`, `AgentTools.kt:46` | Suspends onto the heap dump's own thread | A tool name and its arguments | A `JsonObject`, or an `AgentRefusal` |
+| `AgentTools`, `AgentTools.kt:46` | Suspends onto the heap dump's own thread | A command name and its arguments | A `JsonObject`, or an `AgentRefusal` |
 | `AgentSessionFile.kt` | The same thread | A line per call | `~/.shark-dive/agents/sessions/agent-<when>-<id>.jsonl` |
-| `AgentCommandLine.run`, `AgentCommandLine.kt:45` | **A process per call**, the same binary | The words after `--agent` | Pretty JSON on stdout, a refusal on stderr, an exit code |
+| `AgentCommandLine.run`, `AgentCommandLine.kt:56` | **A process per call**, the same binary | The words after `--cli` | Pretty JSON on stdout, a refusal on stderr, an exit code |
 
 ### A typed call is a process, a connect, and two lines
 
 ```bash
-"Shark Dive.app/Contents/MacOS/Shark Dive" --agent-session=flowtrace \
-  --agent open_heap_dumps reason="Finding out what is already open"
+"Shark Dive.app/Contents/MacOS/Shark Dive" --cli list_heap_dumps \
+  --session=flowtrace reason="Finding out what is already open"
 ```
 
-That command starts a JVM, which reads `~/.shark-dive/agents`, picks the newest run whose pid is still alive,
-connects to its port, and sends this — `->` is the command line talking, `<-` is the window, and the seconds
-are from the start of the trace:
+That command starts a JVM, which reads `~/.shark-dive/agents`, keeps the runs built from its own commit,
+connects to the one that leaves, and sends this — `->` is the command line talking, `<-` is the run, and the
+seconds are from the start of the trace:
 
 ```
-13.003 c2 -- connected
-13.004 c2 -> 076984584dad3fb286a88d0a3e81ea12 flowtrace
-13.004 c2 <- OK
-13.024 c2 -> {"tool":"open_heap_dumps","arguments":{"reason":"Finding out what is already open"}}
-13.026 c2 <- {"answer":{"heapDumps":[{"heapDump":"leak_asynctask_o.hprof","window":"p8jku5nd", …}
-13.031 c2 -- closed
+13.049 c1 -- connected
+13.070 c1 -> 475edc0c812d48d8d592202e8c509ebe flowtrace
+13.071 c1 <- OK
+13.092 c1 -> {"tool":"list_heap_dumps","arguments":{"reason":"Finding out what is already open"}}
+13.098 c1 <- {"answer":{"heapDumps":[{"heapDump":"leak_asynctask_o.hprof","heapDumpPath":"/…/leak_asynctask_o.hprof","sizes":{…},"verdictsSetByHand":[],"placesWithANote":0}]}}
+13.104 c1 -- closed
 ```
 
 Six lines, and four things about it that the shape of that trace is the evidence for.
@@ -234,26 +357,34 @@ of `{"answer":{…}}`, `{"refused":"…"}` or `{"failed":"…"}` back. Three and
 surface working — a tool sending an agent back to the heap dump with the next thing to do — and a caller told
 that was a failure is a caller told this app fell over. `AgentCommandLine` maps them to exit 0, 2 and 1.
 
-**The window does the work on the heap dump's own thread**, so what a call takes is how long that thread takes
-to reach it: 2 ms here, `open_heap_dumps` being the one call that touches no heap dump thread at all. The 20 ms
-in front of it is this process encoding its own call, and `time` around the whole command says 170 ms, nearly
-all of which is a JVM starting.
+**The answer names the heap dump by its file and by nothing else**, which is what every command after this one
+says which dump it is about. There is no window in it and there was: a `window` field of a short id per open
+dump, which the CLI then had no use for — a command line is about heap dump files, and one file is at most one
+open per run, so the identifier the answers are written in is the one an agent already has in front of it. Two
+readings of one dump being compared is two runs, and `--run=` is how to say which.
+
+**The run does the work on the heap dump's own thread**, so what a call takes is how long that thread takes
+to reach it: 6 ms here, `list_heap_dumps` being the one call that touches no heap dump thread at all — against
+415 ms for the `list_leaks` two commands later, which is a leak analysis. The 21 ms in front of it is this
+process encoding its own call, and `time` around the whole command says 201 ms, nearly all of which is a JVM
+starting.
 
 **The socket closes with the process.** Nothing is held open, and nothing has to be: what gathers the calls
 is the session name, not the connection.
 
 ### Six typed calls are six processes, six connections, and one row each
 
-The rest of the trace, as commands typed in a row against the same window:
+The whole trace, as commands typed in a row against the same run:
 
 | Command | Exit | stdout | `method` in the answer |
 | --- | --- | --- | --- |
-| `--agent open_heap_dumps` | 0 | 3,980 characters: the open dumps, with sizes | `SURFACE`, 1,819 characters — first answered call of the session |
-| `--agent open_heap_dumps` ×2 | 0 | 2,132 characters each | none: the surface half is spent |
-| `--agent list_leaks` | 0 | 14,477 characters | `LEAK`, 7,920 characters |
-| `--agent conclude reference=…` | 2 | empty | none: a refusal carries no answer |
-| `--agent conclude object=0x12d368b8 rootCause=…` | 2 | empty | none — the candidate references are named on stderr instead |
-| `--agent list_leaks --agent-session=flowleak` | 0 | 16,312 characters | 9,741: `SURFACE`, a blank line, `LEAK` |
+| `--cli open_heap_dump path=…` | 0 | 3,802 characters: the dump, its sizes, what is already recorded about it | `SURFACE`, 1,901 characters — first answered call of the session |
+| `--cli list_heap_dumps` | 0 | 2,099 characters | none: the surface half is spent |
+| `--cli list_heap_dumps` ×2 | 0 | 2,099 characters | none |
+| `--cli list_leaks` | 0 | 6,495 characters | none — the leak method is `--leak-investigation-help` |
+| `--cli conclude reference=…` | 2 | empty | none: a refusal carries no answer |
+| `--cli conclude object=0x12d368b8 rootCause=…` | 2 | empty | none — the candidate references are named on stderr instead |
+| `--cli list_leaks --session=flowleak` | 0 | 8,435 characters | `SURFACE` again, this being another session's first answered call |
 
 The two refusals are the pair worth reading. `conclude reference=…` is refused by `AgentArguments.onlyTakes` —
 "conclude does not take `reference`. It takes `heapDump`, `howToReproduce`, `notChecked`, `object`, `reason`,
@@ -264,19 +395,20 @@ The fault is at one of those references, and what settles which is the objects b
 verdict…"*. Both went to stderr with exit code 2 and nothing on stdout, each prefixed `[shark-dive]` so that a
 shell's output says which program is talking.
 
-And the calls are two session files, not six:
+And the calls are two session files, not seven:
 
 ```
-agent-2026-09-29_21-23-30_220-flowtrace.jsonl   header + 3 × open_heap_dumps + list_leaks + 2 × conclude
-agent-2026-09-29_21-23-44_160-flowleak.jsonl    header + list_leaks
+agent-2026-09-30_22-56-38_707-flowtrace.jsonl   header + open_heap_dump + 2 × list_heap_dumps + list_leaks + 2 × conclude
+agent-2026-09-30_22-57-13_242-flowleak.jsonl    header + list_leaks
 ```
 
-A refused call is a row, with the refusal in `output` as well as in `refused`. So is a line that reached no
-tool at all: three were pushed at that socket by hand — `this is not JSON`, a call with no `tool`, and a
-`solve_the_leak` nothing answers to — and each is a row of `flowtrace` answered `{"failed":…}`, with `tool`
-null for the first two. `AgentSession.toolCalls` is the subset that got as far as a tool, which is what the
-`n call(s)` on screen counts and what the eval scores: a number that moved with whatever a caller happened to
-send would be a number nobody could act on.
+A refused call is a row, with the refusal in `output` as well as in `refused` — 139 and 853 characters here,
+the two cheapest rows of that session. So is a line that reached no tool at all: three were pushed at that
+socket by hand in an earlier trace — `this is not JSON`, a call with no `tool`, and a `solve_the_leak` nothing
+answers to — and each was a row answered `{"failed":…}`, with `tool` null for the first two.
+`AgentSession.toolCalls` is the subset that got as far as a tool, which is what the `n call(s)` on screen
+counts and what the eval scores: a number that moved with whatever a caller happened to send would be a number
+nobody could act on.
 
 ## So: one core, one adapter
 
@@ -284,13 +416,15 @@ The thing worth protecting is that **the enforcement is not in the transport**. 
 (name, schema, handler) and every refusal is thrown from a handler, so an adapter is a translation of
 arguments in and JSON out, not a second copy of the rules:
 
-- `AgentCommandLine` — `--agent <tool> name=value …`, which turns a command line into one call on the socket
-  the window publishes and prints what came back. It refuses nothing itself: every refusal it reports was
-  thrown by a handler. `--agent-help` is generated from the registry, so a tool cannot be on one and missing
-  from the other, and it is described through `NoHeapDumpToDescribe` — a heap dump whose every method throws —
-  which makes "printed, never called" hold rather than be a habit.
-- The skill — `.claude/skills/shark-dive/SKILL.md`. Prose, not generated, and it points at `--agent-help` and
-  at the method the tools hand over rather than repeating either, since a list of tools in a file is a list
+- `AgentCommandLine` — `--cli <command> name=value …`, which turns a command line into one call on the socket
+  the run publishes and prints what came back. It refuses nothing a run could have answered: every refusal
+  about a heap dump that it reports was thrown by a handler, and the four it makes itself are the ones no run
+  was reached for — no command name, a name this build has no command for, `--no-ui` on a command that opens no
+  dump, and an unusable session name. `--help` is generated from the registry, so a command cannot be on one and
+  missing from the other, and it is described through `NoHeapDumpToDescribe` — a heap dump whose every method
+  throws — which makes "printed, never called" hold rather than be a habit.
+- The skill — `.claude/skills/shark-dive/SKILL.md`. Prose, not generated, and it points at `--help` and
+  at the method rather than repeating either, since a list of commands in a file is a list
   that goes stale. See the next section for why it is in `.claude/`.
 
 `McpSession` was the second adapter and is gone, along with `AgentStdioBridge` and `AgentStdioServer`. What
@@ -304,8 +438,16 @@ is two places that decide whether an investigation may conclude.**
 rather than a transport, and the MCP version of it was a transport as well: the same tools served from the
 bridge process, no window, and no `<pid>.agent` file, so its only client was an MCP client and it could have
 had no other. What it is now is a run of the app that opens no window and **publishes the socket anyway**, so
-`--agent` reaches it exactly as it reaches a window and nothing on the calling side knows which it is talking
+`--cli` reaches it exactly as it reaches a window and nothing on the calling side knows which it is talking
 to. One surface stays one surface, and a build server or a box over ssh is a machine this works on.
+
+**The one thing the calling side does know is which kind of run it is**, published as `window=true|false` and
+checked before connecting. Because whether anything is drawn is decided once, as a run starts — `--no-ui` is a
+run with nothing drawing it, and a run on a machine with no display cannot start Compose at all — so there is
+no mixed run to open one dump in a window of and another not. Which settles what `--no-ui` means on
+`open_heap_dump`: which kind of run to open the dump in, refused either way round if the run that is there is
+the other kind, and on no other command because a dump open with no window answers exactly as one in a window
+does.
 
 `HeadlessAgentHeapDumps` is the whole of the difference, and it is two answers and one refusal to answer:
 which dumps are open, what opening one means, and `show` handing back a link and saying it had nowhere to put
@@ -347,14 +489,26 @@ answered `Unknown option --help` and a usage line naming `--title` and the heap 
 all, *after* `installLogging()` had printed the JVM, the heap limit and the log path over it — and exited 0.
 So the single most likely command an agent can type answered that this surface does not exist, successfully.
 `DiveHelp.kt` is both spellings, answered before any logging, naming the window's half of the command line and
-the agent's, and pointing at `--agent-help` for the tools themselves. The two smaller dead ends were already
-covered: a bare `--agent` says it needs a tool name and where the list is, and a tool name nothing answers to
-lists every tool in the build.
+the commands, with a one-line summary each and `--help <command>` for all of one.
+
+**There is one help, not one per audience, and that is a correction of this build's predecessor.** It had
+`--agent-help` beside `--help`: one of the two was the more likely thing for an agent to type and the other
+was the one that listed the commands, which is a program answering "what do you take" with half of what it
+takes — and in the half the asker was least likely to type. So the commands moved into `--help`, and the three
+smaller dead ends are covered by the same text: `--cli` with nothing after it prints it verbatim (measured
+identical, byte for byte), a `--cli` given a name no command answers to lists every command in the build, and
+`-h` is the same again.
+
+**And the help points at opening a heap dump, because that is the one thing nothing else can tell an agent.**
+The command list opens with `Start with open_heap_dump on the heap dump you were given`, and the two worked
+examples under it are that command and one call on what it hands back — since an agent that has read the whole
+list still has to find out that the answers name a dump by its file and that every other command takes that
+name.
 
 Progressive disclosure is why a skill is the right home for the *pointer* and the answers are the right home
 for the *method*: ~80 tokens of name and description at rest, the body loaded only for a session actually
-holding a heap dump, and then 455 tokens of `SURFACE` on the first answer and the leak half only if the leaks
-are asked for. Nothing before that, which is the property the MCP server could not have.
+holding a heap dump, and then 475 tokens of `SURFACE` on the first answer and the leak half only when an
+investigation reads it. Nothing before that, which is the property the MCP server could not have.
 
 ## The judgement, in one line
 

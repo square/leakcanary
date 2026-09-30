@@ -10,26 +10,18 @@ import shark.dive.LeakStatusOverrides
 import shark.dive.Place
 
 /**
- * One open heap dump an agent can ask about, which is one window of the app.
+ * One open heap dump an agent can ask about.
  *
  * An interface rather than the window itself so that every tool in [AgentTools] is testable against a heap
  * dump and nothing else: the app's implementation carries a `HeapDumpSession`, the statuses set by hand and
  * the tabs, none of which a test of what a tool answers needs.
  *
- * **One of these is a window and not a heap dump file**, even though an agent names it by the file: the same
- * dump is open twice whenever two readings of it are being compared, and a verdict set through one of those
- * windows has to be the verdict the other one draws. See [AgentTools.HEAP_DUMP] for how one is asked for, and
- * `shark.dive.DeepLink` for the same split in a link.
+ * **One per file, per run**, which is what makes the file the whole of how a command line names one: opening a
+ * dump a run already has open joins that open rather than making a second. Two readings of one dump being
+ * compared is two runs, which is the same answer a person gets — see [AgentTools.HEAP_DUMP] and
+ * `shark.dive.DeepLink`, which names a heap dump for the same reason.
  */
 interface AgentHeapDump {
-
-  /**
-   * Which window this is, for the one thing the file name can't say: which of two windows on one dump.
-   *
-   * What a link names as its window and what this run's log calls it, so it is also how a person watching
-   * finds the window an agent was in. See [AgentTools.HEAP_DUMP].
-   */
-  val windowId: String
 
   /** Which heap dump is open here, absolute, so that an agent can check it is the one it was asked about. */
   val heapDumpPath: String
@@ -42,7 +34,7 @@ interface AgentHeapDump {
    *
    * **Not through [read]**, unlike everything else about a dump, because nothing here is read on demand: it
    * was all worked out by the pass that made the dump readable at all. Which is what lets
-   * [AgentTools.OPEN_HEAP_DUMPS] answer with the sizes of every open dump without waiting on any of them —
+   * [AgentTools.LIST_HEAP_DUMPS] answer with the sizes of every open dump without waiting on any of them —
    * a listing that queued behind each window's current read would take as long as the busiest one, and did.
    */
   val sizes: HeapSizes
@@ -163,40 +155,51 @@ class ShownPlace private constructor(
 /**
  * The heap dumps of this run, open and openable, which is what a connection asks before anything else.
  *
- * Windows come and go while an agent is connected, so [openHeapDumps] is asked per call rather than
- * captured: a tool naming a window that has since closed is an error message, not a stale answer.
+ * Heap dumps come and go while an agent is connected, so [openHeapDumps] is asked per call rather than
+ * captured: a tool naming a dump that has since been closed is an error message, not a stale answer.
  *
  * The rest of it is everything the app can be asked for that isn't about a dump it already has open —
- * opening another one, and taking one off a device — which is the same thing as **everything the buttons
- * above the map can do**. An agent that can read a heap dump but not open one is an agent that has to ask
- * its human to click something, which is the opposite of what this surface is for.
+ * opening another one, closing one, and taking one off a device — which is the same thing as **everything the
+ * buttons above the map can do**. An agent that can read a heap dump but not open one is an agent that has to
+ * ask its human to click something, which is the opposite of what this surface is for.
  */
 interface AgentHeapDumps {
 
-  /** Every window with a heap dump open, in the order they were opened. */
+  /** Every heap dump this run has open, in the order they were opened. */
   fun openHeapDumps(): List<AgentHeapDump>
 
   /**
    * The heap dumps this run was pointed at and cannot read yet, absolute, because indexing one takes as long
    * as it takes.
    *
-   * Beside [openHeapDumps] rather than in it, since a window id is a promise that every tool given it answers
-   * and a dump nothing can read yet cannot keep that promise. But leaving the path out of the answer
-   * altogether is worse than either: an agent that asks what is open, is told nothing is, and is not told the
-   * path this run was started on has one move left, which is to guess a path. One did — it guessed a heap dump
-   * belonging to another run of the same eval, investigated that instead, and answered confidently about a
-   * dump nobody had asked it about. See `notes/agent-eval.md`.
+   * Beside [openHeapDumps] rather than in it, since being in that list is a promise that every tool given that
+   * dump's name answers, and a dump nothing can read yet cannot keep that promise. But leaving the path out of
+   * the answer altogether is worse than either: an agent that asks what is open, is told nothing is, and is not
+   * told the path this run was started on has one move left, which is to guess a path. One did — it guessed a
+   * heap dump belonging to another run of the same eval, investigated that instead, and answered confidently
+   * about a dump nobody had asked it about. See `notes/agent-eval.md`.
    */
   fun openingHeapDumpPaths(): List<String>
 
   /**
-   * Opens [file] in a window of this app and answers once it can be read.
+   * Opens [file] in a window of this app and answers once it can be read, joining the open this run already
+   * has of that file rather than making a second.
    *
    * Once it can be *read*, rather than once the window exists: everything else here is a read, so an answer
-   * handed over before the dump is open would be a window id that refuses every call made with it. Which
-   * makes this the one call that takes as long as opening a heap dump takes.
+   * handed over before the dump is open would be a name that refuses every call made with it. Which makes
+   * this the one call that takes as long as opening a heap dump takes.
    */
   suspend fun open(file: File): AgentHeapDump
+
+  /**
+   * Closes [dump], along with the window drawing it, and **ends this run once it was the last one open**.
+   *
+   * Both halves are the same rule the app already has for a person: closing the last window of a run closes the
+   * run, because a run is its heap dumps and there is nothing left to come back to. So a command line that
+   * opened a run to investigate in has a way of putting it away again, which is what keeps a machine from
+   * collecting a JVM per dump anybody ever pointed an agent at.
+   */
+  suspend fun close(dump: AgentHeapDump)
 
   /** Every device `adb` is connected to, whether or not a heap dump could be taken off it. */
   suspend fun devices(): List<AndroidDevice>
@@ -207,8 +210,9 @@ interface AgentHeapDumps {
   /**
    * Takes a heap dump of a process, opens it in a window of this app, and answers once it can be read.
    *
-   * Minutes, on a large app: a dump is written on the device, waited for, pulled, and then opened. The
-   * steps land in this run's log as they happen, which is where to look while this hasn't come back.
+   * **Minutes, on a large app**, which makes it the other call with a wait worth warning about: a dump is
+   * written on the device, waited for, pulled, and then opened. The steps land in this run's log as they
+   * happen, which is where to look while this hasn't come back.
    */
   suspend fun dumpHeap(
     serialNumber: String,

@@ -149,7 +149,7 @@ class AgentSessionFile private constructor(
     /**
      * The session called [sessionId] to add to, which is the newest file of that name or a new one.
      *
-     * What makes an investigation one thing. `--agent` is a process per call, so without this a morning's work
+     * What makes an investigation one thing. `--cli` is a process per call, so without this a morning's work
      * would be thirty files and the *Agent logs* screen would list thirty agents where there was one. See
      * [AgentCommandLine].
      *
@@ -285,7 +285,6 @@ class AgentSessionFile private constructor(
       put(AT_KEY, at.toString())
       tool?.let { put(TOOL_KEY, it) }
       reason?.let { put(REASON_KEY, it) }
-      windowId?.let { put(WINDOW_KEY, it) }
       heapDumpPath?.let { put(HEAP_DUMP_KEY, it) }
       // As the link the window hands out for that place, which is the whole of what a row has to be
       // clickable: the place to go to, and a line the agent's human can paste anywhere. See [DeepLink].
@@ -324,7 +323,6 @@ class AgentSessionFile private constructor(
         at = at,
         tool = tool,
         reason = text(REASON_KEY),
-        windowId = text(WINDOW_KEY),
         heapDumpPath = text(HEAP_DUMP_KEY),
         // From the tool for a line with no link, which is a session written by a build that recorded no
         // place for a call that named nothing — and it went to the same screen then as it would now.
@@ -408,12 +406,15 @@ class AgentSessionFile private constructor(
     const val KEEP_SESSION_COUNT = 100
 
     /**
-     * How long a name a caller can give a session, which is enough for a word and a process id.
+     * How long a name a caller can give a session, which is enough for a word and an agent's own session id.
      *
-     * A bound at all because it is part of a file name: the ids this hands out are eight characters, and a
-     * name nobody can read on the *Agent logs* screen is no better than one of those.
+     * A bound at all because it is part of a file name: the ids this hands out are eight characters, and a name
+     * nobody can read on the *Agent logs* screen is no better than one of those. Long enough for a UUID with
+     * its dashes stripped and a word in front of it, because that is what an agent is asked to send — see
+     * [AgentCommandLine.SESSION_OPTION] — and a limit that cut the id in half would be one that turned the
+     * search a reviewer does into a search that finds nothing.
      */
-    const val MAX_SESSION_NAME_LENGTH = 16
+    const val MAX_SESSION_NAME_LENGTH = 48
 
     private const val SESSION_ID_BYTES = 4
 
@@ -431,7 +432,6 @@ class AgentSessionFile private constructor(
     private const val AT_KEY = "at"
     private const val TOOL_KEY = "tool"
     private const val REASON_KEY = "reason"
-    private const val WINDOW_KEY = "window"
     private const val HEAP_DUMP_KEY = "heapDump"
     private const val LINK_KEY = "link"
     private const val REFUSAL_KEY = "refused"
@@ -504,10 +504,9 @@ class AgentSessionCall(
   val tool: String?,
   /** Why the agent said it was making the call, and null for one refused for not saying. */
   val reason: String?,
-  val windowId: String?,
   val heapDumpPath: String?,
   val place: Place?,
-  /** The rest of the arguments, by name, with `reason` and `window` left out: they have fields of their own. */
+  /** The rest of the arguments, by name, with `reason` left out: it has a field of its own. */
   val arguments: Map<String, String>,
   /**
    * What the agent sent, as the text it sent: for a call, the tool it named and the arguments it named it
@@ -587,9 +586,10 @@ class AgentSessionCall(
   /**
    * The link to [place] in the heap dump the call was about, for a call that was about one.
    *
-   * The heap dump and not [windowId], even though the window was open when the line was written: an agent's
-   * session outlives its run, so by the time anybody reads this the window has almost always gone while the
-   * heap dump is still there to open. See [DeepLink].
+   * The heap dump, and **the window this was called at is not recorded at all**: an agent's session outlives
+   * its run, so by the time anybody reads this the window has almost always gone while the heap dump is still
+   * there to open. A window id was written on every one of these lines and read back and drawn by nothing,
+   * which is what the *Agent logs* screen needing none of it means in practice. See [DeepLink].
    */
   fun link(): String? {
     val place = place ?: return null
@@ -666,17 +666,16 @@ internal fun outcomeOfTool(
  * Which heap dumps an answer said were open, which is the second thing read off an answer rather than off
  * the arguments. See [AgentSessionCall.openHeapDumps].
  *
- * Only `open_heap_dumps`, and for the same reason `outcomeOfTool` is only `conclude`: this is the one call
+ * Only `list_heap_dumps`, and for the same reason `outcomeOfTool` is only `conclude`: this is the one call
  * whose answer is not about a heap dump but *is* a list of them, and a row saying "asked which dumps are
- * open" without saying which is a row that withholds the answer it is a record of. The paths, since a
- * window is opened on a path — the window ids beside them in that answer belong to a run that has usually
- * ended by the time anybody reads this.
+ * open" without saying which is a row that withholds the answer it is a record of. The paths, since a window
+ * is opened on a path, and a path is the whole of what that answer names a dump by.
  */
 internal fun openHeapDumpsOfTool(
   tool: String,
   answer: JsonObject
 ): List<String> = when (tool) {
-  "open_heap_dumps" -> (answer[ANSWER_HEAP_DUMPS] as? JsonArray).orEmpty()
+  "list_heap_dumps" -> (answer[ANSWER_HEAP_DUMPS] as? JsonArray).orEmpty()
     .mapNotNull { ((it as? JsonObject)?.get(ANSWER_HEAP_DUMP_PATH) as? JsonPrimitive)?.content }
   else -> emptyList()
 }
@@ -686,7 +685,7 @@ internal fun verbOfTool(
   tool: String,
   arguments: Map<String, String>
 ): String? = when (tool) {
-  "open_heap_dumps" -> "Asked which heap dumps are open"
+  "list_heap_dumps" -> "Asked which heap dumps are open"
   // Ending on "the", because what follows it is the link. See [AgentSessionCall.screen].
   "list_leaks" -> "Listed the"
   // Not "Described", which reads as the agent having written a description of something rather than having
@@ -712,6 +711,8 @@ internal fun verbOfTool(
   // an open dump to go to, the file one of them opens and the file another one writes not being one until
   // the call has been answered.
   "open_heap_dump" -> "Opened ${arguments[SUBJECT_PATH] ?: "a heap dump"}"
+  // Which ends a run when it was the last dump open, so this is the last row of a good many sessions.
+  "close_heap_dump" -> "Closed ${arguments[SUBJECT_HEAP_DUMP] ?: "a heap dump"}"
   "list_devices" -> arguments[SUBJECT_DEVICE]
     ?.let { "Listed the processes of $it" }
     ?: "Asked which devices are connected"
@@ -755,11 +756,12 @@ internal fun screenOfTool(
 private const val ANSWER_FAULTY_REFERENCE = "faultyReference"
 private const val ANSWER_REFERENCE = "reference"
 
-/** And what `open_heap_dumps` answers with the dumps under. See `AgentJson.heapDump`. */
+/** And what `list_heap_dumps` answers with the dumps under. See `AgentJson.heapDump`. */
 private const val ANSWER_HEAP_DUMPS = "heapDumps"
 private const val ANSWER_HEAP_DUMP_PATH = "heapDumpPath"
 
 private const val SUBJECT_OBJECT = "object"
+private const val SUBJECT_HEAP_DUMP = "heapDump"
 private const val SUBJECT_PLACE = "place"
 private const val SUBJECT_CLASS_NAME = "className"
 private const val SUBJECT_VERDICT = "verdict"

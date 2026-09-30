@@ -8,6 +8,9 @@ import java.io.OutputStreamWriter
 import java.io.PrintWriter
 import java.net.InetAddress
 import java.net.Socket
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit.MILLISECONDS
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.After
 import org.junit.Before
@@ -56,11 +59,15 @@ class AgentServerTest {
     assertThat(run.pid).isEqualTo(ProcessHandle.current().pid().toString())
     assertThat(run.port).isGreaterThan(0)
     assertThat(run.token).hasSize(32)
+    // The two a command line decides on before it connects: whether this run is its own build, and whether
+    // it draws windows. See [AgentCommandLine].
+    assertThat(run.buildSha).isEqualTo(BUILD_SHA)
+    assertThat(run.hasWindow).isTrue()
 
     connect(run).use { client ->
       assertThat(client.accepted).isTrue()
-      val answer = client.ask(CALL_OPEN_HEAP_DUMPS)
-      assertThat(answer).contains(heapDump.dive.heapDumpFile.name).contains(window.windowId)
+      val answer = client.ask(CALL_LIST_HEAP_DUMPS)
+      assertThat(answer).contains(window.heapDumpName).contains(window.heapDumpPath)
     }
   }
 
@@ -85,8 +92,8 @@ class AgentServerTest {
 
     connect(run).use { first ->
       connect(run).use { second ->
-        assertThat(first.ask(CALL_OPEN_HEAP_DUMPS)).contains(window.windowId)
-        assertThat(second.ask(CALL_OPEN_HEAP_DUMPS)).contains(window.windowId)
+        assertThat(first.ask(CALL_LIST_HEAP_DUMPS)).contains(window.heapDumpName)
+        assertThat(second.ask(CALL_LIST_HEAP_DUMPS)).contains(window.heapDumpName)
       }
     }
 
@@ -100,16 +107,16 @@ class AgentServerTest {
     val run = AgentServer.publishedRuns(directory).single()
 
     connect(run, sessionName = "cli7").use { it.ask(NOT_A_CALL) }
-    connect(run, sessionName = "cli7").use { it.ask(CALL_OPEN_HEAP_DUMPS) }
+    connect(run, sessionName = "cli7").use { it.ask(CALL_LIST_HEAP_DUMPS) }
 
     // What a command line needs of this end: a connection per call, and one file to read them in. A
     // connection that names nothing gets a session of its own. See [AgentCommandLineTest].
     val session = sessions().single()
     assertThat(session.sessionId).isEqualTo("cli7")
-    assertThat(session.toolCalls.map { it.tool }).containsExactly("open_heap_dumps")
+    assertThat(session.toolCalls.map { it.tool }).containsExactly(LIST_HEAP_DUMPS)
     // The line that was no call is in there too, since the full traffic is what a session holds: it reached
     // no tool and it is still what happened on that connection. See [AgentSessionCall.tool].
-    assertThat(session.calls.map { it.tool }).containsExactly(null, "open_heap_dumps")
+    assertThat(session.calls.map { it.tool }).containsExactly(null, LIST_HEAP_DUMPS)
   }
 
   @Test
@@ -121,7 +128,7 @@ class AgentServerTest {
       // Served, because the calls are none the worse for the name: what it loses is being gathered with the
       // others, and refusing the connection would lose the investigation instead.
       assertThat(client.accepted).isTrue()
-      client.ask(CALL_OPEN_HEAP_DUMPS)
+      client.ask(CALL_LIST_HEAP_DUMPS)
     }
 
     assertThat(sessions().single().sessionId).isNotEqualTo("../../evil")
@@ -137,6 +144,39 @@ class AgentServerTest {
     listening.close()
 
     assertThat(AgentServer.publishedRuns(directory)).isEmpty()
+  }
+
+  @Test
+  fun `closing a run waits for the answer of the call being made`() {
+    // What `close_heap_dump` on the last dump open does to its own answer: the run ends from inside the call,
+    // and the connection threads are daemons, so without the wait the answer never reaches the caller. See
+    // [AgentServer.letAnswersOut].
+    val callStarted = CountDownLatch(1)
+    val letTheCallFinish = CountDownLatch(1)
+    val busy = FakeAgentHeapDump(heapDump.dive) {
+      callStarted.countDown()
+      letTheCallFinish.await()
+    }
+    val listening = listen(busy)
+    val run = AgentServer.publishedRuns(directory).single()
+    val answered = CompletableFuture<String>()
+    connect(run).use { client ->
+      Thread { answered.complete(client.ask(callListLeaks())) }.start()
+      assertThat(callStarted.await(A_WHILE_MILLIS, MILLISECONDS)).isTrue()
+
+      val closed = CompletableFuture<Unit>()
+      Thread {
+        listening.close()
+        closed.complete(Unit)
+      }.start()
+      // Still closing, because the call is still being worked on — which is the whole of what the wait is.
+      Thread.sleep(A_MOMENT_MILLIS)
+      assertThat(closed.isDone).isFalse()
+
+      letTheCallFinish.countDown()
+      closed.get(A_WHILE_MILLIS, MILLISECONDS)
+      assertThat(answered.get(A_WHILE_MILLIS, MILLISECONDS)).contains("leaks")
+    }
   }
 
   @Test
@@ -167,9 +207,11 @@ class AgentServerTest {
     assertThat(log).anyMatch { it.contains("names no run") }
   }
 
-  private fun listen(): Closeable = AgentServer.listen(
-    heapDumps = FakeAgentHeapDumps(listOf(window)),
+  private fun listen(dump: AgentHeapDump = window): Closeable = AgentServer.listen(
+    heapDumps = FakeAgentHeapDumps(listOf(dump)),
     serverVersion = "1.2.3",
+    buildSha = BUILD_SHA,
+    hasWindow = true,
     directory = directory
   ).also { closeables += it }
 
@@ -181,6 +223,10 @@ class AgentServerTest {
 
   private fun sessions(): List<AgentSession> =
     AgentSessionFile.sessionsIn(AgentServer.sessionsDirectory(directory))
+
+  /** A call that reads the heap dump, which is what makes it a call there is something to wait for. */
+  private fun callListLeaks(): String =
+    """{"tool":"list_leaks","arguments":{"heapDump":"${window.heapDumpName}","reason":"Reading it."}}"""
 
   /** An agent's end of the connection, as far as this test needs one: a token, then a line at a time. */
   private class TestClient(
@@ -224,7 +270,16 @@ class AgentServerTest {
     /** A line that reaches no tool, which is a row of a session like any other. See [AgentConnection]. */
     const val NOT_A_CALL = "this is not one JSON object"
 
-    const val CALL_OPEN_HEAP_DUMPS =
-      """{"tool":"open_heap_dumps","arguments":{"reason":"Finding out what is open."}}"""
+    const val CALL_LIST_HEAP_DUMPS =
+      """{"tool":"$LIST_HEAP_DUMPS","arguments":{"reason":"Finding out what is open."}}"""
+
+    /** Which build this run says it is, which is what a command line filters runs by. */
+    const val BUILD_SHA = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+
+    /** Long enough that a thread that was going to get somewhere has, short enough to fail a hang. */
+    const val A_WHILE_MILLIS = 10_000L
+
+    /** Long enough to tell a thread that is waiting from one that has already gone past. */
+    const val A_MOMENT_MILLIS = 200L
   }
 }

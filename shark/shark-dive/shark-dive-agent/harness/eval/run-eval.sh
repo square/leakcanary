@@ -140,9 +140,9 @@ run_once() {
   install_the_skill "$directory"
   prompt_for "$app" "$directory" >"$directory/prompt.txt"
 
-  # Nothing of the run before this one, because `open_heap_dumps` lists every published run and the first
-  # thing the skill says to do when you were given nothing is ask what is open. A window left up is this
-  # eval offering the previous scenario to the next agent.
+  # Nothing of the run before this one, because a run left up is the one the next scenario's `open_heap_dump`
+  # finds and joins: the new dump opens as a second tab of the previous agent's window, and `list_heap_dumps`
+  # answers with both. Which is this eval offering the previous scenario to the next agent.
   close_the_runs
 
   # Which session files existed before, because the server names its own session file and the new one is the
@@ -228,7 +228,7 @@ set_up_run() {
 # The skill this repository ships, in the working directory of the run, so that what is measured is the skill
 # people get rather than a copy of it written for the eval.
 #
-# It is the whole of how a run is meant to start — which launcher to find, that `--agent-help` is the tool
+# It is the whole of how a run is meant to start — which launcher to find, that `--help` is the command
 # list, that an address is `0x…`, that a refusal is the next thing to do — and **a client discovers it by its
 # description alone**, from the one sentence of frontmatter. So a run that never invokes it is a finding about
 # that sentence rather than about the model, and the client transcript beside each run is where that shows.
@@ -353,7 +353,7 @@ copy_client_transcript() {
 #
 # One window per run is the cost of reaching a run over its socket, and thirty windows left open would be
 # thirty indexed heap dumps and a machine nobody can use. Killed between runs rather than at the end so that
-# each agent's `open_heap_dumps` answers with its own dump or with nothing.
+# each agent's `open_heap_dump` starts a run of its own, with its dump the only one in it.
 close_the_runs() {
   local file pid waited=0
   local -a pids=()
