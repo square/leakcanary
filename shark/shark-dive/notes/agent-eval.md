@@ -273,8 +273,9 @@ After, `d1802373e`:
 **12/15 either side, the same four scenarios right and the same one wrong.** Which is the result to want
 rather than a disappointment: nothing in the redesign was meant to make an investigation go better, and a
 surface rebuilt around one command, one run and a key is a surface an agent could have stopped being able to
-reach at all. The calls say the same thing — 95 before against 100 after, with a median moving by two or three
-either way on four of the five, which is three repetitions' worth of noise.
+reach at all. The calls say the same thing — 285 over the before arm's fifteen runs against 297 over the
+after's, a median moving by two or three either way on four of the five — and the twelve are accounted for
+below rather than being noise.
 
 **The one thing only the after arm did is the story the refusals are for**: two of its runs read `1 refused ·
 2 conclude attempt(s)` — refused, a verdict, then concluded — and no run on main did. Two runs is not
@@ -284,6 +285,56 @@ argument for this module.
 **And neither arm covers the method text this same round changed.** The paragraph of `AgentMethod.LEAK` saying
 `list_leaks` is where an investigation starts rather than somewhere to come back to went in after these runs,
 so this table is its baseline and not a measurement of it.
+
+### The twelve extra calls are one `close_heap_dump` a run, less a `show` nobody needed
+
+Per tool, over all fifteen runs of each arm, the deltas sum to exactly the twelve:
+
+| Tool | `6d4a192c4` | `cli-only` | Δ |
+| --- | --- | --- | --- |
+| `close_heap_dump` | 0 | 15 | **+15** |
+| `show` | 12 | 4 | **−8** |
+| `describe_object` | 142 | 150 | +8 |
+| `find_objects` | 39 | 35 | −4 |
+| `conclude` | 15 | 17 | +2 |
+| `set_verdict` | 28 | 29 | +1 |
+| `chain_from_gc_root` | 17 | 16 | −1 |
+| `list_devices` | 1 | 0 | −1 |
+| `open_heap_dump`, `list_leaks`, `take_note` | 15, 15, 1 | 15, 15, 1 | 0 |
+
+**`close_heap_dump` is one call a run and it is the last call of all fifteen** after-arm sessions: a command
+this round adds — `shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentTools.kt:147` — which
+`.claude/skills/shark-dive/SKILL.md:151` tells an agent to make for a dump it opened. So the whole rise is a
+command that did not exist to be called, called once each time, which is the number going up for the reason it
+was supposed to.
+
+**And `show` paying two thirds of it back is the method leaving the answers, measurable.** At `6d4a192c4`,
+[`McpSession.withTheSurface`](https://github.com/square/leakcanary/blob/6d4a192c484437cb31299d756156f672834bcd82/shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/McpSession.kt#L302)
+prepended `AgentMethod.SURFACE` to the first *answered* call of every session, so every run was handed
+"**`show` puts what you are looking at on screen.** Use it when you reach something that matters"
+(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentMethod.kt:67`) whether it had asked for
+it or not. On this branch that text is only printed by
+`--investigation-help`. What that cost is not investigation: **nine of the before arm's twelve `show` calls
+came after the run's last `conclude`**, and eight of its fifteen sessions ended on one. Mid-investigation
+`show` was three calls before and two after. So a closing flourish went away and `close_heap_dump` took its
+place at the end of every run, which is the same ritual costing the same call.
+
+Per scenario the arithmetic is only that swap: two-apart 12 → 15 and stub-outlives-its-work 17 → 20 are the one
+close with no `show` to give back, stub-holds-no-state 24 → 26 is nearly it, and cache-never-evicts 20 → 20 and
+real-asynctask 22 → 19 are flat or down because the before arm spent its closing `show` calls there.
+
+**The cost this table cannot see is the help, and it is the number to watch.** A help text is not a `--cli`
+command, so none of it reaches a call count: client round trips went 171 → 238 while help invocations went
+31 → 90. `--agent-help` was read 31 times before — 8 of them bare, 23 naming a tool. After: `--help` 60 times
+(10 bare, 50 naming a command — `conclude` 15, `set_verdict` 14, `find_objects` 9, `show` 6), plus
+`--investigation-help` 15 and `--leak-investigation-help` 15. Two readings of that. **Both method texts were
+read by fifteen of fifteen runs, exactly once each**, which is the risk of moving them out of the answers not
+materialising. And per-command help is now a round trip per command
+(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt:207`), where the before
+build's bare `--agent-help` printed the preamble and every tool's full help in one
+([`AgentCommandLine.help`](https://github.com/square/leakcanary/blob/6d4a192c484437cb31299d756156f672834bcd82/shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt#L109),
+`(asked ?: tools).forEach`). Cheap calls — no window, no heap dump read — but that is where the 39% went, and
+a surface that grows another ten commands pays it again.
 
 ### `cache-never-evicts` fails the way `two-apart` used to, and the fixture is why
 
