@@ -239,6 +239,91 @@ Three things came out of it:
   an agent connecting to a window that is still indexing falls into exactly the same one — and it is the first
   thing this eval found that was worth fixing in the app.
 
+## The `--cli` redesign, 2026-10-01 — the first table that isn't void
+
+The first run of this script since the standard input bug above was fixed, so the first table here whose runs
+were not shown the answer. Two arms, and they are exactly a pull request against the commit it branched from:
+`6d4a192c4`, which is the merge base, against the six commits on top of it that redesigned the command line
+around `--cli`, one run, and a heap dump named by a key. The before build still had the MCP server in it and
+neither arm launched one — both reach the surface over `--cli`, which is what keeps this from being the
+two-variable comparison the deleted `--transport mcp` arm was. Five scenarios, opus, three repetitions, 15 runs
+an arm. Shark Dive 1.0.0, `claude` 2.1.280, $6.11 before and $7.24 after. The two arms ran at the same time on
+one machine, so neither one's wall clock — 44 minutes and 51 — is a number about the surface.
+
+Before, `6d4a192c4`:
+
+| Scenario | Model | Right | Wrong | Refused | No conclusion | Wandered | Calls | Refusals |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| two-apart | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 12 | 0 |
+| cache-never-evicts | opus | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 20 | 0 |
+| stub-outlives-its-work | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 17 | 0 |
+| stub-holds-no-state | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 24 | 0 |
+| real-asynctask | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 22 | 0 |
+
+After, `d1802373e`:
+
+| Scenario | Model | Right | Wrong | Refused | No conclusion | Wandered | Calls | Refusals |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| two-apart | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 15 | 0 |
+| cache-never-evicts | opus | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 20 | 0 |
+| stub-outlives-its-work | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 20 | 0 |
+| stub-holds-no-state | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 26 | 0 |
+| real-asynctask | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 19 | 0 |
+
+**12/15 either side, the same four scenarios right and the same one wrong.** Which is the result to want
+rather than a disappointment: nothing in the redesign was meant to make an investigation go better, and a
+surface rebuilt around one command, one run and a key is a surface an agent could have stopped being able to
+reach at all. The calls say the same thing — 95 before against 100 after, with a median moving by two or three
+either way on four of the five, which is three repetitions' worth of noise.
+
+**The one thing only the after arm did is the story the refusals are for**: two of its runs read `1 refused ·
+2 conclude attempt(s)` — refused, a verdict, then concluded — and no run on main did. Two runs is not
+evidence, it is the shape to watch in the next table, since a refusal that says what to do next is the whole
+argument for this module.
+
+**And neither arm covers the method text this same round changed.** The paragraph of `AgentMethod.LEAK` saying
+`list_leaks` is where an investigation starts rather than somewhere to come back to went in after these runs,
+so this table is its baseline and not a measurement of it.
+
+### `cache-never-evicts` fails the way `two-apart` used to, and the fixture is why
+
+0/3 in both arms, and all six runs of it — across two builds — concluded `Object[][x]` against a key of
+`CacheEntry.activity`. That is not six wrong answers. It is one reference above the key, `conclude` accepted
+it, and `conclude` accepts only when the chain has exactly one candidate left, so the heap dump agreed with the
+verdicts that got them there. One run's own `why` for the `STUCK` it set on the entry
+(`dive4a7c2e19`, after arm):
+
+> Its only fields are key = "screen:main" and activity = the MainActivity 0x24, which has
+> Activity#mDestroyed = true
+
+Which is the reading that got the old `two-apart` fixture replaced: **an object whose only fields are a dead
+activity and a label for it reads as done with its work.** A `CacheEntry` for a destroyed screen should have
+been evicted, and nothing in the dump says otherwise — `aCacheThatNeverEvicts` writes the entry as a key and
+the activity and no evidence of its own, so "the entry belongs here and the field is wrong" and "the entry
+should be gone" are both defensible off what is there, and the key picks one of them. Three steps of that
+chain carry an argument an agent can point at: the static `INSTANCE`, and `MemoryCache.size = 1` matching its
+one element, both of which the runs cited. The fourth, the one the answer turns on, carries none.
+
+So this is a scenario to fix rather than a number to act on, and the fix is the one `twoApart` already got:
+write something onto the entry that says its own work is not finished. Until then its 0/3 is a fact about the
+fixture and no part of a before and after.
+
+### Thirty runs scored `WANDERED`, and it was the eval holding a path two ways
+
+Both arms came back 15/15 `WANDERED` the first time they were scored, every run "concluding about" the very
+heap dump it had been given. The wrapper running the two arms built `SHARK_EVAL_DIR` from `${TMPDIR:-/tmp}`,
+`$TMPDIR` on macOS ends in a separator, and so every path in `runs.tsv` carried a doubled one in the middle of
+it while Shark Dive had recorded the single-separator path it resolved. Scoring compared the two as strings.
+
+Rescored, nothing wandered — and the fix is in the scorer rather than in the wrapper. `EvalResult.sameFileAs`
+canonicalises both sides, and `EvalScoreTest` pins one dump spelled two ways as one dump. **The outcome that
+exists to say this eval measured nothing is the one that must not be reachable by typing a path two ways**,
+which is the rule above — an eval whose failures look like model failures is worse than no eval — turned on
+the scorer's own comparison.
+
+Worth knowing what it cost, which was nothing: what each run concluded is in its session file, so rescoring
+thirty runs was a re-read rather than a re-run.
+
 ## Baseline, 2026-08-25 — void, kept as history
 
 **Every run in this table was shown the answer key**, its own and the other four, appended to its prompt by

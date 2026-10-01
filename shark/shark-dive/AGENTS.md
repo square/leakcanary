@@ -700,7 +700,7 @@ Design decisions and findings, kept current as the work proceeds:
 - `notes/agent-surface.md` — what this surface costs a session in tokens, measured, and what the MCP server
   it replaced cost before it went
 - `notes/agent-eval.md` — how well an agent solves a leak, scored with no model doing the scoring: the answer
-  keys, the eight ways a run gets handed its own answer, and why every table in it is void
+  keys, the eight ways a run gets handed its own answer, and which of its tables are void
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

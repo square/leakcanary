@@ -79,6 +79,20 @@ class EvalScoreTest {
   }
 
   @Test
+  fun `one heap dump spelled two ways is one heap dump`() {
+    val result = score(
+      calls = listOf(concluded(KEY, heapDumpPath = "/runs//1/./heap-dump.hprof"))
+    )
+
+    // The eval set this run up around `/runs/1/heap-dump.hprof` and the run was answered about the same file
+    // under a path with a doubled separator in it, which is what a `SHARK_EVAL_DIR` built from a `$TMPDIR`
+    // that ends in one produces. Compared as strings, that is thirty runs each of which wandered off to the
+    // dump it was given. See [EvalResult.sameFileAs].
+    assertThat(result.outcome).isEqualTo(EvalOutcome.RIGHT)
+    assertThat(result.wanderedTo).isNull()
+  }
+
+  @Test
   fun `the table is one row per scenario and model, counted out of the repetitions`() {
     val results = listOf(
       score(calls = listOf(concluded(KEY))),

@@ -458,8 +458,9 @@ that is now the only way there is: the eval used to have a second arm over MCP, 
 `shark/shark-dive/notes/agent-eval.md` has why a run that changed the transport and the method together was
 measuring three things at once.
 `shark/shark-dive/notes/agent-eval.md` has the answer keys — and the eight ways a run gets handed its own
-answer, each of which was a score that meant nothing. One of them voided every number this eval has ever
-produced, so read that section before quoting a table from it. **The eighth is in this module**: a worked
+answer, each of which was a score that meant nothing. One of them voided every number this eval produced up to
+2026-10-01, so read that section before quoting a table from it: the tables under it are marked, and the one
+headed *the first table that isn't void* is the only one to argue from. **The eighth is in this module**: a worked
 example in `AgentMethod` named a real reference, which was a scenario's key, in the text every run is handed
 before it has read anything. So a class name written into anything here — a description, a refusal, either
 half of the method — is worth checking against `EvalScenarios` first.
