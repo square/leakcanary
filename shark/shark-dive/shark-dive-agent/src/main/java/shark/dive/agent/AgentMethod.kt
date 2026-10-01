@@ -114,6 +114,12 @@ internal object AgentMethod {
     1. **Find something that shouldn't be there.** `list_leaks` is the heap dump's own answer: objects the app
        itself handed to LeakCanary and said were done with, plus what the inspectors recognised. Start with a
        leak whose objects the app watched, which is the strongest evidence a heap dump carries.
+       **Pick one here, then work its chain: this list is where an investigation starts and not somewhere to
+       come back to.** Your own verdicts change it. A `STUCK` set halfway up a chain makes that object the
+       leak and folds what it held into it, retained bytes included — so the object you have been
+       investigating leaves the list, and the bytes it was reported as retaining are now reported against the
+       object you narrowed to, which dominates almost none of them. The same reference is still holding the
+       same objects. Where you have got to is in the chain, so read that rather than this list again.
     2. **Get the chain.** `chain_from_gc_root` for one stuck object. Read every step. The steps already
        carry the inspectors' labels and any verdict someone has set.
     3. **Work inwards from both ends.** Top down: which of these objects is obviously meant to be here — a
