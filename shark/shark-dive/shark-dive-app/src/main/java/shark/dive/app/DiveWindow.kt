@@ -479,7 +479,7 @@ internal fun DiveWindows.goToHeapDump(
   heapDumpFile: File,
   place: Place
 ) {
-  val showing = firstOrNull { it.heapDumpFile?.normalizedPath() == heapDumpFile.normalizedPath() }
+  val showing = windowShowing(heapDumpFile)
   SharkLog.d {
     val where = if (showing == null) "a window it is not open in yet" else "window ${showing.windowId}"
     "Something outside a window asked $where for $place of ${heapDumpFile.name}"
@@ -487,6 +487,45 @@ internal fun DiveWindows.goToHeapDump(
   val window = showing ?: openHeapDump(heapDumpFile)
   window.goToLinked(place)
   showing?.bringToFront()
+}
+
+/**
+ * Shows [heapDumpFile] for a heap dump **the OS handed over**, which is one double clicked in the file
+ * manager or opened with *Open with → Shark Dive*. See [HeapDumpAssociation].
+ *
+ * The window already reading that file when there is one, brought to the front rather than joined by a second
+ * window on it: double clicking a heap dump names the heap dump, the way an agent naming a path does, and a
+ * second window would be a second index of the same gigabyte that nobody asked for. Which is the opposite of
+ * the button above the map, where opening one dump twice is comparing two readings of it — the difference
+ * being that a reader pressing that button is holding the window they pressed it in, and a reader in Finder
+ * cannot see what this app has open at all.
+ *
+ * Only an existing window is raised, for the reason [goToHeapDump] gives: the OS activates the app it hands a
+ * file to, so a window opened for one is in front already.
+ */
+internal fun DiveWindows.openHeapDumpFromTheOs(heapDumpFile: File) {
+  val showing = windowShowing(heapDumpFile)
+  SharkLog.d {
+    val where = if (showing == null) "a window it is not open in yet" else "window ${showing.windowId}"
+    "The OS asked this run for ${heapDumpFile.name}, which goes to $where"
+  }
+  if (showing == null) {
+    openHeapDump(heapDumpFile)
+  } else {
+    showing.bringToFront()
+  }
+}
+
+/**
+ * The window of this run reading [heapDumpFile], if one is.
+ *
+ * One declaration because three things ask it and all three mean the same by it — a row of an agent's
+ * session, an agent naming a path, and a heap dump the OS hands over — and the answer has to be the same for
+ * each: one window per heap dump, however the path reaching it was spelled. See [normalizedPath].
+ */
+internal fun DiveWindows.windowShowing(heapDumpFile: File): DiveWindow? {
+  val path = heapDumpFile.normalizedPath()
+  return firstOrNull { it.heapDumpFile?.normalizedPath() == path }
 }
 
 /**

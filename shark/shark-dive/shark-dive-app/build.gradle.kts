@@ -6,6 +6,7 @@ import java.util.zip.ZipOutputStream
 import javax.inject.Inject
 import org.gradle.api.tasks.options.Option
 import org.gradle.process.ExecOperations
+import org.jetbrains.compose.desktop.application.dsl.AbstractPlatformSettings
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
 
@@ -116,6 +117,38 @@ sourceSets.main {
 /** Shared by the Compose plugin's `run` and by `runNamed`, which launches the same classes itself. */
 val diveMainClass = "shark.dive.app.MainKt"
 
+/**
+ * Tells the OS that a `.hprof` file is this app's to open, so that double clicking a heap dump — or picking
+ * *Open with → Shark Dive* — opens it here.
+ *
+ * Called on each platform block rather than once, because the Compose DSL has this per platform and all three
+ * need it: it becomes `CFBundleDocumentTypes` in the macOS bundle's `Info.plist`, a registry entry under the
+ * `.hprof` key in the `.msi`, and a MIME type with a `.desktop` entry in the `.deb`.
+ *
+ * **The MIME type is invented**, under the `x-` tree that exists for exactly that: `.hprof` has no type
+ * registered with IANA and no UTI macOS knows. It is what Linux matches a file by, so it has to be something,
+ * and the same string goes into all three for the one reason worth having — the file this app opens is one
+ * kind of file whichever platform is asking.
+ *
+ * **No icon**, which the fourth parameter would take, so a heap dump is shown wearing the app's own icon:
+ * jpackage writes `CFBundleTypeIconFile` either way and falls back to the bundle's icon, verified in the
+ * built `Info.plist`. Which is not what a document icon is — `icons/shark-dive-icon.svg` is drawn to be an
+ * app, down to the macOS app grid it has baked into it (see AGENTS.md) — but a drawing of a heap dump is a
+ * drawing nobody has made yet, and the fallback is an app icon on a document rather than no association.
+ *
+ * Taking the file is the app's half, and it is not symmetrical across the three: see
+ * `shark.dive.app.HeapDumpAssociation`.
+ */
+fun AbstractPlatformSettings.associateHeapDumpFiles() {
+  fileAssociation(
+    mimeType = "application/x-hprof",
+    // Without the dot, which is how jpackage takes it. The app spells it with one.
+    extension = "hprof",
+    // What the file manager calls the kind, so it is the kind of file and not the name of this app.
+    description = "Android heap dump"
+  )
+}
+
 /** The dock icon of both tasks, each through `-Xdock:icon`: a bundle's own icon does not survive AWT. */
 val macOsIconFile = project.file("icons/shark-dive-icon.icns")
 
@@ -159,6 +192,7 @@ compose.desktop {
       // it the process shows the default Java icon.
       macOS {
         iconFile.set(macOsIconFile)
+        associateHeapDumpFiles()
         // Set here rather than left to default, which is the main class's package. Notarization history
         // and the Managed Software Center entry are both keyed on this, so it has to be a name Square
         // owns, and changing it after the first release is a migration for everyone who installed one.
@@ -188,10 +222,12 @@ compose.desktop {
       }
       windows {
         iconFile.set(project.file("icons/shark-dive-icon.ico"))
+        associateHeapDumpFiles()
       }
       // A .deb takes a PNG, so it reuses the one the window already loads off the classpath.
       linux {
         iconFile.set(project.file("src/main/resources/shark-dive-icon.png"))
+        associateHeapDumpFiles()
       }
 
       // The JDK modules jlink puts in the packaged runtime, which are only the ones listed here: the

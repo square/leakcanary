@@ -42,6 +42,12 @@ emulator image is), where every process on it can be.
 
 Dumping a heap freezes the app for a moment and pulls tens of megabytes over `adb`.
 
+**Or open a heap dump from your file manager**: Shark Dive is installed as an app that opens `.hprof` files, so
+double clicking one opens it here, as does *Open with → Shark Dive*. A dump that is already open comes to the
+front instead of opening twice. If another profiler is installed it may be the one a double click goes to, since
+`.hprof` is a type several apps claim and the system picks one — on macOS, ⌘I on a heap dump and *Change All*
+under *Open with* makes it Shark Dive.
+
 **A bitmap keeps its pixels outside the Java heap from API 26**, so a heap dump carries them only when it
 was taken with `am dumpheap -b png`, which needs Android 15. On an older device the app offers to fetch
 them instead: that attaches a debugger and has the app compress every bitmap, suspended throughout —

@@ -363,6 +363,50 @@ link.
 holding a link asks each of the others in turn rather than the second run handing its command line to the
 first and exiting.
 
+## A double clicked heap dump arrives three different ways, and on macOS at one run
+
+`.hprof` is declared this app's in the **build script**, `associateHeapDumpFiles()` on each
+`nativeDistributions` platform block, and taken in `HeapDumpAssociation`. Nothing is registered at runtime,
+which is the opposite of the scheme above — a URL scheme has no packaging format to declare it on Linux, a
+file type does.
+
+**The delivery is not the same on the three platforms, and only one of them needs code.** Windows and Linux
+start a process with the path on its command line, which is `DiveArguments` and the path every run from a
+terminal already takes. macOS starts no process for an app that is already running: it sends an Apple Event,
+which AWT turns into `Desktop.setOpenFileHandler`. So without that handler a heap dump double clicked while
+Shark Dive is up does nothing at all, and one double clicked while it is down opens a second copy of the app
+showing nothing.
+
+**It is not on argv on macOS even for a cold start** — the run that a double click launches logs `Started with
+no arguments` and is then handed the file by the same event. What makes that work is that **AWT queues the
+open-file event until a handler exists**: measured at a handler installed at `17:12:27.315` and the event
+delivered at `.316`, so the dump lands in the window the launch created. Which is why the handlers go in
+before the first window in `Main.kt`, with the link handler.
+
+**Every file goes to the run that launched first.** Measured with three runs of the installed bundle up, one
+of them launched and activated by `open -n` seconds before: all five deliveries are in the first run's log and
+the other two logs contain no `The OS handed this run` line at all. So there is nothing for `DeepLinkPeers` to
+do here — a link is a question about a dump some run may have open, while a file is the OS picking one process
+for a bundle identity, and it picks the same one every time. The other side of the same rule: a `runNamed`
+bundle or a run from source is handed nothing, for the reason the link section gives, so this is tried on a
+package and not on a compile, with the same `createDistributable` recipe.
+
+**An extension with no UTI is enough to be registered, and not enough to be the default.** `.hprof` has only a
+dynamic UTI (`dyn.ah62d4rv4ge80u6dwr7xa`, under `public.data`) and the Compose DSL writes no
+`LSItemContentTypes` or `UTExportedTypeDeclarations`, but LaunchServices takes the claim as a legacy extension
+binding — `lsregister -dump` shows `bindings: .hprof, '****'` with role `Editor` — so **no plist addition is
+needed** and the one in this build script stays for the things it is already for. What that buys is being an
+*Open With* candidate. Which app a double click goes to is a separate question LaunchServices answers on its
+own, and here it answers `YourKit-Java-Profiler-2024.3.app`, which claims `.hprof` as `Viewer` and keeps the
+default with nothing in `com.apple.launchservices.secure.plist` recording a choice. So `open dump.hprof`
+launches YourKit and `open -a` is what reaches Shark Dive — don't read a bare `open` doing nothing visible as
+a broken association. `NSWorkspace.urlsForApplications(toOpen:)` lists every claimant, which is the check that
+tells "not registered" from "registered and not preferred".
+
+`Taking the .hprof files the OS hands to this run`, `The OS handed this run "<path>" to open` and `The OS asked
+this run for <file>, which goes to <window>` are the lines that say it was declared, delivered and routed.
+Read them rather than the screen, for the reason the link section gives.
+
 ## Gradle facts that aren't visible from these build scripts
 
 - **`shark-dive-app` is excluded by name** from the repo-wide Java 8 target in the root
