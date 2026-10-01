@@ -50,6 +50,7 @@ class CliOptionsTest {
         .contains(AgentCommandLine.RUN_OPTION)
         .contains(AgentCommandLine.SESSION_OPTION)
         .contains(AgentCommandLine.NO_UI_OPTION)
+        .contains(AgentCommandLine.SURFACE_METHOD_OPTION)
         .contains(AgentCommandLine.LEAK_METHOD_OPTION)
         // And where to start, since somebody reading this has a heap dump and nothing open.
         .contains(OPEN_HEAP_DUMP)
@@ -80,6 +81,22 @@ class CliOptionsTest {
     // The command asked about, and not the sixteen others: reading a surface a piece at a time is what naming
     // one is for.
     assertThat(printed.toString(Charsets.UTF_8.name())).contains("conclude").doesNotContain("list_leaks")
+  }
+
+  @Test
+  fun `how to work on this surface is printed by a command line of its own`() {
+    val printed = ByteArrayOutputStream()
+
+    val exitCode = onItsOwnStreams(printed) {
+      helpExitCode(arrayOf(AgentCommandLine.SURFACE_METHOD_OPTION))
+    }
+
+    // Which is what took it off the front of the first answer of every session: it used to be prepended to
+    // whatever a session asked first, so a call that only wanted to know which heap dumps are open was
+    // answered with the whole of how to work here. See [AgentMethod.SURFACE].
+    assertThat(exitCode).isZero
+    assertThat(printed.toString(Charsets.UTF_8.name()))
+      .isEqualToIgnoringWhitespace(AgentCommandLine.surfaceMethod())
   }
 
   @Test

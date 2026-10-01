@@ -42,10 +42,6 @@ internal class AgentTool(
 
   suspend fun call(arguments: JsonObject): JsonObject {
     val read = AgentArguments(name, arguments)
-    // Read before the handler and on every tool, so that a call with no reason is refused rather than
-    // logged as a call whose reason was left blank. The schema asks for it and a client is free to ignore a
-    // schema, so this is where "every call says why it was made" is a rule instead of a hope.
-    read.reason
     read.onlyTakes(takes)
     return handler(read)
   }
@@ -79,6 +75,13 @@ internal class AgentArguments(
   /**
    * What the agent said it was trying to learn, which every tool takes and which goes in this run's log
    * beside the reads it caused. See [AgentTools].
+   *
+   * **Read by the tools that use it, rather than by every call.** [AgentTool.call] used to read it first on
+   * all of them, so that a missing reason was refused whoever had called — and what that cost is the person
+   * typing one command: `--cli list_heap_dumps` is a question with no sentence to write under it, and being
+   * refused for not writing one teaches nobody anything. The rule is for the reader a session log has, which
+   * is somebody reviewing an agent, and an agent is also the caller that names its own session — so
+   * [AgentCommandLine.SESSION_OPTION] and this are asked for as a pair, in the one place that knows both.
    */
   val reason: String get() = string(REASON)
 
@@ -252,9 +255,19 @@ internal fun enumArray(
  *
  * Added here rather than written out once per tool, so that there is no tool it can be forgotten on: a
  * command with no reason recorded beside it is the gap this surface exists to close. See [AgentTools].
+ *
+ * **A tool that writes its own `reason` keeps it**, in the position it put it in, rather than getting a second
+ * one appended. One does: `conclude`'s reason is the root cause it is reporting rather than a line of this
+ * session's log, so what to write there is a different question and the description has to be able to say so.
+ * The argument is the same argument either way — one name for one thing, see [REASON] — which is the whole
+ * point of overriding the description rather than adding an argument beside it.
  */
 internal fun schema(vararg properties: Pair<String, AgentProperty>): JsonObject {
-  val all = properties.toList() + (REASON to REASON_PROPERTY)
+  val all = if (properties.any { it.first == REASON }) {
+    properties.toList()
+  } else {
+    properties.toList() + (REASON to REASON_PROPERTY)
+  }
   return buildJsonObject {
     put("type", "object")
     putJsonObject(PROPERTIES) {
@@ -271,12 +284,17 @@ internal fun schema(vararg properties: Pair<String, AgentProperty>): JsonObject 
 
 private const val PROPERTIES = "properties"
 
-private const val REASON = "reason"
+/**
+ * Why a call was made, on every tool. Internal because one tool asks for something else under this name —
+ * see [schema] — and two spellings of that would be two arguments.
+ */
+internal const val REASON = "reason"
 
 private val REASON_PROPERTY = string(
   "Why you are making this call: what you are trying to learn, or what you concluded from the last " +
     "answer. Logged beside the reads it causes, which is what makes this investigation something a person " +
-    "can follow afterwards rather than a conclusion they have to trust."
+    "can follow afterwards rather than a conclusion they have to trust. Required of a command line that " +
+    "says which session it is part of, which is every agent's."
 )
 
 /** How every address on this surface starts. See [AgentJson]. */

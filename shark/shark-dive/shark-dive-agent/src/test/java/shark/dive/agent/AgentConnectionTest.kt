@@ -104,65 +104,38 @@ class AgentConnectionTest {
   }
 
   @Test
-  fun `the first answered call of a session says how to work here, and no call after it does`() {
-    val first = answered(describeHolder("Reading the holder's fields."))
-    val second = answered(
-      call(
-        "describe_object",
-        """"object":"${hex(heapDump.activityObjectId)}","reason":"And the activity's.""""
-      )
-    )
+  fun `an answer is the answer, on the first call of a session as on the one after it`() {
+    val first = answered(call("list_leaks", """"reason":"Starting with what the dump says.""""))
+    val second = answered(describeHolder("The holder next."))
 
-    // **The method travels as a tool result**, because that is the one thing an agent is certain to read: it
-    // asked for the answer, and nothing between here and the model drops it. Once, on the first answer.
-    assertThat(first.text(METHOD)).isEqualTo(AgentMethod.SURFACE)
+    // Both halves of the method used to be fields of an answer — how to work here prepended to whatever a
+    // session asked first, and how to find a leak in `list_leaks`'s own answer, which is this call. Both are
+    // text this build prints now, [AgentCommandLine.SURFACE_METHOD_OPTION] and
+    // [AgentCommandLine.LEAK_METHOD_OPTION], so a field here would be a session paying per call for a text it
+    // reads once. Which leaves nothing in an answer that the tool did not answer with.
+    assertThat(first.keys).doesNotContain(METHOD)
     assertThat(second.keys).doesNotContain(METHOD)
+    assertThat(first.text("objectCount")).isNotEmpty()
   }
 
   @Test
-  fun `a first call that asked for the leaks is answered with how to work here and nothing longer`() {
-    val leaks = answered(call("list_leaks", """"reason":"Starting with what the dump says.""""))
-
-    // This answer used to carry both halves in this one field, because asking for the leaks is where an
-    // investigation starts — and an investigation of four leaks is four of these, each handing over the same
-    // five paragraphs again. So the other half is text this build prints, read once. See
-    // [AgentCommandLine.LEAK_METHOD_OPTION] and `AgentConnection.withTheSurface`.
-    assertThat(leaks.text(METHOD)).isEqualTo(AgentMethod.SURFACE)
-    assertThat(leaks.text(METHOD)).doesNotContain(AgentMethod.LEAK)
-    assertThat(leaks.text("objectCount")).isNotEmpty()
-  }
-
-  @Test
-  fun `a first call that was refused does not use up the one that says how to work here`() {
-    val refused = answer(concludeOnActivity())
-    val answered = answered(describeHolder("Going back to look at the holder."))
-
-    // A refusal carries no answer for the method to be in, so a session that counted one as delivery would be
-    // a session nobody was ever told how to work in. Which is what rules out the header as the flag: a
-    // refused first call writes one. See [AgentSessionFile.hasAnsweredACall].
-    assertThat(AgentWire.answerOf(refused)).isNull()
-    assertThat(answered.text(METHOD)).isEqualTo(AgentMethod.SURFACE)
-  }
-
-  @Test
-  fun `a second process joining a session that has been answered is not told how to work here again`() {
+  fun `two processes naming one session write one session`() {
     val sessionId = "cli4821"
     // `--cli` is a process per call, so a session is not a connection: each typed command opens the socket,
     // joins the session by name and makes its one call, and the one after it is an [AgentConnection] that has
-    // never answered anything. Which is why the flag is read off the file rather than held in memory — and
-    // why these are built one after the other, as the two processes are.
-    val first = answered(
+    // never answered anything. Which is why these are built one after the other, as the two processes are.
+    answered(
       call("list_leaks", """"reason":"What it says.""""),
       on = joining(sessionId)
     )
-    val second = answered(
+    answered(
       describeHolder("The holder next."),
       on = joining(sessionId)
     )
 
-    assertThat(first.text(METHOD)).startsWith(AgentMethod.SURFACE)
-    assertThat(second.keys).doesNotContain(METHOD)
-    assertThat(sessions().single().sessionId).isEqualTo(sessionId)
+    val session = sessions().single()
+    assertThat(session.sessionId).isEqualTo(sessionId)
+    assertThat(session.calls.map { it.tool }).containsExactly("list_leaks", "describe_object")
   }
 
   @Test
@@ -231,7 +204,7 @@ class AgentConnectionTest {
     assertThat(call.refusal).isEqualTo(refusal)
     assertThat(call.input)
       .startsWith("conclude {")
-      .contains(""""rootCause": "The holder never lets go."""")
+      .contains(""""reason": "The holder never lets go."""")
   }
 
   @Test
@@ -241,7 +214,9 @@ class AgentConnectionTest {
     val call = sessions().single().calls.single()
     assertThat(call.verb).isEqualTo("Concluded about")
     assertThat(call.refusal).contains("Not concluded")
-    assertThat(call.reason).isEqualTo("I know what this is.")
+    // Which on this one command is the root cause being reported rather than a line of the log beside it, and
+    // it is the same argument either way — see [AgentTools.conclude].
+    assertThat(call.reason).isEqualTo("The holder never lets go.")
     // Refused, and still pointing at the object it was refused about: a refusal nobody can follow up on is
     // the half of a session that is worth reading afterwards.
     assertThat(call.place).isEqualTo(Place.Object(heapDump.activityObjectId))
@@ -388,7 +363,7 @@ class AgentConnectionTest {
     arguments: String,
     heapDump: String? = window.heapDumpName
   ): String {
-    val named = heapDump?.let { """"heapDump":"$it",""" }.orEmpty()
+    val named = heapDump?.let { """"heapDumpKey":"$it",""" }.orEmpty()
     return """{"tool":"$tool","arguments":{$named$arguments}}"""
   }
 
@@ -400,8 +375,7 @@ class AgentConnectionTest {
   /** The call the surface refuses, the chain having no verdict on it yet. See [AgentToolsTest]. */
   private fun concludeOnActivity() = call(
     "conclude",
-    """"object":"${hex(heapDump.activityObjectId)}","rootCause":"The holder never lets go.",""" +
-      """"reason":"I know what this is.""""
+    """"object":"${hex(heapDump.activityObjectId)}","reason":"The holder never lets go.""""
   )
 
   private fun hex(objectId: Long) = exactHexObjectId(objectId)
@@ -410,7 +384,11 @@ class AgentConnectionTest {
 
     const val SERVER_VERSION = "1.2.3"
 
-    /** The field of an answer the method travels in. See [AgentMethod.FIELD]. */
+    /**
+     * The field the method used to travel in, which nothing writes now.
+     *
+     * Kept as a name here because what the test above pins is an absence: see [AgentMethod].
+     */
     const val METHOD = "method"
 
     fun JsonObject.text(name: String): String =

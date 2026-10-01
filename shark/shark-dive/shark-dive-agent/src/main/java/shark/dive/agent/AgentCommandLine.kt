@@ -63,17 +63,20 @@ object AgentCommandLine {
     buildSha: String,
     /** Which run, by process id, or null for the one run there had better be. See [runToTalkTo]. */
     pid: String? = null,
-    /** Whether [NO_UI_OPTION] was passed, which only [OPEN_HEAP_DUMP] takes. */
+    /** Whether [NO_UI_OPTION] was passed, which only the commands in [STARTS_A_RUN] take. */
     noWindow: Boolean = false,
     /**
-     * Which session this command belongs to on the *Agent logs* screen. See [defaultSessionName].
+     * What [SESSION_OPTION] said, and null for a command line that named no session. See [defaultSessionName].
+     *
+     * **Null is also what says a person typed this**, which is the one thing this command line knows about who
+     * is calling and is why `reason` is asked for here rather than on every tool: naming a session is what an
+     * agent does and what a shell has no need of, so the pair is "a session and a reason" against "neither".
+     * See [whyIsMissing].
      *
      * Refused rather than sanitised when it is no name: it becomes part of a file name, and a caller that
      * got it wrong wants to hear so on the command it got wrong.
      */
-    sessionName: String = defaultSessionName(),
-    /** How long to wait for a run to appear, for a command typed while the app is still starting. */
-    waitMillis: Long = DEFAULT_RUN_WAIT_MILLIS,
+    sessionName: String? = null,
     /**
      * How to start a run to investigate in when there is none, and null for a caller that cannot.
      *
@@ -97,14 +100,15 @@ object AgentCommandLine {
       )
       return NOTHING_ANSWERED
     }
-    if (noWindow && commandName != OPEN_HEAP_DUMP) {
+    if (noWindow && commandName !in STARTS_A_RUN) {
       say(
-        "$NO_UI_OPTION says what kind of run to open a heap dump in, so it goes with $OPEN_HEAP_DUMP and " +
-          "with no other command: $commandName reads a dump that is open already, in whichever run has it."
+        "$NO_UI_OPTION says what kind of run to start, so it goes with the commands that start one — " +
+          STARTS_A_RUN.joinToString(", ") + " — and with no other: $commandName reads a dump that is open " +
+          "already, in whichever run has it."
       )
       return NOTHING_ANSWERED
     }
-    if (!AgentSessionFile.isSessionName(sessionName)) {
+    if (sessionName != null && !AgentSessionFile.isSessionName(sessionName)) {
       say(
         "\"$sessionName\" is no session name: it becomes part of a file name, so it is letters and digits, " +
           "up to ${AgentSessionFile.MAX_SESSION_NAME_LENGTH} of them. Strip the rest out of yours rather " +
@@ -118,6 +122,10 @@ object AgentCommandLine {
       say(unreadable.message.orEmpty())
       return NOTHING_ANSWERED
     }
+    if (sessionName != null && !arguments.saysWhy()) {
+      say(whyIsMissing(command, commandName, sessionName))
+      return NOTHING_ANSWERED
+    }
     val run = runToTalkTo(
       directory = directory,
       command = command,
@@ -125,7 +133,6 @@ object AgentCommandLine {
       pid = pid,
       buildSha = buildSha,
       noWindow = noWindow,
-      waitMillis = waitMillis,
       openARun = openARun
     ) ?: return NOTHING_ANSWERED
     val socket = try {
@@ -138,8 +145,28 @@ object AgentCommandLine {
       run.file.delete()
       return NOTHING_ANSWERED
     }
-    return socket.use { call(it, run, commandName, arguments, sessionName) }
+    return socket.use { call(it, run, commandName, arguments, sessionName ?: defaultSessionName()) }
   }
+
+  /**
+   * Whether a call says why it was made, which is [REASON] with something in it.
+   *
+   * Read here rather than in [AgentTool.call], where every tool read it: the rule is for the sessions somebody
+   * reviews, and this is the only place that knows whether this command line is one of those — see
+   * [SESSION_OPTION]. Blank counts as missing, since `reason=""` is a caller satisfying the letter of it.
+   */
+  private fun JsonObject.saysWhy(): Boolean = (this[REASON] as? JsonPrimitive)?.content?.isNotBlank() == true
+
+  /** What to say to a command line that named its session and said nothing about why it is calling. */
+  private fun whyIsMissing(
+    command: String,
+    commandName: String,
+    sessionName: String
+  ): String = "$commandName needs `$REASON`: $SESSION_OPTION$sessionName says these calls are one " +
+    "investigation somebody will read afterwards, and a call with no sentence beside it is a read they " +
+    "cannot follow. Write what you are trying to learn, or what you concluded from the last answer: " +
+    "`$command $CLI_OPTION $commandName … $REASON=\"what I am asking and why\"`. " +
+    "`$command $HELP_OPTION $commandName` has the rest of what it takes."
 
   /**
    * Every command of this build, one line each, and the rest of what a command line takes.
@@ -160,24 +187,28 @@ object AgentCommandLine {
     |COMMANDS
     |
     |**Start with $OPEN_HEAP_DUMP on the heap dump you were given.** It opens that file, or joins the run
-    |that already has it, and answers with the name every command below names that dump by — along with its
+    |that already has it, and answers with the key every command below names that dump by — along with its
     |size and whatever verdicts somebody has already recorded about it. If you were given no heap dump,
-    |$LIST_HEAP_DUMPS says which are open. Every other command needs the name, so that each one says which
+    |$LIST_HEAP_DUMPS says which are open. Every other command needs that key, so that each one says which
     |heap dump it is about.
     |
     |  $command $CLI_OPTION $OPEN_HEAP_DUMP path=/tmp/crash.hprof reason="Starting on the dump I was given"
-    |  $command $CLI_OPTION list_leaks heapDump=crash.hprof reason="What this dump says shouldn't be here"
+    |  $command $CLI_OPTION list_leaks heapDumpKey=crash.hprof reason="What this dump says shouldn't be here"
     |
     |${commandColumn()}
     |
     |Every command takes `reason`: why you are making it, or what you concluded from the last answer. It is
     |logged beside the reads it causes and read afterwards on the *Agent logs* screen, so write the sentence
-    |you would say to the person watching. Addresses are `0x…`, exactly as this surface writes them, and never
-    |decimal. $LEAK_METHOD_OPTION is how to find a faulty reference, and it is worth reading once before the
-    |first chain.
+    |you would say to the person watching — and it is required of every command of a session named with
+    |$SESSION_OPTION, which is every agent's. Addresses are `0x…`, exactly as this surface writes them, and
+    |never decimal.
+    |
+    |$SURFACE_METHOD_OPTION is how to work here, read once per session, and $LEAK_METHOD_OPTION is how to find
+    |a faulty reference, read once per investigation. Both are text this build prints with nothing open.
     |
     |Opening a heap dump is the one command with a wait worth planning for — minutes, on a large dump, and it
-    |does not answer until the dump can be read. dump_heap is the other, since it takes one off a device first.
+    |does not answer until the dump can be read. $DUMP_HEAP is the other, since it takes one off a device
+    |first.
     |
     |Exit code $ANSWERED when the answer is on stdout, $REFUSED when the command was refused and the refusal
     |is on stderr, $NOTHING_ANSWERED when there was nothing to answer it.
@@ -202,12 +233,20 @@ object AgentCommandLine {
     "$RUN_OPTION<pid>" to "Which run to talk to, for a machine with more than one open.",
     "$SESSION_OPTION<name>" to
       "Which session these commands are one of, letters and digits. An agent passes something naming its " +
-      "own session, so that a reviewer reading its logs can find the investigation beside them.",
+      "own session, so that a reviewer reading its logs can find the investigation beside them. Every " +
+      "command of a named session needs its `$REASON`.",
     NO_UI_OPTION to
-      "With $OPEN_HEAP_DUMP: open it in a run that draws no window, for a machine with no screen.",
+      "With a command that starts a run: have it draw no window, for a machine with no screen.",
     "$HELP_OPTION <command>" to "All of one command: what it answers, and every argument it takes.",
-    LEAK_METHOD_OPTION to "How to find the faulty reference. Read it once per investigation."
+    SURFACE_METHOD_OPTION to
+      "How to work here: what every call records, what to put on screen, what to put in your reply. Read it " +
+      "once per session.",
+    LEAK_METHOD_OPTION to
+      "How to investigate leaks of objects that reached their lifecycle end. Read it once per investigation."
   )
+
+  /** How to work on this surface at all, which is text this build carries rather than an answer. */
+  fun surfaceMethod(): String = AgentMethod.SURFACE
 
   /** What to do with a leak, which is text this build carries rather than an answer. See [AgentMethod]. */
   fun leakMethod(): String = AgentMethod.LEAK
@@ -438,12 +477,27 @@ object AgentCommandLine {
   const val HELP_OPTION = "--help"
 
   /**
+   * And how to work on this surface at all, which is one of the two texts this build carries.
+   *
+   * An option rather than a field of the first answer of a session, which is where it used to be: a text
+   * prepended to whatever a session asked first is a text an agent reads *after* making the call it had already
+   * decided to make, and the half of it that says what to put in a reply is the half that arrives too late to
+   * change the first one. Both halves of the method are a read now, which is also the only shape in which
+   * reading one costs a session nothing until it asks. See [AgentMethod].
+   */
+  const val SURFACE_METHOD_OPTION = "--investigation-help"
+
+  /**
    * And the method for finding a faulty reference, which is the other text this build carries.
    *
    * An option rather than a field of `list_leaks`'s answer, which is where it used to be: an investigation of
    * several leaks called that once per leak and read the whole method again each time, and the method is about
    * the chain rather than about the list. Read once per session, by the session that has a leak to work on.
    * See [AgentMethod].
+   *
+   * The longer name of the two on purpose: [SURFACE_METHOD_OPTION] is the one every session reads and this is
+   * the one an investigation of a leak reads, so the names say which is the special case. A caller that guesses
+   * the short one and wanted this is pointed here by its second paragraph.
    */
   const val LEAK_METHOD_OPTION = "--leak-investigation-help"
 
@@ -467,10 +521,10 @@ object AgentCommandLine {
    * Named after what it does *not* do, rather than `--headless` or `--server`, because every run of this app
    * answers commands and only some of them have a user interface.
    *
-   * **Two positions, one meaning.** On a run it is what that run is; on [OPEN_HEAP_DUMP] it is which kind of
-   * run to open a heap dump in, and a mismatch is refused rather than papered over — see [runToTalkTo]. It is
-   * on no other command, since every one of those reads a dump that is open already and a dump open with no
-   * window reads exactly like one open in a window.
+   * **Two positions, one meaning.** On a run it is what that run is; on a command that may start one it is
+   * which kind to start, and a mismatch with the run that answers is refused rather than papered over — see
+   * [kindMatches]. It is on no other command, since every one of those reads a dump that is open already and a
+   * dump open with no window reads exactly like one open in a window. See [STARTS_A_RUN].
    */
   const val NO_UI_OPTION = "--no-ui"
 
@@ -496,19 +550,41 @@ object AgentCommandLine {
 
   private const val CONNECT_TIMEOUT_MILLIS = 1_000
 
-  /** How long a command waits for a run that ought to be there already, before saying there is none. */
-  private const val DEFAULT_RUN_WAIT_MILLIS = 10_000L
-
   /**
-   * How long a run started to investigate in is given to publish itself.
+   * How long a run this command line started is given to publish itself, which is the only wait there is.
    *
-   * A lot longer than a wait for one that should already be there, because it covers a cold JVM, Compose
-   * starting and jlink's runtime being paged in — and because the alternative to waiting is telling an agent
-   * there is no run while one is in the middle of appearing.
+   * Long because it covers a cold JVM, Compose starting and jlink's runtime being paged in, and because the
+   * alternative to waiting is telling an agent there is no run while the one it asked for is appearing.
    */
   private const val OPENING_WAIT_MILLIS = 60_000L
 
   private const val POLL_MILLIS = 250L
+
+  /**
+   * The commands a run may be started for, which are the ones whose answer says nothing about what was open.
+   *
+   * **A narrowing of "start one if there is none", and the rule is what each command's answer is about.**
+   * [OPEN_HEAP_DUMP] and [DUMP_HEAP] each hand back a heap dump they put there, and [LIST_DEVICES] asks `adb`
+   * rather than any dump — so each of them answers the same in a run it just started as in the run somebody is
+   * working in. Every other command is a question *about* a run: answered by one started to answer it, it comes
+   * back empty, and an empty answer from a fresh run reads exactly like an empty answer from the run that was
+   * already there. [LIST_HEAP_DUMPS] is the one to check that rule against — it needs no heap dump either, and
+   * it is not here because what it answers *is* what the run has open.
+   *
+   * [RUN_OPTION] starts nothing whichever command it is on: it names a run, and starting a different one would
+   * answer about the wrong heap dump.
+   */
+  private val STARTS_A_RUN = setOf(OPEN_HEAP_DUMP, DUMP_HEAP, LIST_DEVICES)
+
+  /**
+   * The commands that open a heap dump, which are the ones a run's kind is checked against. See [kindMatches].
+   *
+   * [LIST_DEVICES] may start a run and is deliberately not here: it opens nothing, so whether the run that
+   * answers draws windows is nothing about its answer, and refusing it over that would be a refusal with no
+   * consequence behind it. What [NO_UI_OPTION] still does there is say what kind of run to start if one has to
+   * be.
+   */
+  private val OPENS_A_HEAP_DUMP = setOf(OPEN_HEAP_DUMP, DUMP_HEAP)
 
   /**
    * The one run to talk to, starting one if there is none, and null for every reason there is no one run.
@@ -520,10 +596,17 @@ object AgentCommandLine {
    * machine in the middle of a branch is usually what leaves one, and what is left is either one run or a
    * message naming them.
    *
-   * **And only [OPEN_HEAP_DUMP] starts one.** A deliberate narrowing of "no run, so start one": every other
-   * command is a question about a run, and one answered by a run this just started is a question answered with
-   * nothing, which reads the same as the answer to a question about the run that was already there. So the
-   * rest are refused, with the command that opens a dump as the message.
+   * **And only the commands in [STARTS_A_RUN] start one**, which is a deliberate narrowing of "no run, so start
+   * one": the rest are refused, with the command that opens a dump as the message.
+   *
+   * **Looked for once, and waited for only when this command is starting one.** A run publishes itself as it
+   * starts and takes that file away three ways as it ends — a shutdown hook, the `Closeable`, and whoever reads
+   * the file of a process that has gone deleting it — so a run that is up is a run that is published, and
+   * polling for one to appear is only ever a bet that one is in the middle of starting. Which is a bet worth
+   * making when this command line is what started it, and otherwise ten seconds of saying nothing before saying
+   * what was already known. A run that is published and does not answer is the other case and is covered
+   * elsewhere: the connect has [CONNECT_TIMEOUT_MILLIS] and whoever finds it deletes the file. See
+   * [AgentServer].
    */
   @Suppress("ReturnCount")
   private fun runToTalkTo(
@@ -533,15 +616,15 @@ object AgentCommandLine {
     pid: String?,
     buildSha: String,
     noWindow: Boolean,
-    waitMillis: Long,
     openARun: ((noWindow: Boolean) -> Unit)?
   ): AgentServer.PublishedRun? {
     var waited = 0L
-    var deadline = waitMillis
+    // Nothing to wait for until something is being started, which is the paragraph above.
+    var deadline = 0L
     var started = false
     // Naming a run names the heap dumps it has open, so starting a different one would be answering about the
-    // wrong dump: for that command line there is nothing to start, only something to wait for.
-    val startsARun = openARun != null && pid == null && commandName == OPEN_HEAP_DUMP
+    // wrong dump: for that command line there is nothing to start, only something to look for.
+    val startsARun = openARun != null && pid == null && commandName in STARTS_A_RUN
     while (true) {
       val published = AgentServer.publishedRuns(directory)
       val runs = published.filter { it.buildSha == buildSha }
@@ -564,8 +647,8 @@ object AgentCommandLine {
         say("No Shark Dive is running, so one is being started to investigate in.")
         requireNotNull(openARun).invoke(noWindow)
         started = true
-        // From here rather than from the start, because what is being waited for changed: a JVM starting,
-        // Compose coming up and a run publishing itself, rather than a file that may already be there.
+        // The whole of the waiting, and only from here: what there is to wait for is a JVM starting, Compose
+        // coming up and a run publishing itself, which is a thing this command line knows is on its way.
         deadline = waited + OPENING_WAIT_MILLIS
       }
       if (waited >= deadline) {
@@ -586,8 +669,8 @@ object AgentCommandLine {
    * start it on. So there is no opening one dump of a run with a window and one without, and the two questions
    * coincide wherever the dump asked about is open in the run being talked to.
    *
-   * Only for the command that opens one: every other command reads a dump that is open already, and a dump
-   * open with no window answers exactly as one open in a window does.
+   * Only for the commands that open one — [OPENS_A_HEAP_DUMP] — since every other command reads a dump that is
+   * open already, and a dump open with no window answers exactly as one open in a window does.
    */
   private fun kindMatches(
     run: AgentServer.PublishedRun,
@@ -595,7 +678,7 @@ object AgentCommandLine {
     commandName: String,
     noWindow: Boolean
   ): Boolean {
-    if (commandName != OPEN_HEAP_DUMP || run.hasWindow == !noWindow) {
+    if (commandName !in OPENS_A_HEAP_DUMP || run.hasWindow == !noWindow) {
       return true
     }
     say(

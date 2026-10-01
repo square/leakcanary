@@ -1,5 +1,6 @@
 package shark.dive.agent
 
+import java.io.File
 import java.time.Instant
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.runBlocking
@@ -62,14 +63,14 @@ class AgentToolsTest {
   fun `listing the heap dumps says which are open and hands over no method`() {
     val answer = call(LIST_HEAP_DUMPS)
 
-    // The leak method is `list_leaks`'s answer and nowhere else on this surface, so asking what is open does
-    // not hand an agent the whole of how to narrow a chain before it knows the question is a leak at all.
+    // Neither half of the method is in any answer — both are text this build prints, so asking what is open
+    // does not hand an agent the whole of how to narrow a chain before it knows the question is a leak at all.
     // See [AgentMethod].
     assertThat(answer.keys).doesNotContain(METHOD)
     val dumps = answer.array("heapDumps")
     assertThat(dumps).hasSize(1)
-    // The name and the path, which are the two things a call can name a dump by and the only two an agent is
-    // ever handed. See [AgentTools.resolvedDump].
+    // The key every other command names this dump by, and the path it was opened as. Both, because both are
+    // things an agent has in front of it. See [AgentTools.resolvedDump].
     assertThat(dumps.first().jsonObject.text(HEAP_DUMP)).isEqualTo(window.heapDumpName)
     assertThat(dumps.first().jsonObject.text("heapDumpPath"))
       .isEqualTo(heapDump.dive.heapDumpFile.absolutePath)
@@ -244,10 +245,40 @@ class AgentToolsTest {
   }
 
   @Test
-  fun `every call needs a reason`() {
-    assertThatThrownBy { callWith("list_leaks", buildJsonObject { }) }
+  fun `every command requires a reason, and a tool that does not use one answers without it`() {
+    // Required of every schema, because `required` is what makes a client send it. Where it is *enforced* is
+    // the command line, which is the one place that knows the other half of the rule: a session named with
+    // `--session=` is an agent and is refused without a reason, and a command line that named no session is a
+    // person typing one command. See [AgentCommandLine.run] and [AgentArguments.reason].
+    assertThat(tools.all.filter { REASON !in it.schema.requiredArguments() }).isEmpty()
+
+    val answer = callWith(
+      LIST_LEAKS,
+      buildJsonObject { put(HEAP_DUMP, window.heapDumpName) }
+    )
+
+    assertThat(answer.array("sections")).isNotEmpty()
+  }
+
+  @Test
+  fun `concluding needs its reason, that being the root cause it reports`() {
+    setHolderExpected()
+
+    // The one tool that reads the reason itself, so the one that refuses a call without it whoever is calling:
+    // this argument is the conclusion rather than a line of the log beside it. See [AgentTools.conclude].
+    assertThatThrownBy {
+      callWith(
+        CONCLUDE,
+        buildJsonObject {
+          put(HEAP_DUMP, window.heapDumpName)
+          put(OBJECT, hex(heapDump.activityObjectId))
+        }
+      )
+    }
       .isInstanceOf(AgentRefusal::class.java)
-      .hasMessageContaining("list_leaks needs `reason`")
+      .hasMessageContaining("$CONCLUDE needs `$REASON`")
+
+    assertThat(window.notes).isEmpty()
   }
 
   @Test
@@ -355,7 +386,7 @@ class AgentToolsTest {
       call(
         CONCLUDE,
         OBJECT to hex(heapDump.activityObjectId),
-        "rootCause" to "The holder is a singleton that never lets go of the activity."
+        "reason" to "The holder is a singleton that never lets go of the activity."
       )
     }
       .isInstanceOf(AgentRefusal::class.java)
@@ -458,10 +489,9 @@ class AgentToolsTest {
     val answer = call(
       CONCLUDE,
       OBJECT to hex(heapDump.activityObjectId),
-      "rootCause" to "Holder.activity is assigned in onCreate and nothing clears it in onDestroy.",
       "howToReproduce" to "Open the screen, rotate, press back.",
       "notChecked" to "Whether the second instance of the holder is reached the same way.",
-      "reason" to "The chain names one reference and the code says why it is still set."
+      "reason" to "Holder.activity is assigned in onCreate and nothing clears it in onDestroy."
     )
 
     assertThat(answer.text("concluded")).isEqualTo("true")
@@ -482,9 +512,8 @@ class AgentToolsTest {
     call(
       CONCLUDE,
       OBJECT to hex(heapDump.activityObjectId),
-      "rootCause" to "Nothing clears Holder.activity in onDestroy.",
       "notChecked" to "Whether anything else holds the holder.",
-      "reason" to "One reference, and the code says why it is still set."
+      "reason" to "Nothing clears Holder.activity in onDestroy."
     )
 
     val place = Place.Object(heapDump.activityObjectId)
@@ -493,7 +522,10 @@ class AgentToolsTest {
       .contains("`$FAULTY_REFERENCE`")
       .contains("Nothing clears Holder.activity in onDestroy.")
       .contains("**Not checked:** Whether anything else holds the holder.")
-      .contains("One reference, and the code says why it is still set.")
+      // Once, which is the point of there being one argument: the note used to say the root cause under the
+      // heading and then a shorter version of it in the trailer. See [AgentTools.conclusionNote].
+      .containsOnlyOnce("Nothing clears Holder.activity in onDestroy.")
+      .contains("_Concluded by an agent._")
     assertThat(window.shown).contains(place)
   }
 
@@ -926,6 +958,48 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `a second open dump of one name is named by an increment`() {
+    val other = secondDumpOfTheSameName()
+    tools = agentTools(FakeAgentHeapDumps(listOf(window, other)))
+
+    val keys = call(LIST_HEAP_DUMPS).array("heapDumps").map { it.jsonObject.text(HEAP_DUMP) }
+
+    // `crash.hprof` pulled off two devices is two files of one name, and the name alone left the second one
+    // unnameable: it resolved to the first, so a call meant for one was answered about the other and nothing
+    // said so. In the order they were opened, so the first keeps the plain name. See [AgentTools.keyed].
+    assertThat(keys).containsExactly(window.heapDumpName, "${window.heapDumpName}#2")
+    // And the increment reaches the dump it names. Both fakes read the same heap dump, so which of them
+    // recorded the read is the whole of what there is to assert here.
+    call(LIST_LEAKS, HEAP_DUMP to "${window.heapDumpName}#2")
+    assertThat(other.reads).isNotEmpty()
+    assertThat(window.reads).isEmpty()
+    // And so does the path, which is the spelling that doesn't move — see the test below for what moves.
+    call(LIST_LEAKS, HEAP_DUMP to other.heapDumpPath)
+    assertThat(window.reads).isEmpty()
+  }
+
+  @Test
+  fun `closing the first of two dumps of one name leaves the other under the plain name`() {
+    val other = secondDumpOfTheSameName()
+    tools = agentTools(FakeAgentHeapDumps(listOf(window, other)))
+
+    call(CLOSE_HEAP_DUMP, HEAP_DUMP to window.heapDumpName)
+
+    // A key says which of the dumps open right now this is, so the survivor of two is the first of one. Which
+    // is the cost of a key being readable: a session holding `#2` across that close is holding a key for a
+    // dump that no longer has it, and the refusal below is what that gets rather than the wrong dump's answer.
+    assertThat(call(LIST_HEAP_DUMPS).array("heapDumps").map { it.jsonObject.text(HEAP_DUMP) })
+      .containsExactly(other.heapDumpName)
+    assertThatThrownBy { call(LIST_LEAKS, HEAP_DUMP to "${window.heapDumpName}#2") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("#2")
+      .hasMessageContaining(other.heapDumpPath)
+    // The path it was opened as still names it, which is why an answer hands that back beside the key.
+    call(LIST_LEAKS, HEAP_DUMP to other.heapDumpPath)
+    assertThat(other.reads).isNotEmpty()
+  }
+
+  @Test
   fun `a path with no file at it is refused before anything is opened`() {
     val heapDumps = FakeAgentHeapDumps(listOf(window))
     tools = agentTools(heapDumps)
@@ -1075,13 +1149,20 @@ class AgentToolsTest {
     millis = 3L
   )
 
+  /** A second dump open under the same file name, which is two files in two directories. */
+  private fun secondDumpOfTheSameName(): FakeAgentHeapDump = FakeAgentHeapDump(
+    heapDump.dive,
+    path = File(temporaryFolder.newFolder("off-another-device"), heapDump.dive.heapDumpFile.name).absolutePath
+  )
+
   /**
    * One call, with the two arguments a test of what a tool *answers* would otherwise spell every time.
    *
-   * `reason` is on every call and `heapDump` on every one that is about a heap dump, both enforced rather
+   * `reason` is on every call and `heapDumpKey` on every one that is about a heap dump, both enforced rather
    * than only asked for in the schema — and the tests that are about that are
-   * [`every call needs a reason`] and [`every call says which heap dump it is about, whether or not there is
-   * a choice`], which go through [callWith] so that nothing is filled in for them.
+   * [`every command requires a reason, and a tool that does not use one answers without it`] and
+   * [`every call says which heap dump it is about, whether or not there is a choice`], which go through
+   * [callWith] so that nothing is filled in for them.
    */
   private fun call(
     name: String,
@@ -1142,7 +1223,7 @@ class AgentToolsTest {
     const val SET_VERDICT = "set_verdict"
     const val CONCLUDE = "conclude"
     const val REASON = "reason"
-    const val HEAP_DUMP = "heapDump"
+    const val HEAP_DUMP = "heapDumpKey"
     const val PATH = "path"
     const val OBJECT = "object"
     const val WHY = "why"
@@ -1161,7 +1242,7 @@ class AgentToolsTest {
     /** Named after the process it came off, which is what `dump_heap` calls a dump it took. */
     const val DUMPED_PATH = "/dumps/com.example.app.hprof"
 
-    /** The field the method travels in, which one tool's answer has and no other's does. */
+    /** The field the method used to travel in, which nothing writes now. See [AgentMethod]. */
     const val METHOD = "method"
 
     /**
@@ -1171,9 +1252,9 @@ class AgentToolsTest {
      * The refused one has no output, its answer having been the refusal — which is the shape a reader of one
      * of these has to be able to tell from a call whose answer went missing.
      */
-    const val REFUSED_CALL_SENT = "list_leaks {\n  \"heapDump\": \"leak.hprof\"\n}"
+    const val REFUSED_CALL_SENT = "list_leaks {\n  \"heapDumpKey\": \"leak.hprof\"\n}"
     const val CONCLUDE_SENT =
-      "conclude {\n  \"object\": \"0x12d368b8\",\n  \"rootCause\": \"Nothing clears it.\"\n}"
+      "conclude {\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"Nothing clears it.\"\n}"
     const val CONCLUDE_ANSWERED = "{\n  \"concluded\": true\n}"
 
     /**
@@ -1191,6 +1272,10 @@ class AgentToolsTest {
 
     fun JsonObject.array(name: String): JsonArray =
       requireNotNull(this[name]) { "$name is not in $this" }.jsonArray
+
+    /** Which arguments a schema says a call cannot be made without. See [schema]. */
+    fun JsonObject.requiredArguments(): List<String> =
+      array("required").map { it.jsonPrimitive.content }
 
     fun jsonArrayOf(vararg values: String): JsonArray =
       buildJsonArray { values.forEach { add(it) } }

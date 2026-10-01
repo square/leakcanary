@@ -115,7 +115,7 @@ internal class AgentTools(
     description = "The heap dump you were given, ready to read, and **the call every investigation starts " +
       "with**. Name it and this answers with it: it opens the file if nobody has it open, and joins the open " +
       "of it that is already there if somebody does, so naming a dump twice never indexes it twice. `$PATH` " +
-      "is an absolute `.hprof` path — a dump a bug report came with, one you took with dump_heap, a second " +
+      "is an absolute `.hprof` path — a dump a bug report came with, one you took with $DUMP_HEAP, a second " +
       "dump of the same app to compare against — or the file name of one that is already open. Opening a " +
       "large dump is minutes, and this waits for it rather than answering with a name nothing can be read " +
       "from yet.",
@@ -154,12 +154,13 @@ internal class AgentTools(
     schema = schema(HEAP_DUMP to heapDumpArgument())
   ) { arguments ->
     val dump = arguments.heapDump()
-    val name = dump.heapDumpName
+    // Before the close, because a key says which of the open dumps this is and after this call it is not one.
+    val key = keyOf(dump)
     val path = dump.heapDumpPath
     val wasTheLastOne = heapDumps.openHeapDumps().size == 1
     heapDumps.close(dump)
     buildJsonObject {
-      put("closed", name)
+      put("closed", key)
       put("heapDumpPath", path)
       // What became of the run, because it is the difference between a command that can be followed by another
       // one and a command after which there is nothing to talk to.
@@ -208,7 +209,7 @@ internal class AgentTools(
   private suspend fun describedDump(dump: AgentHeapDump): JsonObject {
     val notedPlaces = dump.notedPlaces().size
     val described = AgentJson.heapDump(
-      heapDumpName = dump.heapDumpName,
+      heapDumpKey = keyOf(dump),
       heapDumpPath = dump.heapDumpPath,
       sizes = dump.sizes,
       verdicts = dump.verdicts,
@@ -608,7 +609,8 @@ internal class AgentTools(
       "you are looking at is what the person at the machine is looking at. Use it when you reach something " +
       "that matters rather than for every step. It answers with a `shark://` link to that place: put that " +
       "link in your reply to whoever asked you, because clicking it opens the place again, later, without " +
-      "you. `$PLACE` instead of `$OBJECT` shows a screen of this heap dump rather than one object.",
+      "you. `$PLACE` instead of `$OBJECT` shows a screen of this heap dump rather than one object. **Refused " +
+      "by a run that has no window**, with the link in the refusal, since there is nobody to show it to.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
       OBJECT to objectIdArgument("The object to show, which is what showing something usually is.").optional(),
@@ -618,11 +620,17 @@ internal class AgentTools(
     val dump = arguments.heapDump()
     val place = arguments.placeToShow()
     val shown = dump.show(place)
+    val problem = shown.problem
+    // Refused rather than answered with `shown` false, because being seen is the whole of what this one tool
+    // does: an answer is a call that worked to whatever reads it, so an agent would go on to tell its human to
+    // look at a window that was never drawn on. Every other tool answers the same with no window; this is the
+    // one that can't, which is why the refusal carries the link rather than only the sentence.
+    if (problem != null) {
+      throw AgentRefusal(listOfNotNull(problem, shown.link?.let { "Link: $it" }).joinToString(" "))
+    }
     buildJsonObject {
-      put("shown", shown.problem == null)
+      put("shown", true)
       put("link", shown.link)
-      // So that an agent about to tell its human where to look finds out that there is nowhere.
-      put("problem", shown.problem)
     }
   }
 
@@ -633,15 +641,21 @@ internal class AgentTools(
       "**Refused unless this heap dump agrees that a single reference is at fault**: one object above it " +
       "recorded as EXPECTED, the object below it recorded as STUCK, and nothing unexplained in " +
       "between. If it refuses, the message says what is missing and the investigation is not over. " +
-      "Isolating the reference is not the root cause — rootCause is how the field came to still be set, " +
+      "Isolating the reference is not the root cause — `$REASON` is how the field came to still be set, " +
       "which is a sequence of events rather than a line. The conclusion is written into the notes of the " +
       "object and shown in the window.",
     schema = schema(
       HEAP_DUMP to heapDumpArgument(),
-      OBJECT to objectIdArgument("The stuck object whose being in memory is being explained."),
-      ROOT_CAUSE to string(
+      OBJECT to objectIdArgument(
+        "Any object below the faulty reference, which is how this says which leak of this dump it is " +
+          "concluding: the object you read the chain from will do. Its notes are where the conclusion is " +
+          "written and its tab is what the window is sent to."
+      ),
+      REASON to string(
         "How the faulty reference came to still be set: what assigned it, what should have cleared it, " +
-          "and why it didn't."
+          "and why it didn't. A sequence of events rather than a line. **This is the one command whose " +
+          "`$REASON` is the answer** rather than a note beside it: it is the root cause being reported, and " +
+          "it is what the conclusion written into the notes says."
       ),
       HOW_TO_REPRODUCE to string(
         "The steps that trigger it, or say that you could not work them out."
@@ -666,10 +680,9 @@ internal class AgentTools(
     val reference = requireNotNull(faulty.step.reference)
     val note = conclusionNote(
       reference = reference.leakLabel(),
-      rootCause = arguments.string(ROOT_CAUSE),
+      rootCause = arguments.reason,
       howToReproduce = arguments.optionalString(HOW_TO_REPRODUCE),
-      notChecked = arguments.optionalString(NOT_CHECKED),
-      reason = arguments.reason
+      notChecked = arguments.optionalString(NOT_CHECKED)
     )
     dump.appendToNote(Place.Object(objectId), note)
     val shown = dump.show(Place.Object(objectId))
@@ -702,7 +715,7 @@ internal class AgentTools(
   }
 
   private fun listDevices() = AgentTool(
-    name = "list_devices",
+    name = LIST_DEVICES,
     summary = "The Android devices adb is connected to, and one device's processes.",
     description = "The Android devices `adb` is connected to, and with `$DEVICE`, the app processes of one " +
       "of them. What the window's `Take heap dump` button asks. A process can only be dumped if the app " +
@@ -734,17 +747,17 @@ internal class AgentTools(
   }
 
   private fun dumpHeap() = AgentTool(
-    name = "dump_heap",
+    name = DUMP_HEAP,
     summary = "Takes a heap dump off a device and opens it. Minutes, on a large app.",
     description = "Takes a heap dump of a running process, opens it in a window of Shark Dive and " +
       "answers once it can be read — the whole of what the window's `Take heap dump` button does. " +
       "**Minutes, on a large app**: the device writes the dump, it is pulled over `adb`, and then opened. " +
       "The garbage is collected first either way, so what is in the dump is what is really still held — " +
       "with `am dumpheap -g` from API 27, and below that by running the same collection in the process " +
-      "over JDWP. Ask list_devices first for the device and the process.",
+      "over JDWP. Ask $LIST_DEVICES first for the device and the process.",
     schema = schema(
-      DEVICE to string("The serial number of the device, from list_devices."),
-      PROCESS to string("The name of the process to dump, from list_devices.")
+      DEVICE to string("The serial number of the device, from $LIST_DEVICES."),
+      PROCESS to string("The name of the process to dump, from $LIST_DEVICES.")
     )
   ) { arguments ->
     val dump = heapDumps.dumpHeap(
@@ -752,7 +765,7 @@ internal class AgentTools(
       processName = arguments.string(PROCESS)
     )
     buildJsonObject {
-      put("heapDump", dump.heapDumpName)
+      put(HEAP_DUMP, keyOf(dump))
       put("heapDumpPath", dump.heapDumpPath)
       put("dumped", true)
       put("next", NEXT_WITH_A_NEW_DUMP)
@@ -806,18 +819,70 @@ internal class AgentTools(
   /**
    * The heap dump a call names, and null for one that names none of the open ones.
    *
-   * **The file is the whole of how one is named**, by its name or by the path it was given as. Which is
-   * unambiguous because a run opens a file once: [openHeapDump] on a dump this run already has open joins that
-   * open rather than making a second, so there is never a second reading of one file here to tell apart. Two
-   * readings being compared is two runs, and a command line says which with `--run=`.
+   * **The file is the whole of how one is named**, by the key it is open under or by the path it was given as.
+   * Which is unambiguous because a run opens a file once: [openHeapDump] on a dump this run already has open
+   * joins that open rather than making a second, so there is never a second reading of one file here to tell
+   * apart. Two readings being compared is two runs, and a command line says which with `--run=`.
    *
    * Both spellings, because both are things an agent has in front of it: somebody says "investigate
    * /tmp/crash-4821.hprof", and a surface that takes only the last part of that is one that makes an agent
-   * shorten a path it was handed; while every answer here writes the name, so that is what it can say back.
+   * shorten a path it was handed; while every answer here writes the key, so that is what it can say back.
    */
-  private fun resolvedDump(asked: String): AgentHeapDump? =
-    heapDumps.openHeapDumps().firstOrNull { it.isCalled(asked) }
+  private fun resolvedDump(asked: String): AgentHeapDump? = heapDumps.openHeapDumps().keyed()
+    .firstOrNull { it.key == asked || it.dump.heapDumpPath == asked }?.dump
+
+  /**
+   * The key [dump] is open under, which is what every answer naming a heap dump says. See [keyed].
+   *
+   * Its own file name for a dump the list has not got. Both ways of opening one put it there before answering,
+   * and [CLOSE_HEAP_DUMP] reads its key before closing it, so nothing here reaches that — it is the key a dump
+   * of one name would have, which is the answer that cannot be wrong when there is nothing to compare against.
+   */
+  private fun keyOf(dump: AgentHeapDump): String = heapDumps.openHeapDumps().keyed()
+    .firstOrNull { it.dump.heapDumpPath == dump.heapDumpPath }?.key ?: dump.heapDumpName
 }
+
+/** One open heap dump and the key this surface names it by. See [keyed]. */
+private class KeyedHeapDump(
+  val key: String,
+  val dump: AgentHeapDump
+)
+
+/**
+ * The open heap dumps, each with the key every answer names it by: its file name, and `#2` for a second dump
+ * of that name.
+ *
+ * **A file name is what somebody says and what a reply quotes**, so it is what a key is built from. Two open
+ * dumps of one name is a real case rather than a hypothetical one — `crash.hprof` pulled off two devices is two
+ * files in two directories — and the name on its own left the second one unnameable: it resolved to the first,
+ * so a call meant for one was answered about the other and nothing said so.
+ *
+ * In the order they were opened, which is the order [AgentHeapDumps.openHeapDumps] hands them back, so the
+ * first `crash.hprof` keeps the plain name and the next is `crash.hprof#2`. **A key says what is open right
+ * now, and a path is the name that doesn't move**: closing the first of two makes the survivor `crash.hprof`
+ * again, and a call still saying `#2` is refused with the keys there are rather than answered about the wrong
+ * file. [resolvedDump] takes either, so a path is what to hold on to on a run that is closing dumps.
+ */
+private fun List<AgentHeapDump>.keyed(): List<KeyedHeapDump> {
+  val namesSoFar = mutableMapOf<String, Int>()
+  return map { dump ->
+    val name = dump.heapDumpName
+    val ordinal = (namesSoFar[name] ?: 0) + 1
+    namesSoFar[name] = ordinal
+    KeyedHeapDump(
+      key = if (ordinal == 1) name else "$name$KEY_INCREMENT$ordinal",
+      dump = dump
+    )
+  }
+}
+
+/**
+ * Between a file name and which dump of that name, as in `crash.hprof#2`.
+ *
+ * A character a shell leaves alone mid-word — `#` starts a comment only at the start of one — so a key can be
+ * typed at `--cli` unquoted, which is how every other argument on this surface is typed.
+ */
+private const val KEY_INCREMENT = '#'
 
 /**
  * What a call was about: which heap dump, and which place of it.
@@ -947,13 +1012,19 @@ private fun RootPath.verdictState(): ChainVerdicts {
 /** One step of a chain as a sentence names it: the address, then the class. */
 private fun RootPathStep.text(): String = "${exactHexObjectId(step.objectId)} ${step.className}"
 
-/** What [CONCLUDE] writes into the notes, which is the investigation's answer where it belongs. */
+/**
+ * What [CONCLUDE] writes into the notes, which is the investigation's answer where it belongs.
+ *
+ * [rootCause] is that call's `reason`, and there is no second field for it: the reason anybody calls [CONCLUDE]
+ * is that they found a root cause, so a `rootCause` beside the `reason` was one text asked for twice — a
+ * paragraph under the heading and a shorter version of it in the trailer. So the trailer says only *who* wrote
+ * this, which is the one thing a reader of a note cannot get from the note.
+ */
 private fun conclusionNote(
   reference: String,
   rootCause: String,
   howToReproduce: String?,
-  notChecked: String?,
-  reason: String
+  notChecked: String?
 ): String = buildString {
   appendLine("## Root cause")
   appendLine()
@@ -969,7 +1040,7 @@ private fun conclusionNote(
     appendLine("**Not checked:** $notChecked")
   }
   appendLine()
-  appendLine("_Concluded by an agent: ${reason}_")
+  appendLine("_Concluded by an agent._")
 }
 
 /**
@@ -1025,8 +1096,8 @@ private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
  *
  * Out here rather than inside [AgentTools] because a name belongs to the surface rather than to the class that
  * registers it, and that class is not the only thing here saying one — [nothingToRead], [nothingToShow] and
- * [verdictState] are top level functions writing tool names into their sentences, and [AgentCommandLine] writes
- * the two ways in into its help.
+ * [verdictState] are top level functions writing tool names into their sentences, and [AgentCommandLine] names
+ * the ways in and the commands that may start a run.
  *
  * Constants rather than the name written into each sentence, so that renaming a tool is one edit and a sentence
  * pointing at a tool that no longer exists is a compile error. Which is also why only some tools are named
@@ -1047,9 +1118,11 @@ private const val SET_VERDICT = "set_verdict"
 private const val READ_NOTES = "read_notes"
 private const val SHOW = "show"
 private const val CONCLUDE = "conclude"
+internal const val LIST_DEVICES = "list_devices"
+internal const val DUMP_HEAP = "dump_heap"
 
 /**
- * Which heap dump a call is about: its file name, or the path it was given as.
+ * Which heap dump a call is about: the key it is open under, or the path it was given as.
  *
  * **Required on every command that reads one**, which is what makes each call explicit about the dump it
  * is aimed at. It was optional while only one was open, which read as a convenience and is the one default
@@ -1057,10 +1130,15 @@ private const val CONCLUDE = "conclude"
  * on the same run — silently turns every call that relied on it into a refusal, and the sessions it
  * happened in are the ones where the agent had the name in its hand all along.
  *
+ * **Named `heapDumpKey` rather than `heapDump`**, and so is the field of every answer that hands one back,
+ * because they are the same string and were two words for it: an agent reading `heapDump` in an answer and
+ * passing `heapDump` to the next call is right, and one reading it as the dump itself and looking for the key
+ * elsewhere is reading the word. See [keyed] for what a key is.
+ *
  * See [resolvedDump] for what names one, and `shark.dive.DeepLink`, which names a heap dump for the same
  * reason.
  */
-private const val HEAP_DUMP = "heapDump"
+private const val HEAP_DUMP = "heapDumpKey"
 private const val SESSION = "session"
 private const val FROM = "from"
 private const val CLASS_NAME = "className"
@@ -1090,7 +1168,6 @@ private const val MAX_CHILDREN = "maxChildren"
 private const val PATH = "path"
 private const val DEVICE = "device"
 private const val PROCESS = "process"
-private const val ROOT_CAUSE = "rootCause"
 private const val HOW_TO_REPRODUCE = "howToReproduce"
 private const val NOT_CHECKED = "notChecked"
 
@@ -1102,14 +1179,16 @@ private const val NOT_CHECKED = "notChecked"
  * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in [LIST_LEAKS] that
  * walking a tree would take an hour to reach.
  *
- * **And it says where the leak method is**, which is no longer any answer: it is
- * [AgentCommandLine.LEAK_METHOD_OPTION], text this build carries. Opening a dump is the first call of most
- * investigations, so a sentence saying where the method is, is what keeps an investigation from being one
- * that never read it by accident. See [AgentMethod].
+ * **And it says where both halves of the method are**, neither of them being in any answer any more:
+ * [AgentCommandLine.SURFACE_METHOD_OPTION] and [AgentCommandLine.LEAK_METHOD_OPTION], text this build carries.
+ * Opening a dump is the first call of most investigations, which makes this the one answer that can say so to a
+ * session that has read nothing — and the whole of what moving the method out of the answers costs is this
+ * sentence. See [AgentMethod].
  */
-private const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAKS with this heap dump for anything about a leak, and " +
-  "read ${AgentCommandLine.LEAK_METHOD_OPTION} once before the first chain: that is where the method is. " +
-  "Call $DOMINATOR_TREE instead if the question is where the memory has gone."
+private const val NEXT_WITH_A_NEW_DUMP = "Read ${AgentCommandLine.SURFACE_METHOD_OPTION} if you have not: it " +
+  "is how to work here, and it is one read per session. Then call $LIST_LEAKS with this heap dump for " +
+  "anything about a leak — reading ${AgentCommandLine.LEAK_METHOD_OPTION} once before the first chain, which " +
+  "is where that method is — or $DOMINATOR_TREE if the question is where the memory has gone."
 
 /**
  * What to do about a heap dump somebody has already worked on, said only when one has — see
@@ -1126,7 +1205,7 @@ private const val ALREADY_WORKED_ON = "Somebody has already worked on this heap 
 
 /** The open heap dumps as a message names them: what to say back, and where each file is. */
 private fun openDumpsText(dumps: List<AgentHeapDump>): String =
-  dumps.joinToString(", ") { "${it.heapDumpName} at ${it.heapDumpPath}" }
+  dumps.keyed().joinToString(", ") { "${it.key} at ${it.dump.heapDumpPath}" }
 
 /**
  * How many objects a list comes back with by default, well under
@@ -1136,8 +1215,8 @@ private fun openDumpsText(dumps: List<AgentHeapDump>): String =
 private const val DEFAULT_LISTED_OBJECTS = 30
 
 private fun heapDumpArgument() = string(
-  "Which open heap dump: its file name, or the path you were given. $LIST_HEAP_DUMPS is the ones there " +
-    "are, and $OPEN_HEAP_DUMP answers with the name of the one it opened."
+  "Which open heap dump: the `$HEAP_DUMP` of an answer that named one, or the path you were given. " +
+    "$LIST_HEAP_DUMPS is the ones there are, and $OPEN_HEAP_DUMP answers with the key of the one it opened."
 )
 
 private fun objectIdArgument(description: String) =
@@ -1180,10 +1259,6 @@ private fun AgentArguments.placeOrNull(name: String): Place? = when {
   // No arguments, since nothing above matched: what is left is what the tool means on its own.
   else -> screenOfTool(name, emptyMap())?.place
 }
-
-/** Whether [asked] names this dump, by either of the two things an agent can have in front of it. */
-private fun AgentHeapDump.isCalled(asked: String): Boolean =
-  heapDumpName == asked || heapDumpPath == asked
 
 /**
  * Whatever [block] reads, or null if the arguments wouldn't answer it.
@@ -1279,11 +1354,11 @@ private fun nothingToShow(
  * the answer to "what is open", and a refusal is text alone: `AgentWire.refusal` carries a message and no
  * answer, and `AgentCommandLine.printed` prints that text to stderr and nothing else. So refusing here would
  * throw away the whole structured answer, starting with the very paths the paragraph above exists to name.
- * Same shape as `agent_log` and `list_devices` with nothing to list, and the refusal for a call that needs a
+ * Same shape as `agent_log` and [LIST_DEVICES] with nothing to list, and the refusal for a call that needs a
  * dump is [heapDump]'s, which every tool that reads one goes through.
  */
 private fun nothingToRead(indexing: List<String>): String = if (indexing.isEmpty()) {
-  "No heap dump is open yet. Call $OPEN_HEAP_DUMP with the path of an `.hprof` file, or dump_heap to take " +
+  "No heap dump is open yet. Call $OPEN_HEAP_DUMP with the path of an `.hprof` file, or $DUMP_HEAP to take " +
     "one off a device."
 } else {
   "No heap dump can be read yet: this run was pointed at ${indexing.joinToString(", ")} and is indexing it. " +

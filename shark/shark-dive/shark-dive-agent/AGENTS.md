@@ -65,8 +65,9 @@ client because saying no is all it does — nothing here ever calls a model.
   reads. `ChainState` is that list, and the refusal names the candidates rather than counting them. Same rule
   as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it, because the ways it answers
   null are different things to do next.
-- Every tool takes a `reason`, and it is enforced in `AgentTool.call` rather than only asked for in the
-  schema: a client is free to ignore a schema.
+- Every tool's schema requires a `reason`, and `AgentCommandLine` refuses a command of a named session that
+  sent none — a client being free to ignore a schema. Which is a *pair* with `--session=` rather than a rule of
+  its own; see the command line section below for why that is where it is checked.
 
 So a change that makes any of these easier to satisfy is a change that removes the reason this module exists.
 An agent that has narrowed a chain to two candidate references must not be able to report a root cause, however
@@ -138,8 +139,10 @@ investigation is least able to afford — and `McpSession.isTheCommandLineSaying
 that one message. **So don't reintroduce anything in front of the call.** A capabilities exchange, a
 `hello`, a version negotiation: each of them is a row of that screen saying a process started and did the
 thing the next row already names, and there is nothing for one to carry. What the commands are is `--help`,
-text this build prints with no window and no heap dump, and how to work here arrives in the first *answer* —
-see `AgentConnection.withTheSurface`.
+and how to work here is `--investigation-help`, and both are text this build prints with no window and no heap
+dump — so **nothing an answer carries is anything but the answer**. The method was in one: how to work here
+prepended to whatever a session asked first, which made a call that only wanted to know which heap dumps are
+open the call that handed over the whole of it. See `AgentMethod`.
 
 The name is in `input` even though `tool` has it, and that is not an oversight: this field is read as one
 thing, and a set of arguments lifted away from what they are arguments *to* is the one form of a call nobody
@@ -201,11 +204,20 @@ a refusal it prints about a heap dump was thrown by the tool's own handler. Ever
 is on the other end of the socket, which is what keeps a command line from becoming a second surface with
 rules of its own. `notes/agent-surface.md` has what a call costs.
 
-**What it refuses without a run is only what could not have reached one**: a `--cli` with no command name
-after it, a name no command in this build has — answered with the names it does have, since what happened is
-usually a tool renamed under an agent that had learned the old name — `--no-ui` on any command but
-`open_heap_dump`, and a session name that cannot be part of a file name. Keeping that list to four is what
-makes the surface one place: a fifth would be a rule to find out about twice.
+**What it refuses without a run is only what could not have reached one**: a name no command in this build has —
+answered with the names it does have, since what happened is usually a tool renamed under an agent that had
+learned the old name — `--no-ui` on a command that starts no run, a session name that cannot be part of a file
+name, and a command of a named session with no `reason`. Keeping that list to four is what makes the surface one
+place: a fifth would be a rule to find out about twice. A `--cli` with no command name after it is not one of
+them: it prints the help on stdout and exits 0, because a program asked what it takes is being asked a question
+rather than making a mistake.
+
+**The `reason` is required of a named session and of nothing else**, which is a pair rather than two rules:
+`--session=` is what an agent passes and the `reason` is what makes that session readable afterwards, so
+having both or neither is the whole of it. It is checked here because this is the only place that knows which
+of the two a command line is — `AgentTool.call` enforced it on every call, which refused a person typing one
+command at a window for the sake of a log nobody is going to review. The schemas still require it, since what
+a model reads is the schema.
 
 **A process per call would otherwise be a session per call**, and a session is what somebody reads afterwards.
 So the handshake is `token[ sessionName]` on one line, `AgentSessionFile.continuing` appends to the
@@ -258,22 +270,36 @@ while the surface is being worked on. A run named by `--run=<pid>` that is a dif
 explicitly, since a pid somebody typed deserves better than reading as no run at all.
 
 **A call with no run to talk to opens one**, rather than answering "ask your human to launch Shark Dive" — that
-being the opposite of the point of this surface being a window at all. The wait then changes with what is being
-waited for: 60 seconds for a run that is being opened, against 10 for one that ought to be there already,
-because the first covers a cold JVM, Compose starting and jlink's runtime being paged in.
+being the opposite of the point of this surface being a window at all.
 
-**Only `open_heap_dump` starts one**, which is a deliberate narrowing of "start one if there is none": every
-other command is a question *about* a run, and a question answered by a run this command line just started is a
-question answered with nothing — indistinguishable, to whatever reads the answer, from a run that was already
-there and had nothing open. So the rest are refused, with `open_heap_dump` as the message. `--run=<pid>` starts
-nothing either: that names a run, and starting a different one would answer about the wrong heap dump.
+**And the only wait is for a run this command line started**, 60 seconds of it, which covers a cold JVM,
+Compose starting and jlink's runtime being paged in. **Nothing is waited for otherwise**, and the reason is a
+property of the published file rather than a tuned number: a run takes its file away three ways as it ends —
+a shutdown hook, the `Closeable`, and whoever reads the file of a process that has gone deleting it — so a run
+that is up is a run that is published, and polling for one to appear is only ever a bet that one is in the
+middle of starting. There was a blind 10 seconds before any command, and what it bought was ten seconds of
+saying nothing before saying what was already known. The run that is published and does not answer is the
+other case and is covered without a wait: the connect has a 1 second timeout, and whoever finds it deletes the
+file.
+
+**Three commands start one** — `open_heap_dump`, `dump_heap` and `list_devices` — which is a deliberate
+narrowing of "start one if there is none", and the rule is what each command's answer is about. Each of those
+answers the same in a run it just started as in the run somebody is working in: two of them hand back a heap
+dump they put there, and the third asks `adb`. Every other command is a question *about* a run, and a question
+answered by a run this command line just started comes back empty — indistinguishable, to whatever reads the
+answer, from a run that was already there and had nothing open. `list_heap_dumps` is the one to check that rule
+against: it needs no heap dump either, and it starts nothing because what it answers *is* what the run has
+open. So the rest are refused, naming the three. `--run=<pid>` starts nothing whichever command it is on: that
+names a run, and starting a different one would answer about the wrong heap dump.
 
 **Whether a run draws windows is checked here, before connecting.** `--no-ui` is a property of the *run* —
 `cascadedPosition` asks `GraphicsEnvironment` for the screen, so a run on a machine that has none cannot start
 Compose at all — which means there is no opening one heap dump of a run with a window and another without. So
-`kindMatches` refuses a mismatch either way with the sentence saying which it is, and `--no-ui` is on no
-other command: every one of those reads a dump that is open already, and a dump open with no window answers
-exactly as one open in a window does.
+`kindMatches` refuses a mismatch either way with the sentence saying which it is, and it does that **only for
+the two commands that open a dump**: `list_devices` may start a run and opens nothing, so which kind of run
+answers it is nothing about its answer. `--no-ui` is refused outright on every command that starts no run, each
+of which reads a dump that is open already — and a dump open with no window answers exactly as one open in a
+window does.
 
 **And the run this starts is left out of this process's process group**, which is `detached` in
 `shark.dive.app.DiveAgents`. A child already survives its parent exiting; what kills it is a signal aimed at a
@@ -299,17 +325,30 @@ dump being indexed, is a quiet connection, and one dropped for being quiet is a 
 
 `open_heap_dump` and `list_heap_dumps` are the only two commands that take no heap dump, because they are the
 two that hand one back: open the dump you were given, or find out what is open already. **Every other command
-needs that identifier**, which is not a rule enforced in one place — it is `heapDump` being a required argument
+needs that key**, which is not a rule enforced in one place — it is `heapDumpKey` being a required argument
 of each of their schemas and of `AgentArguments.heapDump`, whose refusal lists what is open and points at
 `open_heap_dump` for what isn't.
 
-**The identifier is the file**, by its name or by the path it was opened as — `isCalled`, both spellings,
-because both are things an agent has in front of it: somebody says "investigate `/tmp/crash-4821.hprof`", and a
-surface taking only the last part of that makes an agent shorten a path it was handed. There is no window
-identifier, and there was: the CLI is about heap dump files and a window is where one happens to be drawn.
-Which is unambiguous because **opening a dump this run already has open joins that open** rather than making a
-second one, so one file is at most one open per run and there is never a second reading of it here to tell
-apart. Two readings of one dump being compared is two runs, and `--run=<pid>` is how to say which.
+**It is called `heapDumpKey` in every argument and in every answer that hands one back**, which is one word
+doing work the old `heapDump` didn't: an argument named after the thing rather than after the identifier of it
+reads as somewhere a path, or a file, or a window might go. The path is beside it under `heapDumpPath`, and the
+two being plainly a key and a path is the whole reason for the rename.
+
+**A key is the file name**, and `crash.hprof#2` for a second dump open under that name — `keyed()`, which is
+also why a key is not simply "the name". Two open dumps of one name is a real case rather than a hypothetical
+one, `crash.hprof` pulled off two devices being two files in two directories, and the name alone left the
+second one unnameable: it resolved to the first, so a call meant for one was answered about the other and
+nothing said so. **A key says what is open right now, and a path is the name that doesn't move**: closing the
+first of two makes the survivor `crash.hprof` again, and a call still saying `#2` is refused with the keys
+there are rather than answered about the wrong file.
+
+**A path is the other spelling, and `resolvedDump` takes either**, because both are things an agent has in
+front of it: somebody says "investigate `/tmp/crash-4821.hprof`", and a surface taking only the last part of
+that makes an agent shorten a path it was handed. There is no window identifier, and there was: the CLI is
+about heap dump files and a window is where one happens to be drawn. Which is unambiguous because **opening a
+dump this run already has open joins that open** rather than making a second one, so one file is at most one
+open per run and there is never a second reading of it here to tell apart. Two readings of one dump being
+compared is two runs, and `--run=<pid>` is how to say which.
 
 **`close_heap_dump` is the way out, and closing the last one ends the run.** A run *is* its heap dumps: one with
 none left has nothing to come back to, and leaving it up would be leaving the two-runs error waiting for the
@@ -371,15 +410,16 @@ the reads happen on the heap dump's thread and the tests run headless.
 ```bash
 ./gradlew :shark:shark-dive:shark-dive-agent:check   # test + detekt
 
-# What the surface is, from a shell, with nothing open and no Gradle. Then one command in full.
+# What the surface is, from a shell, with nothing open and no Gradle. Then one command, then the method.
 "Shark Dive.app/Contents/MacOS/Shark Dive" --help
 "Shark Dive.app/Contents/MacOS/Shark Dive" --help open_heap_dump
+"Shark Dive.app/Contents/MacOS/Shark Dive" --investigation-help
 
 # Then a heap dump open — which starts a run if none is up — and one call about it.
 "Shark Dive.app/Contents/MacOS/Shark Dive" \
   --cli open_heap_dump path=<path> reason="Trying it"
 "Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --cli list_leaks heapDump=<file name> reason="Trying it"
+  --cli list_leaks heapDumpKey=<file name> reason="Trying it"
 
 # The whole surface end to end, in a real window, with an agent that has never seen this repository.
 shark/shark-dive/shark-dive-agent/harness/start-harness.sh [heap-dump.hprof]

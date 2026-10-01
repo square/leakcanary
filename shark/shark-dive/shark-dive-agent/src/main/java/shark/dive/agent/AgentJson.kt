@@ -49,22 +49,22 @@ internal object AgentJson {
   /**
    * Which heap dump, how big it is, and what has been concluded about it so far.
    *
-   * The name first because it is what every other call names this dump by — [AgentTools.HEAP_DUMP] — and the
-   * path after it, since a name is only unambiguous within one run and a path is what a reply quotes.
+   * The key first because it is what every other call names this dump by, under the same name there as here, and
+   * the path after it, since a key is only unambiguous within one run and a path is what a reply quotes.
    *
    * None of it is read from the heap dump: the sizes were worked out while opening it and the verdicts and the
    * notes are on disk — [placesWithANote] is a directory listing — which is what lets the listing of every
    * open dump wait on none of them. See [AgentHeapDump.sizes].
    */
   fun heapDump(
-    heapDumpName: String,
+    heapDumpKey: String,
     heapDumpPath: String,
     sizes: HeapSizes,
     verdicts: LeakStatusOverrides,
     /** How many places of this dump somebody has written about, as [AgentHeapDump.notedPlaces] counts them. */
     placesWithANote: Int
   ): JsonObject = buildJsonObject {
-    put("heapDump", heapDumpName)
+    put("heapDumpKey", heapDumpKey)
     put("heapDumpPath", heapDumpPath)
     putJsonObject("sizes") {
       put("totalBytes", sizes.totalByteCount)

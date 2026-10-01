@@ -59,16 +59,26 @@ uses, without the one for a newly recognized library leak:
   reach it, with nothing to configure and no server to point anything at, and `--help` prints the commands
   there are. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **Two ways in, and after that every command names a heap dump.** `open_heap_dump` takes the file you were
-  given and answers with the name the rest of the surface knows that dump by; `list_heap_dumps` is that name for
-  an agent that was given no file. Every other command takes `heapDump=<file name>`, so each call says which
+  given and answers with the key the rest of the surface knows that dump by; `list_heap_dumps` is that key for
+  an agent that was given no file. Every other command takes `heapDumpKey=<key>`, so each call says which
   dump it is about — and naming one that is already open joins the window somebody is watching rather than
-  indexing a second copy of it, which `wasAlreadyOpen` in the answer says outright. `close_heap_dump` is the way
+  indexing a second copy of it, which `wasAlreadyOpen` in the answer says outright. A key is the file name, so
+  it reads as the thing it names; two dumps open under one name — `crash.hprof` pulled off two devices — give
+  the second one `crash.hprof#2`, because a name that resolves to whichever of them was opened first is a call
+  meant for one answered about the other. The path a dump was opened as names it too, and is the spelling that
+  doesn't move. `close_heap_dump` is the way
   out: the window closes, and closing the last dump open ends the run, so an agent that finishes tidily leaves
   nothing on your screen. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **An agent doesn't need a window to have been opened for it.** With nothing running, `open_heap_dump`
   starts a run and waits for it, then leaves it open for whoever comes back to it — which is what makes every
-  call after it cheap: the dump is parsed and indexed once, in the window somebody is watching. It is the only
-  command that starts a run, since it is the only one that says which dump the run should have. A call exits 0
+  call after it cheap: the dump is parsed and indexed once, in the window somebody is watching. Three commands
+  start one — `open_heap_dump`, `dump_heap` and `list_devices` — which are the three whose answer says nothing
+  about what a run has open, so they answer the same whether a run was already there or not. `list_heap_dumps`
+  is deliberately not one of them: what it answers *is* what a run has open, so starting one to be told
+  "nothing" would be a command answering its own question. **And a wait is only ever for a run this command
+  line started**, which is why nothing else is slow: a run that is already published is reached in a second or
+  refused, and a published run that has died has its file deleted by whoever found it rather than waited on. A
+  call exits 0
   with the answer as JSON on stdout, 2 when it was refused, with the refusal on stderr where a script can read
   it, and 1 when there was nothing to answer it.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
@@ -81,13 +91,14 @@ uses, without the one for a newly recognized library leak:
 * ✨ **And no screen at all is a case too.** `--cli open_heap_dump --no-ui path=<heap dump>` opens it in a run
   that draws no window, and that run publishes itself exactly as a run with windows does — so every call after
   it is the same call and nothing has to be told which kind of run it is talking to. For a build server, a heap
-  dump at the far end of an ssh session, or an agent working with nobody watching. `--no-ui` goes with that one
-  command and no other, since what it picks is the kind of run to open a dump in rather than anything about one
-  dump, and asking for the wrong kind is refused either way round. Everything works the same except
-  `show`, which says it has nowhere to put a tab rather than answering that it showed you something, and hands
-  back the link all the same, since a link names the heap dump: whoever reads the answer can open the place
-  nobody saw. Notes and verdicts were never on the screen, so a heap dump investigated with no window opens in
-  one later with all of it on. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+  dump at the far end of an ssh session, or an agent working with nobody watching. `--no-ui` goes with the
+  commands that start a run and with no other, since what it picks is the kind of run to start rather than
+  anything about a dump that is open already — and for the two that open a dump, asking for the wrong kind of
+  run is refused either way round. Everything works the same except
+  `show`, which is **refused** by a run that draws nothing, since being seen is the whole of what it does. The
+  refusal carries the `shark://` link all the same, since a link names the heap dump: whoever reads it can open
+  the place nobody saw. Notes and verdicts were never on the screen, so a heap dump investigated with no window
+  opens in one later with all of it on. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **`--help` is the whole command line in one place, and there is only one of it** — the heap dumps and the
   title a window takes, the `shark://` links it follows, every option a command takes, and every command with a
   line each. `--help <command>` is one of them in full. Which is what a program handed nothing but the launcher
@@ -99,14 +110,25 @@ uses, without the one for a newly recognized library leak:
 * ✨ **`--session=<name>` is which investigation a set of calls is one of**, and an agent is expected to pass
   one with its own session id in it: the calls then read as one row of the **Agent logs** screen, and somebody
   reviewing that agent's own logs can search the id and find the investigation beside them. Left off, the calls
-  of one shell are gathered for you, which is the case a person typing them is in.
-  See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+  of one shell are gathered for you, which is the case a person typing them is in. **And `reason` is a pair with
+  it rather than a rule of its own**: a command of a named session that sent none is refused, and a command that
+  names no session takes it or leaves it. Which is the same rule read twice — somebody reading an agent's row
+  has the reasons and nothing else to go on, where a person at a shell is sitting in front of the reason they
+  ran it. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
+* ✨ **Both halves of the method are text the build prints, and neither is in any answer.**
+  `--investigation-help` is how to work on this surface — what each command answers, the order they go in, what
+  a reason is read for — and `--leak-investigation-help` is how to find a faulty reference. Each needs no run,
+  no heap dump and nothing open, so either is read on the machine before anything has been started, and read
+  once by whoever has a use for it rather than carried in a field every call pays for: a session that only
+  wanted to know which heap dumps are open is answered with which heap dumps are open. The answer that opens a
+  dump says where both of them are, which is the one answer a session that has read nothing is certain to see,
+  and `list_leaks` and the surface method each point at the leak half — so the method arrives at the point there
+  is a use for it. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **The method sends an agent to the code, at the version the heap dump is of.** Isolating the reference
   says where the problem is and not how it happened, so `--leak-investigation-help` — the method, which this
   build carries rather than answering with — also says how to work out which framework, app and library
   versions this dump is of, and what to ask for rather than guess, since an app's own version number never
-  reaches the heap. `list_leaks` points at it, so it is read once by the session that has a leak to work on
-  rather than once per leak.
+  reaches the heap.
   See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **An agent answers with links into the window.** `show` and `conclude` hand back the `shark://` link to
   what they put on screen, and the method tells an agent to put those links in its reply —

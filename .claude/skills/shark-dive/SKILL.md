@@ -28,7 +28,7 @@ already has open. Say which, and that is the whole of starting:
 `path` takes the file, or the name of a dump already open — so this never opens a second copy of one somebody
 is looking at, and `wasAlreadyOpen` in the answer says which happened. It answers once the dump is readable,
 which on a large one is a wait rather than a moment. **Don't ask what is open first**; this is the call. The
-`heapDump` it answers with is the name every command after it names that dump by.
+`heapDumpKey` it answers with is what every command after it names that dump by.
 
 **You were given nothing.** Then ask what is open, and pick:
 
@@ -37,9 +37,10 @@ which on a large one is a wait rather than a moment. **Don't ask what is open fi
 ```
 
 It reads nothing and waits for nothing. If it says no run of this build is open, then nothing is open anywhere
-and there is no window to ask — that is the case where you need a file, so ask for the path, or take one.
-`open_heap_dump` is the one command that starts a run, precisely because it is the one that says which dump
-the run should have.
+and there is no window to ask — that is the case where you need a file, so ask for the path, or take one. This
+command starts no run, precisely because what it answers *is* what a run has open: the three that do are
+`open_heap_dump`, `dump_heap` and `list_devices`, each of which answers the same whether the run was already
+there or not.
 
 **You need to take one.** From a device or emulator `adb` is connected to:
 
@@ -71,6 +72,9 @@ so.
 - `--help` prints every command, with a line each and the rest of what a command line takes. `--help <command>`
   prints one of them in full: what it answers, and every argument it takes. **Read that rather than guessing
   at a command**, and rather than trusting a list in a file like this one, which goes stale.
+- `--investigation-help` is how to work on this surface, and `--leak-investigation-help` is how to find a
+  faulty reference. Both are text this build prints with nothing open, and neither is in any answer — so an
+  investigation that never asks for one never reads it.
 - **Find the launcher first** — the path above is where a `.dmg` install puts it, and the space in it has to
   stay quoted:
   ```bash
@@ -83,8 +87,9 @@ so.
   stderr is the next thing to do, not an error to retry. **1** means nothing was there to answer it.
 - **Addresses are `0x…`, exactly as the surface writes them.** Never decimal: a heap dump's addresses do not
   survive a JSON number.
-- **Every command but those two is about one heap dump**, and `heapDump=<file name>` says which — the name
-  `open_heap_dump` and `list_heap_dumps` answer with. The `shark://` link `show` and `conclude` answer with
+- **Every command but those two is about one heap dump**, and `heapDumpKey=<key>` says which — the key
+  `open_heap_dump` and `list_heap_dumps` answer with, which is the file name, and `crash.hprof#2` for a second
+  dump open under that name. The `shark://` link `show` and `conclude` answer with
   names the dump too, so it still opens after this run has ended: **put those links in your reply** rather than
   describing which screen to open.
 - **`--session=<name>` is the one option to pass on every call**, naming the session you are working in:
@@ -109,10 +114,11 @@ dump in a run that draws nothing, and call it exactly as above:
   path=/absolute/path/bug-4821.hprof reason="No display on this machine"
 ```
 
-`--no-ui` goes with `open_heap_dump` and no other command, because it says what kind of run to open a dump in
-rather than anything about one dump. Everything works the same except `show`, which says nobody saw it and
-hands back the `shark://` link all the same — so put the link in your reply and whoever has a screen opens what
-you were looking at, with your notes and verdicts on it.
+`--no-ui` goes with the commands that start a run — `open_heap_dump`, `dump_heap`, `list_devices` — and with no
+other, because it says what kind of run to start rather than anything about a dump that is open already.
+Everything works the same except `show`, which is **refused** by a run that draws nothing, since being seen is
+the whole of what it does. The refusal carries the `shark://` link all the same — so put the link in your reply
+and whoever has a screen opens what you were looking at, with your notes and verdicts on it.
 
 ## What to do with it
 

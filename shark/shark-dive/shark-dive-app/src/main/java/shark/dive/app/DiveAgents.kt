@@ -243,8 +243,9 @@ internal fun cliExitCode(args: Array<String>): Int? {
     buildSha = SharkDiveVersion.buildSha,
     pid = args.optionValue(AgentCommandLine.RUN_OPTION),
     noWindow = AgentCommandLine.NO_UI_OPTION in args,
-    sessionName = args.optionValue(AgentCommandLine.SESSION_OPTION)
-      ?: AgentCommandLine.defaultSessionName(),
+    // Null rather than a default, because null is what says nobody named a session: a command line with no
+    // `--session=` is a person typing one command, and [AgentCommandLine.run] asks only an agent for a `reason`.
+    sessionName = args.optionValue(AgentCommandLine.SESSION_OPTION),
     // So that opening a heap dump where nothing is open gets one open, and its human a window to watch it in,
     // rather than being told to go and launch something. Worth more than it looks: every command after this
     // one finds that run published and talks to it, so one command line starting a run is what makes the rest

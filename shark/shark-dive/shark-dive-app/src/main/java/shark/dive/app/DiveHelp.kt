@@ -24,11 +24,19 @@ import shark.dive.agent.AgentCommandLine
  * where it is needed. [AgentCommandLine.CLI_OPTION] with nothing after it lands here too, since a command line
  * that names no command is a question about what the commands are.
  *
+ * **Both halves of the method are here too**, and that is what they are for: a text printed on demand is read
+ * once by whoever wants it, where a text carried in an answer is read again by every call that gets one. See
+ * [AgentCommandLine.SURFACE_METHOD_OPTION] and [AgentCommandLine.LEAK_METHOD_OPTION].
+ *
  * Answered before any logging is installed, and it ends with 0: whoever typed this asked a question and got the
  * answer, so there is nothing to put in a log file and nothing to fail about.
  */
 internal fun helpExitCode(args: Array<String>): Int? {
-  // On stdout, all three of them, because the text is the whole of what the command was run for.
+  // On stdout, every one of them, because the text is the whole of what the command was run for.
+  if (AgentCommandLine.SURFACE_METHOD_OPTION in args) {
+    println(AgentCommandLine.surfaceMethod())
+    return 0
+  }
   if (AgentCommandLine.LEAK_METHOD_OPTION in args) {
     println(AgentCommandLine.leakMethod())
     return 0
@@ -63,7 +71,7 @@ internal fun helpExitCode(args: Array<String>): Int? {
  * carries the commands under it.
  */
 private fun help(command: String): String = """
-  |Shark Dive reads a heap dump in a window, and answers commands about whatever it has open.
+  |Shark Dive opens heap dumps and answers commands about them, in a window or with no window at all.
   |
   |  $command [$TITLE_OPTION="<window title prefix>"] [<heap dump>…] [${DeepLink.SCHEME}://<heap dump>/<place>…]
   |  $command ${AgentCommandLine.CLI_OPTION} <command> name=value …
@@ -83,7 +91,8 @@ private fun options(): String = (
   listOf(
     "$TITLE_OPTION=<prefix>" to
       "In front of every window title of this run, so that two windows on one heap dump can be told apart.",
-    "<heap dump>" to "One window each, opened as this starts.",
+    "<heap dump>" to
+      "Opened as this starts, a window each unless ${AgentCommandLine.NO_UI_OPTION} says to draw none.",
     "${DeepLink.SCHEME}://<heap dump>/<place>" to
       "Goes to a place of a heap dump — a leak, an object, a tab — in whichever window has it open."
   ) + AgentCommandLine.cliOptions()

@@ -61,7 +61,7 @@ class AgentCommandLineTest {
 
     val exitCode = cli(
       "describe_object",
-      "heapDump=${window.heapDumpName}",
+      "heapDumpKey=${window.heapDumpName}",
       "object=${exactHexObjectId(heapDump.holderObjectId)}",
       "reason=Reading the holder's fields."
     )
@@ -79,15 +79,44 @@ class AgentCommandLineTest {
 
     val exitCode = cli(
       "describe_object",
-      "heapDump=${window.heapDumpName}",
-      "object=${exactHexObjectId(heapDump.holderObjectId)}"
+      "heapDumpKey=${window.heapDumpName}",
+      "object=com.example.MainActivity",
+      "reason=Reading the activity's fields."
     )
 
     // Its own exit code, because a refusal is not a failure of the command: the tool answered, and what it
     // answered is the next thing to do. Nothing on stdout, so a shell keeping that for the JSON gets none.
     assertThat(exitCode).isEqualTo(AgentCommandLine.REFUSED)
     assertThat(printed()).isEmpty()
-    assertThat(said()).contains("needs `reason`")
+    assertThat(said()).contains("no object address").contains("find_objects")
+  }
+
+  @Test
+  fun `a command of a named session needs its reason, and is refused before anything is called`() {
+    listen()
+
+    val exitCode = cli(LIST_HEAP_DUMPS)
+
+    // The pair: `--session=` says these calls are one investigation somebody will read afterwards, and a call
+    // with no sentence beside it is a read they cannot follow. Refused here rather than in every tool, because
+    // this is the one place that knows both halves — a command line with no session is a person typing one
+    // command, and being refused for not writing a sentence teaches them nothing. See [AgentArguments.reason].
+    assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
+    assertThat(said()).contains("needs `reason`").contains(AgentCommandLine.SESSION_OPTION + SESSION_NAME)
+    assertThat(sessions()).isEmpty()
+  }
+
+  @Test
+  fun `a command nobody said a session for is answered with no reason given`() {
+    listen()
+
+    val exitCode = cli(LIST_HEAP_DUMPS, sessionName = null)
+
+    // Which is a person at a terminal: `--cli list_heap_dumps` is a question with no sentence to write under
+    // it. The session it is written down in is named after the shell it was typed in — see
+    // [AgentCommandLine.defaultSessionName].
+    assertThat(exitCode).isEqualTo(AgentCommandLine.ANSWERED)
+    assertThat(printed()).contains(window.heapDumpName)
   }
 
   @Test
@@ -95,7 +124,7 @@ class AgentCommandLineTest {
     listen()
 
     cli(LIST_HEAP_DUMPS, "reason=Finding out what is open.")
-    cli("list_leaks", "heapDump=${window.heapDumpName}", "reason=Reading what the dump says about itself.")
+    cli("list_leaks", "heapDumpKey=${window.heapDumpName}", "reason=Reading what the dump says about itself.")
 
     // One row of the *Agent logs* screen rather than two, which is the whole of what naming a session buys:
     // an investigation is what somebody reads afterwards, and a process per command would have cut it up.
@@ -125,7 +154,7 @@ class AgentCommandLineTest {
 
     val exitCode = cli(
       "find_objects",
-      "heapDump=${window.heapDumpName}",
+      "heapDumpKey=${window.heapDumpName}",
       "className=Holder",
       "kinds=INSTANCE,CLASS",
       "reason=Checking there is only one holder."
@@ -255,16 +284,16 @@ class AgentCommandLineTest {
   }
 
   @Test
-  fun `no window is said about opening a heap dump and about nothing else`() {
+  fun `no window is said about the commands that start a run and about nothing else`() {
     listen()
 
     val exitCode = cli(LIST_HEAP_DUMPS, "reason=Finding out what is open.", noWindow = true)
 
-    // Refused locally, before a connect: every other command reads a dump that is open already, and a dump
-    // open with no window answers exactly as one open in a window does — so the option has nothing to say
-    // about one, and a command line that passed it has the wrong end of what it means.
+    // Refused locally, before a connect: the option says what kind of run to *start*, and every command that
+    // starts none reads a dump that is open already — which a dump open with no window answers exactly as one
+    // open in a window does. So a command line that passed it here has the wrong end of what it means.
     assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
-    assertThat(said()).contains("goes with $OPEN_HEAP_DUMP")
+    assertThat(said()).contains("commands that start one").contains(OPEN_HEAP_DUMP)
   }
 
   @Test
@@ -285,7 +314,7 @@ class AgentCommandLineTest {
   fun `closing the last heap dump open is answered, and says the run is ending`() {
     listen()
 
-    val exitCode = cli("close_heap_dump", "heapDump=${window.heapDumpName}", "reason=Done with this one.")
+    val exitCode = cli("close_heap_dump", "heapDumpKey=${window.heapDumpName}", "reason=Done with this one.")
 
     // The answer is the only place a caller hears that there is nothing left to talk to, so it has to arrive
     // even though making it is what ends the run — see [AgentServer.letAnswersOut].
@@ -423,12 +452,14 @@ class AgentCommandLineTest {
   /**
    * Runs one command and hands back its exit code, with stdout and stderr collected.
    *
-   * Nothing waited for unless the command is one that opens a run: what these tests are about is either
-   * published already or never will be, so a wait would be a test spending the timeout.
+   * Nothing waited for unless this command starts a run, which is the behaviour rather than a setting these
+   * pass: a run listed in [directory] is connected to at once, and one that isn't listed is one nothing here
+   * is about to publish. So no test spends a timeout, and the one that does start a run is handed an
+   * [openARun] that publishes before it returns. See [AgentCommandLine.runToTalkTo].
    */
   private fun cli(
     vararg words: String,
-    sessionName: String = SESSION_NAME,
+    sessionName: String? = SESSION_NAME,
     pid: String? = null,
     noWindow: Boolean = false,
     openARun: ((noWindow: Boolean) -> Unit)? = null
@@ -446,7 +477,6 @@ class AgentCommandLineTest {
         pid = pid,
         noWindow = noWindow,
         sessionName = sessionName,
-        waitMillis = 0L,
         openARun = openARun
       )
     } finally {

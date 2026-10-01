@@ -241,7 +241,7 @@ class AgentServerTest {
 
   /** A call that reads the heap dump, which is what makes it a call there is something to wait for. */
   private fun callListLeaks(): String =
-    """{"tool":"list_leaks","arguments":{"heapDump":"${window.heapDumpName}","reason":"Reading it."}}"""
+    """{"tool":"list_leaks","arguments":{"heapDumpKey":"${window.heapDumpName}","reason":"Reading it."}}"""
 
   /** An agent's end of the connection, as far as this test needs one: a token, then a line at a time. */
   private class TestClient(

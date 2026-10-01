@@ -3,17 +3,17 @@ package shark.dive.agent
 import java.time.Instant
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import shark.SharkLog
 
 /**
  * One agent talking to this app: a call per line in, an answer per line back. See [AgentWire].
  *
  * **There is no protocol here beyond naming a tool.** No handshake to answer, nothing to discover, no
- * capabilities to agree on — what the commands are is `--help`, which is text this build carries and needs no
- * run to print, and how to work here arrives in the first answer rather than in front of it. So a
- * caller is a socket, a line and a read, which is the whole of what [AgentCommandLine] does.
+ * capabilities to agree on — what the commands are is `--help` and how to work here is
+ * [AgentCommandLine.SURFACE_METHOD_OPTION], both of them text this build carries and neither needing a run to
+ * print. So a caller is a socket, a line and a read, which is the whole of what [AgentCommandLine] does, and
+ * **nothing this answers with is anything but the answer**: an envelope that carried the method as well would
+ * be a field every call of a session pays for to say what one printed text says once.
  *
  * A connection holds no state of its own. What an investigation accumulates — the verdicts, the notes — lives
  * in the heap dump's window, so a second call, or a second agent, reads what the first one concluded rather
@@ -28,15 +28,6 @@ internal class AgentConnection(
    */
   private val sessionFile: AgentSessionFile
 ) {
-
-  /**
-   * Whether this session has already been handed [AgentMethod.SURFACE], which it is exactly once.
-   *
-   * Starts from the file rather than from false, because a session is not a connection: `--cli` is a process
-   * per call, so an [AgentConnection] is one typed command and the session it belongs to is whatever
-   * [AgentSessionFile] joined. See [AgentSessionFile.hasAnsweredACall] and [withTheSurface].
-   */
-  private var hasHandedOverTheSurface = sessionFile.hasAnsweredACall
 
   /**
    * Answers one call, as the line to write back.
@@ -88,7 +79,7 @@ internal class AgentConnection(
     // trying to learn and then what that cost. See [AgentTools].
     SharkLog.d { "An agent called $name${arguments.logLine()}" }
     return try {
-      val answer = withTheSurface(tool.call(arguments))
+      val answer = tool.call(arguments)
       // Formatted once and then both written down and answered with, so that the text in the session is the
       // text the caller printed rather than the same object printed a second way. See [AgentWire.pretty].
       val answered = AgentWire.pretty(answer)
@@ -136,36 +127,6 @@ internal class AgentConnection(
         startedAt = startedAt
       )
       AgentWire.encode(AgentWire.failure(failure))
-    }
-  }
-
-  /**
-   * An answer with [AgentMethod.SURFACE] in front of it, for the first answered call of a session.
-   *
-   * **The method travels as a tool result** because that is the one thing an agent is certain to read: it
-   * asked for the answer, and nothing between here and the model drops it or cuts it short.
-   *
-   * **Once per session, and a session is not this object.** A command line is a process per call, so the flag
-   * starts from what the session file already holds: the second typed command of an investigation finds a
-   * session whose first call was answered and adds nothing. Which is the one thing this must not get wrong in
-   * the other direction either — `AgentSessionFile.hasAnsweredACall` looks for an *answered* call rather than
-   * for a line, because a first command that was refused carried no answer for this to be in, and a session
-   * that counted it would be one where nobody ever read the surface.
-   *
-   * **And it is the only half of the method that travels in an answer.** [AgentMethod.LEAK] was in this same
-   * field of `list_leaks`, which is why this used to merge the two, and it is now
-   * [AgentCommandLine.LEAK_METHOD_OPTION] — text a session reads once, rather than a field an investigation of
-   * four leaks was handed four times.
-   */
-  private fun withTheSurface(answer: JsonObject): JsonObject {
-    if (hasHandedOverTheSurface) {
-      return answer
-    }
-    hasHandedOverTheSurface = true
-    return buildJsonObject {
-      // First, because it is the part that says how to work here, and a model reads an answer from the top.
-      put(AgentMethod.FIELD, AgentMethod.SURFACE)
-      answer.forEach { (name, value) -> put(name, value) }
     }
   }
 

@@ -112,8 +112,9 @@ Each of the following is a change already made to this app, not a preference:
   reaching.
 - **Prose belongs in the KDoc, `notes/decisions.md`, or a reference page.** Those are the three places
   something long enough to be worth writing goes. `notes/agent-surface.md` measures the same idea on the
-  agent surface — nothing at all until a call is made, then the method in the first answer and the leak half
-  only for the session that asked for the leaks — and the window is the same trade against a smaller budget.
+  agent surface, where both halves of the method ended up out of the answers entirely: they are printed by
+  `--investigation-help` and `--leak-investigation-help`, read once by whoever has a use for one, rather than
+  carried in a field every call of a session pays for. The window is the same trade against a smaller budget.
 
 ## One concept, one name, one place
 
