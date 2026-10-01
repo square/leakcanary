@@ -38,21 +38,23 @@ which on a large one is a wait rather than a moment. **Don't ask what is open fi
 
 It reads nothing and waits for nothing. If it says no run of this build is open, then nothing is open anywhere
 and there is no window to ask — that is the case where you need a file, so ask for the path, or take one. This
-command starts no run, precisely because what it answers *is* what a run has open: the three that do are
-`open_heap_dump`, `dump_heap` and `list_devices`, each of which answers the same whether the run was already
-there or not.
+command starts no run, precisely because what it answers *is* what a run has open: the four that do are
+`open_heap_dump`, `dump_heap`, `list_devices` and `list_processes`, each of which answers the same whether the
+run was already there or not.
 
 **You need to take one.** From a device or emulator `adb` is connected to:
 
 ```bash
 … --cli list_devices reason="Finding the device"
-… --cli list_devices device=emulator-5554 reason="Finding the process to dump"
+… --cli list_processes device=emulator-5554 reason="Finding the process to dump"
 … --cli dump_heap device=emulator-5554 process=com.example.app reason="Reproduced the bug, dumping now"
 ```
 
 `dump_heap` collects the garbage first, writes the dump on the device, pulls it and opens it — minutes on a
 large app, and one call that does not come back until it is readable. A process can only be dumped if the app
-was built debuggable or the whole device build is; `list_devices` says which.
+was built debuggable or the whole device build is — `dumpsAnyProcess` in what `list_devices` answers, which a
+`userdebug` emulator image has and a phone does not, and the only way one of the system's own processes can be
+dumped at all.
 
 **Whichever case it was, the answer says whether anybody has been here.** An untouched heap dump is the
 normal case, so there is nothing to ask: `alreadyWorkedOn` is in that answer only when somebody left verdicts
@@ -68,7 +70,9 @@ so.
 ```
 
 - **`--cli` is on every command.** Without it the same command line is a run of the app opening windows, so
-  there is no leaving it off and no inferring it from a command name.
+  there is no leaving it off and no inferring it from a command name. And **a heap dump path is never a bare
+  argument beside `--cli`** — it is `open_heap_dump path=…`, which is the call that answers that a dump was
+  opened. A command line that says both is refused rather than opening it twice.
 - `--help` prints every command, with a line each and the rest of what a command line takes. `--help <command>`
   prints one of them in full: what it answers, and every argument it takes. **Read that rather than guessing
   at a command**, and rather than trusting a list in a file like this one, which goes stale.
@@ -114,8 +118,9 @@ dump in a run that draws nothing, and call it exactly as above:
   path=/absolute/path/bug-4821.hprof reason="No display on this machine"
 ```
 
-`--no-ui` goes with the commands that start a run — `open_heap_dump`, `dump_heap`, `list_devices` — and with no
-other, because it says what kind of run to start rather than anything about a dump that is open already.
+`--no-ui` goes with the commands that start a run — `open_heap_dump`, `dump_heap`, `list_devices`,
+`list_processes` — and with no other, because it says what kind of run to start rather than anything about a
+dump that is open already.
 Everything works the same except `show`, which is **refused** by a run that draws nothing, since being seen is
 the whole of what it does. The refusal carries the `shark://` link all the same — so put the link in your reply
 and whoever has a screen opens what you were looking at, with your notes and verdicts on it.

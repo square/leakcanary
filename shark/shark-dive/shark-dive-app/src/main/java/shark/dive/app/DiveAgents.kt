@@ -88,7 +88,7 @@ internal abstract class RunAgentHeapDumps(
       val process = deviceHeapDumps.appProcesses(device).firstOrNull { it.name == processName }
         ?: throw AgentRefusal(
           "No process called \"$processName\" is running on ${device.description}. A process is dumped by " +
-            "name because a pid changes every time the app restarts, so ask list_devices again: what it " +
+            "name because a pid changes every time the app restarts, so ask list_processes again: what it " +
             "answers with is what is running now."
         )
       // Every step of it in this run's log, which is the only place a dump that is taking minutes says how
@@ -236,6 +236,10 @@ internal fun cliExitCode(args: Array<String>): Int? {
     saidToTheCaller(invalidArguments.message.orEmpty())
     return UNREADABLE_COMMAND_LINE
   }
+  twoFormsAtOnce(arguments)?.let { saidBoth ->
+    saidToTheCaller(saidBoth)
+    return UNREADABLE_COMMAND_LINE
+  }
   return AgentCommandLine.run(
     directory = AGENT_RUNS_DIRECTORY,
     command = commandToRunThis(),
@@ -372,21 +376,49 @@ internal fun commandToRunThis(): String {
 }
 
 /**
+ * What is wrong with a `--cli` command line that also names a heap dump or a link, and null for every other
+ * one.
+ *
+ * **Two forms of this command line, and naming both says two different things to do.** A heap dump named
+ * outside a command opens as the app starts and a `shark://` link goes to a place of a window, which are the
+ * form with no command in it; with a command, opening a dump is `open_heap_dump` and going to a place is
+ * `show`, each of them answering that it happened. So a command line with one of each would open the same dump
+ * twice, or show a place and then answer about another, and nothing in it says which was meant.
+ *
+ * `--title` is the one thing both forms take, and deliberately: it names the run this may have to start, which
+ * is the run whoever typed the command is going to be looking at.
+ */
+private fun twoFormsAtOnce(arguments: DiveArguments): String? {
+  val named = arguments.heapDumpFiles.map { it.path } + arguments.deepLinks.map { it.toUri() }
+  if (named.isEmpty()) {
+    return null
+  }
+  // Commas rather than "and", because this is as often a mangled command line as a deliberate one: a quoted
+  // `reason=` that lost its quotes arrives as a word per argument, and three of them joined by "and" read as
+  // one sentence of the message rather than as the three things to drop.
+  return "${named.joinToString(", ")} ${if (named.size == 1) "is" else "are"} for a command line with no " +
+    "${AgentCommandLine.CLI_OPTION}, which opens heap dumps and goes to places as this app starts. A command " +
+    "does both and says so in its answer: open_heap_dump takes the heap dump as `path=`, and show takes the " +
+    "place. Drop ${if (named.size == 1) "it" else "them"}, or drop the command."
+}
+
+/**
  * Starts another Shark Dive and leaves it running, with a window unless [noWindow].
  *
  * **Deliberately outliving this process.** A command ends with its one answer, and the run it started is the
  * whole point: every command after it reaches that run, and whoever is at the machine reads the notes and the
  * verdicts afterwards, on the tabs the agent left open.
  *
- * With the rest of the command line this process was given, so that `--title` and any heap dump named outside
- * the command mean here what they mean to a run somebody launched by hand.
+ * **Opening nothing, and that is the whole command line it gets**: a title, and whether it draws windows. The
+ * heap dump is the command's to open, the command being what answers that it was opened — see [twoFormsAtOnce]
+ * for why a command line cannot say both.
  */
 private fun openAnotherRun(
   command: List<String>,
   arguments: DiveArguments,
   noWindow: Boolean
 ) {
-  val started = command + arguments.heapDumpFiles.map { it.absolutePath } + listOfNotNull(
+  val started = command + listOfNotNull(
     "$TITLE_OPTION=${arguments.titlePrefix ?: CLI_RUN_TITLE}",
     AgentCommandLine.NO_UI_OPTION.takeIf { noWindow }
   )

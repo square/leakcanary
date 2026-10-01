@@ -1032,7 +1032,7 @@ class AgentToolsTest {
     // The difference between a device with two dumpable processes on it and one with all of them.
     assertThat(devices.single().text("dumpsAnyProcess")).isEqualTo("true")
 
-    val processes = call("list_devices", "device" to "emulator-5554").array("processes").map { it.jsonObject }
+    val processes = call("list_processes", "device" to "emulator-5554").array("processes").map { it.jsonObject }
     assertThat(processes.single().text("process")).isEqualTo("com.example.app")
     assertThat(processes.single().text("processId")).isEqualTo("4231")
   }

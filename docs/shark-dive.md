@@ -278,7 +278,9 @@ There is nothing to install and nothing to configure. The app's own launcher tak
 ```
 
 **`--cli` goes on every command**, and it is what tells a command from a run of the app: the same launcher with
-a heap dump after it opens a window, so nothing here is inferred from a command name arriving. `--help` prints
+a heap dump after it opens a window, so nothing here is inferred from a command name arriving. And it is one or
+the other — a command line that says `--cli` and also names a heap dump is saying two different things to do,
+since a command opens a dump by calling `open_heap_dump path=…` and answers that it did. `--help` prints
 every command with a line each, `--help <command>` prints one of them in full, and both answer with no run
 open and no heap dump anywhere — which is the state an agent reads them in.
 
@@ -301,12 +303,13 @@ refusal is the surface working, so an agent that treats a non-zero exit as a fai
 never reads the sentence telling it what to do instead.
 
 **A window open before you start is not a requirement.** With nothing running, `open_heap_dump` starts a run
-and waits for it, as `dump_heap` and `list_devices` do — the three commands whose answer is the same whether
-the run was already there or not. Every other command is a question *about* a run, and one answered by a run
-just started for it would come back empty while looking exactly like a run that was there and had nothing open,
-so those say which command to call instead. The run outlives the agent's session, which is the point: whatever
-it concluded is on the tabs it left open when you come back to it. `close_heap_dump` is the other end of that, and closing the last dump
-open ends the run, so an agent that finishes tidily leaves no window on your screen.
+and waits for it, as `dump_heap`, `list_devices` and `list_processes` do — the four commands whose answer is the
+same whether the run was already there or not. Every other command is a question *about* a run, and one answered
+by a run just started for it would come back empty while looking exactly like a run that was there and had
+nothing open, so those say which command to call instead. The run outlives the agent's session, which is the
+point: whatever it concluded is on the tabs it left open when you come back to it. `close_heap_dump` is the
+other end of that, and closing the last dump open ends the run, so an agent that finishes tidily leaves no
+window on your screen.
 
 `--session=<name>` says which investigation a set of calls is one of, and **an agent is expected to pass one**,
 with its own session id in the name: what you did then reads as one row of the *Agent logs* screen, and
@@ -406,14 +409,15 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
 | `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. |
 | `conclude` | The root cause, and the only way to finish. |
-| `list_devices`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
+| `list_devices`, `list_processes`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
 
-`open_heap_dump` and the last two are what make an agent useful when there is nothing open yet: point it at a
+`open_heap_dump` and the last three are what make an agent useful when there is nothing open yet: point it at a
 dump a bug report came with, or at a process on a device, and the window it lands in is one you can look over
 its shoulder in. Naming the dump is the whole of starting — an agent that was handed one never has to ask what
-is open. **Those two are also the only calls with a wait worth planning for**, both of them minutes on a large
-app, because both answer once the dump can actually be read rather than once it has been named; the steps are
-in the run's log while they work. Everything else in the table is a read of something already indexed.
+is open. **`open_heap_dump` and `dump_heap` are also the only calls with a wait worth planning for**, both of
+them minutes on a large app, because both answer once the dump can actually be read rather than once it has been
+named; the steps are in the run's log while they work. Everything else in the table is a read of something
+already indexed.
 
 **And the commands refuse.** That is the part worth knowing about, because it is what an agent's confidence
 cannot argue with:

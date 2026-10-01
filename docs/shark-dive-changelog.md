@@ -71,9 +71,10 @@ uses, without the one for a newly recognized library leak:
   nothing on your screen. See [Hand it to an agent](shark-dive.md#hand-it-to-an-agent).
 * ✨ **An agent doesn't need a window to have been opened for it.** With nothing running, `open_heap_dump`
   starts a run and waits for it, then leaves it open for whoever comes back to it — which is what makes every
-  call after it cheap: the dump is parsed and indexed once, in the window somebody is watching. Three commands
-  start one — `open_heap_dump`, `dump_heap` and `list_devices` — which are the three whose answer says nothing
-  about what a run has open, so they answer the same whether a run was already there or not. `list_heap_dumps`
+  call after it cheap: the dump is parsed and indexed once, in the window somebody is watching. Four commands
+  start one — `open_heap_dump`, `dump_heap`, `list_devices` and `list_processes` — which are the four whose
+  answer says nothing about what a run has open, so they answer the same whether a run was already there or
+  not. `list_heap_dumps`
   is deliberately not one of them: what it answers *is* what a run has open, so starting one to be told
   "nothing" would be a command answering its own question. **And a wait is only ever for a run this command
   line started**, which is why nothing else is slow: a run that is already published is reached in a second or

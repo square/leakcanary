@@ -74,6 +74,7 @@ internal class AgentTools(
     show(),
     conclude(),
     listDevices(),
+    listProcesses(),
     dumpHeap()
   )
 
@@ -716,29 +717,37 @@ internal class AgentTools(
 
   private fun listDevices() = AgentTool(
     name = LIST_DEVICES,
-    summary = "The Android devices adb is connected to, and one device's processes.",
-    description = "The Android devices `adb` is connected to, and with `$DEVICE`, the app processes of one " +
-      "of them. What the window's `Take heap dump` button asks. A process can only be dumped if the app " +
-      "was built debuggable or the whole build is (dumpsAnyProcess), and `adb` is the only thing here that " +
-      "reaches outside this machine.",
-    schema = schema(
-      DEVICE to string("Optional: a device's serial number, to list its app processes.").optional()
-    )
-  ) { arguments ->
-    val serialNumber = arguments.optionalString(DEVICE)
-    if (serialNumber == null) {
-      val devices = heapDumps.devices()
-      return@AgentTool buildJsonObject {
-        putJsonArray("devices") { AgentJson.devices(devices).forEach { add(it) } }
-        if (devices.isEmpty()) {
-          put(
-            "problem",
-            "`adb` is connected to no device. Plug one in, start an emulator, or ask whoever is at the " +
-              "machine to."
-          )
-        }
+    summary = "The Android devices adb is connected to.",
+    description = "The Android devices `adb` is connected to, which is the first half of what the window's " +
+      "`Take heap dump` button asks. $LIST_PROCESSES is the other half, and `adb` is the only thing here " +
+      "that reaches outside this machine.",
+    schema = schema()
+  ) {
+    val devices = heapDumps.devices()
+    buildJsonObject {
+      putJsonArray("devices") { AgentJson.devices(devices).forEach { add(it) } }
+      if (devices.isEmpty()) {
+        put(
+          "problem",
+          "`adb` is connected to no device. Plug one in, start an emulator, or ask whoever is at the " +
+            "machine to."
+        )
       }
     }
+  }
+
+  private fun listProcesses() = AgentTool(
+    name = LIST_PROCESSES,
+    summary = "The app processes of one device, which are what can be dumped.",
+    description = "The app processes running on one device, each with its pid and whether it is one of the " +
+      "system's own. What can be dumped is an app built debuggable, or every process of a device whose whole " +
+      "build is — `dumpsAnyProcess` in $LIST_DEVICES, which a `userdebug` emulator image has and a phone " +
+      "does not, and which is the only way a system app here is dumpable.",
+    schema = schema(
+      DEVICE to string("The serial number of the device, from $LIST_DEVICES.")
+    )
+  ) { arguments ->
+    val serialNumber = arguments.string(DEVICE)
     val processes = heapDumps.processesOf(serialNumber)
     buildJsonObject {
       put("device", serialNumber)
@@ -754,10 +763,10 @@ internal class AgentTools(
       "**Minutes, on a large app**: the device writes the dump, it is pulled over `adb`, and then opened. " +
       "The garbage is collected first either way, so what is in the dump is what is really still held — " +
       "with `am dumpheap -g` from API 27, and below that by running the same collection in the process " +
-      "over JDWP. Ask $LIST_DEVICES first for the device and the process.",
+      "over JDWP. $LIST_DEVICES is the devices and $LIST_PROCESSES is one device's processes.",
     schema = schema(
       DEVICE to string("The serial number of the device, from $LIST_DEVICES."),
-      PROCESS to string("The name of the process to dump, from $LIST_DEVICES.")
+      PROCESS to string("The name of the process to dump, from $LIST_PROCESSES.")
     )
   ) { arguments ->
     val dump = heapDumps.dumpHeap(
@@ -1119,6 +1128,7 @@ private const val READ_NOTES = "read_notes"
 private const val SHOW = "show"
 private const val CONCLUDE = "conclude"
 internal const val LIST_DEVICES = "list_devices"
+internal const val LIST_PROCESSES = "list_processes"
 internal const val DUMP_HEAP = "dump_heap"
 
 /**

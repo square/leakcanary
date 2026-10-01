@@ -564,25 +564,25 @@ object AgentCommandLine {
    * The commands a run may be started for, which are the ones whose answer says nothing about what was open.
    *
    * **A narrowing of "start one if there is none", and the rule is what each command's answer is about.**
-   * [OPEN_HEAP_DUMP] and [DUMP_HEAP] each hand back a heap dump they put there, and [LIST_DEVICES] asks `adb`
-   * rather than any dump — so each of them answers the same in a run it just started as in the run somebody is
-   * working in. Every other command is a question *about* a run: answered by one started to answer it, it comes
-   * back empty, and an empty answer from a fresh run reads exactly like an empty answer from the run that was
-   * already there. [LIST_HEAP_DUMPS] is the one to check that rule against — it needs no heap dump either, and
-   * it is not here because what it answers *is* what the run has open.
+   * [OPEN_HEAP_DUMP] and [DUMP_HEAP] each hand back a heap dump they put there, and [LIST_DEVICES] and
+   * [LIST_PROCESSES] ask `adb` rather than any dump — so each of them answers the same in a run it just started
+   * as in the run somebody is working in. Every other command is a question *about* a run: answered by one
+   * started to answer it, it comes back empty, and an empty answer from a fresh run reads exactly like an empty
+   * answer from the run that was already there. [LIST_HEAP_DUMPS] is the one to check that rule against — it
+   * needs no heap dump either, and it is not here because what it answers *is* what the run has open.
    *
    * [RUN_OPTION] starts nothing whichever command it is on: it names a run, and starting a different one would
    * answer about the wrong heap dump.
    */
-  private val STARTS_A_RUN = setOf(OPEN_HEAP_DUMP, DUMP_HEAP, LIST_DEVICES)
+  private val STARTS_A_RUN = setOf(OPEN_HEAP_DUMP, DUMP_HEAP, LIST_DEVICES, LIST_PROCESSES)
 
   /**
    * The commands that open a heap dump, which are the ones a run's kind is checked against. See [kindMatches].
    *
-   * [LIST_DEVICES] may start a run and is deliberately not here: it opens nothing, so whether the run that
-   * answers draws windows is nothing about its answer, and refusing it over that would be a refusal with no
-   * consequence behind it. What [NO_UI_OPTION] still does there is say what kind of run to start if one has to
-   * be.
+   * [LIST_DEVICES] and [LIST_PROCESSES] may start a run and are deliberately not here: they open nothing, so
+   * whether the run that answers draws windows is nothing about their answers, and refusing one over that would
+   * be a refusal with no consequence behind it. What [NO_UI_OPTION] still does there is say what kind of run to
+   * start if one has to be.
    */
   private val OPENS_A_HEAP_DUMP = setOf(OPEN_HEAP_DUMP, DUMP_HEAP)
 

@@ -679,9 +679,8 @@ internal fun verbOfTool(
   "open_heap_dump" -> "Opened ${arguments[SUBJECT_PATH] ?: "a heap dump"}"
   // Which ends a run when it was the last dump open, so this is the last row of a good many sessions.
   "close_heap_dump" -> "Closed ${arguments[SUBJECT_HEAP_DUMP] ?: "a heap dump"}"
-  "list_devices" -> arguments[SUBJECT_DEVICE]
-    ?.let { "Listed the processes of $it" }
-    ?: "Asked which devices are connected"
+  "list_devices" -> "Asked which devices are connected"
+  "list_processes" -> "Listed the processes of ${arguments[SUBJECT_DEVICE] ?: "a device"}"
   "dump_heap" -> "Dumped the heap of ${arguments[SUBJECT_PROCESS] ?: "a process"}"
   else -> null
 }

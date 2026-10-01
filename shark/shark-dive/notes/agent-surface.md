@@ -136,16 +136,16 @@ older build had published with two properties in it.
 agents and typed by people — an option named after one of its two readers is an option the other one is
 entitled to think is not meant for them.
 
-**Three commands start a run**, which is `STARTS_A_RUN` in
+**Four commands start a run**, which is `STARTS_A_RUN` in
 `shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt:577`: `open_heap_dump`,
-`dump_heap` and `list_devices`. "No run, so start one" narrowed, deliberately, and the rule it is narrowed by is
-**what each command's answer is about**. Those three answer the same in a run they just started as in the run
-somebody is working in — two of them hand back a heap dump they put there, and the third asks `adb` rather than
-any dump. Every other command is a question *about* a run, and a question answered by a run started to answer it
-comes back empty, indistinguishable from the outside from a run that was already there and had nothing open. So
-the rest are refused with the command that opens a dump as the message. `list_heap_dumps` is the one to check
-that rule against — it needs no heap dump either, and it is excluded because what it answers *is* what the run
-has open, so a run started to answer it would be a command answering its own question.
+`dump_heap`, `list_devices` and `list_processes`. "No run, so start one" narrowed, deliberately, and the rule it
+is narrowed by is **what each command's answer is about**. Those four answer the same in a run they just started
+as in the run somebody is working in — two of them hand back a heap dump they put there, and the other two ask
+`adb` rather than any dump. Every other command is a question *about* a run, and a question answered by a run
+started to answer it comes back empty, indistinguishable from the outside from a run that was already there and
+had nothing open. So the rest are refused with the command that opens a dump as the message. `list_heap_dumps` is
+the one to check that rule against — it needs no heap dump either, and it is excluded because what it answers
+*is* what the run has open, so a run started to answer it would be a command answering its own question.
 
 **And the only wait is for a run this command line started**: `OPENING_WAIT_MILLIS`, 60 seconds of it, long
 because what it covers is a cold JVM, Compose starting and jlink's runtime being paged in. There was a blind

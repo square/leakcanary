@@ -9,6 +9,14 @@ infers it from a command name, because the two things this command line does —
 to a run of it — are both ordinary command lines, and a program guessing which one it was handed guesses wrong
 on the one that matters. See `shark.dive.app.cliExitCode`.
 
+**And the two forms each open a heap dump their own way, so saying both is unreadable rather than either.**
+A command line with no `--cli` opens the files and follows the links named on it as the app starts; a command
+line with `--cli` opens a dump by calling `open_heap_dump path=…` and goes to a place by calling `show`, and
+both answer that they did. So `--cli list_leaks … dump.hprof` says two different things to do, and
+`shark.dive.app.twoFormsAtOnce` says so and exits rather than guessing at one of them. The run a command
+starts is given a title and nothing else to open — the dump is the command's to open, which is what makes the
+answer the thing that says a dump was opened.
+
 **There is one way in, and it is a command line.** This was an [MCP](https://modelcontextprotocol.io) server
 as well, over a stdio pipe an MCP client launched, and the two of them were a protocol to maintain, a
 handshake to answer, a session file field saying which way a line came in, and a client-shaped row on a
@@ -282,24 +290,24 @@ saying nothing before saying what was already known. The run that is published a
 other case and is covered without a wait: the connect has a 1 second timeout, and whoever finds it deletes the
 file.
 
-**Three commands start one** — `open_heap_dump`, `dump_heap` and `list_devices` — which is a deliberate
-narrowing of "start one if there is none", and the rule is what each command's answer is about. Each of those
-answers the same in a run it just started as in the run somebody is working in: two of them hand back a heap
-dump they put there, and the third asks `adb`. Every other command is a question *about* a run, and a question
-answered by a run this command line just started comes back empty — indistinguishable, to whatever reads the
-answer, from a run that was already there and had nothing open. `list_heap_dumps` is the one to check that rule
-against: it needs no heap dump either, and it starts nothing because what it answers *is* what the run has
-open. So the rest are refused, naming the three. `--run=<pid>` starts nothing whichever command it is on: that
+**Four commands start one** — `open_heap_dump`, `dump_heap`, `list_devices` and `list_processes` — which is a
+deliberate narrowing of "start one if there is none", and the rule is what each command's answer is about. Each
+of those answers the same in a run it just started as in the run somebody is working in: two of them hand back a
+heap dump they put there, and the other two ask `adb`. Every other command is a question *about* a run, and a
+question answered by a run this command line just started comes back empty — indistinguishable, to whatever
+reads the answer, from a run that was already there and had nothing open. `list_heap_dumps` is the one to check
+that rule against: it needs no heap dump either, and it starts nothing because what it answers *is* what the run
+has open. So the rest are refused, naming the four. `--run=<pid>` starts nothing whichever command it is on: that
 names a run, and starting a different one would answer about the wrong heap dump.
 
 **Whether a run draws windows is checked here, before connecting.** `--no-ui` is a property of the *run* —
 `cascadedPosition` asks `GraphicsEnvironment` for the screen, so a run on a machine that has none cannot start
 Compose at all — which means there is no opening one heap dump of a run with a window and another without. So
 `kindMatches` refuses a mismatch either way with the sentence saying which it is, and it does that **only for
-the two commands that open a dump**: `list_devices` may start a run and opens nothing, so which kind of run
-answers it is nothing about its answer. `--no-ui` is refused outright on every command that starts no run, each
-of which reads a dump that is open already — and a dump open with no window answers exactly as one open in a
-window does.
+the two commands that open a dump**: `list_devices` and `list_processes` may start a run and open nothing, so
+which kind of run answers them is nothing about their answer. `--no-ui` is refused outright on every command
+that starts no run, each of which reads a dump that is open already — and a dump open with no window answers
+exactly as one open in a window does.
 
 **And the run this starts is left out of this process's process group**, which is `detached` in
 `shark.dive.app.DiveAgents`. A child already survives its parent exiting; what kills it is a signal aimed at a

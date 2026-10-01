@@ -168,11 +168,40 @@ class CliOptionsTest {
     )
 
     // The command, its arguments and the two options that say which run and which session are the command, and
-    // what remains is the run this would start to answer it — which is the same run a command line with no
-    // command in it would have opened. A window saying `--session=cli99` could not be read as a heap dump is
-    // what getting this wrong looks like.
+    // what remains is the run this would start to answer it. A window saying `--session=cli99` could not be
+    // read as a heap dump is what getting this wrong looks like — and reading the heap dump out of it is what
+    // lets the one below be refused rather than opened twice.
     assertThat(arguments.heapDumpFiles.map { it.name }).containsExactly("dump.hprof")
     assertThat(arguments.titlePrefix).isEqualTo("For an agent")
+  }
+
+  @Test
+  fun `a command that also names a heap dump is refused rather than opening it twice`() {
+    val said = ByteArrayOutputStream()
+
+    val exitCode = onItsOwnStreams(said = said) {
+      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leaks", "reason=Reading it", "dump.hprof"))
+    }
+
+    // Two forms of this command line, each with its own way of opening a dump, so naming both says two
+    // different things to do: the file would open as the run starts and `open_heap_dump` is what answers that
+    // a dump was opened. Nothing in the command line says which was meant, so neither is guessed at.
+    assertThat(exitCode).isEqualTo(UNREADABLE_COMMAND_LINE)
+    assertThat(said.toString(Charsets.UTF_8.name()))
+      .contains("dump.hprof")
+      .contains(OPEN_HEAP_DUMP)
+  }
+
+  @Test
+  fun `a command that also names a link is refused, since show is what answers with one`() {
+    val said = ByteArrayOutputStream()
+
+    val exitCode = onItsOwnStreams(said = said) {
+      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leaks", "reason=Reading it", "shark://dump.hprof/leaks"))
+    }
+
+    assertThat(exitCode).isEqualTo(UNREADABLE_COMMAND_LINE)
+    assertThat(said.toString(Charsets.UTF_8.name())).contains("shark://dump.hprof/leaks")
   }
 
   @Test
