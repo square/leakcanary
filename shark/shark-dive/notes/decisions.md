@@ -940,9 +940,9 @@ question nobody had.
   window has — open it, ask which, ask where — belongs to whoever ends up holding it. `DeepLinkPeers`.
 - **The agent surface converged on the same choice**: the tool argument is `heapDump`, taking a file name, and
   a window id only in the one case a name cannot answer, which is the same file open twice. `AgentTools`.
-- **What it unlocked**, and the reason to reverse the first version rather than live with it: a `--no-ui` run
-  answers `show` with a link now — it has no window and the file all the same — and every *Agent logs* row
-  about another heap dump has a link to copy, where before there was nothing to send.
+- **What it unlocked**, and the reason to reverse the first version rather than live with it: every *Agent
+  logs* row about another heap dump has a link to copy, where before there was nothing to send — including a
+  row recorded against a dump this window hasn't got, since a link that names the file can be looked up.
 
 ## A leaking status is the heap dump's answer until a hand overrules it
 

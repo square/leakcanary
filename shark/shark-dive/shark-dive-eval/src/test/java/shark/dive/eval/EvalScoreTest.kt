@@ -6,7 +6,6 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
-import shark.dive.agent.AgentTransport
 
 /**
  * What a session is scored as, which is a handful of counts and one string comparison.
@@ -80,6 +79,20 @@ class EvalScoreTest {
   }
 
   @Test
+  fun `one heap dump spelled two ways is one heap dump`() {
+    val result = score(
+      calls = listOf(concluded(KEY, heapDumpPath = "/runs//1/./heap-dump.hprof"))
+    )
+
+    // The eval set this run up around `/runs/1/heap-dump.hprof` and the run was answered about the same file
+    // under a path with a doubled separator in it, which is what a `SHARK_EVAL_DIR` built from a `$TMPDIR`
+    // that ends in one produces. Compared as strings, that is thirty runs each of which wandered off to the
+    // dump it was given. See [EvalResult.sameFileAs].
+    assertThat(result.outcome).isEqualTo(EvalOutcome.RIGHT)
+    assertThat(result.wanderedTo).isNull()
+  }
+
+  @Test
   fun `the table is one row per scenario and model, counted out of the repetitions`() {
     val results = listOf(
       score(calls = listOf(concluded(KEY))),
@@ -95,20 +108,14 @@ class EvalScoreTest {
   }
 
   @Test
-  fun `the protocol a session also records is no part of what a run is scored on`() {
+  fun `the lines a session also records that reached no tool are no part of what a run is scored on`() {
     val result = score(
-      calls = listOf(
-        message("initialize"),
-        message("notifications/initialized"),
-        message("tools/list"),
-        call("list_leaks"),
-        concluded(KEY)
-      )
+      calls = listOf(unreadable(), unreadable(), call("list_leaks"), concluded(KEY))
     )
 
-    // Two calls, not five. A session holds the full traffic on purpose, and a run measured on the lines it
-    // sent is a run whose number moves when the same investigation is typed at a command line instead — which
-    // sends a handshake per call. The time is the calls' too, a handshake being no read of a heap dump.
+    // Two calls, not four. A session holds the full traffic on purpose, and a run measured on the lines it
+    // sent would count a typo against the agent's work. The time is the calls' too, a line that reached no
+    // tool being no read of a heap dump.
     assertThat(result.outcome).isEqualTo(EvalOutcome.RIGHT)
     assertThat(result.callCount).isEqualTo(2)
     assertThat(result.readMillis).isEqualTo(24L)
@@ -133,7 +140,6 @@ class EvalScoreTest {
     session = AgentSession(
       sessionId = SESSION_ID,
       startedAt = AT,
-      client = "claude-code 9.9.9",
       serverVersion = "1.2.3",
       file = File("/sessions/agent-$SESSION_ID.jsonl"),
       calls = calls
@@ -153,11 +159,8 @@ class EvalScoreTest {
     heapDumpPath: String = HEAP_DUMP_PATH
   ) = AgentSessionCall(
     at = AT,
-    over = AgentTransport.MCP,
-    method = "tools/call",
     tool = tool,
     reason = "Because.",
-    windowId = null,
     heapDumpPath = heapDumpPath,
     place = null,
     arguments = emptyMap(),
@@ -172,26 +175,23 @@ class EvalScoreTest {
   )
 
   /**
-   * A message that reached no tool, which a session holds as many of as the transport asked for.
+   * A line this app could make no call of, which a session holds as well as the calls.
    *
-   * Nothing here scores one, and that is what the tests using this are about: a run measured on the lines it
-   * sent rather than on the calls it made is a run whose number changes when somebody types the same
-   * investigation at a command line instead. See [AgentSession.toolCalls].
+   * Nothing here scores one, and that is what the test using this is about: a run measured on the lines it
+   * sent rather than on the calls it made is a run whose number moves with a mistyped command.
+   * See [AgentSession.toolCalls].
    */
-  private fun message(method: String) = AgentSessionCall(
+  private fun unreadable() = AgentSessionCall(
     at = AT,
-    over = AgentTransport.MCP,
-    method = method,
     tool = null,
     reason = null,
-    windowId = null,
     heapDumpPath = null,
     place = null,
     arguments = emptyMap(),
-    input = "{\"method\":\"$method\"}",
-    output = "{}",
+    input = "describe_object object=0x12d368b8",
+    output = FAILURE,
     refusal = null,
-    error = null,
+    error = FAILURE,
     outcome = null,
     millis = 40L
   )
@@ -201,6 +201,9 @@ class EvalScoreTest {
   private companion object {
     const val KEY = "Holder.activity"
     const val SESSION_ID = "1a2b3c4d"
+
+    /** What a line that reached no tool was answered with, which is the whole of what it records. */
+    const val FAILURE = "That is not one JSON object."
 
     /** The dump this run was given, named the way every run's is: the scenario is not in the path. */
     const val HEAP_DUMP_PATH = "/runs/1/heap-dump.hprof"

@@ -1,7 +1,33 @@
 # Shark Dive's agent surface — agent guide
 
-An [MCP](https://modelcontextprotocol.io) server inside the running app, so that an agent investigates the
-heap dump **in the window somebody is looking at** rather than one of its own.
+One command typed at a window: `--cli <command> name=value …`, answered by the run that already has the heap
+dump open, so that an agent investigates the heap dump **in the window somebody is looking at** rather than
+one of its own.
+
+**`--cli` is required on every one of them**, and it is what tells a command from a run of the app. Nothing
+infers it from a command name, because the two things this command line does — run the app, and say one thing
+to a run of it — are both ordinary command lines, and a program guessing which one it was handed guesses wrong
+on the one that matters. See `shark.dive.app.cliExitCode`.
+
+**And the two forms each open a heap dump their own way, so saying both is unreadable rather than either.**
+A command line with no `--cli` opens the files and follows the links named on it as the app starts; a command
+line with `--cli` opens a dump by calling `open_heap_dump path=…` and goes to a place by calling `show`, and
+both answer that they did. So `--cli list_leaks … dump.hprof` says two different things to do, and
+`shark.dive.app.twoFormsAtOnce` says so and exits rather than guessing at one of them. The run a command
+starts is given a title and nothing else to open — the dump is the command's to open, which is what makes the
+answer the thing that says a dump was opened.
+
+**There is one way in, and it is a command line.** This was an [MCP](https://modelcontextprotocol.io) server
+as well, over a stdio pipe an MCP client launched, and the two of them were a protocol to maintain, a
+handshake to answer, a session file field saying which way a line came in, and a client-shaped row on a
+screen meant for an investigation. The command line is what an agent reaches for without being configured at
+all, so that is what is left. See `notes/agent-surface.md` for what each of them cost, and
+`docs/shark-dive-changelog.md` for the release it went in.
+
+**A run with no window is not a second way in.** `--no-ui` is a run of the app with nothing drawing it, and
+it publishes the socket below exactly as a window's run does, so the call that reaches it is the same call —
+see `shark-dive-app`'s `HeadlessAgentHeapDumps`. What went with MCP was a headless mode with a transport of
+its own, not the case of having no screen.
 
 This file is scoped to `shark/shark-dive/shark-dive-agent/`. Its parent,
 `shark/shark-dive/AGENTS.md`, has the app-wide rules — the heap dump being read off the UI thread, a
@@ -12,24 +38,23 @@ being talked to by a program that is not this app.
 
 | File | What it is |
 | --- | --- |
-| `AgentHeapDump.kt` | The seam: one open heap dump, as everything here sees it. The app implements it over a window; the tests implement it over a `HeapDive` and three fields. |
-| `AgentTools.kt` | Every tool, each a name, a schema and one read. Where the refusals are. |
+| `AgentHeapDump.kt` | The seam: one open heap dump, as everything here sees it — opened, listed, read and closed. The app implements it over a window; the tests implement it over a `HeapDive` and three fields. |
+| `AgentTools.kt` | Every tool, each a name, a schema and one read. The two ways in, `open_heap_dump` and `list_heap_dumps`, and the way out, `close_heap_dump`. Where the refusals are. |
 | `AgentPlace.kt` | Where a tab is, as one string an agent can be answered with and hand back. Both directions. |
 | `AgentMethod.kt` | The method, as two texts: how to work here at all, and how to find a faulty reference. |
 | `AgentJson.kt` | Shark Dive's model as JSON. |
 | `AgentTool.kt` | One tool, its arguments read strictly, and `AgentRefusal`. |
-| `McpSession.kt` | JSON-RPC, one message per line. |
+| `AgentWire.kt` | What crosses the socket, spelled once: a call out, and one of three things back. |
+| `AgentConnection.kt` | One agent being talked to: a call per line in, an answer per line back, and every line written down. |
 | `AgentSessionFile.kt` | One session on disk, both ways: what a call is written as, and what it reads back as. |
 | `AgentServer.kt` | The loopback socket a run publishes, and the file that says where. |
-| `AgentStdioBridge.kt` | `--mcp-stdio`: the pipe an MCP client launches. |
-| `AgentStdioServer.kt` | And `--no-ui`: the same tools over this process's own stdio, for a run with no window. |
-| `AgentCommandLine.kt` | `--agent <tool> name=value …`: one call typed at a window, over the same socket. And `--agent-help`, generated from the registry. |
+| `AgentCommandLine.kt` | `--cli <command> name=value …`: one call typed at a window, over that socket. Which run to talk to, and the help, generated from the registry. |
 | `harness/start-harness.sh` | Opens a window and prints the command that throws an agent at it. |
 | `harness/eval/run-eval.sh` | Throws an agent at a heap dump whose answer is known, and scores what it did. The dumps and the scoring are `shark-dive-eval`. |
 
 Nothing here is public API — the module is in `modulesWithoutPublicApi`, like the rest of Shark Dive — with
-two deliberate exceptions, `AgentServer`/`AgentStdioBridge`/`AgentHeapDump*` because the app calls them, and
-`AgentRefusal` because the app throws it.
+two deliberate exceptions, `AgentServer`/`AgentCommandLine`/`AgentHeapDump*`/`AgentSession*` because the app
+calls them, and `AgentRefusal` because the app throws it.
 
 ## The refusals are the feature
 
@@ -48,8 +73,9 @@ client because saying no is all it does — nothing here ever calls a model.
   reads. `ChainState` is that list, and the refusal names the candidates rather than counting them. Same rule
   as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it, because the ways it answers
   null are different things to do next.
-- Every tool takes a `reason`, and it is enforced in `AgentTool.call` rather than only asked for in the
-  schema: a client is free to ignore a schema.
+- Every tool's schema requires a `reason`, and `AgentCommandLine` refuses a command of a named session that
+  sent none — a client being free to ignore a schema. Which is a *pair* with `--session=` rather than a rule of
+  its own; see the command line section below for why that is where it is checked.
 
 So a change that makes any of these easier to satisfy is a change that removes the reason this module exists.
 An agent that has narrowed a chain to two candidate references must not be able to report a root cause, however
@@ -71,8 +97,8 @@ a row of that screen saying nothing.
 
 What follows from that, and reading the code won't tell you:
 
-**A call is described before it is answered, not after.** `McpSession.callTool` asks `AgentTools.target` what
-the call is about and only then invokes the handler, so **a refused call still records its place** and its row
+**A call is described before it is answered, not after.** `AgentConnection.callTool` asks `AgentTools.target`
+what the call is about and only then invokes the handler, so **a refused call still records its place** and its row
 is still clickable. That is deliberate: the refusals are the half of a session worth reading afterwards, and
 a refusal nobody can follow up on is a dead end on the screen. `target` derives the place from the argument
 *names* rather than from a second list of tool names — except for the four tools that take no argument saying
@@ -94,8 +120,8 @@ which file, and opens that dump when clicked.
 
 **A call keeps the exchange as well as this app's reading of it.** `input` is the tool's own name and then
 the arguments as they arrived, formatted, and `output` is the answer as the text that reached the model — the
-same string `toolResult` puts in `content[0].text`, formatted once and then both answered with and written
-down, so that a session can be compared against a client's own transcript character for character. Everything
+same string `AgentWire.pretty` hands the caller to print, formatted once and then both answered with and
+written down, so that a session can be compared against a transcript character for character. Everything
 else on a call is derived, and a derived field is the one thing that is no use when the question is why an
 investigation went wrong: a step made on an answer that said nothing reads exactly like a step made on one
 that said everything.
@@ -105,26 +131,26 @@ well as in `error`, and the two are not the same field said twice: `refused` and
 reading — the method said no, this app could not answer — and `output` is the text the agent was handed. The
 first version left `output` null for a refusal on the grounds that the refusal was already written down, and
 what that looked like from outside was a call that got no answer at all. **Null on `output` means nothing went
-back**, which is a notification and nothing else.
+back**, which is only what a session whose app was killed mid-call reads as.
 
-**And a line goes down for every message, not only the ones that reached a tool.** The handshake, a
-`tools/list`, a ping, a notification, a method this build has never heard of, a `tools/call` with no name or a
-name nothing answers to, and a line that was not JSON: all of them. `tool` is null for the ones that reached
-no tool and `method` says what arrived instead, `AgentSession.toolCalls` is the subset that got as far as a
-tool, and **that distinction is not cosmetic** — the eval counts calls, and a run scored on lines sent would
-have a number that moved with the transport. `AgentSessionCall.over` is which way in a line came, told to
-`McpSession` at construction because a command line and an MCP client are indistinguishable from the moment
-the handshake is past, which is the point of them. The word travels as the last field of `AgentServer`'s
-handshake line, and a connection that says nothing is MCP.
+**And a line goes down for every line in, not only the ones that reached a tool.** A line that was not JSON, a
+line that named no tool, and a name nothing answers to: all of them. `tool` is null for the ones that reached
+no tool, `AgentSession.toolCalls` is the subset that got as far as one, and **that distinction is not
+cosmetic** — the eval counts calls, and a run scored on lines sent would have a number that moved with
+whatever the caller happened to send. `AgentServerTest` and `AgentConnectionTest` each pin one half of that.
 
-**With one exception, and it is about what a row of that screen is.** `--agent` is a process per call, so a
-`tools/call` typed at a window arrives behind an `initialize` of its own and one typed command was drawn as
-two rows — Connected, called, Connected, called, which is what a screen reading an investigation is least
-able to afford. `McpSession.isTheCommandLineSayingHello` drops that one message: **`initialize` over the CLI
-transport, and nothing else.** An MCP client's handshake is still a row, since a client connects once and
-what its handshake says is worth having. Nothing about the CLI's connection is lost — the client name goes on
-the session from the same message, and `An agent connected:` is in that run's log file — so what went is a
-row saying a process started, said hello and did the thing the next row already names.
+**One row per command typed is what there is to record**, and it comes free now: a process connects, makes
+its one call and ends, so nothing crosses this socket that isn't the call itself. It was not free before.
+MCP's handshake meant a `tools/call` typed at a window arrived behind an `initialize` of its own, so one
+typed command was drawn as two rows — Connected, called, Connected, called, which is what a screen reading an
+investigation is least able to afford — and `McpSession.isTheCommandLineSayingHello` existed to drop exactly
+that one message. **So don't reintroduce anything in front of the call.** A capabilities exchange, a
+`hello`, a version negotiation: each of them is a row of that screen saying a process started and did the
+thing the next row already names, and there is nothing for one to carry. What the commands are is `--help`,
+and how to work here is `--investigation-help`, and both are text this build prints with no window and no heap
+dump — so **nothing an answer carries is anything but the answer**. The method was in one: how to work here
+prepended to whatever a session asked first, which made a call that only wanted to know which heap dumps are
+open the call that handed over the whole of it. See `AgentMethod`.
 
 The name is in `input` even though `tool` has it, and that is not an oversight: this field is read as one
 thing, and a set of arguments lifted away from what they are arguments *to* is the one form of a call nobody
@@ -140,7 +166,7 @@ a session cut to fit is one where the answer that misled an agent is the part th
 what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s answer. Both
 readers need that one and neither can work it out: the screen's last row is what a session came to, and the
 eval has nothing to mark against its answer key without it. `openHeapDumpsOfTool` is the other, and the reason
-is the same shape: `open_heap_dumps` is the one call whose subject is the app, and the dumps it heard about are
+is the same shape: `list_heap_dumps` is the one call whose subject is the app, and the dumps it heard about are
 in the answer alone. Nothing else reads an answer — a row saying what a read came back with would be the
 answer printed twice.
 
@@ -148,8 +174,8 @@ answer printed twice.
 spells them itself and drift is one list rather than two. `AgentSessionFileTest` asserts every tool in the
 registry has one — **which is what makes the fallback mean something**: a name `verbOfTool` has no verb for is
 a name this build has no tool for, so a row reading `Called solve_the_leak` is a typo or a tool from a newer
-build, and the name is left exactly as it arrived because that string is what somebody is looking for. A
-message that reached no tool at all reads through `verbOfMethod` instead.
+build, and the name is left exactly as it arrived because that string is what somebody is looking for. A line
+that named no tool at all has one sentence for all of them, since there is nothing in it to name it after.
 
 **A verb stops where the thing it was about starts**, which is why several of them end mid-sentence: a row of
 that screen is prose with one link in it, and the link is the thing. So `list_leaks` is "Listed the" and
@@ -163,37 +189,64 @@ never shown, and words with no place are a link to nothing.
 last line — an app killed mid-write — keeps every call before it. An agent's call must not fail because the
 record of it couldn't be written.
 
-## In `--mcp-stdio` mode, stdout is the protocol
+## In a `--cli` process, stdout is the answer
 
-`main` answers `agentBridgeExitCode` **before `installLogging()`**, because that logger writes to stdout and
-one log line in the middle of a JSON-RPC stream is a session the client reports as broken. So in this module:
+`main` answers `cliExitCode` **before `installLogging()`**, because that logger writes to stdout and
+a log line in the middle of the answer is JSON whoever typed the command cannot parse. So in this module:
 
-- Everything the bridge has to say goes to stderr, which is where an MCP client collects a server's log.
-- Nothing in the bridge path may use `SharkLog`, `println`, or anything that ends up on stdout.
-- `--no-ui` installs the app's logging with stderr as its stream rather than skipping it, because there the
-  tools run in this process and their diagnostics are worth a log file. Same rule, wider scope.
+- Everything a call has to say about itself goes to stderr — `say()` is the only way to write a line there,
+  and it prefixes `[shark-dive]` so that a shell's output says which program is talking.
+- Nothing on the command line path may use `SharkLog`, `println`, or anything that ends up on stdout. There is
+  no log file for one of these processes either: it prints and exits, and what it was asking about is in the
+  log of the run that answered it.
 
 The app's own side of it — a window answering an agent — logs through `SharkLog` as usual, so a session log
 reads as the reason for each call followed by the reads it caused. That is the artefact to ask for when
 somebody reports that an agent got it wrong.
 
-## Two adapters, and the handshake line that lets a shell have a session
+## The handshake line that lets a shell have a session
 
-`--mcp-stdio` is a client holding a session open. `--agent <tool> name=value …` is one call typed at a window
-that is already up, and it is **argument translation and nothing else**: it builds a `tools/call` on the same
-socket, so a refusal it prints was thrown by the handler that would have refused an MCP client. Adding a rule
-to one adapter and not the other is the mistake this shape exists to make impossible — see
-`notes/agent-surface.md`, which also has what a call costs.
+`--cli <command> name=value …` is **argument translation and picking a run**, and nothing that decides what an
+answer is: it turns `name=value` into the one line `AgentWire` describes, prints what came back and exits, so
+a refusal it prints about a heap dump was thrown by the tool's own handler. Everything that reads a heap dump
+is on the other end of the socket, which is what keeps a command line from becoming a second surface with
+rules of its own. `notes/agent-surface.md` has what a call costs.
+
+**What it refuses without a run is only what could not have reached one**: a name no command in this build has —
+answered with the names it does have, since what happened is usually a tool renamed under an agent that had
+learned the old name — `--no-ui` on a command that starts no run, a session name that cannot be part of a file
+name, and a command of a named session with no `reason`. Keeping that list to four is what makes the surface one
+place: a fifth would be a rule to find out about twice. A `--cli` with no command name after it is not one of
+them: it prints the help on stdout and exits 0, because a program asked what it takes is being asked a question
+rather than making a mistake.
+
+**The `reason` is required of a named session and of nothing else**, which is a pair rather than two rules:
+`--session=` is what an agent passes and the `reason` is what makes that session readable afterwards, so
+having both or neither is the whole of it. It is checked here because this is the only place that knows which
+of the two a command line is — `AgentTool.call` enforced it on every call, which refused a person typing one
+command at a window for the sake of a log nobody is going to review. The schemas still require it, since what
+a model reads is the schema.
 
 **A process per call would otherwise be a session per call**, and a session is what somebody reads afterwards.
-So the handshake is `token[ sessionName[ over]]` on one line, `AgentSessionFile.continuing` appends to the
+So the handshake is `token[ sessionName]` on one line, `AgentSessionFile.continuing` appends to the
 newest file whose name carries that id, and a command line defaults to `cli<a pid above it>` —
 `defaultSessionName`, which **walks** rather than taking the parent, because the shell an agent's call arrives
 in is one command long. Claude Code runs each of its commands in a `zsh -c` of its own, so the parent is a
 session per call again, measured as nine session files for one nine-call investigation; a shell that was handed
 a command is walked past and what drove it is the session. Read that KDoc before changing it — the walk tests
-both the name and the `-c`, and either half alone merges sessions that have to stay apart. A client that says nothing gets
-a session of its own, which is what every MCP client does, and its lines are recorded as MCP.
+both the name and the `-c`, and either half alone merges sessions that have to stay apart. A connection that
+names no session gets one of its own.
+
+**`--session=` is the one option an agent is expected to pass, and the default is there for people.** What it
+should say is a word a reader would recognise with the agent's own session id after it, because the thing
+somebody reviewing an agent's logs is looking for is *which* agent run this was — and a Shark Dive session
+named after a pid is a number that names nothing once the process is gone. The walk above is what a shell gets
+for free; an agent has no shell that outlives one command, so there is nothing for it to be walked up to.
+
+**Anything after the token and the name is dropped rather than refused.** `AgentServer` reads two words off
+that line and ignores the rest, which is what a build talking to a run of a different version needs: a word
+added here has to be a word an older run can be handed without the connection failing. One used to be there —
+which transport a line came in over — and this is how it left without a flag day.
 
 **The name is checked at both ends**, because it becomes part of a file name: the command line refuses one
 that isn't letters and digits before calling anything, and `AgentServer` serves the connection anyway with a
@@ -205,39 +258,112 @@ there was nothing to answer it. A refusal is not a failure of the command — it
 the message is the next thing to do — so a script can tell "it said no" from "nothing was there", and a shell
 keeping stdout for the JSON still shows the sentence.
 
-## The transport, and why it is three things
+## The transport
 
-**A run publishes a loopback port and a token** to `~/.shark-dive/agents/<pid>.agent`, and `--mcp-stdio`
-is a mode of the same app binary that pipes stdio to it. Two parts because an MCP client can be configured
-with a command and not with a port that changes every run.
+**A run publishes a loopback port, a token, the commit it was built from and whether it draws windows** to
+`~/.shark-dive/agents/<pid>.agent`, and a call is a process that reads that file, connects and sends one line.
 
-The third is `--no-ui`, which serves [AgentTools] from the `--mcp-stdio` process itself, with no socket and no
-window: a build server, or a heap dump at the end of an ssh session. **The two are one code path with one
-call swapped**, `AgentHeapDump.show` — see `shark.dive.app.HeadlessAgentHeapDumps` — and that is the rule
-rather than how it happened to land: the notes and the verdicts are files, so a run with no screen is not a
-reduced version of the surface, it is the same surface with nowhere to put a tab.
+**A command expects exactly one run, and two is an error rather than a choice.** `AgentCommandLine.runToTalkTo`
+is the whole of it. The version before this picked the newest of them and said so on stderr, which made the
+heap dump a command was answered about depend on what else was open on the machine — so now two runs is a
+message naming each of them by pid and by whether it has windows, and `--run=<pid>` is how to mean one. **The
+option is not called `--agent-run`**: this surface is designed for agents and typed by people, and an option
+naming one of the two readers is an option the other one is entitled to think is not for them.
 
-Two things about the headless one that reading it won't tell you.
+**The build sha is what makes a machine in the middle of a branch usable.** A command line only ever sees runs
+built from its own commit — `AgentServer.PublishedRun.buildSha`, filtered before anything is sent — because the
+window still running last week's build refuses a tool this build renamed, and it refuses it as "there is no
+tool called that" rather than as "that window is a different build". Which is the normal state of this machine
+while the surface is being worked on. A run named by `--run=<pid>` that is a different build gets that sentence
+explicitly, since a pid somebody typed deserves better than reading as no run at all.
 
-**Nothing may reach stdout at all**, which is stricter than the bridge: the tools run in this process, so the
-heap dump's own `SharkLog` diagnostics are in it too. `main` passes `System.err` to `installLogging` in this
-mode, and a `println` anywhere under a tool breaks the session rather than only looking untidy.
+**A call with no run to talk to opens one**, rather than answering "ask your human to launch Shark Dive" — that
+being the opposite of the point of this surface being a window at all.
 
-**A heap dump named on the command line is opened in the background, not before the first message.** A client
-is waiting on `initialize` and a gigabyte of heap dump is minutes of indexing, so a slow dump would be a
-server the client kills at startup. What makes that safe is that opening the same path twice joins the open
-already in flight instead of starting a second — so an agent that calls `open_heap_dump` on the path it was
-pointed at waits for the one that is already happening, and never gets a second index of the same file.
+**And the only wait is for a run this command line started**, 60 seconds of it, which covers a cold JVM,
+Compose starting and jlink's runtime being paged in. **Nothing is waited for otherwise**, and the reason is a
+property of the published file rather than a tuned number: a run takes its file away three ways as it ends —
+a shutdown hook, the `Closeable`, and whoever reads the file of a process that has gone deleting it — so a run
+that is up is a run that is published, and polling for one to appear is only ever a bet that one is in the
+middle of starting. There was a blind 10 seconds before any command, and what it bought was ten seconds of
+saying nothing before saying what was already known. The run that is published and does not answer is the
+other case and is covered without a wait: the connect has a 1 second timeout, and whoever finds it deletes the
+file.
+
+**Four commands start one** — `open_heap_dump`, `dump_heap`, `list_devices` and `list_processes` — which is a
+deliberate narrowing of "start one if there is none", and the rule is what each command's answer is about. Each
+of those answers the same in a run it just started as in the run somebody is working in: two of them hand back a
+heap dump they put there, and the other two ask `adb`. Every other command is a question *about* a run, and a
+question answered by a run this command line just started comes back empty — indistinguishable, to whatever
+reads the answer, from a run that was already there and had nothing open. `list_heap_dumps` is the one to check
+that rule against: it needs no heap dump either, and it starts nothing because what it answers *is* what the run
+has open. So the rest are refused, naming the four. `--run=<pid>` starts nothing whichever command it is on: that
+names a run, and starting a different one would answer about the wrong heap dump.
+
+**Whether a run draws windows is checked here, before connecting.** `--no-ui` is a property of the *run* —
+`cascadedPosition` asks `GraphicsEnvironment` for the screen, so a run on a machine that has none cannot start
+Compose at all — which means there is no opening one heap dump of a run with a window and another without. So
+`kindMatches` refuses a mismatch either way with the sentence saying which it is, and it does that **only for
+the two commands that open a dump**: `list_devices` and `list_processes` may start a run and open nothing, so
+which kind of run answers them is nothing about their answer. `--no-ui` is refused outright on every command
+that starts no run, each of which reads a dump that is open already — and a dump open with no window answers
+exactly as one open in a window does.
+
+**And the run this starts is left out of this process's process group**, which is `detached` in
+`shark.dive.app.DiveAgents`. A child already survives its parent exiting; what kills it is a signal aimed at a
+group — closing a terminal `SIGHUP`s its foreground process group, and a JVM dies on `SIGHUP` — so the run an
+agent opened used to go with the shell the command was typed in, and with whatever a coding agent's harness
+kills. `open -n -a <bundle>` for a packaged install puts the run in a session of its own under `launchd`;
+`sh -c 'set -m; "$@" &'` for a run from a classpath gets it a process group of its own and no more.
+`notes/agent-surface.md` has all three measured.
 
 Deliberately **not** the socket `DeepLinkPeers` listens on, though it is the same shape. A link is one line
-answered in a millisecond; this is a session held open for as long as an investigation takes. One port for
-both would mean a link arriving mid-investigation and an investigation ending when a link handler closed.
+answered in a millisecond; a call here is a connection held for as long as the call takes, which for
+`dump_heap` is minutes of `adb`. One port for both would mean a link arriving mid-call and a call ending when
+a link handler closed.
 
 The token is the whole of the authorization, and it is worth being clear about what that is: enough to keep a
 web page or another machine out, and **not** a boundary between programs run by the same person — anything
 that can read `~/.shark-dive` can read any heap dump on the disk anyway.
 
-`AgentServer.serve` sets **no read timeout**, unlike the link socket. An agent thinking is a quiet connection.
+`AgentServer.serve` sets **no read timeout**, unlike the link socket. A tool waiting on `adb`, or on a heap
+dump being indexed, is a quiet connection, and one dropped for being quiet is a call that never comes back.
+
+## Two ways in, and after that every command names a heap dump
+
+`open_heap_dump` and `list_heap_dumps` are the only two commands that take no heap dump, because they are the
+two that hand one back: open the dump you were given, or find out what is open already. **Every other command
+needs that key**, which is not a rule enforced in one place — it is `heapDumpKey` being a required argument
+of each of their schemas and of `AgentArguments.heapDump`, whose refusal lists what is open and points at
+`open_heap_dump` for what isn't.
+
+**It is called `heapDumpKey` in every argument and in every answer that hands one back**, which is one word
+doing work the old `heapDump` didn't: an argument named after the thing rather than after the identifier of it
+reads as somewhere a path, or a file, or a window might go. The path is beside it under `heapDumpPath`, and the
+two being plainly a key and a path is the whole reason for the rename.
+
+**A key is the file name**, and `crash.hprof#2` for a second dump open under that name — `keyed()`, which is
+also why a key is not simply "the name". Two open dumps of one name is a real case rather than a hypothetical
+one, `crash.hprof` pulled off two devices being two files in two directories, and the name alone left the
+second one unnameable: it resolved to the first, so a call meant for one was answered about the other and
+nothing said so. **A key says what is open right now, and a path is the name that doesn't move**: closing the
+first of two makes the survivor `crash.hprof` again, and a call still saying `#2` is refused with the keys
+there are rather than answered about the wrong file.
+
+**A path is the other spelling, and `resolvedDump` takes either**, because both are things an agent has in
+front of it: somebody says "investigate `/tmp/crash-4821.hprof`", and a surface taking only the last part of
+that makes an agent shorten a path it was handed. There is no window identifier, and there was: the CLI is
+about heap dump files and a window is where one happens to be drawn. Which is unambiguous because **opening a
+dump this run already has open joins that open** rather than making a second one, so one file is at most one
+open per run and there is never a second reading of it here to tell apart. Two readings of one dump being
+compared is two runs, and `--run=<pid>` is how to say which.
+
+**`close_heap_dump` is the way out, and closing the last one ends the run.** A run *is* its heap dumps: one with
+none left has nothing to come back to, and leaving it up would be leaving the two-runs error waiting for the
+next command. Its answer says `runEnded` for exactly that reason — the difference between a command another can
+follow and a command after which there is nothing to talk to. And the answer has to get out *while* the run
+goes away underneath it, which is `AgentServer.letAnswersOut`: without it the command that worked reads as
+"Shark Dive stopped answering".
 
 ## Everything the window can do, this can do
 
@@ -272,8 +398,8 @@ has seen a numeric address elsewhere will write one here.
 `kotlinx-serialization-json` is a **runtime dependency only**: `buildJsonObject`, `Json.parseToJsonElement`
 and friends. There is no `kotlin("plugin.serialization")` on this module and no `@Serializable` anywhere,
 because everything crossing this boundary is either Shark Dive's own model — which is not ours to annotate
-— or a JSON-RPC envelope of a dozen fields. Adding the plugin to get `@Serializable` would be a compiler
-plugin's worth of build for a saving of nothing.
+— or an envelope of two keys, which is all `AgentWire` is. Adding the plugin to get `@Serializable` would be a
+compiler plugin's worth of build for a saving of nothing.
 
 ## It is a Java 8 target that cannot run on Java 8
 
@@ -292,10 +418,16 @@ the reads happen on the heap dump's thread and the tests run headless.
 ```bash
 ./gradlew :shark:shark-dive:shark-dive-agent:check   # test + detekt
 
-# What the surface is, from a shell, with nothing open and no Gradle. Then one call at a window.
-"Shark Dive.app/Contents/MacOS/Shark Dive" --agent-help
+# What the surface is, from a shell, with nothing open and no Gradle. Then one command, then the method.
+"Shark Dive.app/Contents/MacOS/Shark Dive" --help
+"Shark Dive.app/Contents/MacOS/Shark Dive" --help open_heap_dump
+"Shark Dive.app/Contents/MacOS/Shark Dive" --investigation-help
+
+# Then a heap dump open — which starts a run if none is up — and one call about it.
 "Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --agent list_leaks heapDump=<file name> reason="Trying it"
+  --cli open_heap_dump path=<path> reason="Trying it"
+"Shark Dive.app/Contents/MacOS/Shark Dive" \
+  --cli list_leaks heapDumpKey=<file name> reason="Trying it"
 
 # The whole surface end to end, in a real window, with an agent that has never seen this repository.
 shark/shark-dive/shark-dive-agent/harness/start-harness.sh [heap-dump.hprof]
@@ -305,9 +437,10 @@ shark/shark-dive/shark-dive-agent/harness/eval/run-eval.sh --models opus,sonnet 
 ```
 
 Every test here runs against a heap dump built with the `dump { }` DSL and no window, which is what
-`AgentHeapDump` being an interface is for. `AgentStdioBridgeTest` is the one that goes through a real socket
-in both directions — it swaps `System.in` and `System.out` around the bridge, over a pipe rather than a string
-of input, because a real client keeps stdin open until it has its answer.
+`AgentHeapDump` being an interface is for. `AgentServerTest` is the one that goes through a real socket — a
+`Socket` to the published port, the token typed at it by hand — and `AgentConnectionTest` is everything said
+once a connection is up, driven as lines of text rather than through the socket so that what a test asserts on
+is the answer rather than the plumbing.
 
 **The harness is how the thing this module is for actually gets tested.** It builds the packaged app, opens
 one heap dump in it, and stages the skill beside a prompt that says nothing but "find the root cause" and
@@ -320,13 +453,14 @@ the eval runs an agent against a dump whose faulty reference is already known an
 by string comparison and counting, with no model marking anything. So it is what says whether a change to a
 description or a refusal made things better rather than only different. **It opens nothing for the agent** —
 a run gets the skill and a prompt saying where the heap dump and the launcher are, and opens the window
-itself. **Both scripts reach the surface over `--agent`**, the way somebody who installed the app would;
-what the MCP adapters do under a real client is `AgentToolsTest` and `AgentStdioBridgeTest`'s job, not a
-second arm of the eval — `shark/shark-dive/notes/agent-eval.md` has why that arm was measuring three
-things at once.
+itself. **Both scripts reach the surface over `--cli`**, the way somebody who installed the app would, and
+that is now the only way there is: the eval used to have a second arm over MCP, and
+`shark/shark-dive/notes/agent-eval.md` has why a run that changed the transport and the method together was
+measuring three things at once.
 `shark/shark-dive/notes/agent-eval.md` has the answer keys — and the eight ways a run gets handed its own
-answer, each of which was a score that meant nothing. One of them voided every number this eval has ever
-produced, so read that section before quoting a table from it. **The eighth is in this module**: a worked
+answer, each of which was a score that meant nothing. One of them voided every number this eval produced up to
+2026-10-01, so read that section before quoting a table from it: the tables under it are marked, and the one
+headed *the first table that isn't void* is the only one to argue from. **The eighth is in this module**: a worked
 example in `AgentMethod` named a real reference, which was a scenario's key, in the text every run is handed
 before it has read anything. So a class name written into anything here — a description, a refusal, either
 half of the method — is worth checking against `EvalScenarios` first.

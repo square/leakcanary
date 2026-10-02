@@ -21,18 +21,25 @@ import shark.dive.Place
  */
 internal class FakeAgentHeapDump(
   private val dive: HeapDive,
-  override val windowId: String = "testwindow",
+  /**
+   * Which file this is a reading of, for the tests about two dumps open at once.
+   *
+   * Two open dumps are two files — `AgentHeapDumps.open` on a file this run already has open joins that open
+   * rather than making a second — so a test that needs two needs two names, and it needs nothing else of the
+   * second: what it is about is which dump a call was answered about, not what is in either of them.
+   */
+  private val path: String = dive.heapDumpFile.absolutePath,
   /**
    * What every read waits on first, for the tests about a window that is busy.
    *
    * The app confines reads to the heap dump's own thread and they queue there, so a window in the middle of
    * a leak analysis is a tool call that hasn't come back — which is a state a fake that answers instantly
-   * has no way of being in, and one that decides what `open_heap_dumps` is worth.
+   * has no way of being in, and one that decides what `list_heap_dumps` is worth.
    */
   private val beforeRead: suspend () -> Unit = {}
 ) : AgentHeapDump, Closeable {
 
-  override val heapDumpPath: String get() = dive.heapDumpFile.absolutePath
+  override val heapDumpPath: String get() = path
 
   // Off the dive and not through [read], the way a window's own session hands them over: they were worked out
   // while opening the dump, and a listing of every open dump waits on none of them. See [AgentHeapDump.sizes].
@@ -96,8 +103,7 @@ internal class FakeAgentHeapDump(
   override fun show(place: Place): ShownPlace {
     shown += place
     // A window's answer, which is a link — built the way the window builds one, since a fake that spelled it
-    // itself would be a test passing on a link nobody could follow. What a run with no window answers is
-    // `HeadlessAgentHeapDumpsTest`'s, since it is that run's one difference from this one.
+    // itself would be a test passing on a link nobody could follow.
     return ShownPlace.at(DeepLink(File(heapDumpPath), place).toUri())
   }
 
@@ -115,7 +121,7 @@ internal class FakeAgentHeapDump(
  * refusal to be a refusal about the right thing, which is what these tools mostly are.
  */
 internal class FakeAgentHeapDumps(
-  private val open: List<AgentHeapDump> = emptyList(),
+  open: List<AgentHeapDump> = emptyList(),
   /** Paths this run was pointed at that aren't readable yet, which is a dump still being indexed. */
   private val indexing: List<String> = emptyList(),
   /** Keyed by serial number, each with the processes that device is running. */
@@ -126,17 +132,40 @@ internal class FakeAgentHeapDumps(
   }
 ) : AgentHeapDumps {
 
+  /**
+   * What is open, which changes while a test runs: closing one is a call on this surface, and what makes
+   * `close_heap_dump` worth testing is that the dump it closed is gone from every answer after it.
+   */
+  private val open = open.toMutableList()
+
   /** What was asked to be opened, and what was dumped, in order, so a test can read the calls back. */
   val opened = mutableListOf<File>()
   val dumped = mutableListOf<Pair<String, String>>()
 
-  override fun openHeapDumps(): List<AgentHeapDump> = open
+  /** The paths that were closed, in order, and whether the run ended — which the last close is. */
+  val closed = mutableListOf<String>()
+  var runEnded = false
+    private set
+
+  override fun openHeapDumps(): List<AgentHeapDump> = open.toList()
 
   override fun openingHeapDumpPaths(): List<String> = indexing
 
   override suspend fun open(file: File): AgentHeapDump {
     opened += file
     return opens(file)
+  }
+
+  override suspend fun close(dump: AgentHeapDump) {
+    val closing = open.firstOrNull { it.heapDumpPath == dump.heapDumpPath }
+      ?: throw AgentRefusal("${File(dump.heapDumpPath).name} is not open here, so there is nothing to close.")
+    open -= closing
+    closed += dump.heapDumpPath
+    // The rule the app has on both kinds of run, recorded rather than acted on: a fake that exited the JVM
+    // would take the test runner with it. See [AgentHeapDumps.close].
+    if (open.isEmpty()) {
+      runEnded = true
+    }
   }
 
   override suspend fun devices(): List<AndroidDevice> = devices.keys.toList()

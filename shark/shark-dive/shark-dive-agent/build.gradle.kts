@@ -9,8 +9,9 @@ dependencies {
   // Every operation is a read of the heap dump, and a read is suspending because the app confines it to
   // the heap dump's own thread. See shark.dive.app.HeapDumpSession.
   implementation(libs.coroutines.core)
-  // The JsonElement API only, so that no @Serializable class here needs the compiler plugin. The wire
-  // format is JSON-RPC, whose shape is decided by the protocol rather than by classes of ours.
+  // The JsonElement API only, so that no @Serializable class here needs the compiler plugin. What crosses
+  // the wire is Shark Dive's own model, which is not ours to annotate, inside an envelope of three fields.
+  // See shark.dive.agent.AgentWire.
   implementation(libs.kotlinx.serialization.json)
 
   testImplementation(libs.junit)

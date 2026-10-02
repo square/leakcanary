@@ -34,7 +34,6 @@ import shark.dive.HeapDominatorTreemap
 import shark.dive.Place
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
-import shark.dive.agent.AgentTransport
 import shark.dive.exactHexObjectId
 import shark.dive.hexObjectId
 
@@ -66,8 +65,8 @@ class AgentLogsScreenTest {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call()))))
 
-      onNodeWithText(CLIENT, substring = true).assertIsDisplayed()
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).assertIsDisplayed()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
 
       // The verb, the object named the way a tab on it is named, and the agent's own sentence for why it
       // asked: no JSON and no bare address on any of it.
@@ -80,7 +79,7 @@ class AgentLogsScreenTest {
   @Test fun `the object a call was about is the link, and the verb is not`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call()))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
 
       // What a reader wants to go and look at is the object, so that is the whole of what moves the window:
@@ -94,7 +93,7 @@ class AgentLogsScreenTest {
   @Test fun `a call that named nothing links the words for where it went, and not the verb`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(leaksCall()))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(LISTED_THE), OPEN_TIMEOUT_MILLIS)
 
       // "Listed the leaks" is a sentence about the leaks screen, so *leaks* is the link and what comes
@@ -112,7 +111,7 @@ class AgentLogsScreenTest {
   @Test fun `a call that read the tree from its root leads to the whole heap dump`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(wholeDumpCall(tool = "dominator_tree")))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(DOMINATOR_TREE), OPEN_TIMEOUT_MILLIS)
 
       // Reading the tree from its root is what this window opens on, so a row saying an agent did it leads
@@ -134,7 +133,7 @@ class AgentLogsScreenTest {
   @Test fun `a search of the whole heap dump leads to the list of every object`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(wholeDumpCall(tool = "find_objects")))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(BIGGEST_OBJECTS), OPEN_TIMEOUT_MILLIS)
 
       // A search with no class name is the biggest objects of the dump, which is the object list unfiltered
@@ -149,7 +148,7 @@ class AgentLogsScreenTest {
   @Test fun `a row unfolds onto what the call sent and what it read back`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call()))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
 
       // Behind the mark under the row until asked for, because a session read straight through is sentences:
@@ -169,7 +168,7 @@ class AgentLogsScreenTest {
       openAgentLogs(
         listOf(session(calls = listOf(call(tool = "conclude", output = REFUSAL, refusal = REFUSAL))))
       )
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
       exchangeToggle().performClick()
 
@@ -182,61 +181,27 @@ class AgentLogsScreenTest {
     }
   }
 
-  @Test fun `an unfolded call says which way in it came`() {
+  @Test fun `a line that reached no tool is a row of the session like any other`() {
     diveUiTest {
       openAgentLogs(
-        listOf(
-          session(
-            calls = listOf(
-              call(over = AgentTransport.CLI),
-              call(tool = "list_leaks", over = AgentTransport.MCP)
-            )
-          )
-        )
+        listOf(session(calls = listOf(unreadable(input = NOT_A_CALL, failure = NOT_A_CALL_ANSWER), call())))
       )
-      onNodeWithText(CLIENT, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(SESSION_ID, substring = true).performClick()
 
-      // The one thing about a call that nothing else on the screen can say: by the time anything answers one,
-      // a command line and an MCP client are the same protocol on the same socket.
-      onAllNodesWithText(FOLDED_EXCHANGE)[0].performClick()
-      waitUntilAtLeastOneExists(hasText(SENT_OVER_CLI), OPEN_TIMEOUT_MILLIS)
-      onAllNodesWithText(FOLDED_EXCHANGE)[0].performClick()
-      waitUntilAtLeastOneExists(hasText(SENT_OVER_MCP), OPEN_TIMEOUT_MILLIS)
-      // And the summary above says both, in the order they first appear, since a session with two in it is
-      // somebody typing calls at a window a client is already working in.
-      onNodeWithText("CLI, MCP", substring = true).assertIsDisplayed()
-    }
-  }
-
-  @Test fun `a message that reached no tool is a row of the session like any other`() {
-    diveUiTest {
-      openAgentLogs(
-        listOf(
-          session(
-            calls = listOf(
-              message(method = "initialize", input = HANDSHAKE, output = HANDSHAKE_ANSWER),
-              call()
-            )
-          )
-        )
-      )
-      onNodeWithText(CLIENT, substring = true).performClick()
-
-      // The handshake, in words, because the question this screen gets opened for is often why *nothing*
-      // happened — and it says one call rather than two, the protocol not being what an agent did.
-      waitUntilAtLeastOneExists(hasText(CONNECTED), OPEN_TIMEOUT_MILLIS)
-      onNodeWithText(CONNECTED).assertHasNoClickAction()
+      // In words, because the question this screen gets opened for is often why *nothing* happened — and it
+      // says one call rather than two, a line this app could not read not being work the agent did.
+      waitUntilAtLeastOneExists(hasText(COULD_NOT_READ), OPEN_TIMEOUT_MILLIS)
+      onNodeWithText(COULD_NOT_READ).assertHasNoClickAction()
       onNodeWithText("1 call(s)", substring = true).assertIsDisplayed()
       onAllNodesWithText(FOLDED_EXCHANGE)[0].performClick()
-      waitUntilAtLeastOneExists(hasText(HANDSHAKE), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(NOT_A_CALL), OPEN_TIMEOUT_MILLIS)
     }
   }
 
   @Test fun `a call this app could not answer says so, and is not read as a refusal`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call(output = FAILURE, error = FAILURE)))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
 
       // Which is the opposite claim from a refusal: one is the method working and this is this app failing,
       // so a screen with one word for both would be a screen nobody can tell them apart on.
@@ -249,7 +214,7 @@ class AgentLogsScreenTest {
   @Test fun `a session recorded before the exchange was kept says so rather than unfolding onto nothing`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call(input = null, output = null)))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(LOOKED_AT), OPEN_TIMEOUT_MILLIS)
       exchangeToggle().performClick()
 
@@ -262,7 +227,7 @@ class AgentLogsScreenTest {
   @Test fun `a refused call says so, and still says what it was about`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call(tool = "conclude", refusal = REFUSAL)))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
 
       waitUntilAtLeastOneExists(hasText(REFUSAL, substring = true), OPEN_TIMEOUT_MILLIS)
       waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
@@ -275,7 +240,7 @@ class AgentLogsScreenTest {
   @Test fun `the row that concluded says which reference it came to`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call(tool = "conclude", outcome = FAULTY_REFERENCE)))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
 
       // The row anybody scrolling a session is looking for: what the agent asked, and what it came to, on
       // one line — so that finding the answer isn't reading every reason down the screen.
@@ -288,7 +253,7 @@ class AgentLogsScreenTest {
   @Test fun `a row leads to the object the call was about`() {
     diveUiTest {
       openAgentLogs(listOf(session(calls = listOf(call()))))
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText(REASON, substring = true), OPEN_TIMEOUT_MILLIS)
 
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
@@ -317,7 +282,7 @@ class AgentLogsScreenTest {
       // headed with the file name a reader recognises rather than with a path.
       onNodeWithText("${heapDump.file.name} (this heap dump)").assertIsDisplayed()
       onNodeWithText(otherHeapDump.name).assertIsDisplayed()
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
     }
 
     // Its own log, in a window of its own heap dump, rather than read here against the wrong one.
@@ -333,7 +298,7 @@ class AgentLogsScreenTest {
         copyToClipboard = { copied += it }
       )
 
-      onNodeWithText(CLIENT, substring = true).performMouseInput { rightClick() }
+      onNodeWithText(SESSION_ID, substring = true).performMouseInput { rightClick() }
       onNodeWithText(COPY_LINK).performClick()
     }
 
@@ -401,7 +366,7 @@ class AgentLogsScreenTest {
       // Headed as gone, which is the answer to why the objects in it have no names: an address is an
       // address of a file, and that file isn't here.
       onNodeWithText("deleted.hprof ($MISSING)").assertIsDisplayed()
-      onNodeWithText(CLIENT, substring = true).performClick()
+      onNodeWithText(SESSION_ID, substring = true).performClick()
 
       // And read here rather than nowhere. There is no window that could name those addresses, so what is
       // left is what the agent said — the verbs, the reasons and the refusals — which is worth reading.
@@ -459,7 +424,6 @@ class AgentLogsScreenTest {
   private fun session(calls: List<AgentSessionCall>) = AgentSession(
     sessionId = SESSION_ID,
     startedAt = STARTED_AT,
-    client = CLIENT,
     serverVersion = "1.2.3",
     file = File(testFolder.root, "sessions/agent-$SESSION_ID.jsonl"),
     calls = calls
@@ -473,15 +437,11 @@ class AgentLogsScreenTest {
     output: String? = ANSWERED,
     refusal: String? = null,
     error: String? = null,
-    outcome: String? = null,
-    over: AgentTransport? = AgentTransport.MCP
+    outcome: String? = null
   ) = AgentSessionCall(
     at = STARTED_AT,
-    over = over,
-    method = "tools/call",
     tool = tool,
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDumpPath,
     place = Place.Object(activityObjectId()),
     arguments = mapOf("object" to hex(activityObjectId())),
@@ -493,26 +453,21 @@ class AgentLogsScreenTest {
     millis = 12L
   )
 
-  /** A message that reached no tool, which is the protocol around them. See [AgentSessionCall]. */
-  private fun message(
-    method: String?,
+  /** A line this app could make no call of, which is the rest of what a session holds. See [AgentSessionCall]. */
+  private fun unreadable(
     input: String,
-    output: String? = null,
-    error: String? = null
+    failure: String
   ) = AgentSessionCall(
     at = STARTED_AT,
-    over = AgentTransport.MCP,
-    method = method,
     tool = null,
     reason = null,
-    windowId = null,
     heapDumpPath = null,
     place = null,
     arguments = emptyMap(),
     input = input,
-    output = output,
+    output = failure,
     refusal = null,
-    error = error,
+    error = failure,
     outcome = null,
     millis = 3L
   )
@@ -529,16 +484,13 @@ class AgentLogsScreenTest {
    * The session as this window's group of them lists it, which is the first: a session that read two dumps is
    * listed under both, and only this window's group is read here.
    */
-  private fun ComposeUiTest.thisWindowsSession() = onAllNodesWithText(CLIENT, substring = true)[0]
+  private fun ComposeUiTest.thisWindowsSession() = onAllNodesWithText(SESSION_ID, substring = true)[0]
 
   /** The one call that names nothing: the leaks screen is the whole of what it was about. */
   private fun leaksCall() = AgentSessionCall(
     at = STARTED_AT,
-    over = AgentTransport.MCP,
-    method = "tools/call",
     tool = "list_leaks",
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDump.file.absolutePath,
     place = Place.Leaks(),
     arguments = emptyMap(),
@@ -556,11 +508,8 @@ class AgentLogsScreenTest {
    */
   private fun wholeDumpCall(tool: String) = AgentSessionCall(
     at = STARTED_AT,
-    over = AgentTransport.MCP,
-    method = "tools/call",
     tool = tool,
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDump.file.absolutePath,
     place = if (tool == "find_objects") Place.Objects() else Place.wholeHeapDump(),
     arguments = emptyMap(),
@@ -575,11 +524,8 @@ class AgentLogsScreenTest {
   /** The first call of most sessions: which dumps are open, answered with the ones that were. */
   private fun openHeapDumpsCall(otherHeapDump: File) = AgentSessionCall(
     at = STARTED_AT,
-    over = AgentTransport.MCP,
-    method = "tools/call",
-    tool = "open_heap_dumps",
+    tool = "list_heap_dumps",
     reason = REASON,
-    windowId = "zvphq4r3",
     heapDumpPath = heapDump.file.absolutePath,
     // Nowhere to go: this one asks the app rather than a heap dump. What it came back with is where it goes.
     place = null,
@@ -622,8 +568,13 @@ class AgentLogsScreenTest {
 
   private companion object {
 
+    /**
+     * What a row of this screen is found by, there being nothing else this app is told about who connected.
+     *
+     * A call arrives as a token, a session name and a line of JSON, so the session id an agent was handed is
+     * the one string that identifies the run to whoever is comparing this screen against a transcript.
+     */
     const val SESSION_ID = "1a2b3c4d"
-    const val CLIENT = "claude-code 9.9.9"
     const val REASON = "Checking whether this activity is really destroyed."
     const val REFUSAL = "3 step(s) have no verdict"
 
@@ -637,7 +588,7 @@ class AgentLogsScreenTest {
     /**
      * What a call sent and what came back, as the text they were: the tool's own name and then several lines
      * of formatted JSON, which is what reaches the model and so what a session keeps. See
-     * [shark.dive.agent.AgentSessionCall.input] — and `McpSessionTest` for these being what is recorded.
+     * [shark.dive.agent.AgentSessionCall.input] — and `AgentConnectionTest` for what is recorded.
      */
     const val SENT = "describe_object {\n  \"object\": \"0x12d368b8\",\n  \"reason\": \"$REASON\"\n}"
     const val ANSWERED = "{\n  \"object\": \"0x12d368b8\",\n  \"verdict\": \"UNKNOWN\"\n}"
@@ -645,16 +596,12 @@ class AgentLogsScreenTest {
     /** The mark under a row that opens the call, which is on every row. See `AgentLogsScreen`. */
     const val FOLDED_EXCHANGE = "▸ {}"
 
-    /** Over the half of an unfolded call that came in, which is where the way in is said. */
-    const val SENT_OVER_MCP = "sent over MCP:"
-    const val SENT_OVER_CLI = "sent over CLI:"
+    /** A line that reached no tool: as it arrived, and as this app said it could not read it. */
+    const val NOT_A_CALL = "describe_object object=0x12d368b8"
+    const val NOT_A_CALL_ANSWER = "That is not one JSON object."
 
-    /** A message that reached no tool: the handshake, as it crossed the wire and as it was answered. */
-    const val HANDSHAKE = """{"jsonrpc":"2.0","id":1,"method":"initialize"}"""
-    const val HANDSHAKE_ANSWER = """{"jsonrpc":"2.0","id":1,"result":{}}"""
-
-    /** And what its row says, which is prose about the protocol rather than about a heap dump. */
-    const val CONNECTED = "Connected"
+    /** And what its row says, which is prose about the line rather than about a heap dump. */
+    const val COULD_NOT_READ = "Sent something this app could not read"
 
     /** And what a row of a session recorded before either of them was kept unfolds onto. */
     const val NOTHING_KEPT = "recorded before Shark Dive kept what was sent and answered"

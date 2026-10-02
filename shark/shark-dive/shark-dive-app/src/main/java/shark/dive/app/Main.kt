@@ -61,26 +61,31 @@ fun main(args: Array<String>) {
   if (deliveredToAnotherRun(args)) {
     return
   }
-  // And a run asked to be a pipe between an agent and another run opens no window and, more to the point,
-  // installs no logging: stdout is the protocol in that mode, and one log line in the middle of it is a
-  // session the agent's client reports as broken. See [AgentStdioBridge].
-  agentBridgeExitCode(args)?.let { exitProcess(it) }
-  // And a run asked to make one call from a shell prints the answer and ends, for the same reason: what is
-  // on stdout is what whoever typed it is reading. See [AgentCommandLine].
-  agentCommandExitCode(args)?.let { exitProcess(it) }
+  // And a command line asking what this app takes is answered with text and nothing else, before anything
+  // here can print over it. See [helpExitCode].
+  helpExitCode(args)?.let { exitProcess(it) }
+  // And a run asked to run one command from a shell prints the answer and ends, opening no window and, more
+  // to the point, installing no logging: stdout carries the answer, and a log line in the middle of it is
+  // JSON whoever typed the command cannot parse. See [AgentCommandLine].
+  cliExitCode(args)?.let { exitProcess(it) }
+  // And a run that answers agents with a window nowhere, which is this same app with nothing drawing it: a
+  // build server or a box over ssh has no screen for the rest of this function. See [headlessAgentExitCode].
+  headlessAgentExitCode(args)?.let { exitProcess(it) }
+  // Read before any logging is installed, and failing rather than opening: a command line nobody can read is
+  // a message to whoever typed it — one line on stderr, where they are watching — and not a crash to report.
+  // It used to be read below, which put that message in the middle of this run's own diagnostics and ended
+  // the process with the code for success.
+  val arguments = try {
+    DiveArguments.parse(args.toList())
+  } catch (invalidArguments: IllegalArgumentException) {
+    saidToTheCaller(invalidArguments.message.orEmpty())
+    exitProcess(UNREADABLE_COMMAND_LINE)
+  }
   // Launched from a terminal, so Shark's own diagnostics and any failure to open a heap dump belong on
   // stdout as well as in the window — and in a file, so that a session someone reports on can be read
   // back after it. See [installLogging].
   installLogging().use {
     SharkLog.d { "Started with ${if (args.isEmpty()) "no arguments" else args.joinToString(" ")}" }
-    val arguments = try {
-      DiveArguments.parse(args.toList())
-    } catch (invalidArguments: IllegalArgumentException) {
-      // Said on stdout and in the log rather than thrown, because a command line nobody can read is a
-      // message to whoever typed it and not a crash to report.
-      SharkLog.d { invalidArguments.message.orEmpty() }
-      return@use
-    }
     // What the arguments above were taken to mean, which is not obvious from them: a shell, Gradle's
     // `--args` and a run configuration each split a quoted title differently, and a title split in two
     // reads as one on the line above.
@@ -175,17 +180,22 @@ private fun diveApplication(
   LaunchedEffect(updateNotice) {
     withContext(Dispatchers.IO) { UpdateCheck().check() }?.let { updateNotice.offer(it) }
   }
+  // The app is its windows, so a run with none left has nothing to come back to. **One place for that rule**,
+  // rather than in the close button, because there are two ways the last window goes — somebody closing it,
+  // and `close_heap_dump` on the dump it was drawing — and a run left up with nothing open is a socket
+  // somebody has to go and kill. Safe on the way up: `diveWindows` always makes at least one.
+  val nothingOpen = windows.isEmpty()
+  LaunchedEffect(nothingOpen) {
+    if (nothingOpen) {
+      SharkLog.d { "No window is left open, so this run is over" }
+      exitApplication()
+    }
+  }
   windows.forEach { window ->
     // Keyed on the window, so that closing one doesn't hand its size and position to the next one along.
     key(window) {
       Window(
-        onCloseRequest = {
-          windows -= window
-          // The app is its windows, so there is nothing left to come back to.
-          if (windows.isEmpty()) {
-            exitApplication()
-          }
-        },
+        onCloseRequest = { windows -= window },
         title = window.title,
         // What Windows and Linux show in the title bar and the window list. macOS takes the dock icon
         // from the process instead, which the build script sets.

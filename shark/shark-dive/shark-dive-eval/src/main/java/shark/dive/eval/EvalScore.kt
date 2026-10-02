@@ -1,5 +1,7 @@
 package shark.dive.eval
 
+import java.io.File
+import java.io.IOException
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
 
@@ -44,8 +46,9 @@ class EvalResult(
     /**
      * Scores [session] against [scenario], which is a walk over the calls and no more than that.
      *
-     * [model] is what ran it, which the session file has no idea about: an MCP server is told the name of the
-     * client and never the name of the model behind it.
+     * [model] is what ran it, which the session file has no idea about: a call arrives as a token, a session
+     * name and a line of JSON, and nothing on that surface names the model behind it. So it is the eval's own
+     * knowledge of which model it launched, passed in here rather than read off the session.
      */
     fun of(
       scenario: EvalScenario,
@@ -53,19 +56,19 @@ class EvalResult(
       session: AgentSession,
       heapDumpPath: String
     ): EvalResult {
-      // The calls, not every message: a session holds the protocol around them too, and a run scored on how
-      // many handshakes it sent is a number that changes with the transport rather than with the agent. See
-      // [AgentSession.toolCalls].
+      // The calls, not every line: a session records what it could not read as well as what it answered, and
+      // a run scored on lines sent would count a typo against the agent's work. See [AgentSession.toolCalls].
       val toolCalls = session.toolCalls
       val concludes = toolCalls.filter { it.tool == CONCLUDE }
       val concluded = concludes.firstNotNullOfOrNull { it.outcome }
+      val dumpGiven = sameFileAs(heapDumpPath)
       return EvalResult(
         scenario = scenario.name,
         model = model,
-        outcome = outcomeOf(concludes, concluded, scenario.key, heapDumpPath),
+        outcome = outcomeOf(concludes, concluded, scenario.key, dumpGiven),
         concluded = concluded,
         key = scenario.key,
-        wanderedTo = concludes.mapNotNull { it.heapDumpPath }.firstOrNull { it != heapDumpPath },
+        wanderedTo = concludes.mapNotNull { it.heapDumpPath }.firstOrNull { sameFileAs(it) != dumpGiven },
         callCount = toolCalls.size,
         refusalCount = session.refusedCount,
         concludeCount = concludes.size,
@@ -78,17 +81,37 @@ class EvalResult(
       concludes: List<AgentSessionCall>,
       concluded: String?,
       key: String,
-      heapDumpPath: String
+      dumpGiven: String
     ): EvalOutcome = when {
       // Before the answer is compared to anything, because a conclusion about another heap dump is not an
       // answer to this scenario however right it reads.
-      concludes.any { it.heapDumpPath != null && it.heapDumpPath != heapDumpPath } -> EvalOutcome.WANDERED
+      concludes.mapNotNull { it.heapDumpPath }.any { sameFileAs(it) != dumpGiven } ->
+        EvalOutcome.WANDERED
       // The reference and nothing else, because that is what the answer key is: a run that named it and
       // explained it badly still found it, and a run that explained the wrong reference beautifully didn't.
       concluded == key -> EvalOutcome.RIGHT
       concluded != null -> EvalOutcome.WRONG
       concludes.isNotEmpty() -> EvalOutcome.REFUSED
       else -> EvalOutcome.NOT_CONCLUDED
+    }
+
+    /**
+     * One spelling of a path, for the comparison that decides [EvalOutcome.WANDERED].
+     *
+     * **Which has to be about the file and not about the string**, because the two paths come from different
+     * processes: one is the path this eval set a run up around and the other is whatever the run resolved it
+     * to. An A/B with `SHARK_EVAL_DIR` set from a `$TMPDIR` that ends in a separator put a doubled one in the
+     * middle of every path in `runs.tsv`, and all thirty runs of it scored [EvalOutcome.WANDERED] — each
+     * "concluded about" the very heap dump it had been given. The outcome that exists to say this eval
+     * measured nothing is the one that must not be reachable by typing a path two ways.
+     *
+     * Unresolvable is left as it arrived: this scores runs that have already finished, and a dump deleted
+     * since is still a path two sessions can be compared on.
+     */
+    private fun sameFileAs(path: String): String = try {
+      File(path).canonicalPath
+    } catch (unresolvable: IOException) {
+      path
     }
 
     private const val CONCLUDE = "conclude"

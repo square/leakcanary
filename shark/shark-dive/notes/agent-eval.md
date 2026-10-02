@@ -69,24 +69,23 @@ run. Earlier versions of this script started the app on the run's dump and hande
 every number was about a surface reached halfway through; `open_heap_dump` is the most-called tool here and it
 was the one the eval could say nothing about.
 
-**The calls arrive over the command line, and that is the only way they arrive.** The client is given `Bash`
-and `Skill` and nothing else, and it runs `"…/Shark Dive" --agent <tool> name=value …`. A window per run,
-because `--no-ui` publishes no port and no token and so cannot be reached by a command line at all — which is
-why a run closes its windows before the next one starts.
+**The calls arrive over the command line, which is the only way they arrive anywhere.** The client is given
+`Bash` and `Skill` and nothing else, and it runs `"…/Shark Dive" --cli <command> name=value …`. A window per
+run, since a call reaches the commands by connecting to one — which is why a run closes its windows before the
+next one starts, and why every run of this eval is one an agent's own `open_heap_dump` started.
 
-**There was a `--transport mcp` arm and it is gone.** It configured the client with
-`["--mcp-stdio", "--no-ui"]` and gave it the MCP tools instead of a shell. Two reasons it went, and the first
-is the one that matters: **the command line is how an agent actually arrives** — a shell and a skill, no
-client configuration and nothing to restart — so the numbers that decide whether a description or a refusal
-got better have to come from that arm, and a second arm scored beside it is a second set of numbers nobody
-acts on. The second is that the arms were not comparable in the way a table implies. They differ in the tools
-the client has, in whether the surface is in band or discovered, and in whether a window exists — three
+**There was a `--transport mcp` arm, and both it and the server it scored are gone.** It configured the client
+with `["--mcp-stdio", "--no-ui"]` — a process the client launched itself, answering over its stdio pipe with no
+window, `--no-ui` being what suppressed the window rather than the run mode of the same name today — and gave
+it the MCP tools instead of a shell. The arm went first, before the server did, and for a reason worth keeping: **the command line is how an agent actually arrives** — a shell
+and a skill, no client configuration and nothing to restart — so the numbers that decide whether a description
+or a refusal got better have to come from that arm, and a second arm scored beside it is a second set of
+numbers nobody acts on. The arms were not comparable in the way a table implies either. They differed in the
+tools the client has, in whether the surface is in band or discovered, and in whether a window exists — three
 variables at once, which is a demonstration and not a measurement.
 
-What the comparison was for has not gone away: the two adapters can drift, and `notes/agent-surface.md` is
-still where what each costs a client is written down. That drift is a thing to test in
-`AgentToolsTest`/`AgentStdioBridgeTest`, where it is cheap and deterministic, rather than by paying for a
-model to demonstrate it.
+Which is also the argument that decided the surface: see `notes/agent-surface.md` for what each shape cost,
+measured, and why one way in is what is left.
 
 **A shell is a hole, and it is a bounded one.** An agent given `Bash` can `find` the dumps directory, or read
 the hprof with `strings`. What stops that mattering is that nothing about a *score* is on the filesystem: the
@@ -140,8 +139,8 @@ every agent. They are the part of this worth knowing before changing anything:
 - **Shark Dive's own state directory.** `SHARK_DIVE_DIR`, so the runs it publishes, the sessions, the notes,
   the verdicts and the record of where each dump was are this eval's and not the person's. Without it an agent
   asking what is open is shown whatever dives are up on the machine, and the eval writes its notes into
-  theirs. It is an environment variable because every process a run starts has to agree on it, and an `--agent`
-  call starts one: it opens a window by running the app again. See `sharkDiveDirectory` in `DiveLogging.kt`,
+  theirs. It is an environment variable because every process a run starts has to agree on it, and an `--cli`
+  call starts one: `open_heap_dump` with nothing running opens a window by running the app again. See `sharkDiveDirectory` in `DiveLogging.kt`,
   which has the rest of why it is a variable rather than an option.
 - **The client's own configuration directory.** `CLAUDE_CONFIG_DIR`, for the same reason one step out: what a
   run has to work with is the surface and not this machine. Measured here, 71 installed skills, one of them
@@ -239,6 +238,142 @@ Three things came out of it:
   told that has one move left, which is to guess a path. That hole is in the *product* rather than in the eval —
   an agent connecting to a window that is still indexing falls into exactly the same one — and it is the first
   thing this eval found that was worth fixing in the app.
+
+## The `--cli` redesign, 2026-10-01 — the first table that isn't void
+
+The first run of this script since the standard input bug above was fixed, so the first table here whose runs
+were not shown the answer. Two arms, and they are exactly a pull request against the commit it branched from:
+`6d4a192c4`, which is the merge base, against the six commits on top of it that redesigned the command line
+around `--cli`, one run, and a heap dump named by a key. The before build still had the MCP server in it and
+neither arm launched one — both reach the surface over `--cli`, which is what keeps this from being the
+two-variable comparison the deleted `--transport mcp` arm was. Five scenarios, opus, three repetitions, 15 runs
+an arm. Shark Dive 1.0.0, `claude` 2.1.280, $6.11 before and $7.24 after. The two arms ran at the same time on
+one machine, so neither one's wall clock — 44 minutes and 51 — is a number about the surface.
+
+Before, `6d4a192c4`:
+
+| Scenario | Model | Right | Wrong | Refused | No conclusion | Wandered | Calls | Refusals |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| two-apart | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 12 | 0 |
+| cache-never-evicts | opus | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 20 | 0 |
+| stub-outlives-its-work | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 17 | 0 |
+| stub-holds-no-state | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 24 | 0 |
+| real-asynctask | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 22 | 0 |
+
+After, `d1802373e`:
+
+| Scenario | Model | Right | Wrong | Refused | No conclusion | Wandered | Calls | Refusals |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| two-apart | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 15 | 0 |
+| cache-never-evicts | opus | 0/3 | 3/3 | 0/3 | 0/3 | 0/3 | 20 | 0 |
+| stub-outlives-its-work | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 20 | 0 |
+| stub-holds-no-state | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 26 | 0 |
+| real-asynctask | opus | 3/3 | 0/3 | 0/3 | 0/3 | 0/3 | 19 | 0 |
+
+**12/15 either side, the same four scenarios right and the same one wrong.** Which is the result to want
+rather than a disappointment: nothing in the redesign was meant to make an investigation go better, and a
+surface rebuilt around one command, one run and a key is a surface an agent could have stopped being able to
+reach at all. The calls say the same thing — 285 over the before arm's fifteen runs against 297 over the
+after's, a median moving by two or three either way on four of the five — and the twelve are accounted for
+below rather than being noise.
+
+**The one thing only the after arm did is the story the refusals are for**: two of its runs read `1 refused ·
+2 conclude attempt(s)` — refused, a verdict, then concluded — and no run on main did. Two runs is not
+evidence, it is the shape to watch in the next table, since a refusal that says what to do next is the whole
+argument for this module.
+
+**And neither arm covers the method text this same round changed.** The paragraph of `AgentMethod.LEAK` saying
+`list_leaks` is where an investigation starts rather than somewhere to come back to went in after these runs,
+so this table is its baseline and not a measurement of it.
+
+### The twelve extra calls are one `close_heap_dump` a run, less a `show` nobody needed
+
+Per tool, over all fifteen runs of each arm, the deltas sum to exactly the twelve:
+
+| Tool | `6d4a192c4` | `cli-only` | Δ |
+| --- | --- | --- | --- |
+| `close_heap_dump` | 0 | 15 | **+15** |
+| `show` | 12 | 4 | **−8** |
+| `describe_object` | 142 | 150 | +8 |
+| `find_objects` | 39 | 35 | −4 |
+| `conclude` | 15 | 17 | +2 |
+| `set_verdict` | 28 | 29 | +1 |
+| `chain_from_gc_root` | 17 | 16 | −1 |
+| `list_devices` | 1 | 0 | −1 |
+| `open_heap_dump`, `list_leaks`, `take_note` | 15, 15, 1 | 15, 15, 1 | 0 |
+
+**`close_heap_dump` is one call a run and it is the last call of all fifteen** after-arm sessions: a command
+this round adds — `shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentTools.kt:147` — which
+`.claude/skills/shark-dive/SKILL.md:151` tells an agent to make for a dump it opened. So the whole rise is a
+command that did not exist to be called, called once each time, which is the number going up for the reason it
+was supposed to.
+
+**And `show` paying two thirds of it back is the method leaving the answers, measurable.** At `6d4a192c4`,
+[`McpSession.withTheSurface`](https://github.com/square/leakcanary/blob/6d4a192c484437cb31299d756156f672834bcd82/shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/McpSession.kt#L302)
+prepended `AgentMethod.SURFACE` to the first *answered* call of every session, so every run was handed
+"**`show` puts what you are looking at on screen.** Use it when you reach something that matters"
+(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentMethod.kt:67`) whether it had asked for
+it or not. On this branch that text is only printed by
+`--investigation-help`. What that cost is not investigation: **nine of the before arm's twelve `show` calls
+came after the run's last `conclude`**, and eight of its fifteen sessions ended on one. Mid-investigation
+`show` was three calls before and two after. So a closing flourish went away and `close_heap_dump` took its
+place at the end of every run, which is the same ritual costing the same call.
+
+Per scenario the arithmetic is only that swap: two-apart 12 → 15 and stub-outlives-its-work 17 → 20 are the one
+close with no `show` to give back, stub-holds-no-state 24 → 26 is nearly it, and cache-never-evicts 20 → 20 and
+real-asynctask 22 → 19 are flat or down because the before arm spent its closing `show` calls there.
+
+**The cost this table cannot see is the help, and it is the number to watch.** A help text is not a `--cli`
+command, so none of it reaches a call count: client round trips went 171 → 238 while help invocations went
+31 → 90. `--agent-help` was read 31 times before — 8 of them bare, 23 naming a tool. After: `--help` 60 times
+(10 bare, 50 naming a command — `conclude` 15, `set_verdict` 14, `find_objects` 9, `show` 6), plus
+`--investigation-help` 15 and `--leak-investigation-help` 15. Two readings of that. **Both method texts were
+read by fifteen of fifteen runs, exactly once each**, which is the risk of moving them out of the answers not
+materialising. And per-command help is now a round trip per command
+(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt:207`), where the before
+build's bare `--agent-help` printed the preamble and every tool's full help in one
+([`AgentCommandLine.help`](https://github.com/square/leakcanary/blob/6d4a192c484437cb31299d756156f672834bcd82/shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt#L109),
+`(asked ?: tools).forEach`). Cheap calls — no window, no heap dump read — but that is where the 39% went, and
+a surface that grows another ten commands pays it again.
+
+### `cache-never-evicts` fails the way `two-apart` used to, and the fixture is why
+
+0/3 in both arms, and all six runs of it — across two builds — concluded `Object[][x]` against a key of
+`CacheEntry.activity`. That is not six wrong answers. It is one reference above the key, `conclude` accepted
+it, and `conclude` accepts only when the chain has exactly one candidate left, so the heap dump agreed with the
+verdicts that got them there. One run's own `why` for the `STUCK` it set on the entry
+(`dive4a7c2e19`, after arm):
+
+> Its only fields are key = "screen:main" and activity = the MainActivity 0x24, which has
+> Activity#mDestroyed = true
+
+Which is the reading that got the old `two-apart` fixture replaced: **an object whose only fields are a dead
+activity and a label for it reads as done with its work.** A `CacheEntry` for a destroyed screen should have
+been evicted, and nothing in the dump says otherwise — `aCacheThatNeverEvicts` writes the entry as a key and
+the activity and no evidence of its own, so "the entry belongs here and the field is wrong" and "the entry
+should be gone" are both defensible off what is there, and the key picks one of them. Three steps of that
+chain carry an argument an agent can point at: the static `INSTANCE`, and `MemoryCache.size = 1` matching its
+one element, both of which the runs cited. The fourth, the one the answer turns on, carries none.
+
+So this is a scenario to fix rather than a number to act on, and the fix is the one `twoApart` already got:
+write something onto the entry that says its own work is not finished. Until then its 0/3 is a fact about the
+fixture and no part of a before and after.
+
+### Thirty runs scored `WANDERED`, and it was the eval holding a path two ways
+
+Both arms came back 15/15 `WANDERED` the first time they were scored, every run "concluding about" the very
+heap dump it had been given. The wrapper running the two arms built `SHARK_EVAL_DIR` from `${TMPDIR:-/tmp}`,
+`$TMPDIR` on macOS ends in a separator, and so every path in `runs.tsv` carried a doubled one in the middle of
+it while Shark Dive had recorded the single-separator path it resolved. Scoring compared the two as strings.
+
+Rescored, nothing wandered — and the fix is in the scorer rather than in the wrapper. `EvalResult.sameFileAs`
+canonicalises both sides, and `EvalScoreTest` pins one dump spelled two ways as one dump. **The outcome that
+exists to say this eval measured nothing is the one that must not be reachable by typing a path two ways**,
+which is the rule above — an eval whose failures look like model failures is worse than no eval — turned on
+the scorer's own comparison.
+
+Worth knowing what it cost, which was nothing: what each run concluded is in its session file, so rescoring
+thirty runs was a re-read rather than a re-run.
 
 ## Baseline, 2026-08-25 — void, kept as history
 
@@ -378,11 +513,11 @@ probe was run by hand, from a terminal, so it had a terminal on standard input �
 that mattered was the thing the probe changed**. A probe of what a process is handed has to be launched the
 way that process is launched.
 
-What survives is the product hole underneath, because it is the reason a path was worth reaching for at all:
-`--no-ui` opens the run's dump in the background, **nothing in the session says so**, and `open_heap_dump`
-wants a path. An agent with no path and a tool that needs one goes looking for one. Naming the already-open
-dump in what a session starts with is the fix, `AgentHeapDumps.openingHeapDumpPaths`, and it is in the
-product rather than in the eval, exactly like the first one.
+What survives is the product hole underneath, because it is the reason a path was worth reaching for at all: a
+window can be part way through opening a dump, **nothing in the session says so**, and `open_heap_dump` wants
+a path. An agent with no path and a tool that needs one goes looking for one. Naming the dump that is opening
+in what a session starts with is the fix, `AgentHeapDumps.openingHeapDumpPaths`, and it is in the product
+rather than in the eval, exactly like the first one.
 
 ## The scenario families
 

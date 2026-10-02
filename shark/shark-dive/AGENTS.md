@@ -13,7 +13,7 @@ reading the source alone — everything else is in the code. Keep it that way.
 | --- | --- | --- |
 | `shark-dive-core` | Heap dump → dominator tree → layout model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
 | `shark-dive-jdwp` | Attaches to a live app as a debugger to read the pixels of its bitmaps. | **Imports `com.sun.jdi`, so it needs a JDK and can't be loaded on Android.** That's the whole reason it isn't in `core`. |
-| `shark-dive-agent` | The MCP server a window answers agents through, the `--mcp-stdio` pipe and the `--agent` command line that reach it, and `--no-ui` for a run with no window at all. | **No Compose, Java 8 target, and desktop only** — it calls `ProcessHandle`. Has its own `AGENTS.md`. |
+| `shark-dive-agent` | The tools a run answers commands through, and the `--cli <command> name=value` command line that reaches them over the socket every run publishes. | **No Compose, Java 8 target, and desktop only** — it calls `ProcessHandle`. Has its own `AGENTS.md`. |
 | `shark-dive-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
 | `shark-dive-eval` | The heap dumps an agent is measured on, and the scoring of what it did with them. Driven by `shark-dive-agent/harness/eval/run-eval.sh`. | **The only module with `shark-hprof-test` in its main source set**, which is why it is a module: writing the scenarios is what it does, and a dump-building DSL can be no dependency of anything the app ships. Runs no model. |
 
@@ -112,8 +112,9 @@ Each of the following is a change already made to this app, not a preference:
   reaching.
 - **Prose belongs in the KDoc, `notes/decisions.md`, or a reference page.** Those are the three places
   something long enough to be worth writing goes. `notes/agent-surface.md` measures the same idea on the
-  agent surface — ~80 tokens of name and description at rest, the ~2 k-token body only for a session that
-  asked — and the window is the same trade against a smaller budget.
+  agent surface, where both halves of the method ended up out of the answers entirely: they are printed by
+  `--investigation-help` and `--leak-investigation-help`, read once by whoever has a use for one, rather than
+  carried in a field every call of a session pays for. The window is the same trade against a smaller budget.
 
 ## One concept, one name, one place
 
@@ -236,10 +237,11 @@ shows it.
 
 **`~/.shark-dive` is only the default**, and every path in this file that begins with it is really under
 `SHARK_DIVE_DIRECTORY` — `sharkDiveDirectory()` in `DiveLogging.kt`, which reads `SHARK_DIVE_DIR`. It is an
-environment variable rather than an option because a dive is several processes that have to agree: `--agent`
-runs the app again to open a window, and an MCP client launches the server from a config file. What asked for
-it is `notes/agent-eval.md`, whose runs must not write into the notes of whoever started them, and it is
-worth having on its own — a second set of notes over the same dumps is a thing to want.
+environment variable rather than an option because a dive is several processes that have to agree: `--cli`
+is a process per command and each of them has to find the same published runs, the same sessions directory and
+the same notes as the run it is talking to. What asked for it is `notes/agent-eval.md`, whose runs must not
+write into the notes of whoever started them, and it is worth having on its own — a second set of notes over
+the same dumps is a thing to want.
 
 **So ask for that file when someone reports something odd**, and read it before guessing. It holds the
 environment (JVM, OS, heap limit — a dump too large for Shark Dive runs out of exactly that), every
@@ -695,10 +697,10 @@ Design decisions and findings, kept current as the work proceeds:
   the ones that don't are fetched off the device
 - `notes/dependency-injection.md` — what Dagger and Metro leave in a heap dump, why the owner rule is
   about the provider rather than the component, and how to dump really generated code
-- `notes/agent-surface.md` — what the MCP surface costs a client in tokens, measured, and why a CLI and a
-  skill are adapters over the same registry rather than second implementations
+- `notes/agent-surface.md` — what this surface costs a session in tokens, measured, and what the MCP server
+  it replaced cost before it went
 - `notes/agent-eval.md` — how well an agent solves a leak, scored with no model doing the scoring: the answer
-  keys, the eight ways a run gets handed its own answer, and why every table in it is void
+  keys, the eight ways a run gets handed its own answer, and which of its tables are void
 
 Update these in the same change that makes them stale. They're for agents, so keep them short and
 skip anything derivable from the code.

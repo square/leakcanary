@@ -5,23 +5,23 @@ import shark.dive.unwrappedMarkdown
 /**
  * The method an agent is asked to follow, which is the part of this surface that isn't data.
  *
- * **Two texts, and which call carries which is the whole of the design.** [SURFACE] is how to work here at
- * all — the reason on every call, the window somebody is watching, the links to hand back, the gap to admit —
- * and it reaches a session whatever that session asks first. [LEAK] is how to find a faulty reference, and
- * `list_leaks` answers with it. Nothing else does.
+ * **Two texts, and neither of them is in an answer.** [SURFACE] is how to work here at all — the reason on
+ * every call, the window somebody is watching, the links to hand back, the gap to admit — and it is
+ * [AgentCommandLine.SURFACE_METHOD_OPTION]. [LEAK] is how to find a faulty reference, and it is
+ * [AgentCommandLine.LEAK_METHOD_OPTION]. Both are text this build prints, with no run and no heap dump.
  *
- * So **an investigation of a leak that never called `list_leaks` never read the leak method**, and that is
- * the intended consequence rather than a hole to patch. It used to be handed over by both ways of getting a
- * heap dump instead, on the grounds that one of those is the first call of every investigation — which is
- * true, and made every agent asked where the memory went read the whole of how to narrow a chain first. The
- * call it now costs is the call whose answer the method is about, so the text arrives beside the thing it
- * describes rather than a call or two ahead of it; `list_leaks`'s own description is what points a model
- * there, and [AgentTools.NEXT_WITH_A_NEW_DUMP] is what the answer that opened the dump says instead.
+ * **Which is a read rather than an answer, and that is what it is for.** Each of them was carried in a tool's
+ * answer — [LEAK] in a field of `list_leaks`, [SURFACE] prepended to whatever a session asked first — on the
+ * grounds that a tool result is the one thing an agent is certain to read, since it asked for the answer. True,
+ * and what it costs is paid per call rather than per session: an investigation of four leaks read the whole of
+ * how to narrow a chain four times, and a session is handed how to work here by a call that only wanted to
+ * know which heap dumps are open. An option is read once by whoever has a use for it, and nothing about it is
+ * optional to find — `--help` lists both, which is the one text an agent reaches for having been told nothing.
  *
- * **[SURFACE] is handed over twice on purpose**, because it is the half that a session asking anything at all
- * needs: as the `instructions` of the MCP handshake, which some clients show the model and some drop, and
- * again on the first answered call of a session, which is what reaches the ones that drop it and the `--agent`
- * command line, whose handshake no model ever sees. See `McpSession.withTheSurface`.
+ * So **an investigation that never read either option never read the method**, and that is the intended
+ * consequence rather than a hole to patch. What points a model at [LEAK] is three places that each know a leak
+ * is in hand: `list_leaks`'s own description, [AgentTools.NEXT_WITH_A_NEW_DUMP] on the answer that opened the
+ * dump, and the paragraph of [SURFACE] itself.
  *
  * **And no example in either text names a real leak.** `Owner.field` is the shape a reference is spelled in
  * rather than a reference, because an eval run reads the method before it has asked the heap dump anything: a
@@ -42,32 +42,22 @@ import shark.dive.unwrappedMarkdown
 internal object AgentMethod {
 
   /**
-   * The field of a tool's answer the method travels in, which two places write.
-   *
-   * Out here rather than in either of them because [SURFACE] is prepended to whatever [LEAK] already put
-   * there — one field with both halves of the method in it, rather than two fields a reader has to notice
-   * the second of — so the name has to be the same string in `AgentTools.listLeaks` and
-   * `McpSession.withTheSurface`, or that prepending silently becomes a second copy.
-   */
-  const val FIELD = "method"
-
-  /**
    * [SURFACE] as it is written here, wrapped at the column the rest of this repository is.
    *
-   * Short on purpose, and the shortest thing on this surface that has to survive a client: Claude Code cuts
-   * an MCP server's `instructions` at 2,048 characters, which the whole method did not fit in and this does.
-   * So what a session is told about working here is the same text however it connected, and the long half
-   * travels as a tool result, where nothing truncates it.
+   * **Short on purpose, because it is the one of the two every session is expected to read** — so a paragraph
+   * added here is a paragraph read by an agent that only wanted to know which heap dumps are open. [LEAK] is
+   * five times the size and is read by the investigations it is about.
+   * `shark/shark-dive/notes/agent-surface.md` has the measurement.
    */
   private val WRAPPED_SURFACE = """
     You are reading a heap dump through Shark Dive, a window a person may be watching. Everything you
     ask is a read of that dump, and everything you conclude is written into it where the next reader — a
     colleague, another agent, the same person in a month — will find it.
 
-    **For anything about a leak, call `list_leaks` first and read the method it answers with.** That answer
-    is where the method is, and nowhere else on this surface has it: what a leak is, how a verdict spreads,
-    and the order that finds the faulty reference. An investigation that skipped it is one `conclude` will
-    refuse.
+    **For anything about a leak, read `${AgentCommandLine.LEAK_METHOD_OPTION}` before the first chain.** That
+    is where the method is, and nowhere else on this surface has it: what a leak is, how a verdict spreads, and
+    the order that finds the faulty reference. It needs no run and no heap dump, and it is one read per
+    investigation rather than per leak. An investigation that skipped it is one `conclude` will refuse.
 
     ## On every call
 
@@ -121,10 +111,15 @@ internal object AgentMethod {
 
     ## The order to work in
 
-    1. **Find something that shouldn't be there — you are looking at it.** Beside this method is the heap
-       dump's own answer: objects the app itself handed to LeakCanary and said were done with, plus what the
-       inspectors recognised. Start with a leak whose objects the app watched, which is the strongest
-       evidence a heap dump carries.
+    1. **Find something that shouldn't be there.** `list_leaks` is the heap dump's own answer: objects the app
+       itself handed to LeakCanary and said were done with, plus what the inspectors recognised. Start with a
+       leak whose objects the app watched, which is the strongest evidence a heap dump carries.
+       **Pick one here, then work its chain: this list is where an investigation starts and not somewhere to
+       come back to.** Your own verdicts change it. A `STUCK` set halfway up a chain makes that object the
+       leak and folds what it held into it, retained bytes included — so the object you have been
+       investigating leaves the list, and the bytes it was reported as retaining are now reported against the
+       object you narrowed to, which dominates almost none of them. The same reference is still holding the
+       same objects. Where you have got to is in the chain, so read that rather than this list again.
     2. **Get the chain.** `chain_from_gc_root` for one stuck object. Read every step. The steps already
        carry the inspectors' labels and any verdict someone has set.
     3. **Work inwards from both ends.** Top down: which of these objects is obviously meant to be here — a
@@ -205,7 +200,7 @@ internal object AgentMethod {
   """.trimIndent()
 
   /**
-   * How to work on this surface at all, which every session is told whatever it asks first.
+   * How to work on this surface at all, which [AgentCommandLine.SURFACE_METHOD_OPTION] prints.
    *
    * [unwrappedMarkdown] for the reason [LEAK] is, and the same call: the reader is a model reading text and
    * not a diff.
@@ -213,14 +208,17 @@ internal object AgentMethod {
   val SURFACE = unwrappedMarkdown(WRAPPED_SURFACE)
 
   /**
-   * What to do with a leak, in the order it works, which is what `list_leaks` answers with.
+   * What to do with a leak, in the order it works, which [AgentCommandLine.LEAK_METHOD_OPTION] prints.
    *
    * [unwrappedMarkdown] because the reader is a model reading text and not a diff. Handed over as
    * [WRAPPED_LEAK] is written, every sentence of it arrives broken at whatever column this file happened to
-   * wrap at — inside a JSON string, where each of those breaks is a visible `\n`. So the wrapping is undone
-   * once, here rather than at each place the method is handed over, and what is left of the line breaks is
-   * the ones that mean something: the blank line between two paragraphs, and the one in front of a heading or
-   * an item. Same reading `shark.dive.Note.ofDocument` gives a page of the reference, for the same reason.
+   * wrap at, and what is left of the line breaks after unwrapping is the ones that mean something: the blank
+   * line between two paragraphs, and the one in front of a heading or an item. Same reading
+   * `shark.dive.Note.ofDocument` gives a page of the reference, for the same reason.
+   *
+   * Still unwrapped now that this is printed rather than answered with, and for the same reason one way round
+   * as the other: a terminal wraps a paragraph to the width it has, and this file's column is only ever that
+   * width by accident.
    */
   val LEAK = unwrappedMarkdown(WRAPPED_LEAK)
 }

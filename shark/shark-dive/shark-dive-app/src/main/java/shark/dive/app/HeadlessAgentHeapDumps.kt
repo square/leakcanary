@@ -12,6 +12,7 @@ import shark.SharkLog
 import shark.dive.DeepLink
 import shark.dive.DeviceHeapDumps
 import shark.dive.HeapDumpPaths
+import shark.dive.agent.AgentCommandLine
 import shark.dive.agent.AgentHeapDump
 import shark.dive.agent.AgentRefusal
 import shark.dive.agent.ShownPlace
@@ -24,14 +25,26 @@ import shark.dive.agent.ShownPlace
  * a window tomorrow. That is why this is in the app module rather than a program of its own: the notes and the
  * verdicts are the artefact, and a headless mode writing them somewhere else would be a second app.
  *
- * So what is left here is the two answers that differ from a run that has windows — which dumps are open, and
- * what opening one means — plus the one call a run with no window genuinely can't make: [AgentHeapDump.show]
- * has nowhere to put a tab and says so rather than answering that it did. See [NO_UI_OPTION].
+ * So what is left here is the three answers that differ from a run that has windows — which dumps are open,
+ * what opening one means, and what closing one does — plus the one call a run with no window genuinely can't
+ * make: [AgentHeapDump.show] has nowhere to put a tab and says so rather than answering that it did.
+ *
+ * **And it is reached the same way a window is**, over the socket [serveAgentsWithNoWindow] publishes, so a
+ * command finds it without being told which kind of run it is talking to. A headless mode with a transport of
+ * its own was what the MCP server had, and `shark/shark-dive/notes/agent-surface.md` has why that is the half
+ * of it that went.
  */
 internal class HeadlessAgentHeapDumps(
   deviceHeapDumps: DeviceHeapDumps,
   /** Heap dumps named on the command line, opened as this starts. */
   heapDumpFiles: List<File> = emptyList(),
+  /**
+   * How this run ends, called once the last heap dump open has been closed. See [close].
+   *
+   * Passed in rather than exiting from here, because what a run is, is whoever started it: the one with no
+   * window is a thread waiting on a latch, and a run with windows is Compose leaving `application { }`.
+   */
+  private val endTheRun: () -> Unit = {},
   /** The same notes a window keeps, in the same directory: a test passes its own. See [DiveNotes]. */
   private val notes: DiveNotes = DiveNotes(),
   private val leakStatuses: DiveLeakStatuses = DiveLeakStatuses(),
@@ -43,9 +56,9 @@ internal class HeadlessAgentHeapDumps(
    * One per heap dump being opened, keyed by file, whether it has finished or not.
    *
    * **What makes opening the same dump twice one open rather than two.** Which matters here in a way it
-   * doesn't in a window: the command line's dumps start opening while the client's first message is still on
-   * its way, so an agent calling `open_heap_dump` on the path it was pointed at is racing them — and losing
-   * that race would mean a second index of the same gigabyte, on a second thread, with the notes of the first.
+   * doesn't in a window: the command line's dumps start opening while the first call is still on its way, so
+   * an agent calling `open_heap_dump` on the path it was pointed at is racing them — and losing that race
+   * would mean a second index of the same gigabyte, on a second thread, with the notes of the first.
    */
   private val openings = mutableMapOf<File, Deferred<HeadlessHeapDump>>()
 
@@ -62,9 +75,9 @@ internal class HeadlessAgentHeapDumps(
 
   init {
     heapDumpFiles.forEach { file ->
-      // Started rather than awaited, because a client is waiting on this process to answer `initialize` and
-      // a large heap dump is minutes of indexing. So a quick dump is open by the time the first call comes,
-      // a slow one is opened by whichever call asks for it, and either way it is opened once.
+      // Started rather than awaited, because this run publishes its socket as it comes up and a large heap
+      // dump is minutes of indexing. So a quick dump is open by the time the first call arrives, a slow one
+      // is opened by whichever call asks for it, and either way it is opened once.
       opening(file)
     }
   }
@@ -77,6 +90,35 @@ internal class HeadlessAgentHeapDumps(
   }
 
   override suspend fun open(file: File): AgentHeapDump = opening(file).await().agent
+
+  /**
+   * Releases the thread this dump owns, and ends the run once it was the last one open.
+   *
+   * The same rule a run with windows has, spelled here because what a run is, is different: there the last
+   * window closing is the app leaving `application { }`, and here it is this. A run with nothing open is a
+   * process nothing can be asked of — `open_heap_dump` is the only command that would answer, and it starts a
+   * run of its own — so leaving it up would leave a socket somebody has to go and kill.
+   */
+  override suspend fun close(dump: AgentHeapDump) {
+    val closing = synchronized(lock) {
+      val open = opened.firstOrNull { it.agent.heapDumpPath == dump.heapDumpPath }
+        ?: throw AgentRefusal(
+          "${File(dump.heapDumpPath).name} is not open here any more, so there is nothing to close."
+        )
+      opened -= open
+      openings -= File(dump.heapDumpPath).absoluteFile
+      open
+    }
+    // Outside the lock: it is the thread this dump was read on going away, and nothing else here waits on it.
+    closing.open.session.close()
+    SharkLog.d { "An agent closed ${dump.heapDumpPath}" }
+    // Both, because a dump still being opened is one a call can still be answered about — and the open it is
+    // waiting on is in [openings] and not yet in [opened].
+    if (synchronized(lock) { opened.isEmpty() && openings.isEmpty() }) {
+      SharkLog.d { "Nothing is open any more, so this run is over" }
+      endTheRun()
+    }
+  }
 
   /** Releases the thread each open heap dump owns, and stops the ones still opening. */
   override fun close() {
@@ -98,7 +140,10 @@ internal class HeadlessAgentHeapDumps(
 
   private suspend fun openNow(file: File): HeadlessHeapDump {
     val session = try {
-      HeapDumpSession.open(file) { step -> SharkLog.d { step } }
+      // Nothing to do with each step: `HeapDive.open` logs every one of them with how long it took, and the
+      // log of a run with no window is the terminal it was started in. What this callback is for is a window
+      // saying which step it is on, so writing it here was the same step logged twice.
+      HeapDumpSession.open(file) {}
     } catch (throwable: Throwable) {
       SharkLog.d(throwable) { "Could not open $file" }
       // Off the map, so that a path given by mistake can be given again once the file is there — and so that
@@ -116,33 +161,28 @@ internal class HeadlessAgentHeapDumps(
     // it. A window reads it because it draws them, and a run with no window would otherwise never read it and
     // refuse every verdict an agent tried to record.
     open.leakStatuses.read()
-    // The same kind of id a window has, because it is the same question: which of the heap dumps open. Called
-    // `window` on the surface even here, rather than growing a second word for a run that has none — what an
-    // agent does with it is name a dump, and a vocabulary that changes with whether there is a screen is one
-    // nobody can carry between the two.
-    val windowId = newWindowId()
     // Written down the same way a window's dump is, and here it is the whole of what makes the links this
     // hands back work: nobody watching a run with no screen can be told where the file was.
     heapDumpPaths.record(file)
     val dump = HeadlessHeapDump(
       open = open,
-      agent = OpenAgentHeapDump(windowId = windowId, open = open) { place ->
-        SharkLog.d { "Nowhere to show $place: this run was started with $NO_UI_OPTION" }
+      agent = OpenAgentHeapDump(open = open) { place ->
+        SharkLog.d { "Nowhere to show $place: this run was started with ${AgentCommandLine.NO_UI_OPTION}" }
         // A link all the same, and it works: a link names the heap dump rather than a window, and where this
         // dump is has just been written down, so this opens the file at that place in whatever Shark Dive
         // reads it on this machine. Which is the whole of what a run with no screen can offer, and more than
         // nothing.
         ShownPlace.onlyAsALink(
           link = DeepLink(file, place).toUri(),
-          problem = "This Shark Dive run was started with $NO_UI_OPTION, so it has no window and nobody " +
-            "saw this. Put the link in your answer instead: it opens ${file.name} at that place for " +
-            "whoever reads it, with your notes and verdicts on it, since those are on disk rather than on " +
-            "screen."
+          problem = "This Shark Dive run was started with ${AgentCommandLine.NO_UI_OPTION}, so it has no " +
+            "window and nobody saw this. Put the link in your answer instead: it opens ${file.name} at that " +
+            "place for whoever reads it, with your notes and verdicts on it, since those are on disk rather " +
+            "than on screen."
         )
       }
     )
     synchronized(lock) { opened += dump }
-    SharkLog.d { "${file.name} is open as $windowId, with no window" }
+    SharkLog.d { "${file.name} is open, with no window" }
     return dump
   }
 }
