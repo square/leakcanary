@@ -3,8 +3,8 @@
 
 Please thank our [contributors](https://github.com/square/leakcanary/graphs/contributors) 🙏 🙏 🙏.
 
-This covers the LeakCanary and Shark libraries. Shark Dive, the desktop app, is released on its own
-schedule and has its own [Shark Dive change log](shark-dive-changelog.md).
+This covers the LeakCanary and Shark libraries. [Shark Dive](shark-dive.md), the desktop app, is
+released on its own schedule and has no change log of its own yet, so nothing about it is here either.
 
 Each entry starts with a marker for the kind of change it is:
 
