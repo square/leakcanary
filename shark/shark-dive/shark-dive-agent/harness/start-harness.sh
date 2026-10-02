@@ -4,22 +4,38 @@
 #
 # What this is for: the tools in this module are meant to hold an investigation to a method, and whether
 # they do is not a thing a unit test can answer — it takes a model that has never seen this repository,
-# reading nothing but what the tools hand back. So this stages the surface and starts the investigation: a
-# copy of the packaged app, the skill rewritten to point at it, a prompt that says no more than which file
-# to look at, and a client with nothing of this machine to work with.
+# reading nothing but what the tools hand back. So this builds the app, copies it somewhere of its own, and
+# starts an agent on one heap dump with two sentences: which file, and where the launcher is.
 #
 # **Nothing here opens the heap dump.** The agent is told where the file is, and opening it is the first
-# thing it has to get right — which is the first thing a person has to get right too, and the part
-# `.claude/skills/shark-dive/SKILL.md` exists to carry. A harness that handed over a dump already open
-# measured every step of an investigation except the one that starts it, and left the skill's own first
-# section unexercised. Same reason `harness/eval/run-eval.sh` opens nothing. See `write_prompt`.
+# thing it has to get right — which is the first thing a person has to get right too. A harness that handed
+# over a dump already open measured every step of an investigation except the one that starts it. Same reason
+# `harness/eval/run-eval.sh` opens nothing. See `write_prompt`.
+#
+# **The second run on one heap dump is handed the first one's answer, and that is not a bug to fix here.**
+# Notes and verdicts are kept per heap dump under `~/.shark-dive`, which this shares with the person watching —
+# the whole point being that what the agent leaves is on their screen and outlives the run. So a repeat run on
+# the same dump opens it, finds a note, and `read_notes` hands it a conclusion before it has traced anything:
+# measured on the second run of this script against `leak_asynctask_o.hprof`, where the note from the first
+# named the faulty reference verbatim. It verified it independently over twenty calls, which is the good case
+# and still not a blind one. **So a run that is meant to show whether the surface carries an investigation
+# wants a dump nothing here has solved, or its own state directory**: `SHARK_DIVE_DIR=$(mktemp -d)` in front of
+# this script gives it one, at the cost of the window not appearing among the person's own dives. The eval does
+# that permanently, plus a hard-linked copy of the dump per run, and `run-eval.sh` says why.
+#
+# **And nothing here stages a skill.** What an agent needs to know is `--help`, `--investigation-help` and
+# `--leak-investigation-help`, which are text the build carries and therefore cannot go stale — so the prompt
+# names the launcher and stops, and finding out what it takes is the agent's own first move. The skill this
+# repository ships is one short page saying exactly that much, for somebody who has the app installed and
+# wants their client to reach for it unprompted; it is not a thing this script needs a copy of, and staging one
+# used to mean rewriting its paths and checking the rewrite had worked.
 #
 # **The agent reaches the window over the command line** — `--cli <command> name=value` against the launcher —
-# which is what somebody who installed the app has. There is no MCP config here and no `--mcp-config` in the
-# command this runs.
+# which is what somebody who installed the app has. Shark Dive has no MCP server any more; the command line is
+# the whole surface.
 #
 # The packaged app rather than `./gradlew run`, for two reasons. It is what a person has installed, so the
-# command the skill carries is the command they would write; and a Gradle build of any kind kills a window
+# command the agent types is the command they would write; and a Gradle build of any kind kills a window
 # launched from source, which here would be every window an agent opened. A copy of it, named after the
 # title, for two more — see `bundle_named_after_the_title` and shark/shark-dive/AGENTS.md.
 
@@ -28,10 +44,6 @@ set -euo pipefail
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../.." && pwd)"
 readonly DEFAULT_HEAP_DUMP="shark/shark-android/src/test/resources/leak_asynctask_o.hprof"
 readonly APP_PATH="shark/shark-dive/shark-dive-app/build/compose/binaries/main/app/Shark Dive.app"
-readonly SKILL_PATH=".claude/skills/shark-dive"
-# The launcher the shipped skill names, which is where a `.dmg` install puts it. Rewritten out of the staged
-# copy by `install_the_skill`, and this is the string that has to match for that to work.
-readonly INSTALLED_LAUNCHER="/Applications/Shark Dive.app/Contents/MacOS/Shark Dive"
 readonly TEMPORARY_DIRECTORY="${TMPDIR:-/tmp}"
 readonly STARTED="$(date +%Y-%m-%d_%H-%M-%S)"
 # A directory per invocation, and the pid because two started in the same second are a real case — a loop
@@ -44,14 +56,13 @@ readonly HARNESS_DIRECTORY="${SHARK_HARNESS_DIR:-${TEMPORARY_DIRECTORY%/}/shark-
 # for the same reason the directory does: two harness runs both tiled `Agent harness` are two windows nobody
 # at the machine can tell apart, which is the thing a directory per run would otherwise only half fix.
 readonly TITLE="${SHARK_HARNESS_TITLE:-Agent harness $STARTED}"
-# Where the client keeps its own configuration, which is what keeps this machine's memories and skills out of
-# the run — see `run_the_agent`.
+# Where the client keeps its own configuration, which is the whole of what keeps this machine out of the run —
+# see `run_the_agent`.
 readonly CLIENT_CONFIG_DIRECTORY="$HARNESS_DIRECTORY/claude"
 readonly LOGS_DIRECTORY="${SHARK_DIVE_DIR:-$HOME/.shark-dive}/logs"
-readonly MODEL="${SHARK_HARNESS_MODEL:-opus}"
 
 main() {
-  local heap_dump="" model="$MODEL" start_the_agent=true
+  local heap_dump="" model="${SHARK_HARNESS_MODEL:-}" start_the_agent=true
   while (($#)); do
     case "$1" in
       --print-command) start_the_agent=false; shift ;;
@@ -82,10 +93,9 @@ main() {
   app="$(bundle_named_after_the_title)"
   local launcher="$app/Contents/MacOS/Shark Dive"
 
-  install_the_skill "$launcher"
-  write_prompt "$heap_dump" >"$HARNESS_DIRECTORY/prompt.txt"
+  write_prompt "$heap_dump" "$launcher" >"$HARNESS_DIRECTORY/prompt.txt"
 
-  echo "Staged in $HARNESS_DIRECTORY: the app, the skill pointed at it, and the prompt."
+  echo "Staged in $HARNESS_DIRECTORY: the app, and the prompt naming it."
   if [[ "$start_the_agent" == true ]]; then
     run_the_agent "$model"
   else
@@ -122,104 +132,55 @@ bundle_named_after_the_title() {
   echo "$copy"
 }
 
-# The skill this repository ships, beside the prompt, **rewritten to name this harness's own launcher**.
-#
-# A session started here has to be able to find the launcher: over the command line the surface is not in its
-# context, and the skill is the whole of how it gets there. But the shipped skill names the installed app and
-# tells the agent to go looking in `/Applications` — and this app is in neither place, it is a copy of a build
-# in a temporary directory. Left alone, the two outcomes are both wrong: an agent that finds nothing measures
-# an `ls` this harness's own shape broke, and an agent that finds a real install investigates through a
-# *different build* of the surface than the one that was just compiled, which is the whole point of the
-# exercise gone silently. So the path is substituted and the bullet that sends it hunting is replaced.
-#
-# **The check afterwards is the part that matters.** A substitution against prose is a substitution that goes
-# stale the next time somebody edits the skill, and a stale one here fails by handing the agent the installed
-# app rather than by saying anything. So the staged copy is grepped for what should no longer be in it, and a
-# hit is this script stopping with the lines in it rather than a run that measured the wrong binary.
-#
-# Copied rather than symlinked because a symlink out of a temporary directory into the checkout is a skill the
-# client may decline to load, and because a rewritten copy is the point.
-install_the_skill() {
-  local launcher="$1"
-  local skill="$REPO_ROOT/$SKILL_PATH"
-  if [[ ! -d "$skill" ]]; then
-    echo "No shark-dive skill at $skill" >&2
-    exit 1
-  fi
-  local staged="$HARNESS_DIRECTORY/.claude/skills/shark-dive"
-  mkdir -p "$HARNESS_DIRECTORY/.claude/skills"
-  rm -rf "$staged"
-  cp -R "$skill" "$staged"
-
-  local file
-  for file in "$staged"/*.md; do
-    [[ -e "$file" ]] || continue
-    # `|` as the delimiter because both paths are full of `/`, and neither can contain a `|`.
-    LC_ALL=C sed -i '' "s|$INSTALLED_LAUNCHER|$launcher|g" "$file"
-    # The "find the launcher" bullet and the `ls` under it, as one block: `-0777` so the fenced code block is
-    # matched across lines, non-greedy so it stops at the *closing* fence, which is the first `\n  ```\n`
-    # after it — the opening one is `  ```bash` and so cannot match.
-    perl -0777 -i -pe 's/- \*\*Find the launcher first\*\*.*?\n  ```\n/- **The launcher is the copy this harness built**, named in the command above, and the space in it has to stay quoted. There is nothing to go looking for.\n/s' "$file"
-  done
-
-  local left
-  left="$(grep -rn 'Applications' "$staged" || true)"
-  if [[ -n "$left" ]]; then
-    cat >&2 <<END
-The staged skill still points at an installed app, so this run would measure a different build:
-
-$left
-
-\`install_the_skill\` rewrites $SKILL_PATH to name this harness's launcher, and the substitution it does no
-longer matches what the skill says. Fix the substitution rather than this check — the check is what stopped a
-run that would have looked like it worked.
-END
-    exit 1
-  fi
-}
-
-# What the agent is asked, and it says one thing: which file to look at.
+# What the agent is asked: which file, and where the launcher is. Which is also the whole of what the shipped
+# skill says, deliberately — that page exists so a client reaches for Shark Dive unprompted, and once something
+# has been prompted there is nothing left in it to carry.
 #
 # **Not how to investigate, and not which tool to call.** What the agent follows has to come from the surface —
-# the method arrives with whichever call opens the dump, and `--leak-investigation-help` is a call it can make —
-# or what this measures is this function. Opening the dump is itself a step of the investigation and the one
-# the skill is most of.
+# `--help` is the command list and `--investigation-help` is the method, both text this build prints — or what
+# this measures is this function. Opening the dump is itself a step of the investigation.
 #
-# **And not where the launcher is either**, which is what the rewriting in `install_the_skill` buys: the prompt
-# naming it would be a prompt that works whether or not the skill was ever loaded, and whether the skill loads
-# at all — from its description, against a sentence this short — is a thing worth finding out. A run that never
-# invokes it is a finding about that description. The eval names the launcher in its prompt instead, and pays
-# for it by not measuring that.
+# **The launcher is named rather than left to be found.** The alternative was measuring an `ls` that this
+# harness's own shape breaks: the app is a copy of a build in a temporary directory, in neither of the two
+# places anything would look.
 write_prompt() {
-  local heap_dump="$1"
-  echo "Investigate the heap dump at $heap_dump."
+  local heap_dump="$1" launcher="$2"
+  cat <<END
+Investigate the heap dump at $heap_dump.
+
+Shark Dive is installed on this machine, and investigating a heap dump is what it is for. Its launcher is
+"$launcher".
+END
 }
 
-# The client, with nothing of this machine to work with but the heap dump.
+# The client, with this machine's memories kept out of it and everything else left alone.
 #
-# **Two tools, and they are the whole surface.** `Bash`, to run the launcher, and `Skill`, to load the one
-# staged beside the prompt. Both are pre-approved, because a harness that stops on a permission prompt for
-# every `--cli` call is a harness nobody watches to the end — which does mean this runs a model's shell
-# commands on your machine unattended, deliberately, and is why it is a script you invoke rather than
-# something that runs itself.
+# **`CLAUDE_CONFIG_DIR` is the whole of the isolation, and it is doing more than it looks like.** It keys
+# auto-memory, so a scratch one has no memories — which is the half that matters, since what is being watched
+# is whether the surface carries an investigation and a remembered conclusion about a heap dump in this
+# repository would skip it. It also keeps the person's own skills out, and their MCP servers: measured on
+# 2026-10-02, a session on the default config directory has 17 `mcp__shark-dive__*` tools, a complete rival
+# investigation surface including `open_heap_dump` and `conclude`, and one on a scratch directory has none.
+# **Which is why there is no `--strict-mcp-config` here any more** — it was doing a job already done, and a
+# second lock whose comment claims to be load-bearing is the kind of thing somebody later reasons from.
 #
-# **`CLAUDE_CONFIG_DIR` is what keeps this machine out**, and it is the half that was missing: it keys
-# auto-memory, so a scratch one has no memories, and the person's own skills are not in it either — 71 are
-# installed here, one of them about investigating memory leaks, and every one of them would otherwise be in
-# the system prompt of a run whose whole subject is whether *this* skill carries an investigation.
+# **The tools are not restricted, deliberately.** An investigation does not end at the faulty reference: it
+# ends at the code, so pulling the sources that heap dump was taken from, decompiling something, reading git
+# history and compiling a check are all part of the job, and `--tools` naming two of them cut all of that off.
+# The eval restricts to `Bash,Skill` because it is scoring one number and a run that reached a second heap dump
+# tool would be scored on something else; a harness is not scoring anything. **So this runs a model's shell
+# commands on your machine with permissions bypassed**, which is the price of it running to the end
+# unattended, and is why it is a script you invoke rather than something that runs itself.
 #
-# **`--strict-mcp-config` with no `--mcp-config` beside it** keeps every MCP server on the machine out, the
-# same job it does in `run-eval.sh`. It is only about MCP, which is worth saying because the comment here used
-# to credit it with the rest.
+# **No model is pinned.** Passing none leaves the client on whatever its own default is, which is the right
+# answer for a harness that is about the surface rather than about a model — a name written down here is a name
+# that goes stale the next time the default moves. `--model` is there for pinning one deliberately, which is
+# what the eval does and says why.
 #
-# **What survives all of that is `~/.claude/CLAUDE.md`**, which is loaded whatever `CLAUDE_CONFIG_DIR` says —
-# measured by probe. `--bare` is the one switch that suppresses it, **and it cannot be used here**: it turns
-# off skill auto-discovery along with everything else, so the skill is reachable only by typing
-# `/shark-dive`. Measured both ways on 2026-10-02 with a throwaway skill whose description matched the
-# prompt: without `--bare` it was discovered and followed, with `--bare` it was never loaded and the model
-# improvised an answer. Since whether the description triggers is a thing this harness is for, `--bare` would
-# buy isolation by deleting the measurement. So the one file stays, and a run whose answer looks like it came
-# from somewhere other than the surface is worth reading that file before trusting.
+# What does not change with any of this is `~/.claude/CLAUDE.md`, which loads whatever `CLAUDE_CONFIG_DIR`
+# says — measured by probe. `--bare` is the only switch that suppresses it, at the price of skill
+# auto-discovery and the `Skill`, `Grep` and `Glob` tools, which is too much to pay here. So a run whose answer
+# looks like it came from somewhere other than the surface is worth reading that file before trusting.
 run_the_agent() {
   local model="$1"
   cat <<END
@@ -235,6 +196,8 @@ gave for each and the reads each cost, is the newest file in $LOGS_DIRECTORY onc
 That log is the point of the exercise as much as the answer is.
 
 END
+  local -a model_option=()
+  [[ -n "$model" ]] && model_option=(--model "$model")
   # Not `set -e`'s business: a client that exits non-zero — a refusal it gave up on, a crash, a model that ran
   # out of turns — is a run to read rather than a script to abandon, and everything it did is already in the
   # Shark Dive log and in its own output.
@@ -243,10 +206,8 @@ END
     export CLAUDE_CONFIG_DIR="$CLIENT_CONFIG_DIRECTORY"
     claude \
       --print "$(cat "$HARNESS_DIRECTORY/prompt.txt")" \
-      --model "$model" \
-      --strict-mcp-config \
-      --tools "Bash,Skill" \
-      --allowedTools "Bash Skill" \
+      "${model_option[@]+"${model_option[@]}"}" \
+      --permission-mode bypassPermissions \
       </dev/null
   ) | tee "$HARNESS_DIRECTORY/agent-output.txt"; then
     echo
@@ -254,11 +215,14 @@ END
   fi
 }
 
-# For driving the client yourself — a different model, an interactive session, or a second run over the staged
-# directory. The isolation is in these arguments rather than in the script, so a command that drops one of them
-# is a run with this machine's memories and skills in it; see `run_the_agent` for what each is for.
+# For driving the client yourself — a particular model, an interactive session, or a second run over the staged
+# directory. The isolation is in these arguments rather than in the script, so a command that drops
+# `CLAUDE_CONFIG_DIR` is a run with this machine's memories in it; see `run_the_agent` for what each is for.
 print_the_command() {
   local model="$1"
+  local model_line=""
+  [[ -n "$model" ]] && model_line="    --model $model \\
+"
   cat <<END
 
 Throw an agent at it:
@@ -266,14 +230,11 @@ Throw an agent at it:
   cd $HARNESS_DIRECTORY
   CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY claude \\
     --print "\$(cat prompt.txt)" \\
-    --model $model \\
-    --strict-mcp-config \\
-    --tools "Bash,Skill" \\
-    --allowedTools "Bash Skill"
+$model_line    --permission-mode bypassPermissions
 
-Started from that directory, so the skill beside the prompt is the one the session loads and the one it names
-the launcher from. Nothing opens the heap dump for it: the window is the agent's to open, which is the first
-thing the skill is for.
+Started from that directory, so nothing of this repository is in what the session is told, and the prompt
+beside you is the whole of it. Nothing opens the heap dump: the window is the agent's to open, which is the
+first thing an investigation can get wrong.
 
 Watch what it does, in the window and in the log:
 
@@ -288,7 +249,7 @@ require_client() {
 There is no \`claude\` on the PATH, and it is the only client this script knows how to start.
 
 Either put one there, or run with --print-command and drive your own: everything is staged either way, and
-the arguments that keep this machine out of the run are printed with it.
+the argument that keeps this machine's memories out of the run is printed with it.
 END
     exit 1
   fi
@@ -302,17 +263,17 @@ usage() {
   cat <<END
 Usage: start-harness.sh [--print-command] [--model <name>] [heap-dump.hprof]
 
-Builds the app, copies it and the skill into a directory of its own, and starts an agent on one heap dump.
-Nothing opens the dump — the agent does that, following the skill.
+Builds the app, copies it into a directory of its own, and starts an agent on one heap dump. Nothing opens the
+dump and nothing stages a skill — the agent is given the launcher and finds out what it takes from --help.
 
   --print-command  Stage everything and print the command instead of running it, for driving a client
                    yourself. Default is to start the investigation.
-  --model          What to pass the client as its model. Default: $MODEL.
+  --model          Pin the client to a model. Default is to pass none and leave it on its own default.
   heap-dump.hprof  Default: $DEFAULT_HEAP_DUMP
 
   SHARK_HARNESS_DIR    Where to stage, instead of a timestamped directory under ${TEMPORARY_DIRECTORY%/}.
   SHARK_HARNESS_TITLE  What to name the bundle, and so the dock tile. Default carries the timestamp.
-  SHARK_HARNESS_MODEL  The default model.
+  SHARK_HARNESS_MODEL  A model to pin, as --model does.
 END
 }
 

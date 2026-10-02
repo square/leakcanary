@@ -48,7 +48,7 @@ being talked to by a program that is not this app.
 | `AgentSessionFile.kt` | One session on disk, both ways: what a call is written as, and what it reads back as. |
 | `AgentServer.kt` | The loopback socket a run publishes, and the file that says where. |
 | `AgentCommandLine.kt` | `--cli <command> name=value …`: one call typed at a window, over that socket. Which run to talk to, and the help, generated from the registry. |
-| `harness/start-harness.sh` | Stages the app and the skill in a directory of their own and starts an agent on one heap dump, which opens the window itself. |
+| `harness/start-harness.sh` | Copies the app into a directory of its own and starts an agent on one heap dump, which opens the window itself. |
 | `harness/eval/run-eval.sh` | Throws an agent at a heap dump whose answer is known, and scores what it did. The dumps and the scoring are `shark-dive-eval`. |
 
 Nothing here is public API — the module is in `modulesWithoutPublicApi`, like the rest of Shark Dive — with
@@ -448,21 +448,22 @@ once a connection is up, driven as lines of text rather than through the socket 
 is the answer rather than the plumbing.
 
 **The harness is how the thing this module is for actually gets tested.** It builds the packaged app, copies it
-and the skill into a directory of its own, rewrites the staged skill to name that copy, and starts an agent on
-one heap dump with a prompt that says no more than which file to look at — so what the agent follows is the
-skill, and then the method the surface handed it. **It opens nothing**: the window is the agent's to open,
-which is the first thing the skill is for and the first thing an investigation can get wrong. Then read
-`~/.shark-dive/logs`: a run that went well and a run that guessed look completely different there, and
-neither of them looks like anything in a unit test.
+into a directory of its own, and starts an agent on one heap dump with two sentences: which file, and where the
+launcher is. **It opens nothing and it stages no skill** — the window is the agent's to open, and what it needs
+to know is `--help`, so finding that out is its own first move and the first thing an investigation can get
+wrong. Then read `~/.shark-dive/logs`: a run that went well and a run that guessed look completely different
+there, and neither of them looks like anything in a unit test.
 
 **And `harness/eval` is the measured half of the same idea.** The harness shows how one investigation goes;
 the eval runs an agent against a dump whose faulty reference is already known and scores whether it found it,
 by string comparison and counting, with no model marking anything. So it is what says whether a change to a
 description or a refusal made things better rather than only different. **Neither opens anything for the
-agent**, and where they differ is how the launcher gets found: the eval names it in the prompt, which costs it
-any measurement of whether the skill loads at all, while the harness rewrites the staged skill to name it and
-then asks for nothing but the file. **Both scripts reach the surface over `--cli`**, the way somebody who
-installed the app would, and
+agent**, and both name the launcher in the prompt rather than leaving it to be found, since the app they run is
+a copy of a build in a temporary directory and an agent sent looking would be measuring an `ls` the scripts'
+own shape breaks. Where they differ is that the eval still stages the skill and restricts the run to
+`Bash,Skill`, because it is scoring one number; the harness stages nothing and restricts nothing, because
+reaching the code the dump came from is part of the job it is showing. **Both scripts reach the surface over
+`--cli`**, the way somebody who installed the app would, and
 that is now the only way there is: the eval used to have a second arm over MCP, and
 `shark/shark-dive/notes/agent-eval.md` has why a run that changed the transport and the method together was
 measuring three things at once.
