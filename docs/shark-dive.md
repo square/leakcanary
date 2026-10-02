@@ -361,9 +361,11 @@ be told any of this exists, which is the skill below.
 ### The skill
 
 An agent still has to be told that any of this exists. This repository carries a
-[skill](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) that does it — where the
-launcher is, how to start from a dump, a device or nothing at all, and what to do with an answer — and every
-client that reads the standard (Claude Code, Codex, Cursor, Gemini CLI) picks it up from the same directory:
+[skill](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) that does it, and it is one
+short page on purpose: where the launcher is, and that `--help` is the rest. Everything a command takes, how to
+work here and how to find a faulty reference are text the build prints, so a copy of them in a skill is a copy
+that describes the commands that existed when it was written. Every client that reads the standard (Claude
+Code, Codex, Cursor, Gemini CLI) picks it up from the same directory:
 
 ```bash
 git clone git@github.com:square/leakcanary.git

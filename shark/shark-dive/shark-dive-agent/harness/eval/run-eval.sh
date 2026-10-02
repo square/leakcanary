@@ -272,11 +272,22 @@ END
 # *faster* at guessing, and cannot make a run that skipped the method look like one that followed it. The
 # client transcript beside each run is where a run that reached for `strings` shows up.
 #
-# `--strict-mcp-config` with no `--mcp-config` beside it is **not** left over from the arm that is gone: it is
-# what keeps every MCP server on the machine out of a run, which is the same job it does in
-# `start-harness.sh`. Together with [CLIENT_CONFIG_DIRECTORY] that is the whole of this machine kept out,
-# ~/.claude/CLAUDE.md included, which the harness cannot do because a person's own skills are what it is
-# there to let them use.
+# **[CLIENT_CONFIG_DIRECTORY] is what keeps this machine out**, and it does more than the memories: it keys
+# auto-memory, so a scratch one has none, and the person's own skills and **their MCP servers** are not in it
+# either. Measured on 2026-10-02: a session on the default config directory here has 17
+# `mcp__shark-dive__*` tools, a whole rival investigation surface including `open_heap_dump` and `conclude`,
+# and one on a scratch directory has none. Which makes `--strict-mcp-config` below redundant rather than
+# load-bearing — it is kept as a second lock on the one contamination that would be scored as a pass, and
+# `start-harness.sh` dropped it, having nothing to score. This comment claimed it was doing that job alone
+# until 2026-10-02.
+#
+# **`~/.claude/CLAUDE.md` is loaded anyway**, whatever `CLAUDE_CONFIG_DIR` says, and this comment claimed
+# otherwise until the same day — measured by probe, which answered with that file's contents from a run whose
+# config directory was empty. For this eval that file is not a detail: it tells a reader where leak data and
+# heap dumps live, which is a route to something other than the dump a run is scored on. `--bare` is the only
+# switch that suppresses it and **it cannot be used here**, because it turns off skill auto-discovery along
+# with the `Skill` tool itself, and this eval hands a run a skill. So a scenario whose runs all answer
+# suspiciously well is worth reading that file before believing the table.
 #
 # `client.json` is the one object `--output-format json` prints — cost, turn count, token usage, stop reason
 # and the final answer — and it is **not** a transcript: the model's own turns, and the thinking between two
