@@ -944,6 +944,35 @@ question nobody had.
   logs* row about another heap dump has a link to copy, where before there was nothing to send — including a
   row recorded against a dump this window hasn't got, since a link that names the file can be looked up.
 
+## A double clicked heap dump goes to the window already reading it
+
+Opening a heap dump from the bar opens a second window on it on purpose — the same dump twice is two readings
+to compare, per *One heap dump per window* above. A double click in the file manager is the other thing, and
+takes the rule `goToHeapDump` and `WindowAgentHeapDumps.open` already follow: the window reading that file if
+there is one, raised, and a new one otherwise. What separates them is what the person can see. Someone pressing
+the button is holding the window they pressed it in and asked for another; someone in Finder cannot see what
+this app has open at all, so a double click names a heap dump rather than asking for a window, and answering it
+with a second index of the same gigabyte is answering a question nobody asked. `windowShowing` is now the one
+declaration of "which window has this file" that all three ask, over `normalizedPath` — it was three
+comparisons, one of them `absoluteFile` and one of them not, which is three answers to a question that has to
+have one.
+
+Only an existing window is raised, never a window just opened for the file: the OS activates the app it hands a
+file to, so a new window is in front already.
+
+- **No peer protocol, because there is nothing to pass on.** Measured with three runs of the installed bundle
+  up: every file went to the first-launched one and the other two were handed nothing, so a run holding a file
+  is never a run that can't use it. The per-platform delivery facts behind that, and the rest of what was
+  measured, are in the module's AGENTS.md beside the link section.
+- **The MIME type is invented** — `application/x-hprof`. `.hprof` has nothing registered with IANA and no UTI
+  macOS knows, Linux matches a file by MIME type, and the same string in all three declarations keeps the file
+  this app opens one kind of file whichever platform is asking.
+- **No document icon.** The fourth parameter of `fileAssociation` takes one and jpackage falls back to the app
+  icon, so a heap dump wears an app icon rather than a drawing of a heap dump, which nobody has made. The
+  alternative was no association.
+- **Which app a double click goes to is the reader's to set, not ours to win.** Registering is not preferring,
+  and another profiler installed here holds the default; AGENTS.md has how to tell those two apart.
+
 ## A leaking status is the heap dump's answer until a hand overrules it
 
 Every chain already carried a `LeakStatus` per object, worked out by Shark's inspectors and then propagated

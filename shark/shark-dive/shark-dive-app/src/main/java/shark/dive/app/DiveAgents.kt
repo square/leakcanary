@@ -162,7 +162,7 @@ internal class WindowAgentHeapDumps(
     // a window opened for an agent publishes this run before its dump is readable, so the agent's first move
     // is to open the path it was pointed at, and a second window on it would be a second index of the same
     // gigabyte and a window nobody asked for.
-    val already = windows.firstOrNull { it.heapDumpFile?.absoluteFile == file.absoluteFile }
+    val already = windows.windowShowing(file)
     // Edited from whichever thread the agent's connection is on, exactly as a link arriving from another run
     // of this app edits it: a window is snapshot state, and the composition takes the change on the next
     // frame. See [DiveWindow.linkedPlaces].

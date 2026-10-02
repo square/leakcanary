@@ -97,10 +97,14 @@ fun main(args: Array<String>) {
     // One per run rather than one per window, because an agent has no window: opening a heap dump and taking
     // one off a device are what make a window, so whatever does them has to outlive every window there is.
     val deviceHeapDumps = commandLineDeviceHeapDumps()
-    // Both before the first window, so that a link arriving while the heap dumps are still opening is one
-    // the window queues rather than one that lands on an app not listening yet.
+    // All of them before the first window, so that a link or a heap dump arriving while the dumps on the
+    // command line are still opening is one the window queues rather than one that lands on an app not
+    // listening yet.
     DeepLinkScheme.takeUrisFromTheOs(windows)
     DeepLinkScheme.registerWithTheOs()
+    // The other thing the OS hands a running app: a heap dump double clicked in the file manager. Told to the
+    // OS by the build script rather than from here, on all three platforms. See [HeapDumpAssociation].
+    HeapDumpAssociation.takeFilesFromTheOs(windows)
     DeepLinkPeers.listen(windows).use {
       // Published before the first window too, so that an agent whose client started it while the heap
       // dumps were still opening finds this run and waits for a dump rather than finding nothing.
@@ -631,7 +635,9 @@ internal fun commandLineDeviceHeapDumps(): DeviceHeapDumps {
  */
 private fun showHeapDumpFileDialog(): File? {
   val dialog = FileDialog(null as Frame?, "Open heap dump", FileDialog.LOAD)
-  dialog.setFilenameFilter { _, name -> name.endsWith(".hprof") }
+  // The same extension the OS was told this app opens, so that the picker offers the files a double click in
+  // the file manager would reach. See [HEAP_DUMP_EXTENSION].
+  dialog.setFilenameFilter { _, name -> name.endsWith(HEAP_DUMP_EXTENSION) }
   dialog.isVisible = true
   val directory = dialog.directory
   val fileName = dialog.file

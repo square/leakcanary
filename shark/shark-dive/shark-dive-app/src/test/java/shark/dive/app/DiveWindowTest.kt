@@ -416,6 +416,57 @@ class DiveWindowTest {
   }
 
   /**
+   * A heap dump double clicked in the file manager while this run was started with none, which is the cold
+   * start on macOS: the OS launches the app with no path and then sends the file. See [HeapDumpAssociation].
+   */
+  @Test fun `a heap dump the OS hands over opens in the window that has none`() {
+    val windows = diveWindows(noHeapDumps())
+
+    windows.openHeapDumpFromTheOs(FIRST_DUMP)
+
+    assertThat(windows).hasSize(1)
+    assertThat(windows.single().heapDumpFile).isEqualTo(FIRST_DUMP)
+    // The OS half of this can only be measured, so the log is where a run says the file reached it at all.
+    assertThat(logged).anyMatch { FIRST_DUMP.name in it && "The OS asked this run" in it }
+  }
+
+  @Test fun `a second heap dump the OS hands over opens in a window of its own`() {
+    val windows = diveWindows(opening(FIRST_DUMP))
+
+    windows.openHeapDumpFromTheOs(SECOND_DUMP)
+
+    // Two heap dumps are two windows, the same as two paths on the command line: the windows on screen are
+    // the heap dumps open.
+    assertThat(windows.map { it.heapDumpFile }).containsExactly(FIRST_DUMP, SECOND_DUMP)
+  }
+
+  /**
+   * The rule an agent naming a path already follows, and the one the button above the map deliberately does
+   * not: a reader in Finder cannot see what this app has open, so a double click is naming the heap dump
+   * rather than asking for a second reading of it. See [WindowAgentHeapDumps.open].
+   */
+  @Test fun `a heap dump the OS hands over goes to the window already reading it`() {
+    // The absolute path, which is what the OS delivers, against a window holding the relative one it was
+    // given on the command line: the same heap dump, and one window of it.
+    val windows = diveWindows(opening(FIRST_DUMP, SECOND_DUMP))
+
+    windows.openHeapDumpFromTheOs(FIRST_DUMP.absoluteFile)
+
+    assertThat(windows.map { it.heapDumpFile }).containsExactly(FIRST_DUMP, SECOND_DUMP)
+    assertThat(logged).anyMatch { FIRST_DUMP.name in it && "window ${windows.first().windowId}" in it }
+  }
+
+  /** Selecting two heap dumps and opening both, which arrives as one event. */
+  @Test fun `two heap dumps the OS hands over are two windows`() {
+    val windows = diveWindows(noHeapDumps())
+
+    listOf(FIRST_DUMP, SECOND_DUMP).forEach { windows.openHeapDumpFromTheOs(it) }
+
+    assertThat(windows.map { it.heapDumpFile }).containsExactly(FIRST_DUMP, SECOND_DUMP)
+    assertThat(windows.map { it.cascade }).doesNotHaveDuplicates()
+  }
+
+  /**
    * What another run of this app asks before handing a link over — and it is about windows that exist and
    * never about a file this run could open, or every run on the machine would claim every link. See
    * [DeepLinkPeers].
