@@ -274,9 +274,16 @@ END
 #
 # `--strict-mcp-config` with no `--mcp-config` beside it is **not** left over from the arm that is gone: it is
 # what keeps every MCP server on the machine out of a run, which is the same job it does in
-# `start-harness.sh`. Together with [CLIENT_CONFIG_DIRECTORY] that is the whole of this machine kept out,
-# ~/.claude/CLAUDE.md included, which the harness cannot do because a person's own skills are what it is
-# there to let them use.
+# `start-harness.sh`. It is only about MCP. [CLIENT_CONFIG_DIRECTORY] is what keeps the rest out — it keys
+# auto-memory, so a scratch one has no memories, and the person's own skills are not in it either.
+#
+# **`~/.claude/CLAUDE.md` is loaded anyway**, whatever `CLAUDE_CONFIG_DIR` says, and this comment claimed
+# otherwise until 2026-10-02 — measured by probe, which answered with that file's contents from a run whose
+# config directory was empty. For this eval that file is not a detail: it tells a reader where leak data and
+# heap dumps live, which is a route to something other than the dump a run is scored on. `--bare` is the only
+# switch that suppresses it and **it cannot be used here either**, because it turns off skill auto-discovery
+# and the skill is what both scripts measure. So a scenario whose runs all answer suspiciously well is worth
+# reading that file before believing the table.
 #
 # `client.json` is the one object `--output-format json` prints — cost, turn count, token usage, stop reason
 # and the final answer — and it is **not** a transcript: the model's own turns, and the thinking between two

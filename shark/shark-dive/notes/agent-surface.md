@@ -162,9 +162,9 @@ of a two minute `dump_heap` answers a connect in milliseconds — it is `AgentTo
 dump's thread, after the connection is up and the call is read.
 
 Nothing waits on the blind wait being there, which is worth saying because the case it looked like it covered —
-a window somebody launched by hand a moment ago — is the harness's, and `wait_for_new_run` in
-`shark/shark-dive/shark-dive-agent/harness/start-harness.sh:151` watches the runs directory itself rather than
-typing a command into the gap.
+a window somebody launched by hand a moment ago — has nothing left that does it. `start-harness.sh` launched one
+and watched the runs directory for it to publish itself; it now launches nothing at all, and the run an
+investigation reads is one the agent's own `open_heap_dump` started, which is the wait that is still here.
 
 ### Starting one has to survive the command that started it
 
