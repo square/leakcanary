@@ -21,12 +21,38 @@ class OpenJdkInstanceRefReadersTest {
 
   class Retained
   class SomeKey
+  class Holder(val retained: Retained)
+  class Owner(val holder: Holder)
 
   companion object {
     @JvmStatic
     var leakRoot: Any? = null
 
+    @JvmStatic
+    var strongOwner: Owner? = null
+
     val NO_EXPANDER = OptionalFactory { null }
+
+    /**
+     * Maps [value] to a key that no longer has a holder once this returns, so that the next GC
+     * clears it. In the calling method the key would stay in a local slot of a frame that's still
+     * on the stack.
+     */
+    private fun putWithKeyGoingOutOfScope(
+      map: WeakHashMap<Any, Any>,
+      value: Any
+    ) {
+      map[SomeKey()] = value
+    }
+
+    /**
+     * Clears every weakly reachable referent, which for a [WeakHashMap] means its stale keys. The
+     * entries that held them stay in the table: only an operation on the map expunges those, and
+     * not calling one is the point of the tests that call this.
+     */
+    private fun clearWeakKeys() {
+      System.gc()
+    }
   }
 
   @get:Rule
@@ -34,6 +60,7 @@ class OpenJdkInstanceRefReadersTest {
 
   @After fun tearDown() {
     leakRoot = null
+    strongOwner = null
   }
 
   @Test fun `LinkedList expanded`() {
@@ -451,6 +478,49 @@ class OpenJdkInstanceRefReadersTest {
     }
   }
 
+  @Test fun `WeakHashMap with cleared key expanded`() {
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    putWithKeyGoingOutOfScope(map, Retained())
+
+    clearWeakKeys()
+
+    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP, flattening = true)
+
+    // A single reference: the entry is still internals, so the path doesn't go through the table
+    // and the entry, and nothing below the value is surfaced as if the map held it directly.
+    assertThat(refPath).hasSize(1)
+
+    with(refPath.single()) {
+      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
+      assertThat(referenceDisplayName)
+        .isEqualTo("[cleared key, removed on next map access]")
+    }
+  }
+
+  @Test fun `WeakHashMap with cleared key doesn't take over the path to its value`() {
+    val retained = Retained()
+    // Two references deep, so that the path through the map is the shorter of the two and only
+    // the entry being low priority can keep it from being the one reported.
+    strongOwner = Owner(Holder(retained))
+    val map = WeakHashMap<Any, Any>()
+    leakRoot = map
+    putWithKeyGoingOutOfScope(map, retained)
+
+    clearWeakKeys()
+
+    val leakTrace = dumpHeap().traceLeak(
+      computeRetainedHeapSize = false,
+      virtualRefReaderFactory = OpenJdkInstanceRefReaders.WEAK_HASH_MAP,
+      flattening = true
+    )!!
+
+    // The value is held by the map and by Owner. An entry waiting to be expunged is the less
+    // interesting of the two, so the trace goes through the holder an application can fix.
+    assertThat(leakTrace.referencePath.map { it.referenceDisplayName })
+      .containsSequence(::strongOwner.name, Owner::holder.name, Holder::retained.name)
+  }
+
   @Test fun `HashSet expanded`() {
     val set = HashSet<Any>()
     set += Retained()
@@ -538,15 +608,38 @@ class OpenJdkInstanceRefReadersTest {
     return "[$entryIndex]"
   }
 
-  private fun findLeak(expanderFactory: OptionalFactory): List<LeakTraceReference> {
+  private fun findLeak(
+    expanderFactory: OptionalFactory,
+    flattening: Boolean = false
+  ): List<LeakTraceReference> {
     val hprofFile = dumpHeap()
-    return hprofFile.findPathFromLeak(computeRetainedHeapSize = false, expanderFactory)
+    return hprofFile.findPathFromLeak(
+      computeRetainedHeapSize = false,
+      virtualRefReaderFactory = expanderFactory,
+      flattening = flattening
+    )
   }
 
   private fun File.findPathFromLeak(
     computeRetainedHeapSize: Boolean,
     virtualRefReaderFactory: OptionalFactory,
+    flattening: Boolean = false,
   ): List<LeakTraceReference> {
+    val leakTrace = traceLeak(
+      computeRetainedHeapSize = computeRetainedHeapSize,
+      virtualRefReaderFactory = virtualRefReaderFactory,
+      flattening = flattening
+    ) ?: return emptyList()
+    val index = leakTrace.referencePath.indexOfFirst { it.referenceName == ::leakRoot.name }
+    val refFromExpandedTypeIndex = index + 1
+    return leakTrace.referencePath.subList(refFromExpandedTypeIndex, leakTrace.referencePath.size)
+  }
+
+  private fun File.traceLeak(
+    computeRetainedHeapSize: Boolean,
+    virtualRefReaderFactory: OptionalFactory,
+    flattening: Boolean,
+  ): LeakTrace? {
     val leaks = openHeapGraph().use { graph ->
       val referenceMatchers = JdkReferenceMatchers.defaults
 
@@ -554,10 +647,15 @@ class OpenJdkInstanceRefReadersTest {
         listOf(it)
       } ?: emptyList()
 
+      val fieldRefReader = FieldInstanceReferenceReader(graph, referenceMatchers)
       val instanceExpander = ChainingInstanceReferenceReader(
         virtualRefReaders = virtualRefReaders + JavaLocalReferenceReader(graph, referenceMatchers),
-        flatteningInstanceReader = null,
-        fieldRefReader = FieldInstanceReferenceReader(graph, referenceMatchers)
+        flatteningInstanceReader = if (flattening) {
+          FlatteningPartitionedInstanceReferenceReader(graph, fieldRefReader)
+        } else {
+          null
+        },
+        fieldRefReader = fieldRefReader
       )
 
       val referenceReader = DelegatingObjectReferenceReader(
@@ -595,12 +693,10 @@ class OpenJdkInstanceRefReadersTest {
         println(this)
       }
     }
-    val firstApplicationLeak = leaks.applicationLeaks.firstOrNull() ?: return emptyList()
-    val leakTrace = firstApplicationLeak.leakTraces.first()
-    println(leakTrace.toSimplePathString())
-    val index = leakTrace.referencePath.indexOfFirst { it.referenceName == ::leakRoot.name }
-    val refFromExpandedTypeIndex = index + 1
-    return leakTrace.referencePath.subList(refFromExpandedTypeIndex, leakTrace.referencePath.size)
+    val firstApplicationLeak = leaks.applicationLeaks.firstOrNull() ?: return null
+    return firstApplicationLeak.leakTraces.first().apply {
+      println(toSimplePathString())
+    }
   }
 
   private fun dumpHeap(): File {
