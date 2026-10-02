@@ -117,6 +117,12 @@ crashed. Breaking changes are ⚠️; when one needs more than a bullet, write i
 **The changelog is for changes that matter to the people consuming LeakCanary**, not a record of
 every diff. Refactors, internal cleanups and test-only changes usually don't need an entry.
 
+**`docs/changelog.md` is the only changelog in this repo, and it covers the libraries.** Shark Dive is
+released separately and has **no changelog**, because it has had no release — so a change to
+`shark/shark-dive/` gets no entry anywhere, and **don't create a file for one**. There was one, and it
+was a hundred unreleased bullets describing the app to nobody; `docs/releasing-shark-dive.md` has why it
+went and when starting one would be right.
+
 ## Conventions
 
 - When a function's parameters don't fit on one line, put **each on its own line** — the existing

@@ -104,6 +104,5 @@ nav:
   - 'Shark Dive':
     - 'Overview': shark-dive.md
     - 'Reference': shark-dive-reference.md
-    - 'Change Log': shark-dive-changelog.md
   - 'LeakCanary API': api/index.md
   - 'Change Log': changelog.md

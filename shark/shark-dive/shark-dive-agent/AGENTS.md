@@ -21,8 +21,7 @@ answer the thing that says a dump was opened.
 as well, over a stdio pipe an MCP client launched, and the two of them were a protocol to maintain, a
 handshake to answer, a session file field saying which way a line came in, and a client-shaped row on a
 screen meant for an investigation. The command line is what an agent reaches for without being configured at
-all, so that is what is left. See `notes/agent-surface.md` for what each of them cost, and
-`docs/shark-dive-changelog.md` for the release it went in.
+all, so that is what is left. See `notes/agent-surface.md` for what each of them cost.
 
 **A run with no window is not a second way in.** `--no-ui` is a run of the app with nothing drawing it, and
 it publishes the socket below exactly as a window's run does, so the call that reaches it is the same call —

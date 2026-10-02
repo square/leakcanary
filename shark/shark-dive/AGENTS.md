@@ -265,6 +265,12 @@ Which is also the rule for new code here: **anything the UI swallows or falls ba
 `SHARK_DIVE_VERSION` in `gradle.properties`, not the repo wide `VERSION_NAME`, and the two are released
 independently — `shark-dive-*` tags against `v*` tags. See `docs/releasing-shark-dive.md`.
 
+**And no changelog**, for as long as that version has never been released: a change to this app gets no
+changelog entry, not here, not in the LeakCanary one, and not in a file created for it. What a change does
+belong in is the documentation that describes the app as it is — `docs/shark-dive.md`, the reference pages
+under `docs/shark-dive-reference/`, this file, `notes/` — none of which is a list of changes.
+`docs/releasing-shark-dive.md` has why the one that existed was deleted and when starting one is right.
+
 It isn't only a preference. Every installer format validates the version, and what they leave between them,
 each measured by building it, is **`MAJOR.MINOR.PATCH` with MAJOR from 1 to 255**, MINOR up to 255, PATCH up
 to 65535:

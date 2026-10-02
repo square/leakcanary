@@ -10,10 +10,19 @@ the repository.
 | Version in | `VERSION_NAME` | `SHARK_DIVE_VERSION` |
 | Goes to | Maven Central | a GitHub release |
 | Workflow | `publish-release.yml` | `release-shark-dive.yml` |
-| Change log | [changelog.md](changelog.md) | [shark-dive-changelog.md](shark-dive-changelog.md) |
+| Change log | [changelog.md](changelog.md) | none, see below |
 
-Two release schedules means two change logs. **Shark Dive changes never go in the LeakCanary change
-log**, and the reverse: a reader of either one is asking about one release line.
+**Shark Dive has no change log, and nothing should start one before the app has had a first release.**
+There was one, an `## Unreleased` heading that had been accumulating entries since 2026-08-03 and never
+shipped: a hundred bullets describing the whole app as a list of changes, written for a reader comparing two
+versions when no two versions exist. It was deleted. A change log earns its keep the moment someone is asking
+"what changed since the version I have", and not a day earlier — before that it is a second description of the
+app, kept current beside [the overview](shark-dive.md) and the reference pages, which are the ones a reader
+actually has.
+
+So a change to this app gets **no change log entry**, and it does not get one in the
+[LeakCanary change log](changelog.md) either, which covers the libraries. The first release is when to start
+one, with entries for what changed since it — not with a list reconstructed from the history before it.
 
 ## The version can't say "alpha", so the release does
 
@@ -37,16 +46,13 @@ git checkout -b shark_dive_$NEW_VERSION && \
 sed -i '' "s/SHARK_DIVE_VERSION=.*/SHARK_DIVE_VERSION=$NEW_VERSION/" gradle.properties
 ```
 
-Rename the `## Unreleased` heading in
-[`docs/shark-dive-changelog.md`](shark-dive-changelog.md) to `## Version $NEW_VERSION (<date>)`,
-check it lists everything that landed since the last one, and commit:
+Commit that:
 
 ```bash
-"${EDITOR:-vi}" docs/shark-dive-changelog.md && \
 git commit -am "Release Shark Dive $NEW_VERSION"
 ```
 
-Merge that to `main`, then tag it:
+Merge it to `main`, then tag it:
 
 ```bash
 git tag shark-dive-$NEW_VERSION && \
@@ -75,7 +81,7 @@ gh workflow run promote-shark-dive.yml -f version=$NEW_VERSION
 So install the release and open a heap dump with it before running that. A release that turns out to be
 broken is then one nobody was told about, rather than one that has to be withdrawn.
 
-The release notes link to the change log page, which is only live once the site is deployed:
+The release notes link to the documentation site, which is only live once it is deployed:
 
 ```bash
 rm -rf docs/api && ./gradlew siteDokka && mkdocs gh-deploy
