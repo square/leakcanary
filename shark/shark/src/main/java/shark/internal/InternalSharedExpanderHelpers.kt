@@ -122,6 +122,22 @@ internal class InternalSharedHashMapReferenceReader(
   }
 }
 
+/**
+ * The entries a `WeakHashMap` holds, as one reference per entry to the value it maps, named after
+ * the key that maps it.
+ *
+ * A key cleared by the GC is still one of those entries. Clearing a key doesn't clear the value it
+ * mapped: the map only drops the entry once one of its own operations gets around to expunging the
+ * stale ones, so until something touches the map again, its table holds that value as strongly as
+ * any other. The reference is surfaced as [CLEARED_KEY_NAME] and as
+ * [Reference.isLowPriority], so that a leak trace reaches the value through any other holder it
+ * has and only names the map when the map is the only thing left holding it.
+ *
+ * Skipping those entries instead would also break the [readsCutSet] promise this reader makes:
+ * [shark.FlatteningPartitionedInstanceReferenceReader] would reach the value by following the
+ * entry's `value` field itself, and surface everything below it as if it were map internals,
+ * directly referenced by the map.
+ */
 internal class InternalSharedWeakHashMapReferenceReader(
   private val classObjectId: Long,
   private val tableFieldName: String,
@@ -155,17 +171,19 @@ internal class InternalSharedWeakHashMapReferenceReader(
         } else {
           entry["java.lang.ref.Reference", "referent"]!!.value
         }
-        if (key?.isNullReference == true) {
-          return@mapNotNull null // cleared key
-        }
+        val keyCleared = key?.isNullReference == true
         val value = entry["java.util.WeakHashMap\$Entry", "value"]!!.value
         if (value.isNonNullReference) {
           Reference(
             valueObjectId = value.asObjectId!!,
-            isLowPriority = false,
+            isLowPriority = keyCleared,
             lazyDetailsResolver = {
-              val keyAsString = key?.asObject?.asInstance?.readAsJavaString()?.let { "\"$it\"" }
-              val keyAsName = keyAsString ?: key?.asObject?.toString() ?: "null"
+              val keyAsName = if (keyCleared) {
+                CLEARED_KEY_NAME
+              } else {
+                val keyAsString = key?.asObject?.asInstance?.readAsJavaString()?.let { "\"$it\"" }
+                keyAsString ?: key?.asObject?.toString() ?: "null"
+              }
               LazyDetails(
                 name = keyAsName,
                 locationClassObjectId = declaringClassId,
@@ -180,6 +198,16 @@ internal class InternalSharedWeakHashMapReferenceReader(
     } else {
       emptySequence()
     }
+  }
+
+  companion object {
+    /**
+     * Stands in for the key of an entry whose key was cleared by the GC, in place of the key's own
+     * description, which is gone with the key. Says what happened and what ends it, because a
+     * reader of the leak trace it lands in has nothing else to go on: nothing in the application
+     * code holds this entry, and the next operation on the map removes it.
+     */
+    const val CLEARED_KEY_NAME = "cleared key, removed on next map access"
   }
 }
 
