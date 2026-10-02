@@ -281,6 +281,12 @@ END
 # `start-harness.sh` dropped it, having nothing to score. This comment claimed it was doing that job alone
 # until 2026-10-02.
 #
+# **And a scratch config directory is a logged out one, which `CLAUDE_SECURESTORAGE_CONFIG_DIR=` fixes** — the
+# keychain item the client reads is named after the configuration directory, so every run here ends on
+# `Not logged in · Please run /login` without it, and a whole eval scores zero without a line of it being about
+# a heap dump. `start-harness.sh`'s `run_the_agent` has the measurement and why it is invisible from inside an
+# agent session.
+#
 # **`~/.claude/CLAUDE.md` is loaded anyway**, whatever `CLAUDE_CONFIG_DIR` says, and this comment claimed
 # otherwise until the same day — measured by probe, which answered with that file's contents from a run whose
 # config directory was empty. For this eval that file is not a detail: it tells a reader where leak data and
@@ -318,6 +324,7 @@ run_client() {
   (
     cd "$directory/cwd"
     export CLAUDE_CONFIG_DIR="$CLIENT_CONFIG_DIRECTORY"
+    export CLAUDE_SECURESTORAGE_CONFIG_DIR=
     timeout_command "$RUN_TIMEOUT_SECONDS" claude \
       --print "$(cat "$directory/prompt.txt")" \
       --model "$model" \

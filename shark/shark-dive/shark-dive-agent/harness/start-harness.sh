@@ -60,6 +60,12 @@ readonly TITLE="${SHARK_HARNESS_TITLE:-Agent harness $STARTED}"
 # see `run_the_agent`.
 readonly CLIENT_CONFIG_DIRECTORY="$HARNESS_DIRECTORY/claude"
 readonly LOGS_DIRECTORY="${SHARK_DIVE_DIR:-$HOME/.shark-dive}/logs"
+# Said twice, once by the run that starts an agent and once by the command printed for driving one yourself,
+# and it is the same sentence both times on purpose: that log is what this exercise is for as much as the
+# answer is, so neither way of starting a run should be the one that forgets to say where it is.
+readonly WHERE_THE_LOG_IS="Once a heap dump is open, the Shark Dive agent logs (list of commands + reasons) are in the newest file in $LOGS_DIRECTORY:
+
+  tail -f \"\$(ls -t $LOGS_DIRECTORY/*.log | head -1)\""
 
 main() {
   local heap_dump="" model="${SHARK_HARNESS_MODEL:-}" start_the_agent=true
@@ -95,7 +101,7 @@ main() {
 
   write_prompt "$heap_dump" "$launcher" >"$HARNESS_DIRECTORY/prompt.txt"
 
-  echo "Staged in $HARNESS_DIRECTORY: the app, and the prompt naming it."
+  echo "Copied the Shark Dive app prompt.txt to $HARNESS_DIRECTORY."
   if [[ "$start_the_agent" == true ]]; then
     run_the_agent "$model"
   else
@@ -146,10 +152,7 @@ bundle_named_after_the_title() {
 write_prompt() {
   local heap_dump="$1" launcher="$2"
   cat <<END
-Investigate the heap dump at $heap_dump.
-
-Shark Dive is installed on this machine, and investigating a heap dump is what it is for. Its launcher is
-"$launcher".
+Investigate the heap dump at $heap_dump using Shark Dive, which is located at "$launcher".
 END
 }
 
@@ -163,6 +166,20 @@ END
 # investigation surface including `open_heap_dump` and `conclude`, and one on a scratch directory has none.
 # **Which is why there is no `--strict-mcp-config` here any more** — it was doing a job already done, and a
 # second lock whose comment claims to be load-bearing is the kind of thing somebody later reasons from.
+#
+# **And `CLAUDE_SECURESTORAGE_CONFIG_DIR=` is what keeps that scratch directory logged in**, the one thing
+# here that has to cross over. The client's keychain item is named after its configuration directory — read
+# with `security find-generic-password -s "Claude Code-credentials-<first 8 of sha256 of the directory>"`, and
+# the suffix is dropped only when `CLAUDE_CONFIG_DIR` is unset — so a directory nothing has ever logged into
+# has a keychain item nothing has ever written, and the run ends on `Not logged in · Please run /login` having
+# opened nothing. Setting secure storage to the empty string points the lookup back at the default item while
+# the configuration stays scratch. Measured both ways, and the variable is the client's own.
+#
+# **It took somebody at a terminal to find that.** A shell inside an agent session has `ANTHROPIC_API_KEY` and
+# `ANTHROPIC_BASE_URL` in its environment, nothing in a shell profile here sets either, and a client holding an
+# API key never asks the keychain — so this worked every time an agent ran it and failed the first time a person
+# did. Which is the rule for anything else here that reads the environment: try it under
+# `env -u ANTHROPIC_API_KEY -u ANTHROPIC_BASE_URL`, or what you have measured is your own session.
 #
 # **The tools are not restricted, deliberately.** An investigation does not end at the faulty reference: it
 # ends at the code, so pulling the sources that heap dump was taken from, decompiling something, reading git
@@ -188,12 +205,9 @@ run_the_agent() {
 Starting the investigation. The agent opens the window itself, so one appears shortly — tiled "$TITLE",
 after the bundle it is launched from.
 
-Its output is below and in $HARNESS_DIRECTORY/agent-output.txt. What it did call by call, with the reason it
-gave for each and the reads each cost, is the newest file in $LOGS_DIRECTORY once a dump is open:
+Its output is below as well as in $HARNESS_DIRECTORY/agent-output.txt.
 
-  tail -f "\$(ls -t $LOGS_DIRECTORY/*.log | head -1)"
-
-That log is the point of the exercise as much as the answer is.
+$WHERE_THE_LOG_IS
 
 END
   local -a model_option=()
@@ -204,6 +218,7 @@ END
   if ! (
     cd "$HARNESS_DIRECTORY"
     export CLAUDE_CONFIG_DIR="$CLIENT_CONFIG_DIRECTORY"
+    export CLAUDE_SECURESTORAGE_CONFIG_DIR=
     claude \
       --print "$(cat "$HARNESS_DIRECTORY/prompt.txt")" \
       "${model_option[@]+"${model_option[@]}"}" \
@@ -217,7 +232,8 @@ END
 
 # For driving the client yourself — a particular model, an interactive session, or a second run over the staged
 # directory. The isolation is in these arguments rather than in the script, so a command that drops
-# `CLAUDE_CONFIG_DIR` is a run with this machine's memories in it; see `run_the_agent` for what each is for.
+# `CLAUDE_CONFIG_DIR` is a run with this machine's memories in it, and one that drops the secure storage
+# variable beside it is a run that is not logged in; see `run_the_agent` for what each is for.
 print_the_command() {
   local model="$1"
   local model_line=""
@@ -228,7 +244,7 @@ print_the_command() {
 Throw an agent at it:
 
   cd $HARNESS_DIRECTORY
-  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY claude \\
+  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY CLAUDE_SECURESTORAGE_CONFIG_DIR= claude \\
     --print "\$(cat prompt.txt)" \\
 $model_line    --permission-mode bypassPermissions
 
@@ -236,9 +252,7 @@ Started from that directory, so nothing of this repository is in what the sessio
 beside you is the whole of it. Nothing opens the heap dump: the window is the agent's to open, which is the
 first thing an investigation can get wrong.
 
-Watch what it does, in the window and in the log:
-
-  tail -f "\$(ls -t $LOGS_DIRECTORY/*.log | head -1)"
+$WHERE_THE_LOG_IS
 
 END
 }

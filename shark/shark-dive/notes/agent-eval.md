@@ -145,7 +145,9 @@ every agent. They are the part of this worth knowing before changing anything:
 - **The client's own configuration directory.** `CLAUDE_CONFIG_DIR`, for the same reason one step out: what a
   run has to work with is the surface and not this machine. Measured here, 71 installed skills, one of them
   about investigating memory leaks in an iOS app, and every one of them would have been in the system prompt
-  of every run — along with `~/.claude/CLAUDE.md`.
+  of every run — along with `~/.claude/CLAUDE.md`. **It needs `CLAUDE_SECURESTORAGE_CONFIG_DIR=` beside it**,
+  or every run is `Not logged in` rather than isolated; `run_the_agent` in `harness/start-harness.sh` has the
+  keychain naming that makes that so, and why it only shows up for a person at a terminal.
 - **An agent with nothing left to investigate goes and finds something.** Worth reading in full: it is the one
   that would have been written up as a model failing.
 - **The method's own worked example.** The paragraph asking for an answer that links the reference showed what
