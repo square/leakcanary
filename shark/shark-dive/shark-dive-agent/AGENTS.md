@@ -400,17 +400,22 @@ because everything crossing this boundary is either Shark Dive's own model — w
 — or an envelope of two keys, which is all `AgentWire` is. Adding the plugin to get `@Serializable` would be a
 compiler plugin's worth of build for a saving of nothing.
 
-## It is a Java 8 target that cannot run on Java 8
+## It targets Java 17, unlike most of the repo
 
-`AgentServer` uses `ProcessHandle.current().pid()`, which is Java 9. The repo-wide Java 8 target sets
-`targetCompatibility` and no `options.release`, so this compiles: the bytecode is Java 8 and the reference to
-a Java 9 class is only resolved at runtime. Same trick `shark-dive-jdwp` gets away with for `com.sun.jdi`,
-and it is fine for the same reason — this is desktop-only code, loaded by the desktop app and by nothing on
-Android.
+`AgentServer` uses `ProcessHandle.current().pid()`, which is Java 9, so this module is one of the three named
+in `modulesTargetingJava17` in the root `build.gradle.kts` rather than taking the repo wide Java 8 target.
 
-So don't "fix" it by moving the module out of the Java 8 target list. Do remember that anything added here is
-under the same rule as the rest of Shark Dive: **no Compose, and nothing that assumes a display**, since
-the reads happen on the heap dump's thread and the tests run headless.
+It used to take that Java 8 target and get away with it: `targetCompatibility` without `options.release`
+compiles a reference to a Java 9 class into Java 8 bytecode and only resolves it at runtime, which is the
+same trick `shark-dive-jdwp` still relies on for `com.sun.jdi`. Nothing about that was broken — the build
+was green and desktop-only code never meets a Java 8 runtime. What it cost was the editor: IntelliJ checks
+API availability against the module's language level, so every `ProcessHandle` call read as an error, on a
+module whose declared target was a contract with nobody. Declaring 17 is the honest version of a module that
+cannot run on 8, and it keeps that inspection meaningful where the target *is* a contract — a Java 9 call in
+`shark-dive-core`, which has to stay loadable from the Android app, is still flagged.
+
+Anything added here is under the same rule as the rest of Shark Dive: **no Compose, and nothing that assumes
+a display**, since the reads happen on the heap dump's thread and the tests run headless.
 
 ## Build and test
 

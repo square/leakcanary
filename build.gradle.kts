@@ -145,11 +145,22 @@ subprojects {
   }
 }
 
+// The Shark Dive modules that only ever run on a desktop JVM, and so declare one: the app because
+// Compose Multiplatform's artifacts are not built for Java 8, the agent because it calls
+// `ProcessHandle`, which is Java 9, and the eval harness because it depends on the agent. None of the
+// three is published, see `modulesWithoutPublicApi` below, and nothing on Android loads them, so their
+// bytecode level is a contract with nobody.
+//
+// `shark-dive-core` and `shark-dive-jdwp` stay on the repo wide Java 8 target deliberately: core is
+// meant to stay loadable from the Android `leakcanary-app`, and `com.sun.jdi` has been in the JDK
+// since 1.3. Which is the point of naming these three rather than the whole group — a Java 9 API
+// reference in a module that has to run on Java 8 should still be an error in the editor.
+val modulesTargetingJava17 = listOf("shark-dive-agent", "shark-dive-app", "shark-dive-eval")
+
 // Config shared for subprojects except the Gradle plugin, which runs on Gradle's own JVM, and the
-// Shark Dive desktop app, which needs a newer JVM target than the rest of the repo because
-// Compose Multiplatform's artifacts do not support Java 8. Both set their own targets.
+// Shark Dive modules above. Both set their own targets.
 configure(subprojects.filter {
-  it.name !in listOf("leakcanary-deobfuscation-gradle-plugin", "shark-dive-app")
+  it.name != "leakcanary-deobfuscation-gradle-plugin" && it.name !in modulesTargetingJava17
 }) {
   plugins.withId("java") {
     extensions.configure<JavaPluginExtension> {
@@ -179,6 +190,22 @@ configure(subprojects.filter {
       compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+      }
+    }
+  }
+}
+
+configure(subprojects.filter { it.name in modulesTargetingJava17 }) {
+  plugins.withId("java") {
+    extensions.configure<JavaPluginExtension> {
+      sourceCompatibility = JavaVersion.VERSION_17
+      targetCompatibility = JavaVersion.VERSION_17
+    }
+  }
+  plugins.withId("org.jetbrains.kotlin.jvm") {
+    extensions.configure<KotlinJvmProjectExtension> {
+      compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
       }
     }
   }

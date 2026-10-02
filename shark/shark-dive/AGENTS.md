@@ -13,7 +13,7 @@ reading the source alone — everything else is in the code. Keep it that way.
 | --- | --- | --- |
 | `shark-dive-core` | Heap dump → dominator tree → layout model. Layout, hit testing, navigation state. | **No Compose dependency, Java 8 target.** Must stay reusable from the Android `leakcanary-app`. |
 | `shark-dive-jdwp` | Attaches to a live app as a debugger to read the pixels of its bitmaps. | **Imports `com.sun.jdi`, so it needs a JDK and can't be loaded on Android.** That's the whole reason it isn't in `core`. |
-| `shark-dive-agent` | The tools a run answers commands through, and the `--cli <command> name=value` command line that reaches them over the socket every run publishes. | **No Compose, Java 8 target, and desktop only** — it calls `ProcessHandle`. Has its own `AGENTS.md`. |
+| `shark-dive-agent` | The tools a run answers commands through, and the `--cli <command> name=value` command line that reaches them over the socket every run publishes. | **No Compose, Java 17 target, and desktop only** — it calls `ProcessHandle`. Has its own `AGENTS.md`. |
 | `shark-dive-app` | Compose Desktop UI: window, the canvas each shape draws into, details panel. | **Java 17 target** — see below. |
 | `shark-dive-eval` | The heap dumps an agent is measured on, and the scoring of what it did with them. Driven by `shark-dive-agent/harness/eval/run-eval.sh`. | **The only module with `shark-hprof-test` in its main source set**, which is why it is a module: writing the scenarios is what it does, and a dump-building DSL can be no dependency of anything the app ships. Runs no model. |
 
