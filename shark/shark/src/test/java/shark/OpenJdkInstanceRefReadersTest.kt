@@ -478,23 +478,46 @@ class OpenJdkInstanceRefReadersTest {
     }
   }
 
-  @Test fun `WeakHashMap with cleared key expanded`() {
+  @Test fun `WeakHashMap with cleared key surfaces the value and keeps the entry internal`() {
     val map = WeakHashMap<Any, Any>()
     leakRoot = map
     putWithKeyGoingOutOfScope(map, Retained())
 
     clearWeakKeys()
 
-    val refPath = findLeak(OpenJdkInstanceRefReaders.WEAK_HASH_MAP, flattening = true)
+    dumpHeap().openHeapGraph().use { graph ->
+      val mapInstance = graph.findClassByName(OpenJdkInstanceRefReadersTest::class.java.name)!![
+        ::leakRoot.name
+      ]!!.valueAsInstance!!
+      val entry = mapInstance["java.util.WeakHashMap", "table"]!!
+        .valueAsObjectArray!!
+        .readElements()
+        .single { it.isNonNullReference }
+        .asObject!!.asInstance!!
+      // The premise of the test: the key is gone and the value isn't.
+      assertThat(entry["java.lang.ref.Reference", "referent"]!!.value.isNullReference).isTrue()
+      val entryValueObjectId = entry["java.util.WeakHashMap\$Entry", "value"]!!.value.asObjectId!!
 
-    // A single reference: the entry is still internals, so the path doesn't go through the table
-    // and the entry, and nothing below the value is surfaced as if the map held it directly.
-    assertThat(refPath).hasSize(1)
+      val references = FlatteningPartitionedInstanceReferenceReader(
+        graph, FieldInstanceReferenceReader(graph, JdkReferenceMatchers.defaults)
+      ).read(
+        OpenJdkInstanceRefReaders.WEAK_HASH_MAP.create(graph)!!,
+        mapInstance
+      ).toList()
 
-    with(refPath.single()) {
-      assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
-      assertThat(referenceDisplayName)
-        .isEqualTo("[cleared key, removed on next map access]")
+      val details = references.map { it.lazyDetailsResolver.resolve() }
+
+      // The cut set comes first, and the entry is part of it.
+      assertThat(references.first().valueObjectId).isEqualTo(entryValueObjectId)
+      assertThat(references.first().isLowPriority).isTrue()
+      assertThat(details.first().name).isEqualTo("cleared key, removed on next map access")
+
+      // Which is what keeps the traversal of the internals from having to follow the entry's own
+      // value field, and from surfacing everything below it as a direct child of the map.
+      assertThat(
+        details.map { graph.findObjectById(it.locationClassObjectId).asClass!!.name to it.name }
+      ).doesNotContain("java.util.WeakHashMap\$Entry" to "value")
+      assertThat(references.filter { it.valueObjectId == entryValueObjectId }).hasSize(1)
     }
   }
 
@@ -518,6 +541,7 @@ class OpenJdkInstanceRefReadersTest {
     // The value is held by the map and by Owner. An entry waiting to be expunged is the less
     // interesting of the two, so the trace goes through the holder an application can fix.
     assertThat(leakTrace.referencePath.map { it.referenceDisplayName })
+      .describedAs(leakTrace.toSimplePathString())
       .containsSequence(::strongOwner.name, Owner::holder.name, Holder::retained.name)
   }
 
@@ -631,6 +655,12 @@ class OpenJdkInstanceRefReadersTest {
       flattening = flattening
     ) ?: return emptyList()
     val index = leakTrace.referencePath.indexOfFirst { it.referenceName == ::leakRoot.name }
+    // Returning the whole path when leakRoot isn't on it would silently assert about a path
+    // through something else entirely, which is a confusing way to find out the heap held what
+    // the test is about in more than one place.
+    check(index != -1) {
+      "Expected the path to go through ${::leakRoot.name}:\n${leakTrace.toSimplePathString()}"
+    }
     val refFromExpandedTypeIndex = index + 1
     return leakTrace.referencePath.subList(refFromExpandedTypeIndex, leakTrace.referencePath.size)
   }
