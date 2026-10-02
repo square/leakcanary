@@ -8,23 +8,11 @@ import org.gradle.api.tasks.options.Option
 import org.gradle.process.ExecOperations
 import org.jetbrains.compose.desktop.application.dsl.AbstractPlatformSettings
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
 
 plugins {
   id("org.jetbrains.kotlin.jvm")
   id("org.jetbrains.kotlin.plugin.compose")
   id("org.jetbrains.compose")
-}
-
-// Compose Multiplatform's artifacts are not built for Java 8, so this module opts out of the
-// repo wide Java 8 target set in the root build script. Nothing here is meant to run on Android.
-java {
-  sourceCompatibility = JavaVersion.VERSION_17
-  targetCompatibility = JavaVersion.VERSION_17
-}
-
-kotlin {
-  compilerOptions.jvmTarget = JVM_17
 }
 
 /**
