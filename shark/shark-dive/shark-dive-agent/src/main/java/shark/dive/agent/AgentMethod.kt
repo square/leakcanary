@@ -149,21 +149,31 @@ internal object AgentMethod {
     **Which copy of the code matters as much as reading it.** A class that changed between two versions is a
     root cause nobody can reproduce and a fix that doesn't apply. The dump itself says which versions:
 
-    **`heap_dump_metadata` is the first call of this section**, and it answers the two questions below that
-    come up every time: the API level, the manufacturer, and the name of the app's process. What follows is
-    for the rest, which it doesn't carry.
+    **`heap_dump_metadata` is the first call of this section**, because it is the one call that answers
+    *which Android version* and *which app* — the two things you need before opening any source at all:
 
-    - **The OS.** A class is an object of the dump like any other, so reading one is two calls: `find_objects`
-      with `className=android.os.Build${'$'}VERSION`, `exactMatch=true` and `kinds=CLASS` for its address, then
-      `describe_object` on that address for its static fields. `SDK_INT` is the API level, with `RELEASE`,
-      `CODENAME` and `SECURITY_PATCH` beside it, and `android.os.Build` has the device and the build
-      fingerprint. Read AOSP at the tag for that release — an installed SDK has the framework sources
-      under `sources/android-<SDK_INT>` — and not `main`, which is years ahead of any device.
-    - **The app.** Its `android.content.pm.ApplicationInfo` is in most dumps: `processName` and `dataDir`
-      name the app, `sourceDir` is the APK it was installed from, `minSdkVersion` is a field of its own,
-      `seInfo` often carries `targetSdkVersion=<n>`, and bit `0x2` of `flags` is `FLAG_DEBUGGABLE`. The app's
-      own version number usually is **not** there: `BuildConfig` constants are compiled into their call sites,
-      so the class is never loaded and never appears in a dump. Ask for it rather than guessing it.
+    - **`Build.VERSION.SDK_INT` is the API level**, so it is the AOSP release to read the framework at.
+    - **`App process name` is the app's package**, so it is the repository, the `applicationId` and the APK
+      to look for. It is `ApplicationInfo.processName`, which is the package name unless the app declares an
+      `android:process` of its own — the usual form of which is `<package>:suffix`, so the package is still
+      what comes before the colon.
+
+    `Build.MANUFACTURER` is beside them, and a manufacturer that isn't `Google` means the framework on that
+    device is not the AOSP you are about to read. What follows is for the rest, which that map doesn't carry.
+
+    - **The OS, past the API level.** `RELEASE`, `CODENAME`, `SECURITY_PATCH` and the build fingerprint are a
+      read of the classes themselves, and a class is an object of the dump like any other, so that is two
+      calls: `find_objects` with `className=android.os.Build${'$'}VERSION`, `exactMatch=true` and
+      `kinds=CLASS` for its address, then `describe_object` on that address for its static fields.
+      `android.os.Build` has the device and the fingerprint the same way. Read AOSP at the tag for that
+      release — an installed SDK has the framework sources under `sources/android-<SDK_INT>` — and not
+      `main`, which is years ahead of any device.
+    - **The app, past its package.** Its `android.content.pm.ApplicationInfo` is in most dumps: `sourceDir`
+      is the APK it was installed from, `dataDir` the directory it writes to, `minSdkVersion` is a field of
+      its own, `seInfo` often carries `targetSdkVersion=<n>`, and bit `0x2` of `flags` is `FLAG_DEBUGGABLE`.
+      The app's own version number usually is **not** there: `BuildConfig` constants are compiled into their
+      call sites, so the class is never loaded and never appears in a dump. Ask for it rather than guessing
+      it.
     - **The libraries.** A dependency's version isn't in the dump either. Ask for the build file or the
       lockfile, or read the versions out of the APK at `sourceDir`, and then read that library at that tag. A
       leak fixed two releases ago is worth finding out about before writing anything else.

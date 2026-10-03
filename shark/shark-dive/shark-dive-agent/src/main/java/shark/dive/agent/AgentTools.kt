@@ -233,15 +233,18 @@ internal class AgentTools(
 
   private fun heapDumpMetadata() = AgentTool(
     name = "heap_dump_metadata",
-    summary = "The device, the app and what the heap is made of, as LeakCanary reports it.",
+    summary = "Which Android version and which app this is, and what the heap is made of.",
     description = "What the heap dump says about itself, which is the map LeakCanary prints above a leak " +
       "trace: the API level and the manufacturer of the device, the name of the app's process, the version " +
       "of LeakCanary that wrote the dump, how many classes, instances and arrays are in it, how many " +
       "threads, how many bytes, how many bitmaps and how many of those are bigger than the screen, and the " +
-      "SQLite databases the app has open. **Worth one call before reading any code**, since which Android " +
-      "version and which app you are about to read is half of what " +
-      "${AgentCommandLine.LEAK_METHOD_OPTION} is about — and the app's own version number is in no heap " +
-      "dump, so ask whoever gave you this one for it. Refused for a dump that is not an Android one, every " +
+      "SQLite databases the app has open. **Worth one call before reading any code**, because it is where " +
+      "*which Android version* and *which app* come from: `Build.VERSION.SDK_INT` is the AOSP release to " +
+      "read the framework at, and `App process name` is the app's package, so the repository and the APK " +
+      "to look for — it is `ApplicationInfo.processName`, which is the package unless the app declares an " +
+      "`android:process`. Reading code at the wrong version is what " +
+      "${AgentCommandLine.LEAK_METHOD_OPTION} is about. The app's own version number is in no heap dump, " +
+      "so ask whoever gave you this one for it. Refused for a dump that is not an Android one, every " +
       "line of this being read off the Android framework. One pass over every object, so ask once.",
     schema = schema(HEAP_DUMP to heapDumpArgument())
   ) { arguments ->
