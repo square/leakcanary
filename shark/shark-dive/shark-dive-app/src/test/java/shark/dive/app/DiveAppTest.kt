@@ -31,6 +31,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
@@ -768,8 +769,13 @@ class DiveAppTest {
       // By the title and the sentence at once, rather than by each on its own: a page named after a screen
       // of the window — *Metadata* is one — has that word on the bar as well, and the row of this index is
       // the one node carrying both.
+      //
+      // And scrolled to rather than asserted where it happens to have landed: the index is taller than the
+      // window, and how much of it fits is the fonts of the machine it is drawn on — the last row of it was
+      // on screen here and below the fold on CI, which is a test about this window failing for a reason
+      // that is nothing to do with it.
       ReferencePage.all.filter { it.topic != page.topic }.forEach { other ->
-        onNode(hasText(other.title) and hasText(other.hint)).assertIsDisplayed()
+        onNode(hasText(other.title) and hasText(other.hint)).performScrollTo().assertIsDisplayed()
       }
     }
   }
