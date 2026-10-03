@@ -41,7 +41,7 @@ internal fun StarredScreen(
       ObjectRowHeader(hasTrailing = true)
       HorizontalDivider()
       if (entries.isEmpty()) {
-        NoObjectRows(NOTHING_STARRED)
+        NoRows(NOTHING_STARRED)
       }
       LazyColumn(Modifier.fillMaxWidth().weight(1f)) {
         items(entries, key = { it.objectId }) { entry ->

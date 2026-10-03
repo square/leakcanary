@@ -27,7 +27,8 @@ enum class Topic(
   STUCK_SHADING("stuck-shading"),
   CONFLICTING_VERDICTS("conflicting-verdicts"),
   WEAKER_REFERENCES("weaker-references"),
-  OTHER_WAYS("other-ways");
+  OTHER_WAYS("other-ways"),
+  HEAP_DUMP_METADATA("heap-dump-metadata");
 
   companion object {
     /** Which topic a link names, or null for a page this build has never heard of. */

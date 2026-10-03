@@ -35,6 +35,7 @@ private fun screenOrNull(text: String): Place? = when {
   text == PLACE_LEAKS -> Place.Leaks()
   text == PLACE_OBJECTS -> Place.Objects()
   text == PLACE_STARRED -> Place.Starred
+  text == PLACE_METADATA -> Place.Metadata
   text == PLACE_AGENT_LOGS -> Place.AgentLogs
   text.startsWith("$PLACE_AGENT_LOGS$PLACE_SEPARATOR") ->
     Place.AgentLog(text.substringAfter(PLACE_SEPARATOR))
@@ -88,6 +89,7 @@ internal fun placeText(place: Place): String? = when (place) {
     }
   is Place.Leaks -> PLACE_LEAKS
   is Place.Starred -> PLACE_STARRED
+  is Place.Metadata -> PLACE_METADATA
   is Place.AgentLogs -> PLACE_AGENT_LOGS
   is Place.AgentLog -> "$PLACE_AGENT_LOGS$PLACE_SEPARATOR${place.sessionId}"
   is Place.SmallerObjects -> null
@@ -102,6 +104,7 @@ internal const val PLACE = "place"
 private const val PLACE_LEAKS = "leaks"
 private const val PLACE_OBJECTS = "objects"
 private const val PLACE_STARRED = "starred"
+private const val PLACE_METADATA = "metadata"
 private const val PLACE_AGENT_LOGS = "agent-logs"
 
 /** Between a screen and which of it, since three of these take one. */
@@ -110,5 +113,5 @@ private const val PLACE_SEPARATOR = ":"
 /** Every place there is, said the one way, since a schema and a refusal both have to list them. */
 internal const val PLACES_ARE =
   "A place is an object's `0x…` address, \"$PLACE_LEAKS\", \"$PLACE_OBJECTS\", " +
-    "\"$PLACE_OBJECTS$PLACE_SEPARATOR<class name>\", \"$PLACE_STARRED\", \"$PLACE_AGENT_LOGS\" or " +
-    "\"$PLACE_AGENT_LOGS$PLACE_SEPARATOR<session id>\"."
+    "\"$PLACE_OBJECTS$PLACE_SEPARATOR<class name>\", \"$PLACE_STARRED\", \"$PLACE_METADATA\", " +
+    "\"$PLACE_AGENT_LOGS\" or \"$PLACE_AGENT_LOGS$PLACE_SEPARATOR<session id>\"."

@@ -704,6 +704,7 @@ class AgentToolsTest {
     call("show", "place" to "objects")
     call("show", "place" to "objects:$HOLDER_CLASS_NAME")
     call("show", "place" to "starred")
+    call("show", "place" to "metadata")
     call("show", "place" to hex(heapDump.activityObjectId))
 
     assertThat(window.shown).containsExactly(
@@ -711,6 +712,7 @@ class AgentToolsTest {
       Place.Objects(),
       Place.Objects(ObjectListFilter(query = HOLDER_CLASS_NAME)),
       Place.Starred,
+      Place.Metadata,
       Place.Object(heapDump.activityObjectId)
     )
 

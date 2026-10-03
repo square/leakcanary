@@ -1283,10 +1283,11 @@ private const val MAX_OUTLINE_CHILDREN = 15
  * one session of the log takes its id.
  *
  * The tools whose subject is in none of them go through [screenOfTool], which is where the screens an
- * agent names by naming nothing live: the leaks, the log as a list, and the two that mean the whole heap
- * dump when they are given no object — the tree from its root, and the object list unfiltered. Every one of
- * them has to be there, because **anything an agent can do that the window can do leads somewhere in the
- * window**: a call with no place is a row of the *Agent logs* screen that shows a reader what was looked at
+ * agent names by naming nothing live: the leaks, the metadata, the log as a list, and the two that mean the
+ * whole heap dump when they are given no object — the tree from its root, and the object list unfiltered.
+ * Every one of them has to be there, because **anything an agent can do that the window can do leads
+ * somewhere in the window**: a call with no place is a row of the *Agent logs* screen that shows a reader
+ * what was looked at
  * and then declines to show them the thing. The words that row draws come off the same list, so a screen
  * cannot be reachable and unnamed or named and unreachable.
  *

@@ -24,3 +24,5 @@ sentence below.
 --8<-- "docs/shark-dive-reference/weaker-references.md"
 
 --8<-- "docs/shark-dive-reference/other-ways.md"
+
+--8<-- "docs/shark-dive-reference/heap-dump-metadata.md"

@@ -85,6 +85,9 @@ a few seconds.
   Java heap from API 26 to 34, and for those the app offers to fetch them off the device the dump came from.
 * **Object list** is the whole dump as a searchable list, and **Starred** keeps the objects you want to
   come back to — kept between runs in `~/.shark-dive/starred`, one address per line, one file per heap dump.
+* **Metadata** is what the heap dump says about itself: the device, the app's process, what the heap is made
+  of, its bitmaps and its open databases. It is LeakCanary's own map, the one printed above every leak trace
+  it writes, so a figure read here is the figure in the `leaks.txt` somebody sent you.
 * **The verdict on the object a tab is on is the first thing "What it is" says** — `Stuck`, `Expected` or
   `Unknown` — and you can overrule it, see [The verdict](#the-verdict).
 * Every location takes a **note**, in markdown, kept between runs — see [Take notes](#take-notes).
@@ -108,9 +111,9 @@ shark://bug-4821.hprof/leaks
 ```
 
 Anywhere a tab can be is a link: an object, the object list with its search and filters filled in, the
-leaks with the same groups unfolded, the starred objects. So "look at this" is a URL rather than a
-paragraph of directions, which is also how a tool or an agent that has read your heap dump can point you
-straight at what it found.
+leaks with the same groups unfolded, the starred objects, the metadata. So "look at this" is a URL rather
+than a paragraph of directions, which is also how a tool or an agent that has read your heap dump can point
+you straight at what it found.
 
 The part after `shark://` is **the heap dump**, and it is the whole of what a link says about which one,
 because every place a link can name belongs to the dump rather than to the window showing it. So a link goes
@@ -139,8 +142,8 @@ link.
 ## Take notes
 
 **✎ Add Note**, under the title saying where the tab is, starts a markdown note about **that location** —
-an object, the object list, the leaks, the starred objects, or the heap dump as a whole on the tab a window
-opens with. Type into the box, press **Save**, and the note is drawn where the box was; **Cancel** throws what
+an object, the object list, the leaks, the starred objects, the metadata, or the heap dump as a whole on the
+tab a window opens with. Type into the box, press **Save**, and the note is drawn where the box was; **Cancel** throws what
 you typed away. It is there again the next time you are at that location, and the tab strip puts a ✎ on the
 tabs whose location has one.
 
@@ -406,7 +409,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `open_heap_dump` | The heap dump you gave it, by path or by name: **Open heap dump…** for a file nobody has open, and the window that already has it when somebody does. The one way in. |
 | `list_heap_dumps` | Every heap dump open, for an agent that was given none, and the name each of the rest goes on to use. |
 | `close_heap_dump` | Done with a dump: the window closes, and closing the last one ends the run. |
-| `heap_dump_metadata` | What the dump says about itself, as the map LeakCanary prints above a leak trace: the device, the app's process, the bitmaps, the open databases. |
+| `heap_dump_metadata` | The **Metadata** screen: what the dump says about itself, as the map LeakCanary prints above a leak trace — the device, the app's process, the bitmaps, the open databases. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |

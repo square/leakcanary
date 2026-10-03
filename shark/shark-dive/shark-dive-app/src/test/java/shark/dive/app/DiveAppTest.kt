@@ -765,9 +765,11 @@ class DiveAppTest {
       onNode(hasText(page.title) and isTab()).assertIsDisplayed()
       // And every other page under it, each with its own opening sentence, which is what makes one `?` the
       // way in to all of them.
+      // By the title and the sentence at once, rather than by each on its own: a page named after a screen
+      // of the window — *Metadata* is one — has that word on the bar as well, and the row of this index is
+      // the one node carrying both.
       ReferencePage.all.filter { it.topic != page.topic }.forEach { other ->
-        onNodeWithText(other.title).assertIsDisplayed()
-        onNodeWithText(other.hint).assertIsDisplayed()
+        onNode(hasText(other.title) and hasText(other.hint)).assertIsDisplayed()
       }
     }
   }
