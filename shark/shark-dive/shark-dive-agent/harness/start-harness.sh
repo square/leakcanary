@@ -114,8 +114,8 @@ main() {
 # Two things a copy fixes. **The dock reads the file name of the bundle a process was launched from** and
 # nothing else — so every window of the installed app is a tile called "Shark Dive", and several
 # harness windows at once are indistinguishable on screen. Renaming the copy names the tile; the two plist
-# keys below name the menu bar, which for a real bundle comes from the plist rather than from `--title`.
-# Measured, all three names — see shark/shark-dive/AGENTS.md.
+# keys below name the menu bar, which for a real bundle comes from the plist rather than from
+# `--debug-title-prefix`. Measured, all three names — see shark/shark-dive/AGENTS.md.
 #
 # **And `build/compose` is not a safe place to launch from**: another Compose task deletes the app image,
 # and a window whose bundle has been deleted under it dies the way a window launched from source does. A

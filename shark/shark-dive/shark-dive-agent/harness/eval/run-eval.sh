@@ -125,7 +125,7 @@ reported, the client's own transcript, and the heap dump as that run saw it. Wha
 is on the *Agent logs* screen of a window opened on that dump, with the notes and the verdicts it left:
 
   SHARK_DIVE_DIR="$SHARK_DIVE_DIR" \\
-    "$app/Contents/MacOS/Shark Dive" --title="Eval run 1" $RUN_SET/runs/1/heap-dump.hprof
+    "$app/Contents/MacOS/Shark Dive" --debug-title-prefix="Eval run 1" $RUN_SET/runs/1/heap-dump.hprof
 
 That variable is not optional: everything these runs wrote is under it rather than in ~/.shark-dive, so a
 window started without it opens the same dump with none of the investigation on it.

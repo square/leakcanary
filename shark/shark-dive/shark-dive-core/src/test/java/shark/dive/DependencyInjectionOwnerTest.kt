@@ -35,7 +35,7 @@ import dev.zacsweers.metro.Provider as MetroProvider
  * against:
  *
  * ```
- * ./gradlew :shark:shark-dive:shark-dive-app:runNamed --args="--title=\"DI singletons\" \
+ * ./gradlew :shark:shark-dive:shark-dive-app:runNamed --args="--debug-title-prefix=\"DI singletons\" \
  *   shark/shark-dive/shark-dive-core/build/heap-dumps/dependency-injection.hprof"
  * ```
  */

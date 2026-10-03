@@ -595,7 +595,7 @@ Shark Dive was writing at the time:
 
 ```bash
 SHARK_DIVE_DIR="$TMPDIR/shark-dive-eval/<when it started>/shark-dive" \
-  open -a /Applications/"Shark Dive.app" --args --title="Eval run 3" \
+  open -a /Applications/"Shark Dive.app" --args --debug-title-prefix="Eval run 3" \
   "$TMPDIR/shark-dive-eval/<when it started>/runs/3/heap-dump.hprof"
 ```
 

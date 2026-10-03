@@ -106,5 +106,5 @@ Open the result the usual way:
 
 ```bash
 ./gradlew :shark:shark-dive:shark-dive-app:runNamed \
-  --args="--title=\"DI probe\" /tmp/di-probe.hprof"
+  --args="--debug-title-prefix=\"DI probe\" /tmp/di-probe.hprof"
 ```

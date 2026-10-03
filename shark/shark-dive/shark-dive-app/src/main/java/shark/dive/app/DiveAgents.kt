@@ -385,8 +385,8 @@ internal fun commandToRunThis(): String {
  * `show`, each of them answering that it happened. So a command line with one of each would open the same dump
  * twice, or show a place and then answer about another, and nothing in it says which was meant.
  *
- * `--title` is the one thing both forms take, and deliberately: it names the run this may have to start, which
- * is the run whoever typed the command is going to be looking at.
+ * `--debug-title-prefix` is the one thing both forms take, and deliberately: it names the run this may have
+ * to start, which is the run whoever typed the command is going to be looking at.
  */
 private fun twoFormsAtOnce(arguments: DiveArguments): String? {
   val named = arguments.heapDumpFiles.map { it.path } + arguments.deepLinks.map { it.toUri() }

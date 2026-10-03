@@ -148,8 +148,8 @@ private fun deliveredToAnotherRun(args: Array<String>): Boolean {
  * macOS is the menu bar and the app switcher.
  *
  * A run is one process and several windows, so the one name it gets is what the run was started for —
- * the `--title` its windows share — rather than which heap dump is open. Without this a run is called
- * after whatever launched it, which is the same for every Shark Dive window on screen.
+ * the `--debug-title-prefix` its windows share — rather than which heap dump is open. Without this a run is
+ * called after whatever launched it, which is the same for every Shark Dive window on screen.
  *
  * Called before the first window, which is not a matter of taste: AWT reads this property as it starts
  * and registers the process under whatever it says then, so setting it once a window is up changes

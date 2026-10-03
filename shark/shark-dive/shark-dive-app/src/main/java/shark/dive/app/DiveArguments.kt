@@ -49,7 +49,7 @@ internal data class DiveArguments(
           // Both spellings, because a title has spaces in it and which one survives the shell, Gradle's
           // `--args` and an IDE run configuration is not the same everywhere.
           argument == TITLE_OPTION -> requireNotNull(remaining.removeFirstOrNull()) {
-            "$TITLE_OPTION needs a title after it. $USAGE"
+            "$TITLE_OPTION needs a title after it, as $TITLE_OPTION=\"<window title prefix>\". $USAGE"
           }
           argument.startsWith("$TITLE_OPTION=") -> argument.substringAfter('=')
           argument.startsWith("-") -> throw IllegalArgumentException("Unknown option $argument. $USAGE")
@@ -65,7 +65,9 @@ internal data class DiveArguments(
           }
         }
       }
-      require(titlePrefix != "") { "$TITLE_OPTION was given nothing to call the windows. $USAGE" }
+      require(titlePrefix != "") {
+        "$TITLE_OPTION= was given nothing to call the windows. $USAGE"
+      }
       return DiveArguments(
         heapDumpFiles = heapDumpFiles,
         titlePrefix = titlePrefix,
@@ -82,8 +84,8 @@ internal data class DiveArguments(
      * `DiveHelp.kt`.
      */
     private val USAGE =
-      "Usage: shark-dive [$TITLE_OPTION=\"<window title prefix>\"] [<heap dump>…] " +
-        "[${DeepLink.SCHEME}://<heap dump>/<place>…]. --help prints every option, including --cli."
+      "Usage: shark-dive [<heap dump>…] [${DeepLink.SCHEME}://<heap dump>/<place>…]. " +
+        "--help prints every option, including --cli."
   }
 }
 
@@ -92,5 +94,10 @@ internal data class DiveArguments(
  *
  * Outside the parser because it is also written: a run that opens a window for an agent passes one, so that a
  * window nobody typed a command line for still has a name to be found by in the window list.
+ *
+ * **`--debug-` because naming a window is for whoever is working on this app**, not for whoever is reading a
+ * heap dump in it — several windows open at once on the same dump is what a day of changing Shark Dive looks
+ * like, and what a day of using it does not. The prefix is what keeps it out of the way of the two arguments
+ * that are somebody's actual question: a heap dump, and a link to a place in one.
  */
-internal const val TITLE_OPTION = "--title"
+internal const val TITLE_OPTION = "--debug-title-prefix"

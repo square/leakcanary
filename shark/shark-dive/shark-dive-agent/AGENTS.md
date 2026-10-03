@@ -262,19 +262,24 @@ keeping stdout for the JSON still shows the sentence.
 **A run publishes a loopback port, a token, the commit it was built from and whether it draws windows** to
 `~/.shark-dive/agents/<pid>.agent`, and a call is a process that reads that file, connects and sends one line.
 
-**A command expects exactly one run, and two is an error rather than a choice.** `AgentCommandLine.runToTalkTo`
-is the whole of it. The version before this picked the newest of them and said so on stderr, which made the
-heap dump a command was answered about depend on what else was open on the machine — so now two runs is a
-message naming each of them by pid and by whether it has windows, and `--run=<pid>` is how to mean one. **The
-option is not called `--agent-run`**: this surface is designed for agents and typed by people, and an option
-naming one of the two readers is an option the other one is entitled to think is not for them.
+**A command expects exactly one run, and two is an error rather than a choice.**
+`AgentCommandLine.runToTalkTo` is the whole of it. The version before this picked the newest of them and
+said so on stderr, which made the heap dump a command was answered about depend on what else was open on the
+machine — so now two runs is a message naming each of them by pid and by whether it has windows, and
+`--debug-run=<pid>` is how to mean one. **It is not called `--agent-run`**: this surface is designed for
+agents and typed by people, and an option naming one of the two readers is an option the other one is
+entitled to think is not for them. What `--debug-` says instead is *when* it applies — two runs of Shark
+Dive at once is a run from source beside the installed one, or two builds being compared, which is somebody
+working on this app rather than somebody reading a heap dump with it. It is last in `--help` for the same
+reason, with `--debug-title-prefix`.
 
-**The build sha is what makes a machine in the middle of a branch usable.** A command line only ever sees runs
-built from its own commit — `AgentServer.PublishedRun.buildSha`, filtered before anything is sent — because the
-window still running last week's build refuses a tool this build renamed, and it refuses it as "there is no
-tool called that" rather than as "that window is a different build". Which is the normal state of this machine
-while the surface is being worked on. A run named by `--run=<pid>` that is a different build gets that sentence
-explicitly, since a pid somebody typed deserves better than reading as no run at all.
+**The build sha is what makes a machine in the middle of a branch usable.** A command line only ever sees
+runs built from its own commit — `AgentServer.PublishedRun.buildSha`, filtered before anything is sent —
+because the window still running last week's build refuses a tool this build renamed, and it refuses it as
+"there is no tool called that" rather than as "that window is a different build". Which is the normal state
+of this machine while the surface is being worked on. A run named by `--debug-run=<pid>` that is a different
+build gets that sentence explicitly, since a pid somebody typed deserves better than reading as no run at
+all.
 
 **A call with no run to talk to opens one**, rather than answering "ask your human to launch Shark Dive" — that
 being the opposite of the point of this surface being a window at all.
@@ -289,15 +294,16 @@ saying nothing before saying what was already known. The run that is published a
 other case and is covered without a wait: the connect has a 1 second timeout, and whoever finds it deletes the
 file.
 
-**Four commands start one** — `open_heap_dump`, `dump_heap`, `list_devices` and `list_processes` — which is a
-deliberate narrowing of "start one if there is none", and the rule is what each command's answer is about. Each
-of those answers the same in a run it just started as in the run somebody is working in: two of them hand back a
-heap dump they put there, and the other two ask `adb`. Every other command is a question *about* a run, and a
-question answered by a run this command line just started comes back empty — indistinguishable, to whatever
-reads the answer, from a run that was already there and had nothing open. `list_heap_dumps` is the one to check
-that rule against: it needs no heap dump either, and it starts nothing because what it answers *is* what the run
-has open. So the rest are refused, naming the four. `--run=<pid>` starts nothing whichever command it is on: that
-names a run, and starting a different one would answer about the wrong heap dump.
+**Four commands start one** — `open_heap_dump`, `dump_heap`, `list_devices` and `list_processes` — which is
+a deliberate narrowing of "start one if there is none", and the rule is what each command's answer is about.
+Each of those answers the same in a run it just started as in the run somebody is working in: two of them
+hand back a heap dump they put there, and the other two ask `adb`. Every other command is a question *about*
+a run, and a question answered by a run this command line just started comes back empty — indistinguishable,
+to whatever reads the answer, from a run that was already there and had nothing open. `list_heap_dumps` is
+the one to check that rule against: it needs no heap dump either, and it starts nothing because what it
+answers *is* what the run has open. So the rest are refused, naming the four. `--debug-run=<pid>` starts
+nothing whichever command it is on: that names a run, and starting a different one would answer about the
+wrong heap dump.
 
 **Whether a run draws windows is checked here, before connecting.** `--no-ui` is a property of the *run* —
 `cascadedPosition` asks `GraphicsEnvironment` for the screen, so a run on a machine that has none cannot start
@@ -355,7 +361,7 @@ that makes an agent shorten a path it was handed. There is no window identifier,
 about heap dump files and a window is where one happens to be drawn. Which is unambiguous because **opening a
 dump this run already has open joins that open** rather than making a second one, so one file is at most one
 open per run and there is never a second reading of it here to tell apart. Two readings of one dump being
-compared is two runs, and `--run=<pid>` is how to say which.
+compared is two runs, and `--debug-run=<pid>` is how to say which.
 
 **`close_heap_dump` is the way out, and closing the last one ends the run.** A run *is* its heap dumps: one with
 none left has nothing to come back to, and leaving it up would be leaving the two-runs error waiting for the
