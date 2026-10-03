@@ -48,7 +48,7 @@ import shark.dive.formatByteSize
  *
  * One row per leak rather than per object, because a leak with fifty instances is one thing to fix; the row
  * unfolds into them when there is more than one. Every row leads into the object view — a leak is a
- * chain from a GC root, and the chain the map already draws is exactly that, so there is no leak trace here
+ * path from a GC root, and the path the map already draws is exactly that, so there is no leak trace here
  * and nothing to read twice.
  */
 @Composable

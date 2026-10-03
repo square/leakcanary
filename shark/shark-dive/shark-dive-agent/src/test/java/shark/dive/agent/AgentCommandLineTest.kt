@@ -124,13 +124,13 @@ class AgentCommandLineTest {
     listen()
 
     cli(LIST_HEAP_DUMPS, "reason=Finding out what is open.")
-    cli("list_leaks", "heapDumpKey=${window.heapDumpName}", "reason=Reading what the dump says about itself.")
+    cli("list_leak_groups", "heapDumpKey=${window.heapDumpName}", "reason=Reading what the dump says about itself.")
 
     // One row of the *Agent logs* screen rather than two, which is the whole of what naming a session buys:
     // an investigation is what somebody reads afterwards, and a process per command would have cut it up.
     val session = sessions().single()
     assertThat(session.sessionId).isEqualTo(SESSION_NAME)
-    assertThat(session.toolCalls.map { it.tool }).containsExactly(LIST_HEAP_DUMPS, "list_leaks")
+    assertThat(session.toolCalls.map { it.tool }).containsExactly(LIST_HEAP_DUMPS, "list_leak_groups")
     // **One row per command typed**, which is what there is to record: a process connects, makes its one
     // call and ends, so nothing crosses this socket that isn't the call itself. Which connection each of them
     // was is in this run's log.
@@ -357,7 +357,7 @@ class AgentCommandLineTest {
     }
     // The two ways in, since every other command needs the name one of them answers with.
     assertThat(help).contains("Start with $OPEN_HEAP_DUMP").contains(LIST_HEAP_DUMPS)
-    // And `reason` is said once rather than under each of twenty commands, which would be a sixth of the
+    // And `reason` is said once rather than under each of nineteen commands, which would be a sixth of the
     // help spent on the one argument every command takes.
     assertThat(help).contains("Every command takes `reason`")
     assertThat(help.lines().filter { it.trim().startsWith("reason (") }).isEmpty()
@@ -365,17 +365,19 @@ class AgentCommandLineTest {
 
   @Test
   fun `the help of one command is that command, and of no command says which there are`() {
-    val one = AgentCommandLine.commandHelp(command = "shark-dive", commandName = "conclude")
+    // `ways_held`, because what this pins is that one command's help is that command: a command whose
+    // description points at another one — most of them do — would contain a name this has to say is absent.
+    val one = AgentCommandLine.commandHelp(command = "shark-dive", commandName = "ways_held")
 
-    assertThat(one).contains("conclude").doesNotContain("list_leaks")
+    assertThat(one).contains("ways_held").doesNotContain("list_leak_groups")
     // The one thing a schema doesn't say, because JSON has brackets and a command line hasn't. Here rather
     // than in the list, since a list argument is a thing one command takes and not a rule of the surface.
     val listed = AgentCommandLine.commandHelp(command = "shark-dive", commandName = "find_objects")
     assertThat(listed).contains("comma separated")
 
-    val none = AgentCommandLine.commandHelp(command = "shark-dive", commandName = "chain_from_a_gc_root")
+    val none = AgentCommandLine.commandHelp(command = "shark-dive", commandName = "path_from_a_gc_root")
 
-    assertThat(none).contains("There is no command").contains("chain_from_gc_root")
+    assertThat(none).contains("There is no command").contains("path_from_gc_root")
   }
 
   @Test

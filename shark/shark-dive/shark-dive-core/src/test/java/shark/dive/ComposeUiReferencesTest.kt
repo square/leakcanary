@@ -19,7 +19,7 @@ import shark.dive.ReachabilityStrength.STRONG
  *
  * Two mechanisms are under test. [SlotTableReferenceReader] hands the elements of a composition's one flat
  * array out from the groups holding them, and the [OwnerRule]s of [OwnerReferences] make a node belong to
- * its parent and a modifier to the chain it is on.
+ * its parent and a modifier to the path it is on.
  */
 class ComposeUiReferencesTest {
 
@@ -148,7 +148,7 @@ class ComposeUiReferencesTest {
     }
   }
 
-  @Test fun `a modifier is held by the chain of the node it is on`() {
+  @Test fun `a modifier is held by the path of the node it is on`() {
     val ui = composeUiHeapDump()
     HeapDive.open(ui.file).use { dive ->
       val tree = dive.tree
@@ -156,7 +156,7 @@ class ComposeUiReferencesTest {
 
       // Compose's modifier nodes point back at their coordinators and at each other, so one reference into
       // any of them — here the focus listener a window's ViewTreeObserver holds — would otherwise hold the
-      // lot from a GC root of its own. The chain owns them instead, outermost first through each `child`.
+      // lot from a GC root of its own. The path owns them instead, outermost first through each `child`.
       assertThat(tree.dominatorOf(painter.objectId)!!.label).isEqualTo("SizeNode")
       assertThat(tree.independentPathsBelowDominator(painter.objectId).paths.map { it.stepLabels() })
         .containsExactly(listOf("child → PainterNode"))
@@ -179,11 +179,11 @@ class ComposeUiReferencesTest {
 
   /**
    * A heap dump shaped like a window of a Compose app: a view holding the node at the top of its UI and a
-   * registry of every node in it, a node tree two deep, a chain of two modifiers on the lower node, and a
+   * registry of every node in it, a node tree two deep, a path of two modifiers on the lower node, and a
    * composition whose slot table remembers a value against each of them.
    *
    * The rivals a real dump has are here too, each a GC root of its own so that all of them are closer to a
-   * root than the view is: the registry of every node, a focus listener pointing into the modifier chain,
+   * root than the view is: the registry of every node, a focus listener pointing into the modifier path,
    * and a node left in its parent's array after the parent stopped counting it.
    */
   @Suppress("LongMethod")
@@ -256,14 +256,14 @@ class ComposeUiReferencesTest {
           "child" to ReferenceHolder::class
         )
       )
-      // The chain points back at the node it is on and the nodes at each other, so their ids have to exist
+      // The path points back at the node it is on and the nodes at each other, so their ids have to exist
       // before the objects holding them are written.
       val rootNode = reserveObjectId()
       val childNode = reserveObjectId()
       val painterNode = reserveObjectId()
 
-      // What the lower node draws with, and the value it paints: a chain of two modifiers, the outer one
-      // held by the chain and the inner one by the outer one's `child`.
+      // What the lower node draws with, and the value it paints: a path of two modifiers, the outer one
+      // held by the path and the inner one by the outer one's `child`.
       val painted = payload(PAINTED_BY_A_MODIFIER)
       instance(
         clazz(
@@ -382,7 +382,7 @@ class ComposeUiReferencesTest {
           )
         )
       )
-      // The reference into a modifier chain a real dump has: a listener registered on the window's
+      // The reference into a modifier path a real dump has: a listener registered on the window's
       // ViewTreeObserver, which an input method manager reaches from a root of its own.
       val viewTreeObserver = "android.view.ViewTreeObserver" instance {
         field["mOnGlobalFocusListeners"] = painterNode
@@ -439,7 +439,7 @@ class ComposeUiReferencesTest {
 
     private const val HELD_BY_A_TABLE_OF_ANOTHER_SHAPE = "HeldByATableOfAnotherShape"
 
-    /** A field holding nothing, which is what the chain of a node with no modifiers is. */
+    /** A field holding nothing, which is what the path of a node with no modifiers is. */
     private val NO_REFERENCE = ReferenceHolder(ValueHolder.NULL_REFERENCE)
   }
 }

@@ -13,8 +13,8 @@ import androidx.collection.IntSet
  *
  * **Three kinds of way, walked best first**, one queue each: [PLAIN], then [THROUGH_A_LEAK], then
  * [THROUGH_A_LOW_PRIORITY_REFERENCE]. So a way with nothing worth putting off on it wins over a shorter one
- * that has something, and once a walk is past one there is no going back to a better kind: a chain is only
- * as readable as its worst step. Among ways of the same kind, the shortest. Which means a chain still runs
+ * that has something, and once a walk is past one there is no going back to a better kind: a path is only
+ * as readable as its worst step. Among ways of the same kind, the shortest. Which means a path still runs
  * through a leak when every way to the object does — an object a leak dominates is held by that leak, and
  * saying so is the whole answer.
  *
@@ -90,7 +90,7 @@ internal class RootPathSearch(
         return pathFrom(current, targetIndex)
       }
       referrerIndex.forEachReferrer(current) { referrer, isLowPriority ->
-        // A chain is as good as its worst step, so a way on through a referrer is the worse of the way
+        // A path is as good as its worst step, so a way on through a referrer is the worse of the way
         // here and of the step itself.
         val referrerKind = maxOf(kind, kindOfStepTo(referrer, isLowPriority))
         val seen = seenByWalk[referrer]
@@ -141,11 +141,11 @@ internal class RootPathSearch(
     /** No walk has this number: they start at 1, so a zeroed array has been seen by none of them. */
     private const val NO_WALK = 0
 
-    /** Nothing worth putting off on the way, which is the chain to draw whenever there is one. */
+    /** Nothing worth putting off on the way, which is the path to draw whenever there is one. */
     private const val PLAIN = 0
 
     /**
-     * Through an object that shouldn't be in memory, which is [leakingIndexes]: a chain that runs through
+     * Through an object that shouldn't be in memory, which is [leakingIndexes]: a path that runs through
      * one says this object is held by a leak, and while there is another way to it that isn't, that other
      * way is what holds it once the leak is fixed. It is also what LeakCanary does, where it reads as a
      * different rule — its phase 1 stops at a leaking object rather than deprioritizing one, so the way
@@ -160,11 +160,11 @@ internal class RootPathSearch(
      * was taken, which is nothing to fix and often one step from anywhere.
      *
      * **Below [THROUGH_A_LEAK], because a leak is an answer and a stack frame is not.** An object marked
-     * leaking is a reader saying this is the thing to fix, so a chain running through it names that thing;
-     * a chain that leaves it for a frame answers "what holds this" with "a method is running", which is
+     * leaking is a reader saying this is the thing to fix, so a path running through it names that thing;
+     * a path that leaves it for a frame answers "what holds this" with "a method is running", which is
      * the one answer nobody can act on. Measured on `leak_asynctask_o.hprof`, where the two verdicts that
-     * make the chain name the faulty reference used to send it onto the worker thread instead — the frame
-     * being two steps from the activity where the executor is six — and a chain with no verdict on it
+     * make the path name the faulty reference used to send it onto the worker thread instead — the frame
+     * being two steps from the activity where the executor is six — and a path with no verdict on it
      * marks no reference. `notes/decisions.md` has the numbers.
      */
     private const val THROUGH_A_LOW_PRIORITY_REFERENCE = 2

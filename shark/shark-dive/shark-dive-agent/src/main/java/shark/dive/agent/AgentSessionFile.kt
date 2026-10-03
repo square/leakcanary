@@ -26,7 +26,7 @@ import shark.dive.Place
  * **One artefact, two readers.** The window draws this as the *Agent logs* screen, so that the person at the
  * machine can follow an investigation they didn't watch — every call as a verb, the address it was about, and
  * the reason the agent gave for making it. And the eval reads the same file to score a run, because the
- * numbers worth having about this surface are counts of what happened: whether it concluded, on which
+ * numbers worth having about this surface are counts of what happened: whether a leak was solved, on which
  * reference, in how many calls, how many of them refused. See `notes/agent-eval.md`.
  *
  * Which is why it is machine readable and appended to rather than the run log reworded: the run log is prose
@@ -48,7 +48,7 @@ import shark.dive.Place
  * JSON, one object per line, flushed per line, because the session worth reading is often the one that ended
  * by the agent giving up or the app being killed. A header line naming the session, then a line per call.
  * Beside the notes and the verdicts under `~/.shark-dive`, since it is the same kind of thing: what
- * somebody concluded about a heap dump, kept where the next reader will find it.
+ * somebody worked out about a heap dump, kept where the next reader will find it.
  */
 class AgentSessionFile private constructor(
   /** The file itself, shown in the window so that a session can be read without this app. */
@@ -365,7 +365,7 @@ class AgentSessionFile private constructor(
      * How many sessions are kept. More than the run logs beside them, because "what did that agent do" is
      * asked about an investigation rather than about a run.
      *
-     * A session is as big as the answers it read — tens of kilobytes for a short one, more where a chain or a
+     * A session is as big as the answers it read — tens of kilobytes for a short one, more where a path or a
      * tree came back — since [AgentSessionCall.output] keeps them. Which is the trade: a hundred sessions of
      * summaries would fit in a fraction of that and would be a hundred sessions nobody can check.
      */
@@ -500,7 +500,7 @@ class AgentSessionCall(
   /**
    * And exactly what it got back: the answer, formatted, as the text that reached the model.
    *
-   * Not a summary of it — [outcome] is that, and only `conclude` has one. What this is for is following an
+   * Not a summary of it — [outcome] is that, and only a solved leak has one. What this is for is following an
    * investigation afterwards: a step that reads as sound and was made on an answer that said nothing is a
    * step nobody can see the trouble with until they read what the agent read.
    *
@@ -530,9 +530,10 @@ class AgentSessionCall(
   /**
    * What the call came to, for the calls whose answer is worth a word. See [outcomeOfTool].
    *
-   * The other half of a refusal: `conclude` refused says why, and `conclude` answered says which reference
-   * the heap dump agreed was at fault — which is the one line of a session anybody reads it for, and the one
-   * the eval scores against the answer key. Null for a call whose answer is data rather than a conclusion.
+   * The other half of a refusal: a refusal says why a call went nowhere, and this says which reference the
+   * heap dump derived once the verdicts narrowed to one — which is the one line of a session anybody reads
+   * it for, and the one the eval scores against the answer key. Null for a call whose answer is data rather
+   * than an outcome, which is nearly all of them.
    */
   val outcome: String?,
   /**
@@ -611,28 +612,51 @@ val AgentSessionCall.subject: String?
 val AgentSessionCall.screen: String? get() = tool?.let { screenOfTool(it, arguments)?.words }
 
 /**
- * What the answer to a call came to, as a couple of words, and null when the answer is data rather than a
- * conclusion.
+ * What the answer to a call came to, as a couple of words, and null when the answer is data rather than an
+ * outcome.
  *
- * Here beside [verbOfTool] and for the same reason: the tool names live in this file. Only `conclude` has one
- * today, which is the point of it — a session is read to find out what somebody concluded, and every other
- * call is how they got there.
+ * Here beside [verbOfTool] and for the same reason: the tool names live in this file. The two calls that can
+ * solve a leak have one — reading a path, and setting the verdict that narrows it to a single reference —
+ * because a session is read to find out what it came to, and every other call is how it got there.
+ *
+ * **Read off the answer, and only when the heap dump says the leak is solved.** `leakSolved` is the dump's
+ * own reading of the verdicts recorded about those objects, and `faultyReference` beside it is the reference
+ * it derived; neither is anything the agent typed. Which is the whole difference from the `conclude` this
+ * replaced: that tool asked an agent to state the reference it had just been told, so a session's outcome was
+ * a model's copy of an earlier answer and an eval scoring it was scoring the copying. See `EvalScore`.
+ *
+ * A path read after the leak was already solved has one too, and that is right: it is still this dump saying
+ * the same thing, and a session whose last word is the answer it ended on is the session a reader wants.
  */
 internal fun outcomeOfTool(
   tool: String,
   answer: JsonObject
 ): String? = when (tool) {
-  "conclude" -> ((answer[ANSWER_FAULTY_REFERENCE] as? JsonArray)?.firstOrNull() as? JsonObject)
-    ?.let { it[ANSWER_REFERENCE] as? JsonPrimitive }
-    ?.content
+  "path_from_gc_root", "set_verdict" -> answer.faultyReferenceIfSolved()
   else -> null
+}
+
+/**
+ * The faulty reference an answer names, and null unless that answer also says the leak is solved.
+ *
+ * Both halves, because `faultyReference` is on the path itself and is null until the verdicts narrow to one
+ * — so the pair can only disagree if this build changed one of them without the other, and null is how that
+ * shows up rather than a session recording an outcome from a path that has none.
+ */
+private fun JsonObject.faultyReferenceIfSolved(): String? {
+  val says = this[ANSWER_WHAT_THE_PATH_SAYS] as? JsonObject ?: return null
+  if ((says[ANSWER_LEAK_SOLVED] as? JsonPrimitive)?.content != "true") {
+    return null
+  }
+  val path = this[ANSWER_PATH] as? JsonObject ?: return null
+  return (path[ANSWER_FAULTY_REFERENCE] as? JsonPrimitive)?.content
 }
 
 /**
  * Which heap dumps an answer said were open, which is the second thing read off an answer rather than off
  * the arguments. See [AgentSessionCall.openHeapDumps].
  *
- * Only `list_heap_dumps`, and for the same reason `outcomeOfTool` is only `conclude`: this is the one call
+ * Only `list_heap_dumps`, and for the reason `outcomeOfTool` reads only the two calls that solve a leak: this is the one call
  * whose answer is not about a heap dump but *is* a list of them, and a row saying "asked which dumps are
  * open" without saying which is a row that withholds the answer it is a record of. The paths, since a window
  * is opened on a path, and a path is the whole of what that answer names a dump by.
@@ -654,11 +678,11 @@ internal fun verbOfTool(
   "list_heap_dumps" -> "Asked which heap dumps are open"
   // Ending on "the", because what follows it is the link. See [AgentSessionCall.screen].
   "heap_dump_metadata" -> "Read the"
-  "list_leaks" -> "Listed the"
+  "list_leak_groups" -> "Listed the"
   // Not "Described", which reads as the agent having written a description of something rather than having
   // asked what it is. Every tool here is a read unless it says otherwise, and the verbs have to say which.
   "describe_object" -> "Looked at"
-  "chain_from_gc_root" -> "Read the chain to"
+  "path_from_gc_root" -> "Read the path to"
   "ways_held" -> "Looked for every way of holding"
   // Which is a search of the whole dump when it names no class, and that is the list of the biggest
   // objects rather than a search for nothing.
@@ -673,7 +697,6 @@ internal fun verbOfTool(
   // Reading what other agents did, which is the one call whose subject is another session of this screen.
   "agent_log" -> if (SUBJECT_SESSION in arguments) "Read what an agent did in" else "Read the"
   "show" -> "Showed"
-  "conclude" -> "Concluded about"
   // The app rather than a heap dump, so each of these says the whole of what it did: there is no place of
   // an open dump to go to, the file one of them opens and the file another one writes not being one until
   // the call has been answered.
@@ -709,7 +732,7 @@ internal fun screenOfTool(
   tool: String,
   arguments: Map<String, String>
 ): AgentScreen? = when (tool) {
-  "list_leaks" -> AgentScreen("leaks", Place.Leaks())
+  "list_leak_groups" -> AgentScreen("leaks", Place.Leaks())
   "heap_dump_metadata" -> AgentScreen("metadata", Place.Metadata)
   "agent_log" -> if (SUBJECT_SESSION in arguments) null else AgentScreen("agent log", Place.AgentLogs)
   "find_objects" ->
@@ -719,9 +742,11 @@ internal fun screenOfTool(
   else -> null
 }
 
-/** What `conclude` answers with the reference under, which is one of the two answers this file records. */
+/** What a solved path answers with the reference under, which is one of the two answers this file records. */
 private const val ANSWER_FAULTY_REFERENCE = "faultyReference"
-private const val ANSWER_REFERENCE = "reference"
+private const val ANSWER_PATH = "path"
+private const val ANSWER_WHAT_THE_PATH_SAYS = "whatThePathSays"
+private const val ANSWER_LEAK_SOLVED = "leakSolved"
 
 /** And what `list_heap_dumps` answers with the dumps under. See `AgentJson.heapDump`. */
 private const val ANSWER_HEAP_DUMPS = "heapDumps"

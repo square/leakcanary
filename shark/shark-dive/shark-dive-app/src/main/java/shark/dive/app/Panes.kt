@@ -37,12 +37,12 @@ import java.awt.Cursor
  *
  * Left to right that is where the object came from, where it is, and what it is keeping alive — see
  * `notes/decisions.md`. Each folds away, because which of the three you are working in changes with what
- * you are chasing: a chain thirty steps long wants the window, and so does a treemap.
+ * you are chasing: a path thirty steps long wants the window, and so does a treemap.
  */
 internal enum class Pane(val paneName: String) {
 
-  /** Why the object is in memory: the chain a GC root reaches it by. */
-  CHAIN("What holds it"),
+  /** Why the object is in memory: the path a GC root reaches it by. */
+  PATH("What holds it"),
 
   /** What the object holds: the dominator tree, rooted at the object itself. */
   VIEW("What it holds"),
@@ -64,23 +64,23 @@ internal enum class Pane(val paneName: String) {
 @Stable
 internal class PanesState {
 
-  var chainWidth by mutableStateOf(ROOT_PATH_WIDTH)
+  var pathWidth by mutableStateOf(ROOT_PATH_WIDTH)
   var detailsWidth by mutableStateOf(DETAILS_WIDTH)
   var noteHeight by mutableStateOf(NOTE_HEIGHT)
 
-  private var foldedChain by mutableStateOf(false)
+  private var foldedPath by mutableStateOf(false)
   private var foldedView by mutableStateOf(false)
   private var foldedDetails by mutableStateOf(false)
 
   fun isFolded(pane: Pane): Boolean = when (pane) {
-    Pane.CHAIN -> foldedChain
+    Pane.PATH -> foldedPath
     Pane.VIEW -> foldedView
     Pane.DETAILS -> foldedDetails
   }
 
   fun toggleFold(pane: Pane) {
     when (pane) {
-      Pane.CHAIN -> foldedChain = !foldedChain
+      Pane.PATH -> foldedPath = !foldedPath
       Pane.VIEW -> foldedView = !foldedView
       Pane.DETAILS -> foldedDetails = !foldedDetails
     }
@@ -90,14 +90,14 @@ internal class PanesState {
    * Which pane takes whatever width the fixed ones leave, or null when all three are folded.
    *
    * The view by preference, since that is the one drawn to the size it is given. Folding it hands the
-   * room to the details, and then to the chain, so that folding a pane always widens something rather
+   * room to the details, and then to the path, so that folding a pane always widens something rather
    * than leaving a stripe of empty window.
    */
   val filling: Pane?
     get() = when {
       !foldedView -> Pane.VIEW
       !foldedDetails -> Pane.DETAILS
-      !foldedChain -> Pane.CHAIN
+      !foldedPath -> Pane.PATH
       else -> null
     }
 
@@ -107,7 +107,7 @@ internal class PanesState {
     delta: Dp
   ) {
     when (pane) {
-      Pane.CHAIN -> chainWidth = (chainWidth + delta).coerceIn(MIN_PANE_WIDTH, MAX_PANE_WIDTH)
+      Pane.PATH -> pathWidth = (pathWidth + delta).coerceIn(MIN_PANE_WIDTH, MAX_PANE_WIDTH)
       Pane.DETAILS -> detailsWidth = (detailsWidth + delta).coerceIn(MIN_PANE_WIDTH, MAX_PANE_WIDTH)
       // The view is never a width of its own: it is whatever the other two leave.
       Pane.VIEW -> Unit

@@ -263,7 +263,7 @@ private const val LEAK_SATURATION = 0.40f
 
 /**
  * How firmly an object is held, wherever the window names one object rather than draws the heap: a step of
- * a chain, a row of a list, the panel and the card beside the map.
+ * a path, a row of a list, the panel and the card beside the map.
  *
  * Off the strength alone, unlike [legendColor]. The boxes above a view are ways of reading that view's
  * picture — greying the strong heap is what makes the little there is of everything else jump out — and a

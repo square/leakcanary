@@ -156,12 +156,12 @@ large dumps is N times the numbers in `dominator-tree.md`.
 
 Where a tab is, is **one value**: a `Place` in `shark-dive-core` — an object, the pile of smaller
 objects left out of one, the object list with its filter, the leaks, the starred. Everything drawn is a
-function of it. The map is laid out at `place.viewRootObjectId`, the chain pane walks up to a GC root from
+function of it. The map is laid out at `place.viewRootObjectId`, the path pane walks up to a GC root from
 that same object, the details panel summarises it, the tab is named after it. Nothing else is stored.
 
 Before this there were two coordinates — which screen the window was on, and a path the treemap had zoomed
 along — and a dozen places that set one, the other, or both. What that cost was not the lines: it was that
-a click on a rectangle, a row of a list, a field in the panel and a step of the chain each set them
+a click on a rectangle, a row of a list, a field in the panel and a step of the path each set them
 slightly differently, so which panes agreed with each other depended on which of the four you had used.
 Collapsing to one value is what makes **every way to an object the same move**, which is the whole point:
 `Place.of(cell)` for a rectangle, `Place.Object(id)` everywhere else, and one `open` in
@@ -169,7 +169,7 @@ Collapsing to one value is what makes **every way to an object the same move**, 
 
 **The second coordinate could go because it was never independent.** In a dominator tree the way down to an
 object is unique, so the map root *is* the object — there is no path worth storing, and `TreemapNavigation`,
-which stored one, is gone. What replaced going back out along it is the chain pane, which was already
+which stored one, is gone. What replaced going back out along it is the path pane, which was already
 drawing that path for a different reason.
 
 **Which tab a click means is the click's own answer, not the target's** — `OpenIn`, decided in `OpenIn.kt`
@@ -201,16 +201,16 @@ rather than shrinking its tabs to nothing, and a tab shows a placeholder for the
 comes back.
 
 **Three things in the window can say `Whole heap dump` at once** — the button on the bar, the tab, and the
-top row of every chain — and they are three different moves: open a tab there, go to that tab, go there in
+top row of every path — and they are three different moves: open a tab there, go to that tab, go there in
 this tab. What tells them apart, to a screen reader and to a test, is the role: `Role.Button` on the bar,
 `Role.Tab` on the strip, and no role at all on a row that navigates, which is a link rather than a button.
 An assertion that means one of them says which.
 
 **The three panes are resizable against the map and each foldable to nothing** (`Panes.kt`). Folding leaves
-the button that unfolds it and nothing else, and folding the map is allowed too: a chain 30 steps long and
+the button that unfolds it and nothing else, and folding the map is allowed too: a path 30 steps long and
 a details panel of 40 fields are each worth the whole window sometimes, and the map is the pane that can
 always be got back to by unfolding. Widths are the window's rather than the tab's — a reader who has
-widened the chain has widened it for the investigation, not for one object.
+widened the path has widened it for the investigation, not for one object.
 
 ## Going back to the live device, through the `adb` command line
 
@@ -322,10 +322,10 @@ So reading a treemap is a sweep of the mouse rather than a click per rectangle, 
 can mean is the one thing hovering can't do.
 
 What the pointer describes is **a card beside the pointer itself, plus a few more steps on the end of the
-chain pane**. The details panel stays on the object the map went to, however the pointer wanders — a
+path pane**. The details panel stays on the object the map went to, however the pointer wanders — a
 rectangle is pointed at to decide whether it's worth going to, and a window where every pane followed the
 mouse was unreadable while the mouse was moving. So the pointer's answer is the card and the end of one
-chain, and everything else holds still.
+path, and everything else holds still.
 
 **Which object the pointer is on is said at the pointer**, in `PointerCard`: what a rectangle is, is the
 question being asked by pointing at it, and an answer at the edge of the window is read by looking away
@@ -348,12 +348,12 @@ name is incomplete answered nothing at all.
 
 **And an object's sizes are `Retained` and `Shallow`, in those two words, everywhere they are given.** The
 card used to say `Retains 1.2 MB in 57 objects` and `88 B of its own, dominates 12 objects` where the panel
-behind it said `Retained`, `Retained objects`, `Shallow` and `Dominates` as four rows, and a chain step said
+behind it said `Retained`, `Retained objects`, `Shallow` and `Dominates` as four rows, and a path step said
 `Retaining …` — three vocabularies for the same two numbers, which a reader has to reconcile before they can
 compare a card with the panel it is covering. `RETAINED`, `SHALLOW` and `retainedText` are the one answer.
 How many objects that is rides on the `Retained` line rather than getting a row, since it is the same fact
 counted the other way; how many an object *immediately* dominates is gone from the window entirely, being the
-count of rectangles drawn inside this one. `Dominates` therefore means one thing now, on the chain, where it
+count of rectangles drawn inside this one. `Dominates` therefore means one thing now, on the path, where it
 says which step the map draws the rest inside. An agent still gets `dominatedObjects`, because an agent has
 no picture to read it off.
 
@@ -370,108 +370,108 @@ What made this affordable, on the 38 MB dump in the repo, over all 4,572 rectang
 - `ReferrerIndex` — the pass that reads which object points at which, 399 ms — is **warmed up as soon as
   the first view is laid out**, rather than by the first question about a path. Without that the first
   hover pays for it, which is exactly the moment the app has to feel instant.
-- Describing one object, which is a summary, its dominator and the chain from a GC root: **median 0 ms, p90
-  10 ms, worst 105 ms.** The chain alone is at most 20 ms of that.
+- Describing one object, which is a summary, its dominator and the path from a GC root: **median 0 ms, p90
+  10 ms, worst 105 ms.** The path alone is at most 20 ms of that.
 - A hover waits `HOVER_SETTLE_MILLIS` (100 ms) before reading anything, so a pointer crossing forty
   rectangles asks about the one it stops on rather than about all forty. Reads *can* be called off (see
   above), which caps what the thirty-nine cost, but not starting them is still cheaper than stopping them.
 - `independentPathsBetween` and `independentPathsFromRoots` — every way an object is held, which is the
-  expensive question — are **only asked for the object clicked**, once its chain has come back, and the
-  answer is drawn into that chain. The pointer has nowhere to put a question that expensive.
+  expensive question — are **only asked for the object clicked**, once its path has come back, and the
+  answer is drawn into that path. The pointer has nowhere to put a question that expensive.
 
-## The chain from a GC root is a pane, not a popover
+## The path from a GC root is a pane, not a popover
 
 Hovering used to draw the tree's containers as a grey popover following the pointer. What it said was a
 list of what the treemap already draws, in a shape that couldn't hold more, and it covered the picture.
 
-Instead the chain is drawn the way a leak trace is (`PathDrawing.kt`): the shortest way a GC root reaches
+Instead the path is drawn the way a leak trace is (`PathDrawing.kt`): the shortest way a GC root reaches
 the object, one row per object, with the steps that dominate it marked. Shortest in steps, so it's the
 plainest way the object is held; the marked steps are the rectangles it sits inside, which is what ties the
-chain to the picture.
+path to the picture.
 
-**All of it, however long.** A chain cut short answers "what holds this?" with a count of the steps that
-would have said, which is the one thing the pane exists not to do. Chains get long: 34 steps on the
+**All of it, however long.** A path cut short answers "what holds this?" with a count of the steps that
+would have said, which is the one thing the pane exists not to do. Paths get long: 34 steps on the
 production dump, and the dumps in the repo go further — 499 on `large-dump.hprof`, 1,518 on
 `compose_leak.hprof`, both of them walks down a linked structure. What that costs, measured:
 
 - **Reading one is a heap dump read per step**, 6 ms for the 499 and 12 ms for the 1,518, against a
-  hover's budget of a hundred. Cheap because the walk that finds the chain is over `ReferrerIndex` and
-  only the steps of the chain it found are read.
+  hover's budget of a hundred. Cheap because the walk that finds the path is over `ReferrerIndex` and
+  only the steps of the path it found are read.
 - **Drawing one is why the pane is a `LazyColumn`.** A `Column` with `verticalScroll` composes every row,
-  and a chain of 1,500 rows at four lines each never finished drawing at all — 60 s and still nothing on
+  and a path of 1,500 rows at four lines each never finished drawing at all — 60 s and still nothing on
   screen. Lazy, the pane composes the seven rows it has the height for, so 20 steps and 500 steps are the
-  same 200 ms from the click to the chain being there.
-- **The stretches that could have run otherwise are still asked per chain**, and a chain that long has
+  same 200 ms from the click to the path being there.
+- **The stretches that could have run otherwise are still asked per path**, and a path that long has
   almost none: the deep ones are linked lists, where every step dominates the object and so is a step the
-  chain had no choice about. One detour and 18 ms for the 499, none at all for the 1,518.
+  path had no choice about. One detour and 18 ms for the 499, none at all for the 1,518.
 
-It sits **on the far side of the view from the details panel**: chain, view, details, left to right — where
-the object came from, where it is, what it is keeping alive. A chain and the details are both tall columns,
+It sits **on the far side of the view from the details panel**: path, view, details, left to right — where
+the object came from, where it is, what it is keeping alive. A path and the details are both tall columns,
 so one pane holding both would always have one of them scrolled off, and putting them either side of the map
 makes what was clicked and how it is held one answer around the thing they are about rather than the
 window's two outer edges. Neither pane is drawn for a tab on a list: a list of objects wants the width of
 the window more than it wants either of them, and there is no one object for them to be about.
 
-**Every object of the chain is clickable, and that's how you get back out.** The ringed steps are the
+**Every object of the path is clickable, and that's how you get back out.** The ringed steps are the
 objects the one being read sits inside, so a click on one is the way back out to it — the same move as
-clicking its rectangle, since a chain step and a rectangle are both just an object to go to. A row of
+clicking its rectangle, since a path step and a rectangle are both just an object to go to. A row of
 breadcrumbs above the view used to be the way out; it went because it said a subset of what this pane says,
-in a strip that couldn't hold a class name. **The whole heap dump is the top row of every chain**, for the
-same reason: the way back to where the window opens belongs where the chain says the whole heap is, and a
-chain of the whole heap dump is that one row and nothing else.
+in a strip that couldn't hold a class name. **The whole heap dump is the top row of every path**, for the
+same reason: the way back to where the window opens belongs where the path says the whole heap is, and a
+path of the whole heap dump is that one row and nothing else.
 
 **The bar above has a button of the same name, and it is not a duplicate of that row.** The row goes to the
 whole heap dump *in this tab*, keeping the trail that led here on the back arrow; the button opens a tab on
-it, leaving this one where it is. A tab on a list has no chain pane at all, so the button is also the only
+it, leaving this one where it is. A tab on a list has no path pane at all, so the button is also the only
 one of the two available whatever a tab is showing.
 
-**The pointer's chain is drawn onto the end of the clicked one.** The rectangle under the pointer is inside
-the one the window is describing, so the chain holding it *is* this chain plus a few steps — and drawing it
-that way makes sweeping the pointer across the map read as the chain growing and shrinking, leaving the
+**The pointer's path is drawn onto the end of the clicked one.** The rectangle under the pointer is inside
+the one the window is describing, so the path holding it *is* this path plus a few steps — and drawing it
+that way makes sweeping the pointer across the map read as the path growing and shrinking, leaving the
 reader the part they were already reading. `RootPath.stepsAfter` is the difference: the steps below the
-object being described, or null when the pointer is on something that chain doesn't reach, which a click on
+object being described, or null when the pointer is on something that path doesn't reach, which a click on
 an object that dominates nothing leaves the map able to do. Then `RootPath.stepsBelow` cuts the pointer's
-own chain at the rectangle the map is showing instead, with a dotted `PathCutRow` above it saying so — how
+own path at the rectangle the map is showing instead, with a dotted `PathCutRow` above it saying so — how
 *that* rectangle is held is what going there would answer, and the pointer is not there yet.
 
 It was a floating panel over the pane before this, lifted with a shadow and a border and labelled
-`UNDER THE POINTER`, precisely so that it wouldn't read as one chain whose contents changed. Which is the
-right worry for two chains that answer different questions and the wrong shape for two that answer the same
+`UNDER THE POINTER`, precisely so that it wouldn't read as one path whose contents changed. Which is the
+right worry for two paths that answer different questions and the wrong shape for two that answer the same
 one: what holds this, from the whole heap dump down.
 
 **What the pointer adds is condensed, because the whole of it has to fit beside the map.**
 `PathDetail.BRIEF` drops the package, the address, the "instance"/"array"/"class" kind, the `Dominates ↓`
 line and the field the object above holds each step in, keeping the retained size inline on the class name —
-so it reads as a column of class names. `PathDetail.FULL`, the part of the chain that was clicked, keeps all
+so it reads as a column of class names. `PathDetail.FULL`, the part of the path that was clicked, keeps all
 of them. Which field holds what is the question a reader has once they've stopped somewhere, and the
 gutter's arrow already says that each step holds the next.
 
-**The pane is scrolled to the bottom of the chain**, every time the chain grows, which is also every
+**The pane is scrolled to the bottom of the path**, every time the path grows, which is also every
 rectangle the pointer moves onto. The end of it is the object the window is describing and the steps just
-above it are how it is held; a pane scrolled to the top of a chain a dozen objects long is showing the least
+above it are how it is held; a pane scrolled to the top of a path a dozen objects long is showing the least
 interesting of it.
 
-## A stretch of a chain that could have run some other way
+## A stretch of a path that could have run some other way
 
 Every path from a GC root to an object goes through every one of its dominators, so a run of steps *between*
-two dominators is a run the chain didn't have to take: if it had, those steps would dominate the object too
+two dominators is a run the path didn't have to take: if it had, those steps would dominate the object too
 and be marked. That is exactly where "held how else?" has an answer, and where the reader can be shown one
-— `RootPathDetour`, and `RootPath.detours()` which cuts a chain into them.
+— `RootPathDetour`, and `RootPath.detours()` which cuts a path into them.
 
 So the answer is drawn **inline, under the step the stretch hangs below**: `N of M ways from here`, with an
-arrow either side that switches which of them the chain runs through. `RootPath.drawnWith` does the
+arrow either side that switches which of them the path runs through. `RootPath.drawnWith` does the
 substitution in core rather than in the drawing, so that what is on screen is always one flat list of steps
-— a chain drawn from its own steps plus a set of replacements is a chain whose rows and whose connecting
+— a path drawn from its own steps plus a set of replacements is a path whose rows and whose connecting
 lines are worked out separately, and they have to agree.
 
 This replaced a screen of its own, reached from a "N paths from the dominator" button in the details panel,
 which drew every way an object is held side by side the full width of the window. Two problems with that:
-it answered the question somewhere other than where the question is asked — the chain — and it made every
-way its own chain from a GC root, most of which is the part they all share. A stretch is the part in doubt.
+it answered the question somewhere other than where the question is asked — the path — and it made every
+way its own path from a GC root, most of which is the part they all share. A stretch is the part in doubt.
 
 Each stretch is searched separately, `independentPathsBetween` for one below an object and
-`independentPathsFromRoots` for one running off the top of a chain, where what holds it is a GC root rather
-than an object. Both are asked once per click, after the chain arrives, because the chain is what says where
+`independentPathsFromRoots` for one running off the top of a path, where what holds it is a GC root rather
+than an object. Both are asked once per click, after the path arrives, because the path is what says where
 the stretches are.
 
 ## The leaks are Shark Dive's own paths, not a leak trace
@@ -480,8 +480,8 @@ The `Leaks` screen finds the objects that shouldn't be in memory the two ways Sh
 `KeyedWeakReference`s LeakCanary left behind (`WatchedObjects`), and a pass over every instance with
 `AndroidObjectInspectors.appLeakingObjectFilters` — and then answers everything else about them **with the
 same code the rest of the window uses**: `HeapDominatorTreemap.rootPathTo`, the function that draws the
-chain beside the map. No path here comes from `RealLeakTracerFactory` or the shortest path finder — though
-what a leak is *called* does, since the chain is handed to a `LeakTrace` to be hashed, see below.
+path beside the map. No path here comes from `RealLeakTracerFactory` or the shortest path finder — though
+what a leak is *called* does, since the path is handed to a `LeakTrace` to be hashed, see below.
 
 Two reasons, and the second is the one that decided it.
 
@@ -506,7 +506,7 @@ leaks retain almost nothing the map is then all grey — `unloaded_classes-strip
 332,905 — and on one where they retain something it opens with the leak drawn as a red block.
 
 **A leak is a reference, not a class**, and what groups the app's own leaks is the leak fingerprint
-LeakCanary prints under one — `LeakTrace.leakFingerprint`, a SHA-1 of the suspect stretch of the chain,
+LeakCanary prints under one — `LeakTrace.leakFingerprint`, a SHA-1 of the suspect stretch of the path,
 from the last object known to still be needed down to the first one that shouldn't be there. Three things
 it deliberately leaves out. **The class of what leaked**, because two objects reached through one bad
 reference are one thing to fix whatever they are. **Everything below the first leaking object**, because
@@ -514,22 +514,22 @@ that is what the leak is *holding* rather than why — an activity and a bitmap 
 the same leak. **Which slot of an array an object landed in**, because that changes between two dumps of the
 same app and a leak has to be the same leak in both.
 
-It is computed by handing the chain to Shark rather than by applying that rule again here (`LeakFingerprint`
-builds the `LeakTrace` the chain amounts to and reads its hash), because a leak fingerprint is only worth
+It is computed by handing the path to Shark rather than by applying that rule again here (`LeakFingerprint`
+builds the `LeakTrace` the path amounts to and reads its hash), because a leak fingerprint is only worth
 printing if it is the same string as the one in a LeakCanary report of the same leak, and the rule for which
 references count is subtle enough that writing it twice means finding out later that the two differ. That
 was not a guess: this screen grouped by a rule of its own first, and it took four rounds of comparing
 against LeakCanary to find every way the two differed. Library leaks are hashed the way `LibraryLeak` hashes
 one, off the pattern they were recognized by. What the row is *named* after is still spelled here — the
 first reference of the suspect stretch, `Holder.activity`, by the class declaring the field so that the name
-is a string that is also on the chain drawn for it, where the leak fingerprint uses the class of the object.
+is a string that is also on the path drawn for it, where the leak fingerprint uses the class of the object.
 Which is why the name is no substitute for the leak fingerprint and both are on the row.
 
 **The row is named after both ends of that stretch**, in one line: `MortarScope.tearDowns → … →
 QueueService.f$0`, and just `Holder.activity` when the two ends are the same reference, which is most
 leaks. The first end is the reference that shouldn't be holding — **which is what LeakCanary calls a leak**,
 `ApplicationLeak.shortDescription` being `suspectReferenceSubpath.first()` — and the last is the one that
-points straight at what leaked, which is where to look on the chain to see it.
+points straight at what leaked, which is where to look on the path to see it.
 
 One line rather than two, because a second line that repeats the first whenever the stretch is one
 reference reads as the row having two names. Both ends because either alone leaves rows that can't be told
@@ -551,7 +551,7 @@ is true of all of them: the references, the hash of them, how many objects and w
 **A leak that can only be reached through another leak is dropped from the list**
 (`foldedIntoWhatHoldsThem`). A leaked activity holds a leaked window which holds a leaked view tree, and
 every one of those is an object an inspector recognizes, and there is one thing to fix. Nothing is lost by
-it: they are all still on the map, shaded as leaking, and opening one draws a chain that runs through the
+it: they are all still on the map, shaded as leaking, and opening one draws a path that runs through the
 leak it went under.
 
 **Only reached through, rather than "some other leak dominates it"**, which is what this used to ask. A
@@ -562,11 +562,11 @@ it to add. `HeapLeaksTest` has that heap dump: a window two destroyed activities
 them dominates, since letting go of one leaves the other holding it.
 
 It costs no second walk. `rootPathSearch` puts a leaking referrer in its last-resort queue (the third tier
-below), so the chain it comes back with runs through another leak only when every chain does — the question
-is answered by the chain the row already leads to. Which also makes a folded leak one whose own chain says,
+below), so the path it comes back with runs through another leak only when every path does — the question
+is answered by the path the row already leads to. Which also makes a folded leak one whose own path says,
 on it, which leak holds it and why. Measured over the ten real dumps here, the two rules are
 indistinguishable: same leaks, same leak fingerprints, same object counts on all ten. It is the tier that
-made them agree — before it, the chain rule listed three objects on `compose_leak` where dominance listed
+made them agree — before it, the path rule listed three objects on `compose_leak` where dominance listed
 six.
 
 **The leaks are checked against LeakCanary's own analysis of the same heap dump, by leak fingerprint.**
@@ -576,7 +576,7 @@ the retained-since-the-last-dump one — against this screen. `LeakFingerprintTe
 synthetic dumps, one per difference that used to break it; the sweep over the ten real Android dumps in
 this repo is worth re-running by hand after touching any of this, and it stands at **8 of the 10 dumps
 agreeing exactly, 13 of the 15 leaks**. It is what found everything on this page: the counts alone matched
-three rounds before the leak fingerprints did, because two chains can be different and the same length.
+three rounds before the leak fingerprints did, because two paths can be different and the same length.
 
 **Two dumps still differ, and neither is a tie-break nobody can explain.**
 
@@ -587,11 +587,11 @@ order Shark's `HashSet` reader reads the table, and the first of them claims the
 `ActivityDelegateNotifier`, third in the table. **Shark Dive walks up**, and `ReferrerIndex` yields the
 referrers of an object highest object index first, so of the two it reaches the one further down the heap
 dump: `DemoRootWithGatekeepersWorkflowProvider`, object index 31516 against 31263. Everything else about the
-two ten-step chains is identical. Bucket order isn't stable across two dumps of one app either, so neither
+two ten-step paths is identical. Bucket order isn't stable across two dumps of one app either, so neither
 answer is the right one — but a walk up cannot see a walk down's order, and the only way to break it the
 same way is to walk down: one prioritized BFS from the GC roots at open time, filling a parent-per-object
-array that every chain is then read out of. Every tie would then break the way a leak trace breaks it, since
-it would be the same walk in the same direction, and a chain becomes a pointer chase up the array rather
+array that every path is then read out of. Every tie would then break the way a leak trace breaks it, since
+it would be the same walk in the same direction, and a path becomes a pointer chase up the array rather
 than a search per hover. **It is no longer the cheaper of the two, though** — an int per object against the
 three to six bytes an object `ReferrerIndex` now holds (`referrer-index.md`), where the linked list it used
 to be was three times that. What it isn't is a tie-break: it is a second traversal at open time, reading
@@ -610,7 +610,7 @@ the leaking `BrowserFragment`, and the layout is above nothing. This dump used t
 from a tie broken by a rule rather than by an order. Below `BrowserToolbarView` there are two
 four-step ways to the fragment: `container → CoordinatorLayout → SparseArray → Object[] →` it, and
 `interactor → BrowserInteractor → DefaultBrowserToolbarController → lambda →` it. Shark Dive took the
-first, so the fragment's chain ran through a leaking object, and a suspect stretch stops at the first
+first, so the fragment's path ran through a leaking object, and a suspect stretch stops at the first
 leaking object — so the fragment hashed to the layout's leak fingerprint and joined its group. LeakCanary
 can't take that way at all, because **its phase 1 treats a leaking object as a leaf**.
 
@@ -618,7 +618,7 @@ can't take that way at all, because **its phase 1 treats a leaking object as a l
 
 - The suspect stretch ran past the first leaking object, and kept array indices, and named a reference by
   the class declaring the field rather than the class of the object. Three ways of grouping too finely.
-- The fold looked at the steps a chain drew, then cut at twenty, rather than all of it, so a leak held by
+- The fold looked at the steps a path drew, then cut at twenty, rather than all of it, so a leak held by
   another one far above it stayed on the list.
 - **Collections were read the way they are built.** `ArrayList.elementData → Object[] → [3]` where a leak
   trace says `ArrayList[x]`, and worse for a `HashMap`. `DataStructureReferenceReader` adds Shark's own
@@ -632,57 +632,57 @@ can't take that way at all, because **its phase 1 treats a leaking object as a l
   stack frame, a known library leak and the arrays ART hangs off a class exactly as
   `PrioritizingShortestPathFinder` does, read in the other direction, and `ReferrerIndex` carries
   `Reference.isLowPriority` in a bit beside each referrer to answer it.
-- **A reference into an object that shouldn't be in memory wasn't put off**, so a chain took it where there
+- **A reference into an object that shouldn't be in memory wasn't put off**, so a path took it where there
   was a way round, and the object it led to hashed to the leak fingerprint of the leak on the way. That is
   a queue of its own in `RootPathSearch`, walked after the plain one for the same reason a stack frame is:
   a path through a dead object explains what holds an object about as well as a running method does. Where
-  every way is a leak the chain still runs through one, which is what the fold above then drops. It reads as
+  every way is a leak the path still runs through one, which is what the fold above then drops. It reads as
   a different rule in LeakCanary — its phase 1 makes a leaking object a leaf, so the way round is the only
   path it can find at all — and breaks the same ties the same way.
 
-  **It costs the pass that finds those objects, moved earlier**: they are needed before the first chain
+  **It costs the pass that finds those objects, moved earlier**: they are needed before the first path
   rather than when the Leaks screen is opened, which on the 38 MB dump is 296 ms once, paid by the first
-  chain (963 ms against 627 ms) and by nothing after it. Two thousand chains take 1381 ms with the tier and
+  path (963 ms against 627 ms) and by nothing after it. Two thousand paths take 1381 ms with the tier and
   1348 ms without, which is noise — the extra tier is one array read per referrer.
 
 - **The two put-off kinds shared one queue, so between them the shorter way won**, and the shorter way to
   nearly anything is a stack frame. Measured on `leak_asynctask_o.hprof`, marking `SerialExecutor$1`
-  `Expected` and `AsyncTask$3` `Stuck` — the two verdicts that make the chain name the faulty reference —
+  `Expected` and `AsyncTask$3` `Stuck` — the two verdicts that make the path name the faulty reference —
   turned `AsyncTask.SERIAL_EXECUTOR → SerialExecutor$1 → AsyncTask$3 → MainActivity$2 → MainActivity` into
   `Thread → <local variable> → MainActivity$2 → MainActivity`, the frame being two steps from the activity
-  where the executor is six. That chain has no `Expected` step on it, so nothing crosses to `Stuck` and no
+  where the executor is six. That path has no `Expected` step on it, so nothing crosses to `Stuck` and no
   reference is marked: the verdicts that identify the leak were what hid it. So the two kinds are now two
   queues, a leak above a low priority reference, because **a leak is an answer and a stack frame is not** —
   an object marked `Stuck` is a reader saying this is the thing to fix, and a frame answers "what holds
   this" with "a method is running".
 
   Costs one more int array the size of the dump, five in `RootPathSearch` now, and a `maxOf` per referrer.
-  A/B on the 38 MB dump, same sample and same JVM settings minutes apart: the 2000 chains to its 2000
+  A/B on the 38 MB dump, same sample and same JVM settings minutes apart: the 2000 paths to its 2000
   largest objects, 1,713,405 steps and identical before and after, in 14.8–15.2 s ranked against 15.0–15.8 s
-  unranked. Reading the steps out of the dump dominates that number — 857 steps a chain here — so read it as
+  unranked. Reading the steps out of the dump dominates that number — 857 steps a path here — so read it as
   "no measurable cost" rather than as a measurement of the walk. The sweep below was re-run either side of
   it and gives the same leak fingerprints on all ten dumps.
 
   **What made it hard to see from the window is that nothing else offered the executor route.** The ways a
   detour could have run are node-disjoint paths (`independentPathsFromRoots`), and the executor route
   reaches `MainActivity$2` through `AsyncTask$3`, which the frame route already took — so it is not
-  independent of one and never reported as an alternative. It was on screen only because the chain itself
+  independent of one and never reported as an alternative. It was on screen only because the path itself
   ran through it.
 
 **Shark's library leak matchers are added to the reference reader the tree is built from**
 (`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would
 drop references, and every object has to stay a node of the tree exactly once. A `LibraryLeakReferenceMatcher`
 sets `Reference.isLowPriority` and `LazyDetails.matchedLibraryLeak` and nothing else, so the tree is the
-same tree with the known leaks of it named, and the first of the two is what keeps a chain off a known
+same tree with the known leaks of it named, and the first of the two is what keeps a path off a known
 leaking reference while there is another way to the object.
 
 **A leaking object's status is on every path, not only on the ones that turn out to be leaks.** Every step
-of every chain carries a `LeakStatus`, worked out by `leakStatusesOf` from what the inspectors said about
+of every path carries a `LeakStatus`, worked out by `leakStatusesOf` from what the inspectors said about
 the objects above and below it — Shark's own rule, minus the one that forces the last object of a leak
 trace to be leaking, because a path here ends wherever the reader clicked. Green behind an object meant to
 be alive, red behind one meant to be gone, and the reason in words underneath.
 
-**The boxes above a view colour that view and nothing else.** A swatch beside an object — a step of a chain,
+**The boxes above a view colour that view and nothing else.** A swatch beside an object — a step of a path,
 a row of a list, the details panel, the card at the pointer — is `objectStrengthColor`, off the strength
 alone, while `legendColor` greys what the boxes have switched off. Greying a strength is a way of reading the
 picture the view draws, and a line naming one object is not that picture: greyed there it would read as
@@ -695,7 +695,7 @@ is the whole rule, and cells arrive parent before child, so `CellColors.of` prop
 the cells it was already given. The one thing that pass can't know is whether the node the view is *rooted*
 at is itself below a leak, which is one small read — `isBelowLeakingObject` — per view. There is no colour
 for the objects that are meant to be alive: a treemap draws what retains what, and most of a heap dump is
-objects nothing knows either way about. The chain says which is which, object by object.
+objects nothing knows either way about. The path says which is which, object by object.
 
 Finding the leaks is a pass over every instance plus a walk up to the GC roots per object found, so it runs
 once per heap dump, behind a screen someone asked for, and is capped at the largest
@@ -705,7 +705,7 @@ once per heap dump, behind a screen someone asked for, and is capped at the larg
 
 Every surface that names an object uses `ObjectIdentity` — the class, then the class in full greyed under it,
 then its address — because they are all answering the same question, and a reader who has learnt to skip the
-grey lines on one should not have to learn where they are again on the next. A step of a chain, the card at
+grey lines on one should not have to learn where they are again on the next. A step of a path, the card at
 the pointer, the bar above the map, a row of the object list, a row of the starred list, a leaking object on
 the leaks screen. The package on its own line is also what keeps a row from wrapping in a pane 300 dp wide.
 
@@ -726,7 +726,7 @@ an address being readable where a link, a note or an agent's answer put one.
 
 **Which object it is lives above the map, not in the details panel.** It is a different question from the
 rest of that panel — which object, as against what that object holds — and it is what the tab strip and the
-chain are both about, so it belongs between them. So the panel names no object of its own: it starts with
+path are both about, so it belongs between them. So the panel names no object of its own: it starts with
 the star and the numbers.
 
 **And it is set in a title there**, `nameStyle` being how `ObjectIdentity` takes a style it doesn't pick
@@ -785,7 +785,7 @@ this codebase's rather than anybody else's.
 **Between the row that says where the tab is and the panes that read it**, because a note is about the whole
 of what the tab is showing: under the title it is about, above everything that describes it. At the foot of
 the window it read as a note on whichever pane happened to be above it, which is a note about the details
-panel or about the chain rather than about the object.
+panel or about the path rather than about the object.
 
 **Filed under what the tab is about, not under the tab.** `Place.noteKey()` is the whole of that distinction.
 A place carries the state of its screen as well as its subject — what the object list is filtered to, which
@@ -975,8 +975,8 @@ file to, so a new window is in front already.
 
 ## A leaking status is the heap dump's answer until a hand overrules it
 
-Every chain already carried a `LeakStatus` per object, worked out by Shark's inspectors and then propagated
-along the chain — everything above an object still needed is still needed, everything a leaking object holds
+Every path already carried a `LeakStatus` per object, worked out by Shark's inspectors and then propagated
+along the path — everything above an object still needed is still needed, everything a leaking object holds
 is leaking. Two things were added to that: the status of the object a tab is *on*, said in the panel that
 says what the object is, and the ability to overrule it.
 
@@ -984,10 +984,10 @@ says what the object is, and the ability to overrule it.
 first, beside the note button, and that was the wrong pane: the title row is about the tab, and this is a
 conclusion about the object — the panel below it holds the evidence the conclusion was drawn from, so the
 answer belongs at the head of that column rather than in a row of its own. Above the bitmap preview too, so
-that a screenshot several hundred pixels tall can't push it out of the panel. In the colours the chain beside
+that a screenshot several hundred pixels tall can't push it out of the panel. In the colours the path beside
 it uses (`LeakStatus.background` and `textColor` are shared with `PathDrawing` rather than copied), because
 it is the same answer read in one place instead of a dozen — a reader who has learnt the green and the red on
-a chain reads them here for free.
+a path reads them here for free.
 
 **Under a header, because the panel labels every line**: `Verdict`, one word like the `Retained` and
 `Shallow` beside it. It is the one line of the panel that is a judgement rather than a measurement, which is
@@ -1014,9 +1014,9 @@ culprit edge comes from, and YourKit defines a leak as objects "not needed anymo
 application logic".
 
 Two attempts came before this one. `Shouldn't be here` / `Meant to be here` was rejected on sight —
-**a verdict is a label, not a sentence**, since it is read a dozen times down one chain. `Leaked` / `Needed`
-was rejected for the misdirection above. One `LeakStatus.statusText` is where the words live, so the chain,
-the panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a chain
+**a verdict is a label, not a sentence**, since it is read a dozen times down one path. `Leaked` / `Needed`
+was rejected for the misdirection above. One `LeakStatus.statusText` is where the words live, so the path,
+the panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a path
 (`Activity↓ is expected`, `Activity↑ is stuck`) all say the same thing. The identifiers didn't move:
 `LeakStatus`, `LEAKING`, `leakStatusesOf` stay Shark's names, because the code is where matching
 `shark.LeakTraceObject.LeakingStatus` matters.
@@ -1029,16 +1029,16 @@ window.
 
 **"Faulty reference" is the name for the culprit**, the reference between the last `Expected` object and the
 first `Stuck` one, which is what `LeakGroup.suspectPath` starts at and what the leaks screen names each row
-after. **And the chain marks it**: `Holder.activity · faulty reference`, bold, in the red of the objects it
+after. **And the path marks it**: `Holder.activity · faulty reference`, bold, in the red of the objects it
 left behind, which is the change that actually puts a reader's eye on the reference rather than on the
 objects. `PathReference.isFaulty`, worked out in `withLeakStatuses`, and `suspectSubpath` names the leaks
-screen's rows off the same statuses — so where a leak is a single reference, a row there and the chain opened
+screen's rows off the same statuses — so where a leak is a single reference, a row there and the path opened
 from it name one thing.
 
 **Only a single step between the two verdicts is marked.** `faultyReferenceIndexOrNull` asks for an `Expected`
 object with a `Stuck` one directly under it, and marks nothing otherwise. The first attempt marked the top of
 the suspect stretch instead, the way LeakCanary underlines all of it, and it was wrong in the case that
-matters: a chain of `Cleaner`s with no verdict on any object of it had its top reference marked, which is a
+matters: a path of `Cleaner`s with no verdict on any object of it had its top reference marked, which is a
 reference named for being where the walk started rather than for anything read off the heap dump. Two shapes
 make the stretch longer than a step and neither supports a mark — objects nothing knows either way about in
 between, where the fault is at one of those steps and nothing says which; and nothing `Expected` above the
@@ -1054,15 +1054,15 @@ four being the usual shape. That is the number to weigh if the rule is ever loos
 top of the stretch would put a bold red line on all twelve, and ten of them would be pointing at a reference
 picked for being highest rather than for being wrong.
 
-**Nothing is marked on a chain with nothing stuck on it**, which is most chains in a heap dump. A leak is a
+**Nothing is marked on a path with nothing stuck on it**, which is most paths in a heap dump. A leak is a
 reference the evidence points at, and there is no evidence until something below it is known not to belong.
 
 **A pencil, left of the status, rather than a "Set by hand…" button.** It is what changes the answer, so it
 belongs where the eye already is, and a text button pushed the reason onto a second line of a 320dp panel.
 Disabled until the statuses have been read off disk, which is the same rule the button had.
 
-**From the last step of the chain when there is one**, and from the object's own reading until the walk up to
-the GC roots lands, since the chain's answer is the one with the objects above and below taken into account.
+**From the last step of the path when there is one**, and from the object's own reading until the walk up to
+the GC roots lands, since the path's answer is the one with the objects above and below taken into account.
 So the panel can say `Unknown` for a beat and then say `Stuck` — the panes filling in, not the window
 changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no
 object of it, and there is nothing to inspect or decide about.
@@ -1070,7 +1070,7 @@ object of it, and there is nothing to inspect or decide about.
 **Loud for the two statuses that mean something, quiet for the third.** Most of a heap dump is objects
 nothing knows either way about, so a shaded, bold `Unknown` on every object would be a line nobody reads by
 the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
-`TARGET_SHAPE`, the shape the chain marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
+`TARGET_SHAPE`, the shape the path marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
 status it is doesn't rest on colour alone.
 
 **Overriding always wins**, which is the one place this differs from how two inspectors disagreeing is
@@ -1086,23 +1086,23 @@ an assertion the next reader — a colleague, an agent, the same person in a mon
 one of those makes every other status in the dump worth less. `SET_BY_HAND` marks the reason wherever it is
 read, so a green object somebody decided about is never mistaken for one an inspector recognized.
 
-**A status set by hand is an argument to every read, not state of the tree.** The statuses of a chain are
+**A status set by hand is an argument to every read, not state of the tree.** The statuses of a path are
 worked out on every read of it, so `summarize`, `rootPathTo`, `independentPathsBetween`,
 `independentPathsFromRoots`, `findLeaks` and `isBelowLeakingObject` all take a `LeakStatusOverrides`, and the
 window's `LaunchedEffect`s are keyed on it — which is why that class has value equality. **A value rather
 than state on the tree**, because the tree is read from one thread while the window is composed on another:
-overrides living in the tree would mean a chain drawn from one set of them and the row above it from another,
+overrides living in the tree would mean a path drawn from one set of them and the row above it from another,
 with no way to tell. The cost of that choice is that a new question about a path has to take the parameter or
 it silently answers with the dump's own reading, which looks right.
 
-**The list of leaks is read through them too, which is the part that is easy to get wrong.** A chain is only
-redrawn; the leaks are a *different list*. Mark an object leaking halfway up a chain and it becomes a leak,
+**The list of leaks is read through them too, which is the part that is easy to get wrong.** A path is only
+redrawn; the leaks are a *different list*. Mark an object leaking halfway up a path and it becomes a leak,
 and whatever it was holding drops off — that object is now only in memory because of this one, which is the
 rule `foldedIntoWhatHoldsThem` already applied to what the inspectors found. Mark an object the inspectors
 recognized as still needed and it leaves the list entirely, and what it was holding can become a leak of its
 own. So the candidate set is the dump's own minus everything set to anything but `LEAKING` plus everything
 set to it, `RootPathSearch` goes round what a hand marked exactly as it goes round what the inspectors did —
-otherwise a leak would be grouped by a chain that disagrees with the statuses drawn on it — and the answer is
+otherwise a leak would be grouped by a path that disagrees with the statuses drawn on it — and the answer is
 worked out per set of statuses and kept until the next one, since a status is set by hand and this is
 seconds. The window asks again by keying that `LaunchedEffect` on the overrides like the rest.
 
@@ -1127,9 +1127,9 @@ who can weigh the two.
   `FutureTask.runner`, that thread's frame holds the runnable the executor wrapped the task in, and that
   runnable holds the task. Asking `reaches` one way round there answers yes whichever pair and whichever
   direction, so the first version reported the canonical case as a conflict and named the two objects the
-  wrong way round in it. Neither object on a loop is above the other — which one a chain shows first is
-  decided by where the chain enters the loop — so `isAbove` asks both directions and a loop is no conflict.
-  The chain still says so wherever it does put one above the other, which is a reason reading
+  wrong way round in it. Neither object on a loop is above the other — which one a path shows first is
+  decided by where the path enters the loop — so `isAbove` asks both directions and a loop is no conflict.
+  The path still says so wherever it does put one above the other, which is a reason reading
   `Conflicts with`.
 - **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
   `EXPECTED` propagates upwards only and `STUCK` downwards only, so the pair that can disagree is
@@ -1138,7 +1138,7 @@ who can weigh the two.
   status it was, what it said, and that this is why it changed.
 - **A status of `UNKNOWN` set by hand conflicts with nothing.** Nobody claiming to know overrules nobody, so
   it is never one of the statuses a new one has to be settled against — though it can still be overruled by
-  the chain, and the reason then records what it was.
+  the path, and the reason then records what it was.
 - **Nothing is written until the choice is made**, which is what makes "Undo" free, and the write is one
   `LeakStatusFile.write` of the lot rather than one per status: a save that stopped half way through would
   leave a heap dump whose statuses contradict each other, which is the one state this step exists to
@@ -1176,10 +1176,44 @@ heap dump whose other statuses have gone. Addresses are written with `exactHexOb
 since the latter gives up exactly what a file can't.
 
 **Nothing is applied that wasn't written**, which is also the opposite of the notes beside it: a status only
-this process knows about is a chain explained by a reason that will be gone next run. And nothing is saved
+this process knows about is a path explained by a reason that will be gone next run. And nothing is saved
 before the file has been read — an empty set of statuses, written out because the disk was slow, is every
 status of that heap dump deleted — which is what the disabled button and the check in
 `HeapDumpLeakStatuses.save` are both for.
+
+## An investigation ends when the heap dump names a reference, not when somebody declares one
+
+**There was a `conclude` command and it is gone, 2026-10-03.** It took the faulty reference as an argument
+and refused until the verdicts on the path left exactly one candidate, which read as the one refusal worth
+having: an agent two candidates from an answer could not report a root cause however confident it was. The
+argument against it is short. **The reference it checked was one it had already handed over** — a path
+answers with `faultyReference` the moment the verdicts narrow to one, and the refusal before that *listed*
+the candidates — so what the check compared was the tool's own derivation against a copy of it. An eval that
+scored that column was scoring transcription, and no arrangement of refusals would have changed what it
+measured.
+
+So the job was restated: **an agent settles the state of the objects it can settle, and Shark Dive says when
+one reference is left.** `RootPath.isLeakSolved()` is that fact, `leakSolvingProgress()` is how far off it
+is, and both are read off the verdicts rather than claimed by anybody. What replaced the refusal is the
+answer carrying the distance: `set_verdict` takes `solvingLeakOf`, names the stuck object the verdict is in
+service of, and answers with the candidate count and the progress on both sides of the verdict — so a verdict
+that ruled nothing out and a verdict that halved the search read differently, which is what the single number
+afterwards could not say. See `shark-dive-agent/AGENTS.md`.
+
+**Three things follow that are worth not relearning.**
+
+- **A number instead of the candidates is the old mistake, not the new one.** The count is on the answer
+  beside `suspectReferences` and the undecided objects, never instead of them: "two references left" says
+  nothing about which two or which object settles them. What the count buys is a direction, and it only works
+  because the list is there too.
+- **A verdict in service of a leak has to be about a leak.** `solvingLeakOf` is refused for an object this
+  dump reads as `Expected` or knows nothing about, before anything is recorded, because a path with no stuck
+  object at the end has no fault on it to narrow — every number the answer carried about it would be about
+  nothing, and a progress of 0 that never moves reads exactly like a verdict that achieved nothing.
+- **Nothing was lost that the window didn't already have.** What `conclude` wrote down was a note on the
+  object and a tab on screen, which are `take_note` and `show`, and the one field it left behind that nobody
+  else could — the derived reference, for the *Agent logs* screen and the eval — now comes off the answer of
+  the two calls that can carry one. `notes/agent-eval.md` has the scoring side.
 
 ## Testing split
 
@@ -1189,10 +1223,10 @@ gain over the Android app's treemap, which can only be exercised on a device.
 Because the treemap renders into one `Canvas`, UI tests cannot address individual rectangles. The
 split that follows: layout, the adaptive-depth budget and hit testing are pure functions in `core`
 with thorough unit tests; UI tests cover the wiring by clicking coordinates and asserting on the panes
-either side of the view — the chain of objects holding what the map is on, and the details panel.
+either side of the view — the path of objects holding what the map is on, and the details panel.
 
 **A clickable identity block is one semantics node**, since `Modifier.clickable` merges its descendants, so
-`onNodeWithText("com.example.Holder")` finds a whole step of a chain by any one of its three lines while the
+`onNodeWithText("com.example.Holder")` finds a whole step of a path by any one of its three lines while the
 same text in the bar above the map is a node of its own. Which is why several assertions here count nodes
 rather than fetching one: the same object named in two places is two matches, and that is the window being
 consistent rather than a test being loose.

@@ -35,7 +35,7 @@ data class LeakStatusOverride(
  *
  * A value rather than something the heap dump's tree holds, and passed into every question whose answer it
  * changes, because a tree is read from one thread while the window is composed on another: overrides that
- * lived in the tree would mean a chain drawn from one set of them and the row above it from another. As a
+ * lived in the tree would mean a path drawn from one set of them and the row above it from another. As a
  * value, whatever asked has the answer to what it asked.
  *
  * Two of these are equal when they hold the same statuses, which is what lets a Compose effect be keyed on
@@ -88,7 +88,7 @@ class LeakStatusOverrides private constructor(private val byObjectId: Map<Long, 
  * question about how the two objects are held rather than about either of them: everything a leaking object
  * holds is leaking, and everything holding an object that is still needed is still needed. So a leaking
  * object above and an object that is not leaking below are two statuses that cannot both be read off the
- * chain running through them, whichever of them a hand set. Above and below in the sense of [isAbove], which
+ * path running through them, whichever of them a hand set. Above and below in the sense of [isAbove], which
  * is not every pair one of which reaches the other. See [leakStatusConflictsWith].
  */
 class LeakStatusConflict(
@@ -170,9 +170,9 @@ fun HeapDominatorTreemap.leakStatusConflictsWith(
  * a conflict worked out from one direction of it is a conflict reported with whichever direction was asked
  * first, which reads back to whoever set the status as the two objects the wrong way round.
  *
- * Neither of two objects on a loop is above the other. Which of them a chain shows first is decided by where
- * that chain enters the loop, so the graph doesn't order them and a conflict between them would be one of two
- * answers with nothing to pick between them. Nothing is lost by not reporting it: a chain that does put one
+ * Neither of two objects on a loop is above the other. Which of them a path shows first is decided by where
+ * that path enters the loop, so the graph doesn't order them and a conflict between them would be one of two
+ * answers with nothing to pick between them. Nothing is lost by not reporting it: a path that does put one
  * above the other still records the disagreement, which is a reason reading `Conflicts with`.
  */
 private fun HeapDominatorTreemap.isAbove(

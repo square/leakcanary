@@ -134,7 +134,7 @@ private fun TabView(
           // Middle clicking a tab closes it, which is the other half of middle clicking opening one.
           .onClick(matcher = PointerMatcher.mouse(PointerButton.Tertiary)) { onClose() }
           // Selectable rather than clickable, because a strip of these is a set with one of them on: it
-          // is also what tells a tab apart from the button and the chain row that lead to the same place.
+          // is also what tells a tab apart from the button and the path row that lead to the same place.
           .selectable(selected = isSelected, role = Role.Tab) { onSelect() }
           .padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp)
           .widthIn(max = MAX_TAB_WIDTH),

@@ -10,7 +10,7 @@ package shark.dive
  * doesn't depend on how it is drawn.
  *
  * Bounded in both directions because the root of a production heap dump has six figures of children and a
- * chain of single dominators runs to hundreds of levels. What was left out is counted rather than dropped
+ * path of single dominators runs to hundreds of levels. What was left out is counted rather than dropped
  * silently — [childCount] against the children handed back — so that a reader can tell "this is all of it"
  * from "this is the top of it".
  */
@@ -80,7 +80,7 @@ fun HeapDominatorTreemap.outlineOf(
  * Three levels, which is what says where the memory is without saying what holds what.
  *
  * The top of a heap dump is a handful of classes; the level under it is the objects of one; the level under
- * that is the first thing that is somebody's own code. Deeper than that is a chain to walk with a chain, not
+ * that is the first thing that is somebody's own code. Deeper than that is a path to walk with a path, not
  * an outline to read.
  */
 const val DEFAULT_OUTLINE_DEPTH = 3

@@ -52,9 +52,9 @@ class StackViewTest {
 
   /**
    * A tree deeper than the view is tall, which is what a stack is for and the one thing it has to scroll
-   * to show: a chain of single dominators is full width at every level, so nothing else stops it growing.
+   * to show: a path of single dominators is full width at every level, so nothing else stops it growing.
    */
-  private val deeperThanTheView = chain(length = 40)
+  private val deeperThanTheView = path(length = 40)
 
   @Test fun `clicking a block reports it`() {
     runComposeUiTest {
@@ -222,8 +222,8 @@ class StackViewTest {
     }
   }
 
-  /** A tree that is one chain of single dominators, [length] of them below the root. */
-  private fun chain(length: Int): TreemapTree<Long> = object : TreemapTree<Long> {
+  /** A tree that is one path of single dominators, [length] of them below the root. */
+  private fun path(length: Int): TreemapTree<Long> = object : TreemapTree<Long> {
     override val root = ROOT
     override fun weight(node: Long) = 100L
     override fun children(node: Long) =

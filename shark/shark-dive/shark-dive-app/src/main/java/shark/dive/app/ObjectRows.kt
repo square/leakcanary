@@ -82,7 +82,7 @@ internal fun ObjectRow(
     ) {
       Box(Modifier.size(SWATCH_SIZE).background(objectStrengthColor(entry.strength)))
       Column(Modifier.weight(1f)) {
-        // The same lines the chain, the card at the pointer and the bar above the map name an object
+        // The same lines the path, the card at the pointer and the bar above the map name an object
         // with, address included: a row of a list is asking the same question as any of those, and a
         // reader who has an address in a note or a link has to be able to find it in a list.
         ObjectIdentity(

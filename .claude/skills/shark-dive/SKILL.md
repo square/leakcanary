@@ -17,8 +17,7 @@ ls -d /Applications/"Shark Dive.app" ~/Applications/"Shark Dive.app" 2>/dev/null
 ```
 
 `--help` is every command with a line each, `--help <command>` is one of them in full,
-`--investigation-help` is how to work on this surface, and `--leak-investigation-help` is how to find a faulty
-reference.
+`--investigation-help` is how to work on this surface, and `--leak-investigation-help` is how to solve a leak.
 
 **Read those four rather than a file like this one.** They are text the build carries, so they describe the
 commands that exist rather than the ones that existed when something was written down — which is why this

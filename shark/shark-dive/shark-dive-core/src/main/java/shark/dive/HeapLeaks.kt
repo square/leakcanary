@@ -8,7 +8,7 @@ import java.security.MessageDigest
  *
  * The same answer LeakCanary's analysis gives, computed here instead so that every row keeps the object id
  * it came from: a leak trace names classes, and a screen you can click through has to name objects. Which
- * is also why there is no leak trace here — the chain the object view already draws is one, so a leak
+ * is also why there is no leak trace here — the path the object view already draws is one, so a leak
  * is a list of objects to open and Shark Dive does the rest.
  */
 data class HeapLeaks(
@@ -185,7 +185,7 @@ data class LeakSection(
  *
  * Grouped the way LeakCanary groups leaks, so that fifty leaked rows of one list read as one thing to fix
  * rather than as fifty: the app's own leaks by the references between what still holds the object and the
- * object itself, which is the part of the chain the leak is in, and the library ones by the known
+ * object itself, which is the part of the path the leak is in, and the library ones by the known
  * reference they were recognized by.
  *
  * The sections whose objects are on their way out are grouped by the one reference the collector hasn't
@@ -200,7 +200,7 @@ data class LeakGroup(
    * **The same string LeakCanary prints under this leak**, which is what makes a leak something to write
    * down: the same leak found in two heap dumps of the same app has the same one, however different the two
    * dumps are and whatever the addresses of the objects in them, and a report of a dump and this list of it
-   * line up hash by hash. A SHA-1 of the suspect stretch of the chain for an app's own leak, of the pattern
+   * line up hash by hash. A SHA-1 of the suspect stretch of the path for an app's own leak, of the pattern
    * for a library one — `shark.Leak.leakFingerprint`, computed by Shark's own code, see
    * `LeakFingerprint.kt`.
    */
@@ -215,15 +215,27 @@ data class LeakGroup(
    * been cleared, down to the one that points straight at what is stuck. A single reference for a leak on
    * its way out, that one being what still holds it rather than what should have let go.
    *
-   * The stretch of the chain [leakFingerprint] hashes, which is what makes these objects one leak, and
+   * The stretch of the path [leakFingerprint] hashes, which is what makes these objects one leak, and
    * the same for every object in the group. Both ends are worth reading — the first says what to stop
-   * holding, the last says where on the chain to find what it left behind — and where they are one
-   * reference, that reference is the faulty one and the chain marks it. See [PathReference.isFaulty].
+   * holding, the last says where on the path to find what it left behind — and where they are one
+   * reference, that reference is the faulty one and the path marks it. See [PathReference.isFaulty].
    *
    * Empty for the leaks named some other way: a library leak is named by the pattern that recognized it,
-   * and a leak nothing holds any more has no chain to read references off.
+   * and a leak nothing holds any more has no path to read references off.
    */
   val suspectPath: List<String>,
+  /**
+   * The object of this group whose own path was read to produce [suspectPath] and [leakFingerprint].
+   *
+   * **Which object that is matters, and it is not [objects] first.** Every object here leaks for the same
+   * reason, so solving the leak means picking one of them and narrowing *its* path — and the one whose path
+   * already named this leak is the one whose path the rest of this group describes. [objects] is sorted by
+   * what each retains, which answers a different question and usually puts a different object first.
+   *
+   * So a reader with a group in front of it has somewhere to start that needs no choice of its own, which is
+   * what `path_from_gc_root` is then called with.
+   */
+  val representativeObjectId: Long,
   /**
    * What is known about the leak itself: the description of the library leak pattern that recognized it, or
    * that nothing holds these objects any more. Null for an app's own leak, which its references say.
@@ -244,7 +256,7 @@ data class LeakGroup(
    *
    * One line rather than the whole path, because the ends are the same reference for most leaks and both of
    * them are worth reading — the first says what to stop holding, the last says where the object that leaked
-   * hangs off. What is between them is on the chain, which is `chain_from_gc_root` for a reader who is an
+   * hangs off. What is between them is on the path, which is `path_from_gc_root` for a reader who is an
    * agent and the object view for one at the window, and is the same walk for both.
    *
    * **Here rather than in either surface**, because the leaks screen and the answer an agent is listed these
@@ -263,10 +275,10 @@ data class LeakGroup(
   }
 }
 
-/** Between the two ends of a leak's name, pointing the way the chain runs: down, away from the GC roots. */
+/** Between the two ends of a leak's name, pointing the way the path runs: down, away from the GC roots. */
 const val LEAK_NAME_ARROW = "→"
 
-/** And what stands in for the references between them, which are on the chain and not in the name. */
+/** And what stands in for the references between them, which are on the path and not in the name. */
 const val LEAK_NAME_GAP = "…"
 
 /**

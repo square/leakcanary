@@ -33,8 +33,8 @@ are asked anything:
   leaking object and its 211,038 retained bytes, so a key that drifts from the library's reading fails a test.
 
 `EvalScenariosTest` is what keeps a scenario honest, and it checks three things about every one of them: the
-key is on the chain and **one verdict on the owner of it solves the dump**, the chain names **nothing** before
-a verdict has been set, and the leak is one `list_leaks` finds on its own. Which is not a check that the
+key is on the path and **one verdict on the owner of it solves the dump**, the path names **nothing** before
+a verdict has been set, and the leak is one `list_leak_groups` finds on its own. Which is not a check that the
 answer is right — it is right by construction — but that the dump can be *investigated* to it. A scenario an
 agent can't finish, or one that hands over the answer with no work, is a scenario whose score is a fact about
 nothing.
@@ -43,19 +43,28 @@ nothing.
 
 | Signal | How it is read |
 | --- | --- |
-| `RIGHT` | The concluded `OwnerClass.field` equals the key |
-| `WRONG` | Concluded another reference — the failure that matters most, since it is a confident wrong answer somebody would have acted on |
-| `REFUSED` | Tried to conclude and was refused every time, so it never claimed a root cause |
-| `NOT_CONCLUDED` | Never tried, which is a surface an agent answered around rather than through |
-| `WANDERED` | Concluded about a heap dump this run was not given, so the run measured nothing — see below |
+| `RIGHT` | The `OwnerClass.field` the heap dump named at `leakSolved` equals the key |
+| `WRONG` | It named another reference — the failure that matters most, since it is a confident wrong answer somebody would have acted on |
+| `NOT_SOLVED` | `leakSolved` never went true, whatever the run said in its reply |
+| `WANDERED` | Solved a leak in a heap dump this run was not given, so the run measured nothing — see below |
 | Calls, refusals | Counted off the session, median over the repetitions |
-| Conclude attempts | More than one is the refused-then-verdict-then-concluded story, working |
+| Verdicts | How many `set_verdict` calls it took, which is the work the answer is made of |
 | Cost | The client's own report, in `<run>/client.json` |
+
+**The scored string is the tool's, not the model's**, and that is the whole of why this measures anything.
+`outcomeOfTool` reads the faulty reference off an answer that also says `leakSolved`, so a run reaches
+`RIGHT` by recording verdicts that are right about the objects and cannot reach it by writing a reference
+anywhere. The version before this had a `conclude` tool that took the reference as an argument, and scoring
+compared it against the key — but `conclude` only accepted once the path had narrowed to one candidate and
+its refusal *named that candidate*, so the thing being compared was a string the tool had already handed
+over. A model that copies well scored the same as a model that investigated well. `REFUSED` was a fifth
+outcome counting the runs that tried and were told no, and it went with the tool: there is nothing left to
+report a root cause *to*, so what it measured is now `NOT_SOLVED` plus the refusal count beside it.
 
 Rounds and refusals are the interesting secondary numbers rather than pass/fail: a change that keeps the pass
 rate and halves the calls is a better surface, and a rise in refusals with the same pass rate says a refusal
-message is not telling an agent what to do next. **A surface that turns wrong answers into refusals has got
-better even if its pass rate hasn't moved**, which is why those are two columns and not one.
+message is not telling an agent what to do next. **A surface that turns wrong answers into unsolved ones has
+got better even if its pass rate hasn't moved**, which is why those are two columns and not one.
 
 Not scored, deliberately: whether a verdict contradicts the key. It would take resolving the addresses in the
 arguments against an open dump, and a verdict that was wrong and then corrected is not a worse run.
@@ -89,9 +98,9 @@ measured, and why one way in is what is left.
 
 **A shell is a hole, and it is a bounded one.** An agent given `Bash` can `find` the dumps directory, or read
 the hprof with `strings`. What stops that mattering is that nothing about a *score* is on the filesystem: the
-key is in `shark-dive-eval`, and an answer only counts once `conclude` has accepted it, which takes verdicts
-the heap dump agrees with. So a shell buys a faster guess at where to look and cannot make a skipped method
-look like a followed one. `WANDERED` is what catches it reading the wrong dump.
+key is in `shark-dive-eval`, and an answer only counts once the heap dump itself names a reference, which
+takes verdicts recorded through the surface. So a shell buys a faster guess at where to look and cannot make
+a skipped method look like a followed one. `WANDERED` is what catches it reading the wrong dump.
 
 ### The eval's own state has to be somewhere else, and one bug says why
 
@@ -169,6 +178,16 @@ to say things a script controls; that one was a sentence in the product, and no 
 would ever have caught it. Anything a run reads before it reads the heap dump — the method, a tool description,
 a refusal, the skill — is a channel, so a concrete class name written into any of them is worth checking
 against `EvalScenarios` before it lands.
+
+**The same question, asked of the scoring rather than of the prompt, is what removed `conclude`.** None of
+the eight is what that was: a run still had to record the verdicts that narrowed the path, so it could not
+reach `RIGHT` without investigating. What it could not do is get the last step *wrong* — the tool refused
+until one candidate was left and its refusal named the candidates, so the reference the run typed into
+`conclude` was a string it had been handed, and comparing it to the key measured transcription on top of a
+result the surface had already produced. **So ask of every scored string where it came from**, not only of
+every string a run reads: an eval that scores an agent's restatement of a tool's answer has an extra column
+that moves with nothing. What is scored now is the reference the heap dump derived at `leakSolved`, read off
+the answer by `outcomeOfTool` — see *What one run is scored on* above.
 
 ### Standard input, and why every number below it is void
 
@@ -252,6 +271,12 @@ two-variable comparison the deleted `--transport mcp` arm was. Five scenarios, o
 an arm. Shark Dive 1.0.0, `claude` 2.1.280, $6.11 before and $7.24 after. The two arms ran at the same time on
 one machine, so neither one's wall clock — 44 minutes and 51 — is a number about the surface.
 
+**Both arms are a build with `conclude` in it**, which is also why the columns here are `Refused` and `No
+conclusion` rather than today's `Not solved`: the tool went on 2026-10-03, with `list_leaks` renamed to
+`list_leak_groups` and `chain_from_gc_root` to `path_from_gc_root`. So read the tool names in this section
+and the two below as the build's, not as commands to type — the numbers stand, the surface they were taken
+on is not the one in the checkout.
+
 Before, `6d4a192c4`:
 
 | Scenario | Model | Right | Wrong | Refused | No conclusion | Wandered | Calls | Refusals |
@@ -300,7 +325,7 @@ Per tool, over all fifteen runs of each arm, the deltas sum to exactly the twelv
 | `find_objects` | 39 | 35 | −4 |
 | `conclude` | 15 | 17 | +2 |
 | `set_verdict` | 28 | 29 | +1 |
-| `chain_from_gc_root` | 17 | 16 | −1 |
+| `path_from_gc_root` | 17 | 16 | −1 |
 | `list_devices` | 1 | 0 | −1 |
 | `open_heap_dump`, `list_leaks`, `take_note` | 15, 15, 1 | 15, 15, 1 | 0 |
 
@@ -342,7 +367,7 @@ a surface that grows another ten commands pays it again.
 
 0/3 in both arms, and all six runs of it — across two builds — concluded `Object[][x]` against a key of
 `CacheEntry.activity`. That is not six wrong answers. It is one reference above the key, `conclude` accepted
-it, and `conclude` accepts only when the chain has exactly one candidate left, so the heap dump agreed with the
+it, and `conclude` accepts only when the path has exactly one candidate left, so the heap dump agreed with the
 verdicts that got them there. One run's own `why` for the `STUCK` it set on the entry
 (`dive4a7c2e19`, after arm):
 
@@ -354,7 +379,7 @@ activity and a label for it reads as done with its work.** A `CacheEntry` for a 
 been evicted, and nothing in the dump says otherwise — `aCacheThatNeverEvicts` writes the entry as a key and
 the activity and no evidence of its own, so "the entry belongs here and the field is wrong" and "the entry
 should be gone" are both defensible off what is there, and the key picks one of them. Three steps of that
-chain carry an argument an agent can point at: the static `INSTANCE`, and `MemoryCache.size = 1` matching its
+path carry an argument an agent can point at: the static `INSTANCE`, and `MemoryCache.size = 1` matching its
 one element, both of which the runs cited. The fourth, the one the answer turns on, carries none.
 
 So this is a scenario to fix rather than a number to act on, and the fix is the one `twoApart` already got:
@@ -431,7 +456,7 @@ Each arm needs its own `SHARK_EVAL_DIR`, since the script starts by deleting it.
 the result rather than a caveat on it. The 5/5 is void, so that sentence now rests on the fixture rather than
 on the runs — which is where it always had its force, and it was foreseeable from the fixture alone: nine
 objects with `delivered = true` written into the one that matters, so the evidence is *on screen* the moment
-the chain is read. What the change is for is a 327 MB dump of a real
+the path is read. What the change is for is a 327 MB dump of a real
 app where the same reasoning has to be found among thousands of objects, and that is where the headroom is.
 So a synthetic scenario is the wrong instrument for an inspector that supplies an argument rather than a
 fact — it measures whether the argument is *reachable*, and here it always was.
@@ -443,7 +468,7 @@ one — see below. Calls, turns and cost are the same in both arms to within the
 
 The same 327 MB dump, the same prompt, the same model, with the session data cleared so that nothing of the
 earlier run was there to read — twice, a day apart, either side of the change. Both runs named the leak;
-what changed is where they cut the chain, and the whole chain is four objects long:
+what changed is where they cut the path, and the whole path is four objects long:
 
 | | 2026-09-17, before | 2026-09-18, after |
 | --- | --- | --- |
@@ -454,7 +479,7 @@ what changed is where they cut the chain, and the whole chain is four objects lo
 | named the leak | `GetCredentialController.context` | `…$resultReceiver$1.this$0` |
 
 The before run reasoned that the two `this$0`s above the controller are compiler generated and unclearable,
-carried that down to the controller as well, and landed on the last reference of the chain — which accounts
+carried that down to the controller as well, and landed on the last reference of the path — which accounts
 for 1.32 MB of the 4.37 MB, since the other 3.06 MB hangs off the controller's `callback`. The after run
 argued the controller *on its own evidence*: its continuation is `CompletedExceptionally` with a
 `NoCredentialException`, its `cancellationSignal` has `mIsCanceled = false`, so the request it exists for was
@@ -465,7 +490,7 @@ Two things it also got that the run before didn't: the upstream fix is in **1.7.
 alpha03 the earlier run named — verified here by diffing the two published sources jars, `val context` →
 `context`, a `WeakReference`, `callback = emptyCallback()`, and both base controllers dropping their own
 `private val context` — and it made **no `ways_held` call** at all, where the run before spent one on 4.6 KB
-of chain it already had. $7.01 and 16 minutes against $6.10 and 13.
+of path it already had. $7.01 and 16 minutes against $6.10 and 13.
 
 So the measurement that answered the question was one run on a real dump, not five on a fixture, and that is
 worth remembering the next time a scenario is written to catch something a real dump did: a scenario pins the
@@ -526,7 +551,7 @@ rather than in the eval, exactly like the first one.
 Five exist. The rest are what the synthetic side is *for* — shapes a real dump doesn't happen to contain:
 
 - ✅ **Two apart** (`two-apart`) — one object with no verdict between the verdicts, so **two** candidate
-  references, which is `conclude`'s refusal made real: the application holding a settings store, and the
+  references, which is what an unsolved leak is made of: the application holding a settings store, and the
   store holding a destroyed activity in a field called `context`. The key is the second. What decides it is on
   the middle object and readable off the dump — the store has three writes outstanding, so it is not done with
   its work and belongs in memory, and the field name says what was wanted there was the application context.
@@ -540,7 +565,7 @@ Five exist. The rest are what the synthetic side is *for* — shapes a real dump
 - ✅ **A long unknown zone** (`cache-never-evicts`) — four steps of infrastructure with no verdict, rooted at
   a static singleton so that "this belongs in memory" is a fact of the dump rather than an assumption.
 - ✅ **A verdict that spreads the wrong way** (`stub-outlives-its-work`) — a binder stub at the top of the
-  chain, which genuinely belongs in memory, above a request whose work is done. **The only scenario the
+  path, which genuinely belongs in memory, above a request whose work is done. **The only scenario the
   method can be failed on by reading it backwards**, and the first whose answer needs a `STUCK` of the
   agent's own rather than the watcher's: the reference is `UploadCallbacks$ResultStub.this$0`, one step below
   the GC root, and an investigation that lets `EXPECTED` spread *downwards* from the stub comes out with
@@ -560,11 +585,11 @@ Five exist. The rest are what the synthetic side is *for* — shapes a real dump
   above, by the argument that a 24-byte object with nothing to clear cannot be the defect. The control is a
   second stub over a stateless receiver whose request hasn't come back, so "the thing under a stub with no
   state of its own is stuck" is not a rule that scores here.
-- ✅ **A real dump** (`real-asynctask`) — 8 MB, real framework classes, and a chain nobody wrote for this eval.
+- ✅ **A real dump** (`real-asynctask`) — 8 MB, real framework classes, and a path nobody wrote for this eval.
 - **A decoy** — an object that reads like a leak above the real one, where the key is the reference below.
 - **Two candidates** — two references that both cross into stuck, so the answer depends on a verdict the agent
-  has to defend rather than on the shape of the chain.
-- **A loop** — objects holding each other, where the chain's order is arbitrary and the conflict machinery
+  has to defend rather than on the shape of the path.
+- **A loop** — objects holding each other, where the path's order is arbitrary and the conflict machinery
   reports nothing (see `LeakStatusOverrides.isAbove`).
 - **A library leak** — the fault is in the framework, and the right answer says so rather than naming app
   code.
@@ -611,14 +636,14 @@ read is the one that just failed. So read a failure before rerunning.
 
 Everything above scores one question — *which reference is at fault* — and the surface answers others. "What
 is using all this memory" is the one people ask most after that, it has a checkable answer, and it exercises a
-different half of the tools: `dominator_tree` and `find_objects` rather than the chain and the verdicts. What
+different half of the tools: `dominator_tree` and `find_objects` rather than the path and the verdicts. What
 follows is the design, not something that runs yet.
 
 **The prompt is the whole of the input, as it is for the leak runs**: *"A heap dump is open in Shark Dive.
 What is using most of the memory in this app?"* — no mention of a tool.
 
-**The answer key is an object, not a string.** A leak's key is `OwnerClass.field` because that is what
-`conclude` answers with; here the scenario builder knows which object it made the biggest, so the key is that
+**The answer key is an object, not a string.** A leak's key is `OwnerClass.field` because that is what a
+solved path names; here the scenario builder knows which object it made the biggest, so the key is that
 object's identity, and the score resolves what the agent named back to a class in the dump. Which means the
 same score works on a real dump with no key written by hand at all: `HeapDominatorTree` says what the biggest
 retainer is, and the eval can ask it.

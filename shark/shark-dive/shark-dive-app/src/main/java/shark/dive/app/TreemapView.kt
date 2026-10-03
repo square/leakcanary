@@ -42,7 +42,7 @@ import shark.dive.TreemapPresentation
  * Draws an already laid out [TreemapPresentation], filling the available space.
  *
  * A press reports the rectangle under the pointer, which is what the window goes to, and moving over one
- * reports it as hovered, which is what the chain beside the view describes. The names the map draws are
+ * reports it as hovered, which is what the path beside the view describes. The names the map draws are
  * rectangles of their own for both of those — see [namedCellAt]. Everything is drawn into a single [Canvas],
  * so there are no per-rectangle composables: see this module's `AGENTS.md` for what that means for tests.
  *
@@ -129,7 +129,7 @@ internal fun TreemapView(
     ) {
       // Fills first and outlines after, all of them: a child covers every pixel of its parent, so a
       // parent drawn whole would leave nothing of the levels above showing. Outlining afterwards is
-      // what draws nesting, and where a chain of single children shares an edge the outlines stack up
+      // what draws nesting, and where a path of single children shares an edge the outlines stack up
       // into a heavier line, which is the view saying there is more here than one rectangle.
       cells.forEach { cell -> drawFill(cell) }
       // Between the two, because a bitmap's pixels are the child rectangle covering it — its `byte[]`
@@ -253,7 +253,7 @@ private fun PresentedCell<TreemapCell<Long>>.measure(
   //
   // Naming every rectangle instead is what made a treemap of a real dump unreadable — a hundred class
   // names in half a dozen levels, each of them the name of something the level below it covers. The one
-  // level being read is named on the map, and the chain beside it names what the pointer is on.
+  // level being read is named on the map, and the path beside it names what the pointer is on.
   val isRootChild = cell.depth == ROOT_CHILD_DEPTH
   val fitsALabel = isRootChild &&
     labelWidth >= with(density) { MIN_LABEL_WIDTH.toPx() } &&

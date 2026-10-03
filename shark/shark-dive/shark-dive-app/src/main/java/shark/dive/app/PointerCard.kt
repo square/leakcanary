@@ -33,8 +33,8 @@ import shark.dive.formatObjectCount
  *
  * Beside the pointer rather than in a pane, because this is the one thing the reader is asking as they sweep
  * across the map — what is this rectangle — and answering it at the edge of the window makes them look away
- * from the thing they're pointing at. The chain holding it is the slower question, and that is drawn onto the
- * end of the chain in the pane: see [RootPathPanel].
+ * from the thing they're pointing at. The path holding it is the slower question, and that is drawn onto the
+ * end of the path in the pane: see [RootPathPanel].
  *
  * A rectangle that isn't one object gets the card too, and needs it most: a pile is named on the map by a
  * count and a simple class name, and the fully qualified name saying which class that is fits nowhere else.
@@ -74,7 +74,7 @@ private fun ObjectLines(
   summary: HeapObjectSummary,
   stronglyReachableByteCount: Long
 ) {
-  // The same three lines a step of a chain names an object with, so that the card and the chain beside
+  // The same three lines a step of a path names an object with, so that the card and the path beside
   // the map read as one answer rather than as two ways of saying which object this is.
   ObjectIdentity(
     className = summary.className,

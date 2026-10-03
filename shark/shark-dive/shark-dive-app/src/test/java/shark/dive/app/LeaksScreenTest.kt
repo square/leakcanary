@@ -47,7 +47,7 @@ import shark.dive.statusText
  * The screen listing what shouldn't be in memory, and the colouring that shades the map by it.
  *
  * What it is about is that a leak is one thing however many objects of it there are, and that every row of
- * it leads into the object view: there is no leak trace here, because the chain beside the map is one.
+ * it leads into the object view: there is no leak trace here, because the path beside the map is one.
  * [DiveAppTest] covers the rest of the window.
  */
 @OptIn(ExperimentalTestApi::class)
@@ -298,11 +298,11 @@ class LeaksScreenTest {
     }
   }
 
-  @Test fun `a chain says which of its objects are meant to be gone, unasked`() {
+  @Test fun `a path says which of its objects are meant to be gone, unasked`() {
     diveUiTest {
       openHeapDump()
       // Reached through the list of every object rather than through the leaks, because that is the point:
-      // whatever a chain was built for, the inspectors have run over the objects on it.
+      // whatever a path was built for, the inspectors have run over the objects on it.
       screenButton(Place.OBJECTS_LABEL).performClick()
       // Filtered down to it rather than scrolled to it: the activities of this dump retain the least of
       // anything in it, so they are the last rows of a list that is longer than the window.
@@ -482,6 +482,7 @@ class LeaksScreenTest {
       leakFingerprint = suspectPath.first().sha1OfNothing(),
       title = suspectPath.first(),
       suspectPath = suspectPath,
+      representativeObjectId = suspectPath.first().hashCode().toLong(),
       subtitle = subtitle,
       objects = listOf(
         LeakingObject(

@@ -15,9 +15,9 @@ import shark.dive.HeapDive
  *
  * Shaped like the leak the method is about, which takes three objects and not two: one an inspector knows
  * belongs in memory, one it knows shouldn't be there, and one in between that nothing in the heap dump can
- * say either way about. That middle object is the whole point — it is what makes `conclude` refuse until
- * somebody has read the code and recorded what they found, and a two object dump would name its faulty
- * reference with nobody having investigated anything.
+ * say either way about. That middle object is the whole point — it is what leaves two references as
+ * candidates until somebody has read the code and recorded what they found, and a two object dump would
+ * name its faulty reference with nobody having investigated anything.
  */
 internal fun TemporaryFolder.applicationHoldsActivityThroughHolder(
   /** So that a test about naming one of two open dumps can have two dumps rather than one dump twice. */
@@ -121,7 +121,7 @@ private fun HprofWriterHelper.androidBuild() {
   }
   "android.os.Build\$VERSION" clazz {
     // Recent enough that none of Shark's known library leaks is in this dump, so that the references a
-    // chain through it names are the app's own.
+    // path through it names are the app's own.
     staticField["SDK_INT"] = IntHolder(34)
   }
 }
@@ -135,10 +135,10 @@ internal const val APPLICATION_CLASS_NAME = "com.example.ExampleApplication"
 /** The field of the holder that keeps the activity, which is the faulty reference of this dump. */
 internal const val ACTIVITY_FIELD_NAME = "activity"
 
-/** And the field above it, which is the one a chain names while the holder has no verdict. */
+/** And the field above it, which is the one a path names while the holder has no verdict. */
 internal const val HOLDER_FIELD_NAME = "holder"
 
-/** How a chain spells the reference at fault once the holder is known to belong in memory. */
+/** How a path spells the reference at fault once the holder is known to belong in memory. */
 internal const val FAULTY_REFERENCE = "Holder.$ACTIVITY_FIELD_NAME"
 
 /**

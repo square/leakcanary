@@ -75,9 +75,9 @@ internal class ReferrerIndex private constructor(
    *
    * Highest first is not arbitrary and not free — it is what the linked list this replaced happened to hand
    * back, and a breadth first walk up the referrers takes the first of two equally distant referrers, so
-   * the order decides which chain the window draws. Reversing it costs a path: the greedy search for every
+   * the order decides which path the window draws. Reversing it costs a path: the greedy search for every
    * way an object is held claims the first walk's middle, so on the heap dump
-   * `HeapDiveTest.cachedPayloadHeapDump` builds, lowest first finds two chains from the same holder
+   * `HeapDiveTest.cachedPayloadHeapDump` builds, lowest first finds two paths from the same holder
    * and never reaches the cache. See `notes/referrer-index.md`.
    */
   fun forEachReferrer(

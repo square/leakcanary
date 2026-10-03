@@ -19,14 +19,14 @@ import shark.dive.LeakKind.APPLICATION
  * The leaks Shark Dive finds in a heap dump, against the leaks LeakCanary finds in the same one, compared
  * by the leak fingerprint both print.
  *
- * Which is the strongest thing there is to say about Shark Dive's chains: a leak fingerprint is a hash
- * of the stretch of the chain that explains the leak, so two tools agreeing on one agree about which references
+ * Which is the strongest thing there is to say about Shark Dive's paths: a leak fingerprint is a hash
+ * of the stretch of the path that explains the leak, so two tools agreeing on one agree about which references
  * hold the object, which of them the app is meant to have, and where the leak starts. Read the failure as
  * "the two found different paths" rather than as "the hash is wrong".
  *
  * The heap dumps here are the differences that used to make the two disagree, each on its own — see
  * `notes/decisions.md` for the sweep over the repo's real Android dumps and for the two differences that
- * remain, which are about which leaking objects get a chain of their own rather than about the chains.
+ * remain, which are about which leaking objects get a path of their own rather than about the paths.
  */
 class LeakFingerprintTest {
 

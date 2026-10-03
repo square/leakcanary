@@ -49,7 +49,7 @@ internal enum class ViewShape(val displayName: String) {
   /**
    * A row per level, roots at the top, the way a profiler draws a call tree upside down: a block's
    * width is its share of the heap and its depth is how far down the screen it is. The one shape that
-   * doesn't spend area on nesting, so the deep end of a chain is drawn and named at full size — and
+   * doesn't spend area on nesting, so the deep end of a path is drawn and named at full size — and
    * therefore the one shape taller than the window, which is why it scrolls.
    */
   STACK("Stack")

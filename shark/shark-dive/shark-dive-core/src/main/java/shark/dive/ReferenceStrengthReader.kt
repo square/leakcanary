@@ -266,8 +266,8 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
      * Shark's list of the references known to leak in code an app doesn't control, which **names the
      * references it matches without changing which of them are followed**: a
      * [LibraryLeakReferenceMatcher] sets [Reference.isLowPriority] and [LazyDetails.matchedLibraryLeak] and
-     * nothing else. So the tree is the same tree with the known leaks of it named, and a chain through one
-     * can say so. The first of those two is why a chain goes through one only when there is no other way to
+     * nothing else. So the tree is the same tree with the known leaks of it named, and a path through one
+     * can say so. The first of those two is why a path goes through one only when there is no other way to
      * the object, the same as in a leak trace — see [RootPathSearch].
      *
      * Only the library leak matchers of that list. The ignored ones beside them would drop references,
@@ -280,7 +280,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
     private fun libraryLeakMatchers(graph: HeapGraph): List<ReferenceMatcher> {
       if (!graph.recordsAndroidBuild()) {
         SharkLog.d {
-          "The heap dump doesn't record the $ANDROID_BUILD_CLASS_NAME it was taken on, so no chain " +
+          "The heap dump doesn't record the $ANDROID_BUILD_CLASS_NAME it was taken on, so no path " +
             "through it can name a known Android library leak"
         }
         return emptyList()
@@ -426,7 +426,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
  *
  * **And a path stays as weak as its weakest reference.** An object held only by a finalizer queue, a
  * thread local or a stack frame doesn't hold what something firmer holds either, so every reference out of
- * it is weighed the same way. Without that, a `FinalizerReference` two steps up a chain would be one more
+ * it is weighed the same way. Without that, a `FinalizerReference` two steps up a path would be one more
  * way of holding an object that a field holds squarely, which is a way of holding nothing.
  *
  * Drops the references that lose to an owner for the same reason, and it's the same rule read off a

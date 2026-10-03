@@ -119,20 +119,20 @@ internal fun TemporaryFolder.cachedPayloadHeapDump(): File {
   return file
 }
 
-/** How many objects hold each other in [longChainHeapDump], which is more than one pane can draw. */
-internal const val CHAIN_LINK_COUNT = 12
+/** How many objects hold each other in [longPathHeapDump], which is more than one pane can draw. */
+internal const val PATH_LINK_COUNT = 12
 
 /**
- * A heap dump where the payload is held at the end of a chain of [CHAIN_LINK_COUNT] objects, so that the
- * chain beside the map is taller than the pane it is drawn in.
+ * A heap dump where the payload is held at the end of a path of [PATH_LINK_COUNT] objects, so that the
+ * path beside the map is taller than the pane it is drawn in.
  */
-internal fun TemporaryFolder.longChainHeapDump(): File {
-  val file = newFile("long-chain.hprof")
+internal fun TemporaryFolder.longPathHeapDump(): File {
+  val file = newFile("long-path.hprof")
   file.dump {
     var held =
       ReferenceHolder(objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_LENGTH)))
-    // A class per link, numbered from the payload out, so that a step says how far along the chain it is.
-    repeat(CHAIN_LINK_COUNT) { index ->
+    // A class per link, numbered from the payload out, so that a step says how far along the path it is.
+    repeat(PATH_LINK_COUNT) { index ->
       held = "com.example.Link$index" instance { field["next"] = held }
     }
     gcRoot(JniGlobal(id = held.value, jniGlobalRefId = 0))
