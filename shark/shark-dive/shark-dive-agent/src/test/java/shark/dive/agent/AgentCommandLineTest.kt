@@ -357,7 +357,7 @@ class AgentCommandLineTest {
     }
     // The two ways in, since every other command needs the name one of them answers with.
     assertThat(help).contains("Start with $OPEN_HEAP_DUMP").contains(LIST_HEAP_DUMPS)
-    // And `reason` is said once rather than under each of eighteen commands, which would be a sixth of the
+    // And `reason` is said once rather than under each of twenty commands, which would be a sixth of the
     // help spent on the one argument every command takes.
     assertThat(help).contains("Every command takes `reason`")
     assertThat(help.lines().filter { it.trim().startsWith("reason (") }).isEmpty()

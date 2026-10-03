@@ -406,6 +406,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `open_heap_dump` | The heap dump you gave it, by path or by name: **Open heap dump…** for a file nobody has open, and the window that already has it when somebody does. The one way in. |
 | `list_heap_dumps` | Every heap dump open, for an agent that was given none, and the name each of the rest goes on to use. |
 | `close_heap_dump` | Done with a dump: the window closes, and closing the last one ends the run. |
+| `heap_dump_metadata` | What the dump says about itself, as the map LeakCanary prints above a leak trace: the device, the app's process, the bitmaps, the open databases. |
 | `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
 | `chain_from_gc_root` | One chain, every step with its labels and its verdict. |

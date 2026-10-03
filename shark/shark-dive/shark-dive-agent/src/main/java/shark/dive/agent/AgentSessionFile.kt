@@ -652,6 +652,9 @@ internal fun verbOfTool(
   arguments: Map<String, String>
 ): String? = when (tool) {
   "list_heap_dumps" -> "Asked which heap dumps are open"
+  // A whole sentence, since there is no screen of the window drawing this and so nothing for a link to be.
+  // Which dump it was about is already on the row.
+  "heap_dump_metadata" -> "Read the heap dump metadata"
   // Ending on "the", because what follows it is the link. See [AgentSessionCall.screen].
   "list_leaks" -> "Listed the"
   // Not "Described", which reads as the agent having written a description of something rather than having

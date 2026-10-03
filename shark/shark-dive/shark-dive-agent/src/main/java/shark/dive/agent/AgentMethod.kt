@@ -149,6 +149,10 @@ internal object AgentMethod {
     **Which copy of the code matters as much as reading it.** A class that changed between two versions is a
     root cause nobody can reproduce and a fix that doesn't apply. The dump itself says which versions:
 
+    **`heap_dump_metadata` is the first call of this section**, and it answers the two questions below that
+    come up every time: the API level, the manufacturer, and the name of the app's process. What follows is
+    for the rest, which it doesn't carry.
+
     - **The OS.** A class is an object of the dump like any other, so reading one is two calls: `find_objects`
       with `className=android.os.Build${'$'}VERSION`, `exactMatch=true` and `kinds=CLASS` for its address, then
       `describe_object` on that address for its static fields. `SDK_INT` is the API level, with `RELEASE`,

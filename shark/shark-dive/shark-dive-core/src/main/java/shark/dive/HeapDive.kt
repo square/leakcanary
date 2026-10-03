@@ -4,6 +4,7 @@ import java.io.Closeable
 import java.io.File
 import java.io.FileNotFoundException
 import java.util.concurrent.TimeUnit.NANOSECONDS
+import shark.AndroidMetadataExtractor
 import shark.AndroidObjectSizeCalculator
 import shark.CancelSignal
 import shark.CloseableHeapGraph
@@ -35,6 +36,31 @@ class HeapDive private constructor(
 
   /** How the objects of the heap dump split up by reachability. */
   val sizes: HeapSizes get() = reachability.sizes
+
+  /**
+   * What LeakCanary writes above a leak trace about the dump itself: the device, the app's process, the
+   * version of LeakCanary that wrote it, what the heap is made of, its bitmaps and its open databases.
+   *
+   * [AndroidMetadataExtractor] is LeakCanary's own, run here rather than read again, so that a figure
+   * somebody quotes off a `leaks.txt` and the same figure here are the same figure. Which is the whole of
+   * what it is worth, so **nothing renames a key or reads a number out of a value**: the keys are
+   * LeakCanary's words — `Build.VERSION.SDK_INT`, `Heap total bytes`, `Db 1` — and every value is the
+   * string it reports, because that is what a leak trace carries.
+   *
+   * Null for a heap dump that records no `android.os.Build`, which this cannot answer at all rather than
+   * answer thinly: nearly every key is read off the Android framework, and the extractor asks
+   * [shark.AndroidBuildMirror] first, which throws on a dump without it. See [recordsAndroidBuild].
+   *
+   * **A pass over every object**, since the total heap size is the sum of their sizes and a bitmap's bytes
+   * are native ones counted off the registry that frees them. So it is a read like the leak analysis rather
+   * than like [sizes], which was worked out while opening the dump.
+   */
+  fun readMetadata(): Map<String, String>? {
+    if (!graph.recordsAndroidBuild()) {
+      return null
+    }
+    return AndroidMetadataExtractor.extractMetadata(graph)
+  }
 
   override fun close() {
     graph.close()

@@ -126,6 +126,37 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `the metadata is LeakCanary's own map, spelled as LeakCanary spells it`() {
+    val metadata = call(HEAP_DUMP_METADATA).obj("metadata")
+
+    // The keys are `shark.AndroidMetadataExtractor`'s own words, and the values are the strings it reports,
+    // because what this answer is worth is being the same map as the one above a leak trace: a key renamed
+    // here, or a number read out of a value, is a figure that no longer matches the one somebody was sent.
+    assertThat(metadata.text("Build.VERSION.SDK_INT")).isEqualTo("34")
+    assertThat(metadata.text("Build.MANUFACTURER")).isEqualTo("Google")
+    assertThat(metadata.text("Instance count").toInt()).isGreaterThan(0)
+    assertThat(metadata.text("Heap total bytes").toLong()).isGreaterThan(0)
+    // Said rather than left out, which is the difference between a dump LeakCanary didn't write and one
+    // whose version an agent is about to go and read the source of.
+    assertThat(metadata.text("LeakCanary version")).isEqualTo("Unknown")
+  }
+
+  @Test
+  fun `a heap dump that is no Android one is refused, with what does answer about it`() {
+    temporaryFolder.jvmHeapDump().use { dive ->
+      val jvm = FakeAgentHeapDump(dive)
+      tools = agentTools(FakeAgentHeapDumps(listOf(jvm)))
+
+      // Refused rather than answered with the handful of lines that aren't Android's, because the whole of
+      // this map is: the extractor asks `shark.AndroidBuildMirror` first and throws on a dump without it.
+      assertThatThrownBy { call(HEAP_DUMP_METADATA, HEAP_DUMP to jvm.heapDumpName) }
+        .isInstanceOf(AgentRefusal::class.java)
+        .hasMessageContaining("android.os.Build")
+        .hasMessageContaining(LIST_HEAP_DUMPS)
+    }
+  }
+
+  @Test
   fun `the agent log is what has already been tried on this heap dump`() {
     tools = agentTools(
       FakeAgentHeapDumps(listOf(window)),
@@ -1218,6 +1249,7 @@ class AgentToolsTest {
     // Spelled here rather than taken from [AgentTools], whose names for these are private: a test that read
     // them off the registry would pass a rename that every agent's own notes were written against.
     const val CLOSE_HEAP_DUMP = "close_heap_dump"
+    const val HEAP_DUMP_METADATA = "heap_dump_metadata"
     const val LIST_LEAKS = "list_leaks"
     const val AGENT_LOG = "agent_log"
     const val SET_VERDICT = "set_verdict"

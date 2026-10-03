@@ -41,8 +41,8 @@ class HeapDumpOrigin(
     const val UNKNOWN_DESCRIPTION = "unknown device"
 
     fun readFrom(graph: HeapGraph): HeapDumpOrigin {
-      val build = graph.findClassByName("android.os.Build")
-      val version = graph.findClassByName("android.os.Build\$VERSION")
+      val build = graph.findClassByName(ANDROID_BUILD_CLASS_NAME)
+      val version = graph.findClassByName(ANDROID_BUILD_VERSION_CLASS_NAME)
       return HeapDumpOrigin(
         sdkInt = version?.get("SDK_INT")?.value?.asInt,
         fingerprint = build.readStaticString("FINGERPRINT"),
@@ -69,3 +69,30 @@ class HeapDumpOrigin(
     }
   }
 }
+
+/**
+ * Whether the heap dump has the device [shark.AndroidBuildMirror] is a mirror of, which is what nearly every
+ * one of Shark's library leak patterns decides whether it applies by — and what
+ * [shark.AndroidMetadataExtractor] reads before anything else. See [HeapDive.readMetadata].
+ *
+ * By the three fields it reads rather than by the class, because it reads all three with `!!`: a dump that
+ * has `android.os.Build` and not its fields — a synthetic one, an Android runtime that strips them — is a
+ * bare NPE from inside whatever asked, which for the reference reader is under everything Shark Dive reads.
+ * What that looks like is a window that never draws a tree.
+ *
+ * Beside [HeapDumpOrigin] because it is the same question that class answers field by field: whether this is
+ * an Android heap dump at all. One place for it, since the two callers would otherwise each have their own
+ * idea of which fields make one.
+ */
+internal fun HeapGraph.recordsAndroidBuild(): Boolean {
+  val buildClass = findClassByName(ANDROID_BUILD_CLASS_NAME) ?: return false
+  val versionClass = findClassByName(ANDROID_BUILD_VERSION_CLASS_NAME) ?: return false
+  return buildClass["MANUFACTURER"]?.value?.readAsJavaString() != null &&
+    buildClass["ID"]?.value?.readAsJavaString() != null &&
+    versionClass["SDK_INT"]?.value?.asInt != null
+}
+
+/** What every Android heap dump has and no other kind does. See [recordsAndroidBuild]. */
+internal const val ANDROID_BUILD_CLASS_NAME = "android.os.Build"
+
+internal const val ANDROID_BUILD_VERSION_CLASS_NAME = "android.os.Build\$VERSION"
