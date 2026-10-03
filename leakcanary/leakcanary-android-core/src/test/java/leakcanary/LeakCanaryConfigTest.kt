@@ -16,6 +16,19 @@ class LeakCanaryConfigTest {
       .containsExactlyInAnyOrderElementsOf(configBuilderFunctions())
   }
 
+  @Test fun `dumpEnabledToggleInAboutScreen defaults to true and is mutable via builder and copy`() {
+    val defaultConfig = LeakCanary.Config()
+    assertThat(defaultConfig.dumpEnabledToggleInAboutScreen).isTrue()
+
+    val copyConfig = defaultConfig.copy(dumpEnabledToggleInAboutScreen = false)
+    assertThat(copyConfig.dumpEnabledToggleInAboutScreen).isFalse()
+
+    val builderConfig = LeakCanary.Config.Builder(defaultConfig)
+      .dumpEnabledToggleInAboutScreen(false)
+      .build()
+    assertThat(builderConfig.dumpEnabledToggleInAboutScreen).isFalse()
+  }
+
   private fun configBuilderFunctions() = LeakCanary.Config.Builder::class.memberFunctions
     .map { it.name }
     .subtract(setOf("build", "equals", "hashCode", "toString"))

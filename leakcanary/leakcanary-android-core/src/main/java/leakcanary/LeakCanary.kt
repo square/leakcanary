@@ -203,6 +203,15 @@ object LeakCanary {
      * Defaults to true.
      */
     val showNotifications: Boolean = true,
+
+    /**
+     * Whether the UI (About screen) displays the toggle switch allowing users to enable or disable
+     * heap dumping. When set to false, the switch is hidden so users and QA testers cannot
+     * accidentally disable leak detection.
+     *
+     * Defaults to true.
+     */
+    val dumpEnabledToggleInAboutScreen: Boolean = true,
   ) {
 
     /**
@@ -247,6 +256,7 @@ object LeakCanary {
       private var heapDumper = config.heapDumper
       private var eventListeners = config.eventListeners
       private var showNotifications = config.showNotifications
+      private var dumpEnabledToggleInAboutScreen = config.dumpEnabledToggleInAboutScreen
 
       /** @see [LeakCanary.Config.dumpHeap] */
       fun dumpHeap(dumpHeap: Boolean) =
@@ -301,6 +311,9 @@ object LeakCanary {
       fun showNotifications(showNotifications: Boolean) =
         apply { this.showNotifications = showNotifications }
 
+      /** @see [LeakCanary.Config.dumpEnabledToggleInAboutScreen] */
+      fun dumpEnabledToggleInAboutScreen(dumpEnabledToggleInAboutScreen: Boolean) =
+        apply { this.dumpEnabledToggleInAboutScreen = dumpEnabledToggleInAboutScreen }
 
       @Suppress("DEPRECATION")
       fun build() = config.copy(
@@ -317,6 +330,7 @@ object LeakCanary {
         heapDumper = heapDumper,
         eventListeners = eventListeners,
         showNotifications = showNotifications,
+        dumpEnabledToggleInAboutScreen = dumpEnabledToggleInAboutScreen,
       )
     }
   }
