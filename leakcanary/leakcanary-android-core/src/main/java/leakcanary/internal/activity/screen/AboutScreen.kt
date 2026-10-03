@@ -2,11 +2,13 @@ package leakcanary.internal.activity.screen
 
 import android.text.Html
 import android.text.method.LinkMovementMethod
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Switch
 import android.widget.TextView
 import com.squareup.leakcanary.core.BuildConfig
 import com.squareup.leakcanary.core.R
+import leakcanary.LeakCanary
 import leakcanary.internal.HeapDumpControl
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Nope
 import leakcanary.internal.HeapDumpControl.ICanHazHeap.Yup
@@ -37,13 +39,17 @@ internal class AboutScreen : Screen() {
         updateHeapDumpTextView(heapDumpTextView)
         val heapDumpSwitchView =
           findViewById<Switch>(R.id.leak_canary_about_heap_dump_switch_button)
-        heapDumpSwitchView.isChecked = InternalLeakCanary.dumpEnabledInAboutScreen
-        heapDumpSwitchView.setOnCheckedChangeListener { _, checked ->
-          // Updating the value wouldn't normally immediately trigger a heap dump, however
-          // by updating the view we also have a side effect of querying which will notify
-          // the heap dumper if the value has become positive.
-          InternalLeakCanary.dumpEnabledInAboutScreen = checked
-          updateHeapDumpTextView(heapDumpTextView)
+        if (!LeakCanary.config.dumpEnabledToggleInAboutScreen) {
+          heapDumpSwitchView.visibility = View.GONE
+        } else {
+          heapDumpSwitchView.isChecked = InternalLeakCanary.dumpEnabledInAboutScreen
+          heapDumpSwitchView.setOnCheckedChangeListener { _, checked ->
+            // Updating the value wouldn't normally immediately trigger a heap dump, however
+            // by updating the view we also have a side effect of querying which will notify
+            // the heap dumper if the value has become positive.
+            InternalLeakCanary.dumpEnabledInAboutScreen = checked
+            updateHeapDumpTextView(heapDumpTextView)
+          }
         }
       }
 
