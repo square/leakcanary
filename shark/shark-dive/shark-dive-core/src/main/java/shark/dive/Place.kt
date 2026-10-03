@@ -103,6 +103,21 @@ sealed interface Place {
   }
 
   /**
+   * What the heap dump says about itself: the device, the app's process, what the heap is made of, its
+   * bitmaps and its open databases. See [HeapDive.readMetadata].
+   *
+   * A place of the heap dump rather than of the window, though it describes neither an object nor a list,
+   * because it is the one screen a `shark://` link, a tab and an agent's `place=metadata` all have to be
+   * able to name — and what makes that true of the others is being one of these.
+   */
+  data object Metadata : Place {
+
+    override val title: String get() = METADATA_LABEL
+
+    override val viewRootObjectId: Long? get() = null
+  }
+
+  /**
    * One page of the reference: what a label on screen means, at more length than a label has room for.
    *
    * A place rather than a browser window, so that reading up on what the map is saying is a tab beside the
@@ -172,6 +187,9 @@ sealed interface Place {
     /** And to the objects starred so far. */
     const val STARRED_LABEL = "Starred"
 
+    /** And to what the dump says about itself, which is the device it came off and what is in it. */
+    const val METADATA_LABEL = "Metadata"
+
     /** And to what the agents that have worked on a heap dump of this app did. */
     const val AGENT_LOGS_LABEL = "Agent logs"
 
@@ -202,6 +220,7 @@ fun HeapDominatorTreemap.titleOf(place: Place): String = when (place) {
   is Place.Objects -> place.title
   is Place.Leaks -> place.title
   is Place.Starred -> place.title
+  is Place.Metadata -> place.title
   is Place.Reference -> place.title
   is Place.AgentLogs -> place.title
   is Place.AgentLog -> place.title

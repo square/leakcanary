@@ -238,7 +238,7 @@ class CliOptionsTest {
   /**
    * Runs [block] with stdout and stderr taken over, since these paths write to both.
    *
-   * A test that let them through would put the help of seventeen commands in the middle of the test report, and
+   * A test that let them through would put the help of twenty commands in the middle of the test report, and
    * the messages beside it read as failures of whatever ran next. Two streams rather than one because which
    * of them a line went to is half of what these paths promise: [printed] is an answer, [said] is everything
    * else. See `AgentCommandLine.printed`.

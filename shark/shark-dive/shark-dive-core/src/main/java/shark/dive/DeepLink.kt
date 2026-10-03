@@ -129,6 +129,7 @@ data class DeepLink(
       )
       LEAKS_PATH -> Place.Leaks(parameters.all(EXPANDED_PARAMETER).toSet())
       STARRED_PATH -> Place.Starred
+      METADATA_PATH -> Place.Metadata
       REFERENCE_PATH -> Place.Reference(parameters.topic(uri))
       AGENT_LOGS_PATH -> Place.AgentLogs
       AGENT_LOG_PATH -> Place.AgentLog(parameters.required(SESSION_PARAMETER, uri))
@@ -247,6 +248,7 @@ data class DeepLink(
     internal const val OBJECTS_PATH = "objects"
     internal const val LEAKS_PATH = "leaks"
     internal const val STARRED_PATH = "starred"
+    internal const val METADATA_PATH = "metadata"
     internal const val REFERENCE_PATH = "reference"
     internal const val AGENT_LOGS_PATH = "agent-logs"
     internal const val AGENT_LOG_PATH = "agent-log"
@@ -257,6 +259,7 @@ data class DeepLink(
       OBJECTS_PATH,
       LEAKS_PATH,
       STARRED_PATH,
+      METADATA_PATH,
       REFERENCE_PATH,
       AGENT_LOGS_PATH,
       AGENT_LOG_PATH
@@ -294,6 +297,7 @@ private fun Place.linkPath(): String = when (this) {
   is Place.Objects -> DeepLink.OBJECTS_PATH
   is Place.Leaks -> DeepLink.LEAKS_PATH
   is Place.Starred -> DeepLink.STARRED_PATH
+  is Place.Metadata -> DeepLink.METADATA_PATH
   is Place.Reference -> DeepLink.REFERENCE_PATH
   is Place.AgentLogs -> DeepLink.AGENT_LOGS_PATH
   is Place.AgentLog -> DeepLink.AGENT_LOG_PATH
@@ -327,6 +331,7 @@ private fun Place.linkParameters(): List<Pair<String, String>> = when (this) {
   }
   is Place.Leaks -> expandedGroups.sorted().map { DeepLink.EXPANDED_PARAMETER to it }
   is Place.Starred -> emptyList()
+  is Place.Metadata -> emptyList()
   is Place.Reference -> listOf(DeepLink.TOPIC_PARAMETER to topic.page)
   is Place.AgentLogs -> emptyList()
   is Place.AgentLog -> listOf(DeepLink.SESSION_PARAMETER to sessionId)

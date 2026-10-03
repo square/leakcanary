@@ -132,9 +132,14 @@ internal fun ObjectRow(
   }
 }
 
-/** What a list of objects says when it has none, in the same place a row would be. */
+/**
+ * What a list says when it has no rows, in the same place a row would be.
+ *
+ * Any list, not only one of objects: an empty list drawn two ways is two ways of reading "there is nothing
+ * here", and whether that is nothing retained or nothing reported is the sentence, not the styling.
+ */
 @Composable
-internal fun NoObjectRows(text: String) {
+internal fun NoRows(text: String) {
   Text(
     text,
     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),

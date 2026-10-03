@@ -134,6 +134,12 @@ class DeepLinkTest {
     assertThat(DeepLink.parse("shark://leak.hprof/starred").place).isEqualTo(Place.Starred)
   }
 
+  @Test
+  fun `and so is what the heap dump says about itself`() {
+    assertThat(DeepLink("leak.hprof", Place.Metadata).toUri()).isEqualTo("shark://leak.hprof/metadata")
+    assertThat(DeepLink.parse("shark://leak.hprof/metadata").place).isEqualTo(Place.Metadata)
+  }
+
   /**
    * Which is what an agent's own session is handed over by: the human it is working for gets a link to what
    * it did, rather than a path to a file and instructions for finding the row.
@@ -187,6 +193,7 @@ class DeepLinkTest {
       Place.Leaks(),
       Place.Leaks(expandedGroups = setOf("APPLICATION 12ab")),
       Place.Starred,
+      Place.Metadata,
       Place.Reference(Topic.values().first()),
       Place.Reference(Topic.values().last()),
       Place.AgentLogs,
@@ -318,6 +325,7 @@ class DeepLinkTest {
       Place.Leaks(),
       Place.Leaks(expandedGroups = setOf("APPLICATION 12ab", "LIBRARY 34cd")),
       Place.Starred,
+      Place.Metadata,
       Place.Reference(Topic.values().first()),
       Place.Reference(Topic.values().last()),
       Place.AgentLogs,

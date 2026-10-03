@@ -7,6 +7,7 @@ import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import shark.dive.DEFAULT_OUTLINE_CHILDREN
 import shark.dive.DEFAULT_OUTLINE_DEPTH
 import shark.dive.HeapDominatorTreemap
@@ -60,6 +61,7 @@ internal class AgentTools(
     openHeapDump(),
     listHeapDumps(),
     closeHeapDump(),
+    heapDumpMetadata(),
     listLeaks(),
     agentLog(),
     describeObject(),
@@ -226,6 +228,40 @@ internal class AgentTools(
       // nearly all of them: an untouched heap dump is the normal case and a call that answers "nobody has
       // been here" is a call spent on what this field already said.
       put("alreadyWorkedOn", ALREADY_WORKED_ON)
+    }
+  }
+
+  private fun heapDumpMetadata() = AgentTool(
+    name = "heap_dump_metadata",
+    summary = "Which Android version and which app this is, and what the heap is made of.",
+    description = "What the heap dump says about itself, which is the map LeakCanary prints above a leak " +
+      "trace: the API level and the manufacturer of the device, the name of the app's process, the version " +
+      "of LeakCanary that wrote the dump, how many classes, instances and arrays are in it, how many " +
+      "threads, how many bytes, how many bitmaps and how many of those are bigger than the screen, and the " +
+      "SQLite databases the app has open. **Worth one call before reading any code**, because it is where " +
+      "*which Android version* and *which app* come from: `Build.VERSION.SDK_INT` is the AOSP release to " +
+      "read the framework at, and `App process name` is the app's package, so the repository and the APK " +
+      "to look for — it is `ApplicationInfo.processName`, which is the package unless the app declares an " +
+      "`android:process`. Reading code at the wrong version is what " +
+      "${AgentCommandLine.LEAK_METHOD_OPTION} is about. The app's own version number is in no heap dump, " +
+      "so ask whoever gave you this one for it. Refused for a dump that is not an Android one, every " +
+      "line of this being read off the Android framework. One pass over every object, so ask once.",
+    schema = schema(HEAP_DUMP to heapDumpArgument())
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val metadata = dump.read("the heap dump's metadata, for an agent") { it.readMetadata() }
+      ?: throw AgentRefusal(
+        "${keyOf(dump)} records no `android.os.Build`, so it is not an Android heap dump and there is " +
+          "nothing here to report: the device, the API level, the app's process, the bitmaps and the " +
+          "databases are each read off the Android framework. How big this dump is and how its objects " +
+          "split up by reachability is in $LIST_HEAP_DUMPS, where the memory has gone is $DOMINATOR_TREE, " +
+          "and how many instances of a class there are is $FIND_OBJECTS."
+      )
+    buildJsonObject {
+      // LeakCanary's own keys and its own values, neither renamed nor parsed, which is what makes a figure
+      // read here and the same figure in a `leaks.txt` somebody was sent the same figure. See
+      // `shark.dive.HeapDive.readMetadata`.
+      putJsonObject("metadata") { metadata.forEach { (name, value) -> put(name, value) } }
     }
   }
 
@@ -1110,7 +1146,7 @@ private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
  *
  * Constants rather than the name written into each sentence, so that renaming a tool is one edit and a sentence
  * pointing at a tool that no longer exists is a compile error. Which is also why only some tools are named
- * here: a tool nothing but its own registration mentions needs no constant, and a list of all eighteen would
+ * here: a tool nothing but its own registration mentions needs no constant, and a list of all twenty would
  * say that every one of them is spoken about somewhere.
  *
  * In the order [AgentTools.all] is in, which is the order an investigation uses them.
@@ -1250,10 +1286,11 @@ private const val MAX_OUTLINE_CHILDREN = 15
  * one session of the log takes its id.
  *
  * The tools whose subject is in none of them go through [screenOfTool], which is where the screens an
- * agent names by naming nothing live: the leaks, the log as a list, and the two that mean the whole heap
- * dump when they are given no object — the tree from its root, and the object list unfiltered. Every one of
- * them has to be there, because **anything an agent can do that the window can do leads somewhere in the
- * window**: a call with no place is a row of the *Agent logs* screen that shows a reader what was looked at
+ * agent names by naming nothing live: the leaks, the metadata, the log as a list, and the two that mean the
+ * whole heap dump when they are given no object — the tree from its root, and the object list unfiltered.
+ * Every one of them has to be there, because **anything an agent can do that the window can do leads
+ * somewhere in the window**: a call with no place is a row of the *Agent logs* screen that shows a reader
+ * what was looked at
  * and then declines to show them the thing. The words that row draws come off the same list, so a screen
  * cannot be reachable and unnamed or named and unreachable.
  *

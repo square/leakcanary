@@ -102,6 +102,31 @@ class NoteFileTest {
     assertThat(directory.noteFile(Place.Leaks()).file.name).isEqualTo("leaks.md")
   }
 
+  /**
+   * Which is the half of a note key the compiler doesn't check. `Place.noteKey` is a `when` over a sealed
+   * interface, so a place added without one is a build failure; reading the key back is a `when` over
+   * strings, so a place added without one is a note on disk that the tab strip stops marking and nobody
+   * can be sent to — silently, and only for the place that was added.
+   */
+  @Test fun `every place that has a key is a place that key leads back to`() {
+    val places = listOf(
+      Place.wholeHeapDump(),
+      Place.Object(HOLDER_ID),
+      Place.Objects(),
+      Place.Leaks(),
+      Place.Starred,
+      Place.Metadata,
+      Place.Reference(Topic.values().first()),
+      Place.AgentLogs,
+      Place.AgentLog("1a2b3c4d")
+    )
+
+    places.forEach { place ->
+      val key = place.noteKey()
+      assertThat(placeOfNoteKeyOrNull(key)).describedAs(key).isEqualTo(place)
+    }
+  }
+
   @Test fun `the places written about are the notes on disk`() {
     val directory = noteDirectory("heap.hprof")
     directory.noteFile(Place.wholeHeapDump()).write("About the dump")

@@ -22,31 +22,41 @@ is. *So: one core, one adapter* has what that leaves to build.
 ## What the command line costs
 
 `--cli <command> name=value …` is a process per call, and the thing to know is what that *doesn't* cost.
-Measured against a packaged build of `df043f985`, `SHARK_DIVE_DIR` pointed at a scratch directory, with one
+Measured against a packaged build of `e423fad36`, `SHARK_DIVE_DIR` pointed at a scratch directory, with one
 run open on `leak_asynctask_o.hprof` and no window:
 
 | | Measured | Paid |
 | --- | --- | --- |
-| One call, JVM start to JSON on stdout | 153 ms | Per call |
-| `--help`, the whole surface: every option and all eighteen commands, one line each | 4,580 characters, ≈1,145 tokens | Only when read |
-| `--help <command>`, one of them in full | 871–2,524 characters, ≈220–630 tokens | Only when read |
-| `--leak-investigation-help`, the method for finding a faulty reference | 7,913 characters, ≈1,980 tokens | Once per investigation |
+| One call, JVM start to JSON on stdout | 186 ms, median of twenty-four | Per call |
+| `--help`, the whole surface: every option and all twenty commands, one line each | 5,666 characters, ≈1,417 tokens | Only when read |
+| `--help <command>`, one of them in full | 815–2,699 characters, ≈204–675 tokens | Only when read |
+| `--leak-investigation-help`, the method for finding a faulty reference | 9,385 characters, ≈2,346 tokens | Once per investigation |
 
 So **the standing cost is nothing** — no server is running, no definitions are in a context window, and a
 session that never reaches for a heap dump never pays for this surface at all.
 
-**And what the whole surface costs to read is now a quarter of what it was**, 4,580 characters against 17,923,
+**And what the whole surface costs to read is now a third of what it was**, 5,666 characters against 17,923,
 because `--help` lists a one-line summary per command and `--help <command>` is where the full description and
 every argument are. That is the split worth keeping: the list is what an agent reads to find the command, the
 description is what it reads to call one, and the version that printed every description in the list was
 paying 4,480 tokens to answer "what is here". MCP's `tools/list` was 23,877 characters of the same thing, every
-turn. The largest single command is `set_verdict` at 2,524 characters — two justifications to explain — and it
+turn. The largest single command is `set_verdict` at 2,699 characters — two justifications to explain — and it
 is the one to watch, because the help for one command is worth being the short answer.
 
-The full help includes the invocation path three times, since what it prints is the command to type on this
-machine, so a shorter install path is a shorter help: measured from
-`…/build/compose/binaries/main/app/Shark Dive.app/Contents/MacOS/Shark Dive`. A single command's help doesn't
-repeat the path at all.
+**Part of every figure here is the invocation path**, since what the help prints is the command to type on
+this machine: the full help carries it four times and a single command's help once. The path measured from is
+128 characters, so **the help itself is 5,154 characters and a command's is 687 to 2,571** — which is the pair
+to compare a future build against, and the pair that hasn't moved since `5eaa0d78a` except for the method.
+An installed `/Applications/Shark Dive.app/Contents/MacOS/Shark Dive` is 54, which works the full help out at
+5,370.
+
+**The per-call figure is a JVM starting, so it moves with what else the machine is doing** rather than with
+anything in this module: three batches of eight here ranged 168 to 209 ms, and the same measurement at
+`5eaa0d78a` was 178 ms. Read a change of ten milliseconds here as load.
+
+**So a figure here moves when nothing has been written longer.** This row was 4,580 characters and eighteen
+commands at `df043f985`, measured from a path that wasn't recorded, which is most of why it isn't the number
+above. Measure again when the command count changes rather than scaling the old one.
 
 **`--cli` with nothing after it prints exactly that help**, byte for byte, exit 0 and nothing on stderr —
 `diff` says identical, and so do `-h` and `--help`. Which is the point: the one command line that is a
@@ -55,8 +65,8 @@ answers immediately.
 
 **A call from a shell is not a slower call.** It reaches the same window over the loopback socket the run
 already publishes, so the heap dump is the one that was parsed and indexed once and the read queues on that
-window's own thread — the 153 ms is a JVM starting and a socket, not a heap dump being reopened, and the wire
-trace below puts 23 ms of it between the connect and the answer. The process-per-call shape costs exactly one
+window's own thread — the 186 ms is a JVM starting and a socket, not a heap dump being reopened, and the wire
+trace below puts 23 ms of a call between the connect and the answer. The process-per-call shape costs exactly one
 thing, and it isn't speed: **a connection can no longer be what gathers an investigation**, which is what
 `--session=` and `AgentSessionFile.continuing` exist for. A call says which session it is one of,
 defaulting to `cli<the shell's pid>`, so a conversation's calls are one row of the *Agent logs* screen.

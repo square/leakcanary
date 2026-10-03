@@ -653,6 +653,7 @@ internal fun verbOfTool(
 ): String? = when (tool) {
   "list_heap_dumps" -> "Asked which heap dumps are open"
   // Ending on "the", because what follows it is the link. See [AgentSessionCall.screen].
+  "heap_dump_metadata" -> "Read the"
   "list_leaks" -> "Listed the"
   // Not "Described", which reads as the agent having written a description of something rather than having
   // asked what it is. Every tool here is a read unless it says otherwise, and the verbs have to say which.
@@ -700,15 +701,16 @@ internal class AgentScreen(
 /**
  * Which screen a call that named nothing was about, and null for a call that named something.
  *
- * The calls that name nothing are the ones where naming nothing *means* something: the leaks, the agent log
- * as a list, and the two tools that mean the whole heap dump when they are given no object — the tree from
- * its root, and the list of every object.
+ * The calls that name nothing are the ones where naming nothing *means* something: the leaks, the metadata,
+ * the agent log as a list, and the two tools that mean the whole heap dump when they are given no object —
+ * the tree from its root, and the list of every object.
  */
 internal fun screenOfTool(
   tool: String,
   arguments: Map<String, String>
 ): AgentScreen? = when (tool) {
   "list_leaks" -> AgentScreen("leaks", Place.Leaks())
+  "heap_dump_metadata" -> AgentScreen("metadata", Place.Metadata)
   "agent_log" -> if (SUBJECT_SESSION in arguments) null else AgentScreen("agent log", Place.AgentLogs)
   "find_objects" ->
     if (SUBJECT_CLASS_NAME in arguments) null else AgentScreen("biggest objects", Place.Objects())

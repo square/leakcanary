@@ -205,6 +205,15 @@ internal fun HeapDumpDive(
   var showsBitmapsFromDevice by remember { mutableStateOf(false) }
   /** The objects starred so far, as the rows that draw them. Read from the addresses in [stars]. */
   var starredObjects by remember { mutableStateOf(emptyList<ObjectListEntry>()) }
+  /**
+   * What the heap dump says about itself, and null until the *Metadata* screen has been opened once.
+   *
+   * Empty rather than null for a dump that is not an Android one, which has none of this to say: null is
+   * what makes the read happen once, so a dump with nothing to report would otherwise be read again every
+   * time that tab is opened. See [HeapDive.readMetadata].
+   */
+  var metadata: Map<String, String>? by remember { mutableStateOf(null) }
+  var isReadingMetadata by remember { mutableStateOf(false) }
   /** What the agents that have worked through this app did, while a screen showing them is open. */
   var sessions by remember { mutableStateOf(emptyList<AgentSession>()) }
   /** What each tab is called, by the place it is on. Only grows: a place is named once and stays named. */
@@ -537,6 +546,28 @@ internal fun HeapDumpDive(
     isListing = false
   }
 
+  // What the dump says about itself, once a screen showing it is open and then never again: a pass over
+  // every object, since the heap total is the sum of their sizes and a bitmap's bytes are native ones
+  // counted off the registry that frees them. Which is why it is not read as the window opens with the
+  // rest — nothing draws it until somebody asks, and a dump never asked about never pays for it.
+  //
+  // And once, not once per tab: the heap dump is a file that is not being written to, so the only thing a
+  // second read could change is how long the second tab takes to draw.
+  val showsMetadata = place is Place.Metadata
+  LaunchedEffect(showsMetadata) {
+    if (!showsMetadata || metadata != null) {
+      return@LaunchedEffect
+    }
+    isReadingMetadata = true
+    metadata = session.read("what ${session.heapDumpFile.name} says about itself") { dive ->
+      dive.readMetadata()
+    }.orEmpty()
+    // Which is the difference between a dump with nothing to report and a read that never came back, and
+    // the screen says only the first of the two.
+    SharkLog.d { "Read ${metadata?.size ?: 0} lines of metadata" }
+    isReadingMetadata = false
+  }
+
   // Which places have been written about, once per run of the app: a directory listing rather than a note
   // opened per tab, since what it answers is a question about the whole strip. See [HeapDumpNotes.list].
   LaunchedEffect(notes) { notes.list() }
@@ -814,6 +845,8 @@ internal fun HeapDumpDive(
           leaks = leaks,
           isFindingLeaks = isFindingLeaks,
           starredObjects = starredObjects,
+          metadata = metadata,
+          isReadingMetadata = isReadingMetadata,
           sessions = sessions,
           heapDumpFile = session.heapDumpFile,
           agentPlaceTitles = agentPlaceTitles,
@@ -1189,6 +1222,9 @@ private fun ListPlace(
   leaks: HeapLeaks?,
   isFindingLeaks: Boolean,
   starredObjects: List<ObjectListEntry>,
+  /** What the heap dump says about itself, for the screen that draws it. See [MetadataScreen]. */
+  metadata: Map<String, String>?,
+  isReadingMetadata: Boolean,
   /** What the agents that have worked through this app did, for the screens that draw them. */
   sessions: List<AgentSession>,
   /** Which heap dump this window has open, which is what decides where an agent's row leads. */
@@ -1251,6 +1287,12 @@ private fun ListPlace(
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onRemove = onRemoveStar,
+      modifier = modifier
+    )
+    is Place.Metadata -> MetadataScreen(
+      metadata = metadata,
+      isReading = isReadingMetadata,
+      onExplain = onExplain,
       modifier = modifier
     )
     is Place.Reference -> ReferenceScreen(
@@ -1345,6 +1387,10 @@ private fun ScreenBar(
     verticalAlignment = Alignment.CenterVertically
   ) {
     ScreenButton(Place.wholeHeapDump(), HeapDominatorTreemap.ROOT_LABEL, onOpen, onCopyLink)
+    // Beside the heap dump as a whole, because it is the other thing that is about the dump rather than
+    // about anything in it: which device and which app this is, which is worth knowing before reading a
+    // single object of it.
+    ScreenButton(Place.Metadata, Place.METADATA_LABEL, onOpen, onCopyLink)
     ScreenButton(Place.Objects(), Place.OBJECTS_LABEL, onOpen, onCopyLink)
     // Beside the list of every object, because it is the same list with the answer already found in it:
     // the objects that shouldn't be there, gathered into the leaks they are instances of.

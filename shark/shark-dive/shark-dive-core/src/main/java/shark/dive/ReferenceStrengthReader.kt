@@ -288,28 +288,6 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
       return AndroidReferenceMatchers.appDefaults.filterIsInstance<LibraryLeakReferenceMatcher>()
     }
 
-    /**
-     * Whether the heap dump has the device [shark.AndroidBuildMirror] is a mirror of, which is what
-     * nearly every one of Shark's library leak patterns decides whether it applies by.
-     *
-     * By the three fields it reads rather than by the class, because it reads all three with `!!`: a dump
-     * that has `android.os.Build` and not its fields — a synthetic one, an Android runtime that strips
-     * them — is a bare NPE from inside the reference reader, which is under everything Shark Dive
-     * reads. What that looks like is a window that never draws a tree.
-     */
-    private fun HeapGraph.recordsAndroidBuild(): Boolean {
-      val buildClass = findClassByName(ANDROID_BUILD_CLASS_NAME) ?: return false
-      val versionClass = findClassByName(ANDROID_BUILD_VERSION_CLASS_NAME) ?: return false
-      return buildClass["MANUFACTURER"]?.value?.readAsJavaString() != null &&
-        buildClass["ID"]?.value?.readAsJavaString() != null &&
-        versionClass["SDK_INT"]?.value?.asInt != null
-    }
-
-    /** What every Android heap dump has and no other kind does. See [libraryLeakMatchers]. */
-    private const val ANDROID_BUILD_CLASS_NAME = "android.os.Build"
-
-    private const val ANDROID_BUILD_VERSION_CLASS_NAME = "android.os.Build\$VERSION"
-
     private const val STRING_CLASS_NAME = "java.lang.String"
 
     /** No heap object has id 0, which is what a null reference is. */

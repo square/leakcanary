@@ -53,6 +53,23 @@ internal fun TemporaryFolder.applicationHoldsActivityThroughHolder(
 }
 
 /**
+ * A heap dump that is no Android one, which is what `heap_dump_metadata` is refused for.
+ *
+ * No [androidBuild], and that is the whole of the fixture: a dump without it has nothing for
+ * `shark.AndroidBuildMirror` to mirror, so LeakCanary's metadata extractor cannot run over it at all. See
+ * `shark.dive.HeapDive.readMetadata`.
+ */
+internal fun TemporaryFolder.jvmHeapDump(fileName: String = "jvm.hprof"): HeapDive {
+  val file = newFile(fileName)
+  file.dump {
+    val held = "com.example.Held" instance { }
+    val holder = "com.example.Holder" instance { field["held"] = held }
+    gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
+  }
+  return HeapDive.open(file)
+}
+
+/**
  * An open heap dump and the addresses a test names its objects by.
  *
  * The addresses come from the fixture rather than from a search of the dump so that a test that fails is a
