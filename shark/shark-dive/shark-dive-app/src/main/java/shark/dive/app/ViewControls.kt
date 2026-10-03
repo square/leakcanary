@@ -243,7 +243,7 @@ private val REFERENCE_STRENGTHS = ReachabilityStrength.values().toList() - setOf
 /**
  * What the checkbox that shades the stuck objects says, before their count.
  *
- * The same word the panel and every chain call one of them, because it shades exactly the objects they call
+ * The same word the panel and every path call one of them, because it shades exactly the objects they call
  * that: two spellings of one verdict, one of them over the map and the other beside it, would read as two
  * different things being shaded.
  */

@@ -4,7 +4,7 @@ package shark.dive
  * One thing Shark Dive can show, which is the whole of where a tab is.
  *
  * An object is the place this app is mostly about, and its screen answers three questions at once: what
- * holds it, which is the chain on one side; what it is, which is the panel on the other; and what it
+ * holds it, which is the path on one side; what it is, which is the panel on the other; and what it
  * holds, which is the dominator tree drawn between them, **rooted at the object itself**. The lists are
  * places too, so that going to one and coming back is the same move as any other.
  *
@@ -162,7 +162,7 @@ sealed interface Place {
      * Where a click on a cell of a laid out view goes.
      *
      * The one place a click on the map is turned into a move, so that clicking a rectangle, a step of the
-     * chain and a row of a list all arrive the same way.
+     * path and a row of a list all arrive the same way.
      */
     fun of(cell: LayoutCell<Long>): Place = when (val subject = cell.subject) {
       is CellSubject.Node -> Object(subject.node)

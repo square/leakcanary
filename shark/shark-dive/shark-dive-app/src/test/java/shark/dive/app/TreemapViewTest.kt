@@ -89,7 +89,7 @@ class TreemapViewTest {
   @Test fun `clicking a nested rectangle reports the rectangle rather than what it sits in`() {
     runComposeUiTest {
       // The window works out what to open from the node clicked, so a click on the innermost rectangle
-      // reports that one and nothing of the chain above it.
+      // reports that one and nothing of the path above it.
       val presentation = mapTree(ROOT to listOf(PARENT), PARENT to listOf(CHILD)).present()
       val clicked = mutableListOf<LayoutCell<Long>>()
       setContent { TreemapUnderTest(presentation, onClick = { clicked += it }) }

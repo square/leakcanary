@@ -89,13 +89,15 @@ class CliOptionsTest {
     val printed = ByteArrayOutputStream()
 
     val exitCode = onItsOwnStreams(printed) {
-      helpExitCode(arrayOf(AgentCommandLine.HELP_OPTION, "conclude"))
+      helpExitCode(arrayOf(AgentCommandLine.HELP_OPTION, "ways_held"))
     }
 
     assertThat(exitCode).isZero
-    // The command asked about, and not the sixteen others: reading a surface a piece at a time is what naming
+    // The command asked about, and not the eighteen others: reading a surface a piece at a time is what naming
     // one is for.
-    assertThat(printed.toString(Charsets.UTF_8.name())).contains("conclude").doesNotContain("list_leaks")
+    assertThat(printed.toString(Charsets.UTF_8.name()))
+      .contains("ways_held")
+      .doesNotContain("list_leak_groups")
   }
 
   @Test
@@ -122,7 +124,7 @@ class CliOptionsTest {
       helpExitCode(arrayOf(AgentCommandLine.LEAK_METHOD_OPTION))
     }
 
-    // Which is what took it out of every `list_leaks` answer: a session reads it once, here, rather than
+    // Which is what took it out of every `list_leak_groups` answer: a session reads it once, here, rather than
     // being handed it again with each leak it asks about. See [AgentMethod.LEAK].
     assertThat(exitCode).isZero
     assertThat(printed.toString(Charsets.UTF_8.name())).isEqualToIgnoringWhitespace(AgentCommandLine.leakMethod())
@@ -133,7 +135,7 @@ class CliOptionsTest {
     val said = ByteArrayOutputStream()
 
     val exitCode = onItsOwnStreams(said = said) {
-      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leaks", AgentCommandLine.NO_UI_OPTION))
+      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leak_groups", AgentCommandLine.NO_UI_OPTION))
     }
 
     // Rather than stripped and quietly dropped, which is what it would otherwise be: which kind of run a heap
@@ -160,7 +162,7 @@ class CliOptionsTest {
   @Test
   fun `a command line that does not read is a failure rather than a message`() {
     val exitCode = onItsOwnStreams {
-      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leaks", "--titel=Typo"))
+      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leak_groups", "--titel=Typo"))
     }
 
     // Whatever typed this reads an exit code and the sentence on stderr, so a window it did not ask for is
@@ -197,7 +199,7 @@ class CliOptionsTest {
     val said = ByteArrayOutputStream()
 
     val exitCode = onItsOwnStreams(said = said) {
-      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leaks", "reason=Reading it", "dump.hprof"))
+      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leak_groups", "reason=Reading it", "dump.hprof"))
     }
 
     // Two forms of this command line, each with its own way of opening a dump, so naming both says two
@@ -214,7 +216,14 @@ class CliOptionsTest {
     val said = ByteArrayOutputStream()
 
     val exitCode = onItsOwnStreams(said = said) {
-      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leaks", "reason=Reading it", "shark://dump.hprof/leaks"))
+      cliExitCode(
+        arrayOf(
+          AgentCommandLine.CLI_OPTION,
+          "list_leak_groups",
+          "reason=Reading it",
+          "shark://dump.hprof/leaks"
+        )
+      )
     }
 
     assertThat(exitCode).isEqualTo(UNREADABLE_COMMAND_LINE)
@@ -238,7 +247,7 @@ class CliOptionsTest {
   /**
    * Runs [block] with stdout and stderr taken over, since these paths write to both.
    *
-   * A test that let them through would put the help of twenty commands in the middle of the test report, and
+   * A test that let them through would put the help of nineteen commands in the middle of the test report, and
    * the messages beside it read as failures of whatever ran next. Two streams rather than one because which
    * of them a line went to is half of what these paths promise: [printed] is an answer, [said] is everything
    * else. See `AgentCommandLine.printed`.

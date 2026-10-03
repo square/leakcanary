@@ -64,15 +64,15 @@ stamped with a generation per walk rather than cleared at the end.
 
 **The pointer asks questions on that thread too**, because moving over a rectangle describes it. Which is
 why nothing is read until the pointer has been still for `HOVER_SETTLE_MILLIS`, and why what a hover asks
-for is index-backed: a chain from a GC root is one walk over `ReferrerIndex` and a read per step of what it
+for is index-backed: a path from a GC root is one walk over `ReferrerIndex` and a read per step of what it
 found, and the search for every way an object is held runs for the object clicked and no other. A new
 question the panels ask has to be measured before it goes in the hover path — `notes/decisions.md` has the
-numbers on the biggest dump in the repo, including how long a chain gets there.
+numbers on the biggest dump in the repo, including how long a path gets there.
 
 ## On-screen words are the scarcest thing here
 
 Everything else in this repo rewards prose — this file, the KDoc, `notes/`, `docs/`. **The window does
-not.** Whoever is reading a heap dump in it is holding a twenty-step chain in their head, and a sentence on
+not.** Whoever is reading a heap dump in it is holding a twenty-step path in their head, and a sentence on
 screen is read at the cost of the thing they were working out. The failure mode is specific and it is one an
 agent is unusually prone to: having reasoned its way to why a label means what it means, it writes the
 reasoning into the label, and the screen fills with text addressed to its author rather than to its reader.
@@ -118,7 +118,7 @@ Each of the following is a change already made to this app, not a preference:
 
 ## One concept, one name, one place
 
-The map, the card at the pointer, the details panel, a row of a list, a step of a chain, the tab strip, the
+The map, the card at the pointer, the details panel, a row of a list, a step of a path, the tab strip, the
 log line and the JSON an agent is answered with all say the same things about the same heap dump. **They
 have one reader**, who is either the person at the machine or the agent working beside them, and two
 spellings of one concept are two concepts to that reader — or two grep results, which is worse.
@@ -133,6 +133,7 @@ this way, each of which was several before:
 | An object's two sizes | `RETAINED`, `SHALLOW` and `retainedText` in `DetailsPanel.kt` |
 | A rectangle that isn't one object | `formatObjectCount` — a count, whichever kind of pile it is |
 | Which reference a leak is | `PathReference.leakLabel()`, `RootPath.faultyReference()`, and `RootPath.suspectReferences()` while it is still several |
+| Whether that leak is worked out | `RootPath.isLeakSolved()`, and `leakSolvingProgress()` for how far off it is |
 | Whether an object is meant to be in memory | `LeakStatus`: `STUCK`, `EXPECTED`, `UNKNOWN`, nothing else |
 | What a place is called | `Place.title` |
 
@@ -169,38 +170,50 @@ vocabulary; this app is an alpha and the files are three columns of text anybody
 
 **Which reference the leak is, is decided once, over the whole path** — `faultyReferenceIndexOrNull`, called
 from `withLeakStatuses` — and carried on `PathReference.isFaulty` for the drawing to read. Working it out in
-the window from the steps on screen looks equivalent and isn't: a pane draws stretches of a chain
+the window from the steps on screen looks equivalent and isn't: a pane draws stretches of a path
 (`stepsBelow`, `stepsAfter`, a swapped-in `RootPathWay`), so the object that ends the stretch can be above
 what it shows.
 
 **And it marks nothing unless one step crosses from `Expected` to `Stuck`.** `suspectReferenceIndexes`, the
 whole stretch between the two verdicts, is what a leak is *named* after — `suspectSubpath`, and Shark's leak
 fingerprint — so it is tempting to mark the top of it, which is what the first version did and what
-`notes/decisions.md` records as wrong: a chain whose objects all have no verdict got its top reference marked
+`notes/decisions.md` records as wrong: a path whose objects all have no verdict got its top reference marked
 for being where the walk started. A longer stretch is a fault at one of several references with nothing
 saying which, and nothing drawn is the answer for that.
 
 **And a stretch is counted in references, never in objects.** One object with no verdict between the two ends
 leaves *two* candidates — the reference into it and the reference out of it — and what rules one of them out is
-that object's own verdict. So a surface with a stretch left says which references those are and which objects
-to go and decide about, and never a number: "one step between the verdicts" is a count that reads as an answer
-and is neither of the two things a reader can act on. `RootPath.suspectReferences()` is the candidates and
-`ChainVerdicts` is that shape for an agent, both over `suspectReferenceIndexes`.
+that object's own verdict. So "one step between the verdicts" is a figure that reads as an answer and is
+neither of the two things a reader can act on, which is why the count is `RootPath.suspectReferenceCount()`
+over `suspectReferenceIndexes` and never a count of steps or of objects.
+
+**And a count stands beside the candidates, never instead of them.** `RootPath.suspectReferences()` is which
+references they are and the undecided objects are which objects to go and settle; the count and
+`RootPath.leakSolvingProgress()` say how far from one there is left to go, which is what makes a verdict's
+answer readable as progress without re-reading the path. `PathVerdicts` is all of it in one shape for an
+agent. Taking the candidates away and leaving the number would put this back where it started.
+
+**`RootPath.isLeakSolved()` is the end of an investigation, and it is read off the heap dump.** A leak is
+solved when exactly one reference is left a candidate, which is the same question `faultyReference()`
+answers, so nothing anywhere asks a reader or an agent to *declare* which reference is at fault — the
+verdicts are the work and this is what they add up to. There was a `conclude` tool that took a reference and
+refused until the heap dump agreed with it; `notes/decisions.md` has why checking the tool's own answer
+against a restatement of it measured nothing.
 
 **And it is named in one place, `PathReference.leakLabel()`.** Four surfaces say which reference a leak is —
-the row of the leaks screen, the `Leak solved` section above the chain, the `faultyReference` an agent is
-answered with, and the note `conclude` writes — and a leak named `Holder.activity` by one of them and
-`Holder#activity` by another is two leaks to whoever is reading, or grepping. `Owner.field` is not the whole
-of it either: an array entry loses its index (`Object[][x]`, since which slot a leak was in is no part of
-what it is) and a reference from a running method has no name of its own. `RootPath.faultyReference()` is the
-matching single answer to "does this chain name one?", which is what both the window's section and the agent's
-field are.
+the row of the leaks screen, the `Leak solved` section above the path, the `faultyReference` an agent is
+answered with, and the sentence a verdict that solved a leak ends with — and a leak named `Holder.activity`
+by one of them and `Holder#activity` by another is two leaks to whoever is reading, or grepping.
+`Owner.field` is not the whole of it either: an array entry loses its index (`Object[][x]`, since which slot
+a leak was in is no part of what it is) and a reference from a running method has no name of its own.
+`RootPath.faultyReference()` is the matching single answer to "does this path name one?", which is what both
+the window's section and the agent's field are.
 
 Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
 are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
 `rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots`, `findLeaks`, `isBelowLeakingObject` —
 rather than something the tree holds. It has to be that way round for the reason above: the tree is read from
-one thread and the window composed on another, so overrides in the tree would draw a chain from one set of
+one thread and the window composed on another, so overrides in the tree would draw a path from one set of
 them and the row above it from another.
 
 **The parameter defaults to `LeakStatusOverrides.NONE`**, so a new read that forgets it compiles and answers
@@ -208,11 +221,11 @@ with the dump's own reading — which looks right, and is wrong the moment anybo
 through, and key the `LaunchedEffect` that asks on the overrides, which is what makes setting one redraw.
 
 **`findLeaks` is one of them, and the least obvious**: setting a status changes *which objects are leaks*,
-not only how one of them reads. Mark something leaking halfway up a chain and it becomes a leak, while
+not only how one of them reads. Mark something leaking halfway up a path and it becomes a leak, while
 whatever it holds drops off the list — that object is now only in memory because of this one, which is what
 `foldedIntoWhatHoldsThem` folds. The list is worked out again per set of statuses and kept until the next,
 and `RootPathSearch` goes round what a hand marked leaking exactly as it goes round what the inspectors did,
-so the chain a leak is grouped by and the statuses drawn on that chain are one answer. The price is that a
+so the path a leak is grouped by and the statuses drawn on that path are one answer. The price is that a
 `LeakGroup.leakFingerprint` only matches LeakCanary's for the same objects while nothing is set by hand;
 `notes/decisions.md` has the rest.
 
@@ -667,11 +680,11 @@ numbers belong in `notes/bitmaps.md`.
   tests can't find cells by tag, and **not by label either** — a cell's label is painted text, so no
   assertion and no wait can reach it. Test layout and hit testing as pure functions in
   `shark-dive-core`, and have UI tests drive coordinates with `performMouseInput` and assert on what
-  is written outside the view: the chain pane and the details panel either side of it, and the card that
+  is written outside the view: the path pane and the details panel either side of it, and the card that
   follows the pointer, whose text is real text and so can be found and its bounds read.
 - **A block naming an object is one semantics node**, because `Modifier.openable` merges its descendants,
-  so a step of the chain is found by any one of the three lines it prints. The same name is usually in the
-  window several times at once — a step of the chain, a tab, a button on the bar, the details panel — so
+  so a step of the path is found by any one of the three lines it prints. The same name is usually in the
+  window several times at once — a step of the path, a tab, a button on the bar, the details panel — so
   `onNodeWithText` failing with "found 2" is that, not a duplicated composable. **Tell them apart by the
   role, not by `hasClickAction()`**, since all of them have one: `Role.Button` is the bar, `Role.Tab` is
   the strip, and no role at all is a row that navigates, which is a link rather than a button. The

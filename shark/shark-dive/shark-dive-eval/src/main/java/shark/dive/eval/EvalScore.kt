@@ -17,11 +17,18 @@ class EvalResult(
   val scenario: String,
   val model: String,
   val outcome: EvalOutcome,
-  /** The reference the agent concluded on, and null for a run that concluded nothing. */
-  val concluded: String?,
+  /**
+   * The reference this heap dump named once the run's verdicts narrowed to one, and null for a run that
+   * never got there.
+   *
+   * **Not what the agent said**, which is the point of scoring this at all: it is derived by Shark Dive from
+   * the verdicts the run recorded, so a run gets this right by setting verdicts that are right, and there is
+   * no way to type it. See `AgentSessionFile.outcomeOfTool`.
+   */
+  val solved: String?,
   /** What it should have been, repeated here so that a result is readable without the scenario beside it. */
   val key: String,
-  /** The heap dump a wandering run concluded about instead, and null for every run that stayed. */
+  /** The heap dump a wandering run solved a leak in instead, and null for every run that stayed. */
   val wanderedTo: String?,
   /** How many tools calls it took, refusals included: the number a better surface lowers. */
   val callCount: Int,
@@ -33,8 +40,14 @@ class EvalResult(
    * biting. Neither shows up in pass or fail.
    */
   val refusalCount: Int,
-  /** How many times it tried to finish, which is how a run that was refused into giving up reads. */
-  val concludeCount: Int,
+  /**
+   * How many verdicts it recorded, which is the work this surface is made of.
+   *
+   * The number to read beside a wrong answer: a run that solved the wrong reference in two verdicts guessed,
+   * and one that did it in nine was wrong about something it had looked at. Refusals are counted separately
+   * and a refused `set_verdict` is not one of these.
+   */
+  val verdictCount: Int,
   /** Time the heap dump spent being read for it, summed over every call. */
   val readMillis: Long,
   /** Which session file this was read from, so that a row of a table leads back to what the agent did. */
@@ -59,40 +72,43 @@ class EvalResult(
       // The calls, not every line: a session records what it could not read as well as what it answered, and
       // a run scored on lines sent would count a typo against the agent's work. See [AgentSession.toolCalls].
       val toolCalls = session.toolCalls
-      val concludes = toolCalls.filter { it.tool == CONCLUDE }
-      val concluded = concludes.firstNotNullOfOrNull { it.outcome }
+      // Every call that solved a leak, which is every call whose answer carried the heap dump's own
+      // `leakSolved`. The first of them, because that is where the run's verdicts first added up to an
+      // answer; reading one again later says the same thing. See `AgentSessionFile.outcomeOfTool`.
+      val solvedCalls = toolCalls.filter { it.outcome != null }
+      val solved = solvedCalls.firstNotNullOfOrNull { it.outcome }
       val dumpGiven = sameFileAs(heapDumpPath)
       return EvalResult(
         scenario = scenario.name,
         model = model,
-        outcome = outcomeOf(concludes, concluded, scenario.key, dumpGiven),
-        concluded = concluded,
+        outcome = outcomeOf(solvedCalls, solved, scenario.key, dumpGiven),
+        solved = solved,
         key = scenario.key,
-        wanderedTo = concludes.mapNotNull { it.heapDumpPath }.firstOrNull { sameFileAs(it) != dumpGiven },
+        wanderedTo = solvedCalls.mapNotNull { it.heapDumpPath }.firstOrNull { sameFileAs(it) != dumpGiven },
         callCount = toolCalls.size,
         refusalCount = session.refusedCount,
-        concludeCount = concludes.size,
+        verdictCount = toolCalls.count { it.tool == SET_VERDICT && it.refusal == null },
         readMillis = toolCalls.sumOf { it.millis },
         sessionId = session.sessionId
       )
     }
 
     private fun outcomeOf(
-      concludes: List<AgentSessionCall>,
-      concluded: String?,
+      solvedCalls: List<AgentSessionCall>,
+      solved: String?,
       key: String,
       dumpGiven: String
     ): EvalOutcome = when {
-      // Before the answer is compared to anything, because a conclusion about another heap dump is not an
+      // Before the answer is compared to anything, because a leak solved in another heap dump is not an
       // answer to this scenario however right it reads.
-      concludes.mapNotNull { it.heapDumpPath }.any { sameFileAs(it) != dumpGiven } ->
+      solvedCalls.mapNotNull { it.heapDumpPath }.any { sameFileAs(it) != dumpGiven } ->
         EvalOutcome.WANDERED
-      // The reference and nothing else, because that is what the answer key is: a run that named it and
-      // explained it badly still found it, and a run that explained the wrong reference beautifully didn't.
-      concluded == key -> EvalOutcome.RIGHT
-      concluded != null -> EvalOutcome.WRONG
-      concludes.isNotEmpty() -> EvalOutcome.REFUSED
-      else -> EvalOutcome.NOT_CONCLUDED
+      // The reference and nothing else, because that is what the answer key is. What it measures now is the
+      // verdicts: this string is derived from them by Shark Dive, so a run reaches RIGHT by recording
+      // verdicts that are right about the objects, and cannot reach it by writing anything.
+      solved == key -> EvalOutcome.RIGHT
+      solved != null -> EvalOutcome.WRONG
+      else -> EvalOutcome.NOT_SOLVED
     }
 
     /**
@@ -114,17 +130,22 @@ class EvalResult(
       path
     }
 
-    private const val CONCLUDE = "conclude"
+    private const val SET_VERDICT = "set_verdict"
   }
 }
 
 /**
- * The five ways a run ends, which are five different things to do about it.
+ * The four ways a run ends, which are four different things to do about it.
  *
- * [WRONG] is the one that matters most, and the reason a pass rate alone is not enough: an agent that
- * concluded the wrong reference produced a confident answer somebody would have acted on, while [REFUSED] and
- * [NOT_CONCLUDED] left the question open. A surface that turns wrong answers into refusals has got better
- * even if its pass rate hasn't moved.
+ * [WRONG] is the one that matters most, and the reason a pass rate alone is not enough: a run that narrowed
+ * to the wrong reference produced a confident answer somebody would have acted on, while [NOT_SOLVED] left
+ * the question open. A surface that turns wrong answers into unsolved ones has got better even if its pass
+ * rate hasn't moved.
+ *
+ * **There was a fifth, `REFUSED`, and it went with `conclude`.** It counted the runs that tried to report a
+ * root cause and were told the path didn't name one — a state that no longer exists, because there is
+ * nothing to report a root cause *to*. What it was really measuring is now in [NOT_SOLVED] and in the
+ * refusal count beside it, which is where a refusal that didn't say what to do next shows up.
  *
  * [WANDERED] is the one that is not about the model at all. It is this eval failing to measure anything, and it
  * is here because it happened: a run whose first call found nothing open, and which was not told the path it
@@ -135,19 +156,22 @@ enum class EvalOutcome(
   /** One word for a table, since a column of enum constants is a column nobody reads. */
   val label: String
 ) {
-  /** Concluded, and on the reference the key names. */
+  /** Solved, and on the reference the key names. */
   RIGHT("right"),
 
-  /** Concluded on another reference: the confident wrong answer. */
+  /** Solved on another reference: the confident wrong answer. */
   WRONG("wrong"),
 
-  /** Tried to conclude and was refused every time, so it never claimed a root cause. */
-  REFUSED("refused"),
+  /**
+   * Never narrowed a path to one reference, whatever the run said in its reply.
+   *
+   * Which covers the run that gave up, the run that went round in circles, and the run that believed it had
+   * the answer and never recorded the verdicts that would have shown it. All three left the heap dump
+   * saying nothing, and that is the sense in which none of them solved anything.
+   */
+  NOT_SOLVED("not solved"),
 
-  /** Never tried, which is the failure mode of a surface an agent answers around rather than through. */
-  NOT_CONCLUDED("no conclusion"),
-
-  /** Concluded about a heap dump this run was not given, so the run measured nothing and is not the model's. */
+  /** Solved a leak in a heap dump this run was not given, so the run measured nothing and is not the model's. */
   WANDERED("wandered")
 }
 
@@ -161,7 +185,7 @@ enum class EvalOutcome(
  */
 fun List<EvalResult>.asMarkdownTable(): String {
   val header =
-    "| Scenario | Model | Right | Wrong | Refused | No conclusion | Wandered | Calls | Refusals |"
+    "| Scenario | Model | Right | Wrong | Not solved | Wandered | Calls | Verdicts | Refusals |"
   val rule = "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"
   val rows = groupBy { it.scenario to it.model }.map { (key, results) ->
     val (scenario, model) = key
@@ -169,13 +193,13 @@ fun List<EvalResult>.asMarkdownTable(): String {
     "| $scenario | $model " +
       "| ${results.count { it.outcome == EvalOutcome.RIGHT }}/$count " +
       "| ${results.count { it.outcome == EvalOutcome.WRONG }}/$count " +
-      "| ${results.count { it.outcome == EvalOutcome.REFUSED }}/$count " +
-      "| ${results.count { it.outcome == EvalOutcome.NOT_CONCLUDED }}/$count " +
+      "| ${results.count { it.outcome == EvalOutcome.NOT_SOLVED }}/$count " +
       // In the table rather than only in the run lines, because a column of zeroes is the claim that these
       // numbers are about the models — and a column that isn't zero says to fix the harness before reading
       // the rest of the row.
       "| ${results.count { it.outcome == EvalOutcome.WANDERED }}/$count " +
       "| ${results.map { it.callCount }.median()} " +
+      "| ${results.map { it.verdictCount }.median()} " +
       "| ${results.map { it.refusalCount }.median()} |"
   }
   return (listOf(header, rule) + rows).joinToString("\n")
@@ -185,18 +209,18 @@ fun List<EvalResult>.asMarkdownTable(): String {
  * Every run, one line each, in the order they were scored.
  *
  * Under the table because the table is what a change is argued from and this is what an argument about one
- * row goes to: which reference was concluded, and which session file to open to see how.
+ * row goes to: which reference the run's verdicts came to, and which session file to open to see how.
  */
 fun List<EvalResult>.asRunLines(): String = joinToString("\n") { result ->
   listOfNotNull(
     result.scenario,
     result.model,
     result.outcome.label,
-    result.wanderedTo?.let { "concluded about $it, not the dump it was given" },
-    result.concluded?.takeIf { it != result.key }?.let { "concluded $it, key ${result.key}" },
+    result.wanderedTo?.let { "solved a leak in $it, not the dump it was given" },
+    result.solved?.takeIf { it != result.key }?.let { "solved $it, key ${result.key}" },
     "${result.callCount} call(s)",
+    "${result.verdictCount} verdict(s)",
     "${result.refusalCount} refused".takeIf { result.refusalCount > 0 },
-    "${result.concludeCount} conclude attempt(s)".takeIf { result.concludeCount > 1 },
     "${result.readMillis}ms reading",
     result.sessionId
   ).joinToString(" · ")

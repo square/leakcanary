@@ -49,8 +49,8 @@ class StackLayoutResult<N>(
  * upside down: the node it's rooted at is the row across the top, its children are the row under it,
  * and so on downwards, each one as wide as its weight's share of the row above.
  *
- * **What it is for is the shape of one chain of domination.** A treemap and a ring both spend a
- * dimension on nesting, so a level is smaller than the level above it and the deep end of a chain is
+ * **What it is for is the shape of one path of domination.** A treemap and a ring both spend a
+ * dimension on nesting, so a level is smaller than the level above it and the deep end of a path is
  * where the pixels have run out. Here a level costs a row and nothing else: the twentieth dominator of
  * an object is as wide as the object's share of the heap, drawn at full height and named, however deep
  * it sits. What that costs instead is the whole picture at a glance — a stack is a tall thing to scroll
@@ -77,9 +77,9 @@ class StackLayout<N>(
   /**
    * How many rows to lay out at all, which is how far a view of this scrolls.
    *
-   * A bound is needed because a row costs no width: a chain of single dominators is as wide at the
+   * A bound is needed because a row costs no width: a path of single dominators is as wide at the
    * bottom as at the top, so nothing else would ever stop it, and a heap dump is free to hold a
-   * hundred thousand of those in a linked list. Deeper than any chain a real dump has been measured to
+   * hundred thousand of those in a linked list. Deeper than any path a real dump has been measured to
    * have — 22 levels from an activity down to a list row on an 82 MB production dump — so what this
    * cuts off is the pathological rather than the interesting, and zooming into a node is how the rest
    * of it is reached.

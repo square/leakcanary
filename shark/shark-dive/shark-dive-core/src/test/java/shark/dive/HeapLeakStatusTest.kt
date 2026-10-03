@@ -10,7 +10,7 @@ import shark.dive.LeakStatus.UNKNOWN
 
 /**
  * What a heap dump says about its objects once somebody has said something about them by hand: the panel,
- * the chain, and which statuses can't both be true. See [LeakStatusOverride].
+ * the path, and which statuses can't both be true. See [LeakStatusOverride].
  */
 class HeapLeakStatusTest {
 
@@ -58,7 +58,7 @@ class HeapLeakStatusTest {
     }
   }
 
-  @Test fun `a chain is read through the statuses set by hand`() {
+  @Test fun `a path is read through the statuses set by hand`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -70,13 +70,13 @@ class HeapLeakStatusTest {
       val activity = path.steps.single { it.step.objectId == dump.activityObjectId }.step
       assertThat(activity.leakStatus).isEqualTo(EXPECTED)
       assertThat(activity.leakStatusReason).contains(SET_BY_HAND)
-      // And what a chain reads off it: the object above the activity is holding something still needed.
+      // And what a path reads off it: the object above the activity is holding something still needed.
       assertThat(path.steps.first().step.leakStatus).isEqualTo(EXPECTED)
     }
   }
 
   /** Which is the whole point of setting one: the objects below stop being read as leaking. */
-  @Test fun `what a hand set decides the objects below it on the chain`() {
+  @Test fun `what a hand set decides the objects below it on the path`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -92,7 +92,7 @@ class HeapLeakStatusTest {
       )
 
       // The window is still leaking on its own account — an inspector recognized it — so what the activity
-      // no longer being leaking changes is the activity, not the object the chain leads to.
+      // no longer being leaking changes is the activity, not the object the path leads to.
       assertThat(read.steps.last().step.leakStatus).isEqualTo(STUCK)
       assertThat(read.steps.single { it.step.objectId == dump.activityObjectId }.step.leakStatus)
         .isEqualTo(UNKNOWN)
@@ -103,12 +103,12 @@ class HeapLeakStatusTest {
    * The other half of what a status decides: which reference the leak is, which is read off the objects
    * either side of it and so is a hand's to change. See [PathReference.isFaulty].
    */
-  @Test fun `a chain marks a faulty reference once a hand says an object is expected`() {
+  @Test fun `a path marks a faulty reference once a hand says an object is expected`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      // Nothing on this chain is known to belong in memory — a holder nothing knows either way about, then
-      // two destroyed objects — so the fault is at one of two steps and the chain marks neither.
+      // Nothing on this path is known to belong in memory — a holder nothing knows either way about, then
+      // two destroyed objects — so the fault is at one of two steps and the path marks neither.
       assertThat(dive.tree.rootPathTo(dump.windowObjectId).faultyReferences()).isEmpty()
       assertThat(dive.tree.rootPathTo(dump.windowObjectId).faultyReference()).isNull()
 
@@ -122,7 +122,7 @@ class HeapLeakStatusTest {
       // that declares the field, which is the framework's `Activity` rather than the app's subclass of it.
       assertThat(path.faultyReferences()).containsExactly("Activity.mWindow")
       // The same reference, through the one call the window's `Leak solved` section and an agent's
-      // `faultyReference` both go through: a chain either names the leak or it doesn't.
+      // `faultyReference` both go through: a path either names the leak or it doesn't.
       assertThat(path.faultyReference()?.leakLabel()).isEqualTo("Activity.mWindow")
     }
   }
@@ -206,7 +206,7 @@ class HeapLeakStatusTest {
 
   /** Neither holds the other, so the two are answers about two things and nothing has to be settled. */
   @Test fun `two statuses on objects neither of which holds the other do not conflict`() {
-    // Three activities under three holders of their own, so no chain runs through two of them.
+    // Three activities under three holders of their own, so no path runs through two of them.
     HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
       val (one, other) = dive.tree.findLeaks().leakingObjectIds.toList()
 
@@ -265,8 +265,8 @@ class HeapLeakStatusTest {
   }
 
   /**
-   * The two of them read as a chain, which is why there was nothing to settle: the reference from the object
-   * that belongs in memory to the one that doesn't is the fault, and nothing else on the chain can be.
+   * The two of them read as a path, which is why there was nothing to settle: the reference from the object
+   * that belongs in memory to the one that doesn't is the fault, and nothing else on the path can be.
    */
   @Test fun `a status on each of them marks the reference between them instead`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
@@ -377,12 +377,12 @@ class HeapLeakStatusTest {
     }
   }
 
-  /** A chain goes round what shouldn't be in memory, and a hand saying it should be is what decides that. */
-  @Test fun `a chain stops going round an object once a hand says it is expected`() {
+  /** A path goes round what shouldn't be in memory, and a hand saying it should be is what decides that. */
+  @Test fun `a path stops going round an object once a hand says it is expected`() {
     val dump = testFolder.leakAlsoHeldAnotherWayHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      // The window is held another way as well, so the chain to it gives up a step to avoid the destroyed
+      // The window is held another way as well, so the path to it gives up a step to avoid the destroyed
       // activity.
       assertThat(dive.tree.rootPathTo(dump.windowObjectId).steps.map { it.step.objectId })
         .doesNotContain(dump.activityObjectId)
@@ -392,7 +392,7 @@ class HeapLeakStatusTest {
         overrides = overrides(dump.activityObjectId, EXPECTED, "this screen is coming back")
       )
 
-      // And takes the short way through it once there is nothing to avoid, which is the chain and the
+      // And takes the short way through it once there is nothing to avoid, which is the path and the
       // statuses drawn on it being the same answer.
       assertThat(path.steps.map { it.step.objectId }).contains(dump.activityObjectId)
     }
@@ -401,9 +401,9 @@ class HeapLeakStatusTest {
   /**
    * The way round a leak is only worth taking while it is a way anybody can read, and a running method's
    * stack frame is not one: it says the object was in use when the dump was taken, which is nothing to fix.
-   * So a chain gives up going round rather than take a frame — see [RootPathSearch].
+   * So a path gives up going round rather than take a frame — see [RootPathSearch].
    */
-  @Test fun `a chain runs through what shouldn't be in memory rather than through a stack frame`() {
+  @Test fun `a path runs through what shouldn't be in memory rather than through a stack frame`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -433,9 +433,9 @@ class HeapLeakStatusTest {
   ) = LeakStatusOverrides.of(listOf(override(objectId, status, reason)))
 
   /**
-   * The references of a chain marked as the leak, spelled the way a leak of the leaks screen is named.
+   * The references of a path marked as the leak, spelled the way a leak of the leaks screen is named.
    *
-   * Every step rather than [RootPath.faultyReference], which stops at the first: a chain marking two of them
+   * Every step rather than [RootPath.faultyReference], which stops at the first: a path marking two of them
    * would leave the window and the agent naming one leak each, and this is what would notice.
    */
   private fun RootPath.faultyReferences(): List<String> =

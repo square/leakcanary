@@ -311,7 +311,7 @@ keeps rather than by the capacity of the array behind it.
 A third reader adds virtual references for a different reason, and is not Shark Dive's own:
 `DataStructureReferenceReader`, Shark's dozen `java.util` and framework structures. A leak through a
 `HashMap` reads `HashMap[x]` rather than through its table, its node array and its entry, which is what
-makes a chain here the chain a LeakCanary report shows (see `decisions.md`). All of them but
+makes a path here the path a LeakCanary report shows (see `decisions.md`). All of them but
 `AndroidReferenceReaders.ANIMATOR_WEAK_REF_SUCKS`, which reads an `ObjectAnimator`'s target through the
 `WeakReference` holding it and presents it as a plain field: a useful guess in a leak trace, and here it
 would make a weakly held object read as strongly held, which is the one thing the tree can't say.
@@ -324,7 +324,7 @@ which is what the view `OwnerRule` claims ownership through. It reads `mChildren
 
 The framework stores children in a `View[]` it grows in chunks, so without this every parent to child link
 in a heap dump goes through an array, and the array is the only thing a rule can point at. Measured on the
-82 MB dump, the chain from the GC roots down to the bitmap of a list row: **37 levels with 16 `View[]`
+82 MB dump, the path from the GC roots down to the bitmap of a list row: **37 levels with 16 `View[]`
 among them, 21 levels without**, and the biggest `View[]` went from retaining 18.55 MB — the whole window
 — to 411 B. All 96 `View[]` arrays together now retain 4,959 B against 4,859 B of their own bytes.
 
@@ -362,14 +362,14 @@ screen. Measured on `large-dump.hprof`, which is running two activities:
 | | Before | After |
 | --- | --- | --- |
 | `MainActivity` dominator | `ActivityClientRecord` | `ActivityThread` |
-| GC root chain to `MainActivity` | 6 steps | **3 steps** |
+| GC root path to `MainActivity` | 6 steps | **3 steps** |
 | Record holding `MainActivity` retains | 2,125,170 B | **381 B** |
 | Record holding `PaymentActivity` retains | 14,552 B | **361 B** |
 | `mActivities` `ArrayMap` retains | 2,139,795 B | **815 B** |
 
 The two activities' own retained sizes don't move — 2,124,789 B and 11,995 B either way — because a record
 retained little beyond the activity in it. What moves is where those bytes are drawn: two screens side by
-side under the thread, instead of two piles of map bookkeeping. Chains into an activity's internals get a
+side under the thread, instead of two piles of map bookkeeping. Paths into an activity's internals get a
 step shorter too, and a better first step: the shortest way to the `Bundle`s under `MainActivity` used to
 run through a *leaked* `SquareActivity.foot → ArrayList → Object[]`, since that was fewer steps than the map.
 
@@ -419,7 +419,7 @@ reader is bounded by `mChildrenCount`.
 
 Hence the three rules: a node owned by the parent node's virtual reference, the node at the top of a
 window owned by `AndroidComposeView.root`, and a `Modifier$Node` owned by `NodeChain.head` or by the
-previous node's `child`. `child` rather than `parent` because a chain has to be owned in one direction, and
+previous node's `child`. `child` rather than `parent` because a path has to be owned in one direction, and
 outermost first is the order the modifiers were written in.
 
 **What is still flat under the root after all of it**: the `NodeCoordinator`s and `GraphicsLayer`s
@@ -472,9 +472,9 @@ answer rather than a bug: a value the UI both remembers and draws occupies a slo
 a `Box`'s slot 108 and a `Column`'s slot 170 in one case here — so the dominator is the composable
 containing both. Read it as "this subtree is why the bytes are here", the same as any shared object.
 
-## What holds an object: one chain, with the dominators on it marked
+## What holds an object: one path, with the dominators on it marked
 
-"What holds this" is answered as a single chain from a GC root down to the object, `rootPathTo`, drawn
+"What holds this" is answered as a single path from a GC root down to the object, `rootPathTo`, drawn
 like a LeakCanary leak trace. Which of its steps *dominate* the object is marked on it, and that marking
 is what the reader gets two different things out of:
 
@@ -482,12 +482,12 @@ is what the reader gets two different things out of:
   free it. The lowest such step is `dominatorOf`, and it is a *group* rather than an object when nothing
   in particular holds it (`DominatorKind.WHOLE_HEAP_DUMP`, where the tree draws it directly under the root)
   or when nothing holds it at all (`UNCOLLECTED_GARBAGE`, the one pile the top of the tree has).
-- **A stretch of unmarked steps between two marked ones is a stretch the chain didn't have to take**, since
+- **A stretch of unmarked steps between two marked ones is a stretch the path didn't have to take**, since
   a step every way went through would have been marked too. So that is exactly where "held how else?" has
-  an answer: `RootPath.detours()` finds those stretches on a chain, and
+  an answer: `RootPath.detours()` finds those stretches on a path, and
   `independentPathsBetween(above, below)` — or `independentPathsFromRoots(below)` for a stretch hanging off
   the head, where what is above is a set of GC roots rather than one object — finds the ways it could have
-  run. `RootPath.drawnWith` substitutes a chosen one back in, so the drawing only ever sees one flat chain.
+  run. `RootPath.drawnWith` substitutes a chosen one back in, so the drawing only ever sees one flat path.
 
 **The name for that path set is "internally vertex-disjoint paths"**, also called independent paths: two
 of them share their endpoints and nothing else. The most there can be is the *local vertex connectivity*
@@ -501,7 +501,7 @@ Two caveats, which `WAYS_HINT` states in the UI rather than leaving to be discov
   the referrers up from the object, blocks the middle of each path it finds and walks again. Blocking can
   cost a path further on, so `hasMore` means "the search stopped", not "there are more".
 - **Two paths shown apart may still reference each other**, since a path is not told about the references
-  leaving it. Parallel chains cross-linked at every layer come out as separate paths.
+  leaving it. Parallel paths cross-linked at every layer come out as separate paths.
 
 **The search walks backwards, from the object towards what holds it**, which is the direction a heap dump
 can't answer in: it records a reference only in the direction it points. Hence `ReferrerIndex` — one pass
@@ -512,7 +512,7 @@ once per session, lazily, on the first question about paths.
 
 **A path that loops back through the object isn't a way of holding it.** An `AppCompatImageView` has seven
 referrers, five of them helpers it created that point back at it. The walk never leaves the object it
-started from, so those don't come out as five near-identical chains ending `.mView AppCompatImageView`.
+started from, so those don't come out as five near-identical paths ending `.mView AppCompatImageView`.
 
 **A direct edge has to be blocked as an edge, not as a vertex.** A source pointing straight at the object
 makes a path with no middle to block, so `usedLastStep` blocks that one step: blocking the source instead

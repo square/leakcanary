@@ -166,10 +166,10 @@ class AgentLogsScreenTest {
   @Test fun `a refused call unfolds onto the refusal as the agent was handed it`() {
     diveUiTest {
       openAgentLogs(
-        listOf(session(calls = listOf(call(tool = "conclude", output = REFUSAL, refusal = REFUSAL))))
+        listOf(session(calls = listOf(verdictCall(output = REFUSAL, refusal = REFUSAL))))
       )
       onNodeWithText(SESSION_ID, substring = true).performClick()
-      waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(RECORDED_A_VERDICT_ON), OPEN_TIMEOUT_MILLIS)
       exchangeToggle().performClick()
 
       // Both, and the same sentence twice on purpose: the row is this window's reading — the method said no —
@@ -226,11 +226,11 @@ class AgentLogsScreenTest {
 
   @Test fun `a refused call says so, and still says what it was about`() {
     diveUiTest {
-      openAgentLogs(listOf(session(calls = listOf(call(tool = "conclude", refusal = REFUSAL)))))
+      openAgentLogs(listOf(session(calls = listOf(verdictCall(refusal = REFUSAL)))))
       onNodeWithText(SESSION_ID, substring = true).performClick()
 
       waitUntilAtLeastOneExists(hasText(REFUSAL, substring = true), OPEN_TIMEOUT_MILLIS)
-      waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(RECORDED_A_VERDICT_ON), OPEN_TIMEOUT_MILLIS)
       // Waited for rather than asserted on the frame the verb arrives in: naming the object is a read of
       // the heap dump that finishes after the row is drawn — see [HeapDumpDive]'s agent place titles.
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
@@ -240,14 +240,14 @@ class AgentLogsScreenTest {
     }
   }
 
-  @Test fun `the row that concluded says which reference it came to`() {
+  @Test fun `the row that solved the leak says which reference it came to`() {
     diveUiTest {
-      openAgentLogs(listOf(session(calls = listOf(call(tool = "conclude", outcome = FAULTY_REFERENCE)))))
+      openAgentLogs(listOf(session(calls = listOf(verdictCall(outcome = FAULTY_REFERENCE)))))
       onNodeWithText(SESSION_ID, substring = true).performClick()
 
       // The row anybody scrolling a session is looking for: what the agent asked, and what it came to, on
       // one line — so that finding the answer isn't reading every reason down the screen.
-      waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(RECORDED_A_VERDICT_ON), OPEN_TIMEOUT_MILLIS)
       waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(activityName()).assertIsDisplayed()
       onNodeWithText("→ $FAULTY_REFERENCE").assertIsDisplayed()
@@ -441,20 +441,41 @@ class AgentLogsScreenTest {
     output: String? = ANSWERED,
     refusal: String? = null,
     error: String? = null,
-    outcome: String? = null
+    outcome: String? = null,
+    // What the row reads as is built from these as well as from the tool — a verdict's own verb says which
+    // verdict it was — so a test about a row has to be able to say what the call carried. See `verbOfTool`.
+    arguments: Map<String, String> = mapOf("object" to hex(activityObjectId()))
   ) = AgentSessionCall(
     at = STARTED_AT,
     tool = tool,
     reason = REASON,
     heapDumpPath = heapDumpPath,
     place = Place.Object(activityObjectId()),
-    arguments = mapOf("object" to hex(activityObjectId())),
+    arguments = arguments,
     input = input,
     output = output,
     refusal = refusal,
     error = error,
     outcome = outcome,
     millis = 12L
+  )
+
+  /**
+   * The call that can solve a leak, which is the one a row of this screen is read for.
+   *
+   * Its verdict is in the arguments because the row says which one it was — `Recorded EXPECTED on` — and
+   * because a `set_verdict` without one is a call this surface refuses before it reaches a session.
+   */
+  private fun verdictCall(
+    output: String? = ANSWERED,
+    refusal: String? = null,
+    outcome: String? = null
+  ) = call(
+    tool = "set_verdict",
+    output = output,
+    refusal = refusal,
+    outcome = outcome,
+    arguments = mapOf("object" to hex(activityObjectId()), "verdict" to "EXPECTED")
   )
 
   /** A line this app could make no call of, which is the rest of what a session holds. See [AgentSessionCall]. */
@@ -493,7 +514,7 @@ class AgentLogsScreenTest {
   /** The one call that names nothing: the leaks screen is the whole of what it was about. */
   private fun leaksCall() = AgentSessionCall(
     at = STARTED_AT,
-    tool = "list_leaks",
+    tool = "list_leak_groups",
     reason = REASON,
     heapDumpPath = heapDump.file.absolutePath,
     place = Place.Leaks(),
@@ -620,7 +641,7 @@ class AgentLogsScreenTest {
 
     /** The verbs the rows read as, which are [shark.dive.agent.verb]'s and not this screen's. */
     const val LOOKED_AT = "Looked at"
-    const val CONCLUDED_ABOUT = "Concluded about"
+    const val RECORDED_A_VERDICT_ON = "Recorded EXPECTED on"
     const val ASKED_WHICH_ARE_OPEN = "Asked which heap dumps are open"
 
     /**

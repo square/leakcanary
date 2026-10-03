@@ -30,6 +30,7 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.HeapValue
+import shark.LeakTrace
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.BooleanArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ByteArrayDump
@@ -119,16 +120,16 @@ class HeapDominatorTreemap internal constructor(
    * the size of the heap dump, and the pointer moving across a treemap asks for one path per rectangle it
    * crosses. Built on first use, like the index it walks.
    *
-   * Which is when the pass that finds the objects that shouldn't be in memory happens, since a chain avoids
-   * them. So the first chain of a heap dump pays for that pass as well as for the index, and the leaks
-   * screen is free of it if a chain was drawn first.
+   * Which is when the pass that finds the objects that shouldn't be in memory happens, since a path avoids
+   * them. So the first path of a heap dump pays for that pass as well as for the index, and the leaks
+   * screen is free of it if a path was drawn first.
    */
   private val rootPathSearch: RootPathSearch by lazy {
     RootPathSearch(referrerIndex, treeRootIndexes, leakingIndexes)
   }
 
   /**
-   * Which objects a chain is worth going round, by object index. See [RootPathSearch].
+   * Which objects a path is worth going round, by object index. See [RootPathSearch].
    *
    * The heap dump's own answer, with the statuses set by hand written over it, and edited in place rather
    * than built again per read: [rootPathSearch] holds on to this array and five more the size of the heap
@@ -146,8 +147,8 @@ class HeapDominatorTreemap internal constructor(
 
   /**
    * The walk up to the roots, going round what [overrides] say shouldn't be in memory as well as what the
-   * heap dump does: a status set by hand is the answer everything else here is read through, so a chain
-   * that could have avoided an object someone marked leaking is the chain to draw.
+   * heap dump does: a status set by hand is the answer everything else here is read through, so a path
+   * that could have avoided an object someone marked leaking is the path to draw.
    *
    * Every read of a tree is on that heap dump's one thread, which is what makes editing [leakingIndexes]
    * between reads safe: no walk is in flight while this runs.
@@ -669,7 +670,7 @@ class HeapDominatorTreemap internal constructor(
    * Every way [toObjectId] is held below [fromObjectId], spelled out field by field. See
    * [IndependentPaths] for what "independent" means and what this search does and doesn't guarantee.
    *
-   * Asked of the two ends of a stretch of a chain that isn't forced: the steps between two objects that
+   * Asked of the two ends of a stretch of a path that isn't forced: the steps between two objects that
    * both dominate [toObjectId] are only one of the ways the lower one is reached from the upper, and these
    * are the rest of them. See [RootPathDetour].
    *
@@ -699,7 +700,7 @@ class HeapDominatorTreemap internal constructor(
    * And every way [toObjectId] is held from where the tree's own walk started: a GC root, or a piece of
    * garbage nothing else points at.
    *
-   * What the top of a chain is asked, since nothing above it holds it. A bitmap under the root turns out to
+   * What the top of a path is asked, since nothing above it holds it. A bitmap under the root turns out to
    * be held by the view showing it on one path and by an image cache on another: the view is the answer
    * anyone is after, and the cache is why the dominator tree had nowhere to put its bytes but the whole
    * heap.
@@ -745,7 +746,7 @@ class HeapDominatorTreemap internal constructor(
     if (paths.isEmpty()) {
       // Asked between two objects one of which dominates the other, or from the roots the tree was walked
       // from, so there is a path by construction. Not finding one means the walk up the referrers and the
-      // walk down the tree were built through different references, which shows as a chain the window says
+      // walk down the tree were built through different references, which shows as a path the window says
       // has no alternative.
       SharkLog.d { "No path found down to ${hexObjectId(toObjectId)}, though something above holds it" }
     }
@@ -768,24 +769,24 @@ class HeapDominatorTreemap internal constructor(
    * from does.
    *
    * Shortest in steps, over the same references the tree was built by, so it is the plainest answer to
-   * "how is this held" — and the steps that dominate [objectId] are marked, which is what ties the chain
+   * "how is this held" — and the steps that dominate [objectId] are marked, which is what ties the path
    * back to the rectangle the treemap draws it in. Every path from a GC root goes through every one of
    * those dominators, so they are always all on it.
    *
    * Cheap enough to ask as the pointer moves, once [indexReferrers] has been paid for: one breadth first
    * walk over as much of the graph as it takes to reach a root, then a read of the heap dump per step of
-   * the chain it found.
+   * the path it found.
    */
   fun rootPathTo(
     objectId: Long,
-    /** The statuses set by hand, which win over what the inspectors make of the objects on this chain. */
+    /** The statuses set by hand, which win over what the inspectors make of the objects on this path. */
     overrides: LeakStatusOverrides = LeakStatusOverrides.NONE
   ): RootPath = rootPathAlong(rootPathObjectIdsTo(objectId, overrides), overrides)
 
   /**
-   * Whether [fromObjectId] holds [toObjectId], through any chain of the references this tree was built by.
+   * Whether [fromObjectId] holds [toObjectId], through any path of the references this tree was built by.
    *
-   * Half of what "above" and "below" mean when they are asked about two objects rather than about one chain:
+   * Half of what "above" and "below" mean when they are asked about two objects rather than about one path:
    * two objects of a heap dump often reach each other, and then neither is above the other, so a status set
    * by hand is settled against another one by asking this both ways round. See `isAbove`.
    *
@@ -815,11 +816,11 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * That same chain as object ids, the whole of it, from the GC rooted object down to [objectId]. Empty
+   * That same path as object ids, the whole of it, from the GC rooted object down to [objectId]. Empty
    * when nothing the tree was built from reaches it.
    *
-   * The walk is what finding a chain costs, and reading a step out of the heap dump is what showing one
-   * does, so the walk is separate: a question about the whole chain that ids alone answer — whether another
+   * The walk is what finding a path costs, and reading a step out of the heap dump is what showing one
+   * does, so the walk is separate: a question about the whole path that ids alone answer — whether another
    * leak is above this object on it — is asked here rather than of the steps that ended up drawn.
    */
   private fun rootPathObjectIdsTo(
@@ -860,15 +861,21 @@ class HeapDominatorTreemap internal constructor(
       return RootPath.NONE
     }
     val dominatorIds = dominatorIdsOf(pathObjectIds.last())
+    val gcRoot = gcRootOf(pathObjectIds.first())
     return RootPath(
-      gcRootLabel = gcRootLabelOf(pathObjectIds.first()),
+      gcRootLabel = if (gcRoot == null) {
+        uncollectedLabelFor(pathObjectIds.first())
+      } else {
+        gcRootLabel(gcRoot)
+      },
       steps = stepsAlong(pathObjectIds, overrides)
-        .map { RootPathStep(it, isDominator = it.objectId in dominatorIds) }
+        .map { RootPathStep(it, isDominator = it.objectId in dominatorIds) },
+      gcRootType = gcRoot?.let { LeakTrace.GcRootType.fromGcRoot(it) }
     )
   }
 
   /**
-   * Every step of [pathObjectIds], read out of the heap dump. What both a drawn chain and the questions a
+   * Every step of [pathObjectIds], read out of the heap dump. What both a drawn path and the questions a
    * leak asks of one are built from, since both are about all of it.
    */
   private fun stepsAlong(
@@ -913,11 +920,11 @@ class HeapDominatorTreemap internal constructor(
    * **Read through the statuses set by hand**, like everything else here: an object someone marked leaking
    * is one of these however it reads, and one they marked anything else is none of them, whatever an
    * inspector recognized it as. Which is a list that changes as they are set rather than only a colour on
-   * an object — marking something leaking halfway up a chain puts it on this list and takes what it holds
+   * an object — marking something leaking halfway up a path puts it on this list and takes what it holds
    * off, because that object is now only in memory because of this one. See [foldedIntoWhatHoldsThem].
    *
    * The price is that a [LeakGroup.leakFingerprint] only matches the one LeakCanary computes for the same
-   * objects while nothing is set by hand: the fingerprint hashes the stretch of chain between the last
+   * objects while nothing is set by hand: the fingerprint hashes the stretch of path between the last
    * expected object and the first stuck one, and moving either end is the point of
    * setting a status. Nothing else compares fingerprints across the two. See [LeakStatusOverride].
    *
@@ -983,13 +990,13 @@ class HeapDominatorTreemap internal constructor(
     return false
   }
 
-  /** What LeakCanary's watcher was left holding, read once: which of them are leaks takes a chain. */
+  /** What LeakCanary's watcher was left holding, read once: which of them are leaks takes a path. */
   private val watchers: Map<Long, WatchedObject> by lazy { WatchedObjects.readFrom(graph) }
 
   /**
    * The objects that are stuck in memory, before anything is known about how they are held.
    *
-   * Its own pass because both the leaks screen and every chain drawn in the window want it, and it costs a
+   * Its own pass because both the leaks screen and every path drawn in the window want it, and it costs a
    * read of every instance of the heap dump — see [leakingObjectIds] and [rootPathSearch].
    */
   private val leakingCandidateIds: Set<Long> by lazy {
@@ -1075,7 +1082,7 @@ class HeapDominatorTreemap internal constructor(
     // Which section it goes in, when that is decided by how firmly it is held rather than by what holds
     // it: everything the collector clears on its own, from a soft reference down to nothing at all.
     val goingKind = LeakKind.ofOrNull(strength)
-    // Nothing holds an unreachable object, so there is no chain to it to read. Everything else has one, and
+    // Nothing holds an unreachable object, so there is no path to it to read. Everything else has one, and
     // every section needs it: it says which reference a leak is named after, and which other leak holds
     // this object, the second being what keeps one leaked screen's worth of objects to one row rather than
     // to nine.
@@ -1084,13 +1091,13 @@ class HeapDominatorTreemap internal constructor(
     } else {
       rootPathObjectIdsTo(objectId, overrides)
     }
-    // The whole chain rather than the part of it a pane draws, since a leak is named and grouped by the
+    // The whole path rather than the part of it a pane draws, since a leak is named and grouped by the
     // stretch of it between the last expected object and the first stuck one, and
-    // cutting the top off a chain moves that stretch.
+    // cutting the top off a path moves that stretch.
     val steps = stepsAlong(pathObjectIds, overrides)
     val target = steps.lastOrNull()
-    // The last step of the chain is this object, already read while the chain was. Only a leak with no
-    // chain to read it off is read here, which is why this is read on demand.
+    // The last step of the path is this object, already read while the path was. Only a leak with no
+    // path to read it off is read here, which is why this is read on demand.
     val heapObject by lazy { graph.findObjectById(objectId) }
     val leakingObject = LeakingObject(
       objectId = objectId,
@@ -1104,23 +1111,23 @@ class HeapDominatorTreemap internal constructor(
       watcher = watcher
     )
     val simpleClassName = leakingObject.className.substringAfterLast('.')
-    // Everything the chain runs through on the way down to it, which is what says whether it is a leak of
+    // Everything the path runs through on the way down to it, which is what says whether it is a leak of
     // its own or one more thing another leak is holding. See [foldedIntoWhatHoldsThem].
     val heldThrough = pathObjectIds.dropLast(1)
     // A section a strength names, or an object nothing reaches: either way there is nothing to fix for these
     // to go, so what LeakCanary would call the leak — the reference that shouldn't be holding any more — is
     // not what tells two of them apart. What does is the reference that hasn't let go yet.
     if (goingKind != null || steps.isEmpty()) {
-      // A reachable object with no chain means the roots this walk started from aren't the roots the tree
+      // A reachable object with no path means the roots this walk started from aren't the roots the tree
       // was built from, which is the mismatch `gcRootLabelOf` logs. Listed as unreachable, since that is
       // what having no path from a GC root reads as, and said out loud rather than quietly.
       val kind = goingKind ?: LeakKind.UNREACHABLE.also {
         SharkLog.d {
-          "No chain from a GC root to ${hexObjectId(objectId)}, though the object is reachable " +
+          "No path from a GC root to ${hexObjectId(objectId)}, though the object is reachable " +
             "($strength), so it is listed as unreachable"
         }
       }
-      // The first reference of the chain holding no more firmly than the object itself, which is the one the
+      // The first reference of the path holding no more firmly than the object itself, which is the one the
       // collector hasn't got to yet: everything below it is in memory because that one reference still is,
       // so the collection that clears it takes the lot. So it is what a group of these is, the way a
       // suspect stretch of references is what an app's own leak is — one `Cleaner` that still has its
@@ -1131,7 +1138,7 @@ class HeapDominatorTreemap internal constructor(
       val weakenedBy = steps.firstOrNull { it.strength >= strength }?.reference?.leakLabel()
       if (weakenedBy == null && steps.isNotEmpty()) {
         SharkLog.d {
-          "Nothing on the chain to ${hexObjectId(objectId)} holds it as weakly as $strength does, so it is " +
+          "Nothing on the path to ${hexObjectId(objectId)} holds it as weakly as $strength does, so it is " +
             "listed under its class rather than under the reference that hasn't let go"
         }
       }
@@ -1153,8 +1160,8 @@ class HeapDominatorTreemap internal constructor(
     // The whole of it, since the row is named after both ends: the reference LeakCanary
     // calls the leak, and the one the object that leaked hangs off.
     val suspectSubpath = suspectSubpath(steps)
-    // The first one on the way down, so a chain through two known leaks is named after the one nearest
-    // the root, which is the one holding the other. A chain goes through a known leaking reference only
+    // The first one on the way down, so a path through two known leaks is named after the one nearest
+    // the root, which is the one holding the other. A path goes through a known leaking reference only
     // when there is no other way to the object, which is LeakCanary's rule and is what puts the same
     // leaks in this section as it puts in its own library leak list. See [RootPathSearch].
     val libraryLeak = steps.firstNotNullOfOrNull { it.reference?.libraryLeak }
@@ -1174,7 +1181,7 @@ class HeapDominatorTreemap internal constructor(
     }
     return FoundLeak(
       kind = LeakKind.APPLICATION,
-      // Which is the rule LeakCanary groups leaks by, run by LeakCanary's own code over this chain: two
+      // Which is the rule LeakCanary groups leaks by, run by LeakCanary's own code over this path: two
       // objects reached through the same suspect stretch of references are two instances of one leak,
       // whatever their classes and however far below it they are.
       leakFingerprint = steps.leakFingerprint(),
@@ -1191,7 +1198,7 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * The suspect stretch of a chain, as `Class.field` per reference: how the last object known to still be
+   * The suspect stretch of a path, as `Class.field` per reference: how the last object known to still be
    * expected reaches the first stuck one. What a leak is named after, since the first of them is the
    * faulty reference.
    *
@@ -1201,14 +1208,14 @@ class HeapDominatorTreemap internal constructor(
    * bitmap eight references under it. The references above the last one known to be needed are left out for
    * the other reason — they are the app working as intended.
    *
-   * The same stretch [leakFingerprint] hashes, spelled the way the chain pane spells a step rather than
+   * The same stretch [leakFingerprint] hashes, spelled the way the path pane spells a step rather than
    * the way `LeakTrace.leakFingerprint` spells one: by the class that declares the field, so that the name
-   * of a leak is a string that is also on the chain drawn for it. Which is why the name is no substitute
+   * of a leak is a string that is also on the path drawn for it. Which is why the name is no substitute
    * for the leak fingerprint and the two are both on the row.
    *
-   * The stretch the chain marks the faulty reference in — see [faultyReferenceIndexOrNull] — so that where
-   * it is a single reference, which is most leaks, the name of a leak here and the mark on the chain someone
-   * opens from it are one reference said twice. Where it isn't, the row names the whole stretch and the chain
+   * The stretch the path marks the faulty reference in — see [faultyReferenceIndexOrNull] — so that where
+   * it is a single reference, which is most leaks, the name of a leak here and the mark on the path someone
+   * opens from it are one reference said twice. Where it isn't, the row names the whole stretch and the path
    * marks nothing, since which of those references is at fault is exactly what isn't known.
    */
   private fun suspectSubpath(steps: List<PathStep>): List<String> = steps.suspectReferenceLabels()
@@ -1222,7 +1229,7 @@ class HeapDominatorTreemap internal constructor(
     /** The references the leak is. See [LeakGroup.suspectPath]. */
     val suspectPath: List<String>,
     val subtitle: String?,
-    /** Every object above it on the chain walked to it. See [foldedIntoWhatHoldsThem]. */
+    /** Every object above it on the path walked to it. See [foldedIntoWhatHoldsThem]. */
     val heldThrough: List<Long>,
     val leakingObject: LeakingObject
   )
@@ -1240,14 +1247,14 @@ class HeapDominatorTreemap internal constructor(
    * is nothing to fix about it that isn't already on the list twice over, and fixing both references takes
    * it with them. What matters is that every way to it is a reference someone is already being told about.
    *
-   * Which is what the chain walked to it answers, without a second walk: [rootPathSearch] puts a leaking
-   * referrer in its last-resort queue, so the chain it comes back with goes through another leak only when
-   * every chain does. That also makes this the same rule the chain pane draws — a folded leak is one whose
-   * own chain says, on it, which leak holds it and why.
+   * Which is what the path walked to it answers, without a second walk: [rootPathSearch] puts a leaking
+   * referrer in its last-resort queue, so the path it comes back with goes through another leak only when
+   * every path does. That also makes this the same rule the path pane draws — a folded leak is one whose
+   * own path says, on it, which leak holds it and why.
    *
    * Nothing is lost by folding. Every one of them is still on the map, shaded as leaking like everything
-   * else a leak holds, and the chain drawn for one runs through the leak it was folded into and says that
-   * one is leaking and why — which is the chain being read as a leak trace.
+   * else a leak holds, and the path drawn for one runs through the leak it was folded into and says that
+   * one is leaking and why — which is the path being read as a leak trace.
    */
   private fun List<FoundLeak>.foldedIntoWhatHoldsThem(): List<FoundLeak> {
     val leakingIds = mapTo(mutableSetOf()) { it.leakingObject.objectId }
@@ -1268,6 +1275,9 @@ class HeapDominatorTreemap internal constructor(
           leakFingerprint = leakFingerprint,
           title = found.first().title,
           suspectPath = found.first().suspectPath,
+          // The object those came off, kept so that whoever picks this group picks the path they describe.
+          // See [LeakGroup.representativeObjectId].
+          representativeObjectId = found.first().leakingObject.objectId,
           // From whichever object was recognized first, since a leak is one thing however many objects
           // of it there are: they are all leaking for the same reason, which is what grouped them.
           subtitle = found.firstNotNullOfOrNull { it.subtitle },
@@ -1281,7 +1291,7 @@ class HeapDominatorTreemap internal constructor(
    *
    * Below a group the first step is the GC rooted object itself, named by the kind of root that reaches
    * it. Below an object the first step is what that object points at, and the object itself is left out
-   * because it is already on the chain this is an alternative stretch of.
+   * because it is already on the path this is an alternative stretch of.
    */
   private fun path(
     objectIndexes: IntArray,
@@ -1310,15 +1320,26 @@ class HeapDominatorTreemap internal constructor(
    * named after the local variable. See [TreeGcRootProvider].
    */
   private fun gcRootLabelOf(objectId: Long): String {
-    val gcRoot = graph.gcRoots.firstOrNull {
-      it.id == objectId && reachability.isHeldThrough(objectId, it.reachabilityStrength())
-    }
-    if (gcRoot != null) {
-      return gcRootLabel(gcRoot)
-    }
+    val gcRoot = gcRootOf(objectId)
+    return if (gcRoot != null) gcRootLabel(gcRoot) else uncollectedLabelFor(objectId)
+  }
+
+  /**
+   * The GC root [objectId] is, and null for an object that is uncollected garbage.
+   *
+   * Split out of [gcRootLabelOf] because a path needs two things off the one root — this app's words for it
+   * and Shark's — and looking it up twice would let the two answer about different roots. See
+   * [RootPath.gcRootType].
+   */
+  private fun gcRootOf(objectId: Long): GcRoot? = graph.gcRoots.firstOrNull {
+    it.id == objectId && reachability.isHeldThrough(objectId, it.reachabilityStrength())
+  }
+
+  /** The label for an object no GC root reaches, which says so in the log when the two halves disagree. */
+  private fun uncollectedLabelFor(objectId: Long): String {
     val strength = strengthOf(objectId)
     if (strength != ReachabilityStrength.UNREACHABLE) {
-      // Which is a chain calling an object garbage while the treemap draws it in the reachable half, and
+      // Which is a path calling an object garbage while the treemap draws it in the reachable half, and
       // the two can only disagree if the roots the tree walked from aren't the roots here.
       SharkLog.d {
         "The path to ${hexObjectId(objectId)} starts at no GC root this tree was built from, though the " +
@@ -1448,7 +1469,7 @@ class HeapDominatorTreemap internal constructor(
      * A source pointing straight at the target makes a path with no middle to block, so without this the
      * next walk would find that same path again. Only the last step is blocked and not the object itself,
      * because a source can hold the target several ways: what points straight at it is one of them, and
-     * the chains round through other objects are the others.
+     * the paths round through other objects are the others.
      */
     private val usedLastStep = BooleanArray(referrerIndex.objectCount)
 
@@ -1844,7 +1865,7 @@ class HeapDominatorTreemap internal constructor(
     private const val MAX_LEAKING_OBJECTS = 500
 
     /**
-     * How many ways of holding an object [independentPathsBetween] spells out. Six chains is already more
+     * How many ways of holding an object [independentPathsBetween] spells out. Six paths is already more
      * than fits in a panel, and an object held from more places than that is held by a data structure
      * rather than by anything anyone would call an owner.
      */
@@ -1922,14 +1943,14 @@ data class HeapObjectSummary(
    * Whether this object is meant to still be in memory, as far as **this object alone** says: what the
    * inspectors made of it, or what someone set by hand instead.
    *
-   * The other half of the answer is on the chain that holds it — everything holding an object that is still
+   * The other half of the answer is on the path that holds it — everything holding an object that is still
    * needed is still needed too, and everything a leaking object holds is leaking — so a status here and the
-   * one the last step of a [RootPath] carries are two different questions, and the chain's is the fuller one.
-   * This is what the window has to go on for an object no chain reaches: a piece of uncollected garbage, or
+   * one the last step of a [RootPath] carries are two different questions, and the path's is the fuller one.
+   * This is what the window has to go on for an object no path reaches: a piece of uncollected garbage, or
    * one whose walk up to the GC roots hasn't come back yet. See [LeakStatus].
    */
   val leakStatus: LeakStatus,
-  /** Why, in the same words a chain gives. Null when nothing is known about it either way. */
+  /** Why, in the same words a path gives. Null when nothing is known about it either way. */
   val leakStatusReason: String?,
   /** Its fields, or an array's elements, in the order the heap dump records them. */
   val fields: List<ObjectFieldValue>,

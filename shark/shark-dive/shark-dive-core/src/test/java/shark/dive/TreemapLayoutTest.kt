@@ -288,7 +288,7 @@ class TreemapLayoutTest {
   }
 
   @Test fun `a rectangle is its share of the whole however deep it sits`() {
-    // A chain 30 levels deep holding a tenth of the weight, which is the shape of an Android view
+    // A path 30 levels deep holding a tenth of the weight, which is the shape of an Android view
     // hierarchy: what used to happen is that 30 header strips ate the viewport before reaching it.
     var deep = Node("deep.30", ownWeight = 100_000)
     for (level in 29 downTo 0) {

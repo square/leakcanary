@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.Dp
  * Runs [block] against a window the size one opens at — [WINDOW_WIDTH] by [WINDOW_HEIGHT].
  *
  * A Compose UI test defaults to a good deal less than that, and this window is three columns wide: the view,
- * the chain of objects holding what it's pointing at, and the details panel. At the default size the two
+ * the path of objects holding what it's pointing at, and the details panel. At the default size the two
  * panes leave the view narrow enough that the controls above it are squeezed to nothing, so a test would be
  * pressing a window no user has. Density is 1 in a UI test, so a dp here is a pixel.
  *

@@ -116,7 +116,7 @@ internal class CachedMapValues(private val graph: HeapGraph) {
    * Reads the entries of [cache]'s map into [cachedValues].
    *
    * A map caught mid-insertion reads as what it holds rather than as what it is about to, since the walk
-   * follows the chain each bucket starts rather than trusting the entry count.
+   * follows the path each bucket starts rather than trusting the entry count.
    */
   private fun readEntriesOf(
     cache: HeapInstance,

@@ -177,9 +177,9 @@ class HeapDiveTest {
 
       val paths = tree.independentPathsBelowDominator(payload.objectId)
 
-      // Two chains sharing nothing in between: the tile that shows the payload holds it as what its view
+      // Two paths sharing nothing in between: the tile that shows the payload holds it as what its view
       // draws, and the cache holds it through the wrapper. There is no third — the tile holds the wrapper
-      // too, but that chain would have to go round through the wrapper the cache's path already went
+      // too, but that path would have to go round through the wrapper the cache's path already went
       // through, and that isn't another reason the payload is in memory.
       assertThat(paths.paths.map { it.stepLabels() }).containsExactlyInAnyOrder(
         listOf("Tile", "view → View", "drawable → Object[]"),
@@ -239,7 +239,7 @@ class HeapDiveTest {
       assertThat(cells.titleOf(Place.Object(tile.objectId)))
         .isEqualTo("Tile ${hexObjectId(tile.objectId)}")
       // And nothing at all for a place no cell of this view stands for, which is what has the window fall
-      // back to reading the heap dump for a tab opened from a list or from the chain.
+      // back to reading the heap dump for a tab opened from a list or from the path.
       assertThat(cells.titleOf(Place.Object(NO_SUCH_OBJECT_ID))).isNull()
     }
   }
@@ -323,7 +323,7 @@ class HeapDiveTest {
       listOf("LruCache", "LruResourceCache").forEach { cacheLabel ->
         val below = tree.descendantsOf(tree.findByLabel(cacheLabel).objectId)
         // Everything between the cache and what it caches is the cache's own bookkeeping, and stays held
-        // strongly by it: the map, the array of buckets, both entries of the chain and their keys. Cutting
+        // strongly by it: the map, the array of buckets, both entries of the path and their keys. Cutting
         // at the value an entry holds rather than at the map is what leaves them there.
         assertThat(below.filter { it.strength == STRONG }.map { it.label })
           .describedAs(cacheLabel)
@@ -418,7 +418,7 @@ class HeapDiveTest {
       val dominator = tree.dominatorOf(holder.objectId)!!
       val path = tree.independentPathsBelowDominator(holder.objectId).paths.single()
 
-      // Nothing in the heap dump points at it, so there is no chain to walk up and the whole answer to how
+      // Nothing in the heap dump points at it, so there is no path to walk up and the whole answer to how
       // it's held is which kind of GC root reaches it.
       assertThat(dominator.kind).isEqualTo(DominatorKind.WHOLE_HEAP_DUMP)
       assertThat(dominator.nodeId).isEqualTo(tree.root)
@@ -448,7 +448,7 @@ class HeapDiveTest {
       val path = tree.rootPathTo(payload.objectId)
 
       // The holder points at the payload and also at the relay that leads to it the long way round. The
-      // chain beside the treemap is the plainest answer to how the payload is held, so it's the short way,
+      // path beside the treemap is the plainest answer to how the payload is held, so it's the short way,
       // and the holder is marked because letting go of it is what would free the payload.
       assertThat(path.gcRootLabel).isEqualTo("GC root: JNI global reference")
       assertThat(path.stepLabels()).containsExactly("Holder", "payload → Object[]")
@@ -456,7 +456,7 @@ class HeapDiveTest {
     }
   }
 
-  @Test fun `a chain goes the long way round rather than through a stack frame`() {
+  @Test fun `a path goes the long way round rather than through a stack frame`() {
     HeapDive.open(testFolder.onAStackAndInAFieldHeapDump()).use { dive ->
       val tree = dive.tree
       val payload = tree.findByLabel("Object[]")
@@ -465,30 +465,30 @@ class HeapDiveTest {
 
       // A local variable of a running method is one step from the payload and two fields are three, and the
       // shorter one is no answer to what holds it: the object is there because a method is running. Which
-      // is the rule LeakCanary's own path finder follows, so that a chain here is the chain a leak trace
+      // is the rule LeakCanary's own path finder follows, so that a path here is the path a leak trace
       // shows for the same object.
       assertThat(path.stepLabels())
         .containsExactly("Owner", "holder → Holder", "payload → Object[]")
     }
   }
 
-  @Test fun `a chain longer than the pane it is drawn in is still the whole chain`() {
-    HeapDive.open(testFolder.longChainHeapDump()).use { dive ->
+  @Test fun `a path longer than the pane it is drawn in is still the whole path`() {
+    HeapDive.open(testFolder.longPathHeapDump()).use { dive ->
       val tree = dive.tree
       val payload = tree.findByLabel("Object[]")
 
       val path = tree.rootPathTo(payload.objectId)
 
-      // Every object between the GC root and the payload, however many that is: a chain cut short is a
+      // Every object between the GC root and the payload, however many that is: a path cut short is a
       // reader asking what holds this and being handed a count of the steps that would have said.
-      assertThat(path.steps).hasSize(CHAIN_LINK_COUNT + 1)
+      assertThat(path.steps).hasSize(PATH_LINK_COUNT + 1)
       // The GC rooted object itself, which no field of the heap dump points at, down to the payload.
-      assertThat(path.stepLabels().first()).isEqualTo("Link${CHAIN_LINK_COUNT - 1}")
+      assertThat(path.stepLabels().first()).isEqualTo("Link${PATH_LINK_COUNT - 1}")
       assertThat(path.stepLabels().last()).isEqualTo("next → Object[]")
     }
   }
 
-  @Test fun `an object a gc root points at is the whole chain on its own`() {
+  @Test fun `an object a gc root points at is the whole path on its own`() {
     testFolder.openTestHeapDump().use { dive ->
       val tree = dive.tree
       val holder = tree.findByLabel("Holder")
@@ -502,21 +502,21 @@ class HeapDiveTest {
     }
   }
 
-  @Test fun `a chain that starts at no gc root says the object is garbage`() {
+  @Test fun `a path that starts at no gc root says the object is garbage`() {
     HeapDive.open(testFolder.uncollectedGarbageHeapDump()).use { dive ->
       val tree = dive.tree
       val payload = tree.findByLabel("Object[]")
 
       val path = tree.rootPathTo(payload.objectId)
 
-      // Bytes that are still bytes, held by an object that is garbage itself: there is a chain to draw,
+      // Bytes that are still bytes, held by an object that is garbage itself: there is a path to draw,
       // and no GC root at the top of it.
       assertThat(path.gcRootLabel).isEqualTo("Uncollected garbage")
       assertThat(path.stepLabels()).containsExactly("Forgotten", "payload → Object[]")
     }
   }
 
-  @Test fun `neither the whole heap dump nor a pile of objects has a chain leading to it`() {
+  @Test fun `neither the whole heap dump nor a pile of objects has a path leading to it`() {
     testFolder.openTestHeapDump().use { dive ->
       val tree = dive.tree
 

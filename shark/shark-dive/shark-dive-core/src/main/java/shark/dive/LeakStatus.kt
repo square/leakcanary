@@ -3,7 +3,7 @@ package shark.dive
 /**
  * Whether an object on a path is meant to still be in memory, worked out by Shark's object inspectors.
  *
- * Every chain Shark Dive draws carries these, not only the ones that turn out to be leaks: a chain from
+ * Every path Shark Dive draws carries these, not only the ones that turn out to be leaks: a path from
  * a GC root down to a bitmap runs through a dozen objects, and which of them are supposed to be alive is
  * what says where along it something went wrong. The reason for the leak is between the last
  * [EXPECTED] object and the first [STUCK] one, because everything above the first is doing its job
@@ -40,7 +40,7 @@ enum class LeakStatus {
 }
 
 /**
- * The same word as a sentence reads it: on a chain, in the reason another object gives, in the row above the
+ * The same word as a sentence reads it: on a path, in the reason another object gives, in the row above the
  * panes. Only the case differs from the constant, which is what this exists for.
  *
  * In this module rather than in the window, because the reasons worked out here are sentences that name
@@ -94,12 +94,12 @@ internal class InspectedPathObject(
  * Two rules, both of them about the path rather than the object: everything above an object that is not
  * leaking is not leaking either, because it is holding something that is still needed; and everything
  * below a leaking object is leaking, because the only thing keeping it in memory is an object that
- * shouldn't be there. So the inspectors have to recognize one object of a chain for the whole chain to
+ * shouldn't be there. So the inspectors have to recognize one object of a path for the whole path to
  * read, and what's left in the middle — between the last [LeakStatus.EXPECTED] and the first
  * [LeakStatus.STUCK] — is where the **faulty reference** is: the one reference that should have been
  * cleared, and the whole of what there is to fix.
  *
- * This is [shark.RealLeakTracerFactory]'s algorithm, kept in step with it deliberately: a chain here and
+ * This is [shark.RealLeakTracerFactory]'s algorithm, kept in step with it deliberately: a path here and
  * a LeakCanary leak trace of the same objects that disagreed about which of them are leaking would be two
  * answers to the same question. One rule of it is left out — **the object a path ends at is not forced to
  * be leaking**. A leak trace ends where the leak is, so forcing it is right there; a path here ends
@@ -201,7 +201,7 @@ internal fun List<PathStep>.suspectReferenceIndexes(): List<Int> {
  * [suspectReferenceIndexes].
  *
  * One function rather than one per reader, because the point of these words is that the row of the leaks
- * screen, the chain under it and the answer an agent is handed are the same strings — a leak that reads as
+ * screen, the path under it and the answer an agent is handed are the same strings — a leak that reads as
  * one thing on a screen and another in an answer is a conversation where neither reader can point at
  * anything. See [LeakGroup.suspectPath] and `shark.dive.suspectReferences`.
  */
@@ -219,7 +219,7 @@ internal fun List<PathStep>.suspectReferenceLabels(): List<String> =
  * Null for most paths, and the three ways it is null are worth telling apart:
  *
  * - **Nothing stuck on the path.** There is no fault to point at, which is most of a heap dump.
- * - **Nothing expected above the stuck object**, a chain of `Cleaner`s no inspector recognizes being the
+ * - **Nothing expected above the stuck object**, a path of `Cleaner`s no inspector recognizes being the
  *   shape of it. What holds the stuck object may be something that should have let go of it too, and then
  *   the fault is further up than this path knows — so marking the top of the path would be naming a
  *   reference for being where the walk stopped.
@@ -300,8 +300,8 @@ private fun setByHandStatus(
 /**
  * In front of the reason someone typed, wherever their status is read.
  *
- * Because the reason is the whole of what a chain says about an object, and a status a hand set has to be
- * readable as one there: half the objects of a chain are green or red because of an inspector, and which of
+ * Because the reason is the whole of what a path says about an object, and a status a hand set has to be
+ * readable as one there: half the objects of a path are green or red because of an inspector, and which of
  * them is there because someone decided so is the difference between reading the heap dump and reading
  * someone's conclusion about it.
  */

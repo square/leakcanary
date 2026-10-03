@@ -71,7 +71,7 @@ internal fun TemporaryFolder.destroyedActivitiesHeapDump(): File {
  * an inspector knows belongs in memory, the object below it one it knows shouldn't be.
  *
  * Which is the shape of a leak that takes no guessing — that one reference is the faulty one and no other
- * reference of the chain can be — and so the one shape a chain marks. Every other dump here has objects
+ * reference of the path can be — and so the one shape a path marks. Every other dump here has objects
  * nothing knows either way about between the GC root and the leak, which is the ordinary case. See
  * [PathReference.isFaulty].
  */
@@ -90,7 +90,7 @@ internal fun TemporaryFolder.applicationHoldsActivityHeapDump(): File {
  *
  * The fault is at one of those two steps — the app should have let go of the holder, or the holder of the
  * activity — and nothing in the heap dump says which, which is what LeakCanary underlines the whole stretch
- * for and what a chain here marks none of.
+ * for and what a path here marks none of.
  */
 internal fun TemporaryFolder.applicationHoldsActivityThroughHolderHeapDump(): File {
   val file = newFile("application-holds-activity-through-holder.hprof")
@@ -146,8 +146,8 @@ internal fun TemporaryFolder.nestedLeaksHeapDump(): NestedLeaksHeapDump {
  * The same two leaks, and a second way to the window that doesn't go through the activity, one step longer.
  *
  * Letting go of the activity here leaves the window exactly where it is, so the window is a leak of its own
- * and the chain for it is the way round rather than the shorter way through the activity — which is the
- * heap dump that says a chain avoids an object that shouldn't be in memory even at the cost of a step.
+ * and the path for it is the way round rather than the shorter way through the activity — which is the
+ * heap dump that says a path avoids an object that shouldn't be in memory even at the cost of a step.
  */
 internal fun TemporaryFolder.leakAlsoHeldAnotherWayHeapDump(): NestedLeaksHeapDump {
   val file = newFile("leak-also-held-another-way.hprof")
@@ -175,7 +175,7 @@ internal fun TemporaryFolder.leakAlsoHeldAnotherWayHeapDump(): NestedLeaksHeapDu
       fields = listOf(activity)
     )
     gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
-    // One step longer than the way through the activity, so that a chain taking it is a chain that gave up
+    // One step longer than the way through the activity, so that a path taking it is a path that gave up
     // a step for it: a way round of the same length would be picked between on a tie and prove nothing.
     val nearer = instance(
       clazz(className = "com.example.Nearer", fields = listOf("window" to ReferenceHolder::class)),
@@ -249,7 +249,7 @@ internal fun TemporaryFolder.leakTwoLeaksHoldHeapDump(): TwoLeaksHoldHeapDump {
 /** A [leakTwoLeaksHoldHeapDump] and the two of its three leaking objects the assertions are about. */
 internal class TwoLeaksHoldHeapDump(
   val file: File,
-  /** The one of the two activities whose GC root is nearer, which is the way the chain goes. */
+  /** The one of the two activities whose GC root is nearer, which is the way the path goes. */
   val nearerActivityObjectId: Long,
   /** The window both of them hold, which neither dominates and neither leaves reachable. */
   val windowObjectId: Long
@@ -260,7 +260,7 @@ internal class NestedLeaksHeapDump(
   val file: File,
   /** The one nearer the GC roots, which is the leak to fix. */
   val activityObjectId: Long,
-  /** And the one it holds, which is on the chain drawn for the activity. */
+  /** And the one it holds, which is on the path drawn for the activity. */
   val windowObjectId: Long
 )
 
@@ -338,7 +338,7 @@ internal fun TemporaryFolder.leakInAListHeapDump(): File {
  * thread and two from anything else.
  *
  * A running method's frame is the shortest way to nearly anything an app is doing, and it is no answer to
- * "what is leaking this": the object is there because a method is running. So the field is the chain to
+ * "what is leaking this": the object is there because a method is running. So the field is the path to
  * show, though it is the longer one, which is what [RootPathSearch] puts off a stack frame for.
  */
 internal fun TemporaryFolder.leakOnAStackAndInAFieldHeapDump(): File {
@@ -374,7 +374,7 @@ internal fun TemporaryFolder.leakOnAStackAndInAFieldHeapDump(): File {
  * that thread's stack frame holds the runnable back. Which is a loop, and the objects on it are neither above
  * nor below each other however far a walk up the referrers gets. See `isAbove`.
  *
- * The chains drawn through it all take the executor's field rather than a frame, since [RootPathSearch] puts
+ * The paths drawn through it all take the executor's field rather than a frame, since [RootPathSearch] puts
  * a frame off, so what a reader sees is the wrapper above the task with the activity under both. **A frame
  * holds the activity too**, as the running thread's frames do in `leak_asynctask_o.hprof`, which is what
  * makes it the shorter way in the moment a status set by hand puts the way through the task off as well.
@@ -423,7 +423,7 @@ internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump
 /** A [taskHoldingItsOwnThreadHeapDump] and the three objects of it a status gets set on. */
 internal class TaskLoopHeapDump(
   val file: File,
-  /** The runnable the executor is running, which is on the loop and above the task on every chain. */
+  /** The runnable the executor is running, which is on the loop and above the task on every path. */
   val wrapperObjectId: Long,
   /** The task it wrapped, which is on the loop too and is what holds the activity. */
   val taskObjectId: Long,
@@ -553,18 +553,18 @@ internal const val WRAPPER_CLASS_NAME = "android.os.AsyncTask\$SerialExecutor\$1
 
 internal const val TASK_CLASS_NAME = "android.os.AsyncTask\$3"
 
-/** And the thread it is running on, which a chain names when it walks through its stack. */
+/** And the thread it is running on, which a path names when it walks through its stack. */
 private const val WORKER_THREAD_NAME = "AsyncTask #1"
 
 internal const val APPLICATION_CLASS_NAME = "com.example.ExampleApplication"
 
-/** How a chain spells the one reference of [applicationHoldsActivityHeapDump], which is its whole leak. */
+/** How a path spells the one reference of [applicationHoldsActivityHeapDump], which is its whole leak. */
 internal const val APPLICATION_LEAK_REFERENCE = "ExampleApplication.activity"
 
 /** And the first of the two of [applicationHoldsActivityThroughHolderHeapDump], neither of which is marked. */
 internal const val APPLICATION_HOLDER_REFERENCE = "ExampleApplication.holder"
 
-/** How a chain names the class a field is read on, which is how a leak named after that field is spelled. */
+/** How a path names the class a field is read on, which is how a leak named after that field is spelled. */
 internal const val HOLDER_SIMPLE_CLASS_NAME = "Holder"
 
 /** The field of [leaksInOneArrayHeapDump] that holds the array, which is what its leak is named after. */
@@ -575,7 +575,7 @@ private const val LIST_CAPACITY = 12
 
 /**
  * An Android version recent enough that none of Shark's known library leaks is one of these dumps, so that
- * what a chain through them is named after is the app's own references. See [androidBuild].
+ * what a path through them is named after is the app's own references. See [androidBuild].
  */
 private const val RECENT_SDK_INT = 34
 

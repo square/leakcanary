@@ -267,10 +267,11 @@ END
 # would be scored on something other than what it is here to measure.
 #
 # **`Bash` is a hole and it is a bounded one.** An agent with a shell can read the hprof by hand, and nothing
-# here can stop it. What keeps that from becoming a score is that scoring reads what `conclude` recorded, and
-# `conclude` refuses until the chain has been narrowed through the surface — so the shell can make a run
-# *faster* at guessing, and cannot make a run that skipped the method look like one that followed it. The
-# client transcript beside each run is where a run that reached for `strings` shows up.
+# here can stop it. What keeps that from becoming a score is that scoring reads the reference the *heap dump*
+# named once the verdicts left one candidate — `leakSolved` in an answer, never a string a run typed — and
+# nothing outside this surface can set a verdict. So the shell can make a run *faster* at working out which
+# object to settle, and cannot make a run that skipped the method look like one that followed it. The client
+# transcript beside each run is where a run that reached for `strings` shows up.
 #
 # **[CLIENT_CONFIG_DIRECTORY] is what keeps this machine out**, and it does more than the memories: it keys
 # auto-memory, so a scratch one has none, and the person's own skills and **their MCP servers** are not in it
