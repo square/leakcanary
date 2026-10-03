@@ -43,8 +43,8 @@ share of the whole — and a dominator tree reads the same way, with "who retain
 called this". `StackLayout` is that chart.
 
 What it buys over the other two is that **a level costs no width**. A treemap and a ring both pay area
-for nesting, so the deep end of a chain is a sliver; a stack gives every level a full row, so the last
-object in a 22-level chain is drawn as wide as its share of the heap deserves and — this is the part
+for nesting, so the deep end of a path is a sliver; a stack gives every level a full row, so the last
+object in a 22-level path is drawn as wide as its share of the heap deserves and — this is the part
 that matters — **named**, at every depth, along with its size. The treemap can only name one level
 (see below) because a subdivided rectangle is covered by its children. A row is covered by the row
 below it, not by its own contents, so there is nothing in the way of a label.
@@ -55,7 +55,7 @@ Three consequences of that, each of them a decision:
   block** at the right end of the row — the same reason the treemap has one, for the same effect: a
   block is its share of the whole heap at every depth rather than of its siblings. It also means no
   pixel of a row belongs to nothing, so hit testing has no gaps to explain.
-- **The stack has to bound its rows** (`maxRows`, 64). The cell budget doesn't bound it: a chain of
+- **The stack has to bound its rows** (`maxRows`, 64). The cell budget doesn't bound it: a path of
   single dominators never narrows, so every level of it clears the subdivide floor and 5,000 cells is a
   5,000-row canvas. The other two shapes are bounded by their own geometry — a ring's arc, a
   rectangle's area — and needed no such number.
@@ -93,17 +93,17 @@ recursion are directly unit-testable.
 
 The first version reserved an **18 dp header** at the top of every subdivided rectangle for its label,
 and `minSubdivideHeight` was 24 dp because a level had to fit a header plus one visible child. On a real
-app that hides everything worth seeing: the chain from the activity down to a list row in the 82 MB
+app that hides everything worth seeing: the path from the activity down to a list row in the 82 MB
 production dump was **38 levels**, and 38 × 18 dp is 684 dp of a 630 dp viewport. The window filled up
-with full-width label bands and the bitmaps at the bottom of the chain never got drawn at all. Drilling
+with full-width label bands and the bitmaps at the bottom of the path never got drawn at all. Drilling
 in only bought back 18 dp per level skipped, so it took several goes and still ran out.
 
 So a subdivided node's children now cover it **exactly**, and nesting is drawn afterwards instead of
 being given room: `TreemapView` draws every fill first and every outline second, so a level reads as a
-1 px line over its contents rather than as a strip beside them. Where a chain of single children shares
+1 px line over its contents rather than as a strip beside them. Where a path of single children shares
 an edge the outlines stack up into a heavier line, which is the view saying there's more here than one
 rectangle. Measured on that dump in a 1180×630 px viewport: the three biggest bitmaps come out at
-**depth 22, 128×75 px, 1.3% of the view each**, 2,279 cells, nothing truncated. (That chain is 22 levels
+**depth 22, 128×75 px, 1.3% of the view each**, 2,279 cells, nothing truncated. (That path is 22 levels
 rather than 38 because the `View[]` between every two views is no longer a level of the tree — see
 `dominator-tree.md`. The arithmetic above is what it was when it was 38, and it's still 378 dp of a 630 dp
 viewport at 21 headers, so the conclusion doesn't move.)
@@ -124,7 +124,7 @@ Two things follow, and both are behaviour rather than polish:
   small to draw, still lands on the node holding it.
 
 And one consequence for the UI: a subdivided rectangle has nowhere to put its own name, so naming the
-levels falls to what is drawn beside the view — `RootPathPanel`, which draws the chain from the whole heap
+levels falls to what is drawn beside the view — `RootPathPanel`, which draws the path from the whole heap
 dump down to the object clicked, runs it on to the object under the pointer, and marks the steps that
 dominate it. Those marked steps are the containers the rectangle sits inside, so the same pane answers both
 "what is this" and "where in the picture am I".
@@ -200,7 +200,7 @@ check against `Int.MIN_VALUE` instead, and the pile ids start at `Long.MIN_VALUE
 
 What the sign test cost, before it was a range check: on `large-dump.hprof`, **44 of the 4,616 rectangles of
 the opening view** had `contains()` say the tree didn't hold them, so pointing at one selected nothing, the
-chain pane never filled in, and clicking one went to the root instead of into it — with no error anywhere,
+path pane never filled in, and clicking one went to the root instead of into it — with no error anywhere,
 because every one of those answers is also a legitimate one. Their hex was wrong too (`0x-7deb3000`), which
 is what `NodeIds.hexObjectId` is for and what makes such an id recognisable in the log.
 
@@ -225,7 +225,7 @@ Nodes that had children but weren't subdivided at all are still counted in
 had room for is visible rather than silent.
 
 Clicking a node re-roots the treemap at it and re-runs the same layout against the full viewport, so
-zooming is how deeper detail is reached, and the chain beside the map is how you get back out. See
+zooming is how deeper detail is reached, and the path beside the map is how you get back out. See
 "Hit testing" below for what a click resolves through, and `decisions.md` for why a click goes somewhere
 rather than selecting in place.
 
@@ -300,7 +300,7 @@ centres the biggest fit and the rest of the rectangle stays its fill colour.
 
 **A bitmap is labelled only if it's at the named depth**, like every other rectangle, and then over its own
 picture on the translucent plate. Text straight over a picture read as neither, which is what the plate is
-for; below that depth the chain beside the map is where a bitmap's class and size are read.
+for; below that depth the path beside the map is where a bitmap's class and size are read.
 
 Two wiring details that are easy to get wrong: images are asked for per presentation, only for
 rectangles at least `MIN_BITMAP_DRAW_SIZE` (8 dp) each way — below that an image is a smear of one
@@ -337,14 +337,14 @@ than composing them and so have no modifier to hang the gestures on — see `dec
 Where the map ends up isn't resolved here at all. A rectangle hands back a `Place` — `Place.of(cell)` — and
 the map is laid out at `place.viewRootObjectId`, so a click on a rectangle is the same move as a click on a
 line of the details panel or a row of a list, and the map is **rooted at the object clicked** rather than
-zoomed along a chain to it. An object that dominates nothing is then one rectangle of its own bytes, which
-is the honest answer to what it holds; how it is held is the chain pane's answer, not the map's. A group
+zoomed along a path to it. An object that dominates nothing is then one rectangle of its own bytes, which
+is the honest answer to what it holds; how it is held is the path pane's answer, not the map's. A group
 isn't a node of the tree, so `Place.SmallerObjects` carries the parent it was left out of and roots the map
 there, which is where those objects are and where the map has the room to draw the biggest of them one by
 one.
 
-Two things fall out of rooting rather than zooming. The tree is walked once, to draw the chain, instead of
-once for the chain and once to find where to put the map — the path down a dominator tree is unique, so the
+Two things fall out of rooting rather than zooming. The tree is walked once, to draw the path, instead of
+once for the path and once to find where to put the map — the path down a dominator tree is unique, so the
 map root is a function of the object and there is nothing to keep in sync. And a view rooted at an object
 the tree has no node for — a field can name one — falls back to the whole heap dump with a log line saying
 so, rather than a walk that comes back empty.

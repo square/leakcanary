@@ -66,13 +66,13 @@ class AgentConnectionTest {
 
   @Test
   fun `a refusal is something the agent reads rather than a failure of this app`() {
-    val response = answer(concludeOnActivity())
+    val response = answer(refusedVerdict())
 
     // The whole reason the wire has three answers rather than two: this is the surface working — a tool
     // sending an agent back to the heap dump with the next thing to do in the message — and a caller told it
     // was a failure would be one told this app fell over. See [AgentWire] and [AgentCommandLine.REFUSED].
     assertThat(AgentWire.refusalOf(response))
-      .contains("Not concluded")
+      .contains("solvingLeakOf")
       .contains(HOLDER_CLASS_NAME)
     assertThat(AgentWire.answerOf(response)).isNull()
     assertThat(AgentWire.failureOf(response)).isNull()
@@ -105,11 +105,11 @@ class AgentConnectionTest {
 
   @Test
   fun `an answer is the answer, on the first call of a session as on the one after it`() {
-    val first = answered(call("list_leaks", """"reason":"Starting with what the dump says.""""))
+    val first = answered(call("list_leak_groups", """"reason":"Starting with what the dump says.""""))
     val second = answered(describeHolder("The holder next."))
 
     // Both halves of the method used to be fields of an answer — how to work here prepended to whatever a
-    // session asked first, and how to find a leak in `list_leaks`'s own answer, which is this call. Both are
+    // session asked first, and how to find a leak in `list_leak_groups`'s own answer, which is this call. Both are
     // text this build prints now, [AgentCommandLine.SURFACE_METHOD_OPTION] and
     // [AgentCommandLine.LEAK_METHOD_OPTION], so a field here would be a session paying per call for a text it
     // reads once. Which leaves nothing in an answer that the tool did not answer with.
@@ -125,7 +125,7 @@ class AgentConnectionTest {
     // joins the session by name and makes its one call, and the one after it is an [AgentConnection] that has
     // never answered anything. Which is why these are built one after the other, as the two processes are.
     answered(
-      call("list_leaks", """"reason":"What it says.""""),
+      call("list_leak_groups", """"reason":"What it says.""""),
       on = joining(sessionId)
     )
     answered(
@@ -135,7 +135,7 @@ class AgentConnectionTest {
 
     val session = sessions().single()
     assertThat(session.sessionId).isEqualTo(sessionId)
-    assertThat(session.calls.map { it.tool }).containsExactly("list_leaks", "describe_object")
+    assertThat(session.calls.map { it.tool }).containsExactly("list_leak_groups", "describe_object")
   }
 
   @Test
@@ -193,7 +193,7 @@ class AgentConnectionTest {
 
   @Test
   fun `a refused call keeps what it sent, its answer being the refusal`() {
-    val response = answer(concludeOnActivity())
+    val response = answer(refusedVerdict())
 
     // Both, and not one of them: `refused` is this app's reading — the method said no — and `output` is the
     // text the agent was handed. Writing only the reading was tried and is what "an answer that isn't logged"
@@ -203,19 +203,17 @@ class AgentConnectionTest {
     assertThat(call.output).isEqualTo(refusal)
     assertThat(call.refusal).isEqualTo(refusal)
     assertThat(call.input)
-      .startsWith("conclude {")
+      .startsWith("set_verdict {")
       .contains(""""reason": "The holder never lets go."""")
   }
 
   @Test
   fun `a refused call is written down with the refusal and what it was asking about`() {
-    answer(concludeOnActivity())
+    answer(refusedVerdict())
 
     val call = sessions().single().calls.single()
-    assertThat(call.verb).isEqualTo("Concluded about")
-    assertThat(call.refusal).contains("Not concluded")
-    // Which on this one command is the root cause being reported rather than a line of the log beside it, and
-    // it is the same argument either way — see [AgentTools.conclude].
+    assertThat(call.verb).isEqualTo("Recorded STUCK on")
+    assertThat(call.refusal).contains("solvingLeakOf")
     assertThat(call.reason).isEqualTo("The holder never lets go.")
     // Refused, and still pointing at the object it was refused about: a refusal nobody can follow up on is
     // the half of a session that is worth reading afterwards.
@@ -224,7 +222,7 @@ class AgentConnectionTest {
 
   @Test
   fun `a call that named no place is written down with somewhere to go all the same`() {
-    answer(call("list_leaks", """"reason":"Starting with what the dump says.""""))
+    answer(call("list_leak_groups", """"reason":"Starting with what the dump says.""""))
 
     // The leaks screen to go to, and the words for it, so that a row of the window reads as a sentence with
     // one link in it: "Listed the" and then *leaks*. See [AgentTools.target] and [screenOfTool].
@@ -253,7 +251,7 @@ class AgentConnectionTest {
   fun `the call that asks which heap dumps are open is written down with the ones that were`() {
     answer(call(LIST_HEAP_DUMPS, """"reason":"Seeing what there is."""", heapDump = null))
 
-    // Off the answer, like a conclusion and unlike everything else: this is the one call whose subject is
+    // Off the answer, like a solved leak and unlike everything else: this is the one call whose subject is
     // the app rather than a heap dump, and a row saying it asked without saying what it heard is a row that
     // withholds the answer it is a record of. See [openHeapDumpsOfTool].
     val call = sessions().single().calls.single()
@@ -262,21 +260,22 @@ class AgentConnectionTest {
   }
 
   @Test
-  fun `a call that concluded is written down with the reference it concluded on`() {
+  fun `a call that solved a leak is written down with the reference the heap dump named`() {
     answer(
       call(
         "set_verdict",
         """"object":"${hex(heapDump.holderObjectId)}","verdict":"EXPECTED",""" +
+          """"solvingLeakOf":"${hex(heapDump.activityObjectId)}",""" +
           """"why":"Holder.INSTANCE is a static singleton.",""" +
           """"reason":"Ruling out the object above the activity.""""
       )
     )
-    answer(concludeOnActivity())
 
     // The answer rather than the arguments, which is the only line of a session that isn't: what an agent
-    // asked is what it typed, and what it concluded is what the heap dump agreed to. That is the line the
-    // *Agent logs* screen ends a session with, and the one the eval marks against an answer key.
-    assertThat(sessions().single().calls.last().outcome).isEqualTo(FAULTY_REFERENCE)
+    // asked is what it typed, and what the heap dump derived from the verdicts is what it came to. Nothing
+    // in that call names a reference — this one is the dump's. That is the line the *Agent logs* screen ends
+    // a session with, and the one the eval marks against an answer key.
+    assertThat(sessions().single().calls.single().outcome).isEqualTo(FAULTY_REFERENCE)
   }
 
   @Test
@@ -372,10 +371,19 @@ class AgentConnectionTest {
     """"object":"${hex(heapDump.holderObjectId)}","reason":"$reason""""
   )
 
-  /** The call the surface refuses, the chain having no verdict on it yet. See [AgentToolsTest]. */
-  private fun concludeOnActivity() = call(
-    "conclude",
-    """"object":"${hex(heapDump.activityObjectId)}","reason":"The holder never lets go.""""
+  /**
+   * The call the surface refuses: the leak being solved has to be an object this dump reads as stuck.
+   *
+   * Which is the refusal a connection is tested through rather than any other because it carries everything
+   * one has to: a sentence naming the object it is about, the argument to fix, and a place to go. See
+   * [AgentToolsTest].
+   */
+  private fun refusedVerdict() = call(
+    "set_verdict",
+    """"object":"${hex(heapDump.activityObjectId)}","verdict":"STUCK",""" +
+      """"solvingLeakOf":"${hex(heapDump.holderObjectId)}",""" +
+      """"why":"The activity is destroyed and still here.",""" +
+      """"reason":"The holder never lets go.""""
   )
 
   private fun hex(objectId: Long) = exactHexObjectId(objectId)

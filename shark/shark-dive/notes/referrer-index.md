@@ -39,7 +39,7 @@ an object, is the best of the ten at 2.34.
 ## The smallest heap a session runs in
 
 A minimum-heap ladder over `large-dump.hprof` — open the dump the way a window does, find the leaks, then ask
-for the chain from a GC root to 4 000 objects, and take the smallest `-Xmx` the run still completes in:
+for the path from a GC root to 4 000 objects, and take the smallest `-Xmx` the run still completes in:
 
 | | linked | encoded |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ the referrers on `large-dump.hprof`, reaching 1.93 M objects between them:
 replaced.** Eight breaks even. Four is 20% *faster* than the linked list while holding a third of what it
 held, and that is where this stops — not because the curve stops there, but because it is the first rung
 where nothing has been given up. Two and one are faster still, and buying that would mean giving back 0.4 MB
-and 1.2 MB of the 3.7 MB this change is *for*, to save fractions of a millisecond per chain on a question
+and 1.2 MB of the 3.7 MB this change is *for*, to save fractions of a millisecond per path on a question
 whose budget is a hundred of them.
 
 Their sixteen is the right answer for their problem and not for this one: their offsets are gigabytes at
@@ -103,8 +103,8 @@ the middle of each path it finds so the next path has to go another way. On the 
 `HeapDiveTest.cachedPayloadHeapDump` builds, where a tile holds an image both through its view and
 through the request that loaded it, and a cache holds the same image through that request's wrapper:
 
-- highest index first: two chains, `Tile → view → image` and `Cache → wrapper → image`.
-- lowest index first: the first walk claims the wrapper, so the second cannot use it — two chains, both from
+- highest index first: two paths, `Tile → view → image` and `Cache → wrapper → image`.
+- lowest index first: the first walk claims the wrapper, so the second cannot use it — two paths, both from
   the tile, and **the cache never appears as a holder at all**.
 
 So the slices are stored counting **down** from the last object of the heap dump instead, which costs 0.7%
@@ -113,7 +113,7 @@ rather than the distance from its start) and hands back exactly the old order. V
 than argued: over all ten dumps every object's referrers came back in the same order and with the same
 `isLowPriority` bits as the linked list gave, 68 515 of 68 515 multi-referrer objects on `large-dump.hprof`
 and every one of the others. The session ladder above is the same check end to end — both implementations
-report 2 leak groups, 4 000 chains and 8 664 steps on `large-dump.hprof`.
+report 2 leak groups, 4 000 paths and 8 664 steps on `large-dump.hprof`.
 
 Which is why there is no leak-fingerprint sweep to go with this change. The sweep over the ten dumps that
 `decisions.md` records at 8 of 10 dumps and 12 of 15 leaks is a function of which referrers the index hands

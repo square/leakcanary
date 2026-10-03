@@ -24,7 +24,7 @@ import androidx.compose.ui.semantics.semantics
  * Which tab a click is asking for an object in.
  *
  * Every way to an object in this window ends up here, which is what keeps them one thing: a rectangle of
- * the map, a step of the chain, a field in the panel and a row of a list all say where they lead and
+ * the map, a step of the path, a field in the panel and a row of a list all say where they lead and
  * nothing else, and the window decides what that means for the tabs.
  */
 internal enum class OpenIn {

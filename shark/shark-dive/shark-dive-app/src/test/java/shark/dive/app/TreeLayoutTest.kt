@@ -162,7 +162,7 @@ class TreeLayoutTest {
     /** Opening a heap dump and laying the tree out both happen on another thread. */
     private const val OPEN_TIMEOUT_MILLIS = 10_000L
 
-    /** How the log says the chain holding the cell under the pointer was read. */
+    /** How the log says the path holding the cell under the pointer was read. */
     private const val HOVER_READ = "Read what holds"
   }
 }

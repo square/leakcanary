@@ -65,7 +65,7 @@ a few seconds.
 * **Point at one and the window describes it; click it and the tab goes to it**, redrawing that object's
   contents across the whole view. So reading the map is a sweep of the mouse, and a rectangle a pixel wide
   at the top of the tree is a full picture two clicks down.
-* **The pane on the left is the answer to "what holds this"**: the shortest chain from a garbage collection
+* **The pane on the left is the answer to "what holds this"**: the shortest path from a garbage collection
   root down to the object, one row per object, naming the field that holds the next. Every row is
   clickable, which is also the way back out.
 * **Everything naming an object is a way to it**, and the same three clicks work everywhere: click to go
@@ -75,7 +75,7 @@ a few seconds.
 * **← and → walk the tab's own history**, so a tab you wandered off in is one click from where it was.
   **Right click either arrow** for the list of everywhere it leads: picking the fourth entry is one click
   rather than four.
-* **The three panes are resizable, and each folds away to a button.** A chain thirty steps long or a
+* **The three panes are resizable, and each folds away to a button.** A path thirty steps long or a
   details panel of forty fields is sometimes worth the whole window.
 * **Shape** switches between rectangles and rings. A ring has room for fewer children, so it groups the
   small ones sooner: better for the shape of the tree, worse for exact sizes.
@@ -101,7 +101,7 @@ are clickable — a chat message, an issue, a note to yourself — and clicking 
 the front and opens that place in a new tab.
 
 It sits beside "open in a new tab" everywhere that offers one: a tab, a button along the top, a rectangle
-of the map, a row of the object list or of the leaks, a step of a chain, a field of the details panel, a
+of the map, a row of the object list or of the leaks, a step of a path, a field of the details panel, a
 starred object. Wherever the window will take you somewhere, it will also hand you the link to it.
 
 ```
@@ -193,7 +193,7 @@ all three next week, in whatever window has that dump open by then.
 ## The verdict
 
 At the top of **What it is**, under the object's name, is the **Verdict** on it — `✗ Stuck`, `✓ Expected`, or
-a quiet `? Unknown` — with the reason under it, in the same colours the chain on the left uses. Most objects
+a quiet `? Unknown` — with the reason under it, in the same colours the path on the left uses. Most objects
 in a heap dump are `Unknown`, which is why that one is drawn small: the two that mean something are the ones
 worth seeing across the room.
 
@@ -206,31 +206,30 @@ and only the garbage collector not having run keeps it here. The verdict means t
 
 The reason is the rest of the answer, because half of these are about another object: an activity is red
 because its own `mDestroyed` is true, and the view under it is red because the activity is. `Activity↑ is
-stuck` is the chain saying so.
+stuck` is the path saying so.
 
-**The chain marks the faulty reference itself**: `Holder.activity · faulty reference`, in bold red, on the one
-step that goes from an `Expected` object straight to a `Stuck` one. It is the one line of a chain that says
+**The path marks the faulty reference itself**: `Holder.activity · faulty reference`, in bold red, on the one
+step that goes from an `Expected` object straight to a `Stuck` one. It is the one line of a path that says
 where to go and change code — the shades on the objects are what the leak left behind, this is the leak — and
-it is the same reference the Leaks screen names that leak after, so a row there and the chain you open from it
+it is the same reference the Leaks screen names that leak after, so a row there and the path you open from it
 name one thing.
 
-**And when it has one, `Leak solved` says so above the chain**, with the reference under it and nothing else:
+**And when it has one, `Leak solved` says so above the path**, with the reference under it and nothing else:
 
 ```
 Leak solved
 Holder.activity
 ```
 
-Because a real chain is tens of steps and **What holds it** is scrolled to the last of them, so a mark
+Because a real path is tens of steps and **What holds it** is scrolled to the last of them, so a mark
 somewhere in the middle is an answer you have to go looking for. The name is the one to go and grep for, and
-it is the same string the Leaks screen, a note written by `conclude`, and an agent's `faultyReference` all
-use.
+it is the same string the Leaks screen and an agent's `faultyReference` both use.
 
-**A chain with no such step carries no mark**, which is deliberate: what would be marked would be a guess
+**A path with no such step carries no mark**, which is deliberate: what would be marked would be a guess
 drawn as an answer. With objects nothing knows either way about between the two verdicts, the fault is at one
-of those steps and nothing on the chain says which. With nothing `Expected` above the stuck object at all,
+of those steps and nothing on the path says which. With nothing `Expected` above the stuck object at all,
 what holds it may be something that should have let go of it too, so the fault can be further up than the
-chain reaches. Overruling a verdict is what closes either gap: say what you know about one object in between,
+path reaches. Overruling a verdict is what closes either gap: say what you know about one object in between,
 and the mark appears on the step that leaves.
 
 **The pencil beside it** overrules the verdict. Pick one of the three, type why, and **Set the verdict**:
@@ -241,15 +240,15 @@ and the mark appears on the step that leaves.
   colleague, an agent, you in a month — can check, and one of those makes every other verdict in it worth
   less. What you overruled is kept beside your reason rather than thrown away.
 * **It reads as yours**, wherever it appears: `set by hand — the cache is bounded, this is fine`, in the
-  panel and on every chain that runs through the object.
+  panel and on every path that runs through the object.
 * **Everything a stuck object holds is stuck too, and everything holding an expected one is expected too**,
   so a verdict you set changes what the objects around it read as. Which is why setting one is usually enough
-  to make a whole chain make sense.
+  to make a whole path make sense.
 * **The pencil again** on an object you have already decided about, and **Take it off** to hand it back to
   the heap dump.
 
-Because a verdict propagates along the chain, two of them can contradict each other: an object marked as
-stuck, holding one marked as expected, cannot both be read off the chain between them. When what you are
+Because a verdict propagates along the path, two of them can contradict each other: an object marked as
+stuck, holding one marked as expected, cannot both be read off the path between them. When what you are
 setting does that, **the window lists every verdict it disagrees with before writing anything** — what the
 object is, which side of yours it is on, the reason it was given, and what it would become. **Keep this and
 flip those** keeps yours and sets them to the opposite verdict, with what they said kept as part of the new
@@ -263,7 +262,7 @@ there again the next time you open that dump.
 one of them reads: marking something as stuck makes it a leak, and whatever it holds stops being one — it is
 only still in memory because of the object you named, and that is the thing to fix. Marking a leak as
 expected takes it off the list. The one thing this costs is that a leak's fingerprint matches the one
-LeakCanary reports only while nothing has been set by hand, since the fingerprint is the stretch of chain your
+LeakCanary reports only while nothing has been set by hand, since the fingerprint is the stretch of path your
 verdict has just moved.
 
 ## Hand it to an agent
@@ -273,8 +272,8 @@ verdict has just moved.
 
 **Every screen and every button of this app is also a command**, so an agent — Claude Code, Cursor, whatever
 you use — investigates *the heap dump you have open* rather than one of its own. It reads the same tree, sets
-verdicts you watch appear, puts what it is looking at on your screen, and writes what it concluded into the
-notes where you and the next reader will find it.
+verdicts you watch appear, puts what it is looking at on your screen, and leaves those verdicts — each with
+the evidence for it — where you and the next reader will find them.
 
 There is nothing to install and nothing to configure. The app's own launcher takes the call:
 
@@ -283,7 +282,7 @@ There is nothing to install and nothing to configure. The app's own launcher tak
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
   --cli open_heap_dump path=/var/dumps/bug-4821.hprof reason="The dump the report came with"
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --cli list_leaks heapDumpKey=bug-4821.hprof reason="Starting from what the dump says about itself"
+  --cli list_leak_groups heapDumpKey=bug-4821.hprof reason="Starting from what the dump says about itself"
 ```
 
 **`--cli` goes on every command**, and it is what tells a command from a run of the app: the same launcher with
@@ -316,7 +315,7 @@ and waits for it, as `dump_heap`, `list_devices` and `list_processes` do — the
 same whether the run was already there or not. Every other command is a question *about* a run, and one answered
 by a run just started for it would come back empty while looking exactly like a run that was there and had
 nothing open, so those say which command to call instead. The run outlives the agent's session, which is the
-point: whatever it concluded is on the tabs it left open when you come back to it. `close_heap_dump` is the
+point: whatever it worked out is on the tabs it left open when you come back to it. `close_heap_dump` is the
 other end of that, and closing the last dump open ends the run, so an agent that finishes tidily leaves no
 window on your screen.
 
@@ -334,7 +333,7 @@ watching. Open the dump in a run that draws nothing:
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --cli open_heap_dump --no-ui \
   path=/var/dumps/bug-4821.hprof reason="No display on this machine"
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --cli list_leaks heapDumpKey=bug-4821.hprof reason="Starting from what the dump says about itself"
+  --cli list_leak_groups heapDumpKey=bug-4821.hprof reason="Starting from what the dump says about itself"
 ```
 
 That run draws no window and publishes itself exactly as a run with windows does — so every call after the
@@ -348,7 +347,7 @@ answering that it showed you something — being seen is the whole of what that 
 hands back the `shark://` link all the same, which names the heap dump: nobody saw the place, and the link
 opens it for the next reader on the machine the dump is on. Nothing else changes, because
 **notes and verdicts were never on the screen** — they are files beside the heap dump, so a dump investigated
-over ssh today opens in a window tomorrow with the verdicts, the reasons and the conclusion already on it.
+over ssh today opens in a window tomorrow with the verdicts and their reasons already on it.
 
 `--help` prints every option of the command line, the ones above included, and `--cli` with nothing after it
 prints exactly that — so a launcher typed with no idea what it takes answers with all of it and reaches for
@@ -384,13 +383,13 @@ Then ask for what you actually want. This is the whole prompt the session below 
 > leaking. Find the root cause.
 
 **The method comes with the commands**, so it doesn't have to come from you. `--leak-investigation-help` is
-what a leak is — one bad reference, the three zones of a chain, the rules that spread a verdict up and down
+what a leak is — one bad reference, the three zones of a path, the rules that spread a verdict up and down
 it — and the order that finds it, which is [the LeakCanary
 method](https://engineering.block.xyz/blog/the-leakcanary-method) as the commands enforce it.
 `--investigation-help` is the shorter half beside it: how to work on this surface at all, read once a session.
 Both are texts this build prints rather than fields of an answer, which is what keeps an investigation of six
 leaks from reading the whole method six times. Three places point at the leak half, each of them somewhere an
-agent already has a leak in hand: `list_leaks`'s own description, the answer that opened the dump, and
+agent already has a leak in hand: `list_leak_groups`'s own description, the answer that opened the dump, and
 `--investigation-help` itself.
 
 **Including the part that isn't in the heap dump at all.** Isolating the reference says *where* the problem
@@ -410,17 +409,16 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `list_heap_dumps` | Every heap dump open, for an agent that was given none, and the name each of the rest goes on to use. |
 | `close_heap_dump` | Done with a dump: the window closes, and closing the last one ends the run. |
 | `heap_dump_metadata` | The **Metadata** screen: what the dump says about itself, as the map LeakCanary prints above a leak trace — the device, the app's process, the bitmaps, the open databases. |
-| `list_leaks` | The **Leaks** screen: what this heap dump says shouldn't be there. |
+| `list_leak_groups` | The **Leaks** screen: what this heap dump says shouldn't be there, gathered into one group per leak — each with the leak trace LeakCanary prints and the object to solve it through. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
-| `chain_from_gc_root` | One chain, every step with its labels and its verdict. |
+| `path_from_gc_root` | One path, every step with its labels and its verdict, and whether the verdicts have narrowed it to one reference. |
 | `describe_object` | What an object is: its class, fields, labels, size. |
-| `ways_held` | Every way an object is held, rather than the one chain — the *X ways from here* list. |
+| `ways_held` | Every way an object is held, rather than the one path — the *X ways from here* list. |
 | `find_objects` | The object list, by class name. |
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
 | `set_verdict`, `clear_verdict` | The pencil, with the *Why* required the same way. |
 | `read_notes`, `take_note` | The notes: where somebody has been, what they wrote, and adding to or replacing it. |
 | `show` | Opens a tab in your window and brings it to the front, and answers with the `shark://` link to it. |
-| `conclude` | The root cause, and the only way to finish. |
 | `list_devices`, `list_processes`, `dump_heap` | **Take heap dump…**: which device, which process, and the dump itself. |
 
 `open_heap_dump` and the last three are what make an agent useful when there is nothing open yet: point it at a
@@ -446,22 +444,36 @@ cannot argue with:
   session's log, and a `why` is what the next person to open this dump reads off it. A verdict that
   contradicts one already recorded is refused with the list of what it disagrees with, the same way the
   window asks you.
-* **`conclude` is refused until the heap dump agrees that one reference is at fault** — one object above it
-  recorded as `Expected`, the object below it recorded as `Stuck`, and nothing unexplained in between. Reporting
-  a root cause before that gets this back:
+* **Nothing ever asks an agent which reference is at fault.** That is the one question this surface does
+  not take an answer to, and it is why there is no "report the root cause" command: which reference a leak is
+  gets *derived* from the verdicts recorded about the objects on the path, by the same rule the window draws
+  by. So the work is deciding, object by object, whether that object's own job is done — and the last verdict
+  that narrows the stretch to one reference is what leaves the heap dump naming it.
 
-```
-Not concluded. 1 step(s) between the last EXPECTED object and the first STUCK one have no verdict, so the
-fault is at one of them and the chain doesn't say which: 0x12e9ed60 java.util.ArrayList. Until the chain names
-one reference, a root cause would be a guess about which of those steps is at fault. Read the objects in the
-unexplained stretch with describe_object, read the code that assigns the field holding each of them, and
-record what you can defend with set_verdict.
+**`leakSolved` is what finishing looks like**, and it comes back from `path_from_gc_root` and from
+`set_verdict`:
+
+```json
+{
+  "leakSolved": false,
+  "state": "NARROWED",
+  "suspectReferenceCount": 2,
+  "leakSolvingProgress": 0.67,
+  "suspectReferences": ["ExampleApplication.settings", "SettingsStore.context"],
+  "undecidedObjects": [{ "object": "0x12e9ed60", "className": "com.example.SettingsStore" }],
+  "next": "The fault is at one of those references, and what settles which is the objects between them that
+           have no verdict […]"
+}
 ```
 
-Nothing here judges the answer — no model is called and nothing is scored. It is the same rule the chain
-draws by, held to before an answer can be written down: an agent that has narrowed a chain to three
-unexplained steps cannot report a root cause, however sure it is, and what it gets instead is the three
-objects to go and read.
+Two references and one object to go and read, rather than a number of steps — one undecided object leaves the
+reference into it and the reference out of it, and its own verdict rules one of them out. Pass
+`solvingLeakOf=<the stuck object>` on a `set_verdict` and its answer says what that verdict did to the leak:
+the candidates before and after, the progress, and `leakSolved` when there is nothing left to narrow.
+
+Nothing here judges the answer — no model is called and nothing is scored. An agent that has narrowed a path
+to three unexplained steps has `leakSolved: false` and the three objects to go and read, however sure it is
+that it already knows; and when it does become true, no agent made it true.
 
 **What it did is on the *Agent logs* screen**, one row per agent that has connected to the app. Open a row
 and there is everything that agent sent, in order and in words — what each call did, which object it did it
@@ -472,17 +484,17 @@ to, and the sentence it gave for doing it:
           because: Seeing what there is to read before asking anything about it.
 08:23:11  Listed the leaks
           because: Starting from what the heap dump already says shouldn't be here.
-08:23:18  Read the chain to 0x12d368b8
+08:23:18  Read the path to 0x12d368b8
           because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is
-          true. Reading the chain from a GC root.
+          true. Reading the path from a GC root.
 08:23:27  Looked at 0x12d00c30
-          because: The FutureTask in the middle of the chain: checking whether it is really running.
+          because: The FutureTask in the middle of the path: checking whether it is really running.
 08:23:34  Looked for every way of holding 0x12d368b8
-          because: Checking whether anything else holds the activity, or only this one chain.
+          because: Checking whether anything else holds the activity, or only this one path.
 ```
 
 **A row leads where the call went**, and what leads there is the thing rather than the verb: click
-*0x12d368b8* on *Read the chain to 0x12d368b8* and the window opens that object, so reading what an agent did
+*0x12d368b8* on *Read the path to 0x12d368b8* and the window opens that object, so reading what an agent did
 and going to look at it are one move. A call that named nothing went somewhere all the same — *leaks* on
 *Listed the leaks* is the leaks screen, and *dominator tree* on *Read the dominator tree* is the tree from its
 root. The one row that leads to several places keeps them behind its fold instead: *Asked which heap dumps are
@@ -493,10 +505,10 @@ half of a session worth reading, since a refusal is where the method sent an age
 rather than on to an answer:
 
 ```
-08:23:45  Concluded about 0x12d00c30
+08:23:45  Recorded EXPECTED on 0x12d00c30
           because: […]
-          Refused: Not concluded. Nothing on this chain of 4 steps is STUCK, so it points at no
-          reference: the rules can only name one once something below it is known not to belong. […]
+          Refused: Not set: EXPECTED on 0x12d00c30 contradicts 1 verdict(s) already recorded about this
+          heap dump. Everything a stuck object holds is stuck […]
 ```
 
 **And so is every line that arrived and reached no tool.** A call naming a tool that doesn't exist, a line
@@ -525,13 +537,13 @@ read back, as the text each of them was, so a step you don't follow is one quest
 
 ```
 11:37:31  Looked at 0x12d368b8
-          because: The one App leak: a MainActivity the app watched. Reading what it is before the chain.
+          because: The one App leak: a MainActivity the app watched. Reading what it is before the path.
           ▾ {}
             sent:
               describe_object {
                   "object": "0x12d368b8",
                   "reason": "The one App leak: a MainActivity the app watched. Reading what it is
-                             before the chain."
+                             before the path."
               }
             answered:
               {
@@ -577,45 +589,58 @@ is how one agent works out where another went wrong. **And the reads each call c
 `~/.shark-dive/logs`, where the reason it gave is followed by the work it caused:
 
 ```
-18:19:48.035 [shark-dive-agents] An agent called chain_from_gc_root(heapDumpKey=leak_asynctask_o.hprof, object=0x12d368b8)
+18:19:48.035 [shark-dive-agents] An agent called path_from_gc_root(heapDumpKey=leak_asynctask_o.hprof, object=0x12d368b8)
   because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is true. Getting the
-  chain from a GC root to see every reference holding it and where the faulty one might be.
-18:19:48.038 [heap-dump-leak_asynctask_o.hprof] Reading the chain to 0x12d368b8, for an agent
-18:19:48.043 [heap-dump-leak_asynctask_o.hprof] Read the chain to 0x12d368b8, for an agent in 4 ms
+  path from a GC root to see every reference holding it and where the faulty one might be.
+18:19:48.038 [heap-dump-leak_asynctask_o.hprof] Reading the path to 0x12d368b8, for an agent
+18:19:48.043 [heap-dump-leak_asynctask_o.hprof] Read the path to 0x12d368b8, for an agent in 4 ms
 ```
 
 So an investigation is something you can follow afterwards rather than a conclusion you have to trust — which
-is the other half of the point, since the path is the part a chat window throws away.
+is the other half of the point, since the reasoning is the part a chat window throws away.
 
-**What it concluded is in the heap dump**, not only in your terminal. The verdicts are in
-`~/.shark-dive/leak-statuses` with everyone else's, and `conclude` writes a **Root cause** note on the
-stuck object and opens that tab, so the answer is in the window beside the evidence and still there next week:
+**What it worked out is in the heap dump**, not only in your terminal. The verdicts are in
+`~/.shark-dive/leak-statuses` with everyone else's, each with the evidence the agent gave for it — which is
+what solved the leak, so it is also the whole of the argument for the answer, in the window beside the object
+and still there next week:
 
-> ## Root cause
->
-> **Faulty reference:** `MainActivity$2.this$0`
->
-> […] Because it is a non-static inner class, javac gives it a synthetic `this$0` field and assigns the
-> enclosing activity to it in the constructor. That field is final and written once at construction — no code
-> in the app or the framework can ever clear it. […]
->
-> **Not checked:** I could not read the app's source. […] The "anonymous inner class" reading rests on the
-> class name `MainActivity$2`, the synthetic `this$0` field and Shark's inspector label, not on a line of
-> source.
+```
+0x12d00c30  EXPECTED  ExampleApplication is the app's own Application subclass and is held by a static
+                      field of ActivityThread, so it is meant to be in memory for the life of the process.
+0x12d368b8  STUCK     ObjectWatcher was watching this and Activity#mDestroyed is true.
+```
 
-**And the link to that note comes back with the conclusion**, because the answer usually arrives somewhere
-that isn't this app. `show` and `conclude` both answer with the `shark://` link to what they put on screen,
-and the method tells an agent to put those links in its reply — so a sentence in your chat window, a pull
-request comment or a bug report ends up carrying a way in:
+**What a note adds is the part that isn't in the heap dump**: why the field was never cleared, which the
+method sends an agent to the code for. That is `take_note` like any other note, and nothing writes one for
+an agent — a paragraph nobody asked for in the notes of an object is one the next reader has to work out
+whether to believe.
+
+**And the link to the object comes back with `show`**, because the answer usually arrives somewhere that
+isn't this app. It answers with the `shark://` link to what it put on screen, and the method tells an agent
+to put that link in its reply beside the leak trace — so a sentence in your chat window, a pull request
+comment or a bug report ends up carrying a way in:
 
 > The leak is `MainActivity$2.this$0`, a non-static inner class holding the activity it was declared in:
 > shark://leak_asynctask_o.hprof/object?id=0x12d368b8
+>
+> ```
+> ┬───
+> │ GC Root: Thread object
+> …
+> ╰→ com.example.leakcanary.MainActivity
+> ​     Leaking: YES (ObjectWatcher was watching this)
+> ```
 
 Clicking it opens that object with the reasoning on its tabs — in a window that has the heap dump while one
 is up, and by opening the file again once none is. So an answer worth keeping keeps working, and it is short
 enough to read: it names the heap dump, and where that file is, is looked up.
 
-An agent's verdicts are verdicts like any other: they say `set by hand` on every chain that runs through the
+**The leak trace beside it is the one LeakCanary prints**, and an agent is told to quote it exactly as the
+answer handed it over rather than to write one out: `list_leak_groups` and `path_from_gc_root` both carry it,
+produced by Shark itself, because a trace retold by a model that drops a step or moves the `~~~~` underline
+is indistinguishable from the real thing to whoever reads it.
+
+An agent's verdicts are verdicts like any other: they say `set by hand` on every path that runs through the
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the
 last thing this surface is for — the disagreement is about a reason you can read, not about who said it.
 
@@ -629,7 +654,7 @@ SHARK_DIVE_DIR=~/second-opinion open -a "Shark Dive" --args path/to/dump.hprof
 ```
 
 Which is a second set of notes and verdicts over the same heap dumps, kept apart from the first — for reading
-a dump again without yesterday's conclusions in front of you, or for a run whose verdicts shouldn't end up in
+a dump again without yesterday's verdicts in front of you, or for a run whose verdicts shouldn't end up in
 yours. Set it for every process that should share those files: a window started this way and each of the
 `--cli` calls made at it read the variable from their own environment, and a call from a shell that doesn't
 export it won't even find that window — where a run publishes its port is under that directory too, so it

@@ -1,15 +1,15 @@
 package shark.dive
 
 /**
- * Chains built by hand, for the tests of what a chain is cut into and drawn as.
+ * Paths built by hand, for the tests of what a path is cut into and drawn as.
  *
  * Nothing about [RootPath.stepsBelow], [detours] or [drawnWith] reads a heap dump: they work off which steps
  * dominate the object, and saying that in a list is shorter and clearer than building a dump that produces
  * it. The tests of the search that fills these in are in [HeapDiveTest].
  */
 
-/** A chain of objects by id, each of them either a dominator of the last one or only on the way to it. */
-internal fun chain(
+/** A path of objects by id, each of them either a dominator of the last one or only on the way to it. */
+internal fun path(
   vararg steps: Pair<Long, Boolean>,
   gcRootLabel: String? = A_GC_ROOT
 ): RootPath = RootPath(

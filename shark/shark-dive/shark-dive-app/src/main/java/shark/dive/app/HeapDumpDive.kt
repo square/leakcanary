@@ -99,7 +99,7 @@ import shark.dive.waysOf
  * One open heap dump, read through the tabs open on it.
  *
  * **An object is the thing this window is about**, and a tab open on one answers three questions at once,
- * left to right: what holds it, which is the chain from a GC root; what it holds, which is the dominator
+ * left to right: what holds it, which is the path from a GC root; what it holds, which is the dominator
  * tree **rooted at the object itself**; and what it is, which is the details panel. Each of the three
  * folds away and the outer two are dragged wider, because which of them the work is in changes with what
  * is being chased. See [Pane].
@@ -109,8 +109,8 @@ import shark.dive.waysOf
  * already laid out and labelled somewhere else, and a selection is a summary already read.
  *
  * **A click goes to a rectangle and the pointer asks about one.** So the window is about the object the
- * tab is on — the bar, the chain, the details panel, the star — and what the pointer is on gets a card at
- * the pointer and a few more steps on the end of the chain, which is enough to tell whether it's worth
+ * tab is on — the bar, the path, the details panel, the star — and what the pointer is on gets a card at
+ * the pointer and a few more steps on the end of the path, which is enough to tell whether it's worth
  * going there.
  *
  * Where the window is, is one [Tabs] of [Place]s, and every pane follows from it. A place is the whole of
@@ -173,7 +173,7 @@ internal fun HeapDumpDive(
   var viewportSize by remember { mutableStateOf(IntSize.Zero) }
   var view by remember { mutableStateOf(ViewState.EMPTY) }
   var isLayingOut by remember { mutableStateOf(true) }
-  /** Where the pointer last was on the view, which is what the floating chain describes while it's there. */
+  /** Where the pointer last was on the view, which is what the floating path describes while it's there. */
   var pointerCell: PointedCell? by remember { mutableStateOf(null) }
   /** And where in the view it was, which is where the card naming what it's on goes. See [PointerCard]. */
   var pointerOffset: Offset? by remember { mutableStateOf(null) }
@@ -182,11 +182,11 @@ internal fun HeapDumpDive(
   /** And what the cell under the pointer is, once it has stayed on one long enough to be read. */
   var hoveredDetails: PlaceDetails? by remember { mutableStateOf(null) }
   /**
-   * The other ways each stretch of the object's chain could have run, by
+   * The other ways each stretch of the object's path could have run, by
    * [shark.dive.RootPathDetour.fromIndex]. Empty until the searches come back.
    */
   var detourWays by remember { mutableStateOf(emptyMap<Int, List<RootPathWay>>()) }
-  /** And which of them the reader has switched that stretch of the chain to. */
+  /** And which of them the reader has switched that stretch of the path to. */
   var chosenWays by remember { mutableStateOf(emptyMap<Int, Int>()) }
   var objects by remember { mutableStateOf(ObjectList.EMPTY) }
   var isListing by remember { mutableStateOf(false) }
@@ -242,14 +242,14 @@ internal fun HeapDumpDive(
    * its write landing and the list on screen being told about it. See [HeapDumpStars.toggle].
    */
   val starring = rememberCoroutineScope()
-  /** Which objects of this heap dump have a status someone set, which is what every chain is read with. */
+  /** Which objects of this heap dump have a status someone set, which is what every path is read with. */
   val overrides = leakStatuses.overrides
   /**
    * The verdict being set in each tab, by tab id, and empty in a window where nobody is setting one.
    *
    * Per tab rather than per window, because setting a verdict is not a dialog: it is drawn inside the tab
    * it was started from, so the reader can open the reference, go and look at a verdict this one disagrees
-   * with, or read the chain, and come back to the reason half typed. Tab ids are never reused, so an entry
+   * with, or read the path, and come back to the reason half typed. Tab ids are never reused, so an entry
    * here can only ever be about the tab it was made for. See [SettingVerdict] and [LeakStatusSetter].
    */
   val settingVerdicts = remember { mutableStateMapOf<Int, SettingVerdict>() }
@@ -262,7 +262,7 @@ internal fun HeapDumpDive(
   // What the pointer being where it is leaves to read, which is nothing when it's on the place the tab is
   // already at: the panes are describing that one.
   val hoveredPlace = hovered?.place?.takeIf { it != place }
-  // And what the floating chain says, which is nothing until the cell under the pointer has been read: the
+  // And what the floating path says, which is nothing until the cell under the pointer has been read: the
   // details of the cell before it belong to a rectangle the pointer has left.
   val hoveredCellDetails = hoveredDetails?.takeIf { it.place == hoveredPlace }
   val describedSummary = (details?.selection as? Selection.Object)?.summary
@@ -270,7 +270,7 @@ internal fun HeapDumpDive(
    * Whether the object the tab is on is meant to be in memory, for the panel that says what it is and the
    * dialog that overrules it.
    *
-   * From the last step of the chain when there is one, because that is the status with everything above and
+   * From the last step of the path when there is one, because that is the status with everything above and
    * below the object taken into account, and from the object's own reading until the walk up to the GC roots
    * lands — or for good, for an object nothing reaches. So this can say `Unknown` for a beat and then say
    * `Stuck`, which is the panes filling in rather than the window changing its mind.
@@ -281,14 +281,14 @@ internal fun HeapDumpDive(
   val describedLeakStatus = describedSummary
     ?.takeIf { it.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID }
     ?.let { summary ->
-      val onChain = details?.rootPath?.steps?.lastOrNull()?.step
+      val onPath = details?.rootPath?.steps?.lastOrNull()?.step
         ?.takeIf { it.objectId == summary.objectId }
       ObjectLeakStatus(
         objectId = summary.objectId,
         objectName = summary.className.substringAfterLast('.') +
           summary.kind?.let { " ${it.typeName}" }.orEmpty(),
-        status = onChain?.leakStatus ?: summary.leakStatus,
-        reason = onChain?.leakStatusReason ?: summary.leakStatusReason,
+        status = onPath?.leakStatus ?: summary.leakStatus,
+        reason = onPath?.leakStatusReason ?: summary.leakStatusReason,
         setByHand = overrides[summary.objectId]
       )
     }
@@ -435,7 +435,7 @@ internal fun HeapDumpDive(
   // else clears the panes — and because the place is the whole of where the tab is, there is no second
   // piece of state for this to fall out of step with.
   //
-  // And on the statuses set by hand, because they are half of what a chain says: setting one is asking the
+  // And on the statuses set by hand, because they are half of what a path says: setting one is asking the
   // window to read the heap dump through it, which is this read again.
   LaunchedEffect(session, place, overrides) {
     if (place == null || place.viewRootObjectId == null) {
@@ -475,9 +475,9 @@ internal fun HeapDumpDive(
     describedBitmap = image?.let { withContext(Dispatchers.Default) { it.toImageBitmap() } }
   }
 
-  // Which stretches of the chain could have run elsewhere is a walk in memory per stretch, over an index of
+  // Which stretches of the path could have run elsewhere is a walk in memory per stretch, over an index of
   // what points at what, and each walks several times. Far too much to run as the pointer moves, so it is
-  // only ever asked for the object the tab is on, and only once the chain to it is known — the chain is what
+  // only ever asked for the object the tab is on, and only once the path to it is known — the path is what
   // says where the stretches are. See [shark.dive.detours].
   val describedRootPath = details?.rootPath
   LaunchedEffect(session, describedRootPath) {
@@ -511,7 +511,7 @@ internal fun HeapDumpDive(
   // are what the window shows before anyone asks it anything, rather than what a checkbox goes looking for.
   //
   // And again whenever a status is set by hand, because the list is read through those: marking something
-  // leaking halfway up a chain makes it a leak and takes what it was holding off the list, which is a
+  // leaking halfway up a path makes it a leak and takes what it was holding off the list, which is a
   // different list rather than a different colour on the same one. See [HeapDominatorTreemap.findLeaks].
   LaunchedEffect(session, overrides) {
     snapshotFlow { view }.first { it !== ViewState.EMPTY }
@@ -613,7 +613,7 @@ internal fun HeapDumpDive(
   }
 
   // And what has been decided about this heap dump's objects by hand, also once per run: one small file,
-  // read before anything is drawn from it, because a chain read without it would be the heap dump's own
+  // read before anything is drawn from it, because a path read without it would be the heap dump's own
   // answer where someone has already recorded another. See [HeapDumpLeakStatuses].
   LaunchedEffect(leakStatuses) { leakStatuses.read() }
 
@@ -679,7 +679,7 @@ internal fun HeapDumpDive(
   /**
    * Where every way to a place in this window ends up, which is the whole of what a click means.
    *
-   * One function for a rectangle of the map, a step of the chain, a field of the panel, a row of a list
+   * One function for a rectangle of the map, a step of the path, a field of the panel, a row of a list
    * and a button on the bar, so that they cannot drift apart — which is what "clicking an object always
    * does the same thing" has to mean to be true.
    */
@@ -864,9 +864,9 @@ internal fun HeapDumpDive(
           modifier = Modifier.fillMaxSize()
         )
         else -> Row(Modifier.fillMaxSize()) {
-          // The chain first, the map, then what the object holds: read left to right that is where the
+          // The path first, the map, then what the object holds: read left to right that is where the
           // object came from, where it is, and what it is keeping alive.
-          ChainPane(
+          PathPane(
             panes = panes,
             details = details,
             hoveredDetails = hoveredCellDetails,
@@ -1021,9 +1021,9 @@ private fun Place.selectedCell(): SelectedCell? = when (this) {
   else -> null
 }
 
-/** The chain from a GC root to the object, folded away or dragged wider. */
+/** The path from a GC root to the object, folded away or dragged wider. */
 @Composable
-private fun RowScope.ChainPane(
+private fun RowScope.PathPane(
   panes: PanesState,
   details: PlaceDetails?,
   hoveredDetails: PlaceDetails?,
@@ -1036,16 +1036,16 @@ private fun RowScope.ChainPane(
   onCopyLink: (Long) -> Unit,
   onExplain: (Topic) -> Unit
 ) {
-  if (panes.isFolded(Pane.CHAIN)) {
-    FoldedPane(Pane.CHAIN) { panes.toggleFold(Pane.CHAIN) }
+  if (panes.isFolded(Pane.PATH)) {
+    FoldedPane(Pane.PATH) { panes.toggleFold(Pane.PATH) }
     return
   }
-  Column(paneWidth(panes, Pane.CHAIN).fillMaxHeight()) {
-    PaneHeader(Pane.CHAIN) { panes.toggleFold(Pane.CHAIN) }
+  Column(paneWidth(panes, Pane.PATH).fillMaxHeight()) {
+    PaneHeader(Pane.PATH) { panes.toggleFold(Pane.PATH) }
     RootPathPanel(
       selection = details?.selection,
       rootPath = details?.rootPath,
-      // What the pointer is on, which is drawn onto the end of the chain rather than over it.
+      // What the pointer is on, which is drawn onto the end of the path rather than over it.
       hoveredSelection = hoveredDetails?.selection,
       hoveredRootPath = hoveredDetails?.rootPath,
       rootNodeId = rootNodeId,
@@ -1059,8 +1059,8 @@ private fun RowScope.ChainPane(
       modifier = Modifier.weight(1f).fillMaxWidth()
     )
   }
-  if (panes.filling != Pane.CHAIN) {
-    PaneDivider(resizeHint(Pane.CHAIN)) { delta -> panes.resize(Pane.CHAIN, delta) }
+  if (panes.filling != Pane.PATH) {
+    PaneDivider(resizeHint(Pane.PATH)) { delta -> panes.resize(Pane.PATH, delta) }
   }
 }
 
@@ -1202,7 +1202,7 @@ private fun RowScope.paneWidth(
   pane: Pane
 ): Modifier = when {
   panes.filling == pane -> Modifier.weight(1f)
-  pane == Pane.CHAIN -> Modifier.width(panes.chainWidth)
+  pane == Pane.PATH -> Modifier.width(panes.pathWidth)
   pane == Pane.DETAILS -> Modifier.width(panes.detailsWidth)
   // The view has no width of its own to fall back on: it is only ever what the other two leave.
   else -> Modifier
@@ -1212,7 +1212,7 @@ private fun RowScope.paneWidth(
  * A list of the width of the window: every object, the leaks, the starred ones.
  *
  * No pane either side, because each of these is a list and a list wants that width more than it wants a
- * chain it has nothing to put in.
+ * path it has nothing to put in.
  */
 @Composable
 private fun ListPlace(
@@ -1545,7 +1545,7 @@ private fun HistoryArrows(
  * One arrow: a click is one move, and a right click is the list of them.
  *
  * Which is the browser gesture, and it is worth having here for the browser's reason: a tab that has walked
- * twenty objects down a chain is one where getting back to where the walk started is twenty clicks and a
+ * twenty objects down a path is one where getting back to where the walk started is twenty clicks and a
  * guess about which of them it was. The list says where each one lands, by the name the tab strip uses.
  */
 @Composable
@@ -1712,7 +1712,7 @@ private fun ViewPresentation.description(): String = when (this) {
  * A cell the pointer is on: which one to outline, and where it would lead.
  *
  * The place is what makes moving the pointer off the map free — the tab's own details were never thrown
- * away, so putting the chain for it back is not a read — and it is the same value a click would go to,
+ * away, so putting the path for it back is not a read — and it is the same value a click would go to,
  * which is what stops pointing at a rectangle and clicking it describing two different things.
  */
 private data class PointedCell(
@@ -1730,7 +1730,7 @@ private data class PointedCell(
 /**
  * Everything the panes say about one place, filled in over the two reads it takes.
  *
- * What a place is comes first and the chain holding it after, because the chain is the slower of the two by
+ * What a place is comes first and the path holding it after, because the path is the slower of the two by
  * far: what a rectangle stands for should never wait on a walk up to the GC roots.
  */
 private class PlaceDetails(
@@ -1745,12 +1745,12 @@ private class PlaceDetails(
  * Reads what one place is, then how a GC root reaches it, handing each to [onDetails] as it arrives.
  *
  * Two reads rather than one so that the panes fill in progressively, and both of them here rather than in
- * an effect each so that a place is described in the order it's read: a chain and a summary of two different
+ * an effect each so that a place is described in the order it's read: a path and a summary of two different
  * objects side by side is the one way these panes can lie.
  */
 private suspend fun HeapDumpSession.describing(
   place: Place,
-  /** The statuses set by hand, which decide half of what the chain and the row above the panes say. */
+  /** The statuses set by hand, which decide half of what the path and the row above the panes say. */
   overrides: LeakStatusOverrides,
   onDetails: (PlaceDetails) -> Unit
 ) {

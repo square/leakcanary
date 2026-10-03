@@ -161,7 +161,7 @@ class AgentServerTest {
     val run = AgentServer.publishedRuns(directory).single()
     val answered = CompletableFuture<String>()
     connect(run).use { client ->
-      Thread { answered.complete(client.ask(callListLeaks())) }.start()
+      Thread { answered.complete(client.ask(callListLeakGroups())) }.start()
       assertThat(callStarted.await(A_WHILE_MILLIS, MILLISECONDS)).isTrue()
 
       val closed = CompletableFuture<Unit>()
@@ -240,8 +240,8 @@ class AgentServerTest {
     AgentSessionFile.sessionsIn(AgentServer.sessionsDirectory(directory))
 
   /** A call that reads the heap dump, which is what makes it a call there is something to wait for. */
-  private fun callListLeaks(): String =
-    """{"tool":"list_leaks","arguments":{"heapDumpKey":"${window.heapDumpName}","reason":"Reading it."}}"""
+  private fun callListLeakGroups(): String =
+    """{"tool":"list_leak_groups","arguments":{"heapDumpKey":"${window.heapDumpName}","reason":"Reading it."}}"""
 
   /** An agent's end of the connection, as far as this test needs one: a token, then a line at a time. */
   private class TestClient(

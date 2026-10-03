@@ -193,7 +193,7 @@ object AgentCommandLine {
     |heap dump it is about.
     |
     |  $command $CLI_OPTION $OPEN_HEAP_DUMP path=/tmp/crash.hprof reason="Starting on the dump I was given"
-    |  $command $CLI_OPTION list_leaks heapDumpKey=crash.hprof reason="What this dump says shouldn't be here"
+    |  $command $CLI_OPTION list_leak_groups heapDumpKey=crash.hprof reason="What this dump says shouldn't be here"
     |
     |${commandColumn()}
     |
@@ -203,8 +203,8 @@ object AgentCommandLine {
     |$SESSION_OPTION, which is every agent's. Addresses are `0x…`, exactly as this surface writes them, and
     |never decimal.
     |
-    |$SURFACE_METHOD_OPTION is how to work here, read once per session, and $LEAK_METHOD_OPTION is how to find
-    |a faulty reference, read once per investigation. Both are text this build prints with nothing open.
+    |$SURFACE_METHOD_OPTION is how to work here, read once per session, and $LEAK_METHOD_OPTION is how to solve
+    |a leak, read once per investigation. Both are text this build prints with nothing open.
     |
     |Opening a heap dump is the one command with a wait worth planning for — minutes, on a large dump, and it
     |does not answer until the dump can be read. $DUMP_HEAP is the other, since it takes one off a device
@@ -500,11 +500,11 @@ object AgentCommandLine {
   const val SURFACE_METHOD_OPTION = "--investigation-help"
 
   /**
-   * And the method for finding a faulty reference, which is the other text this build carries.
+   * And the method for solving a leak, which is the other text this build carries.
    *
-   * An option rather than a field of `list_leaks`'s answer, which is where it used to be: an investigation of
+   * An option rather than a field of `list_leak_groups`'s answer, which is where it used to be: an investigation of
    * several leaks called that once per leak and read the whole method again each time, and the method is about
-   * the chain rather than about the list. Read once per session, by the session that has a leak to work on.
+   * the path rather than about the list. Read once per session, by the session that has a leak to work on.
    * See [AgentMethod].
    *
    * The longer name of the two on purpose: [SURFACE_METHOD_OPTION] is the one every session reads and this is

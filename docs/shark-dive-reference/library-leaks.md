@@ -10,7 +10,7 @@ line is no comfort to the device it is running on.
 
 ### If it's a library
 
-File an issue with the fingerprint from this screen and the chain the window drew — that is enough for a
+File an issue with the fingerprint from this screen and the path the window drew — that is enough for a
 maintainer to find it without your heap dump. Better still, send the fix; a leak recognized here is usually
 a field that outlives what it points at, and the change is small. Then push for a release, and **update
 once it lands** — an entry that stays on this screen after the fix shipped is a dependency nobody bumped.
