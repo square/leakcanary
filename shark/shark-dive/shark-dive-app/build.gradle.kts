@@ -143,8 +143,8 @@ val macOsIconFile = project.file("icons/shark-dive-icon.icns")
 // Launching under a name the dock shows. `run` is the one to use while working; see AGENTS.md for why
 // this one is for handing a window over, and for what the dock does and doesn't take a name from.
 tasks.register<RunNamedDive>("runNamed") {
-  description = "Runs Shark Dive from an .app bundle named after --title, so the macOS dock says " +
-    "which run it is."
+  description = "Runs Shark Dive from an .app bundle named after --debug-title-prefix, so the macOS dock " +
+    "says which run it is."
   group = ApplicationPlugin.APPLICATION_GROUP
   // The JVM Gradle itself is on, which is the one `run` would use: this module configures no toolchain.
   javaExecutable.set(providers.systemProperty("java.home").map { "$it/bin/java" })
@@ -302,8 +302,8 @@ tasks.matching { it.name == "createDistributable" }.configureEach {
 }
 
 /**
- * Runs Shark Dive from a generated `.app` bundle whose file name is what `--title` calls the run,
- * which is the only thing the macOS dock will name it after.
+ * Runs Shark Dive from a generated `.app` bundle whose file name is what `--debug-title-prefix` calls the
+ * run, which is the only thing the macOS dock will name it after.
  *
  * The dock takes a process's name from the bundle it was launched from and ignores both `-Xdock:name`
  * (JDK-8173753, open since macOS 10.9) and everything a process can set about itself. It ignores
@@ -444,7 +444,7 @@ abstract class RunNamedDive : DefaultTask() {
     const val DEFAULT_NAME = "Shark Dive"
 
     /** Both spellings of the option, since the app takes both. Quoted first: a title has spaces in it. */
-    val TITLE = Regex("""--title[=\s]+(?:"([^"]*)"|(\S+))""")
+    val TITLE = Regex("""--debug-title-prefix[=\s]+(?:"([^"]*)"|(\S+))""")
 
     val PATH_CHARACTERS = Regex("[/:]")
   }

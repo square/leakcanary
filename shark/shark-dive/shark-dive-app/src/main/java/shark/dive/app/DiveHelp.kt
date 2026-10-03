@@ -73,7 +73,7 @@ internal fun helpExitCode(args: Array<String>): Int? {
 private fun help(command: String): String = """
   |Shark Dive opens heap dumps and answers commands about them, in a window or with no window at all.
   |
-  |  $command [$TITLE_OPTION="<window title prefix>"] [<heap dump>…] [${DeepLink.SCHEME}://<heap dump>/<place>…]
+  |  $command [<heap dump>…] [${DeepLink.SCHEME}://<heap dump>/<place>…]
   |  $command ${AgentCommandLine.CLI_OPTION} <command> name=value …
   |
   |${options()}
@@ -86,17 +86,27 @@ private fun help(command: String): String = """
  *
  * The window's are here and the rest come from [AgentCommandLine.cliOptions], each list beside the code that
  * reads it: an option described where it is not parsed is one that goes stale silently.
+ *
+ * **The `--debug-` ones are last, and that is the whole of what the prefix buys.** They are for working on
+ * Shark Dive rather than on a heap dump — naming windows apart, and picking between two runs of it — so a
+ * reader meets the two arguments that are a question about a heap dump first, and the commands after them,
+ * and these when there is nothing else left to read. Last in the column and absent from the two lines above
+ * it, since a synopsis is what somebody copies.
  */
 private fun options(): String = (
   listOf(
-    "$TITLE_OPTION=<prefix>" to
-      "In front of every window title of this run, so that two windows on one heap dump can be told apart.",
     "<heap dump>" to
       "Opened as this starts, a window each unless ${AgentCommandLine.NO_UI_OPTION} says to draw none.",
     "${DeepLink.SCHEME}://<heap dump>/<place>" to
       "Goes to a place of a heap dump — a leak, an object, a tab — in whichever window has it open."
-  ) + AgentCommandLine.cliOptions()
+  ) + AgentCommandLine.cliOptions() + debugOptions()
   ).asOptionColumn()
+
+/** For working on Shark Dive itself: the window's, then the command surface's. See [options]. */
+private fun debugOptions(): List<Pair<String, String>> = listOf(
+  "$TITLE_OPTION=<prefix>" to
+    "In front of every window title of this run, so that two windows on one heap dump can be told apart."
+) + AgentCommandLine.debugCliOptions()
 
 /**
  * One option per row, its description in a column beside it, wrapped rather than run on.
@@ -138,8 +148,14 @@ private fun String.wrappedAt(width: Int): List<String> {
  */
 private val HELP_OPTIONS = setOf(AgentCommandLine.HELP_OPTION, "-h")
 
-/** Wide enough for the longest option above, since the descriptions read as a column or as nothing. */
-private const val OPTION_WIDTH = 29
+/**
+ * Wide enough for the longest option above, since the descriptions read as a column or as nothing.
+ *
+ * Which is `--debug-title-prefix=<prefix>` at 29, so this is that and a gap. `CliOptionsTest` fails on an
+ * option that outgrows it, rather than leaving a help text whose longest row has its description jammed
+ * against it.
+ */
+private const val OPTION_WIDTH = 31
 
 private const val INDENT = "  "
 

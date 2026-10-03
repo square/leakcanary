@@ -22,7 +22,7 @@ class CliOptionsTest {
 
   @Test
   fun `an ordinary command line is a window`() {
-    val args = arrayOf("--title=Windowed", "dump.hprof")
+    val args = arrayOf("--debug-title-prefix=Windowed", "dump.hprof")
 
     assertThat(helpExitCode(args)).isNull()
     assertThat(cliExitCode(args)).isNull()
@@ -43,7 +43,7 @@ class CliOptionsTest {
       // `Unknown option --help` and a usage line naming the window's options alone, which answers that there
       // is no command surface here. See [help].
       assertThat(printed.toString(Charsets.UTF_8.name())).describedAs(option)
-        .contains("--title")
+        .contains(TITLE_OPTION)
         .contains("shark://")
         .contains(AgentCommandLine.CLI_OPTION)
         .contains(AgentCommandLine.HELP_OPTION)
@@ -54,6 +54,21 @@ class CliOptionsTest {
         .contains(AgentCommandLine.LEAK_METHOD_OPTION)
         // And where to start, since somebody reading this has a heap dump and nothing open.
         .contains(OPEN_HEAP_DUMP)
+    }
+  }
+
+  @Test
+  fun `every option has its description in the column beside it`() {
+    val printed = ByteArrayOutputStream()
+
+    onItsOwnStreams(printed) { helpExitCode(arrayOf("--help")) }
+
+    // The option column is padded to a fixed width, so an option added that is longer than it has its
+    // description printed hard against it and the whole text stops reading as a column. Which is a help text
+    // nobody notices is broken until they are reading it to find out what this program takes.
+    val text = printed.toString(Charsets.UTF_8.name())
+    EVERY_OPTION.forEach { option ->
+      assertThat(text).describedAs(option).contains("$option  ")
     }
   }
 
@@ -132,7 +147,9 @@ class CliOptionsTest {
 
   @Test
   fun `no window is no part of what a run is opened with`() {
-    val arguments = windowArguments(arrayOf(AgentCommandLine.NO_UI_OPTION, "--title=Over ssh", "dump.hprof"))
+    val arguments = windowArguments(
+      arrayOf(AgentCommandLine.NO_UI_OPTION, "$TITLE_OPTION=Over ssh", "dump.hprof")
+    )
 
     // The one thing that has to hold for a run with no window to be a run of this app: what is left is an
     // ordinary command line. A heap dump called `--no-ui` is what getting this wrong looks like.
@@ -161,7 +178,7 @@ class CliOptionsTest {
         "reason=Reading the holder's fields.",
         "${AgentCommandLine.SESSION_OPTION}cli99",
         "${AgentCommandLine.RUN_OPTION}12345",
-        "--title=For an agent",
+        "--debug-title-prefix=For an agent",
         "dump.hprof"
       ),
       commandName = "describe_object"
@@ -246,6 +263,20 @@ class CliOptionsTest {
   companion object {
     /** Spelled here rather than read off the app, so that dropping one of the two fails this test. */
     private val HELP_SPELLINGS = listOf("--help", "-h")
+
+    /**
+     * Every row of the option column, as the help prints it: the window's spelled here and the command
+     * surface's taken from the lists it generates them from.
+     *
+     * The window's are spelled rather than read for the reason [HELP_SPELLINGS] is — an option that stops
+     * being printed should fail a test rather than take a row of the column with it — and the rest are not,
+     * because there are seven of them and they are somebody else's module's to add to.
+     */
+    private val EVERY_OPTION = listOf(
+      "<heap dump>",
+      "shark://<heap dump>/<place>",
+      "$TITLE_OPTION=<prefix>"
+    ) + (AgentCommandLine.cliOptions() + AgentCommandLine.debugCliOptions()).map { it.first }
 
     /**
      * The command everything else needs first, spelled out because its declaration is internal to

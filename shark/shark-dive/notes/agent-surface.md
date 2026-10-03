@@ -62,9 +62,9 @@ thing, and it isn't speed: **a connection can no longer be what gathers an inves
 defaulting to `cli<the shell's pid>`, so a conversation's calls are one row of the *Agent logs* screen.
 
 **Measured, and it holds across runs as well as across processes**: five calls typed as five separate
-commands, two of them answered by a different run of the app — `--run=` aimed one at the second — are **one
-session file with five rows and a header**, because the sessions directory belongs to `SHARK_DIVE_DIR` rather
-than to a run. So an investigation that outlived the run it started in still reads as one thing.
+commands, two of them answered by a different run of the app — `--debug-run=` aimed one at the second — are
+**one session file with five rows and a header**, because the sessions directory belongs to `SHARK_DIVE_DIR`
+rather than to a run. So an investigation that outlived the run it started in still reads as one thing.
 
 **What a call does queue behind is the window.** Reads are confined to the heap dump's own thread so that an
 agent sees what the window shows, which means a call costs whatever that window is already doing — and on a
@@ -107,13 +107,13 @@ So there are three filters, in this order, and then either one run or a message:
   that makes a machine in the middle of a branch usable: the window still running last week's build refuses a
   command this build renamed, and it refuses it as *there is no command called that* rather than as *that
   window is a different build*. Which is the normal state of this machine while the surface is being worked on.
-  A run named by `--run=<pid>` that is a different build gets that sentence explicitly, since a pid somebody
-  typed deserves better than reading as no run at all.
+  A run named by `--debug-run=<pid>` that is a different build gets that sentence explicitly, since a pid
+  somebody typed deserves better than reading as no run at all.
 - **Then: one, none, or too many.** One is the call. None is either a run being started — see below — or a
   message saying so, with the `open_heap_dump` command line to type and the directory runs publish themselves
-  in. Too many is an error naming each of them by pid and by whether it draws windows, and `--run=<pid>` is how
-  to mean one. Measured: `2 Shark Dive runs are open, so which heap dumps there are to read depends on which of
-  them you meant. Pass --run=<pid> to say: 43049 (with no window), 42481 (with no window).`
+  in. Too many is an error naming each of them by pid and by whether it draws windows, and `--debug-run=<pid>`
+  is how to mean one. Measured: `2 Shark Dive runs are open, so which heap dumps there are to read depends on
+  which of them you meant. Pass --debug-run=<pid> to say: 43049 (with no window), 42481 (with no window).`
 
 **A reader deletes the file of a run that has ended, and of nothing else** — which is the correction the first
 filter needed, and it cost a run to find. A `--no-ui` run logged itself as published, the command line that had
@@ -132,9 +132,13 @@ after: five `--no-ui` opens in a row, every one of them answered, at 1.6 to 2.6 
 against `~/.shark-dive` cleared out the four files of runs that had ended and left the one file a live run of an
 older build had published with two properties in it.
 
-**`--run=` and not `--agent-run=`.** The option names a run of Shark Dive, and this surface is designed for
-agents and typed by people — an option named after one of its two readers is an option the other one is
-entitled to think is not meant for them.
+**`--debug-run=` and not `--agent-run=`.** The option names a run of Shark Dive, and this surface is designed
+for agents and typed by people — an option named after one of its two readers is an option the other one is
+entitled to think is not meant for them. `--debug-` names *when* it applies instead, and that is checkable:
+two runs at once is a run from source beside the installed one, or two builds being compared, since the OS
+hands every heap dump a person opens to the one installed app and a run is many windows. So it is a real
+answer to the two-runs refusal and still the wrong thing to meet first, which is why it and
+`--debug-title-prefix` are the last two rows of `--help` rather than being mixed in with the surface.
 
 **Four commands start a run**, which is `STARTS_A_RUN` in
 `shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt:577`: `open_heap_dump`,
@@ -345,10 +349,10 @@ keeps a trace out of the notes and logs of whoever is running it — see `sharkD
 
 The relay is worth describing, because **the two-runs rule is what makes one possible**. It reads the real
 run's file, listens on a port of its own, and writes a second `.agent` file naming that port with the same
-token, the same `buildSha` and the same `window=` — so it publishes itself as a run of this build. That makes
-two, which every command then refuses until one is named, and `--run=<the relay's pid>` is how the trace was
-aimed through it. The file has to be called `<a live pid>.agent`, since `AgentServer.isRunning` deletes one
-named after a process that has gone.
+token, the same `buildSha` and the same `window=` — so it publishes itself as a run of this build. That
+makes two, which every command then refuses until one is named, and `--debug-run=<the relay's pid>` is how
+the trace was aimed through it. The file has to be called `<a live pid>.agent`, since
+`AgentServer.isRunning` deletes one named after a process that has gone.
 
 ### The pieces, and what each one is handed
 
@@ -407,7 +411,7 @@ says which dump it is about — `heapDumpKey`, beside the `heapDumpPath` it was 
 it and there was: a `window` field of a short id per open dump, which the CLI then had no use for — a command
 line is about heap dump files, and one file is at most one open per run, so the identifier the answers are
 written in is the one an agent already has in front of it. Two readings of one dump being compared is two runs,
-and `--run=` is how to say which.
+and `--debug-run=` is how to say which.
 
 And **`#2` is what two files of one name cost.** `crash.hprof` pulled off two devices
 is two dumps a plain name cannot tell apart, and the name resolving to whichever was opened first is a call meant
@@ -559,7 +563,7 @@ which is a separate decision about writing outside the bundle.
 exists is outside the build — a skill somebody staged, a line in a README, a person pasting a command — and
 the one thing true of all of them is that a program an agent has only been handed the path to gets `--help`
 typed at it, and `-h` next. Neither was an option here. Both fell through to `DiveArguments.parse`, which
-answered `Unknown option --help` and a usage line naming `--title` and the heap dumps and no agent option at
+answered `Unknown option --help` and a usage line naming the window's own options and no agent option at
 all, *after* `installLogging()` had printed the JVM, the heap limit and the log path over it — and exited 0.
 So the single most likely command an agent can type answered that this surface does not exist, successfully.
 `DiveHelp.kt` is both spellings, answered before any logging, naming the window's half of the command line and

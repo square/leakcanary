@@ -338,6 +338,6 @@ class DeepLinkTest {
   fun `a link tells itself apart from a heap dump path`() {
     assertThat(DeepLink.looksLikeOne("shark://leak.hprof/starred")).isTrue()
     assertThat(DeepLink.looksLikeOne("/Users/me/dumps/shark.hprof")).isFalse()
-    assertThat(DeepLink.looksLikeOne("--title=Reading a leak")).isFalse()
+    assertThat(DeepLink.looksLikeOne("--debug-title-prefix=Reading a leak")).isFalse()
   }
 }

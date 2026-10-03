@@ -40,7 +40,7 @@ import shark.dive.ReachabilityStrength.WEAK
  * be opened on the same heap dump these assertions ran against:
  *
  * ```
- * ./gradlew :shark:shark-dive:shark-dive-app:runNamed --args="--title=\"Reference strengths\" \
+ * ./gradlew :shark:shark-dive:shark-dive-app:runNamed --args="--debug-title-prefix=\"Reference strengths\" \
  *   shark/shark-dive/shark-dive-core/build/heap-dumps/jvm-reference-strengths.hprof"
  * ```
  *

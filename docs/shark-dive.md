@@ -299,9 +299,9 @@ alone would leave the second one unnameable.
 
 A call goes to the run that has the dump open, over a loopback socket every run of the app publishes, so
 there is no port to configure either. **Two runs open is an error rather than a guess**: the call names them
-and asks for `--run=<pid>`, since which heap dumps there are to read would otherwise depend on what else is on
-the machine. And a call only reaches a run built from the same commit as the launcher that made it, so a window
-left over from another checkout is never a command that has quietly changed meaning.
+and asks for `--debug-run=<pid>`, since which heap dumps there are to read would otherwise depend on what
+else is on the machine. And a call only reaches a run built from the same commit as the launcher that made
+it, so a window left over from another checkout is never a command that has quietly changed meaning.
 
 It exits 0 with the answer as JSON on stdout, **2 when the call was refused**, with the refusal on stderr
 where a script can read it, and 1 when there was nothing to answer it. Which matters more than it sounds: a

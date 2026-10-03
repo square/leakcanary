@@ -831,7 +831,7 @@ internal class AgentTools(
    * **The file is the whole of how one is named**, by the key it is open under or by the path it was given as.
    * Which is unambiguous because a run opens a file once: [openHeapDump] on a dump this run already has open
    * joins that open rather than making a second, so there is never a second reading of one file here to tell
-   * apart. Two readings being compared is two runs, and a command line says which with `--run=`.
+   * apart. Two readings being compared is two runs, and a command line says which with `--debug-run=`.
    *
    * Both spellings, because both are things an agent has in front of it: somebody says "investigate
    * /tmp/crash-4821.hprof", and a surface that takes only the last part of that is one that makes an agent

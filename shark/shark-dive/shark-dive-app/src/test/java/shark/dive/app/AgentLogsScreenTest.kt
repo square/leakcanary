@@ -231,6 +231,9 @@ class AgentLogsScreenTest {
 
       waitUntilAtLeastOneExists(hasText(REFUSAL, substring = true), OPEN_TIMEOUT_MILLIS)
       waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      // Waited for rather than asserted on the frame the verb arrives in: naming the object is a read of
+      // the heap dump that finishes after the row is drawn — see [HeapDumpDive]'s agent place titles.
+      waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
       // Refused, and still leading to the object it was refused about: the refusals are the half of a
       // session worth reading afterwards.
       onNodeWithText(activityName()).assertHasClickAction()
@@ -245,6 +248,7 @@ class AgentLogsScreenTest {
       // The row anybody scrolling a session is looking for: what the agent asked, and what it came to, on
       // one line — so that finding the answer isn't reading every reason down the screen.
       waitUntilAtLeastOneExists(hasText(CONCLUDED_ABOUT), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(activityName()), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(activityName()).assertIsDisplayed()
       onNodeWithText("→ $FAULTY_REFERENCE").assertIsDisplayed()
     }

@@ -26,8 +26,8 @@ class DiveArgumentsTest {
   @Test fun `a title can be given with an equals sign or as the next argument`() {
     // Two spellings because a title has spaces in it, and a shell, Gradle's `--args` and a run
     // configuration don't all pass those through the same way.
-    val joined = DiveArguments.parse(listOf("--title=$TITLE", FIRST_PATH))
-    val separate = DiveArguments.parse(listOf("--title", TITLE, FIRST_PATH))
+    val joined = DiveArguments.parse(listOf("--debug-title-prefix=$TITLE", FIRST_PATH))
+    val separate = DiveArguments.parse(listOf("--debug-title-prefix", TITLE, FIRST_PATH))
 
     assertThat(joined).isEqualTo(separate)
     assertThat(joined.titlePrefix).isEqualTo(TITLE)
@@ -35,7 +35,7 @@ class DiveArgumentsTest {
   }
 
   @Test fun `a title given after the heap dump still names the windows`() {
-    val arguments = DiveArguments.parse(listOf(FIRST_PATH, "--title=$TITLE"))
+    val arguments = DiveArguments.parse(listOf(FIRST_PATH, "--debug-title-prefix=$TITLE"))
 
     assertThat(arguments.titlePrefix).isEqualTo(TITLE)
   }
@@ -43,12 +43,12 @@ class DiveArgumentsTest {
   @Test fun `a title with nothing after it says what to type instead`() {
     // Both ways of leaving it out, since a shell that swallows an empty argument produces the first and a
     // hand written command line the second.
-    assertThatThrownBy { DiveArguments.parse(listOf("--title")) }
+    assertThatThrownBy { DiveArguments.parse(listOf("--debug-title-prefix")) }
       .isInstanceOf(IllegalArgumentException::class.java)
-      .hasMessageContaining("--title=")
-    assertThatThrownBy { DiveArguments.parse(listOf("--title=")) }
+      .hasMessageContaining("--debug-title-prefix=")
+    assertThatThrownBy { DiveArguments.parse(listOf("--debug-title-prefix=")) }
       .isInstanceOf(IllegalArgumentException::class.java)
-      .hasMessageContaining("--title=")
+      .hasMessageContaining("--debug-title-prefix=")
   }
 
   @Test fun `an option nobody knows is not a heap dump`() {
@@ -69,7 +69,7 @@ class DiveArgumentsTest {
   }
 
   @Test fun `heap dumps and links can be asked for together`() {
-    val arguments = DiveArguments.parse(listOf("--title=$TITLE", FIRST_PATH, LINK))
+    val arguments = DiveArguments.parse(listOf("--debug-title-prefix=$TITLE", FIRST_PATH, LINK))
 
     assertThat(arguments.heapDumpFiles).containsExactly(File(FIRST_PATH))
     assertThat(arguments.deepLinks).containsExactly(DeepLink("abcd2345", Place.Starred))

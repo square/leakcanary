@@ -230,7 +230,6 @@ object AgentCommandLine {
   fun cliOptions(): List<Pair<String, String>> = listOf(
     "$CLI_OPTION <command> name=value" to
       "Makes one call and prints the answer as JSON. Required on every command.",
-    "$RUN_OPTION<pid>" to "Which run to talk to, for a machine with more than one open.",
     "$SESSION_OPTION<name>" to
       "Which session these commands are one of, letters and digits. An agent passes something naming its " +
       "own session, so that a reviewer reading its logs can find the investigation beside them. Every " +
@@ -243,6 +242,19 @@ object AgentCommandLine {
       "once per session.",
     LEAK_METHOD_OPTION to
       "How to investigate leaks of objects that reached their lifecycle end. Read it once per investigation."
+  )
+
+  /**
+   * The options for working on Shark Dive itself, which go under the rest wherever they are laid out.
+   *
+   * **Two runs at once is what changing this app looks like, and not what using it looks like.** A person
+   * reading heap dumps has one run with a window per dump, since the OS hands every dump to the one installed
+   * app; two *processes* is a run from source beside the installed one, or two builds being compared. So
+   * [RUN_OPTION] is a real answer to the two-runs refusal and still the wrong thing to meet first, which is
+   * what the `--debug-` prefix and this list are between them saying.
+   */
+  fun debugCliOptions(): List<Pair<String, String>> = listOf(
+    "$RUN_OPTION<pid>" to "Which run to talk to, for a machine with more than one open."
   )
 
   /** How to work on this surface at all, which is text this build carries rather than an answer. */
@@ -512,8 +524,16 @@ object AgentCommandLine {
    */
   const val SESSION_OPTION = "--session="
 
-  /** Which run to talk to, for a machine with several open. See [runToTalkTo]. */
-  const val RUN_OPTION = "--run="
+  /**
+   * Which run to talk to, for a machine with several open. See [runToTalkTo] and [debugCliOptions].
+   *
+   * **`--debug-` rather than `--agent-run`**, which is the other prefix this was nearly given and the wrong
+   * one: this surface is designed for agents and typed by people, so an option named after one of its two
+   * readers is an option the other is entitled to think is not for them. What the prefix says instead is
+   * *when* it applies — a machine running two copies of Shark Dive at once, which is somebody working on
+   * Shark Dive.
+   */
+  const val RUN_OPTION = "--debug-run="
 
   /**
    * Answer commands and open no window, for a machine that has no screen to open one on.

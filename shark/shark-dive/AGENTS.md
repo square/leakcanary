@@ -337,7 +337,7 @@ cp -R "shark/shark-dive/shark-dive-app/build/compose/binaries/main/app/Shark Div
   ~/Applications/
 /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
   -f ~/Applications/"Shark Dive.app"
-open -a ~/Applications/"Shark Dive.app" --args --title="Links" path/to/dump.hprof
+open -a ~/Applications/"Shark Dive.app" --args --debug-title-prefix="Links" path/to/dump.hprof
 open "shark://dump.hprof/leaks"
 ```
 
@@ -464,9 +464,9 @@ an agent can read says the icon is right, and only a picture of the dock says ot
 ## What macOS calls the run, as against what it calls a window
 
 A run is one process and many windows, so the OS gets one name for all of them, and `main` sets it from
-`--title` before the first window: `apple.awt.application.name`. That reaches the menu bar next to the
-Apple logo, the app switcher, and every name macOS reports through an API. **It does not reach the
-dock** — nothing a process can do reaches the dock, see the next section. Three things about that line
+`--debug-title-prefix` before the first window: `apple.awt.application.name`. That reaches the menu bar
+next to the Apple logo, the app switcher, and every name macOS reports through an API. **It does not reach
+the dock** — nothing a process can do reaches the dock, see the next section. Three things about that line
 aren't visible from it.
 
 **It is read once, as AWT starts**, and the process registers with macOS under whatever it said then.
@@ -480,10 +480,10 @@ time. So the run task passes no name and an IDE run configuration needs none eit
 `java.awt.Taskbar` is no help — its API is icon, badge, menu and progress, and no name.
 
 **A packaged app ignores the property and keeps its bundle's name.** The `.app` launched with
-`--title="Packaged with a title"` logs that title and is still called whatever `packageName` made the
-bundle, because jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is `/…/bin/java`,
-bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it until
-something names it.
+`--debug-title-prefix="Packaged with a title"` logs that title and is still called whatever `packageName`
+made the bundle, because jpackage gives it a real bundle. A run from Gradle has no bundle of its own — it is
+`/…/bin/java`, bundle id `net.java.openjdk.java` — which is why it is called after whatever launched it
+until something names it.
 
 **And a bundle has three names, from three different places**, which is why one of them being right is no
 evidence about the others. Measured on a copy of the packaged app renamed and re-plisted a key at a time:
@@ -512,11 +512,11 @@ What the dock reads is the file name of the bundle a process was launched from. 
 two bundles carrying the same `CFBundleName` and differing only in file name are two differently named
 tiles.
 
-`runNamed` is `run` with a bundle around it, generated per launch and named after `--title`:
+`runNamed` is `run` with a bundle around it, generated per launch and named after `--debug-title-prefix`:
 
 ```bash
 ./gradlew :shark:shark-dive:shark-dive-app:runNamed \
-  --args="--title=\"Hover previews\" shark/shark-android/src/test/resources/compose_leak.hprof"
+  --args="--debug-title-prefix=\"Hover previews\" shark/shark-android/src/test/resources/compose_leak.hprof"
 ```
 
 - **It is a launcher script and an `Info.plist` around the classes `run` would have run**, not a
@@ -596,7 +596,7 @@ Put the cursor back where it was afterwards, since it is someone's cursor.
 # Launch it. Paths are optional; without one, use the "Open heap dump…" button. One window per path,
 # and one per heap dump opened from the button — see `notes/decisions.md`.
 ./gradlew :shark:shark-dive:shark-dive-app:run \
-  --args="--title=\"Hover previews\" shark/shark-android/src/test/resources/compose_leak.hprof"
+  --args="--debug-title-prefix=\"Hover previews\" shark/shark-android/src/test/resources/compose_leak.hprof"
 ```
 
 The repo has real Android heap dumps to try it on: `shark/shark-android/src/test/resources/*.hprof`
@@ -604,10 +604,12 @@ and `leakcanary/leakcanary-android-instrumentation/src/androidTest/assets/large-
 the biggest one). All of them are from API 25 or earlier, so every bitmap in them carries its pixels —
 anything about a modern dump has to be tried on one taken off a device. See `notes/bitmaps.md`.
 
-**Always pass `--title`, and name the run after the piece of work it is for.** Several Shark Dive windows end up
-open at once — one per task, often on the same heap dump — and a name is all the OS gives you to tell
-them apart. `--title` goes in front of the heap dump name in every window of that run, including windows
-opened from it later, so that two identical `large-dump.hprof` windows never end up on screen.
+**Always pass `--debug-title-prefix`, and name the run after the piece of work it is for.** Several Shark
+Dive windows end up open at once — one per task, often on the same heap dump — and a name is all the OS
+gives you to tell them apart. It goes in front of the heap dump name in every window of that run, including
+windows opened from it later, so that two identical `large-dump.hprof` windows never end up on screen.
+**The `--debug-` is addressed to you**: this option is for a machine with several Shark Dives on it, which
+is a machine somebody is changing Shark Dive on, and it is last in `--help` for the same reason.
 `DiveArguments` is the whole command line, and it is strict: an unknown option is a message saying
 what to type, not a heap dump that can't be found.
 
