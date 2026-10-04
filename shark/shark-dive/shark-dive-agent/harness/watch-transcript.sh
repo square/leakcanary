@@ -34,14 +34,26 @@
 #
 # **The reasoning text is not there, and no option here brings it back.** A thinking block is recorded with its
 # signature and an empty `thinking`, so what a transcript shows is *where* the agent thought and not what it
-# thought. Measured three ways on a `--print` run, all empty: the transcript file, `--output-format
-# stream-json`, and the `thinking_delta` events under `--include-partial-messages` — two of them arrived
-# carrying zero characters, so the text is not being withheld by the file, it never arrives. Interactive
-# sessions on this machine do have it (5114 blocks with text across the recent archive, against 55 without),
-# which is why the file looks like it ought to carry it. So **a run started with `--print` is followable for
-# every call it made and not for the reasoning between them**, and the `· thought` lines below are that gap
-# rather than a bug in this script. What is worth reading instead is the `reason` on each `--cli` call, which
-# the surface requires for exactly this purpose — see `AgentTools.kt`.
+# thought. That is the API's `thinking.display: "omitted"` — empty blocks carrying only the encrypted
+# signature — as against the `"summarized"` that a session which is not `--print` gets. Measured three ways on
+# a `--print` run, all empty: the transcript file, `--output-format stream-json`, and the `thinking_delta`
+# events under `--include-partial-messages`, which arrive carrying zero characters. So the text is not being
+# dropped by the file, it never arrives.
+#
+# **It is the `--print`, not the model, and proving that takes pinning one.** `--model opus` resolves to
+# `claude-opus-5-5`, so a test that passes the alias measures the alias: pin `claude-opus-5` and a `--print`
+# run still records 0 characters, while that same model in a session that is not `--print` recorded 47 blocks
+# out of 47 with text on this machine, median 699 characters, on the same client version and the same
+# `entrypoint`. `--effort max` and `MAX_THINKING_TOKENS` change nothing either — both measured, both empty.
+#
+# **And where it is populated it is a summary, not the reasoning.** Claude 4 and later return summarised
+# thinking written by a different model; the full reasoning is what the signature carries, and it is not
+# readable here. So a transcript is never the audit log of how an agent thought, only ever an account of it.
+#
+# All of which makes the `· thought` lines below a gap in what is recorded rather than a bug in this script.
+# What is worth reading instead is the `reason` on each `--cli` call, which the surface requires for exactly
+# this purpose — see `AgentTools.kt`. Upstream treats the empty blocks as a bug and it has moved with client
+# version before (anthropics/claude-code#80649 and #32810), so this is worth re-measuring rather than assumed.
 
 set -euo pipefail
 

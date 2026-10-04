@@ -471,9 +471,11 @@ reported an investigation leaves that log empty while its answer reads like a su
 launched the bundle with `open -a`, made no `--cli` call at all, and described the leak types it would have
 found. `watch-transcript.sh` is the reader, live or after the fact, and it is pointed at a run rather than
 left to find one because harness directories accumulate and two runs at once is normal. **The reasoning text
-is the one thing it hasn't got**: a `--print` run records thinking blocks with their signature and no text,
-which that script's header measures three ways so that nobody spends an afternoon looking for the option. What
-stands in for it is the `reason` every `--cli` call carries, which is what the refusals require it for.
+is the one thing it hasn't got**: a `--print` run records thinking blocks with their signature and no text —
+the API's `display: "omitted"` — and that is the `--print` rather than the model, which takes pinning one to
+show, since `--model opus` resolves to `claude-opus-5-5`. That script's header has it measured, along with
+the two settings that don't help and the reason a populated block is still only a summary. What stands in for
+it is the `reason` every `--cli` call carries, which is what the refusals require it for.
 
 **And `harness/eval` is the measured half of the same idea.** The harness shows how one investigation goes;
 the eval runs an agent against a dump whose faulty reference is already known and scores whether it found it,
