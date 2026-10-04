@@ -525,6 +525,27 @@ first reference of the suspect stretch, `Holder.activity`, by the class declarin
 is a string that is also on the path drawn for it, where the leak fingerprint uses the class of the object.
 Which is why the name is no substitute for the leak fingerprint and both are on the row.
 
+**The same `LeakTrace` is also what a person ends up reading**, through `RootPath.leakTrace()` and an agent
+quoting it, so `LeakFingerprint.kt` fills every field of it and not only the ones a hash reads. A trace
+missing a line is not read as a tool that renders less — it is read as a heap dump that says less, and what
+somebody does with it is go looking for the fact in a report that has it. Measured against `shark-cli
+analyze` on `shark/shark-android/src/test/resources/leak_asynctask_o.hprof`, which is the comparison to
+repeat after touching that file: identical fingerprint, identical steps and underlines, identical inspector
+labels, identical statuses and reasons. Three things about getting there.
+
+- **`Library leak match: <pattern>` goes on the referrer, not on the reference it is about.** Shark Dive
+  keeps the pattern on `PathReference.libraryLeak`, where the window draws it beside the reference, and a
+  leak trace says it as a label on the object the reference comes *out* of — `inspectObjects` puts it on the
+  reporter before running a single inspector, which is also why it sorts before the inspectors' own labels.
+- **The retained size is credited to the last object alone**, as an analysis credits it, and the number is
+  the exact one: `shark.HeapDominatorTree` against the `ApproximateDominatorTree` under a LeakCanary report,
+  210,978 bytes in 984 objects here against its 211.0 kB in 986. Same line in the same place, agreeing to
+  within the approximation rather than to the byte — so `LeakFingerprintTest` blanks the two numbers and
+  asserts everything else character for character.
+- **`Also retains leaking object …` has no equivalent here and is not meant to.** Those labels name the
+  other leaks an analysis found under this one. Shark Dive drops those from the list instead of labelling
+  what holds them — `foldedIntoWhatHoldsThem`, above — and the map is where it says what a leak is holding.
+
 **The row is named after both ends of that stretch**, in one line: `MortarScope.tearDowns → … →
 QueueService.f$0`, and just `Holder.activity` when the two ends are the same reference, which is most
 leaks. The first end is the reference that shouldn't be holding — **which is what LeakCanary calls a leak**,

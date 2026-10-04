@@ -266,14 +266,20 @@ the first, where it answered 14,477 as a second call, 16,312 as a first and 8,43
 55% cut on the call an investigation makes most, and it is the method that left rather than any of the leaks.
 `open_heap_dump` is the other half of the same cut: **1,976 characters** where it was 3,802.
 
-**Re-measured on 2026-10-03, and the leaks answer has grown to 10,920 characters** — still the same on a
-second call and in a second session, and `open_heap_dump` is 2,016. What that 68% rise bought is the thing
-the answer is read for: `leakTrace` on each group, the trace LeakCanary prints, which is **4,035 of those
+**Re-measured on 2026-10-04, and the leaks answer has grown to 11,040 characters** — still the same on a
+second call and in a second session, and `open_heap_dump` is 2,016. What that 70% rise bought is the thing
+the answer is read for: `leakTrace` on each group, the trace LeakCanary prints, which is **4,152 of those
 characters over three groups** and is what an agent hands a person instead of a trace it retold. The
 `representativeObject` beside it is 30 characters for all three. So the shape of the cut held — the method
 left the answer and has not come back — and what is in there now is leak traces rather than instructions.
-Measured through the packaged launcher against a `--no-ui` run on a `SHARK_DIVE_DIR` of its own, characters
-rather than bytes: the box-drawing of a leak trace is three bytes a glyph, so `wc -c` reads 11,290.
+Measured against a `--no-ui` run on a `SHARK_DIVE_DIR` of its own, characters rather than bytes: the
+box-drawing of a leak trace is three bytes a glyph, so `wc -c` reads 11,416.
+
+**120 of those characters are the `Retaining … in … objects` line**, one per group, added the same day so
+that the trace carries every line a LeakCanary report does — `notes/decisions.md` has what the two still
+differ on. Worth knowing which way that trade goes: the whole of what a leak trace is worth paying for is
+that it is the artefact somebody can hold beside a report they already have, so a line of it is the last
+thing on this surface to cut for size.
 
 **An investigation that never asks for either text never reads it**, and that is the intended consequence rather
 than a hole to patch — the same consequence as before, moved one call further out. What holds the leak half is
