@@ -1,8 +1,8 @@
 package shark
 
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.internal.createSHA1Hash
@@ -38,7 +38,7 @@ data class LeakTrace(
   val retainedHeapByteSize: Int?
     get() {
       val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
-      return allObjects.filter { it.leakingStatus == LEAKING }
+      return allObjects.filter { it.verdict == STUCK }
         .mapNotNull { it.retainedHeapByteSize }
         // Only [leakingObject], the last object of the trace, is given a retained size, so there's
         // at most one value to pick from here.
@@ -52,7 +52,7 @@ data class LeakTrace(
   val retainedObjectCount: Int?
     get() {
       val allObjects = listOf(leakingObject) + referencePath.map { it.originObject }
-      return allObjects.filter { it.leakingStatus == LEAKING }
+      return allObjects.filter { it.verdict == STUCK }
         .mapNotNull { it.retainedObjectCount }
         // Only [leakingObject], the last object of the trace, is given a retained size, so there's
         // at most one value to pick from here, and none when retained sizes weren't computed.
@@ -61,7 +61,8 @@ data class LeakTrace(
 
   /**
    * A part of [referencePath] that contains the references suspected to cause the leak.
-   * Starts at the last non leaking object and ends before the first leaking object.
+   * Starts at the last [LeakTraceObject.Verdict.EXPECTED] object and ends before the first
+   * [LeakTraceObject.Verdict.STUCK] one.
    */
   val suspectReferenceSubpath
     get() = referencePath.asSequence()
@@ -89,23 +90,24 @@ data class LeakTrace(
   /**
    * Returns true if the [referencePath] element at the provided [index] contains a reference
    * that is suspected to cause the leak, ie if [index] is greater than or equal to the index
-   * of the [LeakTraceReference] of the last non leaking object and strictly lower than the index
-   * of the [LeakTraceReference] of the first leaking object.
+   * of the [LeakTraceReference] of the last [LeakTraceObject.Verdict.EXPECTED] object and strictly
+   * lower than the index of the [LeakTraceReference] of the first [LeakTraceObject.Verdict.STUCK]
+   * one.
    */
   fun referencePathElementIsSuspect(index: Int): Boolean {
-    return when (referencePath[index].originObject.leakingStatus) {
+    return when (referencePath[index].originObject.verdict) {
       UNKNOWN -> true
-      NOT_LEAKING -> index == referencePath.lastIndex ||
-        referencePath[index + 1].originObject.leakingStatus != NOT_LEAKING
+      EXPECTED -> index == referencePath.lastIndex ||
+        referencePath[index + 1].originObject.verdict != EXPECTED
       else -> false
     }
   }
 
-  override fun toString(): String = leakTraceAsString(showLeakingStatus = true)
+  override fun toString(): String = leakTraceAsString(showVerdict = true)
 
-  fun toSimplePathString(): String = leakTraceAsString(showLeakingStatus = false)
+  fun toSimplePathString(): String = leakTraceAsString(showVerdict = false)
 
-  private fun leakTraceAsString(showLeakingStatus: Boolean): String {
+  private fun leakTraceAsString(showVerdict: Boolean): String {
     var result = """
         ┬───
         │ GC Root: ${gcRootType.description}
@@ -118,17 +120,17 @@ data class LeakTrace(
       result += originObject.toString(
         firstLinePrefix = "├─ ",
         additionalLinesPrefix = "│    ",
-        showLeakingStatus = showLeakingStatus,
+        showVerdict = showVerdict,
         typeName = originObject.typeName
       )
-      result += getNextElementString(this, element, index, showLeakingStatus)
+      result += getNextElementString(this, element, index, showVerdict)
     }
 
     result += "\n"
     result += leakingObject.toString(
       firstLinePrefix = "╰→ ",
       additionalLinesPrefix = "$ZERO_WIDTH_SPACE     ",
-      showLeakingStatus = showLeakingStatus
+      showVerdict = showVerdict
     )
     return result
   }
@@ -181,7 +183,7 @@ data class LeakTrace(
       leakTrace: LeakTrace,
       reference: LeakTraceReference,
       index: Int,
-      showLeakingStatus: Boolean
+      showVerdict: Boolean
     ): String {
       val static = if (reference.referenceType == STATIC_FIELD) " static" else ""
 
@@ -194,7 +196,7 @@ data class LeakTrace(
       val referenceName = reference.referenceDisplayName
       val referenceLine = referenceLinePrefix + referenceName
 
-      return if (showLeakingStatus && leakTrace.referencePathElementIsSuspect(index)) {
+      return if (showVerdict && leakTrace.referencePathElementIsSuspect(index)) {
         val spaces = " ".repeat(referenceLinePrefix.length)
         val underline = "~".repeat(referenceName.length)
         "\n│$referenceLine\n│$spaces$underline"

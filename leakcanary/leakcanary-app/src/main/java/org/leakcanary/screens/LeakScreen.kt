@@ -44,9 +44,9 @@ import shark.HeapAnalysisSuccess
 import shark.Leak
 import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTraceObject
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 
@@ -264,18 +264,18 @@ private fun AnnotatedString.Builder.appendLeakTraceObject(
     append('\n')
 
     append(INDENTATION)
-    appendExtra("Leaking: ")
-    when (leakingStatus) {
+    appendExtra("Verdict: ")
+    when (verdict) {
       UNKNOWN -> {
-        appendExtra("UNKNOWN")
+        appendExtra("Unknown")
       }
-      NOT_LEAKING -> {
-        append("NO")
-        appendExtra(" (${leakingStatusReason})")
+      EXPECTED -> {
+        append("Expected")
+        appendExtra(" ($verdictReason)")
       }
-      LEAKING -> {
-        append("YES")
-        appendExtra(" (${leakingStatusReason})")
+      STUCK -> {
+        append("Stuck")
+        appendExtra(" ($verdictReason)")
       }
     }
     append('\n')

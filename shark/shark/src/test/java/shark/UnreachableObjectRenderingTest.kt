@@ -15,7 +15,7 @@ class UnreachableObjectRenderingTest {
 
     analysis renders """
     com.example.SomeClass instance
-    _  Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    _  Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     _  key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     _  watchDurationMillis = 25000
     _  retainedDurationMillis = 10000

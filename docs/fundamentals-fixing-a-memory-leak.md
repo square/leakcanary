@@ -145,7 +145,7 @@ LeakCanary highlights all references suspected of causing this leak using ~~~ un
 │    ↓ static FontsContract.sContext
 │                           ~~~~~~~~
 ├─ com.example.leakcanary.ExampleApplication instance
-│    Leaking: NO (Application is a singleton)
+│    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
 ├─ java.util.ArrayList instance
@@ -160,7 +160,7 @@ LeakCanary highlights all references suspected of causing this leak using ~~~ un
 ╰→ com.example.leakcanary.MainActivity instance
 ```
 
-Then, LeakCanary makes deductions about the **state** and the **lifecycle** of the objects in the leak trace. In an Android app the `Application` instance is a singleton that is never garbage collected, so it's never leaking (`Leaking: NO (Application is a singleton)`). From that, LeakCanary concludes that the leak is not caused by `FontsContract.sContext` (removal of corresponding `~~~`). Here's the updated leak trace:
+Then, LeakCanary makes deductions about the **state** and the **lifecycle** of the objects in the leak trace. In an Android app the `Application` instance is a singleton that is never garbage collected, so it being in memory is expected (`Verdict: Expected (Application is a singleton)`). From that, LeakCanary concludes that the leak is not caused by `FontsContract.sContext` (removal of corresponding `~~~`). Here's the updated leak trace:
 
 ```
 ┬───
@@ -169,7 +169,7 @@ Then, LeakCanary makes deductions about the **state** and the **lifecycle** of t
 ├─ android.provider.FontsContract class
 │    ↓ static FontsContract.sContext
 ├─ com.example.leakcanary.ExampleApplication instance
-│    Leaking: NO (Application is a singleton)
+│    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
 ├─ java.util.ArrayList instance
@@ -184,7 +184,7 @@ Then, LeakCanary makes deductions about the **state** and the **lifecycle** of t
 ╰→ com.example.leakcanary.MainActivity instance
 ```
 
-The `TextView` instance references the destroyed `MainActivity` instance via it's `mContext` field. Views should not survive the lifecycle of their context, so LeakCanary knows that this `TextView` instance is leaking (`Leaking: YES (View.mContext references a destroyed activity)`), and therefore that the leak is not caused by `TextView.mContext` (removal of corresponding `~~~`). Here's the updated leak trace:
+The `TextView` instance references the destroyed `MainActivity` instance via it's `mContext` field. Views should not survive the lifecycle of their context, so LeakCanary knows that this `TextView` instance should be gone and isn't (`Verdict: Stuck (View.mContext references a destroyed activity)`), and therefore that the leak is not caused by `TextView.mContext` (removal of corresponding `~~~`). Here's the updated leak trace:
 
 ```
 ┬───
@@ -193,7 +193,7 @@ The `TextView` instance references the destroyed `MainActivity` instance via it'
 ├─ android.provider.FontsContract class
 │    ↓ static FontsContract.sContext
 ├─ com.example.leakcanary.ExampleApplication instance
-│    Leaking: NO (Application is a singleton)
+│    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
 ├─ java.util.ArrayList instance
@@ -203,32 +203,32 @@ The `TextView` instance references the destroyed `MainActivity` instance via it'
 │    ↓ Object[].[0]
 │               ~~~
 ├─ android.widget.TextView instance
-│    Leaking: YES (View.mContext references a destroyed activity)
+│    Verdict: Stuck (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
 ╰→ com.example.leakcanary.MainActivity instance
 ```
 
-To summarize, LeakCanary inspects the state of objects in the leak trace to figure out if these objects are leaking (`Leaking: YES` vs `Leaking: NO`), and leverages that information to narrow down the suspect references. You can provide custom `ObjectInspector` implementations to improve how LeakCanary works in your codebase (see [Identifying leaking objects and labeling objects](recipes.md#identifying-leaking-objects-and-labeling-objects)).
+To summarize, LeakCanary inspects the state of objects in the leak trace to figure out whether each should still be in memory (`Verdict: Stuck` vs `Verdict: Expected`), and leverages that information to narrow down the suspect references. You can provide custom `ObjectInspector` implementations to improve how LeakCanary works in your codebase (see [Identifying leaking objects and labeling objects](recipes.md#identifying-leaking-objects-and-labeling-objects)).
 
 ### The two rules behind the narrowing
 
-The example above had one `Leaking: NO` and one `Leaking: YES`, so the remaining suspects were easy to see. Real leak traces are mostly `Leaking: UNKNOWN`, and what makes them tractable is that a single verdict tells you about more than one object:
+The example above had one `Verdict: Expected` and one `Verdict: Stuck`, so the remaining suspects were easy to see. Real leak traces are mostly `Verdict: Unknown`, and what makes them tractable is that a single verdict tells you about more than one object:
 
 * If an object should still be in memory, then every object **above** it should still be in memory.
 * If an object should not be in memory, then every object **below** it should not be in memory either.
 
-LeakCanary applies both rules itself, which is why one conclusion can update several lines at once, and why a status sometimes names another object instead of a field. Had there been more objects above `ExampleApplication` in the trace above, each of them would have been marked like this:
+LeakCanary applies both rules itself, which is why one conclusion can update several lines at once, and why a verdict sometimes names another object instead of a field. Had there been more objects above `ExampleApplication` in the trace above, each of them would have been marked like this:
 
 ```
-│    Leaking: NO (ExampleApplication↓ is not leaking)
+│    Verdict: Expected (ExampleApplication↓ is expected)
 ```
 
-`↓` means the reason is further **down** the trace, and `↑` means it is further **up**. So `ExampleApplication↓ is not leaking` reads as *this object is not leaking, because an object below it is not leaking, and everything above a non leaking object is non leaking too*. A `↑` status is the mirror image, produced by the second rule. When a rule overrules an inspector, the status says so, with a reason ending in `Conflicts with ...`.
+`↓` means the reason is further **down** the trace, and `↑` means it is further **up**. So `ExampleApplication↓ is expected` reads as *this object is expected, because an object below it is expected, and everything above an expected object is expected too*. A `↑` reason is the mirror image, produced by the second rule. When a rule overrules an inspector, the verdict says so, with a reason ending in `Conflicts with ...`.
 
-That leaves every leak trace in three parts, top to bottom: the objects known not to be leaking, the objects whose state is unknown, and the objects known to be leaking. The reference causing the leak is the one joining the first part to the last, so it is somewhere in the unknown middle — which is exactly what `~~~` marks.
+That leaves every leak trace in three parts, top to bottom: the objects expected to be in memory, the objects whose state is unknown, and the objects stuck in memory. The reference causing the leak is the one joining the first part to the last, so it is somewhere in the unknown middle — which is exactly what `~~~` marks.
 
 !!! tip "Work from the middle, not from the top"
-    When several objects in a row are `Leaking: UNKNOWN`, resist starting at one end. Because the two rules propagate in both directions, settling the state of an object in the **middle** of the unknown section removes about half of it whichever way the answer comes out. Ten unknown objects is around three questions, not ten.
+    When several objects in a row are `Verdict: Unknown`, resist starting at one end. Because the two rules propagate in both directions, settling the state of an object in the **middle** of the unknown section removes about half of it whichever way the answer comes out. Ten unknown objects is around three questions, not ten.
 
 ## 3. Find the reference causing the leak
 
@@ -241,7 +241,7 @@ In the previous example, LeakCanary narrowed down the suspect references to `Exa
 ├─ android.provider.FontsContract class
 │    ↓ static FontsContract.sContext
 ├─ com.example.leakcanary.ExampleApplication instance
-│    Leaking: NO (Application is a singleton)
+│    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
 ├─ java.util.ArrayList instance
@@ -251,7 +251,7 @@ In the previous example, LeakCanary narrowed down the suspect references to `Exa
 │    ↓ Object[].[0]
 │               ~~~
 ├─ android.widget.TextView instance
-│    Leaking: YES (View.mContext references a destroyed activity)
+│    Verdict: Stuck (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
 ╰→ com.example.leakcanary.MainActivity instance
 ```

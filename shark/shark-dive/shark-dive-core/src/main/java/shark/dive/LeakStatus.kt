@@ -10,11 +10,11 @@ package shark.dive
  * and everything below the last is being kept alive by it.
  *
  * **These are the words the window shows, the files keep and an agent reads**, deliberately the same three
- * everywhere rather than Shark's `LEAKING` and `NOT_LEAKING` translated per surface. A person watching an
- * agent work and the agent itself have to be able to say the same thing about the same object, and a
- * vocabulary that changes at the edge of the process is one nobody can check across it. [LeakFingerprint] is
- * the one place that maps to `shark.LeakTraceObject.LeakingStatus`, because a fingerprint has to be the same
- * string LeakCanary computes.
+ * everywhere rather than one vocabulary per surface. A person watching an agent work and the agent itself
+ * have to be able to say the same thing about the same object, and a vocabulary that changes at the edge of
+ * the process is one nobody can check across it. These three words started here and then went down into
+ * Shark, so `shark.LeakTraceObject.Verdict` has the same constants and [LeakFingerprint]'s mapping to it is
+ * an identity.
  *
  * **And none of the three is built on "leak".** A leak is one faulty reference that should have been
  * cleared, and everything under it is retained by that one mistake — so a word like `Leaking` on twenty
@@ -78,8 +78,8 @@ internal class LeakStatusAndReason(
 internal class InspectedPathObject(
   /** For naming it in another object's reason: `MainActivity↓ is expected`. */
   val simpleClassName: String,
-  val leakingReasons: Set<String>,
-  val notLeakingReasons: Set<String>,
+  val stuckReasons: Set<String>,
+  val expectedReasons: Set<String>,
   /**
    * What someone reading this heap dump decided this object is, which wins over the reasons above it.
    * Null for every object nobody has said anything about, which is all of them to start with.
@@ -91,19 +91,19 @@ internal class InspectedPathObject(
  * What each object of a path is, from what the inspectors said about each of them **and about the ones
  * above and below it**, which is where most of the answer comes from.
  *
- * Two rules, both of them about the path rather than the object: everything above an object that is not
- * leaking is not leaking either, because it is holding something that is still needed; and everything
- * below a leaking object is leaking, because the only thing keeping it in memory is an object that
- * shouldn't be there. So the inspectors have to recognize one object of a chain for the whole chain to
- * read, and what's left in the middle — between the last [LeakStatus.EXPECTED] and the first
- * [LeakStatus.STUCK] — is where the **faulty reference** is: the one reference that should have been
- * cleared, and the whole of what there is to fix.
+ * Two rules, both of them about the path rather than the object: everything above an expected object is
+ * expected too, because it is holding something that is still needed; and everything below a stuck object
+ * is stuck, because the only thing keeping it in memory is an object that shouldn't be there. So the
+ * inspectors have to recognize one object of a chain for the whole chain to read, and what's left in the
+ * middle — between the last [LeakStatus.EXPECTED] and the first [LeakStatus.STUCK] — is where the
+ * **faulty reference** is: the one reference that should have been cleared, and the whole of what there is
+ * to fix.
  *
  * This is [shark.RealLeakTracerFactory]'s algorithm, kept in step with it deliberately: a chain here and
- * a LeakCanary leak trace of the same objects that disagreed about which of them are leaking would be two
+ * a LeakCanary leak trace of the same objects that disagreed about which of them are stuck would be two
  * answers to the same question. One rule of it is left out — **the object a path ends at is not forced to
- * be leaking**. A leak trace ends where the leak is, so forcing it is right there; a path here ends
- * wherever the reader clicked, and calling whatever that was leaking would be the window inventing leaks.
+ * be stuck**. A leak trace ends where the leak is, so forcing it is right there; a path here ends
+ * wherever the reader clicked, and calling whatever that was stuck would be the window inventing leaks.
  *
  * A status someone set by hand is what that object is — see [setByHandStatus] — and then these two rules
  * run over it like over any other: what an object is decides what the objects above and below it are, and
@@ -118,51 +118,51 @@ internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatus
   // A conflict is resolved in favour of the object still being needed, except at the end of the path:
   // that one is the object being asked about, so what is known to be wrong with it is the answer.
   val statuses = objects.mapIndexed { index, inspected ->
-    inspected.ownStatus(leakingWins = index == lastIndex)
+    inspected.ownStatus(stuckWins = index == lastIndex)
   }.toMutableList()
-  var lastNotLeakingIndex = -1
-  var firstLeakingIndex = lastIndex
+  var lastExpectedIndex = -1
+  var firstStuckIndex = lastIndex
   statuses.forEachIndexed { index, status ->
     if (status.status == LeakStatus.EXPECTED) {
-      lastNotLeakingIndex = index
-      // So that the first leaking object is never above the last one that isn't: an object that is
-      // leaking and is held by something that isn't means the leak starts below it.
-      firstLeakingIndex = lastIndex
-    } else if (status.status == LeakStatus.STUCK && firstLeakingIndex == lastIndex) {
-      firstLeakingIndex = index
+      lastExpectedIndex = index
+      // So that the first stuck object is never above the last expected one: an object that is stuck and
+      // is held by one that is expected means the leak starts below it.
+      firstStuckIndex = lastIndex
+    } else if (status.status == LeakStatus.STUCK && firstStuckIndex == lastIndex) {
+      firstStuckIndex = index
     }
   }
-  for (index in 0 until lastNotLeakingIndex) {
-    val nextNotLeakingIndex = (index + 1..lastNotLeakingIndex)
+  for (index in 0 until lastExpectedIndex) {
+    val nextExpectedIndex = (index + 1..lastExpectedIndex)
       .first { statuses[it].status == LeakStatus.EXPECTED }
-    val nextNotLeakingName = "${objects[nextNotLeakingIndex].simpleClassName}↓"
+    val nextExpectedName = "${objects[nextExpectedIndex].simpleClassName}↓"
     val reason = statuses[index].reason
     statuses[index] = LeakStatusAndReason(
       status = LeakStatus.EXPECTED,
       reason = when (statuses[index].status) {
         // With a reason of its own only when a hand gave it one, which the path is then overruling: an
         // object someone said nothing is known about is one of the two statuses this can disagree with.
-        LeakStatus.UNKNOWN -> "$nextNotLeakingName is expected".conflicting(reason)
-        LeakStatus.EXPECTED -> "$nextNotLeakingName is expected and $reason"
-        LeakStatus.STUCK -> "$nextNotLeakingName is expected. Conflicts with $reason"
+        LeakStatus.UNKNOWN -> "$nextExpectedName is expected".conflicting(reason)
+        LeakStatus.EXPECTED -> "$nextExpectedName is expected and $reason"
+        LeakStatus.STUCK -> "$nextExpectedName is expected. Conflicts with $reason"
       }
     )
   }
-  for (index in lastIndex downTo firstLeakingIndex + 1) {
-    val previousLeakingIndex = (index - 1 downTo firstLeakingIndex)
+  for (index in lastIndex downTo firstStuckIndex + 1) {
+    val previousStuckIndex = (index - 1 downTo firstStuckIndex)
       .first { statuses[it].status == LeakStatus.STUCK }
-    val previousLeakingName = "${objects[previousLeakingIndex].simpleClassName}↑"
+    val previousStuckName = "${objects[previousStuckIndex].simpleClassName}↑"
     val reason = statuses[index].reason
     statuses[index] = LeakStatusAndReason(
       status = LeakStatus.STUCK,
       reason = when (statuses[index].status) {
-        LeakStatus.UNKNOWN -> "$previousLeakingName is stuck".conflicting(reason)
-        LeakStatus.STUCK -> "$previousLeakingName is stuck and $reason"
-        // No object below the first leaking one is left not leaking: the first leaking index is reset
-        // past every object that isn't, and the loop above turned the rest into not leaking already.
+        LeakStatus.UNKNOWN -> "$previousStuckName is stuck".conflicting(reason)
+        LeakStatus.STUCK -> "$previousStuckName is stuck and $reason"
+        // No object below the first stuck one is left expected: the first stuck index is reset past every
+        // expected object, and the loop above turned the rest into expected already.
         LeakStatus.EXPECTED -> error(
           "${objects[index].simpleClassName} at $index is expected, below " +
-            "${objects[previousLeakingIndex].simpleClassName} at $previousLeakingIndex, which is stuck"
+            "${objects[previousStuckIndex].simpleClassName} at $previousStuckIndex, which is stuck"
         )
       }
     )
@@ -250,20 +250,20 @@ private fun String.conflicting(overruled: String?): String =
  * Unless a hand set it, in which case that is the answer and the inspectors are what it is recorded as
  * disagreeing with. See [setByHandStatus].
  */
-private fun InspectedPathObject.ownStatus(leakingWins: Boolean): LeakStatusAndReason {
-  val notLeaking = notLeakingReasons.joinToString(" and ").takeIf { notLeakingReasons.isNotEmpty() }
-  val leaking = leakingReasons.joinToString(" and ").takeIf { leakingReasons.isNotEmpty() }
+private fun InspectedPathObject.ownStatus(stuckWins: Boolean): LeakStatusAndReason {
+  val expected = expectedReasons.joinToString(" and ").takeIf { expectedReasons.isNotEmpty() }
+  val stuck = stuckReasons.joinToString(" and ").takeIf { stuckReasons.isNotEmpty() }
   if (setByHand != null) {
-    return setByHandStatus(setByHand, leaking = leaking, notLeaking = notLeaking)
+    return setByHandStatus(setByHand, stuck = stuck, expected = expected)
   }
   return when {
-    leaking != null && notLeaking != null -> if (leakingWins) {
-      LeakStatusAndReason(LeakStatus.STUCK, "$leaking. Conflicts with $notLeaking")
+    stuck != null && expected != null -> if (stuckWins) {
+      LeakStatusAndReason(LeakStatus.STUCK, "$stuck. Conflicts with $expected")
     } else {
-      LeakStatusAndReason(LeakStatus.EXPECTED, "$notLeaking. Conflicts with $leaking")
+      LeakStatusAndReason(LeakStatus.EXPECTED, "$expected. Conflicts with $stuck")
     }
-    leaking != null -> LeakStatusAndReason(LeakStatus.STUCK, leaking)
-    notLeaking != null -> LeakStatusAndReason(LeakStatus.EXPECTED, notLeaking)
+    stuck != null -> LeakStatusAndReason(LeakStatus.STUCK, stuck)
+    expected != null -> LeakStatusAndReason(LeakStatus.EXPECTED, expected)
     else -> LeakStatusAndReason(LeakStatus.UNKNOWN, null)
   }
 }
@@ -282,14 +282,14 @@ private fun InspectedPathObject.ownStatus(leakingWins: Boolean): LeakStatusAndRe
  */
 private fun setByHandStatus(
   setByHand: LeakStatusOverride,
-  leaking: String?,
-  notLeaking: String?
+  stuck: String?,
+  expected: String?
 ): LeakStatusAndReason {
   val overruled = when (setByHand.status) {
-    LeakStatus.STUCK -> notLeaking
-    LeakStatus.EXPECTED -> leaking
+    LeakStatus.STUCK -> expected
+    LeakStatus.EXPECTED -> stuck
     // Both of them, since saying nothing is known about an object overrules anything that claimed to know.
-    LeakStatus.UNKNOWN -> listOfNotNull(notLeaking, leaking).joinToString(" and ").takeIf { it.isNotEmpty() }
+    LeakStatus.UNKNOWN -> listOfNotNull(expected, stuck).joinToString(" and ").takeIf { it.isNotEmpty() }
   }
   return LeakStatusAndReason(
     status = setByHand.status,

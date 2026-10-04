@@ -41,9 +41,9 @@ import leakcanary.internal.utils.humanReadableByteCount
 import shark.LeakTrace
 import shark.LeakTrace.GcRootType.JAVA_FRAME
 import shark.LeakTraceObject
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceReference
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
@@ -175,13 +175,13 @@ internal class DisplayLeakAdapter constructor(
       }.$styledClassName" else styledClassName
     htmlString += " ${extra(typeName)}<br>"
 
-    val reachabilityString = when (leakingStatus) {
-      UNKNOWN -> extra("UNKNOWN")
-      NOT_LEAKING -> "NO" + extra(" (${leakingStatusReason})")
-      LEAKING -> "YES" + extra(" (${leakingStatusReason})")
+    val verdictString = when (verdict) {
+      UNKNOWN -> extra("Unknown")
+      EXPECTED -> "Expected" + extra(" ($verdictReason)")
+      STUCK -> "Stuck" + extra(" ($verdictReason)")
     }
 
-    htmlString += "$INDENTATION${extra("Leaking: ")}$reachabilityString<br>"
+    htmlString += "$INDENTATION${extra("Verdict: ")}$verdictString<br>"
 
     retainedHeapByteSize?.let {
       val humanReadableRetainedHeapSize = humanReadableByteCount(it.toLong(), si = true)
@@ -218,7 +218,7 @@ internal class DisplayLeakAdapter constructor(
         1 -> START_LAST_REACHABLE
         else -> {
           val nextReachability = leakTrace.referencePath[1].originObject
-          if (nextReachability.leakingStatus != NOT_LEAKING) {
+          if (nextReachability.verdict != EXPECTED) {
             START_LAST_REACHABLE
           } else START
         }
@@ -228,35 +228,35 @@ internal class DisplayLeakAdapter constructor(
       if (isLeakingInstance) {
         val previousReachability = leakTrace.referencePath.last()
           .originObject
-        return if (previousReachability.leakingStatus != LEAKING) {
+        return if (previousReachability.verdict != STUCK) {
           END_FIRST_UNREACHABLE
         } else END
       } else {
         val reachability = leakTrace.referencePath[elementIndex(position)].originObject
-        when (reachability.leakingStatus) {
+        when (reachability.verdict) {
           UNKNOWN -> return NODE_UNKNOWN
-          NOT_LEAKING -> {
+          EXPECTED -> {
             val nextReachability =
               if (position + 1 == count - 1) leakTrace.leakingObject else leakTrace.referencePath[elementIndex(
                 position + 1
               )].originObject
-            return if (nextReachability.leakingStatus != NOT_LEAKING) {
+            return if (nextReachability.verdict != EXPECTED) {
               NODE_LAST_REACHABLE
             } else {
               NODE_REACHABLE
             }
           }
-          LEAKING -> {
+          STUCK -> {
             val previousReachability =
               leakTrace.referencePath[elementIndex(position - 1)].originObject
-            return if (previousReachability.leakingStatus != LEAKING) {
+            return if (previousReachability.verdict != STUCK) {
               NODE_FIRST_UNREACHABLE
             } else {
               NODE_UNREACHABLE
             }
           }
           else -> throw IllegalStateException(
-            "Unknown value: " + reachability.leakingStatus
+            "Unknown value: " + reachability.verdict
           )
         }
       }

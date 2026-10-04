@@ -2,7 +2,7 @@ package shark.dive
 
 import shark.LeakTrace
 import shark.LeakTraceObject
-import shark.LeakTraceObject.LeakingStatus
+import shark.LeakTraceObject.Verdict
 import shark.LeakTraceObject.ObjectType
 import shark.LeakTraceReference
 import shark.LeakTraceReference.ReferenceType
@@ -50,12 +50,12 @@ private fun PathStep.toLeakTraceObject() = LeakTraceObject(
   },
   className = className,
   labels = inspectorLabels.toSet(),
-  leakingStatus = when (leakStatus) {
-    LeakStatus.EXPECTED -> LeakingStatus.NOT_LEAKING
-    LeakStatus.UNKNOWN -> LeakingStatus.UNKNOWN
-    LeakStatus.STUCK -> LeakingStatus.LEAKING
+  verdict = when (leakStatus) {
+    LeakStatus.EXPECTED -> Verdict.EXPECTED
+    LeakStatus.UNKNOWN -> Verdict.UNKNOWN
+    LeakStatus.STUCK -> Verdict.STUCK
   },
-  leakingStatusReason = leakStatusReason.orEmpty(),
+  verdictReason = leakStatusReason.orEmpty(),
   retainedHeapByteSize = null,
   retainedObjectCount = null
 )

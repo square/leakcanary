@@ -34,7 +34,7 @@ class ObjectInspectorTest : HasActivityTestRule<TestActivity> {
    * can no longer be part of a leak trace. `shark.AndroidObjectInspectorsTest` covers that case
    * from a heap dump instead.
    */
-  @Test fun LifecycleRegistry_LeakingStatus_Is_Reported() {
+  @Test fun LifecycleRegistry_Verdict_Is_Reported() {
     triggersOnActivityCreated {
       activityRule.launchActivity(null)
     }
@@ -52,7 +52,7 @@ class ObjectInspectorTest : HasActivityTestRule<TestActivity> {
     val lifecycleRegistry = leakTrace.referencePath
       .single { it.owningClassSimpleName == "LifecycleRegistry" }
       .originObject
-    assertThat(lifecycleRegistry.leakingStatusReason)
+    assertThat(lifecycleRegistry.verdictReason)
       .describedAs("$heapAnalysis")
       .isEqualTo("state is RESUMED")
   }

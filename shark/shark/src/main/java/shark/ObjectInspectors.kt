@@ -44,7 +44,7 @@ enum class ObjectInspectors : ObjectInspector {
       val objectId = reporter.heapObject.objectId
       references.forEach { ref ->
         if (ref.referent.value == objectId) {
-          reporter.leakingReasons += if (ref.description.isNotEmpty()) {
+          reporter.stuckReasons += if (ref.description.isNotEmpty()) {
             "ObjectWatcher was watching this because ${ref.description}"
           } else {
             "ObjectWatcher was watching this"
@@ -66,7 +66,7 @@ enum class ObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf(ClassLoader::class) {
-        notLeakingReasons += "A ClassLoader is never leaking"
+        expectedReasons += "a ClassLoader is always expected"
       }
     }
   },
@@ -76,7 +76,7 @@ enum class ObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       if (reporter.heapObject is HeapClass) {
-        reporter.notLeakingReasons += "a class is never leaking"
+        reporter.expectedReasons += "a class is always expected"
       }
     }
   },

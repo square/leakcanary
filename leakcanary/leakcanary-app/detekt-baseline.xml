@@ -11,6 +11,5 @@
     <ID>NoConsecutiveBlankLines:TreeMapScreen.kt$ </ID>
     <ID>ParameterListWrapping:DatabaseModule.kt$DatabaseModule$( app: Application, @WriteAheadLoggingEnabled wolEnabled: Boolean )</ID>
     <ID>SpacingAroundKeyword:HeapRepository.kt$HeapRepository$if</ID>
-    <ID>StringTemplate:LeakScreen.kt$${leakingStatusReason}</ID>
   </CurrentIssues>
 </SmellBaseline>

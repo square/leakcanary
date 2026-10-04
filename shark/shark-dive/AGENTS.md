@@ -152,20 +152,22 @@ stale silently, which is why `LeakKind.explanation` is null for the five kinds n
 ## A verdict set by hand is an argument to every read, never state of the tree
 
 **`STUCK`, `EXPECTED` and `UNKNOWN` are the only words for this, everywhere** — the enum, the window, the
-`leak-statuses` files and the agent surface. Shark's `LEAKING`/`NOT_LEAKING` stops at the door: a person
-watching an agent work has to be able to say the same thing about the same object as the agent, and a
-vocabulary that changes at the edge of the process is one nobody can check across it. So don't reintroduce
-either word, in an enum, a JSON value or a message — `LeakFingerprint` is the single place that maps to
-`shark.LeakTraceObject.LeakingStatus`, and only because a fingerprint has to be the string LeakCanary
-computes. `LeakStatus.statusText` is the case-only difference between the constant and a sentence.
+`leak-statuses` files and the agent surface. A person watching an agent work has to be able to say the same
+thing about the same object as the agent, and a vocabulary that changes at the edge of the process is one
+nobody can check across it. Shark now says the same three words, in
+[`shark.LeakTraceObject.Verdict`](../shark/src/main/java/shark/LeakTraceObject.kt) — that started here and
+moved down, so `LeakFingerprint`'s mapping to it is an identity and `LEAKING`/`NOT_LEAKING` is dead
+vocabulary rather than a boundary to hold. Don't reintroduce either word, in an enum, a JSON value or a
+message. `LeakStatus.statusText` is the case-only difference between the constant and a sentence.
 
 None of the three is built on "leak" for a reason worth keeping: a leak is one faulty reference, and calling
 everything under it leaking points readers at the wrong thing. The code still says `suspectPath` where Shark
 does. `notes/decisions.md` has why each word won.
 
-**An older `leak-statuses` file will have Shark's words in it** and its rows are skipped with a line in the
-log saying which, since `LeakStatusFile` matches a status by name. That is the intended cost of having one
-vocabulary; this app is an alpha and the files are three columns of text anybody can fix with `sed`.
+**A `leak-statuses` file written before the rename will have `LEAKING`/`NOT_LEAKING` in it** and its rows are
+skipped with a line in the log saying which, since `LeakStatusFile` matches a status by name. That is the
+intended cost of having one vocabulary; this app is an alpha and the files are three columns of text anybody
+can fix with `sed`.
 
 **Which reference the leak is, is decided once, over the whole path** — `faultyReferenceIndexOrNull`, called
 from `withLeakStatuses` — and carried on `PathReference.isFaulty` for the drawing to read. Working it out in

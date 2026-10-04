@@ -1017,9 +1017,16 @@ Two attempts came before this one. `Shouldn't be here` / `Meant to be here` was 
 **a verdict is a label, not a sentence**, since it is read a dozen times down one chain. `Leaked` / `Needed`
 was rejected for the misdirection above. One `LeakStatus.statusText` is where the words live, so the chain,
 the panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a chain
-(`Activity↓ is expected`, `Activity↑ is stuck`) all say the same thing. The identifiers didn't move:
-`LeakStatus`, `LEAKING`, `leakStatusesOf` stay Shark's names, because the code is where matching
-`shark.LeakTraceObject.LeakingStatus` matters.
+(`Activity↓ is expected`, `Activity↑ is stuck`) all say the same thing.
+
+**The words then went down into Shark**, which had kept `LeakingStatus.LEAKING`/`NOT_LEAKING` and printed
+`Leaking: YES` / `NO` in a leak trace. Scoping the first round to this window was never a decision anyone
+took — it was how the task had been asked, and the entry that used to sit here said the identifiers stayed
+Shark's names as though it had been. Two vocabularies for one verdict is the thing this section argues
+against, and the boundary cost it predicted showed up as soon as a reader moved between a leak trace and this
+window. So `shark.LeakTraceObject.Verdict` now has the same three constants, `verdict`/`verdictReason` are the
+property names, and a leak trace prints `Verdict: Stuck`. What is left here is the mapping in
+`LeakFingerprint`, which is an identity.
 
 **The verdict means the same thing on an unreachable object.** A watched object nothing reaches any more is
 `Stuck` like any other, even though what keeps it is the collector not having run rather than a faulty

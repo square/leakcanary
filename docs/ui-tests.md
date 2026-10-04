@@ -47,14 +47,14 @@ HEAP ANALYSIS RESULT
 │ GC Root: System class
 │
 ├─ com.example.MySingleton class
-│    Leaking: NO (a class is never leaking)
+│    Verdict: Expected (a class is always expected)
 │    ↓ static MySingleton.leakedView
 │                         ~~~~~~~~~~
 ├─ android.widget.TextView instance
-│    Leaking: YES (View.mContext references a destroyed activity)
+│    Verdict: Stuck (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
 ╰→ com.example.MainActivity instance
-     Leaking: YES (Activity#mDestroyed is true)
+     Verdict: Stuck (Activity#mDestroyed is true)
 ====================================
   at leakcanary.AndroidDetectLeaksAssert.assertNoLeaks(AndroidDetectLeaksAssert.kt:34)
   at leakcanary.LeakAssertions.assertNoLeaks(LeakAssertions.kt:21)

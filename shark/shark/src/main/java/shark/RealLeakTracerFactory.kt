@@ -24,10 +24,10 @@ import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.LeakTrace.GcRootType
-import shark.LeakTraceObject.LeakingStatus
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceObject.ObjectType.ARRAY
 import shark.LeakTraceObject.ObjectType.CLASS
 import shark.LeakTraceObject.ObjectType.INSTANCE
@@ -145,15 +145,15 @@ class RealLeakTracerFactory constructor(
     }
 
     val unreachableInspectedObjects = unreachableObjectReporters.map { reporter ->
-      val reason = resolveStatus(reporter, leakingWins = true).let { (status, reason) ->
+      val reason = resolveVerdict(reporter, stuckWins = true).let { (status, reason) ->
         when (status) {
-          LEAKING -> reason
+          STUCK -> reason
           UNKNOWN -> "This is a leaking object"
-          NOT_LEAKING -> "This is a leaking object. Conflicts with $reason"
+          EXPECTED -> "This is a leaking object. Conflicts with $reason"
         }
       }
       InspectedObject(
-        reporter.heapObject, LEAKING, reason, reporter.labels
+        reporter.heapObject, STUCK, reason, reporter.labels
       )
     }
 
@@ -297,7 +297,7 @@ class RealLeakTracerFactory constructor(
     }
 
     return leakReportersByPath.map { leakReporters ->
-      computeLeakStatuses(leakReporters)
+      computeVerdicts(leakReporters)
     }
   }
 
@@ -338,8 +338,8 @@ class RealLeakTracerFactory constructor(
         type = objectType,
         className = className,
         labels = inspectedObject.labels,
-        leakingStatus = inspectedObject.leakingStatus,
-        leakingStatusReason = inspectedObject.leakingStatusReason,
+        verdict = inspectedObject.verdict,
+        verdictReason = inspectedObject.verdictReason,
         retainedHeapByteSize = retainedHeapByteSize,
         retainedObjectCount = retainedObjectCount
       )
@@ -367,41 +367,41 @@ class RealLeakTracerFactory constructor(
 
   internal class InspectedObject(
     val heapObject: HeapObject,
-    val leakingStatus: LeakingStatus,
-    val leakingStatusReason: String,
+    val verdict: Verdict,
+    val verdictReason: String,
     val labels: MutableSet<String>
   )
 
-  private fun computeLeakStatuses(leakReporters: List<ObjectReporter>): List<InspectedObject> {
+  private fun computeVerdicts(leakReporters: List<ObjectReporter>): List<InspectedObject> {
     val lastElementIndex = leakReporters.size - 1
 
-    var lastNotLeakingElementIndex = -1
-    var firstLeakingElementIndex = lastElementIndex
+    var lastExpectedElementIndex = -1
+    var firstStuckElementIndex = lastElementIndex
 
-    val leakStatuses = ArrayList<Pair<LeakingStatus, String>>()
+    val verdicts = ArrayList<Pair<Verdict, String>>()
 
     for ((index, reporter) in leakReporters.withIndex()) {
-      val resolvedStatusPair =
-        resolveStatus(reporter, leakingWins = index == lastElementIndex).let { statusPair ->
+      val resolvedVerdictPair =
+        resolveVerdict(reporter, stuckWins = index == lastElementIndex).let { verdictPair ->
           if (index == lastElementIndex) {
-            // The last element should always be leaking.
-            when (statusPair.first) {
-              LEAKING -> statusPair
-              UNKNOWN -> LEAKING to "This is the leaking object"
-              NOT_LEAKING -> LEAKING to "This is the leaking object. Conflicts with ${statusPair.second}"
+            // The last element should always be stuck: a leak trace ends where the leak is.
+            when (verdictPair.first) {
+              STUCK -> verdictPair
+              UNKNOWN -> STUCK to "This is the leaking object"
+              EXPECTED -> STUCK to "This is the leaking object. Conflicts with ${verdictPair.second}"
             }
-          } else statusPair
+          } else verdictPair
         }
 
-      leakStatuses.add(resolvedStatusPair)
-      val (leakStatus, _) = resolvedStatusPair
-      if (leakStatus == NOT_LEAKING) {
-        lastNotLeakingElementIndex = index
-        // Reset firstLeakingElementIndex so that we never have
-        // firstLeakingElementIndex < lastNotLeakingElementIndex
-        firstLeakingElementIndex = lastElementIndex
-      } else if (leakStatus == LEAKING && firstLeakingElementIndex == lastElementIndex) {
-        firstLeakingElementIndex = index
+      verdicts.add(resolvedVerdictPair)
+      val (verdict, _) = resolvedVerdictPair
+      if (verdict == EXPECTED) {
+        lastExpectedElementIndex = index
+        // Reset firstStuckElementIndex so that we never have
+        // firstStuckElementIndex < lastExpectedElementIndex
+        firstStuckElementIndex = lastElementIndex
+      } else if (verdict == STUCK && firstStuckElementIndex == lastElementIndex) {
+        firstStuckElementIndex = index
       }
     }
 
@@ -409,78 +409,78 @@ class RealLeakTracerFactory constructor(
       recordClassName(reporter.heapObject).lastSegment('.')
     }
 
-    for (i in 0 until lastNotLeakingElementIndex) {
-      val (leakStatus, leakStatusReason) = leakStatuses[i]
-      val nextNotLeakingIndex = generateSequence(i + 1) { index ->
-        if (index < lastNotLeakingElementIndex) index + 1 else null
+    for (i in 0 until lastExpectedElementIndex) {
+      val (verdict, verdictReason) = verdicts[i]
+      val nextExpectedIndex = generateSequence(i + 1) { index ->
+        if (index < lastExpectedElementIndex) index + 1 else null
       }.first { index ->
-        leakStatuses[index].first == NOT_LEAKING
+        verdicts[index].first == EXPECTED
       }
 
-      // Element is forced to NOT_LEAKING
-      val nextNotLeakingName = simpleClassNames[nextNotLeakingIndex]
-      leakStatuses[i] = when (leakStatus) {
-        UNKNOWN -> NOT_LEAKING to "$nextNotLeakingName↓ is not leaking"
-        NOT_LEAKING -> NOT_LEAKING to "$nextNotLeakingName↓ is not leaking and $leakStatusReason"
-        LEAKING -> NOT_LEAKING to "$nextNotLeakingName↓ is not leaking. Conflicts with $leakStatusReason"
+      // Element is forced to EXPECTED
+      val nextExpectedName = simpleClassNames[nextExpectedIndex]
+      verdicts[i] = when (verdict) {
+        UNKNOWN -> EXPECTED to "$nextExpectedName↓ is expected"
+        EXPECTED -> EXPECTED to "$nextExpectedName↓ is expected and $verdictReason"
+        STUCK -> EXPECTED to "$nextExpectedName↓ is expected. Conflicts with $verdictReason"
       }
     }
 
-    if (firstLeakingElementIndex < lastElementIndex - 1) {
-      // We already know the status of firstLeakingElementIndex and lastElementIndex
-      for (i in lastElementIndex - 1 downTo firstLeakingElementIndex + 1) {
-        val (leakStatus, leakStatusReason) = leakStatuses[i]
-        val previousLeakingIndex = generateSequence(i - 1) { index ->
-          if (index > firstLeakingElementIndex) index - 1 else null
+    if (firstStuckElementIndex < lastElementIndex - 1) {
+      // We already know the verdict of firstStuckElementIndex and lastElementIndex
+      for (i in lastElementIndex - 1 downTo firstStuckElementIndex + 1) {
+        val (verdict, verdictReason) = verdicts[i]
+        val previousStuckIndex = generateSequence(i - 1) { index ->
+          if (index > firstStuckElementIndex) index - 1 else null
         }.first { index ->
-          leakStatuses[index].first == LEAKING
+          verdicts[index].first == STUCK
         }
 
-        // Element is forced to LEAKING
-        val previousLeakingName = simpleClassNames[previousLeakingIndex]
-        leakStatuses[i] = when (leakStatus) {
-          UNKNOWN -> LEAKING to "$previousLeakingName↑ is leaking"
-          LEAKING -> LEAKING to "$previousLeakingName↑ is leaking and $leakStatusReason"
-          NOT_LEAKING -> throw IllegalStateException("Should never happen")
+        // Element is forced to STUCK
+        val previousStuckName = simpleClassNames[previousStuckIndex]
+        verdicts[i] = when (verdict) {
+          UNKNOWN -> STUCK to "$previousStuckName↑ is stuck"
+          STUCK -> STUCK to "$previousStuckName↑ is stuck and $verdictReason"
+          EXPECTED -> throw IllegalStateException("Should never happen")
         }
       }
     }
 
     return leakReporters.mapIndexed { index, objectReporter ->
-      val (leakingStatus, leakingStatusReason) = leakStatuses[index]
+      val (verdict, verdictReason) = verdicts[index]
       InspectedObject(
-        objectReporter.heapObject, leakingStatus, leakingStatusReason, objectReporter.labels
+        objectReporter.heapObject, verdict, verdictReason, objectReporter.labels
       )
     }
   }
 
-  private fun resolveStatus(
+  private fun resolveVerdict(
     reporter: ObjectReporter,
-    leakingWins: Boolean
-  ): Pair<LeakingStatus, String> {
-    var status = UNKNOWN
+    stuckWins: Boolean
+  ): Pair<Verdict, String> {
+    var verdict = UNKNOWN
     var reason = ""
-    if (reporter.notLeakingReasons.isNotEmpty()) {
-      status = NOT_LEAKING
-      reason = reporter.notLeakingReasons.joinToString(" and ")
+    if (reporter.expectedReasons.isNotEmpty()) {
+      verdict = EXPECTED
+      reason = reporter.expectedReasons.joinToString(" and ")
     }
-    val leakingReasons = reporter.leakingReasons
-    if (leakingReasons.isNotEmpty()) {
-      val winReasons = leakingReasons.joinToString(" and ")
+    val stuckReasons = reporter.stuckReasons
+    if (stuckReasons.isNotEmpty()) {
+      val winReasons = stuckReasons.joinToString(" and ")
       // Conflict
-      if (status == NOT_LEAKING) {
-        if (leakingWins) {
-          status = LEAKING
+      if (verdict == EXPECTED) {
+        if (stuckWins) {
+          verdict = STUCK
           reason = "$winReasons. Conflicts with $reason"
         } else {
           reason += ". Conflicts with $winReasons"
         }
       } else {
-        status = LEAKING
+        verdict = STUCK
         reason = winReasons
       }
     }
-    return status to reason
+    return verdict to reason
   }
 
   /**

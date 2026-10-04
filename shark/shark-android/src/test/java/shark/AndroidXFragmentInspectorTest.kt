@@ -4,9 +4,9 @@ import java.io.File
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.ReferenceHolder
@@ -27,24 +27,24 @@ class AndroidXFragmentInspectorTest {
   @Test fun `fragment 1_0_0 that was destroyed is leaking`() {
     val fragment = analyzeFragment(fragmentOneZero(state = "DESTROYED"))
 
-    assertThat(fragment.leakingStatus).isEqualTo(LEAKING)
-    assertThat(fragment.leakingStatusReason)
+    assertThat(fragment.verdict).isEqualTo(STUCK)
+    assertThat(fragment.verdictReason)
       .isEqualTo("Fragment.mLifecycleRegistry.state is DESTROYED")
   }
 
   @Test fun `fragment 1_0_0 that was never created is not leaking`() {
     val fragment = analyzeFragment(fragmentOneZero(state = "INITIALIZED"))
 
-    assertThat(fragment.leakingStatus).isEqualTo(NOT_LEAKING)
-    assertThat(fragment.leakingStatusReason)
+    assertThat(fragment.verdict).isEqualTo(EXPECTED)
+    assertThat(fragment.verdictReason)
       .isEqualTo("Fragment.mLifecycleRegistry.state is INITIALIZED")
   }
 
   @Test fun `fragment 1_1_0 that was destroyed without being reset is leaking`() {
     val fragment = analyzeFragment(fragmentOneOne(state = "DESTROYED", called = true))
 
-    assertThat(fragment.leakingStatus).isEqualTo(LEAKING)
-    assertThat(fragment.leakingStatusReason)
+    assertThat(fragment.verdict).isEqualTo(STUCK)
+    assertThat(fragment.verdictReason)
       .isEqualTo("Fragment.mLifecycleRegistry.state is DESTROYED")
   }
 
@@ -55,8 +55,8 @@ class AndroidXFragmentInspectorTest {
   @Test fun `fragment 1_1_0 that was reset to INITIALIZED after being destroyed is leaking`() {
     val fragment = analyzeFragment(fragmentOneOne(state = "INITIALIZED", called = true))
 
-    assertThat(fragment.leakingStatus).isEqualTo(LEAKING)
-    assertThat(fragment.leakingStatusReason).isEqualTo(
+    assertThat(fragment.verdict).isEqualTo(STUCK)
+    assertThat(fragment.verdictReason).isEqualTo(
       "Fragment.mLifecycleRegistry.state was reset to INITIALIZED by Fragment#initState() after" +
         " Fragment#onDestroy()"
     )
@@ -65,8 +65,8 @@ class AndroidXFragmentInspectorTest {
   @Test fun `fragment 1_1_0 that was never attached is not leaking`() {
     val fragment = analyzeFragment(fragmentOneOne(state = "INITIALIZED", called = false))
 
-    assertThat(fragment.leakingStatus).isEqualTo(NOT_LEAKING)
-    assertThat(fragment.leakingStatusReason).isEqualTo(
+    assertThat(fragment.verdict).isEqualTo(EXPECTED)
+    assertThat(fragment.verdictReason).isEqualTo(
       "Fragment.mLifecycleRegistry.state is INITIALIZED and the fragment was never attached"
     )
   }
@@ -81,8 +81,8 @@ class AndroidXFragmentInspectorTest {
       fragmentOneOne(state = "INITIALIZED", called = true, hasFragmentManager = true)
     )
 
-    assertThat(fragment.leakingStatus).isEqualTo(NOT_LEAKING)
-    assertThat(fragment.leakingStatusReason).isEqualTo(
+    assertThat(fragment.verdict).isEqualTo(EXPECTED)
+    assertThat(fragment.verdictReason).isEqualTo(
       "Fragment.mLifecycleRegistry.state is INITIALIZED and Fragment.mFragmentManager is set"
     )
   }
@@ -90,15 +90,15 @@ class AndroidXFragmentInspectorTest {
   @Test fun `fragment 1_1_0 that is in use is not leaking`() {
     val fragment = analyzeFragment(fragmentOneOne(state = "RESUMED", called = true))
 
-    assertThat(fragment.leakingStatus).isEqualTo(NOT_LEAKING)
-    assertThat(fragment.leakingStatusReason)
+    assertThat(fragment.verdict).isEqualTo(EXPECTED)
+    assertThat(fragment.verdictReason)
       .isEqualTo("Fragment.mLifecycleRegistry.state is RESUMED")
   }
 
   @Test fun `fragment without a lifecycle registry has an unknown status`() {
     val fragment = analyzeFragment(fragmentOneOne(state = null, called = true))
 
-    assertThat(fragment.leakingStatus).isEqualTo(UNKNOWN)
+    assertThat(fragment.verdict).isEqualTo(UNKNOWN)
     assertThat(fragment.labels).contains("Fragment.mLifecycleRegistry = null")
   }
 

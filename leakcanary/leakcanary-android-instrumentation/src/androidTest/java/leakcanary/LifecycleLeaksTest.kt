@@ -13,7 +13,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import shark.LeakTraceObject.LeakingStatus
+import shark.LeakTraceObject.Verdict
 
 class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
 
@@ -117,7 +117,7 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
         assertThat(className)
           .describedAs("$heapAnalysis")
           .isEqualTo(expectedLeakClass.name)
-        assertThat(leakTrace.leakingObject.leakingStatusReason)
+        assertThat(leakTrace.leakingObject.verdictReason)
           .describedAs("$heapAnalysis")
           .contains(
             "Fragment.mLifecycleRegistry.state was reset to INITIALIZED by Fragment#initState()" +
@@ -173,12 +173,12 @@ class LifecycleLeaksTest : HasActivityTestRule<TestActivity> {
         .isEqualTo("leaky")
       val fragment = refToLeaky.originObject
       // AssertJ uses lambdas when comparing enum values, which fails on older Android versions.
-      if (fragment.leakingStatus != LeakingStatus.NOT_LEAKING) {
+      if (fragment.verdict != Verdict.EXPECTED) {
         throw AssertionError(
-          "${fragment.leakingStatus} should be ${LeakingStatus.NOT_LEAKING}"
+          "${fragment.verdict} should be ${Verdict.EXPECTED}"
         )
       }
-      assertThat(fragment.leakingStatusReason).isEqualTo(
+      assertThat(fragment.verdictReason).isEqualTo(
         "Fragment.mLifecycleRegistry.state is RESUMED"
       )
     }

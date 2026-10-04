@@ -129,16 +129,16 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         val activityContext = mContext.unwrapActivityContext()
         if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
-          leakingReasons += "View.mContext references a destroyed activity"
+          stuckReasons += "View.mContext references a destroyed activity"
         } else {
           if (partOfWindowHierarchy && mWindowAttachCount > 0) {
             if (viewDetached) {
-              leakingReasons += "View detached yet still part of window view hierarchy"
+              stuckReasons += "View detached yet still part of window view hierarchy"
             } else {
               if (rootView != null && rootView["android.view.View", "mAttachInfo"]!!.value.isNullReference) {
-                leakingReasons += "View attached but root view ${rootView.instanceClassName} detached (attach disorder)"
+                stuckReasons += "View attached but root view ${rootView.instanceClassName} detached (attach disorder)"
               } else {
-                notLeakingReasons += "View attached"
+                expectedReasons += "View attached"
               }
             }
           }
@@ -204,9 +204,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         if (field != null) {
           if (field.value.asBoolean!!) {
-            leakingReasons += field describedWithValue "true"
+            stuckReasons += field describedWithValue "true"
           } else {
-            notLeakingReasons += field describedWithValue "false"
+            expectedReasons += field describedWithValue "false"
           }
         }
       }
@@ -225,9 +225,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
     ) {
       reporter.whenInstanceOf("android.app.Service") { instance ->
         if (instance.objectId in instance.graph.aliveAndroidServiceObjectIds) {
-          notLeakingReasons += "Service held by ActivityThread"
+          expectedReasons += "Service held by ActivityThread"
         } else {
-          leakingReasons += "Service not held by ActivityThread"
+          stuckReasons += "Service not held by ActivityThread"
         }
       }
     }
@@ -306,7 +306,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
               val mDestroyed = componentContext["android.app.Activity", "mDestroyed"]
               if (mDestroyed != null) {
                 if (mDestroyed.value.asBoolean!!) {
-                  leakingReasons += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed true"
+                  stuckReasons += "${instance.instanceClassSimpleName} wraps an Activity with Activity.mDestroyed true"
                 } else {
                   // We can't assume it's not leaking, because this context might have a shorter lifecycle
                   // than the activity. So we'll just add a label.
@@ -381,7 +381,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
   ACTIVITY_THREAD {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.app.ActivityThread") {
-        notLeakingReasons += "ActivityThread is a singleton"
+        expectedReasons += "ActivityThread is a singleton"
       }
     }
   },
@@ -391,7 +391,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.app.Application") {
-        notLeakingReasons += "Application is a singleton"
+        expectedReasons += "Application is a singleton"
       }
     }
   },
@@ -401,7 +401,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("android.view.inputmethod.InputMethodManager") {
-        notLeakingReasons += "InputMethodManager is a singleton"
+        expectedReasons += "InputMethodManager is a singleton"
       }
     }
   },
@@ -419,9 +419,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("android.app.Fragment") { instance ->
         val fragmentManager = instance["android.app.Fragment", "mFragmentManager"]!!
         if (fragmentManager.value.isNullReference) {
-          leakingReasons += fragmentManager describedWithValue "null"
+          stuckReasons += fragmentManager describedWithValue "null"
         } else {
-          notLeakingReasons += fragmentManager describedWithValue "not null"
+          expectedReasons += fragmentManager describedWithValue "not null"
         }
         val mTag = instance["android.app.Fragment", "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
@@ -448,9 +448,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val fragmentManager =
           instance.getOrThrow(ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mFragmentManager")
         if (fragmentManager.value.isNullReference) {
-          leakingReasons += fragmentManager describedWithValue "null"
+          stuckReasons += fragmentManager describedWithValue "null"
         } else {
-          notLeakingReasons += fragmentManager describedWithValue "not null"
+          expectedReasons += fragmentManager describedWithValue "not null"
         }
         val mTag = instance[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
@@ -472,8 +472,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
     ) {
       reporter.whenInstanceOf(ANDROIDX_FRAGMENT_CLASS_NAME) { instance ->
         when (val status = instance.androidXFragmentLifecycleStatus()) {
-          is AndroidXFragmentLifecycleStatus.Destroyed -> leakingReasons += status.reason
-          is AndroidXFragmentLifecycleStatus.Alive -> notLeakingReasons += status.reason
+          is AndroidXFragmentLifecycleStatus.Destroyed -> stuckReasons += status.reason
+          is AndroidXFragmentLifecycleStatus.Alive -> expectedReasons += status.reason
           is AndroidXFragmentLifecycleStatus.Unknown -> labels += status.label
         }
         val mTag = instance[ANDROIDX_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
@@ -501,9 +501,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mQuitting = instance["android.os.MessageQueue", "mQuitting"]
           ?: instance["android.os.MessageQueue", "mQuiting"]!!
         if (mQuitting.value.asBoolean!!) {
-          leakingReasons += mQuitting describedWithValue "true"
+          stuckReasons += mQuitting describedWithValue "true"
         } else {
-          notLeakingReasons += mQuitting describedWithValue "false"
+          expectedReasons += mQuitting describedWithValue "false"
         }
 
         val queueHead = instance["android.os.MessageQueue", "mMessages"]!!.valueAsInstance
@@ -587,9 +587,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val dead = instance.getOrThrow("mortar.MortarScope", "dead").value.asBoolean!!
         val scopeName = instance.getOrThrow("mortar.MortarScope", "name").value.readAsJavaString()
         if (dead) {
-          leakingReasons += "mortar.MortarScope.dead is true for scope $scopeName"
+          stuckReasons += "mortar.MortarScope.dead is true for scope $scopeName"
         } else {
-          notLeakingReasons += "mortar.MortarScope.dead is false for scope $scopeName"
+          expectedReasons += "mortar.MortarScope.dead is false for scope $scopeName"
         }
       }
     }
@@ -613,7 +613,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf(Thread::class) { instance ->
         val threadName = instance[Thread::class, "name"]!!.value.readAsJavaString()
         if (threadName == "main") {
-          notLeakingReasons += "the main thread always runs"
+          expectedReasons += "the main thread always runs"
         }
       }
     }
@@ -645,7 +645,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter.whenInstanceOf("android.view.ViewRootImpl") { instance ->
         val mViewField = instance["android.view.ViewRootImpl", "mView"]!!
         if (mViewField.value.isNullReference) {
-          leakingReasons += mViewField describedWithValue "null"
+          stuckReasons += mViewField describedWithValue "null"
         } else {
           // ViewRootImpl.mContext wasn't always here.
           val mContextField = instance["android.view.ViewRootImpl", "mContext"]
@@ -653,7 +653,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
             val mContext = mContextField.valueAsInstance!!
             val activityContext = mContext.unwrapActivityContext()
             if (activityContext != null && activityContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean == true) {
-              leakingReasons += "ViewRootImpl.mContext references a destroyed activity, did you forget to cancel toasts or dismiss dialogs?"
+              stuckReasons += "ViewRootImpl.mContext references a destroyed activity, did you forget to cancel toasts or dismiss dialogs?"
             }
           }
           labels += mViewField describedWithValue "not null"
@@ -694,7 +694,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val mDestroyed = instance["android.view.Window", "mDestroyed"]!!
 
         if (mDestroyed.value.asBoolean!!) {
-          leakingReasons += mDestroyed describedWithValue "true"
+          stuckReasons += mDestroyed describedWithValue "true"
         } else {
           // A dialog window could be leaking, destroy is only set to false for activity windows.
           labels += mDestroyed describedWithValue "false"
@@ -750,9 +750,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (tnInstance["android.widget.Toast\$TN", "mWM"]!!.value.isNonNullReference) {
           // mView is reset to null in android.widget.Toast.TN#handleHide
           if (tnInstance["android.widget.Toast\$TN", "mView"]!!.value.isNullReference) {
-            leakingReasons += "This toast is done showing (Toast.mTN.mWM != null && Toast.mTN.mView == null)"
+            stuckReasons += "This toast is done showing (Toast.mTN.mWM != null && Toast.mTN.mView == null)"
           } else {
-            notLeakingReasons += "This toast is showing (Toast.mTN.mWM != null && Toast.mTN.mView != null)"
+            expectedReasons += "This toast is showing (Toast.mTN.mWM != null && Toast.mTN.mView != null)"
           }
         }
       }
@@ -769,9 +769,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
           val stateName = state["java.lang.Enum", "name"]!!.valueAsInstance!!.readAsJavaString()!!
           val label = "Recomposer is in state $stateName"
           when (stateName) {
-            "ShutDown", "ShuttingDown" -> leakingReasons += label
+            "ShutDown", "ShuttingDown" -> stuckReasons += label
             "Inactive", "InactivePendingWork" -> labels += label
-            "PendingWork", "Idle" -> notLeakingReasons += label
+            "PendingWork", "Idle" -> expectedReasons += label
           }
         }
       }
@@ -785,9 +785,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
         val disposedField = instance["androidx.compose.runtime.CompositionImpl", "disposed"]
         if (disposedField != null) {
           if (disposedField.value.asBoolean!!) {
-            leakingReasons += "Composition disposed"
+            stuckReasons += "Composition disposed"
           } else {
-            notLeakingReasons += "Composition not disposed"
+            expectedReasons += "Composition not disposed"
           }
         } else {
           // Try the new "state" field (newer Compose versions)
@@ -795,8 +795,8 @@ enum class AndroidObjectInspectors : ObjectInspector {
           val stateField = instance["androidx.compose.runtime.CompositionImpl", "state"]
           if (stateField != null) {
             when (val stateValue = stateField.value.asInt!!) {
-              3 -> leakingReasons += "Composition disposed" // DISPOSED state
-              0 -> notLeakingReasons += "Composition running" // RUNNING state
+              3 -> stuckReasons += "Composition disposed" // DISPOSED state
+              0 -> expectedReasons += "Composition running" // RUNNING state
               1 -> labels += "Composition deactivated" // DEACTIVATED state
               2 -> labels += "Composition inconsistent" // INCONSISTENT state
               else -> labels += "Composition state: $stateValue"
@@ -872,7 +872,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         // Fragment.mViewLifecycleRegistry becomes DESTROYED when the fragment view is destroyed,
         // but the registry itself is still held in memory by the fragment.
         if (state != "DESTROYED") {
-          notLeakingReasons += "state is $state"
+          expectedReasons += "state is $state"
         } else {
           labels += "state = $state"
         }
@@ -906,7 +906,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.os.Binder") { instance ->
         val name = instance.instanceClassSimpleName
-        notLeakingReasons += "$name is a binder stub, and a stub stays in memory until the process on" +
+        expectedReasons += "$name is a binder stub, and a stub stays in memory until the process on" +
           " the other side gets GCed, so outliving what it was made for is by design"
         labels += "This says nothing about what $name holds. A stub has to be a *static* class, so that" +
           " it holds nothing it wasn't given, and every reference it was given has to be cleared when" +
@@ -979,17 +979,17 @@ private fun ObjectReporter.inspectContextImplOuterContext(
     val mDestroyed = outerContext["android.app.Activity", "mDestroyed"]?.value?.asBoolean
     if (mDestroyed != null) {
       if (mDestroyed) {
-        leakingReasons += "$prefix.mOuterContext is an instance of" +
+        stuckReasons += "$prefix.mOuterContext is an instance of" +
           " ${outerContext.instanceClassName} with Activity.mDestroyed true"
       } else {
-        notLeakingReasons += "$prefix.mOuterContext is an instance of " +
+        expectedReasons += "$prefix.mOuterContext is an instance of " +
           "${outerContext.instanceClassName} with Activity.mDestroyed false"
       }
     } else {
       labels += "$prefix.mOuterContext is an instance of ${outerContext.instanceClassName}"
     }
   } else if (outerContext instanceOf "android.app.Application") {
-    notLeakingReasons += "$prefix.mOuterContext is an instance of" +
+    expectedReasons += "$prefix.mOuterContext is an instance of" +
       " ${outerContext.instanceClassName} which extends android.app.Application"
   } else if (outerContext.objectId == contextImpl.objectId) {
     labels += "$prefix.mOuterContext == ContextImpl.this: not tied to any particular lifecycle"
@@ -1018,8 +1018,8 @@ private fun ObjectReporter.applyFromField(
   val prefix = "${field.declaringClass.simpleName}#${field.name}:"
 
   labels += delegateReporter.labels.map { "$prefix $it" }
-  leakingReasons += delegateReporter.leakingReasons.map { "$prefix $it" }
-  notLeakingReasons += delegateReporter.notLeakingReasons.map { "$prefix $it" }
+  stuckReasons += delegateReporter.stuckReasons.map { "$prefix $it" }
+  expectedReasons += delegateReporter.expectedReasons.map { "$prefix $it" }
 }
 
 internal val HeapInstance.lifecycleRegistryState: String
