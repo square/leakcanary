@@ -20,7 +20,7 @@ import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
 import shark.dive.leakLabel
-import shark.dive.leakSolvingProgress
+import shark.dive.leakSolvingProgressRatio
 import shark.dive.leakStatusConflictsWith
 import shark.dive.nodeIdText
 import shark.dive.outlineOf
@@ -387,8 +387,9 @@ internal class AgentTools(
       "**`$LEAK_SOLVED` is what an investigation works towards.** It is true once the verdicts recorded " +
       "about these objects leave exactly one reference that could be at fault, and then `faultyReference` " +
       "names it. Until then `$SUSPECT_REFERENCE_COUNT` is how many are still candidates and " +
-      "`$LEAK_SOLVING_PROGRESS` is the share of this path's references your verdicts have ruled out. You do " +
-      "not decide which reference is at fault and you are never asked to — you decide, object by object, " +
+      "`$LEAK_SOLVING_PROGRESS_RATIO` is the share of this path's references your verdicts have ruled " +
+      "out, 0 to 1 rather than a percentage. You do not decide which reference is at fault and you are " +
+      "never asked to — you decide, object by object, " +
       "whether that object's own work is done, with $SET_VERDICT, and the last verdict that narrows the " +
       "stretch to one leaves the heap dump naming the reference.\n\n" +
       "**`leakTrace` is the leak trace LeakCanary prints, and the only form of it to show a person.** " +
@@ -525,7 +526,7 @@ internal class AgentTools(
       "solveConflicts is true, in which case the ones it disagrees with are flipped and say so.\n\n" +
       "**Pass `$SOLVING_LEAK_OF` on every call of a leak investigation.** It is the stuck object you chose " +
       "to solve, and it turns the answer into what this verdict did to that leak: the candidate references " +
-      "before and after, `$LEAK_SOLVING_PROGRESS`, the narrowed suspect path, and `$LEAK_SOLVED` when " +
+      "before and after, `$LEAK_SOLVING_PROGRESS_RATIO`, the narrowed suspect path, and `$LEAK_SOLVED` when " +
       "nothing is left to narrow. Without it the answer only says the verdict was recorded, and you would " +
       "have to spend a $PATH_FROM_GC_ROOT to find out whether you got anywhere.",
     schema = schema(
@@ -601,8 +602,8 @@ internal class AgentTools(
         putJsonObject("narrowedBy") {
           put("suspectReferencesBefore", before.suspectReferenceCount())
           put("suspectReferencesAfter", state.suspectReferenceCount)
-          put("progressBefore", AgentJson.roundedProgress(before.leakSolvingProgress()))
-          put("progressAfter", AgentJson.roundedProgress(state.progress))
+          put("progressRatioBefore", AgentJson.roundedRatio(before.leakSolvingProgressRatio()))
+          put("progressRatioAfter", AgentJson.roundedRatio(state.progressRatio))
         }
         put("path", AgentJson.rootPath(after))
         put("whatThePathSays", AgentJson.pathVerdicts(state))
@@ -968,8 +969,8 @@ internal class PathVerdicts(
   val suspectReferences: List<String>,
   /** The objects between the two verdicts that have none, whose verdicts are what narrow the candidates. */
   val undecided: List<RootPathStep>,
-  /** How far the verdicts have narrowed the search. See [shark.dive.leakSolvingProgress]. */
-  val progress: Double,
+  /** How far the verdicts have narrowed the search. See [shark.dive.leakSolvingProgressRatio]. */
+  val progressRatio: Double,
   /** What to do next, and for a solved leak what is left that the heap dump cannot answer. */
   val next: String
 ) {
@@ -998,14 +999,14 @@ internal enum class PathState {
 private fun RootPath.verdictState(): PathVerdicts {
   val steps = steps
   val suspects = suspectReferences()
-  val progress = leakSolvingProgress()
+  val progressRatio = leakSolvingProgressRatio()
   if (steps.isEmpty()) {
     return PathVerdicts(
       faultyStep = null,
       state = PathState.NO_PATH,
       suspectReferences = suspects,
       undecided = emptyList(),
-      progress = progress,
+      progressRatio = progressRatio,
       next = "Nothing this heap dump was walked from reaches that object, so there is no path to read."
     )
   }
@@ -1017,7 +1018,7 @@ private fun RootPath.verdictState(): PathVerdicts {
       state = PathState.NOTHING_STUCK,
       suspectReferences = suspects,
       undecided = emptyList(),
-      progress = progress,
+      progressRatio = progressRatio,
       next = "No object on this path is ${LeakStatus.STUCK.name}, so there is no fault for a reference to " +
         "be at: one is named only once an object below it is known not to belong. Record the object whose " +
         "work you can show is done as ${LeakStatus.STUCK.name}, and the path narrows from there."
@@ -1029,7 +1030,7 @@ private fun RootPath.verdictState(): PathVerdicts {
       state = PathState.NOTHING_EXPECTED_ABOVE,
       suspectReferences = suspects,
       undecided = emptyList(),
-      progress = progress,
+      progressRatio = progressRatio,
       next = "${steps[firstStuck].text()} is ${LeakStatus.STUCK.name} and nothing above it is " +
         "${LeakStatus.EXPECTED.name}, so whatever holds it may be something that should have let go too " +
         "and the fault could be further up than this path reaches. Find the highest object here that is " +
@@ -1043,7 +1044,7 @@ private fun RootPath.verdictState(): PathVerdicts {
       state = PathState.NARROWED,
       suspectReferences = suspects,
       undecided = undecided,
-      progress = progress,
+      progressRatio = progressRatio,
       next = "The fault is at one of those references, and what settles which is the objects between them " +
         "that have no verdict: one undecided object leaves the reference into it and the reference out of " +
         "it, and its own verdict rules one of them out. They are " +
@@ -1059,7 +1060,7 @@ private fun RootPath.verdictState(): PathVerdicts {
       state = PathState.REFERENCE_UNREADABLE,
       suspectReferences = suspects,
       undecided = emptyList(),
-      progress = progress,
+      progressRatio = progressRatio,
       next = "${faulty.text()} is the one ${LeakStatus.STUCK.name} object under an " +
         "${LeakStatus.EXPECTED.name} one, but reading the object above it again didn't find the field it " +
         "was reached through, so there is no reference to name. $DESCRIBE_OBJECT on the object above says " +
@@ -1070,7 +1071,7 @@ private fun RootPath.verdictState(): PathVerdicts {
     state = PathState.SOLVED,
     suspectReferences = suspects,
     undecided = emptyList(),
-    progress = progress,
+    progressRatio = progressRatio,
     next = "${reference.leakLabel()} is the faulty reference: it is read on an object meant to be in " +
       "memory and points at one that should be gone. This leak is solved and there is no further call to " +
       "make about it — what is left is not in the heap dump. Read the code that assigns that field at the " +
@@ -1167,7 +1168,7 @@ private const val TAKE_NOTE = "take_note"
  * replaced: the heap dump says a leak is solved, and nobody claims it is. See [AgentTools].
  */
 private const val LEAK_SOLVED = "leakSolved"
-private const val LEAK_SOLVING_PROGRESS = "leakSolvingProgress"
+private const val LEAK_SOLVING_PROGRESS_RATIO = "leakSolvingProgressRatio"
 private const val SUSPECT_REFERENCE_COUNT = "suspectReferenceCount"
 private const val SHOW = "show"
 internal const val LIST_DEVICES = "list_devices"

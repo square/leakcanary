@@ -1221,7 +1221,7 @@ scored that column was scoring transcription, and no arrangement of refusals wou
 measured.
 
 So the job was restated: **an agent settles the state of the objects it can settle, and Shark Dive says when
-one reference is left.** `RootPath.isLeakSolved()` is that fact, `leakSolvingProgress()` is how far off it
+one reference is left.** `RootPath.isLeakSolved()` is that fact, `leakSolvingProgressRatio()` is how far off it
 is, and both are read off the verdicts rather than claimed by anybody. What replaced the refusal is the
 answer carrying the distance: `set_verdict` takes `solvingLeakOf`, names the stuck object the verdict is in
 service of, and answers with the candidate count and the progress on both sides of the verdict — so a verdict

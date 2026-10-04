@@ -133,7 +133,7 @@ this way, each of which was several before:
 | An object's two sizes | `RETAINED`, `SHALLOW` and `retainedText` in `DetailsPanel.kt` |
 | A rectangle that isn't one object | `formatObjectCount` — a count, whichever kind of pile it is |
 | Which reference a leak is | `PathReference.leakLabel()`, `RootPath.faultyReference()`, and `RootPath.suspectReferences()` while it is still several |
-| Whether that leak is worked out | `RootPath.isLeakSolved()`, and `leakSolvingProgress()` for how far off it is |
+| Whether that leak is worked out | `RootPath.isLeakSolved()`, and `leakSolvingProgressRatio()` for how far off it is |
 | Whether an object is meant to be in memory | `LeakStatus`: `STUCK`, `EXPECTED`, `UNKNOWN`, nothing else |
 | What a place is called | `Place.title` |
 
@@ -191,9 +191,16 @@ over `suspectReferenceIndexes` and never a count of steps or of objects.
 
 **And a count stands beside the candidates, never instead of them.** `RootPath.suspectReferences()` is which
 references they are and the undecided objects are which objects to go and settle; the count and
-`RootPath.leakSolvingProgress()` say how far from one there is left to go, which is what makes a verdict's
-answer readable as progress without re-reading the path. `PathVerdicts` is all of it in one shape for an
-agent. Taking the candidates away and leaving the number would put this back where it started.
+`RootPath.leakSolvingProgressRatio()` say how far from one there is left to go, which is what makes a
+verdict's answer readable as progress without re-reading the path. `PathVerdicts` is all of it in one shape
+for an agent. Taking the candidates away and leaving the number would put this back where it started.
+
+**And it is a ratio rather than a percentage, which is why every name for it ends in `Ratio`.** 0 to 1 and 0
+to 100 are both ways to spell a share, so a number that says neither gets read as whichever the reader
+expects — 0.2 taken for 0.2% is a fifth of a percent of the way through. The suffix is
+[Prometheus' convention](https://prometheus.io/docs/practices/naming/) and it goes on every spelling, the
+JSON fields included: `leakSolvingProgressRatio`, and `progressRatioBefore`/`progressRatioAfter` on a
+verdict's `narrowedBy`.
 
 **`RootPath.isLeakSolved()` is the end of an investigation, and it is read off the heap dump.** A leak is
 solved when exactly one reference is left a candidate, which is the same question `faultyReference()`

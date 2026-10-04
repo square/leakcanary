@@ -297,7 +297,7 @@ internal object AgentJson {
     put("suspectReferenceCount", verdicts.suspectReferenceCount)
     // Rounded, because the digits past the second are a difference no reader acts on and a number that
     // changes in the fifth decimal reads as progress where there was none.
-    put("leakSolvingProgress", roundedProgress(verdicts.progress))
+    put("leakSolvingProgressRatio", roundedRatio(verdicts.progressRatio))
     putJsonArray("suspectReferences") { verdicts.suspectReferences.forEach { add(it) } }
     putJsonArray("undecidedObjects") {
       verdicts.undecided.forEach { step ->
@@ -501,14 +501,19 @@ internal object AgentJson {
   fun leakTraceText(path: RootPath): String? = path.leakTrace()?.toString()
 
   /**
-   * A progress share as every answer carries it: rounded to two decimals.
+   * A ratio as every answer carries one: still 0 to 1, rounded to two decimals.
    *
    * Rounded because the digits past the second are a difference nobody acts on, and a figure that moves in
    * the fifth decimal reads as progress where there was none. One function so that the pair `set_verdict`
    * answers with — before and after — is rounded the same way at both ends, which is what makes comparing
    * them mean anything.
+   *
+   * **This multiplies by a hundred and divides by it again, and that is two decimal places and not a
+   * conversion to percent** — which is a sentence worth having here because somebody read it as one. The
+   * name of the constant is half of what makes that readable and the `Ratio` on everything carrying the
+   * number out of here is the other half; [shark.dive.leakSolvingProgressRatio] has why.
    */
-  fun roundedProgress(progress: Double): Double = round(progress * PROGRESS_SCALE) / PROGRESS_SCALE
+  fun roundedRatio(ratio: Double): Double = round(ratio * TWO_DECIMAL_PLACES) / TWO_DECIMAL_PLACES
 
-  private const val PROGRESS_SCALE = 100.0
+  private const val TWO_DECIMAL_PLACES = 100.0
 }

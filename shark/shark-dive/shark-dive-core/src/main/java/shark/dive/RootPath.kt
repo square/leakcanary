@@ -113,7 +113,7 @@ fun RootPath.isLeakSolved(): Boolean = faultyReference() != null
 fun RootPath.suspectReferenceCount(): Int = suspectReferences().size
 
 /**
- * Every reference on this path, which is what [leakSolvingProgress] measures the candidates against.
+ * Every reference on this path, which is what [leakSolvingProgressRatio] measures the candidates against.
  *
  * One less than the steps for a path a GC root starts, whose first object no field points at — and the
  * filter rather than that subtraction because a step below the first can be missing its reference too, see
@@ -128,6 +128,14 @@ fun RootPath.referenceCount(): Int = steps.count { it.step.reference != null }
  * so this is the share of them the verdicts have eliminated. What it is for is being able to tell a verdict
  * that moved the investigation from one that didn't, without re-reading the whole path.
  *
+ * **`Ratio` is in the name because 0 to 1 is not the only way to spell a share**, and the other one is a
+ * percentage: a reader who takes 0.2 for 0.2% has read this as a fifth of a percent of the way through. The
+ * suffix is [Prometheus' convention](https://prometheus.io/docs/practices/naming/) for exactly this, where a
+ * `_ratio` is 0 to 1 and anything 0 to 100 is named otherwise, and every spelling of this number on every
+ * surface carries it. There was no suffix, and the function rounding it for an agent multiplied by a
+ * constant called `PROGRESS_SCALE` and divided by it again, which is two decimal places and reads as a
+ * conversion to percent — it was read that way the first time somebody looked.
+ *
  * **It does not reach 1, and that is not an off-by-one.** A solved leak still has one candidate — the faulty
  * reference itself — so a solved path of twenty references reads 0.95. The number that says an investigation
  * is over is [isLeakSolved], and leaving this one short of 1 is what keeps the two from being read as the
@@ -136,7 +144,7 @@ fun RootPath.referenceCount(): Int = steps.count { it.step.reference != null }
  * 0 for a path with nothing stuck on it, where no reference has been ruled out because the search has not
  * begun: [suspectReferences] is empty there, which through the formula alone would read as 1.
  */
-fun RootPath.leakSolvingProgress(): Double {
+fun RootPath.leakSolvingProgressRatio(): Double {
   val candidates = suspectReferenceCount()
   val references = referenceCount()
   if (candidates == 0 || references == 0) {

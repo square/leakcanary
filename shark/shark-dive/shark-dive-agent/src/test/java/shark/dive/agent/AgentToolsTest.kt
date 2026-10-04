@@ -442,8 +442,8 @@ class AgentToolsTest {
     // Nothing to be at fault, so nothing named: a path with no stuck object on it has no candidates either.
     assertThat(says.array("suspectReferences")).isEmpty()
     // And no progress, which the formula alone would read as finished: no candidates out of two references
-    // is `1 - 0/2`. A search that hasn't begun is 0. See [shark.dive.leakSolvingProgress].
-    assertThat(says.text(LEAK_SOLVING_PROGRESS)).isEqualTo("0.0")
+    // is `1 - 0/2`. A search that hasn't begun is 0. See [shark.dive.leakSolvingProgressRatio].
+    assertThat(says.text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
     assertThat(says.text("next")).contains(LeakStatus.STUCK.name)
   }
 
@@ -461,7 +461,7 @@ class AgentToolsTest {
     assertThat(answer.text("leakTrace")).startsWith("┬───").contains(ACTIVITY_CLASS_NAME)
     // Two of the two references are still candidates, so nothing has been ruled out yet. Which is the number
     // a verdict moves, and the reason it is here rather than left to be worked out from the two lists.
-    assertThat(answer.obj("whatThePathSays").text(LEAK_SOLVING_PROGRESS)).isEqualTo("0.0")
+    assertThat(answer.obj("whatThePathSays").text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
   }
 
   @Test
@@ -519,10 +519,10 @@ class AgentToolsTest {
     val narrowed = answer.obj("narrowedBy")
     assertThat(narrowed.text("suspectReferencesBefore")).isEqualTo("2")
     assertThat(narrowed.text("suspectReferencesAfter")).isEqualTo("1")
-    assertThat(narrowed.text("progressBefore")).isEqualTo("0.0")
+    assertThat(narrowed.text("progressRatioBefore")).isEqualTo("0.0")
     // One of this path's two references ruled out. Not 1.0, and that is not an off-by-one: a solved leak
     // still has the faulty reference as a candidate, so what says it is over is `leakSolved`.
-    assertThat(narrowed.text("progressAfter")).isEqualTo("0.5")
+    assertThat(narrowed.text("progressRatioAfter")).isEqualTo("0.5")
   }
 
   @Test
@@ -1342,7 +1342,7 @@ class AgentToolsTest {
 
     /** The two fields an investigation is worked towards, on every answer that can move them. */
     const val LEAK_SOLVED = "leakSolved"
-    const val LEAK_SOLVING_PROGRESS = "leakSolvingProgress"
+    const val LEAK_SOLVING_PROGRESS_RATIO = "leakSolvingProgressRatio"
 
     /**
      * A second and a third heap dump, as paths, for the tests about more than one being open.

@@ -458,7 +458,7 @@ cannot argue with:
   "leakSolved": false,
   "state": "NARROWED",
   "suspectReferenceCount": 2,
-  "leakSolvingProgress": 0.67,
+  "leakSolvingProgressRatio": 0.67,
   "suspectReferences": ["ExampleApplication.settings", "SettingsStore.context"],
   "undecidedObjects": [{ "object": "0x12e9ed60", "className": "com.example.SettingsStore" }],
   "next": "The fault is at one of those references, and what settles which is the objects between them that
@@ -469,7 +469,8 @@ cannot argue with:
 Two references and one object to go and read, rather than a number of steps — one undecided object leaves the
 reference into it and the reference out of it, and its own verdict rules one of them out. Pass
 `solvingLeakOf=<the stuck object>` on a `set_verdict` and its answer says what that verdict did to the leak:
-the candidates before and after, the progress, and `leakSolved` when there is nothing left to narrow.
+the candidates before and after, the progress ratio, and `leakSolved` when there is nothing left to
+narrow.
 
 Nothing here judges the answer — no model is called and nothing is scored. An agent that has narrowed a path
 to three unexplained steps has `leakSolved: false` and the three objects to go and read, however sure it is
