@@ -60,12 +60,35 @@ readonly TITLE="${SHARK_HARNESS_TITLE:-Agent harness $STARTED}"
 # see `run_the_agent`.
 readonly CLIENT_CONFIG_DIRECTORY="$HARNESS_DIRECTORY/claude"
 readonly LOGS_DIRECTORY="${SHARK_DIVE_DIR:-$HOME/.shark-dive}/logs"
+# The client's session, named here rather than left to the client, which is what makes its transcript findable
+# before it exists — see `WHERE_THE_TRANSCRIPT_IS`. Lower case because the option takes a UUID and `uuidgen`
+# on macOS prints upper case.
+readonly SESSION_ID="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+readonly WATCH_TRANSCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/watch-transcript.sh"
 # Said twice, once by the run that starts an agent and once by the command printed for driving one yourself,
 # and it is the same sentence both times on purpose: that log is what this exercise is for as much as the
 # answer is, so neither way of starting a run should be the one that forgets to say where it is.
 readonly WHERE_THE_LOG_IS="Once a heap dump is open, the Shark Dive agent logs (list of commands + reasons) are in the newest file in $LOGS_DIRECTORY:
 
   tail -f \"\$(ls -t $LOGS_DIRECTORY/*.log | head -1)\""
+# And the other half of what a run did: every call it made to everything that isn't Shark Dive, and what came
+# back. **Neither of the two things this script prints carries any of that** — the agent's output is its answer
+# and the Shark Dive log is the commands that reached a window — so a run that went wrong somewhere else is a
+# run with nothing written down about where. The client writes it all to a transcript as it goes, and
+# `watch-transcript.sh` is the reader; this is said by both ways of starting a run for the same reason the log
+# above is.
+#
+# **It names this run rather than letting the default find one**, which matters more here than it looks:
+# harness directories are never deleted and two runs at once is the normal case, so the newest is the right
+# answer only until somebody starts a second one — and then the command printed by the first quietly follows
+# the second. The reasoning text is the one thing the transcript hasn't got; `watch-transcript.sh` has what was
+# measured about that and why no option brings it back.
+readonly WHERE_THE_TRANSCRIPT_IS="Every call this run makes, and what comes back, is in the client's transcript as it is written:
+
+  $WATCH_TRANSCRIPT \\
+    $HARNESS_DIRECTORY
+
+Add --html for the same thing rendered in a browser, updating as the run goes."
 
 main() {
   local heap_dump="" model="${SHARK_HARNESS_MODEL:-}" start_the_agent=true
@@ -100,6 +123,11 @@ main() {
   local launcher="$app/Contents/MacOS/Shark Dive"
 
   write_prompt "$heap_dump" "$launcher" >"$HARNESS_DIRECTORY/prompt.txt"
+  # Which transcript belongs to this run, written down rather than worked out: the client keys its projects
+  # directory on the *physical* working directory, and `$TMPDIR` here is a symlink into `/private/var`, so a
+  # path built from `$HARNESS_DIRECTORY` is wrong on this machine and right on Linux. `watch-transcript.sh`
+  # reads this and globs for it.
+  echo "$SESSION_ID" >"$HARNESS_DIRECTORY/session-id.txt"
 
   echo "Copied the Shark Dive app prompt.txt to $HARNESS_DIRECTORY."
   if [[ "$start_the_agent" == true ]]; then
@@ -209,6 +237,8 @@ Its output is below as well as in $HARNESS_DIRECTORY/agent-output.txt.
 
 $WHERE_THE_LOG_IS
 
+$WHERE_THE_TRANSCRIPT_IS
+
 END
   local -a model_option=()
   [[ -n "$model" ]] && model_option=(--model "$model")
@@ -222,6 +252,7 @@ END
     claude \
       --print "$(cat "$HARNESS_DIRECTORY/prompt.txt")" \
       "${model_option[@]+"${model_option[@]}"}" \
+      --session-id "$SESSION_ID" \
       --permission-mode bypassPermissions \
       </dev/null
   ) | tee "$HARNESS_DIRECTORY/agent-output.txt"; then
@@ -234,6 +265,17 @@ END
 # directory. The isolation is in these arguments rather than in the script, so a command that drops
 # `CLAUDE_CONFIG_DIR` is a run with this machine's memories in it, and one that drops the secure storage
 # variable beside it is a run that is not logged in; see `run_the_agent` for what each is for.
+#
+# **`--session-id` is load-bearing in the same way**, and less obviously so, since a run without it works
+# perfectly and simply cannot be followed: the client picks an id of its own, writes the transcript under that
+# name, and the only way left to find it is to take the newest file in the directory and hope. It is the one
+# argument here that is about reading the run rather than about running it, which is why it is worth saying
+# that dropping it is what makes `watch-transcript.sh` useless.
+#
+# An interactive session is the case this is most often wanted for, and there the transcript has a second
+# reader that needs none of this: **ctrl+o** toggles the client's own transcript view, which expands the tool
+# calls and the reasoning the normal view folds away. A `--print` run has no such view, which is the whole
+# reason the file is worth following.
 print_the_command() {
   local model="$1"
   local model_line=""
@@ -246,13 +288,19 @@ Throw an agent at it:
   cd $HARNESS_DIRECTORY
   CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY CLAUDE_SECURESTORAGE_CONFIG_DIR= claude \\
     --print "\$(cat prompt.txt)" \\
-$model_line    --permission-mode bypassPermissions
+$model_line    --session-id $SESSION_ID \\
+    --permission-mode bypassPermissions
 
 Started from that directory, so nothing of this repository is in what the session is told, and the prompt
 beside you is the whole of it. Nothing opens the heap dump: the window is the agent's to open, which is the
 first thing an investigation can get wrong.
 
 $WHERE_THE_LOG_IS
+
+$WHERE_THE_TRANSCRIPT_IS
+
+Which is the same two readers either way, because --session-id above is what names the transcript they read.
+Drop it and the client picks a name nothing can predict.
 
 END
 }
@@ -279,6 +327,9 @@ Usage: start-harness.sh [--print-command] [--model <name>] [heap-dump.hprof]
 
 Builds the app, copies it into a directory of its own, and starts an agent on one heap dump. Nothing opens the
 dump and nothing stages a skill — the agent is given the launcher and finds out what it takes from --help.
+
+Either way of starting a run, watch-transcript.sh beside this follows every call it makes and everything that
+comes back, as it happens. See it for what that file is, and for what it doesn't carry.
 
   --print-command  Stage everything and print the command instead of running it, for driving a client
                    yourself. Default is to start the investigation.
