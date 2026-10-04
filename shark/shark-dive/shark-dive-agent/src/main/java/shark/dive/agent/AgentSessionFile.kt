@@ -656,10 +656,10 @@ private fun JsonObject.faultyReferenceIfSolved(): String? {
  * Which heap dumps an answer said were open, which is the second thing read off an answer rather than off
  * the arguments. See [AgentSessionCall.openHeapDumps].
  *
- * Only `list_heap_dumps`, and for the reason `outcomeOfTool` reads only the two calls that solve a leak: this is the one call
- * whose answer is not about a heap dump but *is* a list of them, and a row saying "asked which dumps are
- * open" without saying which is a row that withholds the answer it is a record of. The paths, since a window
- * is opened on a path, and a path is the whole of what that answer names a dump by.
+ * Only `list_heap_dumps`, and for the reason [outcomeOfTool] reads only the two calls that answer with a
+ * path: this is the one call whose answer is not about a heap dump but *is* a list of them, and a row saying
+ * "asked which dumps are open" without saying which is a row that withholds the answer it is a record of.
+ * The paths, since a window is opened on a path, and a path is the whole of what that answer names a dump by.
  */
 internal fun openHeapDumpsOfTool(
   tool: String,
