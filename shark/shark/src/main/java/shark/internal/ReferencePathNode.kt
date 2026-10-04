@@ -9,7 +9,7 @@ import shark.HeapObject.HeapPrimitiveArray
 import shark.LeakTrace
 import shark.LeakTrace.GcRootType
 import shark.LeakTraceObject
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceObject.ObjectType.ARRAY
 import shark.LeakTraceObject.ObjectType.CLASS
 import shark.LeakTraceObject.ObjectType.INSTANCE
@@ -82,8 +82,8 @@ fun HeapGraph.invalidObjectIdErrorMessage(node: ReferencePathNode): String {
           type = objectType,
           className = className,
           labels = emptySet(),
-          leakingStatus = UNKNOWN,
-          leakingStatusReason = "",
+          verdict = UNKNOWN,
+          verdictReason = "",
           retainedHeapByteSize = null,
           retainedObjectCount = null
         )
@@ -91,8 +91,8 @@ fun HeapGraph.invalidObjectIdErrorMessage(node: ReferencePathNode): String {
         type = INSTANCE,
         className = "UnknownObject${node.objectId}",
         labels = emptySet(),
-        leakingStatus = UNKNOWN,
-        leakingStatusReason = "",
+        verdict = UNKNOWN,
+        verdictReason = "",
         retainedHeapByteSize = null,
         retainedObjectCount = null
       )

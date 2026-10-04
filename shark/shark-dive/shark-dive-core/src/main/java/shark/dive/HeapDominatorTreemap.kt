@@ -525,8 +525,8 @@ class HeapDominatorTreemap internal constructor(
     overrides: LeakStatusOverrides
   ): InspectedPathObject = InspectedPathObject(
     simpleClassName = className.substringAfterLast('.'),
-    leakingReasons = leakingReasons,
-    notLeakingReasons = notLeakingReasons,
+    stuckReasons = stuckReasons,
+    expectedReasons = expectedReasons,
     setByHand = overrides[heapObject.objectId]
   )
 

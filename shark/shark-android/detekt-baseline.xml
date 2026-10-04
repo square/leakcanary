@@ -50,7 +50,7 @@
     <ID>MultiLineIfElse:AndroidObjectInspectors.kt$AndroidObjectInspectors.TOAST$false</ID>
     <ID>MultiLineIfElse:AndroidObjectInspectors.kt$AndroidObjectInspectors.VIEW_ROOT_IMPL$""</ID>
     <ID>MultiLineIfElse:HprofRetainedHeapPerfTest.kt$HprofRetainedHeapPerfTest$""</ID>
-    <ID>MultiLineIfElse:LegacyHprofTest.kt$LegacyHprofTest$throw IllegalStateException( "Unexpected, should have 1 leaking status ${reporter.leakingReasons} or one label ${reporter.labels}" )</ID>
+    <ID>MultiLineIfElse:LegacyHprofTest.kt$LegacyHprofTest$throw IllegalStateException( "Unexpected, should have 1 stuck reason ${reporter.stuckReasons} or one label ${reporter.labels}" )</ID>
     <ID>NoConsecutiveBlankLines:AndroidReferenceMatchers.kt$ </ID>
     <ID>NoConsecutiveBlankLines:AndroidReferenceMatchers.kt$AndroidReferenceMatchers.ACTIVITY_CHOOSE_MODEL$ </ID>
     <ID>SpacingAroundCurly:AndroidResourceIdNamesTest.kt$AndroidResourceIdNamesTest${</ID>

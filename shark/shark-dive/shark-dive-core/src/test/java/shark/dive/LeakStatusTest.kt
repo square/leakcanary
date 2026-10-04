@@ -144,23 +144,23 @@ private fun unknown(simpleClassName: String) = inspected(simpleClassName)
 private fun leaking(
   simpleClassName: String,
   reason: String = "$simpleClassName#mDestroyed is true"
-) = inspected(simpleClassName, leakingReasons = setOf(reason))
+) = inspected(simpleClassName, stuckReasons = setOf(reason))
 
 private fun notLeaking(simpleClassName: String) =
-  inspected(simpleClassName, notLeakingReasons = setOf("$simpleClassName#mDestroyed is false"))
+  inspected(simpleClassName, expectedReasons = setOf("$simpleClassName#mDestroyed is false"))
 
 /** An object the inspectors say is leaking and say is not, which real ones do disagree about. */
 private fun conflicted(simpleClassName: String) = inspected(
   simpleClassName,
-  leakingReasons = setOf("$simpleClassName#mDestroyed is true"),
-  notLeakingReasons = setOf("$simpleClassName#mDestroyed is false")
+  stuckReasons = setOf("$simpleClassName#mDestroyed is true"),
+  expectedReasons = setOf("$simpleClassName#mDestroyed is false")
 )
 
 private fun inspected(
   simpleClassName: String,
-  leakingReasons: Set<String> = emptySet(),
-  notLeakingReasons: Set<String> = emptySet()
-) = InspectedPathObject(simpleClassName, leakingReasons, notLeakingReasons)
+  stuckReasons: Set<String> = emptySet(),
+  expectedReasons: Set<String> = emptySet()
+) = InspectedPathObject(simpleClassName, stuckReasons, expectedReasons)
 
 /** The same object with someone's own answer on it. The object id is only what the reason is filed under. */
 private fun setByHand(
@@ -169,7 +169,7 @@ private fun setByHand(
   reason: String
 ) = InspectedPathObject(
   simpleClassName = inspected.simpleClassName,
-  leakingReasons = inspected.leakingReasons,
-  notLeakingReasons = inspected.notLeakingReasons,
+  stuckReasons = inspected.stuckReasons,
+  expectedReasons = inspected.expectedReasons,
   setByHand = LeakStatusOverride(objectId = 0x42, status = status, reason = reason)
 )

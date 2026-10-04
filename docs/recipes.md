@@ -220,7 +220,7 @@ Sometimes a 3rd party library provides its own activities or fragments which con
 
 Working out whether an object in a leak trace should still be in memory is something you do by reading your own code, and the answer is a property of the type, not of that one heap dump — so it will hold the next time too. An `ObjectInspector` is how you write that conclusion down once and have LeakCanary reach it on its own from then on, [narrowing the suspect references](fundamentals-fixing-a-memory-leak.md#2-narrow-down-the-suspect-references) automatically.
 
-An inspector is called for every object in a leak trace. Add `leakingReasons` or `notLeakingReasons` to state a conclusion, and `labels` to attach information that helps without settling anything:
+An inspector is called for every object in a leak trace. Add `stuckReasons` to say an object should be gone and isn't, or `expectedReasons` to say it is legitimately in memory — those are the two verdicts a leak trace prints as `Verdict: Stuck` and `Verdict: Expected`. Add `labels` to attach information that helps without settling anything:
 
 ```kotlin
 class DebugExampleApplication : ExampleApplication() {
@@ -242,9 +242,9 @@ class DebugExampleApplication : ExampleApplication() {
       reporter.whenInstanceOf("com.mmvm.SomeViewModel") { instance ->
         val destroyedField = instance["com.mmvm.SomeViewModel", "destroyed"]!!
         if (destroyedField.value.asBoolean!!) {
-          leakingReasons += "SomeViewModel.destroyed is true"
+          stuckReasons += "SomeViewModel.destroyed is true"
         } else {
-          notLeakingReasons += "SomeViewModel.destroyed is false"
+          expectedReasons += "SomeViewModel.destroyed is false"
         }
       }
     }
@@ -278,16 +278,16 @@ val jankStatsInspector = ObjectInspector { reporter ->
     val attachInfo = decorView?.get("android.view.View", "mAttachInfo")
     if (attachInfo != null) {
       if (attachInfo.value.isNullReference) {
-        leakingReasons += "JankStats is retaining a detached DecorView"
+        stuckReasons += "JankStats is retaining a detached DecorView"
       } else {
-        notLeakingReasons += "JankStats is retaining an attached DecorView"
+        expectedReasons += "JankStats is retaining an attached DecorView"
       }
     }
   }
 }
 ```
 
-Every step returns null when the field or the class isn't what you expected, so an inspector written this way says nothing rather than saying something wrong on a device where the internals differ. That matters: a wrong `notLeakingReasons` hides the object that was actually holding the leak.
+Every step returns null when the field or the class isn't what you expected, so an inspector written this way says nothing rather than saying something wrong on a device where the internals differ. That matters: a wrong `expectedReasons` hides the object that was actually holding the leak.
 
 [The LeakCanary Method](https://engineering.block.xyz/blog/the-leakcanary-method) walks through the investigation these two inspectors came out of.
 

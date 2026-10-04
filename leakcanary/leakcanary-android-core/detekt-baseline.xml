@@ -49,7 +49,6 @@
     <ID>SpacingAroundCurly:TvEventListener.kt$TvEventListener${</ID>
     <ID>SpacingAroundKeyword:InternalLeakCanary.kt$InternalLeakCanary$for</ID>
     <ID>SpacingAroundKeyword:LogcatEventListener.kt$LogcatEventListener$when</ID>
-    <ID>StringTemplate:DisplayLeakAdapter.kt$DisplayLeakAdapter$${leakingStatusReason}</ID>
     <ID>StringTemplate:LeakScreen.kt$LeakScreen$${word}</ID>
   </CurrentIssues>
 </SmellBaseline>

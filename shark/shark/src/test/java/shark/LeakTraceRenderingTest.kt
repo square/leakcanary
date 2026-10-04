@@ -37,11 +37,11 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -71,11 +71,11 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -100,7 +100,7 @@ class LeakTraceRenderingTest {
             reporter: ObjectReporter
           ) {
             reporter.whenInstanceOf("ClassB") {
-              leakingReasons += "because reasons"
+              stuckReasons += "because reasons"
             }
           }
         }), leakingObjectFinder = FilteringLeakingObjectFinder(
@@ -115,15 +115,15 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
     ├─ ClassA instance
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ ClassA.instanceB
     │             ~~~~~~~~~
     ╰→ ClassB instance
-    ​     Leaking: YES (because reasons)
+    ​     Verdict: Stuck (because reasons)
     """
   }
 
@@ -149,12 +149,12 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ¯\_(ツ)_/¯
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     ¯\_(ツ)_/¯
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -186,16 +186,16 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
     ├─ ClassA instance
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    Library leak match: instance field ClassA#leak
     │    ↓ ClassA.leak
     │             ~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -224,12 +224,12 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    Library leak match: static field GcRoot#leak
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -251,15 +251,15 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ static GcRoot.array
     │                    ~~~~~
     ├─ java.lang.Object[] array
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ Object[0]
     │            ~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -279,12 +279,12 @@ class LeakTraceRenderingTest {
     │ GC Root: Thread object
     │
     ├─ MyThread instance
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    Thread name: 'kroutine'
     │    ↓ MyThread<Java Local>
     │              ~~~~~~~~~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -310,15 +310,15 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ static GcRoot.child
     │                    ~~~~~
     ├─ com.ChildClass instance
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ ParentClass.leak
     │                  ~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
     ​     retainedDurationMillis = 10000
@@ -339,11 +339,11 @@ class LeakTraceRenderingTest {
     │ GC Root: System class
     │
     ├─ GcRoot class
-    │    Leaking: UNKNOWN
+    │    Verdict: Unknown
     │    ↓ static GcRoot.leak
     │                    ~~~~
     ╰→ Leaking instance
-    ​     Leaking: YES (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     Retaining 0 B in 1 objects
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000

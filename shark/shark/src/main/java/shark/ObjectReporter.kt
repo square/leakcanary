@@ -18,14 +18,16 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
   val labels = linkedSetOf<String>()
 
   /**
-   * Reasons for which this object is expected to be unreachable (ie it's leaking).
+   * Reasons for which this object should be gone and isn't, which make it
+   * [LeakTraceObject.Verdict.STUCK].
    */
-  val leakingReasons = mutableSetOf<String>()
+  val stuckReasons = mutableSetOf<String>()
 
   /**
-   * Reasons for which this object is expected to be reachable (ie it's not leaking).
+   * Reasons for which this object is still needed and therefore legitimately in memory, which make
+   * it [LeakTraceObject.Verdict.EXPECTED].
    */
-  val notLeakingReasons = mutableSetOf<String>()
+  val expectedReasons = mutableSetOf<String>()
 
   /**
    * Runs [block] if [ObjectReporter.heapObject] is an instance of [expectedClass].

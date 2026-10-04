@@ -184,7 +184,7 @@ ${prefix}$part3"""
   @Test fun `underline within multiline string`() {
     val string = """
 ├─ com.example.FooFooFooFooFooFooFoo instance
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ FooFooFooFooFooFooFoo.barbarbarbarbarbarbarbar
 │                            ~~~~~~~~~~~~~~~~~~~~~~~~
 """
@@ -196,7 +196,7 @@ ${prefix}$part3"""
 ├─ com.example.
 │  FooFooFooFooFooFooFoo
 │  instance
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ FooFooFooFooFooFooFoo.
 │    barbarbarbarbarbarbarbar
 │    ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -210,30 +210,30 @@ ${prefix}$part3"""
 │ GC Root: System class
 │
 ├─ leakcanary.internal.InternalAppWatcher class
-│    Leaking: NO (ExampleApplication↓ is not leaking and a class is never leaking)
+│    Verdict: Expected (ExampleApplication↓ is expected and a class is always expected)
 │    ↓ static InternalAppWatcher.application
 ├─ com.example.leakcanary.ExampleApplication instance
-│    Leaking: NO (Application is a singleton)
+│    Verdict: Expected (Application is a singleton)
 │    ExampleApplication does not wrap an activity context
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
 ├─ java.util.ArrayList instance
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ ArrayList.array
 │                ~~~~~
 ├─ java.lang.Object[] array
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ Object[].[0]
 │               ~~~
 ├─ android.widget.TextView instance
-│    Leaking: YES (View.mContext references a destroyed activity)
+│    Verdict: Stuck (View.mContext references a destroyed activity)
 │    mContext instance of com.example.leakcanary.MainActivity with mDestroyed = true
 │    View#mParent is set
 │    View#mAttachInfo is null (view detached)
 │    View.mWindowAttachCount = 1
 │    ↓ TextView.mContext
 ╰→ com.example.leakcanary.MainActivity instance
-​     Leaking: YES (ObjectWatcher was watching this because com.example.leakcanary.MainActivity received Activity#onDestroy() callback and Activity#mDestroyed is true)
+​     Verdict: Stuck (ObjectWatcher was watching this because com.example.leakcanary.MainActivity received Activity#onDestroy() callback and Activity#mDestroyed is true)
 ​     key = b3dd6589-560d-48dc-9fbb-ab8300e5752b
 ​     watchDurationMillis = 5117
 ​     retainedDurationMillis = 110
@@ -247,24 +247,24 @@ ${prefix}$part3"""
 │ GC Root: System class
 │
 ├─ leakcanary.internal.InternalAppWatcher class
-│    Leaking: NO (ExampleApplication↓ is not leaking and a class is never
-│    leaking)
+│    Verdict: Expected (ExampleApplication↓ is expected and a class is always
+│    expected)
 │    ↓ static InternalAppWatcher.application
 ├─ com.example.leakcanary.ExampleApplication instance
-│    Leaking: NO (Application is a singleton)
+│    Verdict: Expected (Application is a singleton)
 │    ExampleApplication does not wrap an activity context
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
 ├─ java.util.ArrayList instance
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ ArrayList.array
 │                ~~~~~
 ├─ java.lang.Object[] array
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ Object[].[0]
 │               ~~~
 ├─ android.widget.TextView instance
-│    Leaking: YES (View.mContext references a destroyed activity)
+│    Verdict: Stuck (View.mContext references a destroyed activity)
 │    mContext instance of com.example.leakcanary.MainActivity with mDestroyed =
 │    true
 │    View#mParent is set
@@ -272,7 +272,7 @@ ${prefix}$part3"""
 │    View.mWindowAttachCount = 1
 │    ↓ TextView.mContext
 ╰→ com.example.leakcanary.MainActivity instance
-​     Leaking: YES (ObjectWatcher was watching this because com.example.
+​     Verdict: Stuck (ObjectWatcher was watching this because com.example.
 ​     leakcanary.MainActivity received Activity#onDestroy() callback and
 ​     Activity#mDestroyed is true)
 ​     key = b3dd6589-560d-48dc-9fbb-ab8300e5752b

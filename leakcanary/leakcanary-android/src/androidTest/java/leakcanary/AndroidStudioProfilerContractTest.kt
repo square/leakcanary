@@ -22,6 +22,16 @@ import org.junit.Test
  * change here. Studio bundles its own copy of Shark to read the heap dump, currently
  * `shark-android-2.14.jar`, so [keyedWeakReferenceFieldsReadFromHeapDump] covers the field names
  * that copy looks up in the dump rather than on the classpath.
+ *
+ * **This is not Studio's only integration, and the other one is deliberately not covered here.**
+ * The Profiler also has an on device mode where LeakCanary runs the analysis itself and Studio
+ * scrapes the result out of logcat, parsing it with regexes in `tools/base/leakcanarylib`. That
+ * makes the exact wording of [shark.LeakTrace.toString] a contract too, and a far more brittle one,
+ * since any change to the printed text breaks it. We broke it on purpose when `Leaking: YES` / `NO`
+ * became `Verdict: Stuck` / `Expected` — see the change log — rather than keep LeakCanary's own
+ * output pinned to an out of tree parser. So don't add the printed format to this test: pinning it
+ * here would make that parser a constraint on LeakCanary's output, which is the thing that was
+ * decided against.
  */
 class AndroidStudioProfilerContractTest {
 

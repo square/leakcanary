@@ -5,9 +5,9 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Test
 import shark.GcRoot.JniGlobal
 import shark.HprofHeapGraph.Companion.openHeapGraph
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceObject.ObjectType.INSTANCE
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
@@ -40,8 +40,8 @@ class AndroidObjectInspectorsTest {
         it.originObject.type == INSTANCE
           && it.owningClassSimpleName == "Recomposer"
       }
-    assertThat(recomposerNode.originObject.leakingStatus).isEqualTo(NOT_LEAKING)
-    assertThat(recomposerNode.originObject.leakingStatusReason)
+    assertThat(recomposerNode.originObject.verdict).isEqualTo(EXPECTED)
+    assertThat(recomposerNode.originObject.verdictReason)
       .isEqualTo("Recomposer is in state PendingWork")
   }
 
@@ -69,16 +69,16 @@ class AndroidObjectInspectorsTest {
       .referencePath.single {
         it.owningClassSimpleName == "CompositionImpl"
       }
-    assertThat(recomposerNode.originObject.leakingStatus).isEqualTo(LEAKING)
-    assertThat(recomposerNode.originObject.leakingStatusReason).isEqualTo("Composition disposed")
+    assertThat(recomposerNode.originObject.verdict).isEqualTo(STUCK)
+    assertThat(recomposerNode.originObject.verdictReason).isEqualTo("Composition disposed")
   }
 
   @Test fun `COMPOSITION_IMPL with old disposed field true should be leaking`() {
     val analysis = analyzeCompositionImpl(mapOf("disposed" to BooleanHolder(true)))
     val unreachableObject = analysis.unreachableObjects.single()
 
-    assertThat(unreachableObject.leakingStatus).isEqualTo(LEAKING)
-    assertThat(unreachableObject.leakingStatusReason)
+    assertThat(unreachableObject.verdict).isEqualTo(STUCK)
+    assertThat(unreachableObject.verdictReason)
       .contains("Composition disposed")
   }
 
@@ -86,8 +86,8 @@ class AndroidObjectInspectorsTest {
     val analysis = analyzeCompositionImpl(mapOf("state" to IntHolder(3))) // DISPOSED = 3
     val unreachableObject = analysis.unreachableObjects.single()
 
-    assertThat(unreachableObject.leakingStatus).isEqualTo(LEAKING)
-    assertThat(unreachableObject.leakingStatusReason)
+    assertThat(unreachableObject.verdict).isEqualTo(STUCK)
+    assertThat(unreachableObject.verdictReason)
       .contains("Composition disposed")
   }
 
@@ -95,25 +95,25 @@ class AndroidObjectInspectorsTest {
     val analysis = analyzeCompositionImpl(mapOf("state" to IntHolder(0))) // RUNNING = 0
     val unreachableObject = analysis.unreachableObjects.single()
 
-    // Note: Status is still LEAKING because this is a watchedInstance (tracked by ObjectWatcher)
+    // Note: Status is still STUCK because this is a watchedInstance (tracked by ObjectWatcher)
     // but the inspector provides the correct reason explaining why it's not actually leaking
-    assertThat(unreachableObject.leakingStatus).isEqualTo(LEAKING)
-    assertThat(unreachableObject.leakingStatusReason)
+    assertThat(unreachableObject.verdict).isEqualTo(STUCK)
+    assertThat(unreachableObject.verdictReason)
       .contains("Composition running")
   }
 
   @Test fun `LIFECYCLE_REGISTRY with DESTROYED state is not reported as not leaking`() {
     val lifecycleRegistry = analyzeLifecycleRegistry(state = "DESTROYED")
 
-    assertThat(lifecycleRegistry.leakingStatus).isEqualTo(UNKNOWN)
+    assertThat(lifecycleRegistry.verdict).isEqualTo(UNKNOWN)
     assertThat(lifecycleRegistry.labels).contains("state = DESTROYED")
   }
 
   @Test fun `LIFECYCLE_REGISTRY that is not destroyed is not leaking`() {
     val lifecycleRegistry = analyzeLifecycleRegistry(state = "RESUMED")
 
-    assertThat(lifecycleRegistry.leakingStatus).isEqualTo(NOT_LEAKING)
-    assertThat(lifecycleRegistry.leakingStatusReason).isEqualTo("state is RESUMED")
+    assertThat(lifecycleRegistry.verdict).isEqualTo(EXPECTED)
+    assertThat(lifecycleRegistry.verdictReason).isEqualTo("state is RESUMED")
   }
 
   @Test fun `STUB reports a binder stub as not leaking`() {
@@ -121,8 +121,8 @@ class AndroidObjectInspectorsTest {
       .single { it.owningClassSimpleName == "UploadCallbacks\$ResultStub" }
       .originObject
 
-    assertThat(stub.leakingStatus).isEqualTo(NOT_LEAKING)
-    assertThat(stub.leakingStatusReason)
+    assertThat(stub.verdict).isEqualTo(EXPECTED)
+    assertThat(stub.verdictReason)
       .contains("stays in memory until the process on the other side gets GCed")
   }
 
@@ -147,7 +147,7 @@ class AndroidObjectInspectorsTest {
       .single { it.owningClassSimpleName == "UploadCallbacks" }
       .originObject
 
-    assertThat(held.leakingStatus).isEqualTo(UNKNOWN)
+    assertThat(held.verdict).isEqualTo(UNKNOWN)
   }
 
   /**

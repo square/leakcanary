@@ -110,19 +110,19 @@ These same suspicious references are underlined with `~~~` when the leak trace i
 ...
 │  
 ├─ com.example.leakcanary.LeakingSingleton class
-│    Leaking: NO (a class is never leaking)
+│    Verdict: Expected (a class is always expected)
 │    ↓ static LeakingSingleton.leakedViews
 │                              ~~~~~~~~~~~
 ├─ java.util.ArrayList instance
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ ArrayList.elementData
 │                ~~~~~~~~~~~
 ├─ java.lang.Object[] array
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    ↓ Object[].[0]
 │               ~~~
 ├─ android.widget.TextView instance
-│    Leaking: YES (View.mContext references a destroyed activity)
+│    Verdict: Stuck (View.mContext references a destroyed activity)
 ...
 ```
 
@@ -174,7 +174,7 @@ Description: Android Q added a new IRequestFinishCallback$Stub class [...]
 │ GC Root: Global variable in native code
 │
 ├─ android.app.Activity$1 instance
-│    Leaking: UNKNOWN
+│    Verdict: Unknown
 │    Anonymous subclass of android.app.IRequestFinishCallback$Stub
 │    ↓ Activity$1.this$0
 │                 ~~~~~~

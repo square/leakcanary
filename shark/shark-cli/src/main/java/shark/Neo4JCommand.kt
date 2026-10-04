@@ -40,9 +40,9 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Fl
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.IntArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.SharkCliCommand.Companion.echo
 import shark.SharkCliCommand.Companion.retrieveHeapDumpFile
 import shark.SharkCliCommand.Companion.sharkCliParams
@@ -203,7 +203,7 @@ class Neo4JCommand : CliktCommand(
       val gcRootTotal = graph.gcRoots.size
 
       // A root for all gc roots that makes it easy to query starting from that single root.
-      gcRootsTx.execute("create (:GcRoots {name:\"GC roots\", leakingStatus:\"${NOT_LEAKING.name}\"})")
+      gcRootsTx.execute("create (:GcRoots {name:\"GC roots\", verdict:\"${EXPECTED.name}\"})")
 
       graph.gcRoots.forEachIndexed { index, gcRoot ->
         val pct = ((index * 10f) / gcRootTotal).toInt()
@@ -253,29 +253,29 @@ class Neo4JCommand : CliktCommand(
         // Cribbed from shark.HeapAnalyzer.resolveStatus
         var status = UNKNOWN
         var reason = ""
-        if (reporter.notLeakingReasons.isNotEmpty()) {
-          status = NOT_LEAKING
-          reason = reporter.notLeakingReasons.joinToString(" and ")
+        if (reporter.expectedReasons.isNotEmpty()) {
+          status = EXPECTED
+          reason = reporter.expectedReasons.joinToString(" and ")
         }
-        val leakingReasons = reporter.leakingReasons
-        if (leakingReasons.isNotEmpty()) {
-          val winReasons = leakingReasons.joinToString(" and ")
+        val stuckReasons = reporter.stuckReasons
+        if (stuckReasons.isNotEmpty()) {
+          val winReasons = stuckReasons.joinToString(" and ")
           // Conflict
-          if (status == NOT_LEAKING) {
+          if (status == EXPECTED) {
             reason += ". Conflicts with $winReasons"
           } else {
-            status = LEAKING
+            status = STUCK
             reason = winReasons
           }
         }
 
         labelsTx.execute(
           "match (node:Object{objectId:\$objectId})" +
-            " set node.leakingStatus = \$leakingStatus, node.leakingStatusReason = \$leakingStatusReason",
+            " set node.verdict = \$verdict, node.verdictReason = \$verdictReason",
           mapOf(
             "objectId" to heapObject.objectId,
-            "leakingStatus" to status.name,
-            "leakingStatusReason" to reason
+            "verdict" to status.name,
+            "verdictReason" to reason
           )
         )
 
@@ -740,7 +740,7 @@ class DecoratedPath(private val delegate: Path) : Path by delegate {
     // Then we should remove these 2 from the full dump. We can find the leaking nodes early
     // and set those attribute as part of node creation instead of a separate transaction.
     // The mapping of relationships here can be down dy duplicating the logic in
-    // shark.HeapAnalyzer.computeLeakStatuses which goes through relationships and splits
+    // shark.RealLeakTracerFactory.computeVerdicts which goes through relationships and splits
     // the path in 3 areas (not leaking, leak suspect, leaking).
     delegate.relationships().toList()
   }

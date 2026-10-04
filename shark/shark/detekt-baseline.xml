@@ -32,7 +32,7 @@
     <ID>MultiLineIfElse:ObjectDominators.kt$ObjectDominators$" \"${heapObject.readAsJavaString()}\""</ID>
     <ID>MultiLineIfElse:ObjectDominators.kt$ObjectDominators$""</ID>
     <ID>MultiLineIfElse:ObjectDominators.kt$ObjectDominators$when (val heapObject = graph.findObjectById(objectId)) { is HeapClass -> "class ${heapObject.name}" is HeapInstance -> heapObject.instanceClassName is HeapObjectArray -> heapObject.arrayClassName is HeapPrimitiveArray -> heapObject.arrayClassName }</ID>
-    <ID>MultiLineIfElse:RealLeakTracerFactory.kt$RealLeakTracerFactory$statusPair</ID>
+    <ID>MultiLineIfElse:RealLeakTracerFactory.kt$RealLeakTracerFactory$verdictPair</ID>
     <ID>MultiLineIfElse:RealLeakTracerFactory.kt$RealLeakTracerFactory.ShortestPath$null</ID>
     <ID>NoBlankLineBeforeRbrace:HeapDumps.kt$ </ID>
     <ID>NoBlankLineBeforeRbrace:UnreachableObjectRenderingTest.kt$UnreachableObjectRenderingTest$ </ID>
@@ -47,7 +47,6 @@
     <ID>NoMultipleSpaces:ObjectDominators.kt$ObjectDominators$ </ID>
     <ID>NoSemicolons:ApacheHarmonyInstanceRefReaders.kt$ApacheHarmonyInstanceRefReaders.HASH_SET$;</ID>
     <ID>NoSemicolons:LeakNodeStatus.kt$LeakNodeStatus.UNKNOWN$;</ID>
-    <ID>NoSemicolons:LeakTraceObject.kt$LeakTraceObject.LeakingStatus.UNKNOWN$;</ID>
     <ID>NoSemicolons:OpenJdkInstanceRefReaders.kt$OpenJdkInstanceRefReaders.HASH_SET$;</ID>
     <ID>NoUnusedImports:AndroidReferenceReaders.kt$shark.AndroidReferenceReaders.kt</ID>
     <ID>NoUnusedImports:OpenJdkInstanceRefReadersTest.kt$shark.OpenJdkInstanceRefReadersTest.kt</ID>

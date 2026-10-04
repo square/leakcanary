@@ -199,7 +199,7 @@ worth seeing across the room.
 
 `Stuck` says the object should be gone and something is holding it. `Expected` says its being in memory is
 legitimate at this point in the app's life. It is the same answer a LeakCanary leak trace prints as
-`Leaking: YES`, `NO` and `UNKNOWN`, in words that stop short of calling the object the leak — because
+`Verdict: Stuck`, `Expected` and `Unknown`, in words that stop short of calling the object the leak — because
 **the leak is the faulty reference**, the one that should have been cleared, and everything under it is stuck
 by that single mistake. An object nothing reaches any more is `Stuck` as well: it was expected to be gone,
 and only the garbage collector not having run keeps it here. The verdict means the same thing everywhere.

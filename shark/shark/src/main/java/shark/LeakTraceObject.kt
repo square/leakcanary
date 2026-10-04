@@ -1,10 +1,10 @@
 package shark
 
 import shark.LeakTrace.Companion.ZERO_WIDTH_SPACE
-import shark.LeakTraceObject.LeakingStatus
-import shark.LeakTraceObject.LeakingStatus.LEAKING
-import shark.LeakTraceObject.LeakingStatus.NOT_LEAKING
-import shark.LeakTraceObject.LeakingStatus.UNKNOWN
+import shark.LeakTraceObject.Verdict
+import shark.LeakTraceObject.Verdict.EXPECTED
+import shark.LeakTraceObject.Verdict.STUCK
+import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.internal.lastSegment
 import java.io.Serializable
 import java.util.Locale
@@ -24,8 +24,15 @@ data class LeakTraceObject(
    * understand the state of the leak trace object.
    */
   val labels: Set<String>,
-  val leakingStatus: LeakingStatus,
-  val leakingStatusReason: String,
+  /** What this object is, as worked out by the [ObjectInspector]s. See [Verdict]. */
+  val verdict: Verdict,
+  /**
+   * Why [verdict] is what it is, in words, e.g. `Activity#mDestroyed is true`. Empty for
+   * [Verdict.UNKNOWN], which is most objects of a heap dump. Half of these are about another
+   * object, because a verdict propagates along a leak trace: `MainActivity↑ is stuck` is this
+   * object being held by one that is.
+   */
+  val verdictReason: String,
   /**
    * The number of bytes credited to this object: its own shallow size, plus the shallow size of
    * every object that is only reachable through the leaking objects of the analysis and that was
@@ -36,14 +43,14 @@ data class LeakTraceObject(
    * keep it alive. In exchange nothing is double counted, so the sizes credited to all the leaking
    * objects of an analysis add up to what they retain together.
    *
-   * Not null only if the retained heap size was computed AND [leakingStatus] is equal to
-   * [LeakingStatus.UNKNOWN] or [LeakingStatus.LEAKING].
+   * Not null only if the retained heap size was computed AND [verdict] is equal to
+   * [Verdict.UNKNOWN] or [Verdict.STUCK].
    */
   val retainedHeapByteSize: Int?,
   /**
    * The number of objects credited to this object, counting it. Credited the same way as
    * [retainedHeapByteSize]. Not null only if the retained heap size was computed AND
-   * [leakingStatus] is equal to [LeakingStatus.UNKNOWN] or [LeakingStatus.LEAKING].
+   * [verdict] is equal to [Verdict.UNKNOWN] or [Verdict.STUCK].
    */
   val retainedObjectCount: Int?
 ) : Serializable {
@@ -66,19 +73,19 @@ data class LeakTraceObject(
   internal fun toString(
     firstLinePrefix: String,
     additionalLinesPrefix: String,
-    showLeakingStatus: Boolean,
+    showVerdict: Boolean,
     typeName: String = this.typeName
   ): String {
-    val leakStatus = when (leakingStatus) {
-      UNKNOWN -> "UNKNOWN"
-      NOT_LEAKING -> "NO ($leakingStatusReason)"
-      LEAKING -> "YES ($leakingStatusReason)"
+    val verdictText = when (verdict) {
+      UNKNOWN -> "Unknown"
+      EXPECTED -> "Expected ($verdictReason)"
+      STUCK -> "Stuck ($verdictReason)"
     }
 
     var result = ""
     result += "$firstLinePrefix$className $typeName"
-    if (showLeakingStatus) {
-      result += "\n${additionalLinesPrefix}Leaking: $leakStatus"
+    if (showVerdict) {
+      result += "\n${additionalLinesPrefix}Verdict: $verdictText"
     }
 
     if (retainedHeapByteSize != null) {
@@ -98,19 +105,43 @@ data class LeakTraceObject(
     INSTANCE
   }
 
-  enum class LeakingStatus {
-    /** The object was needed and therefore expected to be reachable. */
-    NOT_LEAKING,
+  /**
+   * Whether an object of a leak trace is meant to still be in memory, worked out by the
+   * [ObjectInspector]s and then propagated along the trace: everything above an [EXPECTED] object
+   * is expected too, and everything below a [STUCK] one is stuck too. What is left between the last
+   * [EXPECTED] object and the first [STUCK] one is where the leak is — the reference that should
+   * have been cleared, which is what [LeakTrace.leakFingerprint] hashes.
+   *
+   * **None of the three is built on "leak"**, deliberately. A leak is one faulty reference, and
+   * everything under it is retained by that single mistake, so a word like `Leaking` on twenty
+   * objects points a reader at the twenty rather than at the one thing to fix. These are the same
+   * three words Shark Dive shows, so that a leak trace and a heap dump open in that window say the
+   * same thing about the same object.
+   */
+  enum class Verdict {
+    /**
+     * Something knows this object is still needed and therefore expected to be reachable: a live
+     * activity, a class, a running thread.
+     */
+    EXPECTED,
 
-    /** The object was no longer needed and therefore expected to be unreachable. */
-    LEAKING,
+    /**
+     * Something knows this object should be gone: a destroyed activity, a watched object still
+     * there. Including one nothing reaches any more — it was expected to be gone, and what keeps
+     * it here is only that the garbage collector hasn't run.
+     */
+    STUCK,
 
-    /** No decision can be made about the provided object. */
-    UNKNOWN;
+    /** Nothing knows either way, which is most of a heap dump. */
+    UNKNOWN
   }
 
   companion object {
-    private const val serialVersionUID = -3616216391305196341L
+    // Bumped when leakingStatus/leakingStatusReason became verdict/verdictReason and LEAKING /
+    // NOT_LEAKING became STUCK / EXPECTED. Both the field names and the enum constant names are
+    // part of what Java serialization writes, so an analysis serialized by an older version has to
+    // fail to deserialize rather than come back with a null verdict on a non-null property.
+    private const val serialVersionUID = 8013094195741270893L
 
     // https://stackoverflow.com/a/3758880
     private fun humanReadableByteCount(bytes: Long): String {
