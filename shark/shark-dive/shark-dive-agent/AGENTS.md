@@ -49,6 +49,7 @@ being talked to by a program that is not this app.
 | `AgentServer.kt` | The loopback socket a run publishes, and the file that says where. |
 | `AgentCommandLine.kt` | `--cli <command> name=value …`: one call typed at a window, over that socket. Which run to talk to, and the help, generated from the registry. |
 | `harness/start-harness.sh` | Copies the app into a directory of its own and starts an agent on one heap dump, which opens the window itself. |
+| `harness/watch-transcript.sh` | Follows that run's client transcript as it is written — every call it made to anything, and what came back. |
 | `harness/eval/run-eval.sh` | Throws an agent at a heap dump whose answer is known, and scores what it did. The dumps and the scoring are `shark-dive-eval`. |
 
 Nothing here is public API — the module is in `modulesWithoutPublicApi`, like the rest of Shark Dive — with
@@ -443,6 +444,10 @@ a display**, since the reads happen on the heap dump's thread and the tests run 
 # starts the investigation; --print-command stages everything and hands you the command instead.
 shark/shark-dive/shark-dive-agent/harness/start-harness.sh [heap-dump.hprof]
 
+# And what that run is doing, as it does it — every call, and what came back. Both ways of starting a run
+# print this with the run's own directory filled in. --html renders it in a browser instead.
+shark/shark-dive/shark-dive-agent/harness/watch-transcript.sh <the staged directory>
+
 # And the same surface scored: heap dumps whose faulty reference is known, and a number per run.
 shark/shark-dive/shark-dive-agent/harness/eval/run-eval.sh --models opus,sonnet --repetitions 5
 ```
@@ -459,6 +464,18 @@ launcher is. **It opens nothing and it stages no skill** — the window is the a
 to know is `--help`, so finding that out is its own first move and the first thing an investigation can get
 wrong. Then read `~/.shark-dive/logs`: a run that went well and a run that guessed look completely different
 there, and neither of them looks like anything in a unit test.
+
+**And read the client's transcript beside it, which is the only place a run that never arrived is visible.**
+The Shark Dive log is the calls that *reached a window*, so a run that opened the app some other way and then
+reported an investigation leaves that log empty while its answer reads like a success — measured, on a run that
+launched the bundle with `open -a`, made no `--cli` call at all, and described the leak types it would have
+found. `watch-transcript.sh` is the reader, live or after the fact, and it is pointed at a run rather than
+left to find one because harness directories accumulate and two runs at once is normal. **The reasoning text
+is the one thing it hasn't got**: a `--print` run records thinking blocks with their signature and no text —
+the API's `display: "omitted"` — and that is the `--print` rather than the model, which takes pinning one to
+show, since `--model opus` resolves to `claude-opus-5-5`. That script's header has it measured, along with
+the two settings that don't help and the reason a populated block is still only a summary. What stands in for
+it is the `reason` every `--cli` call carries, which is what the refusals require it for.
 
 **And `harness/eval` is the measured half of the same idea.** The harness shows how one investigation goes;
 the eval runs an agent against a dump whose faulty reference is already known and scores whether it found it,
