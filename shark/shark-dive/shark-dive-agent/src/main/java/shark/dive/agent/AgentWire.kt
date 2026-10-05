@@ -12,8 +12,8 @@ import kotlinx.serialization.json.put
  * What crosses the socket, spelled in one place: a call out, and one of three things back.
  *
  * ```
- * {"tool":"list_leaks","arguments":{"heapDump":"leak.hprof","reason":"Starting on the leaks"}}
- * {"answer":{"method":"…","leaks":[…]}}
+ * {"tool":"list_leak_groups","arguments":{"heapDumpKey":"leak.hprof","reason":"Starting on the leaks"}}
+ * {"answer":{"objectCount":…,"sections":[…]}}
  * ```
  *
  * **Both ends of it are in this module** — [AgentConnection] answers and [AgentCommandLine] asks — so the
@@ -27,7 +27,7 @@ import kotlinx.serialization.json.put
  * wire that carried one flag for both would be a caller told it was refused by an app that fell over. See
  * [AgentCommandLine.REFUSED].
  *
- * One line each way, and JSON rather than anything terser, because the answer is Shark Dive's model: a chain
+ * One line each way, and JSON rather than anything terser, because the answer is Shark Dive's model: a path
  * of twenty steps with a verdict on each is what the tools hand back, and a caller has `jq`.
  */
 internal object AgentWire {
@@ -78,7 +78,7 @@ internal object AgentWire {
   }
 
   /**
-   * Indented, for whoever is reading the answer: a model working down a chain of twenty steps, or a person
+   * Indented, for whoever is reading the answer: a model working down a path of twenty steps, or a person
    * who ran the command in a terminal.
    *
    * The same text on both ends — the app writes it into the session log and the command line prints it — so

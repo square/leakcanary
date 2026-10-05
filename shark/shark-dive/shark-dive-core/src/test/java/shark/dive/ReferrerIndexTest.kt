@@ -48,7 +48,7 @@ class ReferrerIndexTest {
 
   @Test fun `referrers come back highest object index first`() {
     // Which is load bearing rather than incidental: a breadth first walk up the referrers takes the first
-    // of two equally distant ones, so this order decides which chain the window draws. See
+    // of two equally distant ones, so this order decides which path the window draws. See
     // notes/referrer-index.md for what reversing it costs.
     openIndexed { graph, index ->
       val referrers = index.referrerIndexesOf(graph.findByClassName("com.example.Shared"))

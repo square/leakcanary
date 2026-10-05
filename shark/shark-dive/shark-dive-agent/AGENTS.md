@@ -12,7 +12,7 @@ on the one that matters. See `shark.dive.app.cliExitCode`.
 **And the two forms each open a heap dump their own way, so saying both is unreadable rather than either.**
 A command line with no `--cli` opens the files and follows the links named on it as the app starts; a command
 line with `--cli` opens a dump by calling `open_heap_dump path=…` and goes to a place by calling `show`, and
-both answer that they did. So `--cli list_leaks … dump.hprof` says two different things to do, and
+both answer that they did. So `--cli list_leak_groups … dump.hprof` says two different things to do, and
 `shark.dive.app.twoFormsAtOnce` says so and exits rather than guessing at one of them. The run a command
 starts is given a title and nothing else to open — the dump is the command's to open, which is what makes the
 answer the thing that says a dump was opened.
@@ -67,21 +67,36 @@ client because saying no is all it does — nothing here ever calls a model.
   kept in the dump's `leak-statuses` file and drawn in the window's *Why* box for as long as anybody reads
   that dump, and the `reason` is a line of this session's log like every other tool's. A model handed the
   single `reason` sent both anyway — see `WHY`'s KDoc for the measurement — so the surface now takes both.
-- `conclude` refuses until the heap dump agrees that **one** reference is at fault, and the refusal says which
-  of the five reasons it is: no chain at all, nothing `STUCK`, nothing `EXPECTED` above it, *these* references
-  still candidates with *those* objects in between having no verdict, or a reference the object above no longer
-  reads. `ChainState` is that list, and the refusal names the candidates rather than counting them. Same rule
-  as `faultyReferenceIndexOrNull`, read off the chain rather than asked of it, because the ways it answers
-  null are different things to do next.
+- `set_verdict` also refuses a `solvingLeakOf` that is not a stuck object — `requireStuck`, before anything is
+  recorded, so a refused call leaves no verdict behind. That argument names *the leak being solved*, and a
+  path ending at an object this dump reads as expected or knows nothing about has no fault on it to narrow, so
+  every number the answer carries about it would be about nothing. Left unchecked it reads as a progress of 0
+  that never moves, which is the same answer as a verdict that achieved nothing.
 - Every tool's schema requires a `reason`, and `AgentCommandLine` refuses a command of a named session that
   sent none — a client being free to ignore a schema. Which is a *pair* with `--session=` rather than a rule of
   its own; see the command line section below for why that is where it is checked.
 
 So a change that makes any of these easier to satisfy is a change that removes the reason this module exists.
-An agent that has narrowed a chain to two candidate references must not be able to report a root cause, however
-confident it is — and two is the narrowest a chain gets before it names one, since a single object with no
-verdict leaves the reference into it and the reference out of it. `AgentToolsTest` walks that exact story — refused, then a verdict, then concluded — and it is
-the test to keep working.
+
+**And nothing on this surface asks an agent which reference is at fault.** There was a `conclude` tool that
+took one and refused until the heap dump agreed, and the refusal was its whole point: an agent that had
+narrowed a path to two candidates could not report a root cause however confident it was. What was wrong with
+it is that the reference it checked was one the tool had already derived and answered with — so the check
+measured whether a model can copy a string back, and the eval scored a restatement. `shark/shark-dive/notes/decisions.md`
+has it in full. **The job is to settle the state of every undecided object until one reference is left**, and
+`leakSolved` is the heap dump saying that happened. So a reading an agent cannot reach any other way is one
+to answer with, never one to ask it to repeat.
+
+What replaced the refusal is that the answer carries the distance left. `path_from_gc_root` and a
+`set_verdict` given `solvingLeakOf` both answer with `whatThePathSays` — `leakSolved`, the candidate
+references, the undecided objects, `suspectReferenceCount` and `leakSolvingProgressRatio` — and `PathState`
+is which of the six shapes those verdicts are in, which is the field to branch on rather than the prose in
+`next`. A verdict answers with `narrowedBy` as well, the counts and the progress on both sides of it, because
+a verdict that ruled nothing out and a verdict that halved the search are the same single number afterwards
+and are not the same move. **The `Ratio` on all three of those names is load-bearing** — the number is 0 to 1
+and the other way to spell a share is 0 to 100, so a name that says neither gets read as whichever the reader
+expects; `shark/shark-dive/AGENTS.md` has the convention it comes from. `AgentToolsTest` walks that story — a verdict with `solvingLeakOf`, two candidates
+down to one, `leakSolved` true — and it is the test to keep working.
 
 The `reason` is traceability and not a quality gate. Asking a model to explain itself does not make it right,
 and [the research says it can make it worse](https://arxiv.org/abs/2504.09664); what it buys is a session log
@@ -162,13 +177,15 @@ sentence with one link in it. And `agent_log` with a session id hands the same t
 one expensive call on this surface — `notes/agent-surface.md` has the measurement. Neither of them truncates:
 a session cut to fit is one where the answer that misled an agent is the part that got cut.
 
-**Two fields come off the answer instead.** What an agent asked is what it typed, and what it concluded is
-what the heap dump *agreed to* — so `outcomeOfTool` reads the reference out of `conclude`'s answer. Both
-readers need that one and neither can work it out: the screen's last row is what a session came to, and the
-eval has nothing to mark against its answer key without it. `openHeapDumpsOfTool` is the other, and the reason
-is the same shape: `list_heap_dumps` is the one call whose subject is the app, and the dumps it heard about are
-in the answer alone. Nothing else reads an answer — a row saying what a read came back with would be the
-answer printed twice.
+**Two fields come off the answer instead.** What an agent asked is what it typed, and what it came to is what
+the heap dump *derived* — so `outcomeOfTool` reads the faulty reference out of the two answers that can
+carry one, `path_from_gc_root` and `set_verdict`, and only when the same answer says `leakSolved`. Both
+halves, because a build that changed one of them without the other then reads as null rather than as a
+session recording an outcome from a path that has none. Both readers need that field and neither can work it
+out: the screen's last row is what a session came to, and the eval has nothing to mark against its answer key
+without it. `openHeapDumpsOfTool` is the other, and the reason is the same shape: `list_heap_dumps` is the one
+call whose subject is the app, and the dumps it heard about are in the answer alone. Nothing else reads an
+answer — a row saying what a read came back with would be the answer printed twice.
 
 **The verbs are here rather than in the app.** `verbOfTool` is beside the tool names, so that a screen never
 spells them itself and drift is one list rather than two. `AgentSessionFileTest` asserts every tool in the
@@ -178,7 +195,7 @@ build, and the name is left exactly as it arrived because that string is what so
 that named no tool at all has one sentence for all of them, since there is nothing in it to name it after.
 
 **A verb stops where the thing it was about starts**, which is why several of them end mid-sentence: a row of
-that screen is prose with one link in it, and the link is the thing. So `list_leaks` is "Listed the" and
+that screen is prose with one link in it, and the link is the thing. So `list_leak_groups` is "Listed the" and
 `screenOfTool` is the *leaks* after it, in lower case because it is inside a sentence rather than a tab title.
 Every tool `placeOrNull` names has words there, and only those — `AgentSessionFileTest` fails on either half
 of that being added without the other, since a place with no words is a call that went somewhere the reader is
@@ -438,7 +455,7 @@ a display**, since the reads happen on the heap dump's thread and the tests run 
 "Shark Dive.app/Contents/MacOS/Shark Dive" \
   --cli open_heap_dump path=<path> reason="Trying it"
 "Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --cli list_leaks heapDumpKey=<file name> reason="Trying it"
+  --cli list_leak_groups heapDumpKey=<file name> reason="Trying it"
 
 # The whole surface end to end, in a real window, with an agent that has never seen this repository. It
 # starts the investigation; --print-command stages everything and hands you the command instead.

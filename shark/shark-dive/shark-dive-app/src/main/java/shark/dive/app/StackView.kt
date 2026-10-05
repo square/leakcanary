@@ -210,7 +210,7 @@ private class MeasuredBlock(
   /**
    * How much the block stands for, and null when the name has taken the row.
    *
-   * On the row rather than only in the panes because a stack is read down a chain: a row is where a
+   * On the row rather than only in the panes because a stack is read down a path: a row is where a
    * reader asks how much of the heap is still below them, and every row here is wide enough to be worth
    * asking about.
    */

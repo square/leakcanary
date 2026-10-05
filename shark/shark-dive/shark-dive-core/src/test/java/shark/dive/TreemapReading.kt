@@ -58,7 +58,7 @@ private fun HeapDominatorTreemap.summariesBelow(from: Long): List<HeapObjectSumm
 
 /**
  * Every way an object is held below whatever the tree says holds it, which is the question these tests ask
- * of the search: the same two ends the window asks it of when the stretch of a chain in doubt is the one
+ * of the search: the same two ends the window asks it of when the stretch of a path in doubt is the one
  * running down from a dominator.
  *
  * A group holds an object from the roots the tree was walked from rather than from an object of the heap
@@ -79,7 +79,7 @@ internal fun HeapDominatorTreemap.independentPathsBelowDominator(objectId: Long)
  */
 internal fun IndependentPath.stepLabels(): List<String> = steps.map { it.label() }
 
-/** The same, for the one chain leading down from a GC root. */
+/** The same, for the one path leading down from a GC root. */
 internal fun RootPath.stepLabels(): List<String> = steps.map { it.step.label() }
 
 private fun PathStep.label(): String {

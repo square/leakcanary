@@ -46,13 +46,13 @@ import shark.dive.statusText
  * The verdict on the object the tab is on, and the pencil that overrules it.
  *
  * At the top of what the object is, under its name and above its size, because it is the conclusion the
- * rest of that panel is the evidence for. In the colours a chain draws a status in — because it is the same
+ * rest of that panel is the evidence for. In the colours a path draws a status in — because it is the same
  * answer, and a reader who has learnt the green and the red on one surface reads them on the other.
  *
  * **Loud for the two statuses that mean something and quiet for the third**: a heap dump is mostly objects
  * nothing knows either way about, so shouting `Unknown` on every object would be a line nobody reads by the
  * time it says something. Which is also why the reason is here rather than in a tooltip: the status is a
- * conclusion, and half the objects on a chain are green or red because of what another object is.
+ * conclusion, and half the objects on a path are green or red because of what another object is.
  */
 @Composable
 internal fun LeakStatusDetail(
@@ -70,7 +70,7 @@ internal fun LeakStatusDetail(
   val isKnown = status.status != LeakStatus.UNKNOWN
   Column(modifier.fillMaxWidth()) {
     // Named the way every other line of this panel is, because one word over a status is what lets the
-    // status itself be one word: a label nobody reads twice, on a line that repeats down a whole chain.
+    // status itself be one word: a label nobody reads twice, on a line that repeats down a whole path.
     Text(STATUS_LABEL, style = MaterialTheme.typography.labelSmall)
     Row(
       Modifier.fillMaxWidth(),
@@ -87,7 +87,7 @@ internal fun LeakStatusDetail(
           color = if (isRead) LINK_COLOR else MaterialTheme.colorScheme.outline
         )
       }
-      // The verdict behind its own shade, the way a step of a chain is drawn, so that an object being
+      // The verdict behind its own shade, the way a step of a path is drawn, so that an object being
       // stuck is something you see before reading anything.
       Text(
         "${status.status.glyph} ${status.status.statusText}",
@@ -476,9 +476,9 @@ internal sealed interface Decision {
 /**
  * The verdict on the object a tab is on, from wherever the window knows it.
  *
- * Which is either of two reads, and they answer slightly different questions: the last step of the chain from
+ * Which is either of two reads, and they answer slightly different questions: the last step of the path from
  * a GC root, which is the status with the objects above and below it taken into account, or the object's own
- * if no chain reaches it. See [shark.dive.HeapObjectSummary.leakStatus].
+ * if no path reaches it. See [shark.dive.HeapObjectSummary.leakStatus].
  */
 internal class ObjectLeakStatus(
   val objectId: Long,

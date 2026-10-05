@@ -7,21 +7,22 @@ import shark.dive.unwrappedMarkdown
  *
  * **Two texts, and neither of them is in an answer.** [SURFACE] is how to work here at all — the reason on
  * every call, the window somebody is watching, the links to hand back, the gap to admit — and it is
- * [AgentCommandLine.SURFACE_METHOD_OPTION]. [LEAK] is how to find a faulty reference, and it is
+ * [AgentCommandLine.SURFACE_METHOD_OPTION]. [LEAK] is how to solve a leak, and it is
  * [AgentCommandLine.LEAK_METHOD_OPTION]. Both are text this build prints, with no run and no heap dump.
  *
  * **Which is a read rather than an answer, and that is what it is for.** Each of them was carried in a tool's
- * answer — [LEAK] in a field of `list_leaks`, [SURFACE] prepended to whatever a session asked first — on the
- * grounds that a tool result is the one thing an agent is certain to read, since it asked for the answer. True,
- * and what it costs is paid per call rather than per session: an investigation of four leaks read the whole of
- * how to narrow a chain four times, and a session is handed how to work here by a call that only wanted to
- * know which heap dumps are open. An option is read once by whoever has a use for it, and nothing about it is
- * optional to find — `--help` lists both, which is the one text an agent reaches for having been told nothing.
+ * answer — [LEAK] in a field of `list_leak_groups`, [SURFACE] prepended to whatever a session asked first —
+ * on the grounds that a tool result is the one thing an agent is certain to read, since it asked for the
+ * answer. True, and what it costs is paid per call rather than per session: an investigation of four leaks
+ * read the whole of how to narrow a path four times, and a session is handed how to work here by a call that
+ * only wanted to know which heap dumps are open. An option is read once by whoever has a use for it, and
+ * nothing about it is optional to find — `--help` lists both, which is the one text an agent reaches for
+ * having been told nothing.
  *
  * So **an investigation that never read either option never read the method**, and that is the intended
  * consequence rather than a hole to patch. What points a model at [LEAK] is three places that each know a leak
- * is in hand: `list_leaks`'s own description, [AgentTools.NEXT_WITH_A_NEW_DUMP] on the answer that opened the
- * dump, and the paragraph of [SURFACE] itself.
+ * is in hand: `list_leak_groups`'s own description, [AgentTools.NEXT_WITH_A_NEW_DUMP] on the answer that
+ * opened the dump, and the paragraph of [SURFACE] itself.
  *
  * **And no example in either text names a real leak.** `Owner.field` is the shape a reference is spelled in
  * rather than a reference, because an eval run reads the method before it has asked the heap dump anything: a
@@ -32,9 +33,10 @@ import shark.dive.unwrappedMarkdown
  * **It is prose because its reader is a language model**, which is the one place in this app where a
  * paragraph beats a label — the window says `Verdict` in one word to someone who already knows what a
  * verdict is for. What keeps the prose honest is that the tools enforce the two claims it can't make on its
- * own: a verdict is refused without a `why`, and `conclude` is refused until the heap dump
- * itself says one reference is at fault. So the method describes what the tools will hold you to rather
- * than asking to be trusted.
+ * own: a verdict is refused without a `why`, and a verdict that contradicts the ones already recorded has
+ * to say so. What it does not have to claim is the answer — `leakSolved` is the heap dump's own reading of
+ * the verdicts, so the method describes what the tools will hold you to rather than asking to be trusted,
+ * and the one thing it tells an agent to work towards is a field nobody can write.
  *
  * Adapted from [The LeakCanary Method](https://engineering.block.xyz/blog/the-leakcanary-method), which is
  * the same five phases done by hand.
@@ -51,23 +53,24 @@ internal object AgentMethod {
    */
   private val WRAPPED_SURFACE = """
     You are reading a heap dump through Shark Dive, a window a person may be watching. Everything you
-    ask is a read of that dump, and everything you conclude is written into it where the next reader — a
-    colleague, another agent, the same person in a month — will find it.
+    ask is a read of that dump, and everything you record in it — a verdict, a note — is there for the next
+    reader, a colleague, another agent, the same person in a month.
 
-    **For anything about a leak, read `${AgentCommandLine.LEAK_METHOD_OPTION}` before the first chain.** That
+    **For anything about a leak, read `${AgentCommandLine.LEAK_METHOD_OPTION}` before the first path.** That
     is where the method is, and nowhere else on this surface has it: what a leak is, how a verdict spreads, and
     the order that finds the faulty reference. It needs no run and no heap dump, and it is one read per
-    investigation rather than per leak. An investigation that skipped it is one `conclude` will refuse.
+    investigation rather than per leak. An investigation that skipped it is one that will not solve a leak:
+    what solves one is the verdicts, and that is where the verdicts are explained.
 
     ## On every call
 
-    - **Every call takes a `reason`**: what you are trying to learn, or what you concluded from the last
+    - **Every call takes a `reason`**: what you are trying to learn, or what you worked out from the last
       answer. It goes in this run's log next to the read it caused, which is what makes an investigation
       something a person can follow afterwards rather than a conclusion they have to trust.
     - **`show` puts what you are looking at on screen.** Use it when you reach something that matters. The
       window is how the person watching follows the work, and it costs you one call.
-    - **Put the `shark://` links you are answered with in your reply.** `show` and `conclude` hand one back:
-      it opens that exact object, in this heap dump, with your notes on it. A link names the dump rather than
+    - **Put the `shark://` links you are answered with in your reply.** `show` hands one back: it opens
+      that exact object, in this heap dump, with your notes on it. A link names the dump rather than
       the window, so it still works once this run has ended — it opens the file again. Whoever asked you can
       click it while reading your answer, and again next week. So write "the leak is
       `Owner.field`(shark://…)", with the reference this dump named, rather than describing which screen to
@@ -86,12 +89,12 @@ internal object AgentMethod {
   private val WRAPPED_LEAK = """
     ## What a leak is
 
-    A memory leak is ONE bad reference. Not a chain, not a subsystem, not "the activity is retained": one
+    A memory leak is ONE bad reference. Not a path, not a subsystem, not "the activity is retained": one
     field of one object that should have been cleared and wasn't. Everything below that reference is in
     memory because of it and is not itself at fault. Everything above it is doing its job.
 
-    So an investigation is a search for that single reference, and the chain from a GC root to a stuck
-    object is where it is. Each object on the chain gets a verdict:
+    So an investigation is a search for that single reference, and the path from a GC root to a stuck
+    object is where it is. Each object on the path gets a verdict:
 
     - EXPECTED — this object is meant to be in memory right now.
     - STUCK — this object should be gone.
@@ -105,40 +108,78 @@ internal object AgentMethod {
     - Everything a stuck object holds is only in memory because of it, so a STUCK verdict spreads
       downwards.
 
-    A chain therefore reads as three zones: EXPECTED at the top, STUCK at the bottom, UNKNOWN in between.
+    A path therefore reads as three zones: EXPECTED at the top, STUCK at the bottom, UNKNOWN in between.
     **The leak is the one reference that crosses from the last EXPECTED object to the first STUCK one.**
     While the UNKNOWN zone is more than one reference wide, you have not found it — you have narrowed it.
 
+    ## Your job is the verdicts, not the answer
+
+    **You never decide which reference is at fault, and you are never asked to.** Shark Dive derives that
+    from the verdicts recorded about the objects on the path: the moment they leave a single reference
+    crossing from EXPECTED to STUCK, it names that reference and sets `leakSolved` to true. There is no
+    command for reporting a root cause and nothing to type the reference into.
+
+    What you do is answer one question, object by object: **is this object's work done?** Each answer you
+    can defend rules out one more reference. So the whole of the work is:
+
+    - set a verdict, with evidence, on an object you can settle
+    - read what that did to the suspect stretch
+    - pick the next object to settle, and repeat
+
+    `leakSolved` going true is the end of the search. That is the signal to work towards, and the only one.
+
     ## The order to work in
 
-    1. **Find something that shouldn't be there.** `list_leaks` is the heap dump's own answer: objects the app
-       itself handed to LeakCanary and said were done with, plus what the inspectors recognised. Start with a
-       leak whose objects the app watched, which is the strongest evidence a heap dump carries.
-       **Pick one here, then work its chain: this list is where an investigation starts and not somewhere to
-       come back to.** Your own verdicts change it. A `STUCK` set halfway up a chain makes that object the
-       leak and folds what it held into it, retained bytes included — so the object you have been
-       investigating leaves the list, and the bytes it was reported as retaining are now reported against the
-       object you narrowed to, which dominates almost none of them. The same reference is still holding the
-       same objects. Where you have got to is in the chain, so read that rather than this list again.
-    2. **Get the chain.** `chain_from_gc_root` for one stuck object. Read every step. The steps already
-       carry the inspectors' labels and any verdict someone has set.
-    3. **Work inwards from both ends.** Top down: which of these objects is obviously meant to be here — a
+    1. **Find something that shouldn't be there.** `list_leak_groups` is the heap dump's own answer: objects
+       the app itself handed to LeakCanary and said were done with, plus what the inspectors recognised,
+       gathered into one group per leak. Start with a group whose objects the app watched, which is the
+       strongest evidence a heap dump carries.
+    2. **Pick the leak you are solving, and remember its object.** Every group names a
+       `representativeObject`. **Pick one group, take that address, and work that one object from here on** —
+       every object in a group leaks for the same reason, so solving one solves the group. If whoever asked
+       you handed you a leak trace, match it against the `leakTrace` of each group rather than against your
+       own reading; if nobody chose, show them the group leak traces and ask which one they want.
+       **This list is where an investigation starts and not somewhere to come back to.** Your own verdicts
+       change it: a `STUCK` set halfway up a path makes that object the leak and folds what it held into it,
+       retained bytes included — so the object you have been investigating leaves the list, and the bytes it
+       was reported as retaining are now reported against the object you narrowed to, which dominates almost
+       none of them. The same reference is still holding the same objects. Where you have got to is in the
+       path, so read that rather than this list again.
+    3. **Get the path.** `path_from_gc_root` on the object you picked. Read every step. The steps already
+       carry the inspectors' labels and any verdict someone has set, and the answer says how many references
+       are still candidates.
+    4. **Work inwards from both ends.** Top down: which of these objects is obviously meant to be here — a
        running thread, a live activity, the application itself? Bottom up: which is obviously done with?
-       Set what you can defend with `set_verdict` and watch the UNKNOWN zone shrink.
-    4. **Attack what is left.** This is the part that takes work, and it is where the tools earn their
+       Set what you can defend with `set_verdict`, **always passing `solvingLeakOf` with the object you
+       picked**, and watch the candidate count fall in its answer.
+    5. **Attack what is left.** This is the part that takes work, and it is where the tools earn their
        keep:
        - `describe_object` on an object in the unknown zone. Read its fields and its inspector labels.
        - `find_objects` on a class you have assumed something about. Two instances of a class you took for
-         a singleton is the answer to a surprising number of leaks: the object on the chain is not the
+         a singleton is the answer to a surprising number of leaks: the object on the path is not the
          instance you think it is.
        - Read the code that declares the field holding the next step, at the version this dump is of — see
          below. A verdict you can point at a line of code for is a verdict that survives review.
-    5. **Isolating the reference is not the root cause.** When one reference is left, you know *where* the
-       problem is. You still do not know *how* it happened, and stopping here is the most common way an
-       investigation fails. Keep going: what code assigns that field, what should have cleared it, and why
-       didn't it? The answer is usually a sequence of events, not a line.
-    6. **Say how to reproduce it**, or say that you couldn't work that out. A root cause nobody can trigger
+    6. **`leakSolved` is true: now find out how.** You know *where* the problem is. You still do not know
+       *how* it happened, and stopping here is the most common way an investigation fails. Keep going: what
+       code assigns that field, what should have cleared it, and why didn't it? The answer is usually a
+       sequence of events, not a line. Nothing on this surface can answer that, and nothing is waiting for
+       you to type it in — it goes in your reply, and in a `take_note` if it is worth leaving behind.
+    7. **Say how to reproduce it**, or say that you couldn't work that out. A root cause nobody can trigger
        is a hypothesis.
+
+    ## Telling a person what you found
+
+    Two things, and no third:
+
+    - **The `leakTrace` as the tool gave it to you**, character for character. Never write a leak trace
+      yourself — not from the steps of a path, not from class names, not from a trace you were shown
+      earlier. A trace you typed is a retelling, and a retelling that drops a step or moves the underline
+      reads exactly like the real thing to whoever you handed it to.
+    - **The `shark://` link** to the object you solved, which `show` and every path answer hand back. It
+      opens that object, in this heap dump, with the notes on it, long after this run has ended.
+
+    Then the root cause in your own words, which is the part that is yours.
 
     ## Read the code, at the version the dump is of
 
@@ -185,7 +226,7 @@ internal object AgentMethod {
 
     ## Rules you will be held to
 
-    - **One chain is the whole investigation.** Any path from a GC root to a stuck object is a good path,
+    - **One path is the whole investigation.** Any path from a GC root to a stuck object is a good path,
       and whether something else holds that object too changes nothing: one path is one leak to fix. So never
       go looking for other holders. The questions are which of these objects should have been gone, and which
       reference is keeping them — never whether this reference is the only one.
@@ -193,7 +234,7 @@ internal object AgentMethod {
       app's own watcher record, a line of source. Not "this is probably a cache" and not "activities are
       usually leaked this way". `set_verdict` takes that as `why` and refuses a blank one, it is kept with
       the verdict in this heap dump, and a `why` that isn't evidence is worse than none.
-    - **The question a verdict answers is: is this object's work done?** Every object on the chain exists to
+    - **The question a verdict answers is: is this object's work done?** Every object on the path exists to
       do something, and when that thing has happened the object should be gone — so a verdict is an answer
       about *this* object's work, not about how its class reads. Not whether it looks like infrastructure,
       not whether it sounds long-lived, not whether it is too small to matter. And the evidence is often not
@@ -208,9 +249,11 @@ internal object AgentMethod {
       about the heap.
     - **Set verdicts as you go, not at the end.** They are how the tools narrow the search for you, and
       they are what the person at the window sees you doing.
-    - **`conclude` is the only way to finish**, and it will refuse you unless the heap dump agrees that one
-      reference is at fault. If it refuses, the investigation is not over — the message says what is
-      missing. Do not report a root cause you could not conclude.
+    - **`leakSolved` is what finishing looks like, and it is not yours to declare.** While it is false the
+      investigation is not over, whatever you have worked out — the answer says how many references are
+      still candidates and which objects would settle them. Do not report a faulty reference this heap dump
+      has not named. If you are sure you know which one it is, the thing to do is record the verdict that
+      proves it and watch the count fall to one.
   """.trimIndent()
 
   /**

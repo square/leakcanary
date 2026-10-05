@@ -43,7 +43,8 @@ internal class DiveStars(private val root: File = STARRED_DIRECTORY) {
  *
  * **Nothing is starred that wasn't written**, for the reason [HeapDumpLeakStatuses] applies to a status: until
  * the file has been read, [objectIds] is empty because nothing was read rather than because nothing is
- * starred, and saving over that would take the star off everything to say the disk was slow.
+ * starred, and saving over that would take the star off everything to say the disk was slow. What [toggle]
+ * does about that is read the file, not drop the click.
  */
 @Stable
 internal class HeapDumpStars(private val starredFile: StarredFile) {
@@ -67,19 +68,9 @@ internal class HeapDumpStars(private val starredFile: StarredFile) {
 
   /** Reads the file, once per run of the app. */
   suspend fun read() {
-    if (isRead) {
-      return
+    saving.withLock {
+      readInsideTheLock()
     }
-    val read = try {
-      withContext(Dispatchers.IO) { starredFile.read() }
-    } catch (throwable: Throwable) {
-      SharkLog.d(throwable) { "Could not read the starred objects in $file" }
-      problem = "Could not read $file: $throwable"
-      return
-    }
-    isRead = true
-    problem = null
-    objectIds = read
   }
 
   /**
@@ -90,11 +81,20 @@ internal class HeapDumpStars(private val starredFile: StarredFile) {
    * the first. [NonCancellable] for the same reason from the other side — a star is set by a click that
    * leaves nothing on screen waiting for it, so a save given up on half way would leave a file that
    * disagrees with the screen above it.
+   *
+   * **A star clicked before the file has been read reads it rather than being dropped.** Which is the
+   * difference between a click that is late and a click that never happened: the window starts the read as a
+   * dump opens and a person gets to a star seconds later, so refusing until it lands only ever bites
+   * something faster than a person — a test, and whatever else drives this app. The reason for the guard
+   * was never to lose the click, it was not to write a list worked out from an unread one and take the star
+   * off everything; reading first is what that reason actually asks for, and the read is what this needs
+   * anyway to know what to write. A read that *failed* still returns, since the list is still unknown.
    */
   suspend fun toggle(objectId: Long) {
     saving.withLock {
+      readInsideTheLock()
       if (!isRead) {
-        SharkLog.d { "Not starring ${hexObjectId(objectId)}: $file has not been read yet" }
+        SharkLog.d { "Not starring ${hexObjectId(objectId)}: $file could not be read" }
         return
       }
       val wasStarred = objectId in objectIds
@@ -119,6 +119,26 @@ internal class HeapDumpStars(private val starredFile: StarredFile) {
       objectIds = next
       problem = null
     }
+  }
+
+  /**
+   * [read], for a caller already holding [saving], which is both of them: the lock is what makes a star
+   * clicked while the first read is still in flight wait for it rather than start a second one.
+   */
+  private suspend fun readInsideTheLock() {
+    if (isRead) {
+      return
+    }
+    val read = try {
+      withContext(Dispatchers.IO) { starredFile.read() }
+    } catch (throwable: Throwable) {
+      SharkLog.d(throwable) { "Could not read the starred objects in $file" }
+      problem = "Could not read $file: $throwable"
+      return
+    }
+    isRead = true
+    problem = null
+    objectIds = read
   }
 
   private val saving = Mutex()

@@ -45,7 +45,7 @@ internal class DiveLeakStatuses(private val root: File = LEAK_STATUSES_DIRECTORY
  *
  * **Nothing is applied that wasn't written**, which is the opposite way round from the notes beside it: a
  * note is what someone is typing and a status is a conclusion the window then reads the heap dump through, so
- * one that only lives in this process is a chain explained by a reason that will be gone next run. A save that
+ * one that only lives in this process is a path explained by a reason that will be gone next run. A save that
  * fails leaves the heap dump as it was and says why.
  */
 @Stable

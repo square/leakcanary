@@ -51,9 +51,9 @@ internal class AgentTool(
  * Why a call was refused, worded for the agent that made it.
  *
  * **Every one of these says what to do instead**, because a refusal is the one message an agent is certain
- * to read: it is where the method is enforced rather than described. "Not concluded, 3 steps have no
- * verdict, here they are" turns a wrong answer into the next thing to look at, and that is the whole
- * mechanism — the server refuses, so it works with any client and nothing here has to call a model back.
+ * to read: it is where the method is enforced rather than described. "That object has no verdict, and here
+ * is what the heap dump says about it" turns a wrong answer into the next thing to look at, and that is the
+ * whole mechanism — the server refuses, so it works with any client and nothing here has to call a model back.
  *
  * Public because [AgentHeapDump] is: the app implements it, and the app has refusals of its own to make —
  * writing over a note somebody is typing in, recording a verdict into a file that hasn't been read.
@@ -181,7 +181,7 @@ internal class AgentArguments(
  * so `describe_object` on `android.os.Build${'$'}VERSION` is exactly the right thing to want, and the only thing
  * missing is the lookup. Which is why this is here rather than in a tool: told only that its class name is no
  * address, an agent has to guess that a second tool is what turns one into the other, and the method
- * `list_leaks` answers with sent it here in the first place. See [AgentMethod].
+ * `list_leak_groups` answers with sent it here in the first place. See [AgentMethod].
  *
  * A name with a dot or a `${'$'}` in it, since those are the two things a class name has that nothing else sent
  * here does. A bare `Bitmap` gets the plain refusal: it is as likely to be a typo as a class.
@@ -256,18 +256,13 @@ internal fun enumArray(
  * Added here rather than written out once per tool, so that there is no tool it can be forgotten on: a
  * command with no reason recorded beside it is the gap this surface exists to close. See [AgentTools].
  *
- * **A tool that writes its own `reason` keeps it**, in the position it put it in, rather than getting a second
- * one appended. One does: `conclude`'s reason is the root cause it is reporting rather than a line of this
- * session's log, so what to write there is a different question and the description has to be able to say so.
- * The argument is the same argument either way — one name for one thing, see [REASON] — which is the whole
- * point of overriding the description rather than adding an argument beside it.
+ * **The same sentence on every tool**, which it was not while `conclude` was here: that one took the root
+ * cause it was reporting under this name, so its description had to say something else. Nothing on this
+ * surface asks for a finding any more — what an investigation comes to is derived from the verdicts it
+ * recorded — so there is one description of `reason` and it is [REASON_PROPERTY].
  */
 internal fun schema(vararg properties: Pair<String, AgentProperty>): JsonObject {
-  val all = if (properties.any { it.first == REASON }) {
-    properties.toList()
-  } else {
-    properties.toList() + (REASON to REASON_PROPERTY)
-  }
+  val all = properties.toList() + (REASON to REASON_PROPERTY)
   return buildJsonObject {
     put("type", "object")
     putJsonObject(PROPERTIES) {
@@ -284,10 +279,7 @@ internal fun schema(vararg properties: Pair<String, AgentProperty>): JsonObject 
 
 private const val PROPERTIES = "properties"
 
-/**
- * Why a call was made, on every tool. Internal because one tool asks for something else under this name —
- * see [schema] — and two spellings of that would be two arguments.
- */
+/** Why a call was made, on every tool. One name for one thing — see [schema]. */
 internal const val REASON = "reason"
 
 private val REASON_PROPERTY = string(

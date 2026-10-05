@@ -19,11 +19,11 @@ import shark.dive.leakLabel
  *
  * **This is not a check that the answer is right** — the answer is right by construction, since the fixture
  * writes the leak — it is a check that the dump can be *investigated* to it. A scenario whose key is nowhere
- * on the chain, or one whose chain names it before anybody has read anything, is a scenario every model fails
+ * on the path, or one whose path names it before anybody has read anything, is a scenario every model fails
  * or passes for the wrong reason, and the eval would report that as a fact about the models.
  *
  * So each case here does the one thing the method asks an agent to do and no more: find the leak, get the
- * chain, set the verdicts that close the unknown zone, and read off what the chain then names. Which is
+ * path, set the verdicts that close the unknown zone, and read off what the path then names. Which is
  * also why it is the test to run after touching the tools — it is the shortest thing in this repository that
  * says the surface can be finished.
  */
@@ -37,17 +37,17 @@ class EvalScenariosTest {
     EvalScenarios.all(repositoryRoot).forEach { scenario ->
       val file = scenario.writeHeapDumpIn(temporaryFolder.newFolder(scenario.name))
       HeapDive.open(file).use { dive ->
-        val chain = dive.chainToTheFirstLeak()
-        val keyIndex = chain.steps.indexOfFirst { it.step.reference?.leakLabel() == scenario.key }
+        val path = dive.pathToTheFirstLeak()
+        val keyIndex = path.steps.indexOfFirst { it.step.reference?.leakLabel() == scenario.key }
         assertThat(keyIndex)
           .describedAs(
-            "${scenario.name} has no reference called ${scenario.key} on the chain to its first leak. " +
-              "What it does have: ${chain.references()}"
+            "${scenario.name} has no reference called ${scenario.key} on the path to its first leak. " +
+              "What it does have: ${path.references()}"
           )
           .isGreaterThan(0)
-        val verdicts = scenario.verdictsThatCloseTheUnknownZone(chain, keyIndex)
+        val verdicts = scenario.verdictsThatCloseTheUnknownZone(path, keyIndex)
         val solved = dive.tree.rootPathTo(
-          objectId = chain.steps.last().step.objectId,
+          objectId = path.steps.last().step.objectId,
           overrides = LeakStatusOverrides.of(verdicts)
         )
         assertThat(solved.faultyReference()?.leakLabel())
@@ -65,9 +65,10 @@ class EvalScenariosTest {
     EvalScenarios.all(repositoryRoot).forEach { scenario ->
       val file = scenario.writeHeapDumpIn(temporaryFolder.newFolder("unread-${scenario.name}"))
       HeapDive.open(file).use { dive ->
-        // Because a chain that names the faulty reference with no verdict set is a scenario an agent finishes
-        // by reading one answer, and a run of it measures nothing about the method. `conclude` would allow it.
-        assertThat(dive.chainToTheFirstLeak().faultyReference())
+        // Because a path that names the faulty reference with no verdict set is a scenario an agent finishes
+        // by reading one answer, and a run of it measures nothing about the method: `leakSolved` is true on the
+        // first call it makes.
+        assertThat(dive.pathToTheFirstLeak().faultyReference())
           .describedAs("${scenario.name} names a faulty reference before anybody has set a verdict")
           .isNull()
       }
@@ -79,18 +80,18 @@ class EvalScenariosTest {
     EvalScenarios.all(repositoryRoot).forEach { scenario ->
       val file = scenario.writeHeapDumpIn(temporaryFolder.newFolder("leaks-${scenario.name}"))
       HeapDive.open(file).use { dive ->
-        // The first step of the method is `list_leaks`, so a scenario whose leak isn't in it is one an agent
+        // The first step of the method is `list_leak_groups`, so a scenario whose leak isn't in it is one an agent
         // has to go looking for by other means — a different investigation from the one being measured.
         assertThat(dive.tree.findLeaks().leakingObjectCount)
-          .describedAs("${scenario.name} has no leak of the app's own for list_leaks to answer with")
+          .describedAs("${scenario.name} has no leak of the app's own for list_leak_groups to answer with")
           .isGreaterThan(0)
       }
     }
   }
 
   /**
-   * The verdicts to set before reading the chain back, which is the whole of what an agent adds to a heap
-   * dump before it can conclude.
+   * The verdicts to set before reading the path back, which is the whole of what an agent adds to a heap
+   * dump before `leakSolved` goes true.
    *
    * For a scenario that names none, one: everything above the object that owns the key is meant to be in
    * memory, which a single `EXPECTED` says by spreading upwards, and what is below is stuck already because
@@ -100,33 +101,33 @@ class EvalScenariosTest {
    * the middle that nothing here could work out.
    */
   private fun EvalScenario.verdictsThatCloseTheUnknownZone(
-    chain: RootPath,
+    path: RootPath,
     keyIndex: Int
   ): List<LeakStatusOverride> {
     if (solvedBy.isEmpty()) {
-      val owner = chain.steps[keyIndex - 1].step
+      val owner = path.steps[keyIndex - 1].step
       return listOf(
         LeakStatusOverride(owner.objectId, LeakStatus.EXPECTED, "${owner.className} belongs in memory.")
       )
     }
     return solvedBy.map { (className, status) ->
-      val step = chain.steps.map { it.step }.firstOrNull { it.className == className }
+      val step = path.steps.map { it.step }.firstOrNull { it.className == className }
       assertThat(step)
-        .describedAs("$name says $className is $status, and its chain has no object of that class")
+        .describedAs("$name says $className is $status, and its path has no object of that class")
         .isNotNull
       LeakStatusOverride(step!!.objectId, status, "$className is $status.")
     }
   }
 
-  /** The chain to the first leaking object the dump reports, which is where the method starts. */
-  private fun HeapDive.chainToTheFirstLeak(): RootPath {
+  /** The path to the first leaking object the dump reports, which is where the method starts. */
+  private fun HeapDive.pathToTheFirstLeak(): RootPath {
     val leaks = tree.findLeaks()
     val leaking = leaks.leakSections.flatMap { it.groups }.flatMap { it.objects }
     assertThat(leaking).describedAs("nothing is leaking in this dump").isNotEmpty
     return tree.rootPathTo(leaking.first().objectId)
   }
 
-  /** Every reference the chain names, for a failure message that says what the key should have been. */
+  /** Every reference the path names, for a failure message that says what the key should have been. */
   private fun RootPath.references(): String =
     steps.mapNotNull { it.step.reference?.leakLabel() }.joinToString(", ")
 

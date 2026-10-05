@@ -22,26 +22,27 @@ is. *So: one core, one adapter* has what that leaves to build.
 ## What the command line costs
 
 `--cli <command> name=value …` is a process per call, and the thing to know is what that *doesn't* cost.
-Measured against a packaged build of `e423fad36`, `SHARK_DIVE_DIR` pointed at a scratch directory, with one
+Measured against a packaged build of `3ff1c42a6`, `SHARK_DIVE_DIR` pointed at a scratch directory, with one
 run open on `leak_asynctask_o.hprof` and no window:
 
 | | Measured | Paid |
 | --- | --- | --- |
-| One call, JVM start to JSON on stdout | 186 ms, median of twenty-four | Per call |
-| `--help`, the whole surface: every option and all twenty commands, one line each | 5,666 characters, ≈1,417 tokens | Only when read |
-| `--help <command>`, one of them in full | 815–2,699 characters, ≈204–675 tokens | Only when read |
-| `--leak-investigation-help`, the method for finding a faulty reference | 9,385 characters, ≈2,346 tokens | Once per investigation |
+| One call, JVM start to JSON on stdout | 201 ms, median of twenty-four | Per call |
+| `--help`, the whole surface: every option and all nineteen commands, one line each | 5,889 characters, ≈1,472 tokens | Only when read |
+| `--help <command>`, one of them in full | 885–3,200 characters, ≈221–800 tokens | Only when read |
+| `--leak-investigation-help`, the method for solving a leak | 11,855 characters, ≈2,964 tokens | Once per investigation |
 
 So **the standing cost is nothing** — no server is running, no definitions are in a context window, and a
 session that never reaches for a heap dump never pays for this surface at all.
 
-**And what the whole surface costs to read is now a third of what it was**, 5,666 characters against 17,923,
+**And what the whole surface costs to read is now a third of what it was**, 5,889 characters against 17,923,
 because `--help` lists a one-line summary per command and `--help <command>` is where the full description and
 every argument are. That is the split worth keeping: the list is what an agent reads to find the command, the
 description is what it reads to call one, and the version that printed every description in the list was
 paying 4,480 tokens to answer "what is here". MCP's `tools/list` was 23,877 characters of the same thing, every
-turn. The largest single command is `set_verdict` at 2,699 characters — two justifications to explain — and it
-is the one to watch, because the help for one command is worth being the short answer.
+turn. The largest single command is `set_verdict` at 3,200 characters — two justifications to explain, and
+`solvingLeakOf` to say what a verdict is in service of — and it is the one to watch, because the help for one
+command is worth being the short answer.
 
 **Part of every figure here is the invocation path**, since what the help prints is the command to type on
 this machine: the full help carries it four times and a single command's help once. The path measured from is
@@ -246,32 +247,50 @@ an option of its own with no run, no heap dump and nothing open — which is the
 all the way down: a text handed over at a handshake, then a text prepended to an answer, then a text an agent
 asks for when it has a use for it.
 
-- **`SURFACE`, 1,912 characters as `--investigation-help` prints it**, is how to work on this surface at all:
+- **`SURFACE`, 1,969 characters as `--investigation-help` prints it**, is how to work on this surface at all:
   the reason on every call, the window somebody is watching, the `shark://` links to hand back, the gap to
   admit, and one sentence saying that anything about a leak starts by reading `--leak-investigation-help`. It
   used to be prepended to the first *answered* call of a session, exactly once, read off the session file rather
   than held in memory because a process per call has no memory — and exactly once is still every session: a
   `list_heap_dumps` that wanted the name of a dump was answered with the whole of how to work here, and the
   session that only ever wanted that paid for the rest of it.
-- **`LEAK`, 7,913 characters as `--leak-investigation-help` prints it**, is what a leak is, how a verdict
-  spreads, the order to work in, and reading the code at the version the dump is of. It was a field of every
-  `list_leaks` answer, and a `list_leaks` answers the same text whether it is the first call of an investigation
+- **`LEAK`, 11,855 characters as `--leak-investigation-help` prints it**, is what a leak is, how a verdict
+  spreads, the order to work in, what to tell a person, and reading the code at the version the dump is of. It was a field of every
+  `list_leak_groups` answer, and a `list_leak_groups` answers the same text whether it is the first call of an investigation
   or the fourth. So an investigation of three leaks read the whole method three times, for a text that is about
-  the chain rather than about the list.
+  the path rather than about the list.
 
-**Measured, and this is the largest single cut in the redesign**: `list_leaks` on `leak_asynctask_o.hprof`
-answers **6,495 characters**, the same on its second call as on its first and the same in a second session as in
+**Measured, and this is the largest single cut in the redesign**: `list_leak_groups` on `leak_asynctask_o.hprof`
+answered **6,495 characters**, the same on its second call as on its first and the same in a second session as in
 the first, where it answered 14,477 as a second call, 16,312 as a first and 8,435 as another session's first. A
 55% cut on the call an investigation makes most, and it is the method that left rather than any of the leaks.
 `open_heap_dump` is the other half of the same cut: **1,976 characters** where it was 3,802.
 
+**Re-measured on 2026-10-04, and the leaks answer has grown to 11,040 characters** — still the same on a
+second call and in a second session, and `open_heap_dump` is 2,016. What that 70% rise bought is the thing
+the answer is read for: `leakTrace` on each group, the trace LeakCanary prints, which is **4,152 of those
+characters over three groups** and is what an agent hands a person instead of a trace it retold. The
+`representativeObject` beside it is 30 characters for all three. So the shape of the cut held — the method
+left the answer and has not come back — and what is in there now is leak traces rather than instructions.
+Measured against a `--no-ui` run on a `SHARK_DIVE_DIR` of its own, characters rather than bytes: the
+box-drawing of a leak trace is three bytes a glyph, so `wc -c` reads 11,416.
+
+**120 of those characters are the `Retaining … in … objects` line**, one per group, added the same day so
+that the trace carries every line a LeakCanary report does — `notes/decisions.md` has what the two still
+differ on. Worth knowing which way that trade goes: the whole of what a leak trace is worth paying for is
+that it is the artefact somebody can hold beside a report they already have, so a line of it is the last
+thing on this surface to cut for size.
+
 **An investigation that never asks for either text never reads it**, and that is the intended consequence rather
-than a hole to patch — the same consequence as before, moved one call further out. `conclude` is what holds the
-leak half: an investigation that skipped the method has not narrowed a chain to one reference, so it cannot
-finish. What carries the pointer is the answer that opens a heap dump, which is the first call of nearly every
+than a hole to patch — the same consequence as before, moved one call further out. What holds the leak half is
+that nothing else produces an answer: `leakSolved` goes true when the verdicts leave one candidate reference
+and at no other time, so an investigation that skipped the method has nothing to show for itself. It is no
+longer *stopped*, which is the deliberate part of the 2026-10-03 change — `conclude` refused until the path
+named one reference, and the reference it checked was one it had already handed over. See
+`notes/agent-eval.md`. What carries the pointer is the answer that opens a heap dump, which is the first call of nearly every
 investigation and so the one answer a session that has read nothing is certain to see — `NEXT_WITH_A_NEW_DUMP`
 in `AgentTools.kt`, and that one sentence is the whole of what moving the method out of the answers costs. Beside
-it: the option column of `--help`, the closing paragraph of the command list, and `list_leaks` and the surface
+it: the option column of `--help`, the closing paragraph of the command list, and `list_leak_groups` and the surface
 method, each pointing at the leak half. Because a text nothing hands over is a text only a careful reader finds.
 
 **The split was forced by MCP's caps and is kept because it was right anyway.** Claude Code caps every MCP
@@ -303,7 +322,7 @@ context window went to die**. It was 6.4 k tokens an agent paid before it knew w
 dump, against nothing.
 
 Worth keeping from that measurement: **the cap never touched the tool definitions**, measured rather than
-assumed — the longest description was `chain_from_gc_root` at 652 characters, a third of the cap, and none of
+assumed — the longest description was `path_from_gc_root` at 652 characters, a third of the cap, and none of
 the seventeen was within 1,300 of it. So a description can go on saying when to reach for its tool, in
 `--help <command>` as it did in a schema. What would silently lose text is the one thing not to write: a
 command whose description is a page.
@@ -341,7 +360,7 @@ window. That is the tool being used for what it is for rather than a leak — it
 whose subject is somebody else's whole investigation.
 
 **The version of this measurement before the redesign hit Claude Code's 30,000-character cap**: nine calls,
-33,035 characters, of which a single `list_leaks` carrying the leak method was 14,477. What a Claude Code
+33,035 characters, of which a single `list_leak_groups` carrying the leak method was 14,477. What a Claude Code
 session got was a 2 KB preview and a path to read. Moving that method to `--leak-investigation-help` is most of
 why this trace's six calls are 20,840 — but the two traces are six calls and nine, so **that is not a
 like-for-like number and the cap has not gone away**: a long investigation still passes it, and the shape to
@@ -433,7 +452,7 @@ move, which is why an answer hands both back.
 
 **The run does the work on the heap dump's own thread**, so what a call takes is how long that thread takes
 to reach it: 4 ms here, `list_heap_dumps` being the one call that touches no heap dump thread at all — against
-**393 ms** for the first `list_leaks` of that run, which is a leak analysis, and 0 ms for the second, which is
+**393 ms** for the first `list_leak_groups` of that run, which is a leak analysis, and 0 ms for the second, which is
 that analysis cached. What the command line adds in front of all of it is a JVM: `list_heap_dumps` typed at the
 launcher takes **140 to 160 ms** over three runs, and nearly all of that is the JVM coming up rather than
 anything this surface does.
@@ -443,6 +462,13 @@ is the session name, not the connection.
 
 ### Six typed calls are six processes, six connections, and one row each
 
+**A trace of the 2026-10-01 build, and two of its six calls are a command that has since gone.** `conclude`
+was removed on 2026-10-03 — `notes/agent-eval.md` has why — so read its two rows, the paragraphs under them
+and the `AgentTools.kt` line numbers in them as that build's. What each of its jobs is done by now: which
+leak a call is about is `solvingLeakOf` on `set_verdict`, what an investigation worked out is `take_note`,
+and which reference the leak is was always the heap dump's own answer. The character counts still stand as a
+floor, with `list_leak_groups` since gaining a leak trace and a representative object per group.
+
 The whole trace, as commands typed in a row against the same run:
 
 | Command | Exit | stdout | The same call before this round |
@@ -450,15 +476,15 @@ The whole trace, as commands typed in a row against the same run:
 | `--cli open_heap_dump path=…` | 0 | 1,976 characters: the dump, its sizes, what is already recorded about it, and one sentence saying where the two method texts are | 3,802 — `SURFACE` prepended, this being the session's first answered call |
 | `--cli list_heap_dumps` | 0 | 2,102 characters | 2,099 — the same answer, under `heapDump` rather than `heapDumpKey` |
 | `--cli list_heap_dumps` ×2 | 0 | 2,102 characters | 2,099 |
-| `--cli list_leaks` | 0 | 6,495 characters | 6,495 — the leak half had already left this answer |
+| `--cli list_leak_groups` | 0 | 6,495 characters | 6,495 — the leak half had already left this answer |
 | `--cli conclude reference=…` | 2 | empty, refused on stderr | the same, under the old argument list |
 | `--cli conclude object=0x12d368b8 reason=…` | 2 | empty, refused on stderr | `rootCause=…` as well, which is the argument this round removed |
-| `--cli list_leaks --session=flowleak` | 0 | 6,495 characters | 8,435 — `SURFACE` again, that being another session's first answered call |
+| `--cli list_leak_groups --session=flowleak` | 0 | 6,495 characters | 8,435 — `SURFACE` again, that being another session's first answered call |
 
 The two refusals are the pair worth reading. `conclude reference=…` is refused by `AgentArguments.onlyTakes` —
 "conclude does not take `reference`. It takes `heapDumpKey`, `howToReproduce`, `notChecked`, `object`, `reason`,
 and nothing else." — and the one with the right arguments is refused by the heap dump: *"Not concluded. A root
-cause names the one reference a chain is the leak of, and this chain leaves AsyncTask.SERIAL_EXECUTOR,
+cause names the one reference a path is the leak of, and this path leaves AsyncTask.SERIAL_EXECUTOR,
 AsyncTask$SerialExecutor.mActive, AsyncTask$SerialExecutor$1.val$r, AsyncTask$3.this$0, MainActivity$2.this$0.
 The fault is at one of those references, and what settles which is the objects between them that have no
 verdict…"*. Both went to stderr with exit code 2 and nothing on stdout, each prefixed `[shark-dive]` so that a
@@ -473,20 +499,20 @@ should have cleared it, and why it didn't" — and the command list says `reason
 note beside it.
 
 **`object` stays, and the reason is worth writing down** because the argument for removing it is a good one: the
-object at the end of a chain is only the *signal*, there is nothing special about it, and objects further up the
-chain usually shouldn't be in memory either. All true, and none of it is what that argument does here. A heap
-dump has as many leaks as it has chains, so `object` is how a conclusion says which of them it is about — and it
+object at the end of a path is only the *signal*, there is nothing special about it, and objects further up the
+path usually shouldn't be in memory either. All true, and none of it is what that argument does here. A heap
+dump has as many leaks as it has paths, so `object` is how a conclusion says which of them it is about — and it
 is load-bearing twice over in `AgentTools.kt:687` and `:688`: the conclusion is written into *that object's*
 notes, where the next reader of that tab finds it, and the window is sent to *that object's* tab. Drop it and a
 conclusion has no leak to be about and nowhere to be written. What the description does say is that it needn't be
-the end of the chain: any object below the faulty reference will do, the one the chain was read from being the
+the end of the path: any object below the faulty reference will do, the one the path was read from being the
 obvious one.
 
 And the calls are two session files, not seven:
 
 ```
-agent-2026-10-01_10-53-20_183-flowtrace.jsonl   header + open_heap_dump + 2 × list_heap_dumps + list_leaks + 2 × conclude
-agent-2026-10-01_10-53-22_913-flowleak.jsonl    header + list_leaks
+agent-2026-10-01_10-53-20_183-flowtrace.jsonl   header + open_heap_dump + 2 × list_heap_dumps + list_leak_groups + 2 × conclude
+agent-2026-10-01_10-53-22_913-flowleak.jsonl    header + list_leak_groups
 ```
 
 A refused call is a row, with the refusal in `output` as well as in `refused` — 750 and 2,317 characters here,
@@ -520,7 +546,7 @@ that removed, beyond the tokens above: a JSON-RPC envelope to keep on the right 
 per tool to keep in step with the help text, a session-file field recording which way a line came in, a
 client-shaped row on a screen meant for an investigation, and the one case
 (`isTheCommandLineSayingHello`) that existed to undo the handshake's cost. **What it must never become again
-is two places that decide whether an investigation may conclude.**
+is two places that decide what a heap dump says about a leak.**
 
 **`--no-ui` stayed, rebuilt around the socket.** It is worth being explicit about because it was a capability
 rather than a transport, and the MCP version of it was a transport as well: the same tools served from the

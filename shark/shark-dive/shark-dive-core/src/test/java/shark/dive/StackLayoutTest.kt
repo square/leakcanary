@@ -35,10 +35,10 @@ class StackLayoutTest {
     )
   }
 
-  /** A chain of single children, which is what only a row bound stops: every row of it is full width. */
-  private fun chain(length: Int): Node =
-    (length downTo 1).fold(Node("chain.$length", ownWeight = 1_000_000)) { below, index ->
-      Node("chain.${index - 1}", children = listOf(below))
+  /** A path of single children, which is what only a row bound stops: every row of it is full width. */
+  private fun path(length: Int): Node =
+    (length downTo 1).fold(Node("path.$length", ownWeight = 1_000_000)) { below, index ->
+      Node("path.${index - 1}", children = listOf(below))
     }
 
   private val viewport = TreemapRect(0.0, 0.0, 1000.0, 800.0)
@@ -164,7 +164,7 @@ class StackLayoutTest {
   }
 
   @Test fun `nothing is laid out past the last row`() {
-    val tree = NodeTree(chain(length = 20))
+    val tree = NodeTree(path(length = 20))
 
     val result = StackLayout<Node>(maxRows = 5).layout(tree, viewport)
 
@@ -172,8 +172,8 @@ class StackLayoutTest {
     assertThat(result.rowCount).isEqualTo(5)
   }
 
-  @Test fun `a chain of single children is as wide at the bottom as at the top`() {
-    val tree = NodeTree(chain(length = 30))
+  @Test fun `a path of single children is as wide at the bottom as at the top`() {
+    val tree = NodeTree(path(length = 30))
 
     val result = StackLayout<Node>(maxRows = 32).layout(tree, viewport)
 

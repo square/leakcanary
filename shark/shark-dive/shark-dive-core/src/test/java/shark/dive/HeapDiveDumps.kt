@@ -250,8 +250,8 @@ internal fun TemporaryFolder.coilCachedImageHeapDump(alsoShownByATile: Boolean):
  *
  * The map is built with the class and field names a real one has, `table` and `next` included, because
  * which entries belong to a cache is read off the heap dump rather than off a class name — see
- * [CachedMapValues]. Two buckets and a chain of two entries in one of them, so that a walk that only
- * looked at the buckets, or only at the first entry of a chain, would come up short.
+ * [CachedMapValues]. Two buckets and a path of two entries in one of them, so that a walk that only
+ * looked at the buckets, or only at the first entry of a path, would come up short.
  */
 internal fun TemporaryFolder.mapCachedPayloadsHeapDump(alsoHeldByATile: Boolean): File {
   val file = newFile("map-cached-payloads-$alsoHeldByATile.hprof")
@@ -380,17 +380,17 @@ internal fun TemporaryFolder.onAStackAndInAFieldHeapDump(): File {
 }
 
 /**
- * A heap dump where a payload is held at the end of a chain of [CHAIN_LINK_COUNT] objects, which is
- * taller than the pane a chain is drawn in.
+ * A heap dump where a payload is held at the end of a path of [PATH_LINK_COUNT] objects, which is
+ * taller than the pane a path is drawn in.
  */
-internal fun TemporaryFolder.longChainHeapDump(): File {
-  val file = newFile("long-chain.hprof")
+internal fun TemporaryFolder.longPathHeapDump(): File {
+  val file = newFile("long-path.hprof")
   file.dump {
     var held = ReferenceHolder(
       objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
     )
     // A class per link, numbered from the payload out, so that a step says how far along it is.
-    repeat(CHAIN_LINK_COUNT) { index ->
+    repeat(PATH_LINK_COUNT) { index ->
       held = "com.example.Link$index" instance { field["next"] = held }
     }
     gcRoot(JniGlobal(id = held.value, jniGlobalRefId = 0))
@@ -481,8 +481,8 @@ internal const val TILE_CLASS_NAME = "com.example.Tile"
 /** Past `MIN_CHILDREN_TO_GROUP_BY_CLASS` in [HeapDominatorTreemap], which is 200. */
 internal const val TILE_COUNT = 205
 
-/** More objects between a GC root and a payload than a chain pane has the height to draw at once. */
-internal const val CHAIN_LINK_COUNT = 25
+/** More objects between a GC root and a payload than a path pane has the height to draw at once. */
+internal const val PATH_LINK_COUNT = 25
 
 /**
  * A heap dump whose objects sit above the 2 GB mark, which gives every one of them a negative object id.

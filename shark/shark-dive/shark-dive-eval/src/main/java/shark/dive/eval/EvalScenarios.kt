@@ -95,7 +95,7 @@ object EvalScenarios {
    * The smallest dump that takes an investigation: one object with no verdict between the two the heap dump
    * can read for itself.
    *
-   * Which is `conclude`'s refusal made real. The application belongs in memory and the activity is watched and
+   * Which is what an unsolved leak is made of. The application belongs in memory and the activity is watched and
    * destroyed, so what is left between them is **two** references — `ExampleApplication.settings` and
    * `SettingsStore.context` — and a surface that named one of them off the dump alone would be guessing
    * between them. What decides is the verdict on the one object in between, and the dump carries the evidence
@@ -173,7 +173,7 @@ object EvalScenarios {
       instance(
         clazz(
           className = "com.example.image.ImageLoader",
-          // A class is a GC root of its own, so this static field is what roots the whole chain — and it is
+          // A class is a GC root of its own, so this static field is what roots the whole path — and it is
           // what an agent can point at to defend a verdict on everything below it.
           staticFields = listOf("INSTANCE" to loader),
           fields = listOf("cache" to ReferenceHolder::class)
@@ -192,7 +192,7 @@ object EvalScenarios {
    * the only object anybody can defend as belonging in memory is at the very *top*, and it is a binder stub:
    * another process holds a proxy to it, so when it goes is not this process's decision and there is nothing
    * to fix about it being here. An investigation that reads that as licence for what the stub *holds* has the
-   * rule backwards, and comes out with `EXPECTED` all the way down and the last reference on the chain as its
+   * rule backwards, and comes out with `EXPECTED` all the way down and the last reference on the path as its
    * answer. The rule only runs the one way: a holder of something expected is expected, never the held.
    *
    * So the verdict that costs something is the `STUCK` on [UPLOAD_CALLBACKS_CLASS_NAME], and it is the only
@@ -303,7 +303,7 @@ object EvalScenarios {
 
       val activity = destroyedActivity()
       keyedWeakReference(activity)
-      // The answer the whole chain exists to deliver, already delivered. Which is the only thing in this
+      // The answer the whole path exists to deliver, already delivered. Which is the only thing in this
       // dump that says the receiver above has nothing left to do, and it is not on the receiver.
       val results = SEARCH_RESULTS_CLASS_NAME instance {
         field["rowCount"] = IntHolder(12)
@@ -373,7 +373,7 @@ object EvalScenarios {
   private fun aRealAsyncTaskLeak(repositoryRoot: File) = EvalScenario(
     name = "real-asynctask",
     key = "MainActivity\$2.this\$0",
-    about = "A real dump: 8 MB, an inner class, and a chain nobody wrote for this eval"
+    about = "A real dump: 8 MB, an inner class, and a path nobody wrote for this eval"
   ) { file ->
     val real = File(repositoryRoot, REAL_ASYNC_TASK_DUMP)
     require(real.isFile) {
@@ -416,7 +416,7 @@ private fun HprofWriterHelper.androidBuild() {
     staticField["ID"] = string("BP31.250610.004")
   }
   "android.os.Build\$VERSION" clazz {
-    // Recent enough that none of Shark's known library leaks is in these dumps, so the references a chain
+    // Recent enough that none of Shark's known library leaks is in these dumps, so the references a path
     // names are the app's own — a library leak is a scenario of its own, not a surprise in another one.
     staticField["SDK_INT"] = IntHolder(34)
   }

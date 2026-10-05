@@ -112,7 +112,7 @@ class TreemapLayoutResult<N>(
  * viewport wherever it sits.
  *
  * That is the difference between finding a big object and not. A level used to cost an 18 dp header
- * strip for its label, so the chain from an activity down to a list row on a real app dump — 21 levels
+ * strip for its label, so the path from an activity down to a list row on a real app dump — 21 levels
  * — spent 378 dp of a 630 dp viewport on labels and left the bitmaps at the bottom a sliver
  * each. Now those levels cost nothing, and the bitmaps are the biggest things on the screen. What
  * that costs instead is that a subdivided rectangle has no room to put its own label in, so naming

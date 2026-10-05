@@ -44,7 +44,7 @@ fun main(args: Array<String>) {
  * `run-eval.sh` has the mechanism and the two redirections that also close it. This is the third way of
  * closing it and the one worth having on its own: an answer that is never written to a stream cannot leak
  * down a path nobody thought of. What it costs is that a key is no longer printed before the run it belongs
- * to — `asRunLines` prints one against any run that concluded something else, which is the case where
+ * to — `asRunLines` prints one against any run that solved something else, which is the case where
  * knowing it settles anything, and [EvalScenarios] is where it is written down.
  *
  * A numbered directory each, so that **no path an agent could reach spells the scenario's name**: the name says

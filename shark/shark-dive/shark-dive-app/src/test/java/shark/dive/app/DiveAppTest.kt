@@ -234,25 +234,25 @@ class DiveAppTest {
     }
   }
 
-  @Test fun `the chain holding an object is one side of the map and what it holds the other`() {
+  @Test fun `the path holding an object is one side of the map and what it holds the other`() {
     diveUiTest {
       openHeapDump()
 
       // Where the object came from, where it is, and what it is keeping alive, read left to right — rather
       // than the window's two outer edges with everything else between them.
       val view = viewBounds()
-      assertThat(onNodeWithText(Pane.CHAIN.paneName).fetchSemanticsNode().boundsInRoot.right)
+      assertThat(onNodeWithText(Pane.PATH.paneName).fetchSemanticsNode().boundsInRoot.right)
         .isLessThanOrEqualTo(view.left)
       assertThat(onNodeWithText(Pane.DETAILS.paneName).fetchSemanticsNode().boundsInRoot.left)
         .isGreaterThanOrEqualTo(view.right)
     }
   }
 
-  @Test fun `what the pointer adds to the chain drops away when it leaves the map`() {
+  @Test fun `what the pointer adds to the path drops away when it leaves the map`() {
     diveUiTest {
       openHeapDump()
       // The instance holding the array, so that the array drawn inside it is a rectangle to point at that
-      // the chain on screen doesn't reach yet.
+      // the path on screen doesn't reach yet.
       clickContainerEdge(yFraction = 0.5f)
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
       hoverView(TREEMAP_X, TREEMAP_Y)
@@ -260,7 +260,7 @@ class DiveAppTest {
 
       leaveView()
 
-      // Back to the chain of the object clicked, and without reading the heap dump again: what was clicked
+      // Back to the path of the object clicked, and without reading the heap dump again: what was clicked
       // was never thrown away.
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
         onAllNodesWithText("Object[] · ", substring = true).fetchSemanticsNodes().isEmpty()
@@ -269,41 +269,41 @@ class DiveAppTest {
     }
   }
 
-  @Test fun `the chain the pointer adds starts at the rectangle the map is showing`() {
+  @Test fun `the path the pointer adds starts at the rectangle the map is showing`() {
     diveUiTest {
       openHeapDump()
 
       hoverView(TREEMAP_X, TREEMAP_Y)
 
-      // Nothing has been clicked, so there is no chain for the pointer's to run on from: the array is held
+      // Nothing has been clicked, so there is no path for the pointer's to run on from: the array is held
       // by the instance holding it, and that instance is one of the whole heap dump's own rectangles, so
-      // what holds *it* is above the map and the chain starts there rather than at the GC root reaching it.
+      // what holds *it* is above the map and the path starts there rather than at the GC root reaching it.
       // Which is the pointer's question — what is this, here — and not how the map got here.
       waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("GC root:", substring = true).assertDoesNotExist()
     }
   }
 
-  @Test fun `the chain runs on into the rectangle the pointer is on`() {
+  @Test fun `the path runs on into the rectangle the pointer is on`() {
     diveUiTest {
       openHeapDump()
       // The instance holding the array, so that the array drawn inside it is a rectangle to point at that
-      // the chain on screen doesn't reach yet.
+      // the path on screen doesn't reach yet.
       clickContainerEdge(yFraction = 0.5f)
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
 
       hoverView(TREEMAP_X, TREEMAP_Y)
 
-      // One chain growing rather than a second one starting: the object being described is on the chain to
+      // One path growing rather than a second one starting: the object being described is on the path to
       // the rectangle under the pointer, so what the pointer adds is the steps below it and nothing else.
       waitUntilAtLeastOneExists(hasText("Object[] · ", substring = true), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText("com.example.Holder").fetchSemanticsNodes()).isNotEmpty()
-      // One chain, so one row for the whole heap dump it hangs below.
+      // One path, so one row for the whole heap dump it hangs below.
       assertThat(onAllNodes(isWholeHeapDumpRow()).fetchSemanticsNodes()).hasSize(1)
     }
   }
 
-  @Test fun `the whole heap dump at the top of the chain is the way back out to it`() {
+  @Test fun `the whole heap dump at the top of the path is the way back out to it`() {
     diveUiTest {
       openHeapDump()
       clickView(TREEMAP_X, TREEMAP_Y)
@@ -311,8 +311,8 @@ class DiveAppTest {
 
       wholeHeapDumpRow().performClick()
 
-      // Back where the window opened, with nothing left of the chain: every chain hangs below the whole heap
-      // dump rather than running through it, so the whole heap dump's own chain is that one row.
+      // Back where the window opened, with nothing left of the path: every path hangs below the whole heap
+      // dump rather than running through it, so the whole heap dump's own path is that one row.
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) {
         onAllNodesWithText("com.example.Holder").fetchSemanticsNodes().isEmpty()
       }
@@ -320,11 +320,11 @@ class DiveAppTest {
     }
   }
 
-  @Test fun `a chain too tall for its pane is scrolled to the object at the end of it`() {
+  @Test fun `a path too tall for its pane is scrolled to the object at the end of it`() {
     diveUiTest {
-      // A dozen objects at four lines each is taller than the pane, and the end of the chain is the object
+      // A dozen objects at four lines each is taller than the pane, and the end of the path is the object
       // the window is describing: a pane scrolled to the top would be showing the least interesting of it.
-      openHeapDump(testFolder.longChainHeapDump())
+      openHeapDump(testFolder.longPathHeapDump())
 
       clickView(TREEMAP_X, TREEMAP_Y)
 
@@ -332,19 +332,19 @@ class DiveAppTest {
       waitUntilAtLeastOneExists(hasText("Link0 instance"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("Link0 instance").assertIsDisplayed()
       // Not merely off screen: the pane draws the rows it has the room for and no others, which is what
-      // lets it draw a chain of a thousand steps at all.
-      onNodeWithText("Link${CHAIN_LINK_COUNT - 1} instance").assertDoesNotExist()
+      // lets it draw a path of a thousand steps at all.
+      onNodeWithText("Link${PATH_LINK_COUNT - 1} instance").assertDoesNotExist()
     }
   }
 
-  @Test fun `the chain the pointer adds is condensed to what still fits beside the map`() {
+  @Test fun `the path the pointer adds is condensed to what still fits beside the map`() {
     diveUiTest {
       openHeapDump()
 
       hoverView(TREEMAP_X, TREEMAP_Y)
 
       waitUntilAtLeastOneExists(hasText("$HOLDER_LABEL · ", substring = true), OPEN_TIMEOUT_MILLIS)
-      // A chain from a GC root down to a bitmap of a real app is a dozen objects, and four lines each is
+      // A path from a GC root down to a bitmap of a real app is a dozen objects, and four lines each is
       // taller than any window. So the package, the address, which field holds the next object and the label
       // saying which steps own it are all left to the object that was clicked.
       onNodeWithText("com.example.Holder").assertDoesNotExist()
@@ -394,41 +394,41 @@ class DiveAppTest {
       // The rectangle clicked is the payload array nested in the instance holding it, so its fields
       // are its elements, all null in this heap dump.
       waitUntilAtLeastOneExists(hasText("[0] = null"), OPEN_TIMEOUT_MILLIS)
-      // What the array is, said twice: once by the panel and once by the chain beside it, which ends at
+      // What the array is, said twice: once by the panel and once by the path beside it, which ends at
       // the same object.
       assertThat(onAllNodesWithText("$PAYLOAD_LENGTH elements").fetchSemanticsNodes()).hasSize(2)
     }
   }
 
-  @Test fun `the chain marks what dominates the object clicked, and says it in words`() {
+  @Test fun `the path marks what dominates the object clicked, and says it in words`() {
     diveUiTest {
       openHeapDump()
 
       clickView(TREEMAP_X, TREEMAP_Y)
 
       // The holder is the only thing pointing at the array clicked, so it dominates it and points straight
-      // at it: marked as such, with no stretch of the chain in between that could have run any other way.
+      // at it: marked as such, with no stretch of the path in between that could have run any other way.
       waitUntilAtLeastOneExists(hasText(DOMINATES_BELOW), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("com.example.Holder").assertIsDisplayed()
       assertThat(onAllNodesWithText(WAYS_FROM_HERE, substring = true).fetchSemanticsNodes()).isEmpty()
     }
   }
 
-  @Test fun `the chain says how else the object clicked is held, and switches between those ways`() {
+  @Test fun `the path says how else the object clicked is held, and switches between those ways`() {
     diveUiTest {
       // The array is held by a wrapper the cache holds and by the view the tile holds, and nothing holds
-      // both: no object dominates it, so the whole chain is a stretch that didn't have to run as it does.
+      // both: no object dominates it, so the whole path is a stretch that didn't have to run as it does.
       openHeapDump(testFolder.cachedPayloadHeapDump())
 
       clickView(TREEMAP_X, TREEMAP_Y)
 
       waitUntilAtLeastOneExists(hasText("1 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
-      // Both ways are three objects long, so which of them the chain took is the heap dump's own order.
+      // Both ways are three objects long, so which of them the path took is the heap dump's own order.
       val throughTheCache = onAllNodesWithText("com.example.Cache").fetchSemanticsNodes().isNotEmpty()
 
       onNodeWithText(NEXT_WAY).performClick()
 
-      // The other way, in the same chain rather than on a screen of its own: the reader is switching one
+      // The other way, in the same path rather than on a screen of its own: the reader is switching one
       // stretch of what holds this object, and everything above and below it is where it was.
       waitUntilAtLeastOneExists(hasText("2 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(if (throughTheCache) "com.example.Tile" else "com.example.Cache").assertIsDisplayed()
@@ -436,7 +436,7 @@ class DiveAppTest {
     }
   }
 
-  @Test fun `a chain names each object by its class, its package and its address`() {
+  @Test fun `a path names each object by its class, its package and its address`() {
     diveUiTest {
       openHeapDump()
 
@@ -455,13 +455,13 @@ class DiveAppTest {
     }
   }
 
-  @Test fun `clicking a step of the chain shows that object on the map`() {
+  @Test fun `clicking a step of the path shows that object on the map`() {
     diveUiTest {
       openHeapDump(testFolder.cachedPayloadHeapDump())
       clickView(TREEMAP_X, TREEMAP_Y)
       waitUntilAtLeastOneExists(hasText("1 of 2 $WAYS_FROM_HERE"), OPEN_TIMEOUT_MILLIS)
 
-      // The middle step of whichever way round the chain runs, both of which are three objects long.
+      // The middle step of whichever way round the path runs, both of which are three objects long.
       val middle = listOf("com.example.Wrapper", "com.example.View")
         .first { onAllNodesWithText(it).fetchSemanticsNodes().isNotEmpty() }
       onNodeWithText(middle).performClick()
@@ -480,7 +480,7 @@ class DiveAppTest {
       openHeapDump()
       clickView(TREEMAP_X, TREEMAP_Y)
       waitUntilAtLeastOneExists(hasText("[0] = null"), OPEN_TIMEOUT_MILLIS)
-      // Up the chain to the instance holding the array, which is a move like any other.
+      // Up the path to the instance holding the array, which is a move like any other.
       onNodeWithText("com.example.Holder").performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
 
@@ -560,7 +560,7 @@ class DiveAppTest {
     diveUiTest {
       openHeapDump()
       clickView(TREEMAP_X, TREEMAP_Y)
-      // Up the chain to the instance holding the array clicked, which is what dominates it.
+      // Up the path to the instance holding the array clicked, which is what dominates it.
       waitUntilAtLeastOneExists(hasText("com.example.Holder"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText("com.example.Holder").performClick()
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
@@ -590,13 +590,13 @@ class DiveAppTest {
     }
   }
 
-  @Test fun `clicking an object of the chain beside the map goes back out to it`() {
+  @Test fun `clicking an object of the path beside the map goes back out to it`() {
     diveUiTest {
       openHeapDump()
       clickView(TREEMAP_X, TREEMAP_Y)
       waitUntilZoomedIn()
 
-      // Which is the only way back out: the objects the chain draws are the ones the map is nested in, so
+      // Which is the only way back out: the objects the path draws are the ones the map is nested in, so
       // clicking one of them is a zoom back out to it.
       onNodeWithText("com.example.Holder").performClick()
 
@@ -668,7 +668,7 @@ class DiveAppTest {
 
       clickContainerEdge(yFraction = 0.5f)
 
-      // The cell, the tab it opens, the chain and the details panel all say the one word, because the pile
+      // The cell, the tab it opens, the path and the details panel all say the one word, because the pile
       // is every object of that strength and the strength has one name. So this counts rather than finding
       // one: how firmly an object is held reads off the details panel in the tests about a strength that
       // isn't also a pile.
@@ -687,10 +687,10 @@ class DiveAppTest {
 
       clickView(TREEMAP_X, TREEMAP_Y)
 
-      // No GC root reaches it, so there is no object to blame for it still being here: the chain starts at
-      // that said in as many words, where every other chain names the kind of root it starts at.
+      // No GC root reaches it, so there is no object to blame for it still being here: the path starts at
+      // that said in as many words, where every other path names the kind of root it starts at.
       waitUntilAtLeastOneExists(hasText(UNREACHABLE.label), OPEN_TIMEOUT_MILLIS)
-      waitUntilAtLeastOneExists(hasText(UNCOLLECTED_GARBAGE_CHAIN), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(UNCOLLECTED_GARBAGE_PATH), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -835,12 +835,12 @@ class DiveAppTest {
       waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
 
       // Every move takes the panels with it: a window showing one object and describing another is a window
-      // that has to be read twice. The chain is a move like any other.
+      // that has to be read twice. The path is a move like any other.
       onNodeWithText("com.example.Holder").performClick()
 
       waitUntilAtLeastOneExists(hasText("payload = Object[]"), OPEN_TIMEOUT_MILLIS)
       // The id is how anything outside this window is pointed at the same object: another heap analyzer,
-      // a script, a colleague. Said twice, by the bar above the map and by the chain's own last step.
+      // a script, a colleague. Said twice, by the bar above the map and by the path's own last step.
       assertThat(onAllNodesWithText(hexObjectId(holderObjectId)).fetchSemanticsNodes()).hasSize(2)
     }
   }
@@ -908,7 +908,7 @@ class DiveAppTest {
    * Waits until the map has been laid out rooted somewhere other than the top of the tree, which is what
    * going to an object does.
    *
-   * Read off the log, because nothing on screen says it: the view is one canvas, and the chain beside it
+   * Read off the log, because nothing on screen says it: the view is one canvas, and the path beside it
    * names the object gone to rather than the node the map settled on above it.
    */
   private fun ComposeUiTest.waitUntilZoomedIn() {
@@ -917,7 +917,7 @@ class DiveAppTest {
     }
   }
 
-  /** The row every chain hangs below, which leads to the whole heap dump as the screen bar's button does. */
+  /** The row every path hangs below, which leads to the whole heap dump as the screen bar's button does. */
   private fun ComposeUiTest.wholeHeapDumpRow(): SemanticsNodeInteraction = onNode(isWholeHeapDumpRow())
 
   /** And the tab open on it, which is what the strip says a window opens on. */
@@ -929,7 +929,7 @@ class DiveAppTest {
     onNode(hasText(label) and isButton())
 
   /**
-   * What names the whole heap dump in the chain pane, which is neither a button nor a tab.
+   * What names the whole heap dump in the path pane, which is neither a button nor a tab.
    *
    * Three things in the window can say `Whole heap dump` at once — the screen bar's button, a tab open on
    * it, and this row — so the text alone is never enough to pick one of them out. What tells them apart is
@@ -1110,8 +1110,8 @@ class DiveAppTest {
 
     private const val HOLDER_LABEL = "Holder"
 
-    /** What a chain says it starts at when no GC root reaches the object. See `gcRootLabelOf`. */
-    private const val UNCOLLECTED_GARBAGE_CHAIN = "Uncollected garbage"
+    /** What a path says it starts at when no GC root reaches the object. See `gcRootLabelOf`. */
+    private const val UNCOLLECTED_GARBAGE_PATH = "Uncollected garbage"
 
     /** Big enough that the row of the object list naming it is the bitmap rather than its buffer. */
     private const val BITMAP_SIDE = 64

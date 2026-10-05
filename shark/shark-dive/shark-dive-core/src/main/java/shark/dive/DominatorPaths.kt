@@ -40,8 +40,8 @@ enum class DominatorKind {
  * The ways an object is held below something above it that dominates it, each spelled out from below that
  * down to the object.
  *
- * Asked of the two ends of a stretch of a chain that could have run otherwise — see [RootPathDetour] — or of
- * the roots the tree was walked from, which is what the top of a chain is held by. Every path from a GC root
+ * Asked of the two ends of a stretch of a path that could have run otherwise — see [RootPathDetour] — or of
+ * the roots the tree was walked from, which is what the top of a path is held by. Every path from a GC root
  * to the object goes through what dominates it, so these are every way it is held, with the part they all
  * share left out. They share no object in between either: **internally vertex-disjoint** paths, also called
  * independent paths, of which there are always at least two unless the upper end points straight at the
@@ -50,7 +50,7 @@ enum class DominatorKind {
  * theorem.
  *
  * A set of them isn't unique, and finding a largest one is a max flow problem; this searches greedily,
- * which is why [hasMore] says the search stopped rather than that these are all there are. Two chains that
+ * which is why [hasMore] says the search stopped rather than that these are all there are. Two paths that
  * cross-reference each other can also be reported as one path each, since a path is not told about the
  * references leaving it.
  */
@@ -68,12 +68,12 @@ data class IndependentPaths(
   }
 }
 
-/** One way an object is held: a chain of references from where the search started down to it. */
+/** One way an object is held: a path of references from where the search started down to it. */
 data class IndependentPath(
   /**
-   * Which kind of GC root the chain starts at, for a path found by
+   * Which kind of GC root the path starts at, for a path found by
    * [HeapDominatorTreemap.independentPathsFromRoots]. Null for one found below an object, which is where
-   * that chain starts instead.
+   * that path starts instead.
    */
   val gcRootLabel: String?,
   /** From the step below where the search started down to the object itself, which is the last step. */
@@ -134,7 +134,7 @@ data class PathReference(
    * Whether this is the reference the leak *is*: the one step of the path that goes from an object expected
    * to be in memory to a stuck one.
    *
-   * **The one thing on a chain that says where to go and change code.** A status is about an object, and
+   * **The one thing on a path that says where to go and change code.** A status is about an object, and
    * every object below this reference reads as stuck because of it — so a reader following the statuses is
    * being pointed at what a leak left behind, and this is being pointed at the leak. The same reference the
    * leaks screen names a leak after, wherever a leak is a single reference. See
@@ -155,13 +155,13 @@ data class PathReference(
  * erased, since which slot an object sits in is no part of what makes a leak that leak.
  *
  * One spelling in one place because three surfaces say it and they have to agree: the row of the leaks
- * screen, the section that names a solved leak at the top of the chain, and the `faultyReference` an agent
+ * screen, the section that names a solved leak at the top of the path, and the `faultyReference` an agent
  * is answered with. A leak named one way here and another way there is two leaks to whoever is reading.
  */
 fun PathReference.leakLabel(): String = when (locationType) {
   ReferenceLocationType.ARRAY_ENTRY -> "$ownerClassName[x]"
-  // The same words the chain pane draws for a reference from a running method, spelled again here rather
-  // than shared with it: what a leak is named after has to read the way the chain reads, and that is a
+  // The same words the path pane draws for a reference from a running method, spelled again here rather
+  // than shared with it: what a leak is named after has to read the way the path reads, and that is a
   // string rather than a module's API.
   ReferenceLocationType.LOCAL -> "$ownerClassName.<local variable>"
   ReferenceLocationType.INSTANCE_FIELD, ReferenceLocationType.STATIC_FIELD -> "$ownerClassName.$name"

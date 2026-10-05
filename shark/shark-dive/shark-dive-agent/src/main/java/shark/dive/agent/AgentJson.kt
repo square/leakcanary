@@ -1,5 +1,6 @@
 package shark.dive.agent
 
+import kotlin.math.round
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
@@ -27,6 +28,7 @@ import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
 import shark.dive.faultyReference
 import shark.dive.leakLabel
+import shark.dive.leakTrace
 
 /**
  * How Shark Dive's own model reads as JSON, which is the whole of what an agent sees of a heap dump.
@@ -40,7 +42,7 @@ import shark.dive.leakLabel
  *
  * **Nothing is summarised away, and every cap says so.** A field an agent can't see is a field it will
  * guess at, so the answers here are what the window shows: the labels the inspectors wrote, the verdict and
- * the reason under it, the whole chain. Where an answer is capped — a list of objects, the ways one is held
+ * the reason under it, the whole path. Where an answer is capped — a list of objects, the ways one is held
  * — the count that was matched and whether anything was left out go with it, because an agent counting the
  * instances of a class must never be counting the page it was shown.
  */
@@ -84,9 +86,9 @@ internal object AgentJson {
     }
     put("verdictsSetByHand", verdicts(verdicts))
     // Whether anybody has been here, which is the question every investigation opens with and whose answer is
-    // nearly always nobody. This and the verdicts above are what work on a heap dump leaves behind — a
-    // finished investigation sets verdicts and writes a note, since `conclude` requires the one and writes the
-    // other — so an agent that reads them here spends no call finding out there is nothing to read.
+    // nearly always nobody. This and the verdicts above are what work on a heap dump leaves behind — the
+    // verdicts are what solved a leak and a note is what somebody chose to write beside one — so an agent
+    // that reads them here spends no call finding out there is nothing to read.
     put("placesWithANote", placesWithANote)
   }
 
@@ -94,7 +96,7 @@ internal object AgentJson {
    * One investigation somebody else already ran: who was working, how it went, and what it came to.
    *
    * The numbers the *Agent logs* screen shows in the same order, because they are what makes a session worth
-   * opening or not: how much was asked, how much of it was refused, and whether it ended in a conclusion.
+   * opening or not: how much was asked, how much of it was refused, and whether it solved a leak.
    */
   fun agentSession(session: AgentSession): JsonObject = buildJsonObject {
     put("session", session.sessionId)
@@ -105,9 +107,10 @@ internal object AgentJson {
     put("refused", session.refusedCount)
     // And how many got no answer at all, which is this app failing rather than the surface saying no.
     put("errors", session.errorCount)
-    // What it concluded, which is the one thing a reader is looking for — and null for a session that
-    // concluded nothing, which is most of them.
-    put("concluded", session.calls.mapNotNull { it.outcome }.lastOrNull())
+    // Which reference its verdicts came to, which is the one thing a reader is looking for — and null for a
+    // session that solved nothing, which is most of them. Derived by Shark Dive from the verdicts the
+    // session recorded rather than said by the agent, see `AgentSessionFile.outcomeOfTool`.
+    put("solved", session.calls.mapNotNull { it.outcome }.lastOrNull())
     putJsonArray("heapDumps") { session.heapDumpPaths.forEach { add(it) } }
   }
 
@@ -264,11 +267,11 @@ internal object AgentJson {
     }
   }
 
-  /** The shortest chain from a GC root down to an object, with dominators and the faulty reference marked. */
+  /** The shortest path from a GC root down to an object, with dominators and the faulty reference marked. */
   fun rootPath(path: RootPath): JsonObject = buildJsonObject {
     put("gcRoot", path.gcRootLabel)
     put("stepCount", path.steps.size)
-    // What the chain is for, said once at the top rather than left to be found by scanning the steps for
+    // What the path is for, said once at the top rather than left to be found by scanning the steps for
     // isFaulty — and in the words the window names the leak with, so that an answer handed to a person
     // matches the section they are reading it under. Null until the verdicts either side of one reference
     // are both set, which is the state an investigation is working towards.
@@ -277,17 +280,24 @@ internal object AgentJson {
   }
 
   /**
-   * What the verdicts on a chain add up to, which is the field that says whether the investigation is over.
+   * What the verdicts on a path add up to, which is the field that says whether the investigation is over.
    *
-   * **References and objects, never a count of steps.** A chain narrowed to a single object with no verdict
+   * **References and objects, never a count of steps.** A path narrowed to a single object with no verdict
    * has two candidate references — the one into that object and the one out of it — so a number of steps in
    * between is a figure that reads as an answer and is neither of the two things there is to do something
-   * about. [ChainVerdicts.suspectReferences] is the candidates, in the words the leaks screen names the same
+   * about. [PathVerdicts.suspectReferences] is the candidates, in the words the leaks screen names the same
    * leak with, and `undecidedObjects` is what to go and settle: each verdict there rules out one of them.
+   *
+   * `leakSolved` first, because it is the one field this surface is worked towards and the answer is read
+   * from the top.
    */
-  fun chainVerdicts(verdicts: ChainVerdicts): JsonObject = buildJsonObject {
+  fun pathVerdicts(verdicts: PathVerdicts): JsonObject = buildJsonObject {
+    put("leakSolved", verdicts.leakSolved)
     put("state", verdicts.state.name)
-    put("canConclude", verdicts.canConclude)
+    put("suspectReferenceCount", verdicts.suspectReferenceCount)
+    // Rounded, because the digits past the second are a difference no reader acts on and a number that
+    // changes in the fifth decimal reads as progress where there was none.
+    put("leakSolvingProgressRatio", roundedRatio(verdicts.progressRatio))
     putJsonArray("suspectReferences") { verdicts.suspectReferences.forEach { add(it) } }
     putJsonArray("undecidedObjects") {
       verdicts.undecided.forEach { step ->
@@ -300,7 +310,7 @@ internal object AgentJson {
     put("next", verdicts.next)
   }
 
-  /** Every way an object is held, which is what a single chain cannot say. */
+  /** Every way an object is held, which is what a single path cannot say. */
   fun independentPaths(paths: IndependentPaths): JsonObject = buildJsonObject {
     put("pathCount", paths.paths.size)
     // The search is greedy, so this is the difference between "held these ways" and "held at least these
@@ -324,9 +334,18 @@ internal object AgentJson {
    * and the agent working are reading one list, and a leak that reads as one thing on the screen and another
    * in the answer is a conversation where neither of them can point at anything. So a leak is its [name] —
    * both ends of the suspect path, exactly as the row draws it — and the references between them are on the
-   * chain for both readers rather than spelled out for one of them.
+   * path for both readers rather than spelled out for one of them.
    */
-  fun leaks(leaks: HeapLeaks): JsonObject = buildJsonObject {
+  fun leaks(
+    leaks: HeapLeaks,
+    /**
+     * The path to each group's representative object, by leak fingerprint, for the leak trace on its row.
+     *
+     * Passed in rather than walked here because a walk is a read of the heap dump and this object does no
+     * reads: everything else it renders was worked out before it was called. See `AgentTools.listLeakGroups`.
+     */
+    representativePaths: Map<String, RootPath> = emptyMap()
+  ): JsonObject = buildJsonObject {
     put("objectCount", leaks.objectCount)
     put("leakingObjectCount", leaks.leakingObjectCount)
     putJsonArray("sections") {
@@ -350,6 +369,15 @@ internal object AgentJson {
                 put("name", group.name)
                 put("subtitle", group.subtitle)
                 put("retainedBytes", group.retainedSize)
+                // The object to solve this group through, and the one the leak trace below is of. Not the
+                // first of `objects`, which is sorted by what each retains. See
+                // [LeakGroup.representativeObjectId].
+                put("representativeObject", exactHexObjectId(group.representativeObjectId))
+                // The leak trace of that object, which is the form of this leak to show a person. See
+                // [leakTraceText].
+                representativePaths[group.leakFingerprint]
+                  ?.let { leakTraceText(it) }
+                  ?.let { put("leakTrace", it) }
                 putJsonArray("objects") {
                   group.objects.forEach { leaking ->
                     addJsonObject {
@@ -437,15 +465,15 @@ internal object AgentJson {
     // PathStep.isTreeNode is not here, and cannot be false on anything an agent reads: both path walks
     // refuse a target the tree has no node for, and an object whose bytes are folded into another one has
     // no incoming reference for a walk to arrive by either. It is the window's field — whether the map has
-    // a rectangle to open — and on a chain it is a word that always says the same thing, repeated on every
-    // step of every chain, and again on the chain set_verdict reads back after each verdict.
+    // a rectangle to open — and on a path it is a word that always says the same thing, repeated on every
+    // step of every path, and again on the path set_verdict reads back after each verdict.
     val reference = step.reference
     if (reference != null) {
       putJsonObject("reference") {
         put("name", reference.name)
         put("ownerClassName", reference.ownerClassName)
         put("locationType", reference.locationType.name)
-        // The one thing on a chain that says where to go and change code.
+        // The one thing on a path that says where to go and change code.
         put("isFaulty", reference.isFaulty)
         val libraryLeak = reference.libraryLeak
         if (libraryLeak != null) {
@@ -457,4 +485,35 @@ internal object AgentJson {
       }
     }
   }
+
+  /**
+   * One path as the leak trace LeakCanary prints it, which is the only rendering of it meant for a person.
+   *
+   * **The whole point of handing this over is that nobody else assembles one.** Every field of the answer
+   * beside it describes the same path, so a model has everything it needs to type a leak trace of its own —
+   * and one typed out is a retelling: a step dropped, the underline moved, a class name shortened, each of
+   * which is invisible to whoever reads the result and none of which can happen to these characters. So the
+   * tool renders it, in `shark.LeakTrace`'s own words, and the instruction on the tools that carry it is to
+   * quote it unchanged.
+   *
+   * Null for a path with no steps, which is nothing to render. See [shark.dive.leakTrace].
+   */
+  fun leakTraceText(path: RootPath): String? = path.leakTrace()?.toString()
+
+  /**
+   * A ratio as every answer carries one: still 0 to 1, rounded to two decimals.
+   *
+   * Rounded because the digits past the second are a difference nobody acts on, and a figure that moves in
+   * the fifth decimal reads as progress where there was none. One function so that the pair `set_verdict`
+   * answers with — before and after — is rounded the same way at both ends, which is what makes comparing
+   * them mean anything.
+   *
+   * **This multiplies by a hundred and divides by it again, and that is two decimal places and not a
+   * conversion to percent** — which is a sentence worth having here because somebody read it as one. The
+   * name of the constant is half of what makes that readable and the `Ratio` on everything carrying the
+   * number out of here is the other half; [shark.dive.leakSolvingProgressRatio] has why.
+   */
+  fun roundedRatio(ratio: Double): Double = round(ratio * TWO_DECIMAL_PLACES) / TWO_DECIMAL_PLACES
+
+  private const val TWO_DECIMAL_PLACES = 100.0
 }

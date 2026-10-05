@@ -104,7 +104,7 @@ class MapMovesTest {
   }
 
   /**
-   * A button of the screen bar, as against the tab and the chain row of the same name. See
+   * A button of the screen bar, as against the tab and the path row of the same name. See
    * [DiveAppTest], which spells out why the role is what tells the three apart.
    */
   private fun isButton(): SemanticsMatcher =

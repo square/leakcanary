@@ -301,7 +301,7 @@ internal class OwnerReferences private constructor(
       //
       // Not ActivityClientRecord.activity, which is what this rule used to say. A record is a slot of the
       // ArrayMap the thread keeps its activities in, and naming the slot leaves the map, its Object[] and
-      // the record itself between the thread and every activity, so the chain from a GC root down to a
+      // the record itself between the thread and every activity, so the path from a GC root down to a
       // screen spends three of its steps on a map's bookkeeping and the thread's own rectangle is a pile of
       // records rather than a row of screens to compare.
       OwnerRule(
@@ -334,10 +334,10 @@ internal class OwnerReferences private constructor(
           "androidx.compose.ui.platform.AndroidComposeView" to setOf("root")
         )
       ),
-      // What a node of a Compose UI is made of belongs to that node: its modifiers are a chain hanging
+      // What a node of a Compose UI is made of belongs to that node: its modifiers are a path hanging
       // off its `NodeChain`, from the outermost through each one's `child` to the tail.
       //
-      // Without this the chain is a way *into* the UI rather than a part of it, and that is measurable:
+      // Without this the path is a way *into* the UI rather than a part of it, and that is measurable:
       // Compose's modifier nodes point back at their coordinators, which point back at their layers and
       // at each other, so a single reference into any one of them reaches the lot. A heap dump taken on
       // API 36 has three such references from outside — a focus listener the input method manager reaches
@@ -345,7 +345,7 @@ internal class OwnerReferences private constructor(
       // and the `Recomposer` — so every modifier of every screen was held from a GC root of its own, and
       // the images the UI draws were dominated by the top of the heap rather than by the UI showing them.
       //
-      // `child` and not `parent`: a chain has to be owned in one direction, and it reads outermost first,
+      // `child` and not `parent`: a path has to be owned in one direction, and it reads outermost first,
       // the way the modifiers were written.
       OwnerRule(
         ownedObjects = InstancesOf(MODIFIER_NODE_CLASS_NAME),

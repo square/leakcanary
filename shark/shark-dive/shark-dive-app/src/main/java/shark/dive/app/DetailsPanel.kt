@@ -43,7 +43,7 @@ import shark.dive.formatObjectCount
  * The clicked one and never the one under the pointer: this panel is a column of everything there is to say
  * about an object, several screens tall on a real one, and having it follow the mouse across the map made it
  * unreadable. What the pointer is on gets a card at the pointer — see [PointerCard] — and a few more steps on
- * the end of the chain beside the map, see [RootPathPanel].
+ * the end of the path beside the map, see [RootPathPanel].
  *
  * **Which object it is, is not here**: that is the bar above the map, where it stays whichever screen is
  * showing. This panel is the rest of the answer, so it starts where the numbers do.
@@ -376,7 +376,7 @@ internal fun retainedText(
 
 /**
  * Shown by the details panel until something has been clicked, which is what it describes: pointing at a
- * rectangle says what it is at the pointer instead, and adds the chain holding it to the one beside the map.
+ * rectangle says what it is at the pointer instead, and adds the path holding it to the one beside the map.
  * See [PointerCard] and [RootPathPanel].
  */
 internal const val NO_SELECTION = "Click a rectangle or a sector to see what it retains."

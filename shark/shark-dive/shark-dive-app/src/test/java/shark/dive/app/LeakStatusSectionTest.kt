@@ -41,12 +41,12 @@ import shark.dive.statusText
 
 /**
  * Whether the object a tab is on is meant to be in memory, said at the top of the panel that says what the
- * object is, changed by hand from there, and what the answer marks on the chain beside it.
+ * object is, changed by hand from there, and what the answer marks on the path beside it.
  *
  * What the statuses mean and how two of them disagree is `LeakStatusTest` and `HeapLeakStatusTest` in
  * `shark-dive-core`, and where they are kept is `LeakStatusFileTest`. What is only true here is that the
  * panel says what the heap dump says, that changing one asks for the reason before it writes anything, that
- * a status which cannot be true alongside another is shown rather than settled quietly, and that the chain
+ * a status which cannot be true alongside another is shown rather than settled quietly, and that the path
  * says which reference the leak is.
  */
 @OptIn(ExperimentalTestApi::class)
@@ -61,7 +61,7 @@ class LeakStatusSectionTest {
   /** Where the statuses of the heap dump under test are kept, which is this test's own directory. */
   private val statusesRoot by lazy { testFolder.newFolder("leak-statuses") }
 
-  private lateinit var heapDump: LeakyChainHeapDump
+  private lateinit var heapDump: LeakyPathHeapDump
 
   @Test fun `an object the inspectors say should be gone says so in the panel`() {
     diveUiTest {
@@ -70,7 +70,7 @@ class LeakStatusSectionTest {
       onNodeWithText(STATUS_LABEL).assertIsDisplayed()
       onNode(shows(LeakStatus.STUCK)).assertIsDisplayed()
       // And why, because a status is a conclusion and half of them are about another object. The reason as
-      // the panel has it, which is what the chain beside it prefixes with the status.
+      // the panel has it, which is what the path beside it prefixes with the status.
       onNodeWithText(DESTROYED_REASON).assertIsDisplayed()
     }
   }
@@ -215,18 +215,18 @@ class LeakStatusSectionTest {
    * from an object that belongs in memory to one that doesn't.
    *
    * Both halves in one window, because they are one answer: the reference is marked from the verdicts either
-   * side of it, so a verdict set by hand is what puts the mark on the chain and what takes it off again.
+   * side of it, so a verdict set by hand is what puts the mark on the path and what takes it off again.
    */
-  @Test fun `the chain names which reference the leak is, twice, and a hand can take that off`() {
+  @Test fun `the path names which reference the leak is, twice, and a hand can take that off`() {
     diveUiTest {
       // Set in a run before this one, and what leaves a single reference below it: with nothing on this
-      // chain known to belong in memory, the fault is at either of its two steps and neither is marked.
+      // path known to belong in memory, the fault is at either of its two steps and neither is marked.
       openHeapDump(setAlready = { holderIsExpected() }) { it.activityObjectId }
 
       onNodeWithText("$FAULTY_STEP $FAULTY_REFERENCE").assertIsDisplayed()
-      // And said again above the chain, which is not a duplicate: a real chain is tens of steps, this pane
+      // And said again above the path, which is not a duplicate: a real path is tens of steps, this pane
       // is scrolled to the last of them, and a mark somewhere in the middle is an answer to go looking for.
-      // The exact text is the section's, the mark on the chain having the words above after it.
+      // The exact text is the section's, the mark on the path having the words above after it.
       onNodeWithText(LEAK_SOLVED).assertIsDisplayed()
       onNodeWithText(FAULTY_STEP).assertIsDisplayed()
 
@@ -235,12 +235,12 @@ class LeakStatusSectionTest {
       write(TYPED_REASON)
       set()
 
-      // Nothing on this chain is stuck any more, so there is no reference to point at and nothing is solved
+      // Nothing on this path is stuck any more, so there is no reference to point at and nothing is solved
       // — and the step is still drawn, which is both of those being about the leak rather than the reference.
       waitUntilAtLeastOneExists(hasText(TYPED_REASON, substring = true), SAVE_TIMEOUT_MILLIS)
       onNodeWithText(FAULTY_REFERENCE, substring = true).assertDoesNotExist()
       onNodeWithText(LEAK_SOLVED).assertDoesNotExist()
-      // Which now matches the step on the chain rather than the section that was above it.
+      // Which now matches the step on the path rather than the section that was above it.
       onNodeWithText(FAULTY_STEP).assertIsDisplayed()
     }
   }
@@ -326,9 +326,9 @@ class LeakStatusSectionTest {
    */
   private fun ComposeUiTest.openHeapDump(
     setAlready: () -> Unit = {},
-    objectId: (LeakyChainHeapDump) -> Long? = { null }
+    objectId: (LeakyPathHeapDump) -> Long? = { null }
   ) {
-    heapDump = testFolder.leakyChainHeapDump()
+    heapDump = testFolder.leakyPathHeapDump()
     setAlready()
     val place = objectId(heapDump)?.let { Place.Object(it) }
     setContent {
@@ -458,7 +458,7 @@ class LeakStatusSectionTest {
     /** And what the object holding it is called, where the dialog names that one. */
     private const val HOLDER_NAME = "Holder instance"
 
-    /** The step of the chain that holds the destroyed activity, which is the reference to clear. */
+    /** The step of the path that holds the destroyed activity, which is the reference to clear. */
     private const val FAULTY_STEP = "Holder.activity"
 
     /** And what it was given as its reason, which the dialog has to show to be overruled. */
@@ -478,12 +478,12 @@ class LeakStatusSectionTest {
 }
 
 /**
- * A heap dump with a destroyed activity in it and the object holding it, which is the smallest chain two
+ * A heap dump with a destroyed activity in it and the object holding it, which is the smallest path two
  * statuses can disagree along: what a leaking object holds is leaking, so a holder that is leaking and an
  * activity that isn't cannot both be read off it.
  */
-private fun TemporaryFolder.leakyChainHeapDump(): LeakyChainHeapDump {
-  val file = newFile("leaky-chain.hprof")
+private fun TemporaryFolder.leakyPathHeapDump(): LeakyPathHeapDump {
+  val file = newFile("leaky-path.hprof")
   var activityObjectId = 0L
   var holderObjectId = 0L
   file.dump {
@@ -505,10 +505,10 @@ private fun TemporaryFolder.leakyChainHeapDump(): LeakyChainHeapDump {
     activityObjectId = activity.value
     holderObjectId = holder.value
   }
-  return LeakyChainHeapDump(file, activityObjectId, holderObjectId)
+  return LeakyPathHeapDump(file, activityObjectId, holderObjectId)
 }
 
-private class LeakyChainHeapDump(
+private class LeakyPathHeapDump(
   val file: File,
   /** The destroyed activity, which the inspectors recognize on their own. */
   val activityObjectId: Long,
