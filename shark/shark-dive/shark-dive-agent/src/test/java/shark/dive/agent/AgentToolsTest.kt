@@ -881,7 +881,7 @@ class AgentToolsTest {
       call("describe_object", OBJECT to heapDump.activityObjectId.toString())
     }
       .isInstanceOf(AgentRefusal::class.java)
-      .hasMessageContaining("never a decimal number")
+      .hasMessageContaining("Never a decimal number")
   }
 
   @Test

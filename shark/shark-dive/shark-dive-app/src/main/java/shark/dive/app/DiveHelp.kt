@@ -94,7 +94,7 @@ private fun options(): String = (
     "<heap dump>" to
       "Opened as this starts, a window each unless ${AgentCommandLine.NO_UI_OPTION} says to draw none.",
     "${DeepLink.SCHEME}://<heap dump>/<place>" to
-      "Goes to a place of a heap dump — a leak, an object, a tab — in whichever window has it open."
+      "Goes to a place of a heap dump (a leak, an object, a tab) in whichever window has it open."
   ) + AgentCommandLine.cliOptions() + debugOptions()
   ).asOptionColumn()
 

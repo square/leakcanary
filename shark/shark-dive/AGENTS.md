@@ -112,9 +112,68 @@ Each of the following is a change already made to this app, not a preference:
   reaching.
 - **Prose belongs in the KDoc, `notes/decisions.md`, or a reference page.** Those are the three places
   something long enough to be worth writing goes. `notes/agent-surface.md` measures the same idea on the
-  agent surface, where both halves of the method ended up out of the answers entirely: they are printed by
-  `--investigation-help` and `--leak-investigation-help`, read once by whoever has a use for one, rather than
-  carried in a field every call of a session pays for. The window is the same trade against a smaller budget.
+  agent surface, where the method ended up out of the answers entirely: it is printed by
+  `--leak-investigation-help`, read once by whoever has a use for it, rather than carried in a field every
+  call of a session pays for. The window is the same trade against a smaller budget.
+
+## The command line has a house style, and it is not this file's
+
+`--help`, `--leak-investigation-help`, every tool description and every refusal are printed into a
+terminal, read by an agent and by the person watching it. They were written the way the rest of this
+repository is written, and that is the wrong register for the medium: a paragraph in a `notes/` file costs
+its reader nothing, and a paragraph on somebody's stderr costs them the thing they were working out. The
+sharper problem is that the shapes long-form prose reaches for are the shapes a language model reaches for
+unprompted, so a surface written by agents for agents drifts into sounding like one — and the person at the
+machine, who types the same commands, is who notices.
+
+These rules name **shapes rather than words**, on purpose. [Wikipedia's catalogue of AI writing
+signs][ai-signs] already files its own 2023 vocabulary list as historical and splits the rest into three
+eras, while the sentence shapes have held across all of them. A word list also goes stale and, used as a
+ban, is wrong about people: `delve` is ordinary in Nigerian and British-educated English, and Juzek and
+Ward [failed to find what causes its overrepresentation][delve] at all. **So don't lint for words.** None
+of this was a problem of vocabulary here — the strings had no `delve`, no `crucial`, no `robust` in them
+before the pass that wrote this section, and they still read as machine-written.
+
+- **No Markdown that nothing renders.** These strings reach `println`, so `**like this**` arrives as four
+  asterisks on a terminal. Backticks stay: an identifier marked off is [what `rustc` does][rustc].
+- **No negated antithesis.** `not just X, Y`, `not X but Y`, `Y rather than X` where only Y is the point.
+  Delete the negated half and assert the thing. The exception is a contrast that *is* the information —
+  `object` for an object, `place` for a screen — and it is rarer than it feels while writing one.
+- **No tricolon.** Three parallel items where two carry the sentence. `Not a path, not a subsystem, not
+  "the activity is retained"` was the opening line of the method. Keep three only where all three are
+  distinct cases the reader has to tell apart, which "a field a compiler generated, a field of a class the
+  app doesn't ship, a reference the OS holds for another process" is and most are not.
+- **No manufactured aphorism.** "A trace you typed is a retelling." "A root cause nobody can trigger is a
+  hypothesis." "A `why` that isn't evidence is worse than none." Each of those was here; each closes a
+  paragraph by restating it as an epigram, and the instruction above it had already said the thing.
+- **No sentence about the text itself.** "the confident wrong answer this section exists to stop", "where
+  the tools earn their keep", "which is what finishing with a dump is". The reader is working.
+- **No clause tacked on with `, ensuring …` or `, which is what …`.** Cut it, or promote it to a sentence
+  if it carries a fact. Reinhart et al. find instruction-tuned models diverge from human grammatical style
+  far more than base models do, and the trailing participial is the shape they diverge by ([PNAS
+  2025][pnas]).
+- **Split a sentence over about 25 words**, and say one thing per message. A refusal reachable from three
+  causes is three refusals.
+- **A refusal says what happened and how to fix it**, and names the offending value. That is [Google's
+  error-message rule][errors], and it is what this surface was already good at — the thing to not lose
+  while cutting everything else.
+- **Em dashes are not the tell**, whatever the folklore says. Pew measured roughly twice the pre-2023 rate
+  on the web and then says so itself: "em dashes or Oxford commas on their own don't necessarily mean a
+  particular piece of writing was produced using AI – humans use these in their writing too!"
+  ([2026][pew]). What is a tell is the shape one usually carries here, a parenthetical aside dropped into
+  the middle of an instruction. Rewrite the sentence and the dash leaves with it; don't hunt the character.
+
+Two things this is not. It is not a rule about this file, the KDoc or `notes/` — the section above and the
+root `AGENTS.md` say why those are written long. And it is not licence to make a refusal too terse to act
+on: the method behind `--leak-investigation-help` is prose because its reader is a language model, which
+`AgentMethod` records as the one place in this app where a paragraph beats a label.
+
+[ai-signs]: https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+[delve]: https://aclanthology.org/2025.coling-main.426/
+[errors]: https://developers.google.com/tech-writing/error-messages
+[pew]: https://www.pewresearch.org/data-labs/2026/08/20/how-much-of-the-internet-is-written-with-ai/
+[pnas]: https://www.pnas.org/doi/10.1073/pnas.2422455122
+[rustc]: https://rustc-dev-guide.rust-lang.org/diagnostics.html
 
 ## One concept, one name, one place
 

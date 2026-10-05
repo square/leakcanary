@@ -78,6 +78,12 @@ client because saying no is all it does — nothing here ever calls a model.
 
 So a change that makes any of these easier to satisfy is a change that removes the reason this module exists.
 
+**A refusal is also the string on this surface most likely to read as machine-written**, since it is the one
+written while reasoning about why the call was wrong. `shark/shark-dive/AGENTS.md` has the rules every
+string printed from here was edited against — no Markdown nothing renders, no negated antithesis, no
+tricolon, no epigram closing a paragraph — and which of them are evidenced rather than folklore. Read it
+before writing a new description, a new refusal, or a line of `--help`.
+
 **And nothing on this surface asks an agent which reference is at fault.** There was a `conclude` tool that
 took one and refused until the heap dump agreed, and the refusal was its whole point: an agent that had
 narrowed a path to two candidates could not report a root cause however confident it was. What was wrong with

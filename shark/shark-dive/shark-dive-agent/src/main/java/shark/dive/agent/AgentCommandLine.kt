@@ -96,23 +96,23 @@ object AgentCommandLine {
     if (commands.none { it.name == commandName }) {
       say(
         "There is no command called \"$commandName\". This build has " +
-          commands.joinToString(", ") { it.name } + ". `$command $HELP_OPTION <command>` is what one does."
+          commands.joinToString(", ") { it.name } + ". `$command $HELP_OPTION <command>` says what one does."
       )
       return NOTHING_ANSWERED
     }
     if (noWindow && commandName !in STARTS_A_RUN) {
       say(
-        "$NO_UI_OPTION says what kind of run to start, so it goes with the commands that start one — " +
-          STARTS_A_RUN.joinToString(", ") + " — and with no other: $commandName reads a dump that is open " +
-          "already, in whichever run has it."
+        "$NO_UI_OPTION says what kind of run to start, so it goes on the commands that start one: " +
+          STARTS_A_RUN.joinToString(", ") + ". $commandName reads a dump that is open already, in " +
+          "whichever run has it."
       )
       return NOTHING_ANSWERED
     }
     if (sessionName != null && !AgentSessionFile.isSessionName(sessionName)) {
       say(
         "\"$sessionName\" is no session name: it becomes part of a file name, so it is letters and digits, " +
-          "up to ${AgentSessionFile.MAX_SESSION_NAME_LENGTH} of them. Strip the rest out of yours rather " +
-          "than shortening it — an id with dashes in it is still an id without them."
+          "up to ${AgentSessionFile.MAX_SESSION_NAME_LENGTH} of them. Strip the other characters out of " +
+          "yours instead of shortening it, so that the id in it stays whole."
       )
       return NOTHING_ANSWERED
     }
@@ -162,9 +162,9 @@ object AgentCommandLine {
     command: String,
     commandName: String,
     sessionName: String
-  ): String = "$commandName needs `$REASON`: $SESSION_OPTION$sessionName says these calls are one " +
-    "investigation somebody will read afterwards, and a call with no sentence beside it is a read they " +
-    "cannot follow. Write what you are trying to learn, or what you concluded from the last answer: " +
+  ): String = "$commandName needs `$REASON`. $SESSION_OPTION$sessionName says these calls are one " +
+    "investigation somebody will read afterwards, so each of them has to say why it was made. Write " +
+    "what you are trying to learn, or what you concluded from the last answer: " +
     "`$command $CLI_OPTION $commandName … $REASON=\"what I am asking and why\"`. " +
     "`$command $HELP_OPTION $commandName` has the rest of what it takes."
 
@@ -186,9 +186,9 @@ object AgentCommandLine {
   ): String = """
     |COMMANDS
     |
-    |**Start with $OPEN_HEAP_DUMP on the heap dump you were given.** It opens that file, or joins the run
-    |that already has it, and answers with the key every command below names that dump by — along with its
-    |size and whatever verdicts somebody has already recorded about it. If you were given no heap dump,
+    |Start with $OPEN_HEAP_DUMP on the heap dump you were given. It opens that file, or joins the run that
+    |already has it, and answers with the key every command below names that dump by, its size, and
+    |whatever verdicts somebody has already recorded about it. If you were given no heap dump,
     |$LIST_HEAP_DUMPS says which are open. Every other command needs that key, so that each one says which
     |heap dump it is about.
     |
@@ -197,24 +197,22 @@ object AgentCommandLine {
     |
     |${commandColumn()}
     |
-    |Every command takes `reason`: what you are trying to learn, or what the last answer told you. It is
-    |logged next to the read it caused, so that somebody reading the log afterwards can follow the
-    |investigation, and a session named with $SESSION_OPTION needs one on every command. Addresses are
-    |`0x…` as this surface writes them, never decimal.
+    |Every command takes `reason`: what you are trying to learn, or what the last answer told you. It goes
+    |in the log beside the read it caused, so that somebody can follow the investigation afterwards. A
+    |session named with $SESSION_OPTION needs one on every command. Write addresses as `0x…`, the way this
+    |surface writes them, never as a decimal number.
     |
     |Put the `shark://` links you are answered with in your reply. A link opens that object in this heap
-    |dump, with the verdicts and notes recorded on it, after this run has ended, so it is the difference
-    |between an answer somebody has to take your word for and one they can go and look at. `show` hands one
-    |back for any place worth pointing at.
+    |dump, with the verdicts and notes recorded on it, after this run has ended, so whoever reads your
+    |answer can go and check it. `show` hands a link back for any object.
     |
     |Say what you did not check.
     |
     |$LEAK_METHOD_OPTION is what a leak is, how a verdict spreads, and the order that finds the faulty
-    |reference. Read it before the first path, once per investigation rather than once per leak.
+    |reference. Read it once per investigation, before the first path.
     |
-    |Opening a heap dump is the one command with a wait worth planning for — minutes, on a large dump, and it
-    |does not answer until the dump can be read. $DUMP_HEAP is the other, since it takes one off a device
-    |first.
+    |$OPEN_HEAP_DUMP takes minutes on a large dump, and does not answer until the dump can be read.
+    |$DUMP_HEAP is slower still, since it takes the dump off a device first.
     |
     |Exit code $ANSWERED when the answer is on stdout, $REFUSED when the command was refused and the refusal
     |is on stderr, $NOTHING_ANSWERED when there was nothing to answer it.
@@ -237,8 +235,8 @@ object AgentCommandLine {
     "$CLI_OPTION <command> name=value" to
       "Makes one call and prints the answer as JSON. Required on every command.",
     "$SESSION_OPTION<name>" to
-      "Which session these commands are one of, letters and digits. An agent passes something naming its " +
-      "own session, so that a reviewer reading its logs can find the investigation beside them.",
+      "Which session these commands are one of, letters and digits. An agent passes a name carrying its " +
+      "own session id, so that a reviewer of its logs can find this investigation from them.",
     NO_UI_OPTION to
       "With a command that starts a run: have it draw no window, for a machine with no screen.",
     "$HELP_OPTION <command>" to "All of one command: what it answers, and every argument it takes.",
@@ -648,7 +646,7 @@ object AgentCommandLine {
       otherBuildRun(published, pid, buildSha)?.let { other ->
         say(
           "Shark Dive run $pid was built from ${other.buildSha}, and this command line is $buildSha, so the " +
-            "commands it has are not the commands this one knows about. Its own build is what to call it with."
+            "commands it has are not the commands this one knows about. Call it with its own build."
         )
         return null
       }
@@ -692,13 +690,12 @@ object AgentCommandLine {
     }
     say(
       if (noWindow) {
-        "Shark Dive run ${run.pid} draws windows, and $NO_UI_OPTION asks for a run that draws none — which " +
-          "is what a run is rather than what one heap dump is, so there is no opening a dump without a " +
-          "window inside it. Leave $NO_UI_OPTION off to open this dump in a window of that run."
+        "Shark Dive run ${run.pid} draws windows, and $NO_UI_OPTION asks for a run that draws none. " +
+          "Whether windows are drawn is settled once, as a run starts, so a dump opened in this one has " +
+          "a window. Leave $NO_UI_OPTION off to open it there."
       } else {
         "Shark Dive run ${run.pid} was started with $NO_UI_OPTION, so it draws no window and a heap dump " +
-          "opened in it has none either. Pass $NO_UI_OPTION to open it there anyway, which is what a " +
-          "machine with no screen does."
+          "opened in it has none either. Pass $NO_UI_OPTION to open it there anyway."
       }
     )
     return false
@@ -722,7 +719,7 @@ object AgentCommandLine {
   ): String = "${runs.size} Shark Dive runs are open, so which heap dumps there are to read depends on which " +
     "of them you meant. Pass $RUN_OPTION<pid> to say: " +
     runs.joinToString(", ") { "${it.pid} (${it.kindText()})" } + ". `$command $CLI_OPTION $LIST_HEAP_DUMPS " +
-    "$RUN_OPTION<pid> reason=…` is what each has open."
+    "$RUN_OPTION<pid> reason=…` says what each has open."
 
   private fun AgentServer.PublishedRun.kindText(): String = if (hasWindow) "with windows" else "with no window"
 

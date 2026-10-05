@@ -163,8 +163,8 @@ internal class AgentArguments(
     text: String
   ): Long = objectIdOfHex(text) ?: throw AgentRefusal(
     "`$name` of $toolName is \"$text\", which is no object address. An address is \"$HEX_PREFIX\" and up " +
-      "to 16 hexadecimal digits, exactly as this surface writes one — never a decimal number, since a " +
-      "64 bit address does not survive being one in JSON." + lookItUpInstead(text)
+      "to 16 hexadecimal digits, the way this surface writes one. Never a decimal number: a 64 bit " +
+      "address loses precision as a JSON number." + lookItUpInstead(text)
   )
 
   private fun wrongType(
@@ -284,9 +284,8 @@ internal const val REASON = "reason"
 
 private val REASON_PROPERTY = string(
   "Why you are making this call: what you are trying to learn, or what you concluded from the last " +
-    "answer. Logged beside the reads it causes, which is what makes this investigation something a person " +
-    "can follow afterwards rather than a conclusion they have to trust. Required of a command line that " +
-    "says which session it is part of, which is every agent's."
+    "answer. It goes in the log beside the reads it causes, so that somebody can follow the " +
+    "investigation afterwards. Required on a command line that names its session, which is every agent's."
 )
 
 /** How every address on this surface starts. See [AgentJson]. */
