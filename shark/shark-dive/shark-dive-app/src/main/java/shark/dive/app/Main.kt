@@ -162,7 +162,7 @@ private fun deliveredToAnotherRun(args: Array<String>): Boolean {
 private fun nameThisRun(name: String) {
   // Read on macOS only. Windows and Linux name a process after its window, which already says this.
   System.setProperty("apple.awt.application.name", name)
-  SharkLog.d { "This run is called \"$name\" where the OS names the process rather than a window" }
+  SharkLog.d { "The Apple app name for this process is \"$name\"" }
 }
 
 /** One window per heap dump open, which is what [openHeapDump] keeps true as more are opened. */

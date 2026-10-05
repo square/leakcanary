@@ -83,7 +83,7 @@ readonly WHERE_THE_LOG_IS="Once a heap dump is open, the Shark Dive agent logs (
 # answer only until somebody starts a second one — and then the command printed by the first quietly follows
 # the second. The reasoning text is the one thing the transcript hasn't got; `watch-transcript.sh` has what was
 # measured about that and why no option brings it back.
-readonly WHERE_THE_TRANSCRIPT_IS="Every call this run makes, and what comes back, is in the client's transcript as it is written:
+readonly WHERE_THE_TRANSCRIPT_IS="The detailed LLM logs can be watched with:
 
   $WATCH_TRANSCRIPT \\
     $HARNESS_DIRECTORY
@@ -286,21 +286,19 @@ print_the_command() {
 Throw an agent at it:
 
   cd $HARNESS_DIRECTORY
-  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY CLAUDE_SECURESTORAGE_CONFIG_DIR= claude \\
+  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY
+  CLAUDE_SECURESTORAGE_CONFIG_DIR=
+  claude \\
     --print "\$(cat prompt.txt)" \\
 $model_line    --session-id $SESSION_ID \\
     --permission-mode bypassPermissions
 
-Started from that directory, so nothing of this repository is in what the session is told, and the prompt
-beside you is the whole of it. Nothing opens the heap dump: the window is the agent's to open, which is the
-first thing an investigation can get wrong.
+This starts claude with no local context or history, the only context is the prompt, which directs
+claude to investigate the heap dump with shark dive.
 
 $WHERE_THE_LOG_IS
 
 $WHERE_THE_TRANSCRIPT_IS
-
-Which is the same two readers either way, because --session-id above is what names the transcript they read.
-Drop it and the client picks a name nothing can predict.
 
 END
 }
