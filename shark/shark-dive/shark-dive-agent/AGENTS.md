@@ -161,11 +161,11 @@ typed command was drawn as two rows — Connected, called, Connected, called, wh
 investigation is least able to afford — and `McpSession.isTheCommandLineSayingHello` existed to drop exactly
 that one message. **So don't reintroduce anything in front of the call.** A capabilities exchange, a
 `hello`, a version negotiation: each of them is a row of that screen saying a process started and did the
-thing the next row already names, and there is nothing for one to carry. What the commands are is `--help`,
-and how to work here is `--investigation-help`, and both are text this build prints with no window and no heap
-dump — so **nothing an answer carries is anything but the answer**. The method was in one: how to work here
-prepended to whatever a session asked first, which made a call that only wanted to know which heap dumps are
-open the call that handed over the whole of it. See `AgentMethod`.
+thing the next row already names, and there is nothing for one to carry. What the commands are and how to work
+here is `--help`, and how to solve a leak is `--leak-investigation-help`, and both are text this build prints
+with no window and no heap dump — so **nothing an answer carries is anything but the answer**. The method was
+in one: how to work here prepended to whatever a session asked first, which made a call that only wanted to
+know which heap dumps are open the call that handed over the whole of it. See `AgentMethod`.
 
 The name is in `input` even though `tool` has it, and that is not an oversight: this field is read as one
 thing, and a set of arguments lifted away from what they are arguments *to* is the one form of a call nobody
@@ -449,7 +449,7 @@ a display**, since the reads happen on the heap dump's thread and the tests run 
 # What the surface is, from a shell, with nothing open and no Gradle. Then one command, then the method.
 "Shark Dive.app/Contents/MacOS/Shark Dive" --help
 "Shark Dive.app/Contents/MacOS/Shark Dive" --help open_heap_dump
-"Shark Dive.app/Contents/MacOS/Shark Dive" --investigation-help
+"Shark Dive.app/Contents/MacOS/Shark Dive" --leak-investigation-help
 
 # Then a heap dump open — which starts a run if none is up — and one call about it.
 "Shark Dive.app/Contents/MacOS/Shark Dive" \

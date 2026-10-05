@@ -386,11 +386,12 @@ Then ask for what you actually want. This is the whole prompt the session below 
 what a leak is — one bad reference, the three zones of a path, the rules that spread a verdict up and down
 it — and the order that finds it, which is [the LeakCanary
 method](https://engineering.block.xyz/blog/the-leakcanary-method) as the commands enforce it.
-`--investigation-help` is the shorter half beside it: how to work on this surface at all, read once a session.
-Both are texts this build prints rather than fields of an answer, which is what keeps an investigation of six
-leaks from reading the whole method six times. Three places point at the leak half, each of them somewhere an
+It is a text this build prints rather than a field of an answer, which is what keeps an investigation of six
+leaks from reading the whole method six times. How to work on this surface at all — the `reason` on every
+call, the `shark://` links to hand back, the gap to admit — is four paragraphs of `--help`, where an agent
+that has been told nothing already is. Three places point at the leak method, each of them somewhere an
 agent already has a leak in hand: `list_leak_groups`'s own description, the answer that opened the dump, and
-`--investigation-help` itself.
+`--help` itself.
 
 **Including the part that isn't in the heap dump at all.** Isolating the reference says *where* the problem
 is, not how it happened, and stopping there is the most common way an investigation fails — so the method

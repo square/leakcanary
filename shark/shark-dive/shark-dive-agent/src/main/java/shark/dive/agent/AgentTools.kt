@@ -1231,16 +1231,14 @@ private const val PROCESS = "process"
  * question — while a dump with `KeyedWeakReference`s in it has an answer waiting in [LIST_LEAK_GROUPS] that
  * walking a tree would take an hour to reach.
  *
- * **And it says where both halves of the method are**, neither of them being in any answer any more:
- * [AgentCommandLine.SURFACE_METHOD_OPTION] and [AgentCommandLine.LEAK_METHOD_OPTION], text this build carries.
- * Opening a dump is the first call of most investigations, which makes this the one answer that can say so to a
- * session that has read nothing — and the whole of what moving the method out of the answers costs is this
- * sentence. See [AgentMethod].
+ * **And it says where the method is**, that not being in any answer any more:
+ * [AgentCommandLine.LEAK_METHOD_OPTION], text this build carries. Opening a dump is the first call of most
+ * investigations, which makes this the one answer that can say so to a session that has read nothing — and
+ * the whole of what moving the method out of the answers costs is this sentence. See [AgentMethod].
  */
-private const val NEXT_WITH_A_NEW_DUMP = "Read ${AgentCommandLine.SURFACE_METHOD_OPTION} if you have not: it " +
-  "is how to work here, and it is one read per session. Then call $LIST_LEAK_GROUPS with this heap dump for " +
-  "anything about a leak — reading ${AgentCommandLine.LEAK_METHOD_OPTION} once before the first path, which " +
-  "is where that method is — or $DOMINATOR_TREE if the question is where the memory has gone."
+private const val NEXT_WITH_A_NEW_DUMP = "Call $LIST_LEAK_GROUPS with this heap dump for anything about a " +
+  "leak — reading ${AgentCommandLine.LEAK_METHOD_OPTION} once before the first path, which is where the " +
+  "method is — or $DOMINATOR_TREE if the question is where the memory has gone."
 
 /**
  * What to do about a heap dump somebody has already worked on, said only when one has — see

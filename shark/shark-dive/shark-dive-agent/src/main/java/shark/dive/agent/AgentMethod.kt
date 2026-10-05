@@ -5,26 +5,23 @@ import shark.dive.unwrappedMarkdown
 /**
  * The method an agent is asked to follow, which is the part of this surface that isn't data.
  *
- * **Two texts, and neither of them is in an answer.** [SURFACE] is how to work here at all — the reason on
- * every call, the window somebody is watching, the links to hand back, the gap to admit — and it is
- * [AgentCommandLine.SURFACE_METHOD_OPTION]. [LEAK] is how to solve a leak, and it is
- * [AgentCommandLine.LEAK_METHOD_OPTION]. Both are text this build prints, with no run and no heap dump.
+ * **One text, and it is not in an answer.** [LEAK] is how to solve a leak, and it is
+ * [AgentCommandLine.LEAK_METHOD_OPTION]: text this build prints, with no run and no heap dump. How to work
+ * on the surface at all — the reason on every call, the links to hand back, the gap to admit — is four
+ * paragraphs of `--help`, where an agent that has been told nothing already is.
  *
- * **Which is a read rather than an answer, and that is what it is for.** Each of them was carried in a tool's
- * answer — [LEAK] in a field of `list_leak_groups`, [SURFACE] prepended to whatever a session asked first —
- * on the grounds that a tool result is the one thing an agent is certain to read, since it asked for the
- * answer. True, and what it costs is paid per call rather than per session: an investigation of four leaks
- * read the whole of how to narrow a path four times, and a session is handed how to work here by a call that
- * only wanted to know which heap dumps are open. An option is read once by whoever has a use for it, and
- * nothing about it is optional to find — `--help` lists both, which is the one text an agent reaches for
- * having been told nothing.
+ * **Which is a read rather than an answer, and that is what it is for.** This was carried in a field of
+ * `list_leak_groups`'s answer, on the grounds that a tool result is the one thing an agent is certain to
+ * read, since it asked for the answer. True, and what it costs is paid per call rather than per session: an
+ * investigation of four leaks read the whole of how to narrow a path four times. An option is read once by
+ * whoever has a use for it, and nothing about it is optional to find — `--help` names it.
  *
- * So **an investigation that never read either option never read the method**, and that is the intended
- * consequence rather than a hole to patch. What points a model at [LEAK] is three places that each know a leak
+ * So **an investigation that never read the option never read the method**, and that is the intended
+ * consequence rather than a hole to patch. What points a model here is three places that each know a leak
  * is in hand: `list_leak_groups`'s own description, [AgentTools.NEXT_WITH_A_NEW_DUMP] on the answer that
- * opened the dump, and the paragraph of [SURFACE] itself.
+ * opened the dump, and the help itself.
  *
- * **And no example in either text names a real leak.** `Owner.field` is the shape a reference is spelled in
+ * **And no example here names a real leak.** `Owner.field` is the shape a reference is spelled in
  * rather than a reference, because an eval run reads the method before it has asked the heap dump anything: a
  * concrete `Holder.activity` written in here is one scenario's answer key printed into the answer that run is
  * scored against, which is exactly the kind of channel `shark/shark-dive/notes/agent-eval.md` counts. It has
@@ -42,43 +39,6 @@ import shark.dive.unwrappedMarkdown
  * the same five phases done by hand.
  */
 internal object AgentMethod {
-
-  /**
-   * [SURFACE] as it is written here, wrapped at the column the rest of this repository is.
-   *
-   * **Short on purpose, because it is the one of the two every session is expected to read** — so a paragraph
-   * added here is a paragraph read by an agent that only wanted to know which heap dumps are open. [LEAK] is
-   * five times the size and is read by the investigations it is about.
-   * `shark/shark-dive/notes/agent-surface.md` has the measurement.
-   */
-  private val WRAPPED_SURFACE = """
-    You are reading a heap dump through Shark Dive, a window a person may be watching. Everything you
-    ask is a read of that dump, and everything you record in it — a verdict, a note — is there for the next
-    reader, a colleague, another agent, the same person in a month.
-
-    **For anything about a leak, read `${AgentCommandLine.LEAK_METHOD_OPTION}` before the first path.** That
-    is where the method is, and nowhere else on this surface has it: what a leak is, how a verdict spreads, and
-    the order that finds the faulty reference. It needs no run and no heap dump, and it is one read per
-    investigation rather than per leak. An investigation that skipped it is one that will not solve a leak:
-    what solves one is the verdicts, and that is where the verdicts are explained.
-
-    ## On every call
-
-    - **Every call takes a `reason`**: what you are trying to learn, or what you worked out from the last
-      answer. It goes in this run's log next to the read it caused, which is what makes an investigation
-      something a person can follow afterwards rather than a conclusion they have to trust.
-    - **`show` puts what you are looking at on screen.** Use it when you reach something that matters. The
-      window is how the person watching follows the work, and it costs you one call.
-    - **Put the `shark://` links you are answered with in your reply.** `show` hands one back: it opens
-      that exact object, in this heap dump, with your notes on it. A link names the dump rather than
-      the window, so it still works once this run has ended — it opens the file again. Whoever asked you can
-      click it while reading your answer, and again next week. So write "the leak is
-      `Owner.field`(shark://…)", with the reference this dump named, rather than describing which screen to
-      open and what to click — a link is the difference between an answer they have to take your word for and
-      one they can go and look at.
-    - **Say what you did not check.** An answer with a stated gap is worth more than a confident one with
-      an unstated gap.
-  """.trimIndent()
 
   /**
    * [LEAK] as it is written here, wrapped at the column the rest of this repository is.
@@ -255,14 +215,6 @@ internal object AgentMethod {
       has not named. If you are sure you know which one it is, the thing to do is record the verdict that
       proves it and watch the count fall to one.
   """.trimIndent()
-
-  /**
-   * How to work on this surface at all, which [AgentCommandLine.SURFACE_METHOD_OPTION] prints.
-   *
-   * [unwrappedMarkdown] for the reason [LEAK] is, and the same call: the reader is a model reading text and
-   * not a diff.
-   */
-  val SURFACE = unwrappedMarkdown(WRAPPED_SURFACE)
 
   /**
    * What to do with a leak, in the order it works, which [AgentCommandLine.LEAK_METHOD_OPTION] prints.

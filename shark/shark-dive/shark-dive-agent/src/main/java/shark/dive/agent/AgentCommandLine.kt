@@ -197,14 +197,20 @@ object AgentCommandLine {
     |
     |${commandColumn()}
     |
-    |Every command takes `reason`: why you are making it, or what you concluded from the last answer. It is
-    |logged beside the reads it causes and read afterwards on the *Agent logs* screen, so write the sentence
-    |you would say to the person watching — and it is required of every command of a session named with
-    |$SESSION_OPTION, which is every agent's. Addresses are `0x…`, exactly as this surface writes them, and
-    |never decimal.
+    |Every command takes `reason`: what you are trying to learn, or what the last answer told you. It is
+    |logged next to the read it caused, so that somebody reading the log afterwards can follow the
+    |investigation, and a session named with $SESSION_OPTION needs one on every command. Addresses are
+    |`0x…` as this surface writes them, never decimal.
     |
-    |$SURFACE_METHOD_OPTION is how to work here, read once per session, and $LEAK_METHOD_OPTION is how to solve
-    |a leak, read once per investigation. Both are text this build prints with nothing open.
+    |Put the `shark://` links you are answered with in your reply. A link opens that object in this heap
+    |dump, with the verdicts and notes recorded on it, after this run has ended, so it is the difference
+    |between an answer somebody has to take your word for and one they can go and look at. `show` hands one
+    |back for any place worth pointing at.
+    |
+    |Say what you did not check.
+    |
+    |$LEAK_METHOD_OPTION is what a leak is, how a verdict spreads, and the order that finds the faulty
+    |reference. Read it before the first path, once per investigation rather than once per leak.
     |
     |Opening a heap dump is the one command with a wait worth planning for — minutes, on a large dump, and it
     |does not answer until the dump can be read. $DUMP_HEAP is the other, since it takes one off a device
@@ -232,14 +238,10 @@ object AgentCommandLine {
       "Makes one call and prints the answer as JSON. Required on every command.",
     "$SESSION_OPTION<name>" to
       "Which session these commands are one of, letters and digits. An agent passes something naming its " +
-      "own session, so that a reviewer reading its logs can find the investigation beside them. Every " +
-      "command of a named session needs its `$REASON`.",
+      "own session, so that a reviewer reading its logs can find the investigation beside them.",
     NO_UI_OPTION to
       "With a command that starts a run: have it draw no window, for a machine with no screen.",
     "$HELP_OPTION <command>" to "All of one command: what it answers, and every argument it takes.",
-    SURFACE_METHOD_OPTION to
-      "How to work here: what every call records, what to put on screen, what to put in your reply. Read it " +
-      "once per session.",
     LEAK_METHOD_OPTION to
       "How to investigate leaks of objects that reached their lifecycle end. Read it once per investigation."
   )
@@ -256,9 +258,6 @@ object AgentCommandLine {
   fun debugCliOptions(): List<Pair<String, String>> = listOf(
     "$RUN_OPTION<pid>" to "Which run to talk to, for a machine with more than one open."
   )
-
-  /** How to work on this surface at all, which is text this build carries rather than an answer. */
-  fun surfaceMethod(): String = AgentMethod.SURFACE
 
   /** What to do with a leak, which is text this build carries rather than an answer. See [AgentMethod]. */
   fun leakMethod(): String = AgentMethod.LEAK
@@ -489,27 +488,17 @@ object AgentCommandLine {
   const val HELP_OPTION = "--help"
 
   /**
-   * And how to work on this surface at all, which is one of the two texts this build carries.
-   *
-   * An option rather than a field of the first answer of a session, which is where it used to be: a text
-   * prepended to whatever a session asked first is a text an agent reads *after* making the call it had already
-   * decided to make, and the half of it that says what to put in a reply is the half that arrives too late to
-   * change the first one. Both halves of the method are a read now, which is also the only shape in which
-   * reading one costs a session nothing until it asks. See [AgentMethod].
-   */
-  const val SURFACE_METHOD_OPTION = "--investigation-help"
-
-  /**
-   * And the method for solving a leak, which is the other text this build carries.
+   * And the method for solving a leak, which is the one text this build carries beside the help.
    *
    * An option rather than a field of `list_leak_groups`'s answer, which is where it used to be: an investigation of
    * several leaks called that once per leak and read the whole method again each time, and the method is about
    * the path rather than about the list. Read once per session, by the session that has a leak to work on.
    * See [AgentMethod].
    *
-   * The longer name of the two on purpose: [SURFACE_METHOD_OPTION] is the one every session reads and this is
-   * the one an investigation of a leak reads, so the names say which is the special case. A caller that guesses
-   * the short one and wanted this is pointed here by its second paragraph.
+   * There was a second option, `--investigation-help`, for how to work on this surface at all. Four
+   * paragraphs is not a document, and an option is only worth its own name when somebody would go looking
+   * for it: the reason on every call, the links to hand back, the gap to admit. All of it is in
+   * [commandsHelp] now, which is what an agent reads having been told nothing.
    */
   const val LEAK_METHOD_OPTION = "--leak-investigation-help"
 

@@ -23,7 +23,7 @@
 # this script gives it one, at the cost of the window not appearing among the person's own dives. The eval does
 # that permanently, plus a hard-linked copy of the dump per run, and `run-eval.sh` says why.
 #
-# **And nothing here stages a skill.** What an agent needs to know is `--help`, `--investigation-help` and
+# **And nothing here stages a skill.** What an agent needs to know is `--help` and
 # `--leak-investigation-help`, which are text the build carries and therefore cannot go stale — so the prompt
 # names the launcher and stops, and finding out what it takes is the agent's own first move. The skill this
 # repository ships is one short page saying exactly that much, for somebody who has the app installed and
@@ -171,8 +171,8 @@ bundle_named_after_the_title() {
 # has been prompted there is nothing left in it to carry.
 #
 # **Not how to investigate, and not which tool to call.** What the agent follows has to come from the surface —
-# `--help` is the command list and `--investigation-help` is the method, both text this build prints — or what
-# this measures is this function. Opening the dump is itself a step of the investigation.
+# `--help` is the command list and `--leak-investigation-help` is the method, both text this build prints —
+# or what this measures is this function. Opening the dump is itself a step of the investigation.
 #
 # **The launcher is named rather than left to be found.** The alternative was measuring an `ls` that this
 # harness's own shape breaks: the app is a copy of a build in a temporary directory, in neither of the two

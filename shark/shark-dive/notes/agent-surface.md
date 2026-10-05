@@ -242,18 +242,20 @@ is 30,000 characters, and every answer on this surface is under it except one: s
 `agent_log session=…`, which is 33,035.
 
 `AgentMethod` is split in two against that, and against a second thing the caps make plain: **a session
-should not pay for a method it isn't following.** Both halves are **reads rather than answers**, each printed by
-an option of its own with no run, no heap dump and nothing open — which is the end of a line this redesign walked
+should not pay for a method it isn't following.** Both halves are **reads rather than answers**, printed with no
+run, no heap dump and nothing open — which is the end of a line this redesign walked
 all the way down: a text handed over at a handshake, then a text prepended to an answer, then a text an agent
 asks for when it has a use for it.
 
-- **`SURFACE`, 1,969 characters as `--investigation-help` prints it**, is how to work on this surface at all:
-  the reason on every call, the window somebody is watching, the `shark://` links to hand back, the gap to
-  admit, and one sentence saying that anything about a leak starts by reading `--leak-investigation-help`. It
-  used to be prepended to the first *answered* call of a session, exactly once, read off the session file rather
-  than held in memory because a process per call has no memory — and exactly once is still every session: a
-  `list_heap_dumps` that wanted the name of a dump was answered with the whole of how to work here, and the
-  session that only ever wanted that paid for the rest of it.
+- **How to work on this surface at all is four paragraphs of `--help`**: the `reason` on every call, the
+  `shark://` links to hand back, the gap to admit, and one sentence saying that anything about a leak starts
+  by reading `--leak-investigation-help`. It was `AgentMethod.SURFACE`, 1,969 characters behind an
+  `--investigation-help` of its own, and before that it was prepended to the first *answered* call of a
+  session — a `list_heap_dumps` that wanted the name of a dump was answered with the whole of how to work
+  here, and the session that only ever wanted that paid for the rest of it. **Why it is not an option any
+  more**: four paragraphs is not a document, and an option only earns its own name when somebody would go
+  looking for it. What an agent types at a program it has been told nothing about is `--help`, so a second
+  option was one more thing to find for a text short enough to live in the first.
 - **`LEAK`, 11,855 characters as `--leak-investigation-help` prints it**, is what a leak is, how a verdict
   spreads, the order to work in, what to tell a person, and reading the code at the version the dump is of. It was a field of every
   `list_leak_groups` answer, and a `list_leak_groups` answers the same text whether it is the first call of an investigation

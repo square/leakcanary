@@ -24,19 +24,15 @@ import shark.dive.agent.AgentCommandLine
  * where it is needed. [AgentCommandLine.CLI_OPTION] with nothing after it lands here too, since a command line
  * that names no command is a question about what the commands are.
  *
- * **Both halves of the method are here too**, and that is what they are for: a text printed on demand is read
+ * **The method for solving a leak is here too**, and that is what it is for: a text printed on demand is read
  * once by whoever wants it, where a text carried in an answer is read again by every call that gets one. See
- * [AgentCommandLine.SURFACE_METHOD_OPTION] and [AgentCommandLine.LEAK_METHOD_OPTION].
+ * [AgentCommandLine.LEAK_METHOD_OPTION].
  *
  * Answered before any logging is installed, and it ends with 0: whoever typed this asked a question and got the
  * answer, so there is nothing to put in a log file and nothing to fail about.
  */
 internal fun helpExitCode(args: Array<String>): Int? {
-  // On stdout, every one of them, because the text is the whole of what the command was run for.
-  if (AgentCommandLine.SURFACE_METHOD_OPTION in args) {
-    println(AgentCommandLine.surfaceMethod())
-    return 0
-  }
+  // On stdout, both of them, because the text is the whole of what the command was run for.
   if (AgentCommandLine.LEAK_METHOD_OPTION in args) {
     println(AgentCommandLine.leakMethod())
     return 0

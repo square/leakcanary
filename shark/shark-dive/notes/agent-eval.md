@@ -339,9 +339,10 @@ was supposed to.
 [`McpSession.withTheSurface`](https://github.com/square/leakcanary/blob/6d4a192c484437cb31299d756156f672834bcd82/shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/McpSession.kt#L302)
 prepended `AgentMethod.SURFACE` to the first *answered* call of every session, so every run was handed
 "**`show` puts what you are looking at on screen.** Use it when you reach something that matters"
-(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentMethod.kt:67`) whether it had asked for
-it or not. On this branch that text is only printed by
-`--investigation-help`. What that cost is not investigation: **nine of the before arm's twelve `show` calls
+(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentMethod.kt:67`, as it was then) whether
+it had asked for it or not. That text moved to an `--investigation-help` of its own and then into `--help`,
+and either way it is read when somebody asks for it rather than carried by an answer. What that cost is not
+investigation: **nine of the before arm's twelve `show` calls
 came after the run's last `conclude`**, and eight of its fifteen sessions ended on one. Mid-investigation
 `show` was three calls before and two after. So a closing flourish went away and `close_heap_dump` took its
 place at the end of every run, which is the same ritual costing the same call.
