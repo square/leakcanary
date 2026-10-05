@@ -286,8 +286,8 @@ print_the_command() {
 Throw an agent at it:
 
   cd $HARNESS_DIRECTORY
-  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY
-  CLAUDE_SECURESTORAGE_CONFIG_DIR=
+  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY \\
+  CLAUDE_SECURESTORAGE_CONFIG_DIR= \\
   claude \\
     --print "\$(cat prompt.txt)" \\
 $model_line    --session-id $SESSION_ID \\
