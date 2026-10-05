@@ -41,7 +41,7 @@ class HeapDumpFilesTest {
    * sleeping because what it is looking for lasts two syscalls.
    */
   @Test fun `a file being replaced is never missing to a reader`() {
-    val file = File(testFolder.newFolder("statuses"), "heap.hprof-1f3a9c0b.leak-statuses.tsv")
+    val file = File(testFolder.newFolder("verdicts"), "heap.hprof-1f3a9c0b.verdicts.tsv")
     writeWholeFile(file, "the first write\n")
     val writing = AtomicBoolean(true)
     val readsThatSawIt = AtomicInteger()

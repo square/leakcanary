@@ -1,5 +1,6 @@
 package shark.dive
 
+import shark.LeakTrace
 import shark.ReferenceLocationType
 
 /**
@@ -77,7 +78,15 @@ data class IndependentPath(
    */
   val gcRootLabel: String?,
   /** From the step below where the search started down to the object itself, which is the last step. */
-  val steps: List<PathStep>
+  val steps: List<PathStep>,
+  /**
+   * The same root as [gcRootLabel], in Shark's own vocabulary, for the reason [RootPath.gcRootType] carries
+   * it: the window's label for a root and the word a leak trace is printed with are two different strings,
+   * and an answer read by a program wants the second one.
+   *
+   * Null exactly when [gcRootLabel] is, and for uncollected garbage, which no GC root reaches.
+   */
+  val gcRootType: LeakTrace.GcRootType? = null
 )
 
 /**
@@ -93,11 +102,11 @@ data class PathStep(
   val className: String,
   val kind: HeapObjectKind,
   /**
-   * What this kind of object is worth saying before anything else — a string's content, a bitmap's
-   * dimensions — for the kinds Shark Dive recognizes, null for the rest. What tells one step of a path
-   * apart from another step of the same class.
+   * What this object is beyond its class — a string's characters, a bitmap's dimensions — for the kinds
+   * Shark Dive reads it off, null for the rest. What tells one object of a path apart from another object
+   * of the same class. See [ObjectContent].
    */
-  val headline: String?,
+  val content: ObjectContent?,
   val strength: ReachabilityStrength,
   /** Bytes retained, and how many objects that is: 0 for an object folded into another one. */
   val retainedSize: Long,
@@ -106,11 +115,11 @@ data class PathStep(
   val inspectorLabels: List<String>,
   /**
    * Whether this object is meant to still be in memory, which every path says of every one of its
-   * objects rather than only the paths that turn out to be leaks. See [LeakStatus].
+   * objects rather than only the paths that turn out to be leaks. See [Verdict].
    */
-  val leakStatus: LeakStatus,
-  /** Why, in words. Null for [LeakStatus.UNKNOWN], which is most objects of most paths. */
-  val leakStatusReason: String?,
+  val verdict: Verdict,
+  /** Why, in words. Null for [Verdict.UNKNOWN], which is most objects of most paths. */
+  val verdictReason: String?,
   /** How the step before points at this one. Null for the first step of a path a GC root starts. */
   val reference: PathReference?,
   /**
@@ -134,16 +143,16 @@ data class PathReference(
    * Whether this is the reference the leak *is*: the one step of the path that goes from an object expected
    * to be in memory to a stuck one.
    *
-   * **The one thing on a path that says where to go and change code.** A status is about an object, and
-   * every object below this reference reads as stuck because of it — so a reader following the statuses is
+   * **The one thing on a path that says where to go and change code.** A verdict is about an object, and
+   * every object below this reference reads as stuck because of it — so a reader following the verdicts is
    * being pointed at what a leak left behind, and this is being pointed at the leak. The same reference the
    * leaks screen names a leak after, wherever a leak is a single reference. See
    * [faultyReferenceIndexOrNull], which is where the rule and the three ways a path has no faulty reference
    * are, and [LeakGroup.suspectPath].
    *
    * False for every reference of most paths of a heap dump, since it takes the two verdicts either side of
-   * one reference to be true. Worked out once the whole path is known, like [PathStep.leakStatus], for the
-   * same reason: the statuses of the objects either side of it are what decide it.
+   * one reference to be true. Worked out once the whole path is known, like [PathStep.verdict], for the
+   * same reason: the verdicts of the objects either side of it are what decide it.
    */
   val isFaulty: Boolean = false
 )

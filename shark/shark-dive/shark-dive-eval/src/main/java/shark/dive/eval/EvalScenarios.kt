@@ -7,7 +7,7 @@ import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
 import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
-import shark.dive.LeakStatus
+import shark.dive.Verdict
 import shark.dump
 
 /**
@@ -39,7 +39,7 @@ class EvalScenario internal constructor(
    * the one: the dump reads both ends for itself, a watched activity at the bottom and a binder stub at the
    * top, and what a run has to add is the `STUCK` in the middle.
    */
-  internal val solvedBy: Map<String, LeakStatus> = emptyMap(),
+  internal val solvedBy: Map<String, Verdict> = emptyMap(),
   private val writeHeapDump: (File) -> Unit
 ) {
 
@@ -211,7 +211,7 @@ object EvalScenarios {
     name = "stub-outlives-its-work",
     key = "UploadCallbacks\$ResultStub.this\$0",
     about = "The one object that belongs in memory is a binder stub at the top, and a verdict spreads up",
-    solvedBy = mapOf(UPLOAD_CALLBACKS_CLASS_NAME to LeakStatus.STUCK)
+    solvedBy = mapOf(UPLOAD_CALLBACKS_CLASS_NAME to Verdict.STUCK)
   ) { file ->
     file.dump {
       androidBuild()
@@ -295,7 +295,7 @@ object EvalScenarios {
     name = "stub-holds-no-state",
     key = "SearchResultReceiver\$Transport.this\$0",
     about = "The object under the stub has no state, so what says its work is done is two steps below it",
-    solvedBy = mapOf(SEARCH_RECEIVER_CLASS_NAME to LeakStatus.STUCK)
+    solvedBy = mapOf(SEARCH_RECEIVER_CLASS_NAME to Verdict.STUCK)
   ) { file ->
     file.dump {
       androidBuild()

@@ -4,15 +4,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.dive.LeakStatus.STUCK
-import shark.dive.LeakStatus.EXPECTED
-import shark.dive.LeakStatus.UNKNOWN
+import shark.dive.Verdict.STUCK
+import shark.dive.Verdict.EXPECTED
+import shark.dive.Verdict.UNKNOWN
 
 /**
  * What a heap dump says about its objects once somebody has said something about them by hand: the panel,
- * the path, and which statuses can't both be true. See [LeakStatusOverride].
+ * the path, and which verdicts can't both be true. See [VerdictOverride].
  */
-class HeapLeakStatusTest {
+class HeapVerdictTest {
 
   @get:Rule
   var testFolder = TemporaryFolder()
@@ -23,12 +23,12 @@ class HeapLeakStatusTest {
     HeapDive.open(dump.file).use { dive ->
       val summary = dive.tree.summarize(dump.activityObjectId)
 
-      assertThat(summary.leakStatus).isEqualTo(STUCK)
-      assertThat(summary.leakStatusReason).contains("mDestroyed")
+      assertThat(summary.verdict).isEqualTo(STUCK)
+      assertThat(summary.verdictReason).contains("mDestroyed")
     }
   }
 
-  @Test fun `a status set by hand is what the panel says instead`() {
+  @Test fun `a verdict set by hand is what the panel says instead`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -37,15 +37,15 @@ class HeapLeakStatusTest {
         overrides = overrides(dump.activityObjectId, EXPECTED, "kept for one more frame on purpose")
       )
 
-      assertThat(summary.leakStatus).isEqualTo(EXPECTED)
+      assertThat(summary.verdict).isEqualTo(EXPECTED)
       // What the inspector said is kept as the record of what the hand overruled.
-      assertThat(summary.leakStatusReason)
+      assertThat(summary.verdictReason)
         .isEqualTo("set by hand — kept for one more frame on purpose. Conflicts with Activity#mDestroyed is true")
     }
   }
 
   /** The panel is about one object, so nothing above or below it changes what it says. */
-  @Test fun `a status set on another object is not what the panel says`() {
+  @Test fun `a verdict set on another object is not what the panel says`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -54,11 +54,11 @@ class HeapLeakStatusTest {
         overrides = overrides(dump.activityObjectId, EXPECTED, "kept for one more frame on purpose")
       )
 
-      assertThat(summary.leakStatus).isEqualTo(STUCK)
+      assertThat(summary.verdict).isEqualTo(STUCK)
     }
   }
 
-  @Test fun `a path is read through the statuses set by hand`() {
+  @Test fun `a path is read through the verdicts set by hand`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -68,10 +68,10 @@ class HeapLeakStatusTest {
       )
 
       val activity = path.steps.single { it.step.objectId == dump.activityObjectId }.step
-      assertThat(activity.leakStatus).isEqualTo(EXPECTED)
-      assertThat(activity.leakStatusReason).contains(SET_BY_HAND)
+      assertThat(activity.verdict).isEqualTo(EXPECTED)
+      assertThat(activity.verdictReason).contains(SET_BY_HAND)
       // And what a path reads off it: the object above the activity is holding something still needed.
-      assertThat(path.steps.first().step.leakStatus).isEqualTo(EXPECTED)
+      assertThat(path.steps.first().step.verdict).isEqualTo(EXPECTED)
     }
   }
 
@@ -82,8 +82,8 @@ class HeapLeakStatusTest {
     HeapDive.open(dump.file).use { dive ->
       val plain = dive.tree.rootPathTo(dump.windowObjectId)
       // The holder above the destroyed activity is where the leak starts, so it is left unknown.
-      assertThat(plain.steps.first().step.leakStatus).isEqualTo(UNKNOWN)
-      assertThat(plain.steps.single { it.step.objectId == dump.activityObjectId }.step.leakStatus)
+      assertThat(plain.steps.first().step.verdict).isEqualTo(UNKNOWN)
+      assertThat(plain.steps.single { it.step.objectId == dump.activityObjectId }.step.verdict)
         .isEqualTo(STUCK)
 
       val read = dive.tree.rootPathTo(
@@ -93,14 +93,14 @@ class HeapLeakStatusTest {
 
       // The window is still leaking on its own account — an inspector recognized it — so what the activity
       // no longer being leaking changes is the activity, not the object the path leads to.
-      assertThat(read.steps.last().step.leakStatus).isEqualTo(STUCK)
-      assertThat(read.steps.single { it.step.objectId == dump.activityObjectId }.step.leakStatus)
+      assertThat(read.steps.last().step.verdict).isEqualTo(STUCK)
+      assertThat(read.steps.single { it.step.objectId == dump.activityObjectId }.step.verdict)
         .isEqualTo(UNKNOWN)
     }
   }
 
   /**
-   * The other half of what a status decides: which reference the leak is, which is read off the objects
+   * The other half of what a verdict decides: which reference the leak is, which is read off the objects
    * either side of it and so is a hand's to change. See [PathReference.isFaulty].
    */
   @Test fun `a path marks a faulty reference once a hand says an object is expected`() {
@@ -157,7 +157,7 @@ class HeapLeakStatusTest {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.windowObjectId, EXPECTED, "this window is reused deliberately"),
         overrides = overrides(dump.activityObjectId, STUCK, "this screen was closed")
       )
@@ -167,18 +167,18 @@ class HeapLeakStatusTest {
       assertThat(conflict.objectName).contains(ACTIVITY_CLASS_NAME.substringAfterLast('.'))
       assertThat(conflict.isAbove).isTrue()
       // Solving it flips the one already set, and the reason says that this is why.
-      assertThat(conflict.solved.status).isEqualTo(EXPECTED)
+      assertThat(conflict.solved.verdict).isEqualTo(EXPECTED)
       assertThat(conflict.solved.reason)
         .contains("below this can be \"Expected\"", "Was \"Stuck\": this screen was closed")
     }
   }
 
   /** The same disagreement, set the other way round: the object below is the one already set. */
-  @Test fun `a status set below the new one conflicts too, and says it is held by it`() {
+  @Test fun `a verdict set below the new one conflicts too, and says it is held by it`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.activityObjectId, STUCK, "this screen was closed"),
         overrides = overrides(dump.windowObjectId, EXPECTED, "this window is reused deliberately")
       )
@@ -186,16 +186,16 @@ class HeapLeakStatusTest {
       val conflict = conflicts.single()
       assertThat(conflict.existing.objectId).isEqualTo(dump.windowObjectId)
       assertThat(conflict.isAbove).isFalse()
-      assertThat(conflict.solved.status).isEqualTo(STUCK)
+      assertThat(conflict.solved.verdict).isEqualTo(STUCK)
       assertThat(conflict.solved.reason).contains("above this can be \"Stuck\"")
     }
   }
 
-  @Test fun `two statuses that agree do not conflict`() {
+  @Test fun `two verdicts that agree do not conflict`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.windowObjectId, STUCK, "and so is the window it holds"),
         overrides = overrides(dump.activityObjectId, STUCK, "this screen was closed")
       )
@@ -205,12 +205,12 @@ class HeapLeakStatusTest {
   }
 
   /** Neither holds the other, so the two are answers about two things and nothing has to be settled. */
-  @Test fun `two statuses on objects neither of which holds the other do not conflict`() {
+  @Test fun `two verdicts on objects neither of which holds the other do not conflict`() {
     // Three activities under three holders of their own, so no path runs through two of them.
     HeapDive.open(testFolder.destroyedActivitiesHeapDump()).use { dive ->
       val (one, other) = dive.tree.findLeaks().leakingObjectIds.toList()
 
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(one, EXPECTED, "this screen is meant to be kept"),
         overrides = overrides(other, STUCK, "and that one is not")
       )
@@ -237,11 +237,11 @@ class HeapLeakStatusTest {
    * runnable the executor is running belongs in memory and the task it holds does not, said in that order,
    * with the faulty reference between them the whole point of saying it.
    */
-  @Test fun `two statuses on objects that hold each other do not conflict`() {
+  @Test fun `two verdicts on objects that hold each other do not conflict`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.taskObjectId, STUCK, "this task should have been cancelled"),
         overrides = overrides(dump.wrapperObjectId, EXPECTED, "the executor is running this")
       )
@@ -255,7 +255,7 @@ class HeapLeakStatusTest {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.wrapperObjectId, EXPECTED, "the executor is running this"),
         overrides = overrides(dump.taskObjectId, STUCK, "this task should have been cancelled")
       )
@@ -268,13 +268,13 @@ class HeapLeakStatusTest {
    * The two of them read as a path, which is why there was nothing to settle: the reference from the object
    * that belongs in memory to the one that doesn't is the fault, and nothing else on the path can be.
    */
-  @Test fun `a status on each of them marks the reference between them instead`() {
+  @Test fun `a verdict on each of them marks the reference between them instead`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
       val path = dive.tree.rootPathTo(
         objectId = dump.activityObjectId,
-        overrides = LeakStatusOverrides.of(
+        overrides = VerdictOverrides.of(
           listOf(
             override(dump.wrapperObjectId, EXPECTED, "the executor is running this"),
             override(dump.taskObjectId, STUCK, "this task should have been cancelled")
@@ -289,13 +289,13 @@ class HeapLeakStatusTest {
 
   /**
    * A loop is not a heap dump where nothing conflicts: an object below one is held by every object of it, so
-   * a status on it is settled against them the way any other pair is.
+   * a verdict on it is settled against them the way any other pair is.
    */
-  @Test fun `a status below a loop still conflicts with one on it`() {
+  @Test fun `a verdict below a loop still conflicts with one on it`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.activityObjectId, EXPECTED, "this screen is coming back"),
         overrides = overrides(dump.taskObjectId, STUCK, "this task should have been cancelled")
       )
@@ -306,11 +306,11 @@ class HeapLeakStatusTest {
     }
   }
 
-  @Test fun `setting a status again on the same object disagrees with nothing`() {
+  @Test fun `setting a verdict again on the same object disagrees with nothing`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.activityObjectId, EXPECTED, "changed my mind"),
         overrides = overrides(dump.activityObjectId, STUCK, "this screen was closed")
       )
@@ -319,12 +319,12 @@ class HeapLeakStatusTest {
     }
   }
 
-  /** Nobody claiming to know overrules nobody, so it is never one of the statuses to settle against. */
-  @Test fun `a status of unknown set by hand conflicts with nothing below or above it`() {
+  /** Nobody claiming to know overrules nobody, so it is never one of the verdicts to settle against. */
+  @Test fun `a verdict of unknown set by hand conflicts with nothing below or above it`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
-      val conflicts = dive.tree.leakStatusConflictsWith(
+      val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.windowObjectId, STUCK, "the window is the problem"),
         overrides = overrides(dump.activityObjectId, UNKNOWN, "no idea about this activity")
       )
@@ -366,8 +366,8 @@ class HeapLeakStatusTest {
     }
   }
 
-  /** The list is read through them, so taking a status off has to give the heap dump's answer back. */
-  @Test fun `the leaks are what the heap dump says again once a status is taken off`() {
+  /** The list is read through them, so taking a verdict off has to give the heap dump's answer back. */
+  @Test fun `the leaks are what the heap dump says again once a verdict is taken off`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -393,7 +393,7 @@ class HeapLeakStatusTest {
       )
 
       // And takes the short way through it once there is nothing to avoid, which is the path and the
-      // statuses drawn on it being the same answer.
+      // verdicts drawn on it being the same answer.
       assertThat(path.steps.map { it.step.objectId }).contains(dump.activityObjectId)
     }
   }
@@ -422,15 +422,15 @@ class HeapLeakStatusTest {
 
   private fun override(
     objectId: Long,
-    status: LeakStatus,
+    verdict: Verdict,
     reason: String
-  ) = LeakStatusOverride(objectId = objectId, status = status, reason = reason)
+  ) = VerdictOverride(objectId = objectId, verdict = verdict, reason = reason)
 
   private fun overrides(
     objectId: Long,
-    status: LeakStatus,
+    verdict: Verdict,
     reason: String
-  ) = LeakStatusOverrides.of(listOf(override(objectId, status, reason)))
+  ) = VerdictOverrides.of(listOf(override(objectId, verdict, reason)))
 
   /**
    * The references of a path marked as the leak, spelled the way a leak of the leaks screen is named.

@@ -22,7 +22,7 @@ import shark.dive.ObjectListEntry
  *
  * **Read out of the heap dump, not remembered from the moment they were starred.** The list used to keep a
  * copy of each object's sizes, which made it a screen of its own with columns of its own, and made a row go
- * stale the moment a status set by hand changed what an object retains. What is kept is the addresses, in
+ * stale the moment a verdict set by hand changed what an object retains. What is kept is the addresses, in
  * `~/.shark-dive/starred` — see [shark.dive.StarredFile].
  */
 @Composable

@@ -206,8 +206,24 @@ it returning in **1.566 s** — a heap dump open and answered, not a process han
 What the `open` route costs, and neither is a surprise once written down: it hands back **no pid**, which is
 free here because what waits for the run is the command line watching the directory runs publish themselves in,
 exactly as it would for a run somebody else started; and it gives the run **the root directory** to work in, so
-every path handed over has to be absolute, which they are — `DiveArguments` holds `File`s and `openAnotherRun`
-spells them `absolutePath`.
+nothing on the command line it is handed can be a relative path. Which is free too, since `openAnotherRun`
+hands it no paths at all — a title and whether to draw windows, the heap dump being the command's own to open.
+
+**The third cost is the bundle path itself, and it took a day to find.** `open -a` reads its argument as a
+path *or* as an application name, and which one it picks is not a flag: a path with a `.` segment left in it
+falls through to the name lookup, so `open -n -a "<worktree>/./shark/…/Shark Dive.app"` launches **whichever
+Shark Dive LaunchServices knows about** — on this machine `~/Applications/Shark Dive.app`, with eleven build
+directories also registered under the same bundle id. `appBundlePathOrNull` built that path with
+`File.absolutePath`, which prepends the working directory and normalises nothing, so the `.` arrived from the
+one place a person types: `./shark-dive.sh` in the repository root, which names the launcher relatively.
+
+What that looked like from outside is the reason it is worth a paragraph. The installed build refuses an
+option this one passes — `--debug-title-prefix`, which it had under another name — logs `Unknown option` and
+exits, and so the run never publishes itself and `--cli` waits its whole minute and reports that something
+went wrong *opening a heap dump*. The newest log file is the other build's, four lines long, in a different
+JVM version. Nothing in any of it names a path. `pathToHandTheOs` in `DiveProcess.kt` canonicalises instead,
+and `DiveProcessTest` pins the rule, because this is the one failure of the three in this section with no
+symptom that points at its cause.
 
 **And both streams are discarded rather than inherited**, which is the mirror image of the same problem: a run
 holding the stderr this process inherited is a command that *appears never to finish*, for anything reading
@@ -277,6 +293,22 @@ left the answer and has not come back — and what is in there now is leak trace
 Measured against a `--no-ui` run on a `SHARK_DIVE_DIR` of its own, characters rather than bytes: the
 box-drawing of a leak trace is three bytes a glyph, so `wc -c` reads 11,416.
 
+**Both traces came off the leaks answer again on 2026-10-05, and the measurement is why.** A second round had
+put the JSON form on each group beside the text one, which took three groups from 11,037 bytes to 38,657 —
+3.5× — and what it bought was the single `path_from_gc_roots` a reader would have made on the one group it
+went on to work. So `list_leak_groups` hands back addresses and nothing else about a path, and the numbers
+above are of a build where it carried one. `shark-dive-agent/AGENTS.md` has the rule that came out of it.
+
+**`representativeObject` went the same day, and it had never been a choice.** It was documented as the object
+whose own path produced the group's references, and warned not to be read as `objects` first — but
+`computeLeaks` sorts the candidates by retained size before walking any of them, `LeakGroup.objects` sorts by
+the same number, and a stable sort over an already-sorted list leaves it alone, so the representative was
+`objects[0]` on every group of every dump checked. What made it worth measuring rather than arguing about is
+that the three groups of `leak_asynctask_o.hprof` have paths of 18, 27 and 46 objects: a representative
+picked for the shortest path would have been worth having, and this one was picked for size and landed on the
+shortest by coincidence. Any object of a group solves the group, so the sentence saying that went into the
+tool description and the field went.
+
 **120 of those characters are the `Retaining … in … objects` line**, one per group, added the same day so
 that the trace carries every line a LeakCanary report does — `notes/decisions.md` has what the two still
 differ on. Worth knowing which way that trade goes: the whole of what a leak trace is worth paying for is
@@ -324,7 +356,8 @@ context window went to die**. It was 6.4 k tokens an agent paid before it knew w
 dump, against nothing.
 
 Worth keeping from that measurement: **the cap never touched the tool definitions**, measured rather than
-assumed — the longest description was `path_from_gc_root` at 652 characters, a third of the cap, and none of
+assumed — the longest description was `path_from_gc_root`, `path_from_gc_roots` today, at 652 characters,
+a third of the cap, and none of
 the seventeen was within 1,300 of it. So a description can go on saying when to reach for its tool, in
 `--help <command>` as it did in a schema. What would silently lose text is the one thing not to write: a
 command whose description is a page.
@@ -469,7 +502,8 @@ was removed on 2026-10-03 — `notes/agent-eval.md` has why — so read its two 
 and the `AgentTools.kt` line numbers in them as that build's. What each of its jobs is done by now: which
 leak a call is about is `solvingLeakOf` on `set_verdict`, what an investigation worked out is `take_note`,
 and which reference the leak is was always the heap dump's own answer. The character counts still stand as a
-floor, with `list_leak_groups` since gaining a leak trace and a representative object per group.
+floor; `list_leak_groups` gained a leak trace and a representative object per group after this trace was
+taken, and has since lost both again.
 
 The whole trace, as commands typed in a row against the same run:
 

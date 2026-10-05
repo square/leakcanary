@@ -33,7 +33,7 @@ import shark.dive.LEAK_NAME_ARROW
 import shark.dive.LEAK_NAME_GAP
 import shark.dive.LeakGroup
 import shark.dive.LeakKind
-import shark.dive.LeakStatus
+import shark.dive.Verdict
 import shark.dive.LeakSection
 import shark.dive.LeakingObject
 import shark.dive.Place
@@ -41,7 +41,7 @@ import shark.dive.ReachabilityStrength
 import shark.dive.ReferencePage
 import shark.dive.Topic
 import shark.dive.hexObjectId
-import shark.dive.statusText
+import shark.dive.text
 
 /**
  * The screen listing what shouldn't be in memory, and the colouring that shades the map by it.
@@ -312,7 +312,7 @@ class LeaksScreenTest {
 
       onAllNodesWithText(listed)[0].performClick()
 
-      val leaking = LeakStatus.STUCK.statusText
+      val leaking = Verdict.STUCK.text
       waitUntilAtLeastOneExists(hasText("$leaking: ", substring = true), OPEN_TIMEOUT_MILLIS)
       assertThat(onAllNodesWithText("mDestroyed", substring = true).fetchSemanticsNodes()).isNotEmpty()
     }
@@ -482,18 +482,17 @@ class LeaksScreenTest {
       leakFingerprint = suspectPath.first().sha1OfNothing(),
       title = suspectPath.first(),
       suspectPath = suspectPath,
-      representativeObjectId = suspectPath.first().hashCode().toLong(),
       subtitle = subtitle,
       objects = listOf(
         LeakingObject(
           objectId = suspectPath.first().hashCode().toLong(),
           className = "com.example.MainActivity",
           kind = HeapObjectKind.INSTANCE,
-          headline = null,
+          content = null,
           retainedSize = 0L,
           retainedCount = 1,
           strength = ReachabilityStrength.STRONG,
-          leakingReason = null,
+          verdictReason = null,
           watcher = null
         )
       )

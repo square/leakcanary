@@ -5,12 +5,12 @@ import shark.SharkLog
 
 /**
  * Which objects of one heap dump are starred, kept between runs: one file of this app's own, named after the
- * dump the way its notes and its leak statuses are. See [heapDumpFileKey].
+ * dump the way its notes and its leak verdicts are. See [heapDumpFileKey].
  *
  * **Addresses and nothing else.** What a starred object *is* — its class, what it retains, how firmly it is
  * held — is read out of the heap dump when the screen opens, the same way every other list of objects reads
  * it. Keeping a copy here would be a second source for numbers the dump already has, and the two would agree
- * only until the reader set a status by hand and changed which objects are leaks.
+ * only until the reader set a verdict by hand and changed which objects are leaks.
  *
  * In the order they were starred rather than sorted, because that order is the reader's: starring is how a
  * handful of objects are held side by side while being compared, and the list they built is the list they

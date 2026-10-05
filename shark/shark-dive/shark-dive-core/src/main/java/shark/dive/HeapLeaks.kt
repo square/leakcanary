@@ -225,26 +225,26 @@ data class LeakGroup(
    */
   val suspectPath: List<String>,
   /**
-   * The object of this group whose own path was read to produce [suspectPath] and [leakFingerprint].
-   *
-   * **Which object that is matters, and it is not [objects] first.** Every object here leaks for the same
-   * reason, so solving the leak means picking one of them and narrowing *its* path — and the one whose path
-   * already named this leak is the one whose path the rest of this group describes. [objects] is sorted by
-   * what each retains, which answers a different question and usually puts a different object first.
-   *
-   * So a reader with a group in front of it has somewhere to start that needs no choice of its own, which is
-   * what `path_from_gc_root` is then called with.
-   */
-  val representativeObjectId: Long,
-  /**
    * What is known about the leak itself: the description of the library leak pattern that recognized it, or
    * that nothing holds these objects any more. Null for an app's own leak, which its references say.
    *
    * Not why an object is leaking — that is read off the object by an inspector, so it is
-   * [LeakingObject.leakingReason] and differs between the objects of one group.
+   * [LeakingObject.verdictReason] and differs between the objects of one group.
    */
   val subtitle: String?,
-  /** Largest first. Never empty: a group is made by there being an object in it. */
+  /**
+   * Largest first. Never empty: a group is made by there being an object in it.
+   *
+   * **Any one of them will do to solve the leak**, which is worth knowing before reading the list: they are
+   * here together because they leak for the same reason, [suspectPath] is the same references for every one
+   * of them, and narrowing that stretch on one of them narrows it for all. So whoever is working a group
+   * takes an object — the first is as good as any — and spends the rest of the investigation on that
+   * address.
+   *
+   * This did carry a representative object, picked as the one whose own path produced [suspectPath]. It
+   * came back as the largest-retaining object every time, which is this list's own first entry, so it was
+   * a second name for `objects.first()` dressed as a choice someone had made.
+   */
   val objects: List<LeakingObject>
 ) {
 
@@ -256,7 +256,7 @@ data class LeakGroup(
    *
    * One line rather than the whole path, because the ends are the same reference for most leaks and both of
    * them are worth reading — the first says what to stop holding, the last says where the object that leaked
-   * hangs off. What is between them is on the path, which is `path_from_gc_root` for a reader who is an
+   * hangs off. What is between them is on the path, which is `path_from_gc_roots` for a reader who is an
    * agent and the object view for one at the window, and is the same walk for both.
    *
    * **Here rather than in either surface**, because the leaks screen and the answer an agent is listed these
@@ -297,17 +297,23 @@ data class LeakingObject(
   val className: String,
   val kind: HeapObjectKind,
   /**
-   * What tells it apart from the next object of its class — a string's content, a bitmap's size — for the
-   * kinds Shark Dive recognizes, null for the rest.
+   * What tells it apart from the next object of its class — a string's characters, a bitmap's dimensions —
+   * for the kinds Shark Dive reads it off, null for the rest. See [ObjectContent].
    */
-  val headline: String?,
+  val content: ObjectContent?,
   val retainedSize: Long,
   /** Number of objects retained, including this one. */
   val retainedCount: Int,
   /** How firmly it is held, which for a leak that has been collected already is unreachable. */
   val strength: ReachabilityStrength,
-  /** Why this object is leaking, from the inspector that recognized it. */
-  val leakingReason: String?,
+  /**
+   * Why this object is stuck, from the inspector that recognized it.
+   *
+   * The reason behind a verdict, same as [PathStep.verdictReason] — and the verdict it is the reason for
+   * is always [Verdict.STUCK] here, since that is what puts an object in this list. Null when the
+   * inspectors gave no reason, which is every object a section names after a strength rather than a verdict.
+   */
+  val verdictReason: String?,
   /** What LeakCanary's watcher recorded about it, for the objects an app handed over. Null for the rest. */
   val watcher: WatchedObject?
 )

@@ -531,7 +531,7 @@ missing a line is not read as a tool that renders less — it is read as a heap 
 somebody does with it is go looking for the fact in a report that has it. Measured against `shark-cli
 analyze` on `shark/shark-android/src/test/resources/leak_asynctask_o.hprof`, which is the comparison to
 repeat after touching that file: identical fingerprint, identical steps and underlines, identical inspector
-labels, identical statuses and reasons. Three things about getting there.
+labels, identical verdicts and reasons. Three things about getting there.
 
 - **`Library leak match: <pattern>` goes on the referrer, not on the reference it is about.** Shark Dive
   keeps the pattern on `PathReference.libraryLeak`, where the window draws it beside the reference, and a
@@ -697,8 +697,8 @@ sets `Reference.isLowPriority` and `LazyDetails.matchedLibraryLeak` and nothing 
 same tree with the known leaks of it named, and the first of the two is what keeps a path off a known
 leaking reference while there is another way to the object.
 
-**A leaking object's status is on every path, not only on the ones that turn out to be leaks.** Every step
-of every path carries a `LeakStatus`, worked out by `leakStatusesOf` from what the inspectors said about
+**A leaking object's verdict is on every path, not only on the ones that turn out to be leaks.** Every step
+of every path carries a `Verdict`, worked out by `verdictsOf` from what the inspectors said about
 the objects above and below it — Shark's own rule, minus the one that forces the last object of a leak
 trace to be leaking, because a path here ends wherever the reader clicked. Green behind an object meant to
 be alive, red behind one meant to be gone, and the reason in words underneath.
@@ -916,7 +916,7 @@ of objects is, and it is the only way the starred rows and the map can't disagre
 **In the order they were starred**, not sorted: the list somebody built while comparing is the list they
 expect to come back to. And one address per line with a comment at the top, because a working set is
 something to keep, mail or check in — a line that can't be read is skipped with a line in the log rather
-than costing the rest of the file, exactly as `leak-statuses` does.
+than costing the rest of the file, exactly as a verdict file does.
 
 ## A link names the heap dump and nothing else
 
@@ -941,7 +941,7 @@ question nobody had.
   long as this machine remembers the file rather than for as long as the file exists, and a link about a dump
   that has been forgotten asks for the file — or can be given `&dump=<path>` by hand, which is also the answer
   for a dump this machine has never opened.
-- **One record per heap dump**, named `heapDumpFileKey` — the `<name>-<hash of parent>` the notes and statuses
+- **One record per heap dump**, named `heapDumpFileKey` — the `<name>-<hash of parent>` the notes and verdicts
   are filed under — with the path inside it. The key is one-way, so the file name of the record can name a
   dump but never find one; the path it holds is what makes the lookup work. A file each rather than one file
   of all of them, because several runs open dumps at once and none of them coordinates: a whole-file write and
@@ -994,11 +994,11 @@ file to, so a new window is in front already.
 - **Which app a double click goes to is the reader's to set, not ours to win.** Registering is not preferring,
   and another profiler installed here holds the default; AGENTS.md has how to tell those two apart.
 
-## A leaking status is the heap dump's answer until a hand overrules it
+## A verdict is the heap dump's answer until a hand overrules it
 
-Every path already carried a `LeakStatus` per object, worked out by Shark's inspectors and then propagated
+Every path already carried a `Verdict` per object, worked out by Shark's inspectors and then propagated
 along the path — everything above an object still needed is still needed, everything a leaking object holds
-is leaking. Two things were added to that: the status of the object a tab is *on*, said in the panel that
+is leaking. Two things were added to that: the verdict of the object a tab is *on*, said in the panel that
 says what the object is, and the ability to overrule it.
 
 **At the top of "What it is", under the object's name and above its size.** It went under the tab's title
@@ -1006,7 +1006,7 @@ first, beside the note button, and that was the wrong pane: the title row is abo
 conclusion about the object — the panel below it holds the evidence the conclusion was drawn from, so the
 answer belongs at the head of that column rather than in a row of its own. Above the bitmap preview too, so
 that a screenshot several hundred pixels tall can't push it out of the panel. In the colours the path beside
-it uses (`LeakStatus.background` and `textColor` are shared with `PathDrawing` rather than copied), because
+it uses (`Verdict.background` and `textColor` are shared with `PathDrawing` rather than copied), because
 it is the same answer read in one place instead of a dozen — a reader who has learnt the green and the red on
 a path reads them here for free.
 
@@ -1036,7 +1036,7 @@ application logic".
 
 Two attempts came before this one. `Shouldn't be here` / `Meant to be here` was rejected on sight —
 **a verdict is a label, not a sentence**, since it is read a dozen times down one path. `Leaked` / `Needed`
-was rejected for the misdirection above. One `LeakStatus.statusText` is where the words live, so the path,
+was rejected for the misdirection above. One `Verdict.text` is where the words live, so the path,
 the panel, the dialog, the checkbox that shades them over the map and the reasons propagated along a path
 (`Activity↓ is expected`, `Activity↑ is stuck`) all say the same thing.
 
@@ -1059,8 +1059,8 @@ window.
 first `Stuck` one, which is what `LeakGroup.suspectPath` starts at and what the leaks screen names each row
 after. **And the path marks it**: `Holder.activity · faulty reference`, bold, in the red of the objects it
 left behind, which is the change that actually puts a reader's eye on the reference rather than on the
-objects. `PathReference.isFaulty`, worked out in `withLeakStatuses`, and `suspectSubpath` names the leaks
-screen's rows off the same statuses — so where a leak is a single reference, a row there and the path opened
+objects. `PathReference.isFaulty`, worked out in `withVerdicts`, and `suspectSubpath` names the leaks
+screen's rows off the same verdicts — so where a leak is a single reference, a row there and the path opened
 from it name one thing.
 
 **Only a single step between the two verdicts is marked.** `faultyReferenceIndexOrNull` asks for an `Expected`
@@ -1085,9 +1085,9 @@ picked for being highest rather than for being wrong.
 **Nothing is marked on a path with nothing stuck on it**, which is most paths in a heap dump. A leak is a
 reference the evidence points at, and there is no evidence until something below it is known not to belong.
 
-**A pencil, left of the status, rather than a "Set by hand…" button.** It is what changes the answer, so it
+**A pencil, left of the verdict, rather than a "Set by hand…" button.** It is what changes the answer, so it
 belongs where the eye already is, and a text button pushed the reason onto a second line of a 320dp panel.
-Disabled until the statuses have been read off disk, which is the same rule the button had.
+Disabled until the verdicts have been read off disk, which is the same rule the button had.
 
 **From the last step of the path when there is one**, and from the object's own reading until the walk up to
 the GC roots lands, since the path's answer is the one with the objects above and below taken into account.
@@ -1095,28 +1095,28 @@ So the panel can say `Unknown` for a beat and then say `Stuck` — the panes fil
 changing its mind. Nothing at all for the tab a window opens with: the whole heap dump is no
 object of it, and there is nothing to inspect or decide about.
 
-**Loud for the two statuses that mean something, quiet for the third.** Most of a heap dump is objects
+**Loud for the two verdicts that mean something, quiet for the third.** Most of a heap dump is objects
 nothing knows either way about, so a shaded, bold `Unknown` on every object would be a line nobody reads by
 the time it says something. `UNKNOWN` is small, muted and unshaded; the other two are shaded in
 `TARGET_SHAPE`, the shape the path marks its target with. A glyph as well as a colour (`✓ ? ✗`), so which
-status it is doesn't rest on colour alone.
+verdict it is doesn't rest on colour alone.
 
 **Overriding always wins**, which is the one place this differs from how two inspectors disagreeing is
 settled. There, the object still being needed wins, because two inspectors are two halves of the same
 automated reading and the safer one is the one to believe. A hand is not that: someone who has read the code
-knows what the inspectors can't, and weighing the two would mean a status that can't be set to the one an
-inspector already picked. So `setByHandStatus` takes the reason someone typed and keeps the inspectors as the
+knows what the inspectors can't, and weighing the two would mean a verdict that can't be set to the one an
+inspector already picked. So `setByHandVerdict` takes the reason someone typed and keeps the inspectors as the
 record of what was overruled, exactly the way a conflict between two inspectors is recorded.
 
-**A status without a reason is not a status.** `LeakStatusOverride` throws on a blank one and the dialog's
-button is disabled until there is one. A status set by hand overrules the heap dump, so without the why it is
+**A verdict without a reason is not a verdict.** `VerdictOverride` throws on a blank one and the dialog's
+button is disabled until there is one. A verdict set by hand overrules the heap dump, so without the why it is
 an assertion the next reader — a colleague, an agent, the same person in a month — has no way to check, and
-one of those makes every other status in the dump worth less. `SET_BY_HAND` marks the reason wherever it is
+one of those makes every other verdict in the dump worth less. `SET_BY_HAND` marks the reason wherever it is
 read, so a green object somebody decided about is never mistaken for one an inspector recognized.
 
-**A status set by hand is an argument to every read, not state of the tree.** The statuses of a path are
+**A verdict set by hand is an argument to every read, not state of the tree.** The verdicts of a path are
 worked out on every read of it, so `summarize`, `rootPathTo`, `independentPathsBetween`,
-`independentPathsFromRoots`, `findLeaks` and `isBelowLeakingObject` all take a `LeakStatusOverrides`, and the
+`independentPathsFromRoots`, `findLeaks` and `isBelowLeakingObject` all take a `VerdictOverrides`, and the
 window's `LaunchedEffect`s are keyed on it — which is why that class has value equality. **A value rather
 than state on the tree**, because the tree is read from one thread while the window is composed on another:
 overrides living in the tree would mean a path drawn from one set of them and the row above it from another,
@@ -1130,23 +1130,23 @@ rule `foldedIntoWhatHoldsThem` already applied to what the inspectors found. Mar
 recognized as still needed and it leaves the list entirely, and what it was holding can become a leak of its
 own. So the candidate set is the dump's own minus everything set to anything but `LEAKING` plus everything
 set to it, `RootPathSearch` goes round what a hand marked exactly as it goes round what the inspectors did —
-otherwise a leak would be grouped by a path that disagrees with the statuses drawn on it — and the answer is
-worked out per set of statuses and kept until the next one, since a status is set by hand and this is
+otherwise a leak would be grouped by a path that disagrees with the verdicts drawn on it — and the answer is
+worked out per set of verdicts and kept until the next one, since a verdict is set by hand and this is
 seconds. The window asks again by keying that `LaunchedEffect` on the overrides like the rest.
 
 **The price is the fingerprints.** A leak's name is `LeakTrace.leakFingerprint` of the suspect stretch — the
 last object still needed down to the first one that shouldn't be there — so reading the list through
-somebody's statuses moves both ends of that stretch and produces fingerprints that no longer match the ones
+somebody's verdicts moves both ends of that stretch and produces fingerprints that no longer match the ones
 LeakCanary prints for the same leak. That is the deal: they match while nothing is set by hand, and moving
 that stretch is the whole point of setting one. The alternative, a leaks screen that ignores what the reader
 has established, is a screen that goes on listing an object they have already explained.
 
-**Two statuses set by hand can contradict each other, and the contradiction is shown rather than settled.**
+**Two verdicts set by hand can contradict each other, and the contradiction is shown rather than settled.**
 The propagation rules are what make it possible: a leaking object above forces everything it holds to be
-leaking, and an object still needed below forces everything holding it to be needed. So two hand-set statuses
+leaking, and an object still needed below forces everything holding it to be needed. So two hand-set verdicts
 disagree when one of the objects is above the other, which is `HeapDominatorTreemap.reaches` asked **both ways
-round** — one walk up `ReferrerIndex` per status already set, a question somebody asked rather than one the
-pointer asks. `leakStatusConflictsWith` answers it before anything is written, and the dialog then lists every
+round** — one walk up `ReferrerIndex` per verdict already set, a question somebody asked rather than one the
+pointer asks. `verdictConflictsWith` answers it before anything is written, and the dialog then lists every
 one of them by name, with the reason it was given, because whoever is about to overrule it is the only person
 who can weigh the two.
 
@@ -1159,17 +1159,17 @@ who can weigh the two.
   decided by where the path enters the loop — so `isAbove` asks both directions and a loop is no conflict.
   The path still says so wherever it does put one above the other, which is a reason reading
   `Conflicts with`.
-- **Flipping to the opposite status always resolves it**, which is why solving a conflict is one button.
+- **Flipping to the opposite verdict always resolves it**, which is why solving a conflict is one button.
   `EXPECTED` propagates upwards only and `STUCK` downwards only, so the pair that can disagree is
-  always those two, and agreeing with the new status is the same as being flipped.
+  always those two, and agreeing with the new verdict is the same as being flipped.
 - **Flipped, not taken off**, so that what somebody typed is still in the file: the solved reason says which
-  status it was, what it said, and that this is why it changed.
-- **A status of `UNKNOWN` set by hand conflicts with nothing.** Nobody claiming to know overrules nobody, so
-  it is never one of the statuses a new one has to be settled against — though it can still be overruled by
+  verdict it was, what it said, and that this is why it changed.
+- **A verdict of `UNKNOWN` set by hand conflicts with nothing.** Nobody claiming to know overrules nobody, so
+  it is never one of the verdicts a new one has to be settled against — though it can still be overruled by
   the path, and the reason then records what it was.
 - **Nothing is written until the choice is made**, which is what makes "Undo" free, and the write is one
-  `LeakStatusFile.write` of the lot rather than one per status: a save that stopped half way through would
-  leave a heap dump whose statuses contradict each other, which is the one state this step exists to
+  `VerdictFile.write` of the lot rather than one per verdict: a save that stopped half way through would
+  leave a heap dump whose verdicts contradict each other, which is the one state this step exists to
   prevent. It runs `NonCancellable` because the dialog closes as soon as it has.
 
 **It is a dialog of the tab, not of the window.** It was a material3 `AlertDialog`, which draws over the
@@ -1192,22 +1192,22 @@ taken as a dismissal, for the same reason as above, and the scrim is its own chi
 node to a test. The other three dialogs stay `AlertDialog`s: they are about acquiring a heap dump rather than
 reading one, so there is nothing behind them to go and look at.
 
-**One tab separated file per heap dump, in `~/.shark-dive/leak-statuses`.** Named after the dump the way
+**One tab separated file per heap dump, in `~/.shark-dive/verdicts`.** Named after the dump the way
 its notes are, and beside them rather than next to the dump, for the same reason: dumps come from device
 pulls, temporary files and read only mounts. A file rather than a directory of files, which is the opposite
-of the notes — a note is a document somebody edits and a status is three fields the window writes, and every
+of the notes — a note is a document somebody edits and a verdict is three fields the window writes, and every
 question here is about all of them at once. Columns named in a comment at the top, the reason's newlines and
 tabs escaped, the lines sorted by address, so that the file reads as evidence: two runs that set the same
-statuses write the same file, and a line of it can be pasted into an issue. A line that can't be read is
+verdicts write the same file, and a line of it can be pasted into an issue. A line that can't be read is
 skipped with a log line rather than thrown over — it is hand editable on purpose, and one typo must not be a
-heap dump whose other statuses have gone. Addresses are written with `exactHexObjectId`, not `hexObjectId`,
+heap dump whose other verdicts have gone. Addresses are written with `exactHexObjectId`, not `hexObjectId`,
 since the latter gives up exactly what a file can't.
 
-**Nothing is applied that wasn't written**, which is also the opposite of the notes beside it: a status only
+**Nothing is applied that wasn't written**, which is also the opposite of the notes beside it: a verdict only
 this process knows about is a path explained by a reason that will be gone next run. And nothing is saved
-before the file has been read — an empty set of statuses, written out because the disk was slow, is every
-status of that heap dump deleted — which is what the disabled button and the check in
-`HeapDumpLeakStatuses.save` are both for.
+before the file has been read — an empty set of verdicts, written out because the disk was slow, is every
+verdict of that heap dump deleted — which is what the disabled button and the check in
+`HeapDumpVerdicts.save` are both for.
 
 ## An investigation ends when the heap dump names a reference, not when somebody declares one
 

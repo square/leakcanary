@@ -79,7 +79,9 @@ class LeakFingerprintTest {
         leak.leakFingerprint to leak.leakTraces.single().toString()
       }
       explored.forEach { group ->
-        val path = dive.tree.rootPathTo(group.representativeObjectId)
+        // Any object of the group walks to the same suspect references, and `leakTraces.single()` above is
+        // what says there is one of them here anyway. See [LeakGroup.objects].
+        val path = dive.tree.rootPathTo(group.objects.first().objectId)
         assertSameLeakTraces(path.leakTrace()!!.toString(), leakTracesByFingerprint[group.leakFingerprint]!!)
       }
     }
@@ -95,7 +97,7 @@ class LeakFingerprintTest {
    * `shark.HeapDominatorTree` under the dive, so they agree to within the approximation and not to the byte.
    * Measured on `shark/shark-android/src/test/resources/leak_asynctask_o.hprof`: 211.0 kB in 986 objects
    * against 210978 bytes in 984. Blanking the two numbers is what leaves everything else — every step, every
-   * underline, every label, every status and its reason — asserted character for character.
+   * underline, every label, every verdict and its reason — asserted character for character.
    */
   private fun assertSameLeakTraces(
     dived: String,

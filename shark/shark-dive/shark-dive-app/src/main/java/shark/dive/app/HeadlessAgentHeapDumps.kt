@@ -20,7 +20,7 @@ import shark.dive.agent.ShownPlace
 /**
  * The heap dumps of a run with no window, for an agent on a machine with no screen.
  *
- * Everything a window would hold, held here instead — the heap dump's own thread, the notes, the statuses set
+ * Everything a window would hold, held here instead — the heap dump's own thread, the notes, the verdicts set
  * by hand — and **the same files on disk**, so a dump investigated over ssh today reads back with all of it in
  * a window tomorrow. That is why this is in the app module rather than a program of its own: the notes and the
  * verdicts are the artefact, and a headless mode writing them somewhere else would be a second app.
@@ -47,7 +47,7 @@ internal class HeadlessAgentHeapDumps(
   private val endTheRun: () -> Unit = {},
   /** The same notes a window keeps, in the same directory: a test passes its own. See [DiveNotes]. */
   private val notes: DiveNotes = DiveNotes(),
-  private val leakStatuses: DiveLeakStatuses = DiveLeakStatuses(),
+  private val verdicts: DiveVerdicts = DiveVerdicts(),
   /** And the same record of where a heap dump was, which is what makes the links below resolve. */
   private val heapDumpPaths: HeapDumpPaths = diveHeapDumpPaths()
 ) : RunAgentHeapDumps(deviceHeapDumps), Closeable {
@@ -154,13 +154,13 @@ internal class HeadlessAgentHeapDumps(
     val open = OpenHeapDump(
       session = session,
       notes = notes.of(file),
-      leakStatuses = leakStatuses.of(file)
+      verdicts = verdicts.of(file)
     )
     // What `HeapDumpDive` does as it comes up, and it has to happen somewhere: every verdict is refused
     // until the file of them has been read, since saving over an unread one would delete the conclusions in
     // it. A window reads it because it draws them, and a run with no window would otherwise never read it and
     // refuse every verdict an agent tried to record.
-    open.leakStatuses.read()
+    open.verdicts.read()
     // Written down the same way a window's dump is, and here it is the whole of what makes the links this
     // hands back work: nobody watching a run with no screen can be told where the file was.
     heapDumpPaths.record(file)

@@ -5,15 +5,15 @@ import shark.dive.AndroidDevice
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
 import shark.dive.HeapSizes
-import shark.dive.LeakStatusOverride
-import shark.dive.LeakStatusOverrides
+import shark.dive.VerdictOverride
+import shark.dive.VerdictOverrides
 import shark.dive.Place
 
 /**
  * One open heap dump an agent can ask about.
  *
  * An interface rather than the window itself so that every tool in [AgentTools] is testable against a heap
- * dump and nothing else: the app's implementation carries a `HeapDumpSession`, the statuses set by hand and
+ * dump and nothing else: the app's implementation carries a `HeapDumpSession`, the verdicts set by hand and
  * the tabs, none of which a test of what a tool answers needs.
  *
  * **One per file, per run**, which is what makes the file the whole of how a command line names one: opening a
@@ -56,15 +56,15 @@ interface AgentHeapDump {
   ): T
 
   /** Every verdict set by hand on this dump so far, which every read is made through. */
-  val verdicts: LeakStatusOverrides
+  val verdicts: VerdictOverrides
 
   /**
    * Sets [verdict], along with the [solved] verdicts that had to flip for it to hold, and puts the lot on
-   * disk. See `shark.dive.LeakStatusConflict`.
+   * disk. See `shark.dive.VerdictConflict`.
    */
   suspend fun setVerdict(
-    verdict: LeakStatusOverride,
-    solved: List<LeakStatusOverride>
+    verdict: VerdictOverride,
+    solved: List<VerdictOverride>
   )
 
   /** Takes the verdict off [objectId], so the dump says what it says about it again. */

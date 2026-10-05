@@ -67,7 +67,7 @@ internal fun helpExitCode(args: Array<String>): Int? {
  * carries the commands under it.
  */
 private fun help(command: String): String = """
-  |Shark Dive opens heap dumps and answers commands about them, in a window or with no window at all.
+  |Shark Dive is a tool to explore heap dumps, using a UI and/or a CLI.
   |
   |  $command [<heap dump>…] [${DeepLink.SCHEME}://<heap dump>/<place>…]
   |  $command ${AgentCommandLine.CLI_OPTION} <command> name=value …
@@ -113,7 +113,7 @@ private fun debugOptions(): List<Pair<String, String>> = listOf(
 private fun List<Pair<String, String>>.asOptionColumn(): String {
   val continuation = " ".repeat(INDENT.length + OPTION_WIDTH)
   return flatMap { (option, what) ->
-    what.wrappedAt(LINE_WIDTH - continuation.length).mapIndexed { index, line ->
+    what.wrappedAt(AgentCommandLine.HELP_WIDTH - continuation.length).mapIndexed { index, line ->
       if (index == 0) "$INDENT${option.padEnd(OPTION_WIDTH)}$line" else "$continuation$line"
     }
   }.joinToString("\n")
@@ -154,6 +154,3 @@ private val HELP_OPTIONS = setOf(AgentCommandLine.HELP_OPTION, "-h")
 private const val OPTION_WIDTH = 31
 
 private const val INDENT = "  "
-
-/** Narrow enough to read in a terminal nobody widened, which is what a help text is printed into. */
-private const val LINE_WIDTH = 100

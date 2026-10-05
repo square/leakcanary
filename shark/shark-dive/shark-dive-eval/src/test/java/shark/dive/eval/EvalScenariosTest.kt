@@ -6,9 +6,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.dive.HeapDive
-import shark.dive.LeakStatus
-import shark.dive.LeakStatusOverride
-import shark.dive.LeakStatusOverrides
+import shark.dive.Verdict
+import shark.dive.VerdictOverride
+import shark.dive.VerdictOverrides
 import shark.dive.RootPath
 import shark.dive.faultyReference
 import shark.dive.leakLabel
@@ -48,7 +48,7 @@ class EvalScenariosTest {
         val verdicts = scenario.verdictsThatCloseTheUnknownZone(path, keyIndex)
         val solved = dive.tree.rootPathTo(
           objectId = path.steps.last().step.objectId,
-          overrides = LeakStatusOverrides.of(verdicts)
+          overrides = VerdictOverrides.of(verdicts)
         )
         assertThat(solved.faultyReference()?.leakLabel())
           .describedAs(
@@ -103,19 +103,19 @@ class EvalScenariosTest {
   private fun EvalScenario.verdictsThatCloseTheUnknownZone(
     path: RootPath,
     keyIndex: Int
-  ): List<LeakStatusOverride> {
+  ): List<VerdictOverride> {
     if (solvedBy.isEmpty()) {
       val owner = path.steps[keyIndex - 1].step
       return listOf(
-        LeakStatusOverride(owner.objectId, LeakStatus.EXPECTED, "${owner.className} belongs in memory.")
+        VerdictOverride(owner.objectId, Verdict.EXPECTED, "${owner.className} belongs in memory.")
       )
     }
-    return solvedBy.map { (className, status) ->
+    return solvedBy.map { (className, verdict) ->
       val step = path.steps.map { it.step }.firstOrNull { it.className == className }
       assertThat(step)
-        .describedAs("$name says $className is $status, and its path has no object of that class")
+        .describedAs("$name says $className is $verdict, and its path has no object of that class")
         .isNotNull
-      LeakStatusOverride(step!!.objectId, status, "$className is $status.")
+      VerdictOverride(step!!.objectId, verdict, "$className is $verdict.")
     }
   }
 

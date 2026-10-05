@@ -17,7 +17,7 @@ import shark.dive.hexObjectId
 /**
  * The objects starred in every heap dump this run has open.
  *
- * Per run rather than per window, for the reason [DiveNotes] and [DiveLeakStatuses] are: the same heap dump is
+ * Per run rather than per window, for the reason [DiveNotes] and [DiveVerdicts] are: the same heap dump is
  * often open in two windows, and two of these over one file would mean each window saving over the other's.
  *
  * Plain state rather than a composable's, so that it can be handed to a window and to a test.
@@ -33,7 +33,7 @@ internal class DiveStars(private val root: File = STARRED_DIRECTORY) {
   }
 
   companion object {
-    /** Beside the notes, the leak statuses and the logs, which is everything else this app keeps. */
+    /** Beside the notes, the leak verdicts and the logs, which is everything else this app keeps. */
     private val STARRED_DIRECTORY = File(SHARK_DIVE_DIRECTORY, "starred")
   }
 }
@@ -41,7 +41,7 @@ internal class DiveStars(private val root: File = STARRED_DIRECTORY) {
 /**
  * What is starred in one heap dump: the addresses, and how to star or unstar one.
  *
- * **Nothing is starred that wasn't written**, for the reason [HeapDumpLeakStatuses] applies to a status: until
+ * **Nothing is starred that wasn't written**, for the reason [HeapDumpVerdicts] applies to a verdict: until
  * the file has been read, [objectIds] is empty because nothing was read rather than because nothing is
  * starred, and saving over that would take the star off everything to say the disk was slow. What [toggle]
  * does about that is read the file, not drop the click.

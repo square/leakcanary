@@ -40,15 +40,16 @@ import androidx.compose.ui.unit.sp
 import shark.ReferenceLocationType
 import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectKind
-import shark.dive.LeakStatus
+import shark.dive.Verdict
 import shark.dive.PathReference
 import shark.dive.PathStep
 import shark.dive.ReachabilityStrength
 import shark.dive.ReferencePage
 import shark.dive.Topic
 import shark.dive.formatByteSizeOfTotal
+import shark.dive.headline
 import shark.dive.hexObjectId
-import shark.dive.statusText
+import shark.dive.text
 
 /**
  * How a path of objects is drawn: a column of them with a line running through it, what each one is on
@@ -152,10 +153,10 @@ internal fun PathStepRow(
       )
     },
     // Green behind an object that is meant to be alive, red behind one that is meant to be gone, and the
-    // blue of the object the panel is describing when nothing is known either way. The leak status wins
+    // blue of the object the panel is describing when nothing is known either way. The leak verdict wins
     // over the blue because it is the rarer thing to know, and because which object the panel is about is
     // already said twice over: the ring on its circle, and the panel itself.
-    background = step.leakStatus.background ?: TARGET_BACKGROUND.takeIf { role == PathRole.TARGET }
+    background = step.verdict.background ?: TARGET_BACKGROUND.takeIf { role == PathRole.TARGET }
   ) {
     if (detail == PathDetail.FULL) {
       ObjectIdentity(
@@ -181,7 +182,7 @@ internal fun PathStepRow(
       )
     }
     if (detail == PathDetail.FULL) {
-      step.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+      step.content?.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
       if (step.retainedCount > 0) {
         // The same word and the same numbers the details panel and the card at the pointer give an object,
         // since a step of the path is one of those objects. See [RETAINED].
@@ -204,11 +205,11 @@ internal fun PathStepRow(
       }
       // Why this object is one or the other, which is most of the answer: half the objects of a path are
       // green or red because of what an object above or below them is, and the reason is what says so.
-      step.leakStatusReason?.let { reason ->
+      step.verdictReason?.let { reason ->
         Text(
-          "${step.leakStatus.statusText}: $reason",
+          "${step.verdict.text}: $reason",
           style = MaterialTheme.typography.bodySmall,
-          color = step.leakStatus.textColor
+          color = step.verdict.textColor
         )
       }
     }
@@ -682,7 +683,7 @@ private val BADGE_LETTER_SIZE = 10.sp
 private val BADGE_LETTER_COLOR = Color.White
 
 /**
- * The shade behind an object whose status is known, and none behind the objects nothing knows about,
+ * The shade behind an object whose verdict is known, and none behind the objects nothing knows about,
  * which is most of a path.
  *
  * A background rather than a colour on the text, because it is about the object rather than about any one
@@ -691,21 +692,21 @@ private val BADGE_LETTER_COLOR = Color.White
  * the reason under the object says what.
  *
  * Reachable from outside this drawing, because the row above the panes says what the object the whole window
- * is about is in these same colours: what a status looks like is one thing, whether it is being read on a
- * path or over the panes. See [LeakStatusBanner].
+ * is about is in these same colours: what a verdict looks like is one thing, whether it is being read on a
+ * path or over the panes. See [VerdictBanner].
  */
-internal val LeakStatus.background: Color?
+internal val Verdict.background: Color?
   get() = when (this) {
-    LeakStatus.EXPECTED -> ALIVE_BACKGROUND
-    LeakStatus.UNKNOWN -> null
-    LeakStatus.STUCK -> LEAKING_BACKGROUND
+    Verdict.EXPECTED -> ALIVE_BACKGROUND
+    Verdict.UNKNOWN -> null
+    Verdict.STUCK -> LEAKING_BACKGROUND
   }
 
-internal val LeakStatus.textColor: Color
+internal val Verdict.textColor: Color
   get() = when (this) {
-    LeakStatus.EXPECTED -> ALIVE_TEXT
-    LeakStatus.UNKNOWN -> MUTED_TEXT
-    LeakStatus.STUCK -> LEAKING_TEXT
+    Verdict.EXPECTED -> ALIVE_TEXT
+    Verdict.UNKNOWN -> MUTED_TEXT
+    Verdict.STUCK -> LEAKING_TEXT
   }
 
 /** Green for an object something knows is still needed. */

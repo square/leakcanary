@@ -27,7 +27,7 @@ val heapDump = dump {
 ```
 
 * Requires `testImplementation(projects.shark.sharkHprofTest)`.
-* See `LeakStatusTest` or `AndroidObjectInspectorsTest` for examples.
+* See `VerdictTest` or `AndroidObjectInspectorsTest` for examples.
 
 ## Deploying locally
 

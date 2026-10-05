@@ -186,37 +186,39 @@ object AgentCommandLine {
   ): String = """
     |COMMANDS
     |
-    |Start with $OPEN_HEAP_DUMP on the heap dump you were given. It opens that file, or joins the run that
-    |already has it, and answers with the key every command below names that dump by, its size, and
-    |whatever verdicts somebody has already recorded about it. If you were given no heap dump,
-    |$LIST_HEAP_DUMPS says which are open. Every other command needs that key, so that each one says which
-    |heap dump it is about.
+    |Commands that operate on heap dumps require a `$HEAP_DUMP_KEY` parameter, which you can
+    |obtain by calling one of $OPEN_HEAP_DUMP,  $LIST_HEAP_DUMPS or $DUMP_HEAP.
     |
     |  $command $CLI_OPTION $OPEN_HEAP_DUMP path=/tmp/crash.hprof reason="Starting on the dump I was given"
-    |  $command $CLI_OPTION list_leak_groups heapDumpKey=crash.hprof reason="What this dump says shouldn't be here"
+    |  $command $CLI_OPTION list_leak_groups heapDumpKey=crash.hprof reason="Starting leak investigation"
     |
     |${commandColumn()}
     |
-    |Every command takes `reason`: what you are trying to learn, or what the last answer told you. It goes
-    |in the log beside the read it caused, so that somebody can follow the investigation afterwards. A
-    |session named with $SESSION_OPTION needs one on every command. Write addresses as `0x…`, the way this
+    |Agent instructions:
+    |
+    |Every command sent by an agent takes `reason`: what you are trying to learn, or what the last answer told you. It goes
+    |in the log beside the read it caused, so that somebody can follow the investigation afterwards. Every agent
+    |command should also name the agent session with $SESSION_OPTION. Write addresses as `0x…`, the way this
     |surface writes them, never as a decimal number.
     |
     |Put the `shark://` links you are answered with in your reply. A link opens that object in this heap
     |dump, with the verdicts and notes recorded on it, after this run has ended, so whoever reads your
     |answer can go and check it. `show` hands a link back for any object.
     |
+    |An answer that carries a path carries it twice. `leakTrace` is the path as fields for you to read, an
+    |object at a time, and `humanLeakTrace` is the leak trace LeakCanary prints, which is the one to put in
+    |front of a person — quote it exactly.
+    |
     |Say what you did not check.
     |
-    |$LEAK_METHOD_OPTION is what a leak is, how a verdict spreads, and the order that finds the faulty
-    |reference. Read it once per investigation, before the first path.
+    |Prior to investigating leaks, you must read $LEAK_METHOD_OPTION first.
     |
     |$OPEN_HEAP_DUMP takes minutes on a large dump, and does not answer until the dump can be read.
     |$DUMP_HEAP is slower still, since it takes the dump off a device first.
     |
     |Exit code $ANSWERED when the answer is on stdout, $REFUSED when the command was refused and the refusal
     |is on stderr, $NOTHING_ANSWERED when there was nothing to answer it.
-  """.trimMargin()
+  """.trimMargin().reflowed()
 
   /** All of one command: what it answers, and every argument it takes. See [commandsHelp]. */
   fun commandHelp(
@@ -445,9 +447,28 @@ object AgentCommandLine {
   /** The commands of this build, described. Built per call, so nothing here is shared between threads. */
   private fun described(): List<AgentTool> = AgentTools(NoHeapDumpToDescribe) { nothingToDescribeWith() }.all
 
-  /** One line each, in the order an investigation uses them, which is the order [AgentTools.all] is in. */
-  private fun commandColumn(): String = described()
-    .joinToString("\n") { "  ${it.name.padEnd(COMMAND_WIDTH)}${it.summary}" }
+  /**
+   * Every command with what it needs, in the order an investigation uses them — [AgentTools.all]'s order.
+   *
+   * **The arguments are here so that choosing a command and calling it are one read.** A list of names and
+   * summaries answers "which command" and leaves every call needing `--help <command>` first, which is a
+   * round trip per command for the one fact — `object`, or `path`, or `place text` — that a name does not
+   * already imply.
+   *
+   * **`heapDumpKey` and `reason` are left out of it.** One is on every command and the other on all but
+   * three, so spelling them out nineteen times each is thirty-eight repetitions of what the sentence above
+   * the list says once, and it buries the argument that differs. Optional arguments are left out for the
+   * same reason the summaries are one line: this is the list somebody chooses from, and `--help <command>`
+   * is all of one.
+   *
+   * Two lines per command rather than a column, because a column wide enough for `set_verdict object=…
+   * verdict=… why=…` leaves under sixty for the summary, so most of them wrap anyway — and a wrapped second
+   * column reads worse than an indented second line. `AgentCommandLineTest` pins that the summaries still fit.
+   */
+  private fun commandColumn(): String = described().joinToString("\n") { tool ->
+    val signature = (listOf(tool.name) + tool.argumentsToSpell()).joinToString(" ")
+    "  $signature\n$SUMMARY_INDENT${tool.summary}"
+  }
 
   /** Answered: the command's own JSON is on stdout. */
   const val ANSWERED = 0
@@ -484,6 +505,17 @@ object AgentCommandLine {
    * asked about.
    */
   const val HELP_OPTION = "--help"
+
+  /**
+   * What every help text this app prints is wrapped at, which is what fits a terminal nobody has widened.
+   *
+   * Here rather than beside either printer, because there are two of them and they print into one page:
+   * `DiveHelp` lays out the options and this object lays out the commands under them, so two widths would be
+   * one document with a ragged edge halfway down. Eighty is the other answer and is too narrow for this —
+   * these sentences name commands and arguments in backticks, and a command name is a tenth of an eighty
+   * column line on its own.
+   */
+  const val HELP_WIDTH = 100
 
   /**
    * And the method for solving a leak, which is the one text this build carries beside the help.
@@ -549,9 +581,6 @@ object AgentCommandLine {
 
   /** See [defaultSessionName]. A shell inside a shell inside a shell, and then some. */
   private const val MAX_COMMAND_SHELLS_WALKED_PAST = 4
-
-  /** Wide enough for the longest command name, since the summaries read as a column or as nothing. */
-  private const val COMMAND_WIDTH = 20
 
   private const val LIST_SEPARATOR = ','
 
@@ -774,15 +803,93 @@ private class HelpArgument(
  * to say it is on every command.
  */
 private fun AgentTool.helpText(command: String): String = buildString {
-  appendLine("$name — $summary")
+  appendLine("$name — $summary".wrapped(indent = "", continuation = BODY_INDENT))
   appendLine()
-  appendLine("  ${AgentCommandLine.CLI_OPTION.let { "$command $it $name" }} " +
+  // The one thing here left to run off the edge, because it is the line somebody copies: a command broken
+  // over two lines is a command that has to be put back together before it can be pasted, and the absolute
+  // path to this build is most of its width.
+  appendLine("$BODY_INDENT${AgentCommandLine.CLI_OPTION.let { "$command $it $name" }} " +
     arguments().joinToString(" ") { if (it.isRequired) "${it.name}=…" else "[${it.name}=…]" })
   appendLine()
-  appendLine("  $description")
+  appendLine(description.wrapped(indent = BODY_INDENT))
   appendLine()
-  arguments().forEach { appendLine("  ${it.helpLine()}") }
+  // Hanging, so the argument names are the left edge somebody scans down and the sentence about each one
+  // reads as hanging off it, which is what the list of commands does with its summaries.
+  arguments().forEach { appendLine(it.helpLine().wrapped(indent = BODY_INDENT, continuation = SUMMARY_INDENT)) }
 }
+
+/**
+ * [this], wrapped at [HELP_WIDTH] with every line indented, and its paragraphs still paragraphs.
+ *
+ * **Every line rather than the first**, which is the whole of why this exists: a description is several
+ * paragraphs, `"$BODY_INDENT$description"` indents the first line of the first one, and what prints is one
+ * indented line followed by several hundred characters hard against the left edge. A terminal wraps those
+ * for you at whatever width it happens to be, mid-word, and the result reads as the output being broken.
+ *
+ * Paragraphs keep the blank line between them and nothing else does: a line of [indent] and no words would
+ * be trailing whitespace in the middle of a help page, which is the one thing a `diff` of this output would
+ * then be about.
+ */
+private fun String.wrapped(
+  indent: String,
+  /** What the lines after the first are indented by, for a sentence that hangs off what starts it. */
+  continuation: String = indent
+): String = split(PARAGRAPH_BREAK).joinToString(PARAGRAPH_BREAK) { paragraph ->
+  val lines = mutableListOf<StringBuilder>()
+  paragraph.split(WHITESPACE).filter { it.isNotEmpty() }.forEach { word ->
+    val line = lines.lastOrNull()
+    if (line == null || line.length + 1 + word.length > AgentCommandLine.HELP_WIDTH) {
+      lines += StringBuilder(if (lines.isEmpty()) indent else continuation).append(word)
+    } else {
+      line.append(' ').append(word)
+    }
+  }
+  lines.joinToString("\n")
+}
+
+/**
+ * The same page with its prose wrapped at one width, and the parts that are laid out left as they are.
+ *
+ * **Because the source's line breaks are not the output's**, which is what a hand wrapped help text gets
+ * wrong twice over: a paragraph wrapped to fit a Kotlin file is wrapped at whatever column it ended up at,
+ * so two paragraphs edited a year apart print with two different right edges — and a sentence that grows a
+ * clause has to be re-wrapped by hand or it prints one word wide. Reflowing here means the width is a number
+ * ([AgentCommandLine.HELP_WIDTH]) and the source can be written however it reads best.
+ *
+ * A block every line of which is indented is left exactly as it is, and that is the whole rule: the two
+ * example command lines and the column of commands are laid out rather than written, and re-wrapping either
+ * would be a command somebody cannot copy. Prose starts at the left edge, so this tells them apart without a
+ * marker for it.
+ */
+private fun String.reflowed(): String = split(PARAGRAPH_BREAK).joinToString(PARAGRAPH_BREAK) { block ->
+  if (block.lines().all { it.startsWith(BODY_INDENT) }) block else block.wrapped(indent = "")
+}
+
+/** Where the body of a help page sits, under the line naming what the page is about. */
+private const val BODY_INDENT = "  "
+
+/**
+ * What a summary is indented by, under the line spelling the command and what it needs.
+ *
+ * Deeper than the two spaces the command sits at, so that the commands are the left edge somebody scans
+ * and the summaries read as hanging off them. Both printers use it: the list of every command, and the
+ * arguments of one. See [AgentCommandLine.commandColumn].
+ */
+private const val SUMMARY_INDENT = "      "
+
+private const val PARAGRAPH_BREAK = "\n\n"
+
+private val WHITESPACE = Regex("\\s+")
+
+/**
+ * What one command needs spelled beside it in the list of every command, as a command line writes it.
+ *
+ * Its required arguments, less the two every command shares — see [AgentCommandLine.commandColumn] for why
+ * those two are said once instead.
+ */
+private fun AgentTool.argumentsToSpell(): List<String> = arguments()
+  .filter { it.isRequired && it.name != REASON && it.name != HEAP_DUMP_KEY }
+  .map { "${it.name}=…" }
 
 /** Which of a command's arguments are lists, which is the one thing a command line has to spell specially. */
 private fun AgentTool.listArguments(): Set<String> =

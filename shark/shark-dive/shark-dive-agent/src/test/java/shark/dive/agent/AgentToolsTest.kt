@@ -12,6 +12,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import org.assertj.core.api.Assertions.assertThat
@@ -21,13 +22,20 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.LeakTrace
 import shark.dive.AndroidDevice
 import shark.dive.DeepLink
 import shark.dive.DeviceProcess
+import shark.dive.HeapLeaks
 import shark.dive.HeapObjectKind
-import shark.dive.LeakStatus
+import shark.dive.LeakGroup
+import shark.dive.LeakKind
+import shark.dive.LeakSection
+import shark.dive.Verdict
+import shark.dive.LeakingObject
 import shark.dive.ObjectListFilter
 import shark.dive.Place
+import shark.dive.ReachabilityStrength
 import shark.dive.exactHexObjectId
 
 /**
@@ -343,44 +351,93 @@ class AgentToolsTest {
     assertThat(groups.map { it.text("name") }).isNotEmpty.allMatch { it.isNotEmpty() }
     assertThat(groups.map { it.text("name") }).anyMatch { ACTIVITY_FIELD_NAME in it }
     // And what is between the two ends of one is on the path for both of them, rather than in the answer for
-    // one of them: the row draws a gap there and `path_from_gc_root` is where either reader goes.
+    // one of them: the row draws a gap there and `path_from_gc_roots` is where either reader goes.
     assertThat(groups.map { it["suspectPath"] }).allMatch { it == null }
   }
 
   /**
-   * The object a group is solved through, which is the first thing an investigation has to pick.
+   * A group's objects, and nothing naming one of them as the one to work.
    *
-   * Named rather than left to be taken off `objects`, whose first entry is the largest by retained size and
-   * so is usually some other object of the group: the references and the leak trace a group is drawn with
-   * came from *this* object's own path, so it is the one whose path the rest of the answer is about. See
-   * [shark.dive.LeakGroup.representativeObjectId].
+   * There was a `representativeObject`, documented as the object whose own path produced the group's
+   * references and warned to be some other object than `objects` first. It was `objects` first every time —
+   * both lists are sorted by retained size off the same number — so it was a second name for the same
+   * address, dressed as a choice someone had made. Any object of a group solves the group, which the
+   * description is what says. See [shark.dive.LeakGroup.objects].
    */
   @Test
-  fun `each leak names the object to solve it through`() {
+  fun `the leaks name no object to solve a group through, since any of them does`() {
     val group = leakGroups().single { ACTIVITY_FIELD_NAME in it.text("name") }
 
-    assertThat(group.text("representativeObject")).isEqualTo(hex(heapDump.activityObjectId))
+    assertThat(group.keys).doesNotContain("representativeObject")
     assertThat(group.array("objects").map { it.jsonObject.text("object") })
-      .contains(group.text("representativeObject"))
+      .contains(exactHexObjectId(heapDump.activityObjectId))
+    assertThat(tools.byName(LIST_LEAK_GROUPS)!!.description)
+      .contains("one address out of its `objects`")
+      .contains("the first is as good as any")
   }
 
   /**
-   * The leak trace LeakCanary prints, on the row, because it is the one form of a leak to show a person.
+   * Addresses to go and ask about, and no path for any of the leaks in the list.
    *
-   * Here rather than left to be assembled from the steps, which is the whole point of it being in the answer:
-   * a trace built by joining up class names is a retelling, and a retelling that drops a step or moves the
-   * underline reads exactly like the real thing. So the characters an agent quotes are `shark.LeakTrace`'s.
+   * Each group carried one object's path, both ways round, and a list of three leaks came back three and a
+   * half times longer for it — 11,037 bytes against 38,657, measured on a real dump. What it bought was one
+   * `path_from_gc_roots` saved on the single group a reader goes on to work, and the rest was paths for
+   * leaks nobody opens. So the list says which leaks there are, and the path is the next question rather
+   * than part of this answer.
    */
   @Test
-  fun `each leak carries the leak trace LeakCanary prints`() {
-    val trace = leakGroups().single { ACTIVITY_FIELD_NAME in it.text("name") }.text("leakTrace")
+  fun `the leaks carry no path, in either form`() {
+    val group = leakGroups().single { ACTIVITY_FIELD_NAME in it.text("name") }
 
-    // Shark's own rendering, which these three are the shape of: the root at the top, a step per reference,
-    // and the leaking object at the bottom. Asserted as the drawing rather than character for character,
-    // since what it reads exactly like is `LeakTraceTest`'s in `shark`.
-    assertThat(trace).startsWith("┬───")
-    assertThat(trace).contains(HOLDER_CLASS_NAME).contains(ACTIVITY_CLASS_NAME)
-    assertThat(trace).contains("╰→")
+    assertThat(group.keys).doesNotContain(
+      "representativeLeakTrace",
+      "representativeHumanLeakTrace",
+      // And not what each group retains either, which was read off the same walk.
+      "retainedBytes"
+    )
+    // What takes their place, and it is one call: an object off the list, walked when it is wanted.
+    val first = group.array("objects").first().jsonObject.text("object")
+    val walked = call(PATH_FROM_GC_ROOTS, OBJECT to first)
+    assertThat(walked.text(HUMAN_LEAK_TRACE)).contains(ACTIVITY_CLASS_NAME)
+  }
+
+  /**
+   * What the subtitle of a row says, as a field per thing it was saying.
+   *
+   * One field holding a library leak's description under one section and a sentence about the garbage
+   * collector under another is a field whose meaning a reader works out from where it is. Which is a
+   * subtitle — the right shape for a row of a screen, and the wrong one for JSON, where a reader takes a
+   * name for what the value is. See [shark.dive.LeakGroup.subtitle].
+   *
+   * Built here rather than read off a dump because the two things that subtitle holds are in two sections
+   * the investigation dump has neither of, and the point of the split is that they come back under
+   * different names.
+   */
+  @Test
+  fun `what a subtitle was saying is a field per thing it said`() {
+    val answer = AgentJson.leaks(
+      HeapLeaks(
+        listOf(
+          section(LeakKind.APPLICATION, group(title = "Holder.activity", subtitle = null)),
+          section(LeakKind.LIBRARY, group(title = "Looper.mQueue", subtitle = "Android holds it forever")),
+          section(LeakKind.UNREACHABLE, group(title = "Bitmap", subtitle = LeakKind.UNREACHABLE.subtitle))
+        )
+      )
+    )
+
+    val sections = answer.array("sections").map { it.jsonObject }
+    assertThat(sections.flatMap { it.array("groups") }.map { it.jsonObject["subtitle"] })
+      .hasSize(3).allMatch { it == null }
+    // The library leak's description, under the one section where a group has one of its own.
+    assertThat(sections.map { it.array("groups").single().jsonObject["libraryLeakDescription"] })
+      .containsExactly(null, JsonPrimitive("Android holds it forever"), null)
+    // And the sentence about the collector as the explanation of the section it is about, which is what it
+    // was: every group of that section carried the same words, and they are a property of the kind.
+    assertThat(sections.map { it["explanation"] }).containsExactly(
+      JsonPrimitive(LeakKind.APPLICATION.explanation),
+      JsonPrimitive(LeakKind.LIBRARY.explanation),
+      JsonPrimitive(LeakKind.UNREACHABLE.subtitle)
+    )
   }
 
   @Test
@@ -388,7 +445,7 @@ class AgentToolsTest {
     val holder = call("describe_object", OBJECT to hex(heapDump.holderObjectId))
 
     assertThat(holder.text("className")).isEqualTo(HOLDER_CLASS_NAME)
-    assertThat(holder.text("verdict")).isEqualTo(LeakStatus.UNKNOWN.name)
+    assertThat(holder.text("verdict")).isEqualTo(Verdict.UNKNOWN.name)
     val activityField = holder.array("fields")
       .single { it.jsonObject.text("name") == ACTIVITY_FIELD_NAME }
       .jsonObject
@@ -399,52 +456,87 @@ class AgentToolsTest {
   fun `an object the inspectors know about comes back with their verdict and their words`() {
     val activity = call("describe_object", OBJECT to hex(heapDump.activityObjectId))
 
-    assertThat(activity.text("verdict")).isEqualTo(LeakStatus.STUCK.name)
+    assertThat(activity.text("verdict")).isEqualTo(Verdict.STUCK.name)
     assertThat(activity.text("verdictReason")).contains("mDestroyed")
   }
 
   @Test
-  fun `the path names no reference while a step in it has no verdict`() {
-    val answer = call(PATH_FROM_GC_ROOT, OBJECT to hex(heapDump.activityObjectId))
+  fun `the path names no reference while an object in it has no verdict`() {
+    val answer = call(PATH_FROM_GC_ROOTS, OBJECT to hex(heapDump.activityObjectId))
 
-    val steps = answer.obj("path").array("steps").map { it.jsonObject }
-    assertThat(steps.map { it.text("object") }).containsExactly(
+    val objects = answer.obj(LEAK_TRACE).array("path").map { it.jsonObject }
+    assertThat(objects.map { it.text("object") }).containsExactly(
       hex(heapDump.applicationObjectId),
       hex(heapDump.holderObjectId),
       hex(heapDump.activityObjectId)
     )
-    assertThat(steps.mapNotNull { it["reference"]?.jsonObject?.text("isFaulty") })
-      .containsOnly("false")
-    // Which is the field an agent reads to know whether it is done, so an unsolved path has to leave it
-    // out rather than answer with something that could be mistaken for a name.
-    assertThat(answer.obj("path")["faultyReference"]).isEqualTo(JsonNull)
-    val says = answer.obj("whatThePathSays")
-    assertThat(says.text("state")).isEqualTo(PathState.NARROWED.name)
+    // Both references are still candidates, which is what a path marks while an object between them has no
+    // verdict — a reference ruled out is what a verdict buys, and no verdict has been set here yet.
+    assertThat(objects.mapNotNull { it["reference"]?.jsonObject?.text("isSuspect") })
+      .containsOnly("true")
+    val says = answer.obj(INVESTIGATION)
+    assertThat(says.text("state")).isEqualTo(InvestigationState.NARROWED.name)
     assertThat(says.text(LEAK_SOLVED)).isEqualTo("false")
+    // Which is the field an agent reads to know whether it is done, so an unsolved path leaves the reference
+    // out rather than answering with something that could be mistaken for a name.
+    assertThat(says["faultyReference"]).isNull()
     // Counted in references and not in objects, which is the thing to get right about a narrowed path: one
     // object with no verdict leaves the reference into it and the reference out of it, and its own verdict
     // rules one of them out. So the candidates are two and the object to decide about is one.
     assertThat(says.text("suspectReferenceCount")).isEqualTo("2")
-    assertThat(says.array("suspectReferences").map { it.jsonPrimitive.content })
-      .containsExactly(SUSPECT_REFERENCE_ABOVE, FAULTY_REFERENCE)
-    val undecided = says.array("undecidedObjects").map { it.jsonObject }
-    assertThat(undecided.map { it.text("object") }).containsExactly(hex(heapDump.holderObjectId))
-    assertThat(undecided.map { it.text("className") }).containsExactly(HOLDER_CLASS_NAME)
-    assertThat(says.text("next")).contains("describe_object").contains(SET_VERDICT)
+    // Which references they are is on the path and not here, so the two are never two things to keep in
+    // step: the candidates are the references marked `isSuspect` above.
+    assertThat(says["suspectReferences"]).isNull()
+    assertThat(says["undecidedObjects"]).isNull()
+    // And the object to go and settle is named in the sentence, by address, since that is what the next
+    // call takes.
+    assertThat(says.text("next"))
+      .contains(hex(heapDump.holderObjectId))
+      .contains("describe_object")
+      .contains(SET_VERDICT)
+  }
+
+  /**
+   * A path is objects, and the reference out of each of them is on the object that holds it.
+   *
+   * Which is the direction a leak trace is printed in and the direction a reader walks one. The references
+   * were on the object each one *reached* instead, so every reference of a path sat one object too low and
+   * the GC rooted object at the top was the one entry with none — an asymmetry that reads as the walk having
+   * dropped something rather than as a choice.
+   */
+  @Test
+  fun `each object of the path carries the reference it holds the next one through`() {
+    val answer = call(PATH_FROM_GC_ROOTS, OBJECT to hex(heapDump.activityObjectId))
+
+    val objects = answer.obj(LEAK_TRACE).array("path").map { it.jsonObject }
+    // The application holds the holder and the holder holds the activity, so those are the two references
+    // the two objects above the activity carry — and the activity, which the path ends at, carries none.
+    assertThat(objects.map { it["reference"]?.jsonObject?.text("name") })
+      .containsExactly(HOLDER_FIELD_NAME, ACTIVITY_FIELD_NAME, null)
+    // The field is declared on the object carrying it, which is what makes the direction checkable: a
+    // reference read off the application is a field of the application.
+    assertThat(objects.first()["reference"]?.jsonObject?.text("ownerClassName"))
+      .isEqualTo(APPLICATION_CLASS_NAME.substringAfterLast('.'))
+    // And the kind of root in Shark's own vocabulary rather than the window's label for it, which reads
+    // "GC root: JNI global reference" and so says what this field's own name already says.
+    assertThat(answer.obj(LEAK_TRACE).text("gcRootType"))
+      .isEqualTo(LeakTrace.GcRootType.JNI_GLOBAL.name)
+    assertThat(answer.obj(LEAK_TRACE).text("objectCount")).isEqualTo("3")
   }
 
   @Test
   fun `a path with nothing stuck on it says that is why it names nothing`() {
-    val answer = call(PATH_FROM_GC_ROOT, OBJECT to hex(heapDump.applicationObjectId))
+    val answer = call(PATH_FROM_GC_ROOTS, OBJECT to hex(heapDump.applicationObjectId))
 
-    val says = answer.obj("whatThePathSays")
-    assertThat(says.text("state")).isEqualTo(PathState.NOTHING_STUCK.name)
+    val says = answer.obj(INVESTIGATION)
+    assertThat(says.text("state")).isEqualTo(InvestigationState.NOTHING_STUCK.name)
     // Nothing to be at fault, so nothing named: a path with no stuck object on it has no candidates either.
-    assertThat(says.array("suspectReferences")).isEmpty()
+    assertThat(says.text("suspectReferenceCount")).isEqualTo("0")
+    assertThat(says["faultyReference"]).isNull()
     // And no progress, which the formula alone would read as finished: no candidates out of two references
     // is `1 - 0/2`. A search that hasn't begun is 0. See [shark.dive.leakSolvingProgressRatio].
     assertThat(says.text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
-    assertThat(says.text("next")).contains(LeakStatus.STUCK.name)
+    assertThat(says.text("next")).contains(Verdict.STUCK.name)
   }
 
   /**
@@ -452,16 +544,16 @@ class AgentToolsTest {
    *
    * Both tools that answer with a path carry it for that reason: an agent reaches a person from whichever of
    * them it last called, and a surface that has it on one of the two is a surface that invites the retelling
-   * on the other. See [AgentJson.leakTraceText].
+   * on the other. See [AgentJson.humanLeakTrace].
    */
   @Test
   fun `the path carries the leak trace too, and says how far the verdicts have narrowed it`() {
-    val answer = call(PATH_FROM_GC_ROOT, OBJECT to hex(heapDump.activityObjectId))
+    val answer = call(PATH_FROM_GC_ROOTS, OBJECT to hex(heapDump.activityObjectId))
 
-    assertThat(answer.text("leakTrace")).startsWith("┬───").contains(ACTIVITY_CLASS_NAME)
+    assertThat(answer.text(HUMAN_LEAK_TRACE)).startsWith("┬───").contains(ACTIVITY_CLASS_NAME)
     // Two of the two references are still candidates, so nothing has been ruled out yet. Which is the number
-    // a verdict moves, and the reason it is here rather than left to be worked out from the two lists.
-    assertThat(answer.obj("whatThePathSays").text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
+    // a verdict moves, and the reason it is here rather than counted off the path by whoever reads it.
+    assertThat(answer.obj(INVESTIGATION).text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
   }
 
   @Test
@@ -469,7 +561,7 @@ class AgentToolsTest {
     val answer = call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.EXPECTED.name,
+      "verdict" to Verdict.EXPECTED.name,
       SOLVING_LEAK_OF to hex(heapDump.activityObjectId),
       WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
@@ -479,24 +571,29 @@ class AgentToolsTest {
     // The one field the whole surface is worked towards, and it is the heap dump's answer rather than the
     // agent's: nothing was said about which reference is at fault, only that this one object's work is done.
     assertThat(answer.text(LEAK_SOLVED)).isEqualTo("true")
-    val says = answer.obj("whatThePathSays")
-    assertThat(says.text("state")).isEqualTo(PathState.SOLVED.name)
+    val says = answer.obj(INVESTIGATION)
+    assertThat(says.text("state")).isEqualTo(InvestigationState.SOLVED.name)
     assertThat(says.text(LEAK_SOLVED)).isEqualTo("true")
     // One candidate left, which is the same fact as the investigation being over.
-    assertThat(says.array("suspectReferences").map { it.jsonPrimitive.content })
-      .containsExactly(FAULTY_REFERENCE)
-    assertThat(says.array("undecidedObjects")).isEmpty()
+    assertThat(says.text("suspectReferenceCount")).isEqualTo("1")
     assertThat(says.text("next")).contains("$FAULTY_REFERENCE is the faulty reference")
-    val faulty = answer.obj("path").array("steps")
-      .single { it.jsonObject["reference"]?.jsonObject?.text("isFaulty") == "true" }
-      .jsonObject
-    assertThat(faulty.text("object")).isEqualTo(hex(heapDump.activityObjectId))
-    // And named at the top of the path in the same words the window's `Leak solved` section uses, so that
-    // an agent quoting it to its human names what the human is looking at.
-    assertThat(answer.obj("path").text("faultyReference")).isEqualTo(FAULTY_REFERENCE)
+    // Named in the same words the window's `Leak solved` section uses, so that an agent quoting it to its
+    // human names what the human is looking at — and with where it is, which is the pointer rather than a
+    // string to go and search the path for.
+    val faulty = says.obj("faultyReference")
+    assertThat(faulty.text("reference")).isEqualTo(FAULTY_REFERENCE)
+    // The index of the object that *holds* it, which is the holder rather than the activity: a path carries
+    // each reference on the object it is read off.
+    val objects = answer.obj(LEAK_TRACE).array("path").map { it.jsonObject }
+    val index = faulty.text("objectIndex").toInt()
+    assertThat(objects[index].text("object")).isEqualTo(hex(heapDump.holderObjectId))
+    assertThat(objects[index].obj("reference").text("isSuspect")).isEqualTo("true")
+    // And the one reference left: the one above it was ruled out by the verdict this call set.
+    assertThat(objects.mapNotNull { it["reference"]?.jsonObject?.text("isSuspect") })
+      .containsExactly("false", "true")
     // With the leak trace, which is what that agent hands over: this is the last call of an investigation,
     // so a trace it had to go back for is a trace it would have typed instead.
-    assertThat(answer.text("leakTrace")).contains(ACTIVITY_CLASS_NAME)
+    assertThat(answer.text(HUMAN_LEAK_TRACE)).contains(ACTIVITY_CLASS_NAME)
   }
 
   /**
@@ -511,7 +608,7 @@ class AgentToolsTest {
     val answer = call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.EXPECTED.name,
+      "verdict" to Verdict.EXPECTED.name,
       SOLVING_LEAK_OF to hex(heapDump.activityObjectId),
       WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
@@ -530,12 +627,12 @@ class AgentToolsTest {
     val answer = call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.EXPECTED.name,
+      "verdict" to Verdict.EXPECTED.name,
       WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
 
     assertThat(answer.text("set")).isEqualTo("true")
-    assertThat(answer.text("next")).contains(PATH_FROM_GC_ROOT).contains(SOLVING_LEAK_OF)
+    assertThat(answer.text("next")).contains(PATH_FROM_GC_ROOTS).contains(SOLVING_LEAK_OF)
     assertThat(answer["path"]).isNull()
     assertThat(answer[LEAK_SOLVED]).isNull()
   }
@@ -554,13 +651,13 @@ class AgentToolsTest {
       call(
         SET_VERDICT,
         OBJECT to hex(heapDump.holderObjectId),
-        "verdict" to LeakStatus.EXPECTED.name,
+        "verdict" to Verdict.EXPECTED.name,
         SOLVING_LEAK_OF to hex(heapDump.holderObjectId),
         WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
       )
     }
       .isInstanceOf(AgentRefusal::class.java)
-      .hasMessageContaining(LeakStatus.UNKNOWN.name)
+      .hasMessageContaining(Verdict.UNKNOWN.name)
       .hasMessageContaining(SOLVING_LEAK_OF)
       .hasMessageContaining(LIST_LEAK_GROUPS)
 
@@ -572,7 +669,7 @@ class AgentToolsTest {
    * The two justifications a `set_verdict` call carries, which are one argument each on purpose.
    *
    * `reason` is why this call was made and lives as long as this session's log; the `why` is the verdict's
-   * own and stays in the heap dump's `leak-statuses` file for whoever reads it next. Asserting that the
+   * own and stays in the heap dump's verdict file for whoever reads it next. Asserting that the
    * `reason` is *not* what got kept is the half worth having: it is what they were before, and one argument
    * doing both jobs is what had a model sending both names and getting refused.
    */
@@ -581,13 +678,13 @@ class AgentToolsTest {
     call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.EXPECTED.name,
+      "verdict" to Verdict.EXPECTED.name,
       WHY to "Holder.INSTANCE is a static singleton.",
       "reason" to "Ruling out the object above the activity."
     )
 
     val verdict = window.verdicts[heapDump.holderObjectId]
-    assertThat(verdict?.status).isEqualTo(LeakStatus.EXPECTED)
+    assertThat(verdict?.verdict).isEqualTo(Verdict.EXPECTED)
     assertThat(verdict?.reason).isEqualTo("Holder.INSTANCE is a static singleton.")
   }
 
@@ -597,7 +694,7 @@ class AgentToolsTest {
       call(
         SET_VERDICT,
         OBJECT to hex(heapDump.holderObjectId),
-        "verdict" to LeakStatus.EXPECTED.name,
+        "verdict" to Verdict.EXPECTED.name,
         "reason" to "Ruling out the object above the activity."
       )
     }
@@ -620,7 +717,7 @@ class AgentToolsTest {
     call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.EXPECTED.name,
+      "verdict" to Verdict.EXPECTED.name,
       SOLVING_LEAK_OF to hex(heapDump.activityObjectId),
       WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
@@ -628,7 +725,7 @@ class AgentToolsTest {
     assertThat(window.notes).isEmpty()
     // And nothing was opened either: what to show a person is the agent's to decide, with `show`.
     assertThat(window.shown).isEmpty()
-    assertThat(window.verdicts[heapDump.holderObjectId]?.status).isEqualTo(LeakStatus.EXPECTED)
+    assertThat(window.verdicts[heapDump.holderObjectId]?.verdict).isEqualTo(Verdict.EXPECTED)
   }
 
   @Test
@@ -639,7 +736,7 @@ class AgentToolsTest {
       call(
         SET_VERDICT,
         OBJECT to hex(heapDump.applicationObjectId),
-        "verdict" to LeakStatus.STUCK.name,
+        "verdict" to Verdict.STUCK.name,
         WHY to "This isn't the real Application, it is a copy left over from a test."
       )
     }
@@ -650,20 +747,20 @@ class AgentToolsTest {
       // two is wrong. As a sentence and not as JSON: this refusal is drawn on the *Agent logs* screen, which
       // exists to not show the protocol. See AgentTools.asSentence.
       .hasMessageContaining("Holder.INSTANCE is a static singleton")
-      .hasMessageContaining("Keeping yours makes it ${LeakStatus.STUCK}")
+      .hasMessageContaining("Keeping yours makes it ${Verdict.STUCK}")
       .hasMessageNotContaining("{\"")
       .hasMessageContaining("solveConflicts")
 
     val answer = call(
       SET_VERDICT,
       OBJECT to hex(heapDump.applicationObjectId),
-      "verdict" to LeakStatus.STUCK.name,
+      "verdict" to Verdict.STUCK.name,
       "solveConflicts" to "true",
       WHY to "This isn't the real Application, it is a copy left over from a test."
     )
 
     assertThat(answer.text("verdictsFlipped")).isEqualTo("1")
-    assertThat(window.verdicts[heapDump.holderObjectId]?.status).isEqualTo(LeakStatus.STUCK)
+    assertThat(window.verdicts[heapDump.holderObjectId]?.verdict).isEqualTo(Verdict.STUCK)
     assertThat(window.verdicts[heapDump.holderObjectId]?.reason)
       .contains("Holder.INSTANCE is a static singleton")
   }
@@ -674,7 +771,7 @@ class AgentToolsTest {
       call(
         SET_VERDICT,
         OBJECT to hex(heapDump.holderObjectId),
-        "verdict" to LeakStatus.UNKNOWN.name,
+        "verdict" to Verdict.UNKNOWN.name,
         WHY to "I could not work out what this is."
       )
     }
@@ -688,7 +785,7 @@ class AgentToolsTest {
 
     val answer = call("clear_verdict", OBJECT to hex(heapDump.holderObjectId))
 
-    assertThat(answer.text("was")).isEqualTo(LeakStatus.EXPECTED.name)
+    assertThat(answer.text("was")).isEqualTo(Verdict.EXPECTED.name)
     assertThat(answer.text(WHY)).contains("static singleton")
     assertThat(window.verdicts.isEmpty).isTrue()
 
@@ -994,10 +1091,10 @@ class AgentToolsTest {
     assertThat(answer.text("wasAlreadyOpen")).isEqualTo("false")
     assertThat(heapDumps.opened).containsExactly(heapDump.dive.heapDumpFile)
     // And no method, which is the other half of moving it: this is the first call of most investigations, so
-    // it used to be the place the whole of it was handed over. What is here instead is the sentence saying
-    // which call has it, because an investigation that skipped that call is one that never read it.
+    // it used to be the place the whole of it was handed over. What is here instead is the sentence naming
+    // the option that has it, because an investigation that never read that option never read the method.
     assertThat(answer.keys).doesNotContain(METHOD)
-    assertThat(answer.text("next")).contains(LIST_LEAK_GROUPS)
+    assertThat(answer.text("next")).contains(AgentCommandLine.LEAK_METHOD_OPTION)
   }
 
   @Test
@@ -1016,7 +1113,7 @@ class AgentToolsTest {
 
   @Test
   fun `a dump nobody has worked on says so, and one somebody has says what to read`() {
-    val untouched = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.name)
+    val untouched = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.absolutePath)
 
     // The normal case, and what makes a count worth more here than advice: an agent that reads a zero and an
     // empty list of verdicts knows nobody has been here without spending a call to find out.
@@ -1026,7 +1123,7 @@ class AgentToolsTest {
 
     call("take_note", "place" to hex(heapDump.holderObjectId), "text" to "The holder is a static singleton.")
 
-    val worked = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.name)
+    val worked = call(OPEN_HEAP_DUMP, "path" to heapDump.dive.heapDumpFile.absolutePath)
 
     // And only then is there something to say, which is the other half of it: this sentence used to be in
     // `agent_log`'s own description, where every agent on every dump read it.
@@ -1035,15 +1132,18 @@ class AgentToolsTest {
   }
 
   @Test
-  fun `a heap dump already open can be named by its file name rather than its path`() {
-    // An agent is as often told "investigate leak.hprof" as given a path, and the name is what every answer
-    // on this surface is written in — so a name that names an open window is that window.
+  fun `a heap dump already open is refused by its file name, which is a key and not a path`() {
+    // `heapDumpKey` is how every other command names an open dump, so one accepted here too would make this
+    // field mean a file to open or a window to find, told apart by whether that window happens to exist.
     val heapDumps = FakeAgentHeapDumps(listOf(window))
     tools = agentTools(heapDumps)
 
-    val answer = call(OPEN_HEAP_DUMP, PATH to heapDump.dive.heapDumpFile.name)
+    assertThatThrownBy { call(OPEN_HEAP_DUMP, PATH to heapDump.dive.heapDumpFile.name) }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("is not an absolute path")
+      // And what is open, because a bare name is an agent reaching for a key: the list is what says which.
+      .hasMessageContaining(window.heapDumpName)
 
-    assertThat(answer.text(HEAP_DUMP)).isEqualTo(window.heapDumpName)
     assertThat(heapDumps.opened).isEmpty()
   }
 
@@ -1111,9 +1211,6 @@ class AgentToolsTest {
     assertThatThrownBy { call(OPEN_HEAP_DUMP, PATH to "/no/such/dump.hprof") }
       .isInstanceOf(AgentRefusal::class.java)
       .hasMessageContaining("There is no file at /no/such/dump.hprof")
-      // And what is open, since the same argument takes a name: a name nothing answers to lands here too, and
-      // the list is what says which name was meant.
-      .hasMessageContaining(window.heapDumpName)
 
     assertThat(heapDumps.opened).isEmpty()
   }
@@ -1190,7 +1287,7 @@ class AgentToolsTest {
     call(
       SET_VERDICT,
       OBJECT to hex(heapDump.holderObjectId),
-      "verdict" to LeakStatus.EXPECTED.name,
+      "verdict" to Verdict.EXPECTED.name,
       WHY to "Holder.INSTANCE is a static singleton, so it is meant to be in memory."
     )
   }
@@ -1199,6 +1296,36 @@ class AgentToolsTest {
   private fun leakGroups(): List<JsonObject> = call(LIST_LEAK_GROUPS).array("sections")
     .flatMap { it.jsonObject.array("groups") }
     .map { it.jsonObject }
+
+  /** One section of a leaks list assembled by hand, for the cases the investigation dump hasn't got. */
+  private fun section(
+    kind: LeakKind,
+    group: LeakGroup
+  ): LeakSection = LeakSection(kind = kind, groups = listOf(group))
+
+  /** One leak of such a section, with the single object a group is never empty of. */
+  private fun group(
+    title: String,
+    subtitle: String?
+  ): LeakGroup = LeakGroup(
+    leakFingerprint = title,
+    title = title,
+    suspectPath = listOf(title),
+    subtitle = subtitle,
+    objects = listOf(
+      LeakingObject(
+        objectId = heapDump.activityObjectId,
+        className = ACTIVITY_CLASS_NAME,
+        kind = HeapObjectKind.INSTANCE,
+        content = null,
+        retainedSize = 1,
+        retainedCount = 1,
+        strength = ReachabilityStrength.STRONG,
+        verdictReason = null,
+        watcher = null
+      )
+    )
+  )
 
   /**
    * A session somebody else already ran on a heap dump: two calls, one of them refused.
@@ -1330,8 +1457,12 @@ class AgentToolsTest {
     const val HEAP_DUMP_METADATA = "heap_dump_metadata"
     const val LIST_LEAK_GROUPS = "list_leak_groups"
     const val AGENT_LOG = "agent_log"
-    const val PATH_FROM_GC_ROOT = "path_from_gc_root"
+    const val PATH_FROM_GC_ROOTS = "path_from_gc_roots"
     const val SET_VERDICT = "set_verdict"
+
+    // The two halves of a path in an answer, which every tool that carries one carries under these names.
+    const val LEAK_TRACE = "leakTrace"
+    const val HUMAN_LEAK_TRACE = "humanLeakTrace"
     const val REASON = "reason"
     const val HEAP_DUMP = "heapDumpKey"
     const val PATH = "path"
@@ -1343,6 +1474,9 @@ class AgentToolsTest {
     /** The two fields an investigation is worked towards, on every answer that can move them. */
     const val LEAK_SOLVED = "leakSolved"
     const val LEAK_SOLVING_PROGRESS_RATIO = "leakSolvingProgressRatio"
+
+    /** And what they, and the rest of how far the search has got, are answered under beside a path. */
+    const val INVESTIGATION = "investigation"
 
     /**
      * A second and a third heap dump, as paths, for the tests about more than one being open.

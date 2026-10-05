@@ -61,10 +61,10 @@ calls them, and `AgentRefusal` because the app throws it.
 The whole point of this being a server rather than a library is that **it can say no**, and it works with any
 client because saying no is all it does — nothing here ever calls a model.
 
-- `set_verdict` refuses a blank `why` (through `LeakStatusOverride`'s own `require`) and refuses a verdict
+- `set_verdict` refuses a blank `why` (through `VerdictOverride`'s own `require`) and refuses a verdict
   that contradicts one already recorded unless it is told to flip it. **`why` is the verdict's own
   justification and `reason` is why the call was made**, which is two arguments for what was one: the `why` is
-  kept in the dump's `leak-statuses` file and drawn in the window's *Why* box for as long as anybody reads
+  kept in the dump's verdict file and drawn in the window's *Why* box for as long as anybody reads
   that dump, and the `reason` is a line of this session's log like every other tool's. A model handed the
   single `reason` sent both anyway — see `WHY`'s KDoc for the measurement — so the surface now takes both.
 - `set_verdict` also refuses a `solvingLeakOf` that is not a stuck object — `requireStuck`, before anything is
@@ -94,10 +94,10 @@ has it in full. **The job is to settle the state of every undecided object until
 `leakSolved` is the heap dump saying that happened. So a reading an agent cannot reach any other way is one
 to answer with, never one to ask it to repeat.
 
-What replaced the refusal is that the answer carries the distance left. `path_from_gc_root` and a
-`set_verdict` given `solvingLeakOf` both answer with `whatThePathSays` — `leakSolved`, the candidate
-references, the undecided objects, `suspectReferenceCount` and `leakSolvingProgressRatio` — and `PathState`
-is which of the six shapes those verdicts are in, which is the field to branch on rather than the prose in
+What replaced the refusal is that the answer carries the distance left. `path_from_gc_roots` and a
+`set_verdict` given `solvingLeakOf` both answer with `investigation` — `leakSolved`, `faultyReference` once
+there is one, `suspectReferenceCount` and `leakSolvingProgressRatio` — and `InvestigationState` is which of
+the six shapes those verdicts are in, which is the field to branch on rather than the prose in
 `next`. A verdict answers with `narrowedBy` as well, the counts and the progress on both sides of it, because
 a verdict that ruled nothing out and a verdict that halved the search are the same single number afterwards
 and are not the same move. **The `Ratio` on all three of those names is load-bearing** — the number is 0 to 1
@@ -186,7 +186,7 @@ a session cut to fit is one where the answer that misled an agent is the part th
 
 **Two fields come off the answer instead.** What an agent asked is what it typed, and what it came to is what
 the heap dump *derived* — so `outcomeOfTool` reads the faulty reference out of the two answers that can
-carry one, `path_from_gc_root` and `set_verdict`, and only when the same answer says `leakSolved`. Both
+carry one, `path_from_gc_roots` and `set_verdict`, and only when the same answer says `leakSolved`. Both
 halves, because a build that changed one of them without the other then reads as null rather than as a
 session recording an outcome from a path that has none. Both readers need that field and neither can work it
 out: the screen's last row is what a session came to, and the eval has nothing to mark against its answer key
@@ -414,6 +414,57 @@ call that never comes back.
 **A tool that reaches `adb` is minutes, and says so in the log rather than in the answer.** There is nothing to
 stream progress through — an agent is waiting on one JSON object — so `~/.shark-dive/logs` is where a dump
 that is still being pulled says how far it has got.
+
+## A path comes back twice, and only from the tool that walks one
+
+`leakTrace` is a path as fields — an object at a time, with the verdicts, the inspectors' labels, the sizes,
+and `isSuspect` on each reference — and `humanLeakTrace` is `shark.LeakTrace.toString`, the characters
+LeakCanary prints. `path_from_gc_roots` and `set_verdict` answer with both, and nothing else answers with
+either.
+
+**Two names for two things, spelled in `AgentTools` rather than at each call site.** A `leakTrace` that is an
+object on one answer and a string on another is a field nobody can write code against, so the names are
+constants and the paragraph describing them is `LEAK_TRACE_PAIR`, written once. A description telling an agent
+to quote the text form on one tool and saying nothing on another is a difference it is entitled to read as
+deliberate.
+
+**`list_leak_groups` carried a pair of its own and no longer does, because embedding a path per group is 3.5×
+the answer.** Measured on `leak_asynctask_o.hprof`, three groups: 11,037 bytes against 38,657 with
+`representativeLeakTrace` and `representativeHumanLeakTrace` on each. A real Android dump with twenty groups
+runs to hundreds of KB, nearly all of it paths for leaks the agent never opens, and what it bought was the
+single `path_from_gc_roots` a reader would have made on the one group it decided to work. So the list hands
+back addresses and the path is the next question. `AgentToolsTest` pins the absence, since the cheap mistake
+is to put one back for the convenience of it.
+
+**There is no representative object either, because every object of a group is one.** The group carried a
+`representativeObject`, documented as the object whose own path produced the group's references and warned
+against reading as `objects` first — but `objects` is sorted by retained size, the candidates were sorted by
+the same number before any path was walked, and Kotlin's sort is stable, so the two were the same address
+every time, ties included. A field that is always `objects[0]` under another name costs an agent a decision
+it reads as meaningful. The tool description is what now says any object of the group solves the group, and
+`AgentToolsTest` asserts the description says it rather than only that the field is gone: the field going
+without the sentence arriving leaves an agent to guess, which is the way this breaks quietly.
+
+**If that size ever has to come down again, cut which groups carry something rather than what each one
+says**: an answer trimmed to fewer objects or fewer labels is an agent reading less than it believes it is,
+which is the one failure here nothing on the surface can show it.
+
+## A path is objects, each carrying the reference it holds the next one through
+
+Which is the direction a leak trace is printed in — `├─ Foo instance`, then `↓ Foo.bar` — and the direction a
+reader walks one. `PathStep.reference` in `shark-dive-core` is the opposite: the reference that *reaches* that
+object, which is right for the model, because that is what the walk reads and what the window draws between
+two rows. `AgentJson` turns it round, giving the object at index `i` the reference off `path[i + 1]`.
+
+**The tell that it was the wrong way round in JSON was the first entry having no `reference` at all.** A GC
+rooted object is reached through no field, so on the old shape every path began with one entry missing the
+field every other entry had, and every reference sat one object below the object it is read off. Which reads
+as a walk that dropped something. Now the *last* object has no reference, and that is the truth: nothing
+below it is on the path.
+
+`ways_held` follows the same rule and has one more case, because the object its paths hang below is not on
+them — it is the GC root, or the `from` the caller named. So the reference out of that object has no entry to
+sit on and hangs off the path itself, under `reference`, null for a path walked from the GC roots.
 
 ## An address is a string, never a JSON number
 

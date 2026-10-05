@@ -18,17 +18,20 @@ import shark.dive.HeapLeaks
 import shark.dive.HeapObjectSummary
 import shark.dive.HeapSizes
 import shark.dive.IndependentPaths
-import shark.dive.LeakStatusOverrides
+import shark.dive.LeakKind
+import shark.dive.VerdictOverrides
+import shark.dive.ObjectContent
 import shark.dive.ObjectDominator
 import shark.dive.ObjectList
+import shark.dive.PathReference
 import shark.dive.PathStep
 import shark.dive.ReachabilityStrength
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
-import shark.dive.faultyReference
 import shark.dive.leakLabel
 import shark.dive.leakTrace
+import shark.dive.suspectReferenceIndexes
 
 /**
  * How Shark Dive's own model reads as JSON, which is the whole of what an agent sees of a heap dump.
@@ -62,7 +65,7 @@ internal object AgentJson {
     heapDumpKey: String,
     heapDumpPath: String,
     sizes: HeapSizes,
-    verdicts: LeakStatusOverrides,
+    verdicts: VerdictOverrides,
     /** How many places of this dump somebody has written about, as [AgentHeapDump.notedPlaces] counts them. */
     placesWithANote: Int
   ): JsonObject = buildJsonObject {
@@ -165,11 +168,11 @@ internal object AgentJson {
    * Every verdict set by hand, so that an agent arriving at a window someone has been working in reads the
    * conclusions already reached rather than starting over on top of them.
    */
-  fun verdicts(overrides: LeakStatusOverrides): JsonArray = buildJsonArray {
+  fun verdicts(overrides: VerdictOverrides): JsonArray = buildJsonArray {
     overrides.all.sortedBy { it.objectId }.forEach { override ->
       addJsonObject {
         put("object", exactHexObjectId(override.objectId))
-        put("verdict", override.status.name)
+        put("verdict", override.verdict.name)
         put("why", override.reason)
       }
     }
@@ -184,14 +187,14 @@ internal object AgentJson {
     put("label", summary.label)
     put("className", summary.className)
     put("kind", summary.kind?.name)
-    put("headline", summary.headline)
+    objectContentInto(summary.content)
     put("strength", summary.strength.name)
     put("shallowBytes", summary.shallowSize)
     put("retainedBytes", summary.retainedSize)
     put("retainedObjects", summary.retainedCount)
     put("dominatedObjects", summary.dominatedObjectCount)
-    put("verdict", summary.leakStatus.name)
-    put("verdictReason", summary.leakStatusReason)
+    put("verdict", summary.verdict.name)
+    put("verdictReason", summary.verdictReason)
     putJsonArray("inspectorLabels") { summary.inspectorLabels.forEach { add(it) } }
     // The one object releasing which would free this one, which is the answer to "what would fix this".
     if (dominator != null) {
@@ -267,47 +270,73 @@ internal object AgentJson {
     }
   }
 
-  /** The shortest path from a GC root down to an object, with dominators and the faulty reference marked. */
-  fun rootPath(path: RootPath): JsonObject = buildJsonObject {
-    put("gcRoot", path.gcRootLabel)
-    put("stepCount", path.steps.size)
-    // What the path is for, said once at the top rather than left to be found by scanning the steps for
-    // isFaulty — and in the words the window names the leak with, so that an answer handed to a person
-    // matches the section they are reading it under. Null until the verdicts either side of one reference
-    // are both set, which is the state an investigation is working towards.
-    put("faultyReference", path.faultyReference()?.leakLabel())
-    putJsonArray("steps") { path.steps.forEach { add(rootPathStep(it)) } }
+  /**
+   * One path from a GC root down to an object as a leak trace, with dominators and the suspect references
+   * marked — the same trace [humanLeakTrace] renders for a person, in the fields a program reads.
+   *
+   * **Two renderings of one path and neither is a summary of the other.** This carries everything the
+   * window has about each object of it — the labels the inspectors wrote, the verdict and the reason under
+   * it, the sizes, the reference it holds the next object through — and the text form carries what
+   * `shark.LeakTrace` prints, which is the artefact to show a person and to compare against a LeakCanary
+   * report. So a tool that answers with a path answers with both, and
+   * `shark/shark-dive/shark-dive-agent/AGENTS.md` has why neither is left to be derived from the other.
+   *
+   * **A path is objects, and each of them carries the reference it holds the next one through.** Which is
+   * the direction a leak trace is printed in and the direction a reader walks it: `Foo instance`, then
+   * `↓ Foo.bar`, then what that field points at. The references used to be on the object each one *reaches*
+   * instead, which put the whole path's references one object too low and left the GC rooted object at the
+   * top as the one entry with no reference at all — an asymmetry that reads as a bug in the walk rather
+   * than as a choice. The last object has no reference now, which is the truth: nothing below it is on the
+   * path.
+   */
+  fun leakTrace(path: RootPath): JsonObject = buildJsonObject {
+    // Shark's own name for the kind of root rather than `RootPath.gcRootLabel`, which is the window's
+    // label for it and reads "GC root: loaded class" — two words this field already says. Null for
+    // uncollected garbage, which no GC root reaches, and then the first object's `strength` is UNREACHABLE.
+    put("gcRootType", path.gcRootType?.name)
+    put("objectCount", path.steps.size)
+    val suspects = path.steps.map { it.step }.suspectReferenceIndexes().toSet()
+    putJsonArray("path") {
+      path.steps.forEachIndexed { index, step ->
+        val below = index + 1
+        add(rootPathStep(step, path.steps.getOrNull(below)?.step?.reference, below in suspects))
+      }
+    }
   }
 
   /**
-   * What the verdicts on a path add up to, which is the field that says whether the investigation is over.
-   *
-   * **References and objects, never a count of steps.** A path narrowed to a single object with no verdict
-   * has two candidate references — the one into that object and the one out of it — so a number of steps in
-   * between is a figure that reads as an answer and is neither of the two things there is to do something
-   * about. [PathVerdicts.suspectReferences] is the candidates, in the words the leaks screen names the same
-   * leak with, and `undecidedObjects` is what to go and settle: each verdict there rules out one of them.
+   * How far the verdicts on a path have got towards naming the one reference the leak is.
    *
    * `leakSolved` first, because it is the one field this surface is worked towards and the answer is read
-   * from the top.
+   * from the top, and `faultyReference` beside it because that is what being solved means.
+   *
+   * **Nothing here lists the path's own references or objects, and that is deliberate.** The candidates are
+   * `isSuspect` on each reference of the path and the objects left to settle are the ones whose `verdict` is
+   * `UNKNOWN` between the two ends, so a list of either here would be the path said a second way in the
+   * same answer — and two spellings of one fact are two things to keep in step. [PathInvestigation.next]
+   * names the objects it is telling a reader to go and settle, which is a sentence rather than a field.
    */
-  fun pathVerdicts(verdicts: PathVerdicts): JsonObject = buildJsonObject {
-    put("leakSolved", verdicts.leakSolved)
-    put("state", verdicts.state.name)
-    put("suspectReferenceCount", verdicts.suspectReferenceCount)
-    // Rounded, because the digits past the second are a difference no reader acts on and a number that
-    // changes in the fifth decimal reads as progress where there was none.
-    put("leakSolvingProgressRatio", roundedRatio(verdicts.progressRatio))
-    putJsonArray("suspectReferences") { verdicts.suspectReferences.forEach { add(it) } }
-    putJsonArray("undecidedObjects") {
-      verdicts.undecided.forEach { step ->
-        addJsonObject {
-          put("object", exactHexObjectId(step.step.objectId))
-          put("className", step.step.className)
-        }
+  fun investigation(investigation: PathInvestigation): JsonObject = buildJsonObject {
+    put("leakSolved", investigation.leakSolved)
+    put("state", investigation.state.name)
+    // The reference the path says the leak is, and absent rather than null while the verdicts have not
+    // narrowed that far: `leakSolved` is the field that answers whether it is there, and a `null` under a
+    // name like this reads as an answer about the reference instead.
+    investigation.faultyReference?.let { faulty ->
+      putJsonObject("faultyReference") {
+        // In the words the leaks screen names the same leak with, so that an answer handed to a person
+        // matches the row they are reading it under. See `shark.dive.leakLabel`.
+        put("reference", faulty.reference.leakLabel())
+        // And where it is on the path, which is the pointer to follow rather than a string to search for:
+        // `path[objectIndex].reference` is this reference, on the object that holds it.
+        put("objectIndex", faulty.objectIndex)
       }
     }
-    put("next", verdicts.next)
+    put("suspectReferenceCount", investigation.suspectReferenceCount)
+    // Rounded, because the digits past the second are a difference no reader acts on and a number that
+    // changes in the fifth decimal reads as progress where there was none.
+    put("leakSolvingProgressRatio", roundedRatio(investigation.progressRatio))
+    put("next", investigation.next)
   }
 
   /** Every way an object is held, which is what a single path cannot say. */
@@ -320,8 +349,19 @@ internal object AgentJson {
     putJsonArray("paths") {
       paths.paths.forEach { path ->
         addJsonObject {
-          put("gcRoot", path.gcRootLabel)
-          putJsonArray("steps") { path.steps.forEach { add(pathStep(it)) } }
+          put("gcRootType", path.gcRootType?.name)
+          val suspects = path.steps.suspectReferenceIndexes().toSet()
+          // The object the search started from is not on this path — it is the GC root, or the `from` the
+          // caller named — so the reference out of it has no object here to sit on, and it hangs off the
+          // path itself. Null for a path walked from the GC roots, whose first object a root holds through
+          // no field. The same rule as everywhere else: whatever holds a reference carries it.
+          path.steps.firstOrNull()?.reference?.let { put("reference", pathReference(it, 0 in suspects)) }
+          putJsonArray("path") {
+            path.steps.forEachIndexed { index, step ->
+              val below = index + 1
+              add(pathStep(step, path.steps.getOrNull(below)?.reference, below in suspects))
+            }
+          }
         }
       }
     }
@@ -336,16 +376,7 @@ internal object AgentJson {
    * both ends of the suspect path, exactly as the row draws it — and the references between them are on the
    * path for both readers rather than spelled out for one of them.
    */
-  fun leaks(
-    leaks: HeapLeaks,
-    /**
-     * The path to each group's representative object, by leak fingerprint, for the leak trace on its row.
-     *
-     * Passed in rather than walked here because a walk is a read of the heap dump and this object does no
-     * reads: everything else it renders was worked out before it was called. See `AgentTools.listLeakGroups`.
-     */
-    representativePaths: Map<String, RootPath> = emptyMap()
-  ): JsonObject = buildJsonObject {
+  fun leaks(leaks: HeapLeaks): JsonObject = buildJsonObject {
     put("objectCount", leaks.objectCount)
     put("leakingObjectCount", leaks.leakingObjectCount)
     putJsonArray("sections") {
@@ -353,9 +384,12 @@ internal object AgentJson {
         addJsonObject {
           put("kind", section.kind.name)
           put("title", section.kind.title)
-          // Absent for the five sections a reachability strength names, whose title is the whole of what
-          // they are. See LeakKind.explanation.
-          section.kind.explanation?.let { put("explanation", it) }
+          // What being in this section means. LeakKind splits that between two fields for the window —
+          // `explanation` behind a `?`, and `subtitle` under a group that has no reference to name it with,
+          // which is the unreachable section and nothing else — and a JSON answer has one reader and no `?`
+          // to click, so whichever of the two a kind fills is the explanation here. Absent for the four
+          // sections that fill neither, whose title is the whole of what they are.
+          (section.kind.explanation ?: section.kind.subtitle)?.let { put("explanation", it) }
           // Whether this is a leak to investigate or an object the collector will take on its own, which is
           // the split that makes the list actionable. See LeakKind.isOnTheWayOut.
           put("isOnTheWayOut", section.kind.isOnTheWayOut)
@@ -367,28 +401,30 @@ internal object AgentJson {
                 // What the leak is, in the words the row of the leaks screen is drawn with: the reference to
                 // stop holding, then the one the stuck objects hang off. See [LeakGroup.name].
                 put("name", group.name)
-                put("subtitle", group.subtitle)
-                put("retainedBytes", group.retainedSize)
-                // The object to solve this group through, and the one the leak trace below is of. Not the
-                // first of `objects`, which is sorted by what each retains. See
-                // [LeakGroup.representativeObjectId].
-                put("representativeObject", exactHexObjectId(group.representativeObjectId))
-                // The leak trace of that object, which is the form of this leak to show a person. See
-                // [leakTraceText].
-                representativePaths[group.leakFingerprint]
-                  ?.let { leakTraceText(it) }
-                  ?.let { put("leakTrace", it) }
+                // What is known about a library leak's pattern, which is the one thing a group carries
+                // that its references don't say. Only here, because LeakGroup.subtitle is this for a
+                // library leak and the section's own explanation for an unreachable one, and a field
+                // holding either depending on which section it is under is a field a reader has to work
+                // out the meaning of before using it.
+                if (section.kind == LeakKind.LIBRARY) {
+                  put("libraryLeakDescription", group.subtitle)
+                }
+                // Addresses and no paths, which is what makes this a list to read once: a path per group
+                // came back three and a half times longer on a list of three leaks, and the whole of what
+                // it bought was saving one `path_from_gc_roots` on the one group a reader goes on to work.
+                // So the list says which leaks there are and what to ask about next, and the path is that
+                // question. Any of these addresses is the one to ask it about — see [LeakGroup.objects].
                 putJsonArray("objects") {
                   group.objects.forEach { leaking ->
                     addJsonObject {
                       put("object", exactHexObjectId(leaking.objectId))
                       put("className", leaking.className)
                       put("kind", leaking.kind.name)
-                      put("headline", leaking.headline)
+                      objectContentInto(leaking.content)
                       put("retainedBytes", leaking.retainedSize)
                       put("retainedObjects", leaking.retainedCount)
                       put("strength", leaking.strength.name)
-                      put("leakingReason", leaking.leakingReason)
+                      put("verdictReason", leaking.verdictReason)
                       // The strongest evidence a heap dump carries: the app itself said this object
                       // should be gone. See WatchedObject.
                       val watcher = leaking.watcher
@@ -433,7 +469,7 @@ internal object AgentJson {
           put("object", exactHexObjectId(entry.objectId))
           put("className", entry.className)
           put("kind", entry.kind.name)
-          put("headline", entry.headline)
+          objectContentInto(entry.content)
           put("shallowBytes", entry.shallowSize)
           put("retainedBytes", entry.retainedSize)
           put("strength", entry.strength.name)
@@ -442,63 +478,116 @@ internal object AgentJson {
     }
   }
 
-  private fun rootPathStep(step: RootPathStep): JsonObject = buildJsonObject {
-    pathStepInto(step.step)
-    // Every path from a GC root goes through each of an object's dominators, so a marked step is one that
-    // releasing would free the object and the rest are only on the way to it.
+  private fun rootPathStep(
+    step: RootPathStep,
+    reference: PathReference?,
+    isSuspect: Boolean
+  ): JsonObject = buildJsonObject {
+    pathStepInto(step.step, reference, isSuspect)
+    // Every path from a GC root goes through each of an object's dominators, so a marked object is one that
+    // releasing would free the object the path leads to, and the rest are only on the way to it.
     put("isDominator", step.isDominator)
   }
 
-  private fun pathStep(step: PathStep): JsonObject = buildJsonObject { pathStepInto(step) }
+  private fun pathStep(
+    step: PathStep,
+    reference: PathReference?,
+    isSuspect: Boolean
+  ): JsonObject = buildJsonObject { pathStepInto(step, reference, isSuspect) }
 
-  private fun JsonObjectBuilder.pathStepInto(step: PathStep) {
+  private fun JsonObjectBuilder.pathStepInto(
+    step: PathStep,
+    /** The reference this object holds the next one through. Null for the object a path ends at. */
+    reference: PathReference?,
+    /** Whether [reference] is one the leak could still be. See [shark.dive.suspectReferenceIndexes]. */
+    isSuspect: Boolean
+  ) {
     put("object", exactHexObjectId(step.objectId))
     put("className", step.className)
     put("kind", step.kind.name)
-    put("headline", step.headline)
+    objectContentInto(step.content)
     put("strength", step.strength.name)
     put("retainedBytes", step.retainedSize)
     put("retainedObjects", step.retainedCount)
     putJsonArray("inspectorLabels") { step.inspectorLabels.forEach { add(it) } }
-    put("verdict", step.leakStatus.name)
-    put("verdictReason", step.leakStatusReason)
+    put("verdict", step.verdict.name)
+    put("verdictReason", step.verdictReason)
     // PathStep.isTreeNode is not here, and cannot be false on anything an agent reads: both path walks
     // refuse a target the tree has no node for, and an object whose bytes are folded into another one has
     // no incoming reference for a walk to arrive by either. It is the window's field — whether the map has
     // a rectangle to open — and on a path it is a word that always says the same thing, repeated on every
-    // step of every path, and again on the path set_verdict reads back after each verdict.
-    val reference = step.reference
+    // object of every path, and again on the path set_verdict reads back after each verdict.
     if (reference != null) {
-      putJsonObject("reference") {
-        put("name", reference.name)
-        put("ownerClassName", reference.ownerClassName)
-        put("locationType", reference.locationType.name)
-        // The one thing on a path that says where to go and change code.
-        put("isFaulty", reference.isFaulty)
-        val libraryLeak = reference.libraryLeak
-        if (libraryLeak != null) {
-          putJsonObject("libraryLeak") {
-            put("pattern", libraryLeak.pattern)
-            put("description", libraryLeak.description)
-          }
-        }
+      put("reference", pathReference(reference, isSuspect))
+    }
+  }
+
+  /** One reference of a path, on the object that holds it. See [leakTrace]. */
+  private fun pathReference(
+    reference: PathReference,
+    isSuspect: Boolean
+  ): JsonObject = buildJsonObject {
+    put("name", reference.name)
+    put("ownerClassName", reference.ownerClassName)
+    put("locationType", reference.locationType.name)
+    // Whether the leak could still be this reference, which is what a path says about each of them while an
+    // investigation runs: true for the stretch the verdicts have not ruled out, and true of a single
+    // reference once they have, which is the one to go and change. `faultyReference` on the investigation
+    // is that last case named, and `leakSolved` is how to tell the two apart without counting these.
+    // PathReference.isFaulty is not here: it is this field in the one state where exactly one of them is
+    // left, so a reference carrying both would be the same fact under two names on every path.
+    put("isSuspect", isSuspect)
+    val libraryLeak = reference.libraryLeak
+    if (libraryLeak != null) {
+      putJsonObject("libraryLeak") {
+        put("pattern", libraryLeak.pattern)
+        put("description", libraryLeak.description)
       }
     }
   }
 
   /**
-   * One path as the leak trace LeakCanary prints it, which is the only rendering of it meant for a person.
+   * What an object is beyond its class, as one field per fact it carries and nothing at all for the kinds
+   * that carry none.
    *
-   * **The whole point of handing this over is that nobody else assembles one.** Every field of the answer
-   * beside it describes the same path, so a model has everything it needs to type a leak trace of its own —
-   * and one typed out is a retelling: a step dropped, the underline moved, a class name shortened, each of
-   * which is invisible to whoever reads the result and none of which can happen to these characters. So the
-   * tool renders it, in `shark.LeakTrace`'s own words, and the instruction on the tools that carry it is to
-   * quote it unchanged.
+   * **A field named after what it holds, rather than the line a window draws.** This was one `headline`
+   * string — `"420 × 467 pixels, recycled"`, `"42 elements"` — which is a sentence formatted for a screen
+   * on a surface read by a program: a width, a height and a boolean arrive as characters to parse back out,
+   * and every object that is none of these kinds arrives as a `headline` of null, on every object of every
+   * path. So the model carries the facts now ([ObjectContent]), the window formats the sentence, and these
+   * are the facts. Absent rather than null, since a String has no bitmap dimensions to report as missing.
+   */
+  private fun JsonObjectBuilder.objectContentInto(content: ObjectContent?) {
+    when (content) {
+      null -> Unit
+      is ObjectContent.JavaString -> put("stringValue", content.value)
+      is ObjectContent.Bitmap -> {
+        put("bitmapWidth", content.width)
+        put("bitmapHeight", content.height)
+        put("bitmapIsRecycled", content.isRecycled)
+      }
+      is ObjectContent.Thread -> put("threadName", content.name)
+      is ObjectContent.ObjectArray -> put("arrayElementCount", content.elementCount)
+      is ObjectContent.PrimitiveArray -> put("arrayByteCount", content.byteCount)
+    }
+  }
+
+  /**
+   * The same path as the leak trace LeakCanary prints, which is the rendering of it meant for a person.
+   *
+   * **The whole point of handing this over is that nobody else assembles one.** [leakTrace] beside it
+   * describes the same path field by field, so a model has everything it needs to type a leak trace of its
+   * own — and one typed out is a retelling: a step dropped, the underline moved, a class name shortened,
+   * each of which is invisible to whoever reads the result and none of which can happen to these
+   * characters. So the tool renders it, in `shark.LeakTrace`'s own words, and the instruction on the tools
+   * that carry it is to quote it unchanged.
+   *
+   * Newlines and all, as a JSON string: `shark.LeakTrace.toString` is many lines, and what goes over the
+   * wire is one `\n`-escaped string that any JSON reader hands back as the lines it was.
    *
    * Null for a path with no steps, which is nothing to render. See [shark.dive.leakTrace].
    */
-  fun leakTraceText(path: RootPath): String? = path.leakTrace()?.toString()
+  fun humanLeakTrace(path: RootPath): String? = path.leakTrace()?.toString()
 
   /**
    * A ratio as every answer carries one: still 0 to 1, rounded to two decimals.

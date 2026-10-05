@@ -12,7 +12,7 @@ import java.nio.file.StandardCopyOption
  * wherever it came from — a directory pulled off a device, a temporary file, a read only mount, a checkout
  * of this repository — and writing into all of those means littering some of them and failing on the rest. A
  * directory of this app's own always works and is always found again. See [NoteDirectory] and
- * [LeakStatusFile], which are the two things kept that way.
+ * [VerdictFile], which are the two things kept that way.
  */
 
 /**
@@ -34,7 +34,7 @@ internal fun heapDumpFileKey(heapDumpFile: File): String {
 
 /**
  * One spelling of a heap dump's path, so that two ways of naming one file are one set of notes, one set of
- * statuses, and one dump for a [DeepLink] to be about.
+ * verdicts, and one dump for a [DeepLink] to be about.
  *
  * Absolute, since what is written about a dump outlives the working directory the app was started in, and
  * with the `.` and `..` steps taken out, since `./heap.hprof` and `heap.hprof` are what the same dump gets

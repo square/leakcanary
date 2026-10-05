@@ -254,7 +254,7 @@ object is, which side of yours it is on, the reason it was given, and what it wo
 flip those** keeps yours and sets them to the opposite verdict, with what they said kept as part of the new
 reason; **Undo** leaves the heap dump exactly as it was. Nothing is written until you pick one.
 
-The verdicts live in `~/.shark-dive/leak-statuses`, one tab separated file per heap dump, with the columns
+The verdicts live in `~/.shark-dive/verdicts`, one tab separated file per heap dump, with the columns
 named at the top — so they can be read, edited, diffed or pasted into an issue without this app, and they are
 there again the next time you open that dump.
 
@@ -410,9 +410,9 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `list_heap_dumps` | Every heap dump open, for an agent that was given none, and the name each of the rest goes on to use. |
 | `close_heap_dump` | Done with a dump: the window closes, and closing the last one ends the run. |
 | `heap_dump_metadata` | The **Metadata** screen: what the dump says about itself, as the map LeakCanary prints above a leak trace — the device, the app's process, the bitmaps, the open databases. |
-| `list_leak_groups` | The **Leaks** screen: what this heap dump says shouldn't be there, gathered into one group per leak — each with the leak trace LeakCanary prints and the object to solve it through. |
+| `list_leak_groups` | The **Leaks** screen: what this heap dump says shouldn't be there, gathered into one group per leak, with the objects leaking for each one — any of which solves it. |
 | `agent_log` | The **Agent logs** screen: what has already been tried on this dump, and what it came to — and, for one session, every call it made with the text it sent and read back. |
-| `path_from_gc_root` | One path, every step with its labels and its verdict, and whether the verdicts have narrowed it to one reference. |
+| `path_from_gc_roots` | One path: the objects from the GC root down, each with its labels, its verdict and the reference it holds the next one through, and how far the verdicts have narrowed it. |
 | `describe_object` | What an object is: its class, fields, labels, size. |
 | `ways_held` | Every way an object is held, rather than the one path — the *X ways from here* list. |
 | `find_objects` | The object list, by class name. |
@@ -451,8 +451,8 @@ cannot argue with:
   by. So the work is deciding, object by object, whether that object's own job is done — and the last verdict
   that narrows the stretch to one reference is what leaves the heap dump naming it.
 
-**`leakSolved` is what finishing looks like**, and it comes back from `path_from_gc_root` and from
-`set_verdict`:
+**`leakSolved` is what finishing looks like**, and it comes back under `investigation`, from
+`path_from_gc_roots` and from `set_verdict`:
 
 ```json
 {
@@ -460,18 +460,18 @@ cannot argue with:
   "state": "NARROWED",
   "suspectReferenceCount": 2,
   "leakSolvingProgressRatio": 0.67,
-  "suspectReferences": ["ExampleApplication.settings", "SettingsStore.context"],
-  "undecidedObjects": [{ "object": "0x12e9ed60", "className": "com.example.SettingsStore" }],
   "next": "The fault is at one of those references, and what settles which is the objects between them that
-           have no verdict […]"
+           have no verdict […] They are 0x12e9ed60. […]"
 }
 ```
 
-Two references and one object to go and read, rather than a number of steps — one undecided object leaves the
-reference into it and the reference out of it, and its own verdict rules one of them out. Pass
-`solvingLeakOf=<the stuck object>` on a `set_verdict` and its answer says what that verdict did to the leak:
-the candidates before and after, the progress ratio, and `leakSolved` when there is nothing left to
-narrow.
+Two references left and one object to go and read, rather than a number of steps — one undecided object
+leaves the reference into it and the reference out of it, and its own verdict rules one of them out. *Which*
+two references is on the path beside this, as `isSuspect` on each of them, and which object to settle is the
+one the path gives no verdict; a `faultyReference` appears here once the verdicts leave a single candidate,
+with the index in the path of the object that holds it. Pass `solvingLeakOf=<the stuck object>` on a
+`set_verdict` and its answer says what that verdict did to the leak: the candidates before and after, the
+progress ratio, and `leakSolved` when there is nothing left to narrow.
 
 Nothing here judges the answer — no model is called and nothing is scored. An agent that has narrowed a path
 to three unexplained steps has `leakSolved: false` and the three objects to go and read, however sure it is
@@ -591,7 +591,7 @@ is how one agent works out where another went wrong. **And the reads each call c
 `~/.shark-dive/logs`, where the reason it gave is followed by the work it caused:
 
 ```
-18:19:48.035 [shark-dive-agents] An agent called path_from_gc_root(heapDumpKey=leak_asynctask_o.hprof, object=0x12d368b8)
+18:19:48.035 [shark-dive-agents] An agent called path_from_gc_roots(heapDumpKey=leak_asynctask_o.hprof, object=0x12d368b8)
   because: This is the one App leak: a MainActivity the app watched and whose mDestroyed is true. Getting the
   path from a GC root to see every reference holding it and where the faulty one might be.
 18:19:48.038 [heap-dump-leak_asynctask_o.hprof] Reading the path to 0x12d368b8, for an agent
@@ -602,7 +602,7 @@ So an investigation is something you can follow afterwards rather than a conclus
 is the other half of the point, since the reasoning is the part a chat window throws away.
 
 **What it worked out is in the heap dump**, not only in your terminal. The verdicts are in
-`~/.shark-dive/leak-statuses` with everyone else's, each with the evidence the agent gave for it — which is
+`~/.shark-dive/verdicts` with everyone else's, each with the evidence the agent gave for it — which is
 what solved the leak, so it is also the whole of the argument for the answer, in the window beside the object
 and still there next week:
 
@@ -638,9 +638,11 @@ is up, and by opening the file again once none is. So an answer worth keeping ke
 enough to read: it names the heap dump, and where that file is, is looked up.
 
 **The leak trace beside it is the one LeakCanary prints**, and an agent is told to quote it exactly as the
-answer handed it over rather than to write one out: `list_leak_groups` and `path_from_gc_root` both carry it,
+answer handed it over rather than to write one out: `path_from_gc_roots` and `set_verdict` both carry it,
 produced by Shark itself, because a trace retold by a model that drops a step or moves the `~~~~` underline
-is indistinguishable from the real thing to whoever reads it.
+is indistinguishable from the real thing to whoever reads it. They carry the same path as fields too, under
+`leakTrace` beside the text's `humanLeakTrace`, so that the form a program reads and the form a person reads
+are never one field a reader has to guess the shape of.
 
 An agent's verdicts are verdicts like any other: they say `set by hand` on every path that runs through the
 object, the reason is the one it gave, and the pencil takes one off if you disagree with it. Which is the

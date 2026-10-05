@@ -95,20 +95,21 @@ internal object AgentMethod {
        the app itself handed to LeakCanary and said were done with, plus what the inspectors recognised,
        gathered into one group per leak. Start with a group whose objects the app watched, which is the
        strongest evidence a heap dump carries.
-    2. Pick the leak you are solving, and remember its object. Every group names a
-       `representativeObject`. Take that address and work that one object from here on: every object in a
-       group leaks for the same reason, so solving one solves the group. If whoever asked you handed you a
-       leak trace, match it against the `leakTrace` of each group. If nobody chose, show them the group
-       leak traces and ask which one they want.
+    2. Pick the leak you are solving, and remember one object of it. Take an address out of the group's
+       `objects` — the first will do — and work that one object from here on: every object in a group leaks
+       for the same reason, so solving one solves the group. If whoever asked you handed you a leak trace,
+       match it against the references in each group's `name`. If nobody chose, show them the groups and
+       ask which one they want.
        Read this list once, at the start. Your own verdicts change it: a `STUCK` set halfway up a path
        makes that object the leak and folds what it held into it, retained bytes included. So the object
        you have been investigating leaves the list, and the bytes it was reported as retaining are now
        reported against the object you narrowed to, which dominates almost none of them. The same
        reference is still holding the same objects. Where you have got to is in the path, so read the
        path.
-    3. Get the path. `path_from_gc_root` on the object you picked. Read every step. The steps already
-       carry the inspectors' labels and any verdict someone has set, and the answer says how many
-       references are still candidates.
+    3. Get the path. `path_from_gc_roots` on the object you picked. Read every object of it. Each carries
+       the inspectors' labels, any verdict someone has set, and the reference it holds the next object
+       through; a reference marked `isSuspect` is one the leak could still be, and `investigation` says how
+       many of those are left.
     4. Work inwards from both ends. Top down: which of these objects is obviously meant to be here, a
        running thread, a live activity, the application itself? Bottom up: which is obviously done with?
        Set what you can defend with `set_verdict`, always passing `solvingLeakOf` with the object you
@@ -131,9 +132,10 @@ internal object AgentMethod {
 
     Two things:
 
-    - The `leakTrace` as the tool gave it to you, character for character. Never write a leak trace
-      yourself, not from the steps of a path and not from one you were shown earlier. A trace that drops a
-      step or moves the underline looks exactly like the real thing to whoever you hand it to.
+    - The `humanLeakTrace` as the tool gave it to you, character for character — `leakTrace` beside it is
+      the same path as fields for you to read. Never write a leak trace yourself, not from the objects of a
+      path and not from one you were shown earlier. A trace that drops a step or moves the underline looks
+      exactly like the real thing to whoever you hand it to.
     - The `shark://` link to the object you solved, which `show` and every path answer hand back. It opens
       that object, in this heap dump, with the notes on it, long after this run has ended.
 

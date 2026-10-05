@@ -27,6 +27,7 @@ import shark.dive.ReachabilityStrength
 import shark.dive.formatByteSize
 import shark.dive.formatByteSizeOfTotal
 import shark.dive.formatObjectCount
+import shark.dive.headline
 
 /**
  * What the pointer is on, in a card that follows it around the view.
@@ -81,7 +82,7 @@ private fun ObjectLines(
     typeName = summary.kind?.typeName,
     objectId = summary.objectId
   )
-  summary.headline?.let { headline ->
+  summary.content?.headline?.let { headline ->
     Text(headline, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
   }
   StrengthLine(summary.strength)

@@ -57,11 +57,11 @@ data class ObjectListEntry(
   val className: String,
   val kind: HeapObjectKind,
   /**
-   * What the details panel would headline it with — a string's content, a bitmap's size, an array's
-   * length — or null for an object that has none. What tells two instances of a class apart in a list of
-   * them.
+   * What this object is beyond its class — a string's characters, a bitmap's dimensions, an array's length
+   * — or null for an object that says none of that. What tells two instances of a class apart in a list of
+   * them. See [ObjectContent].
    */
-  val headline: String?,
+  val content: ObjectContent?,
   val shallowSize: Long,
   /** The same number the treemap draws this object's rectangle from. */
   val retainedSize: Long,
