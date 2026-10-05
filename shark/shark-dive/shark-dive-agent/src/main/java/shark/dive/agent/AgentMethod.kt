@@ -50,8 +50,9 @@ internal object AgentMethod {
     ## What a leak is
 
     A memory leak is one bad reference: one field of one object that should have been cleared and wasn't.
-    Not a path, and not "the activity is retained". Everything below that reference is in memory because
-    of it, and none of it is at fault. Everything above it is doing its job.
+    Everything below that reference is in memory because of it, and none of it is at fault. Everything
+    above it is doing its job. "The activity is retained" is the symptom and a path is where to look;
+    name the field.
 
     So an investigation is a search for that single reference, and the path from a GC root to a stuck
     object is where it is. Each object on the path gets a verdict:

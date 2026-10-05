@@ -116,15 +116,15 @@ Each of the following is a change already made to this app, not a preference:
   `--leak-investigation-help`, read once by whoever has a use for it, rather than carried in a field every
   call of a session pays for. The window is the same trade against a smaller budget.
 
-## The command line has a house style, and it is not this file's
+## The house style for what the command line prints
 
 `--help`, `--leak-investigation-help`, every tool description and every refusal are printed into a
 terminal, read by an agent and by the person watching it. They were written the way the rest of this
-repository is written, and that is the wrong register for the medium: a paragraph in a `notes/` file costs
-its reader nothing, and a paragraph on somebody's stderr costs them the thing they were working out. The
-sharper problem is that the shapes long-form prose reaches for are the shapes a language model reaches for
-unprompted, so a surface written by agents for agents drifts into sounding like one — and the person at the
-machine, who types the same commands, is who notices.
+repository is written. That register is wrong for the medium: a paragraph in a `notes/` file costs its
+reader nothing, while a paragraph on somebody's stderr costs them the thing they were working out. Worse,
+the shapes long-form prose reaches for are the shapes a language model reaches for unprompted, so a
+surface written by agents for agents drifts into sounding like one. The person at the machine types the
+same commands and notices.
 
 These rules name **shapes rather than words**, on purpose. [Wikipedia's catalogue of AI writing
 signs][ai-signs] already files its own 2023 vocabulary list as historical and splits the rest into three
@@ -136,9 +136,16 @@ before the pass that wrote this section, and they still read as machine-written.
 
 - **No Markdown that nothing renders.** These strings reach `println`, so `**like this**` arrives as four
   asterisks on a terminal. Backticks stay: an identifier marked off is [what `rustc` does][rustc].
-- **No negated antithesis.** `not just X, Y`, `not X but Y`, `Y rather than X` where only Y is the point.
-  Delete the negated half and assert the thing. The exception is a contrast that *is* the information —
-  `object` for an object, `place` for a screen — and it is rarer than it feels while writing one.
+- **No negative parallelism** ([Wikipedia's name for it][ai-signs]): `not just X, Y`, `not X but Y`,
+  `Y rather than X` where only Y is the point. Delete the negated half and assert the
+  thing. A contrast that *is* the information stays — `object` for an object, `place` for a screen. That
+  exception is rarer than it feels while writing one.
+- **No clause that rates the sentence it is attached to.** `, and that is not an oversight`, `, and that
+  is the point`, `, and it is not this file's`. A claim, then a second clause telling the reader how to
+  take the claim. This is the densest tell in the module and the one that survived the pass that wrote
+  this section: 186 of them here against 18 in the whole of the rest of LeakCanary, 6.3 times the rate
+  per word, with a decade of prose nobody generated as the control. Say the thing once. Promote the
+  second clause to a sentence where it carries a fact; otherwise cut it.
 - **No tricolon.** Three parallel items where two carry the sentence. `Not a path, not a subsystem, not
   "the activity is retained"` was the opening line of the method. Keep three only where all three are
   distinct cases the reader has to tell apart, which "a field a compiler generated, a field of a class the
@@ -147,7 +154,8 @@ before the pass that wrote this section, and they still read as machine-written.
   hypothesis." "A `why` that isn't evidence is worse than none." Each of those was here; each closes a
   paragraph by restating it as an epigram, and the instruction above it had already said the thing.
 - **No sentence about the text itself.** "the confident wrong answer this section exists to stop", "where
-  the tools earn their keep", "which is what finishing with a dump is". The reader is working.
+  the tools earn their keep", "which is what finishing with a dump is". Each costs a line and says
+  nothing about the heap dump.
 - **No clause tacked on with `, ensuring …` or `, which is what …`.** Cut it, or promote it to a sentence
   if it carries a fact. Reinhart et al. find instruction-tuned models diverge from human grammatical style
   far more than base models do, and the trailing participial is the shape they diverge by ([PNAS
@@ -155,18 +163,23 @@ before the pass that wrote this section, and they still read as machine-written.
 - **Split a sentence over about 25 words**, and say one thing per message. A refusal reachable from three
   causes is three refusals.
 - **A refusal says what happened and how to fix it**, and names the offending value. That is [Google's
-  error-message rule][errors], and it is what this surface was already good at — the thing to not lose
-  while cutting everything else.
+  error-message rule][errors]. This surface was already good at it, so keep it while cutting the rest.
 - **Em dashes are not the tell**, whatever the folklore says. Pew measured roughly twice the pre-2023 rate
   on the web and then says so itself: "em dashes or Oxford commas on their own don't necessarily mean a
   particular piece of writing was produced using AI – humans use these in their writing too!"
   ([2026][pew]). What is a tell is the shape one usually carries here, a parenthetical aside dropped into
   the middle of an instruction. Rewrite the sentence and the dash leaves with it; don't hunt the character.
 
-Two things this is not. It is not a rule about this file, the KDoc or `notes/` — the section above and the
-root `AGENTS.md` say why those are written long. And it is not licence to make a refusal too terse to act
-on: the method behind `--leak-investigation-help` is prose because its reader is a language model, which
-`AgentMethod` records as the one place in this app where a paragraph beats a label.
+Two limits. The first is on scope, and it is narrower than it looks. The rules about *length* are for
+printed strings only, since this file, the KDoc and `notes/` are written long on purpose and the section
+above says why. The rules about *shape* have no such exemption. A formula repeated 186 times reads as
+generated wherever it sits, and that count was taken across the whole module rather than across the
+strings, so most of it is still there in the KDoc. Fix those where you are already editing. A sweep would
+touch seventy files to make a point this paragraph already makes.
+
+The second limit: none of this licenses a refusal too terse to act on. The method behind
+`--leak-investigation-help` is prose because its reader is a language model, which `AgentMethod` records
+as the one place in this app where a paragraph beats a label.
 
 [ai-signs]: https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
 [delve]: https://aclanthology.org/2025.coling-main.426/
@@ -395,7 +408,7 @@ of the run. Nothing downloads or installs. Three things about it that reading th
 `UpdateNotice` is one per run rather than per window, so dismissing the bar in one window clears it in all
 of them.
 
-## A `shark://` link never reaches a run from Gradle, and that is not a bug in the code
+## A `shark://` link never reaches a run started from Gradle
 
 `DeepLink` is the URL, `DeepLinkScheme` is the OS end of it and `DeepLinkPeers` is how a link crosses
 from one run of this app to another. What reading them won't tell you is that **none of it can be tried
