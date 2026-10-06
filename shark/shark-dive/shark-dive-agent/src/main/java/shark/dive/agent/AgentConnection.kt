@@ -9,9 +9,9 @@ import shark.SharkLog
  * One agent talking to this app: a call per line in, an answer per line back. See [AgentWire].
  *
  * **There is no protocol here beyond naming a tool.** No handshake to answer, nothing to discover, no
- * capabilities to agree on — what the commands are is `--help` and how to work here is
- * [AgentCommandLine.SURFACE_METHOD_OPTION], both of them text this build carries and neither needing a run to
- * print. So a caller is a socket, a line and a read, which is the whole of what [AgentCommandLine] does, and
+ * capabilities to agree on — what the commands are and how to work here is `--help`, text this build
+ * carries and needs no run to print. So a caller is a socket, a line and a read, which is the whole of what
+ * [AgentCommandLine] does, and
  * **nothing this answers with is anything but the answer**: an envelope that carried the method as well would
  * be a field every call of a session pays for to say what one printed text says once.
  *

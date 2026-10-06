@@ -40,6 +40,7 @@ import shark.dive.Place
 import shark.dive.Topic
 import shark.dive.WatchedObject
 import shark.dive.formatByteSize
+import shark.dive.headline
 
 /**
  * Every leaking object of the heap dump, in two halves: the leaks to do something about, which is the app's
@@ -470,7 +471,7 @@ private fun LeakingObjectRow(
               objectId = leakingObject.objectId,
               nameStyle = MaterialTheme.typography.bodySmall
             )
-            leakingObject.headline?.let { headline ->
+            leakingObject.content?.headline?.let { headline ->
               Text(
                 headline,
                 style = MaterialTheme.typography.bodySmall,
@@ -481,7 +482,7 @@ private fun LeakingObjectRow(
             }
             // Why *this* object is stuck, which the inspector that recognized it read off the object
             // itself: two objects of one leak can be stuck for reasons that don't read the same.
-            leakingObject.leakingReason?.let { reason ->
+            leakingObject.verdictReason?.let { reason ->
               Text(
                 reason,
                 style = MaterialTheme.typography.bodySmall,
@@ -502,7 +503,7 @@ private fun LeakingObjectRow(
       leakingObject.watcher?.let { watcher ->
         WatcherRow(
           watcher = watcher,
-          alreadySaid = leakingObject.leakingReason.orEmpty(),
+          alreadySaid = leakingObject.verdictReason.orEmpty(),
           onOpen = onOpen,
           onCopyLink = onCopyLink
         )

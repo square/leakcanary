@@ -28,7 +28,7 @@ import shark.dive.DrawnRootPath
 import shark.dive.HEAD_INDEX
 import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectSummary
-import shark.dive.LeakStatus
+import shark.dive.Verdict
 import shark.dive.PathReference
 import shark.dive.RootPath
 import shark.dive.RootPathStep
@@ -201,7 +201,7 @@ private fun SolvedLeak(
     Text(
       faultyReference.leakLabel(),
       style = MaterialTheme.typography.bodyMedium,
-      color = LeakStatus.STUCK.textColor
+      color = Verdict.STUCK.textColor
     )
     HorizontalDivider(Modifier.padding(top = 8.dp))
   }

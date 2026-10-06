@@ -12,8 +12,8 @@ import shark.dive.AdbOutput
 import shark.dive.DeepLink
 import shark.dive.DeviceHeapDumps
 import shark.dive.HeapDumpPaths
-import shark.dive.LeakStatus
-import shark.dive.LeakStatusOverride
+import shark.dive.Verdict
+import shark.dive.VerdictOverride
 import shark.dive.Place
 import shark.dive.agent.AgentCommandLine
 import shark.dive.agent.AgentRefusal
@@ -119,14 +119,14 @@ class HeadlessAgentHeapDumpsTest {
   @Test
   fun `a verdict recorded with no window is on disk for the next window to read`() {
     val dumped = temporaryFolder.leakyHeapDump()
-    val statuses = temporaryFolder.newFolder("leak-statuses")
+    val verdicts = temporaryFolder.newFolder("verdicts")
     val notes = temporaryFolder.newFolder("notes")
-    headless(dumped.file, statuses = statuses, notes = notes).use { heapDumps ->
+    headless(dumped.file, verdicts = verdicts, notes = notes).use { heapDumps ->
       val dump = runBlocking { heapDumps.open(dumped.file) }
 
       runBlocking {
         dump.setVerdict(
-          LeakStatusOverride(dumped.watchedObjectId, LeakStatus.STUCK, "The app said it was done with it."),
+          VerdictOverride(dumped.watchedObjectId, Verdict.STUCK, "The app said it was done with it."),
           solved = emptyList()
         )
         dump.appendToNote(Place.Object(dumped.watchedObjectId), "Held by the presenters map.")
@@ -134,9 +134,9 @@ class HeadlessAgentHeapDumpsTest {
 
       // Read back the way another run of the app reads it, which is the whole claim: an investigation over
       // ssh today is one a window opens tomorrow.
-      val reread = DiveLeakStatuses(statuses).of(dumped.file)
+      val reread = DiveVerdicts(verdicts).of(dumped.file)
       runBlocking { reread.read() }
-      assertThat(reread.overrides[dumped.watchedObjectId]?.status).isEqualTo(LeakStatus.STUCK)
+      assertThat(reread.overrides[dumped.watchedObjectId]?.verdict).isEqualTo(Verdict.STUCK)
       val rereadNote = DiveNotes(notes).of(dumped.file).of(Place.Object(dumped.watchedObjectId))
       runBlocking { rereadNote.read() }
       assertThat(rereadNote.text).contains("Held by the presenters map.")
@@ -145,7 +145,7 @@ class HeadlessAgentHeapDumpsTest {
 
   private fun headless(
     vararg heapDumpFiles: File,
-    statuses: File = temporaryFolder.newFolder("statuses-${heapDumpFiles.size}"),
+    verdicts: File = temporaryFolder.newFolder("verdicts-${heapDumpFiles.size}"),
     notes: File = temporaryFolder.newFolder("notes-${heapDumpFiles.size}"),
     paths: File = temporaryFolder.newFolder("paths-${heapDumpFiles.size}")
   ) = HeadlessAgentHeapDumps(
@@ -154,7 +154,7 @@ class HeadlessAgentHeapDumpsTest {
     deviceHeapDumps = DeviceHeapDumps(NoAdb),
     heapDumpFiles = heapDumpFiles.toList(),
     notes = DiveNotes(notes),
-    leakStatuses = DiveLeakStatuses(statuses),
+    verdicts = DiveVerdicts(verdicts),
     // This machine's own is where the app writes these, and a test writing there would leave records of heap
     // dumps that only ever existed in a temporary folder.
     heapDumpPaths = HeapDumpPaths(paths)

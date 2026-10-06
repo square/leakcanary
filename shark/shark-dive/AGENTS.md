@@ -103,7 +103,7 @@ Each of the following is a change already made to this app, not a preference:
   something is to print the paragraph on it. Setting a verdict was a material3 `AlertDialog` and its
   conflicts step broke on exactly that, twice over: the `?` had nowhere to go, and each verdict being
   overruled is an object worth going to look at, which meant dismissing the dialog and losing the half
-  typed reason. `LeakStatusSetter` is the same dialog drawn by hand — same card, same scrim — inside the
+  typed reason. `VerdictSetter` is the same dialog drawn by hand — same card, same scrim — inside the
   `Box` holding the tab's panes, so the bar and the tab strip above it stay clickable, with its state kept
   per tab id by `HeapDumpDive` rather than `remember`ed, so switching tabs and coming back finds it as it
   was. **So don't reach for `AlertDialog` for a step of reading a heap dump.** The three that stay one —
@@ -112,9 +112,81 @@ Each of the following is a change already made to this app, not a preference:
   reaching.
 - **Prose belongs in the KDoc, `notes/decisions.md`, or a reference page.** Those are the three places
   something long enough to be worth writing goes. `notes/agent-surface.md` measures the same idea on the
-  agent surface, where both halves of the method ended up out of the answers entirely: they are printed by
-  `--investigation-help` and `--leak-investigation-help`, read once by whoever has a use for one, rather than
-  carried in a field every call of a session pays for. The window is the same trade against a smaller budget.
+  agent surface, where the method ended up out of the answers entirely: it is printed by
+  `--leak-investigation-help`, read once by whoever has a use for it, rather than carried in a field every
+  call of a session pays for. The window is the same trade against a smaller budget.
+
+## The house style for what the command line prints
+
+`--help`, `--leak-investigation-help`, every tool description and every refusal are printed into a
+terminal, read by an agent and by the person watching it. They were written the way the rest of this
+repository is written. That register is wrong for the medium: a paragraph in a `notes/` file costs its
+reader nothing, while a paragraph on somebody's stderr costs them the thing they were working out. Worse,
+the shapes long-form prose reaches for are the shapes a language model reaches for unprompted, so a
+surface written by agents for agents drifts into sounding like one. The person at the machine types the
+same commands and notices.
+
+These rules name **shapes rather than words**, on purpose. [Wikipedia's catalogue of AI writing
+signs][ai-signs] already files its own 2023 vocabulary list as historical and splits the rest into three
+eras, while the sentence shapes have held across all of them. A word list also goes stale and, used as a
+ban, is wrong about people: `delve` is ordinary in Nigerian and British-educated English, and Juzek and
+Ward [failed to find what causes its overrepresentation][delve] at all. **So don't lint for words.** None
+of this was a problem of vocabulary here — the strings had no `delve`, no `crucial`, no `robust` in them
+before the pass that wrote this section, and they still read as machine-written.
+
+- **No Markdown that nothing renders.** These strings reach `println`, so `**like this**` arrives as four
+  asterisks on a terminal. Backticks stay: an identifier marked off is [what `rustc` does][rustc].
+- **No negative parallelism** ([Wikipedia's name for it][ai-signs]): `not just X, Y`, `not X but Y`,
+  `Y rather than X` where only Y is the point. Delete the negated half and assert the
+  thing. A contrast that *is* the information stays — `object` for an object, `place` for a screen. That
+  exception is rarer than it feels while writing one.
+- **No clause that rates the sentence it is attached to.** `, and that is not an oversight`, `, and that
+  is the point`, `, and it is not this file's`. A claim, then a second clause telling the reader how to
+  take the claim. This is the densest tell in the module and the one that survived the pass that wrote
+  this section: 186 of them here against 18 in the whole of the rest of LeakCanary, 6.3 times the rate
+  per word, with a decade of prose nobody generated as the control. Say the thing once. Promote the
+  second clause to a sentence where it carries a fact; otherwise cut it.
+- **No tricolon.** Three parallel items where two carry the sentence. `Not a path, not a subsystem, not
+  "the activity is retained"` was the opening line of the method. Keep three only where all three are
+  distinct cases the reader has to tell apart, which "a field a compiler generated, a field of a class the
+  app doesn't ship, a reference the OS holds for another process" is and most are not.
+- **No manufactured aphorism.** "A trace you typed is a retelling." "A root cause nobody can trigger is a
+  hypothesis." "A `why` that isn't evidence is worse than none." Each of those was here; each closes a
+  paragraph by restating it as an epigram, and the instruction above it had already said the thing.
+- **No sentence about the text itself.** "the confident wrong answer this section exists to stop", "where
+  the tools earn their keep", "which is what finishing with a dump is". Each costs a line and says
+  nothing about the heap dump.
+- **No clause tacked on with `, ensuring …` or `, which is what …`.** Cut it, or promote it to a sentence
+  if it carries a fact. Reinhart et al. find instruction-tuned models diverge from human grammatical style
+  far more than base models do, and the trailing participial is the shape they diverge by ([PNAS
+  2025][pnas]).
+- **Split a sentence over about 25 words**, and say one thing per message. A refusal reachable from three
+  causes is three refusals.
+- **A refusal says what happened and how to fix it**, and names the offending value. That is [Google's
+  error-message rule][errors]. This surface was already good at it, so keep it while cutting the rest.
+- **Em dashes are not the tell**, whatever the folklore says. Pew measured roughly twice the pre-2023 rate
+  on the web and then says so itself: "em dashes or Oxford commas on their own don't necessarily mean a
+  particular piece of writing was produced using AI – humans use these in their writing too!"
+  ([2026][pew]). What is a tell is the shape one usually carries here, a parenthetical aside dropped into
+  the middle of an instruction. Rewrite the sentence and the dash leaves with it; don't hunt the character.
+
+Two limits. The first is on scope, and it is narrower than it looks. The rules about *length* are for
+printed strings only, since this file, the KDoc and `notes/` are written long on purpose and the section
+above says why. The rules about *shape* have no such exemption. A formula repeated 186 times reads as
+generated wherever it sits, and that count was taken across the whole module rather than across the
+strings, so most of it is still there in the KDoc. Fix those where you are already editing. A sweep would
+touch seventy files to make a point this paragraph already makes.
+
+The second limit: none of this licenses a refusal too terse to act on. The method behind
+`--leak-investigation-help` is prose because its reader is a language model, which `AgentMethod` records
+as the one place in this app where a paragraph beats a label.
+
+[ai-signs]: https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+[delve]: https://aclanthology.org/2025.coling-main.426/
+[errors]: https://developers.google.com/tech-writing/error-messages
+[pew]: https://www.pewresearch.org/data-labs/2026/08/20/how-much-of-the-internet-is-written-with-ai/
+[pnas]: https://www.pnas.org/doi/10.1073/pnas.2422455122
+[rustc]: https://rustc-dev-guide.rust-lang.org/diagnostics.html
 
 ## One concept, one name, one place
 
@@ -134,7 +206,7 @@ this way, each of which was several before:
 | A rectangle that isn't one object | `formatObjectCount` — a count, whichever kind of pile it is |
 | Which reference a leak is | `PathReference.leakLabel()`, `RootPath.faultyReference()`, and `RootPath.suspectReferences()` while it is still several |
 | Whether that leak is worked out | `RootPath.isLeakSolved()`, and `leakSolvingProgressRatio()` for how far off it is |
-| Whether an object is meant to be in memory | `LeakStatus`: `STUCK`, `EXPECTED`, `UNKNOWN`, nothing else |
+| Whether an object is meant to be in memory | `Verdict`: `STUCK`, `EXPECTED`, `UNKNOWN`, nothing else |
 | What a place is called | `Place.title` |
 
 **So grep for the concept before writing a label.** A new string that names something the window already
@@ -153,28 +225,46 @@ stale silently, which is why `LeakKind.explanation` is null for the five kinds n
 ## A verdict set by hand is an argument to every read, never state of the tree
 
 **`STUCK`, `EXPECTED` and `UNKNOWN` are the only words for this, everywhere** — the enum, the window, the
-`leak-statuses` files and the agent surface. A person watching an agent work has to be able to say the same
+`verdicts` files and the agent surface. A person watching an agent work has to be able to say the same
 thing about the same object as the agent, and a vocabulary that changes at the edge of the process is one
 nobody can check across it. Shark now says the same three words, in
 [`shark.LeakTraceObject.Verdict`](../shark/src/main/java/shark/LeakTraceObject.kt) — that started here and
 moved down, so `LeakFingerprint`'s mapping to it is an identity and `LEAKING`/`NOT_LEAKING` is dead
 vocabulary rather than a boundary to hold. Don't reintroduce either word, in an enum, a JSON value or a
-message. `LeakStatus.statusText` is the case-only difference between the constant and a sentence.
+message. `Verdict.text` is the case-only difference between the constant and a sentence.
 
 None of the three is built on "leak" for a reason worth keeping: a leak is one faulty reference, and calling
 everything under it leaking points readers at the wrong thing. The code still says `suspectPath` where Shark
 does. `notes/decisions.md` has why each word won.
 
-**A `leak-statuses` file written before the rename will have `LEAKING`/`NOT_LEAKING` in it** and its rows are
-skipped with a line in the log saying which, since `LeakStatusFile` matches a status by name. That is the
-intended cost of having one vocabulary; this app is an alpha and the files are three columns of text anybody
-can fix with `sed`.
+**A file written before the rename is not read at all, and that is deliberate on both halves.** The verdicts
+live in `~/.shark-dive/verdicts` now, one `<dump>.verdicts.tsv` each, so what was written to
+`~/.shark-dive/leak-statuses` as `.leak-statuses.tsv` is a heap dump that reads as having no verdict set on
+it. An older one has `LEAKING`/`NOT_LEAKING` in its rows as well, which `VerdictFile` skips with a line in the
+log saying which, since it matches a verdict by name. Having one vocabulary on disk as well as in the code
+costs that; this app is an alpha and the files are three columns of text anybody can fix with `mv` and `sed`.
 
 **Which reference the leak is, is decided once, over the whole path** — `faultyReferenceIndexOrNull`, called
-from `withLeakStatuses` — and carried on `PathReference.isFaulty` for the drawing to read. Working it out in
+from `withVerdicts` — and carried on `PathReference.isFaulty` for the drawing to read. Working it out in
 the window from the steps on screen looks equivalent and isn't: a pane draws stretches of a path
 (`stepsBelow`, `stepsAfter`, a swapped-in `RootPathWay`), so the object that ends the stretch can be above
 what it shows.
+
+**`isFaulty` is a field for the window and `isSuspect` is what goes over the wire.** The drawing needs the
+one reference to mark, and it has the whole path to hand; an agent reads a path a step at a time and the
+question at each step is whether that reference is still a candidate, which is `suspectReferenceIndexes`
+asked per step — `AgentJson.pathStepInto`. The two agree in exactly one state, a solved leak, where the
+single suspect is the faulty one and `faultyReference` on the agent's `investigation` names it. So a JSON
+step carrying both would be the same fact under two names on every step of every path, and the one it
+carries is the one that says something while an investigation is still running.
+
+**And the same split is why no model type here holds a formatted string.** `ObjectContent` is a string's
+characters, a bitmap's width, height and recycled flag, a thread's name — the facts — and `ObjectContent.headline`
+is the one line a window draws them as. It was the other way round, a `headline: String?` formatted while the
+heap dump was read and carried by four model types, which put `"420 × 467 pixels, recycled"` on a surface
+that is also read by a program: three facts as characters to parse back, plus a `headline` of null on every
+object that is none of those kinds. A fact goes in the model and its wording goes at the edge that needs it,
+the way `Verdict.text` does.
 
 **And it marks nothing unless one step crosses from `Expected` to `Stuck`.** `suspectReferenceIndexes`, the
 whole stretch between the two verdicts, is what a leak is *named* after — `suspectSubpath`, and Shark's leak
@@ -192,8 +282,10 @@ over `suspectReferenceIndexes` and never a count of steps or of objects.
 **And a count stands beside the candidates, never instead of them.** `RootPath.suspectReferences()` is which
 references they are and the undecided objects are which objects to go and settle; the count and
 `RootPath.leakSolvingProgressRatio()` say how far from one there is left to go, which is what makes a
-verdict's answer readable as progress without re-reading the path. `PathVerdicts` is all of it in one shape
-for an agent. Taking the candidates away and leaving the number would put this back where it started.
+verdict's answer readable as progress without re-reading the path. Taking the candidates away and leaving the
+number would put this back where it started — which is why an agent's `investigation` carries the count and
+the path beside it carries `isSuspect` on each reference and a verdict on each object, rather than the count
+on its own. `PathInvestigation` in `shark-dive-agent` is that shape.
 
 **And it is a ratio rather than a percentage, which is why every name for it ends in `Ratio`.** 0 to 1 and 0
 to 100 are both ways to spell a share, so a number that says neither gets read as whichever the reader
@@ -218,23 +310,23 @@ a leak was in is no part of what it is) and a reference from a running method ha
 `RootPath.faultyReference()` is the matching single answer to "does this path name one?", which is what both
 the window's section and the agent's field are.
 
-Someone reading a heap dump can overrule what the inspectors made of an object, and the statuses they set
-are a `LeakStatusOverrides` **passed into every question whose answer they change** — `summarize`,
+Someone reading a heap dump can overrule what the inspectors made of an object, and the verdicts they set
+are a `VerdictOverrides` **passed into every question whose answer they change** — `summarize`,
 `rootPathTo`, `independentPathsBetween`, `independentPathsFromRoots`, `findLeaks`, `isBelowLeakingObject` —
 rather than something the tree holds. It has to be that way round for the reason above: the tree is read from
 one thread and the window composed on another, so overrides in the tree would draw a path from one set of
 them and the row above it from another.
 
-**The parameter defaults to `LeakStatusOverrides.NONE`**, so a new read that forgets it compiles and answers
-with the dump's own reading — which looks right, and is wrong the moment anybody has set a status. Thread it
+**The parameter defaults to `VerdictOverrides.NONE`**, so a new read that forgets it compiles and answers
+with the dump's own reading — which looks right, and is wrong the moment anybody has set a verdict. Thread it
 through, and key the `LaunchedEffect` that asks on the overrides, which is what makes setting one redraw.
 
-**`findLeaks` is one of them, and the least obvious**: setting a status changes *which objects are leaks*,
+**`findLeaks` is one of them, and the least obvious**: setting a verdict changes *which objects are leaks*,
 not only how one of them reads. Mark something leaking halfway up a path and it becomes a leak, while
 whatever it holds drops off the list — that object is now only in memory because of this one, which is what
-`foldedIntoWhatHoldsThem` folds. The list is worked out again per set of statuses and kept until the next,
+`foldedIntoWhatHoldsThem` folds. The list is worked out again per set of verdicts and kept until the next,
 and `RootPathSearch` goes round what a hand marked leaking exactly as it goes round what the inspectors did,
-so the path a leak is grouped by and the statuses drawn on that path are one answer. The price is that a
+so the path a leak is grouped by and the verdicts drawn on that path are one answer. The price is that a
 `LeakGroup.leakFingerprint` only matches LeakCanary's for the same objects while nothing is set by hand;
 `notes/decisions.md` has the rest.
 
@@ -336,7 +428,7 @@ of the run. Nothing downloads or installs. Three things about it that reading th
 `UpdateNotice` is one per run rather than per window, so dismissing the bar in one window clears it in all
 of them.
 
-## A `shark://` link never reaches a run from Gradle, and that is not a bug in the code
+## A `shark://` link never reaches a run started from Gradle
 
 `DeepLink` is the URL, `DeepLinkScheme` is the OS end of it and `DeepLinkPeers` is how a link crosses
 from one run of this app to another. What reading them won't tell you is that **none of it can be tried
@@ -640,6 +732,45 @@ what to type, not a heap dump that can't be found.
 change — don't reach for `runNamed` for that. When the change is done and the app is being started for
 someone else to look at, use `runNamed`: it is the only one of the two the dock will name, and with
 several Shark Dive windows open the dock is what they navigate by. See the dock section above.
+
+### Trying the command line
+
+`./shark-dive.sh` at the repo root builds the app and runs it, the way `shark-cli.sh` does for `shark-cli`:
+
+```bash
+./shark-dive.sh --help
+./shark-dive.sh --cli list_heap_dumps reason="what is open"
+```
+
+It goes through a packaged bundle rather than `run --args="…"` so that arguments arrive as typed: every
+command here carries a `reason="a whole sentence"`, and `--args` is one string Gradle splits itself. About
+ten seconds for an incremental change, most of it Kotlin rather than jlink — the minute the build scripts
+warn about is the first jlink, not each one.
+
+**A `--cli` command is answered by a Shark Dive that is already running, not by the one you just built.**
+The three help options are the exception: `helpExitCode` prints them and exits before anything connects,
+so `--help`, `--help <command>` and `--leak-investigation-help` always come from your build. Everything
+else goes over a loopback socket to a published run.
+
+Which run it reaches is filtered by build sha, and that filter is narrower than it sounds. The sha is
+`git rev-parse --short HEAD` with no `-dirty` suffix, and `shark-dive-app/build.gradle.kts` says why: a
+dirty sha would orphan the run you started a minute ago, which is the run you are building the command
+line in order to talk to. So **a run from another branch or another commit is invisible, and a run from
+your own commit stays reachable however many times you have edited and rebuilt since.** The stale answer
+you will actually hit is therefore your own window from earlier the same morning — a refusal you are
+certain you rewrote, printed in its old words, is that. `cat ~/.shark-dive/agents/*.agent` is every
+published run with the sha it was built from, `--debug-run=<pid>` picks one, and a run ends when its last
+heap dump closes.
+
+Two rough edges, neither worth fixing yet:
+
+- **Don't leave a window open from this script.** It launches the bundle sitting in `build/compose`, and
+  the next `createDistributable` overwrites that directory. A window whose files are replaced underneath
+  it dies. Use this for commands, and `run` or `runNamed` for a window you mean to keep.
+- **The help prints a whole path where a command name belongs.** Every synopsis line comes out as
+  `"…/app/Shark Dive.app/Contents/MacOS/Shark Dive" --cli …` rather than `shark-dive`, because
+  `commandToRunThis` asks the OS what started this process and that is the honest answer for a bundle in a
+  build directory. Cosmetic, and only when started this way.
 
 `check` runs detekt (config at `config/detekt-config.yml`); CI and the pre-push hook both enforce
 it, so run it before pushing.

@@ -131,7 +131,7 @@ class HeapDominatorTreemap internal constructor(
   /**
    * Which objects a path is worth going round, by object index. See [RootPathSearch].
    *
-   * The heap dump's own answer, with the statuses set by hand written over it, and edited in place rather
+   * The heap dump's own answer, with the verdicts set by hand written over it, and edited in place rather
    * than built again per read: [rootPathSearch] holds on to this array and five more the size of the heap
    * dump, so undoing a handful of ids costs nothing where building another walk costs the dump twice over.
    * Which is only sound because one thread reads the tree — see [rootPathSearchThrough].
@@ -142,18 +142,18 @@ class HeapDominatorTreemap internal constructor(
     indexes
   }
 
-  /** Which statuses set by hand [leakingIndexes] is written over by, so that they can be taken back off. */
-  private var indexedOverrides = LeakStatusOverrides.NONE
+  /** Which verdicts set by hand [leakingIndexes] is written over by, so that they can be taken back off. */
+  private var indexedOverrides = VerdictOverrides.NONE
 
   /**
    * The walk up to the roots, going round what [overrides] say shouldn't be in memory as well as what the
-   * heap dump does: a status set by hand is the answer everything else here is read through, so a path
+   * heap dump does: a verdict set by hand is the answer everything else here is read through, so a path
    * that could have avoided an object someone marked leaking is the path to draw.
    *
    * Every read of a tree is on that heap dump's one thread, which is what makes editing [leakingIndexes]
    * between reads safe: no walk is in flight while this runs.
    */
-  private fun rootPathSearchThrough(overrides: LeakStatusOverrides): RootPathSearch {
+  private fun rootPathSearchThrough(overrides: VerdictOverrides): RootPathSearch {
     val search = rootPathSearch
     if (overrides != indexedOverrides) {
       // Back to what the heap dump said about the objects the last read was through, before writing this
@@ -162,14 +162,14 @@ class HeapDominatorTreemap internal constructor(
         leakingIndexes.markLeaking(override.objectId, override.objectId in leakingCandidateIds)
       }
       overrides.all.forEach { override ->
-        leakingIndexes.markLeaking(override.objectId, override.status == LeakStatus.STUCK)
+        leakingIndexes.markLeaking(override.objectId, override.verdict == Verdict.STUCK)
       }
       indexedOverrides = overrides
     }
     return search
   }
 
-  /** Silently ignores an object of another heap dump, which is what a status set on one is here. */
+  /** Silently ignores an object of another heap dump, which is what a verdict set on one is here. */
   private fun BooleanArray.markLeaking(
     objectId: Long,
     isLeaking: Boolean
@@ -463,8 +463,8 @@ class HeapDominatorTreemap internal constructor(
    */
   fun summarize(
     objectId: Long,
-    /** The statuses set by hand, which win over what the inspectors make of this object. */
-    overrides: LeakStatusOverrides = LeakStatusOverrides.NONE
+    /** The verdicts set by hand, which win over what the inspectors make of this object. */
+    overrides: VerdictOverrides = VerdictOverrides.NONE
   ): HeapObjectSummary {
     require(group(objectId) == null) {
       "$objectId stands for a pile of objects rather than for one. Ask groupOrNull() first, and " +
@@ -475,28 +475,28 @@ class HeapDominatorTreemap internal constructor(
     val className = heapObject?.className()
     val fields = heapObject?.fieldsOf() ?: FieldList(emptyList(), totalCount = 0)
     val reporter = heapObject?.inspect()
-    // What this object is by itself, which is a path of one: the two rules that decide the rest of a status
-    // are about the objects above and below, and here there are none. See [leakStatusesOf]. Null for the
+    // What this object is by itself, which is a path of one: the two rules that decide the rest of a verdict
+    // are about the objects above and below, and here there are none. See [verdictsOf]. Null for the
     // virtual root above the heap dump, which is no object and has nothing to inspect.
     val own = if (className == null || reporter == null) {
       null
     } else {
-      leakStatusesOf(listOf(reporter.inspected(className, overrides))).single()
+      verdictsOf(listOf(reporter.inspected(className, overrides))).single()
     }
     return HeapObjectSummary(
       objectId = objectId,
       label = label(objectId),
       className = className ?: ROOT_LABEL,
       kind = heapObject?.kind(),
-      headline = heapObject?.headline(),
+      content = heapObject?.content(),
       strength = strengthOf(objectId),
       shallowSize = node.shallowSize,
       retainedSize = node.retainedSize,
       retainedCount = node.retainedCount,
       dominatedObjectCount = node.dominatedObjectIds.size,
       inspectorLabels = reporter?.labels?.toList() ?: emptyList(),
-      leakStatus = own?.status ?: LeakStatus.UNKNOWN,
-      leakStatusReason = own?.reason,
+      verdict = own?.verdict ?: Verdict.UNKNOWN,
+      verdictReason = own?.reason,
       fields = fields.shown,
       hiddenFieldCount = fields.totalCount - fields.shown.size
     )
@@ -508,7 +508,7 @@ class HeapDominatorTreemap internal constructor(
    *
    * Both halves every time, because they are the same read: the inspectors work out the reasons on the way
    * to the labels, and a path that kept only the labels would be one heap dump read away from knowing
-   * whether the objects on it are leaking. See [LeakStatus].
+   * whether the objects on it are leaking. See [Verdict].
    */
   private fun HeapObject.inspect(): ObjectReporter {
     val reporter = ObjectReporter(this)
@@ -518,12 +518,12 @@ class HeapDominatorTreemap internal constructor(
 
   /**
    * What one object is before a path is taken into account: what the inspectors said, and whatever a hand
-   * set instead. See [leakStatusesOf].
+   * set instead. See [verdictsOf].
    */
   private fun ObjectReporter.inspected(
     /** Read already by whoever asked, since naming the object is most of what they were reading it for. */
     className: String,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): InspectedPathObject = InspectedPathObject(
     simpleClassName = className.substringAfterLast('.'),
     stuckReasons = stuckReasons,
@@ -608,7 +608,7 @@ class HeapDominatorTreemap internal constructor(
       objectId = objectId,
       className = heapObject.className(),
       kind = heapObject.kind(),
-      headline = heapObject.headline(),
+      content = heapObject.content(),
       shallowSize = shallowSize,
       retainedSize = retainedSize,
       strength = reachability.strengthOf(heapObject)
@@ -681,8 +681,8 @@ class HeapDominatorTreemap internal constructor(
   fun independentPathsBetween(
     fromObjectId: Long,
     toObjectId: Long,
-    /** The statuses set by hand, which win over what the inspectors make of the objects on these paths. */
-    overrides: LeakStatusOverrides = LeakStatusOverrides.NONE
+    /** The verdicts set by hand, which win over what the inspectors make of the objects on these paths. */
+    overrides: VerdictOverrides = VerdictOverrides.NONE
   ): IndependentPaths {
     val fromIndex = referrerIndex.indexOf(fromObjectId)
     if (fromIndex == ReferrerIndex.NOT_AN_OBJECT) {
@@ -707,7 +707,7 @@ class HeapDominatorTreemap internal constructor(
    */
   fun independentPathsFromRoots(
     toObjectId: Long,
-    overrides: LeakStatusOverrides = LeakStatusOverrides.NONE
+    overrides: VerdictOverrides = VerdictOverrides.NONE
   ): IndependentPaths =
     independentPathsTo(toObjectId, isBelowGroup = true, overrides = overrides) { index ->
       index in treeRootIndexes
@@ -717,7 +717,7 @@ class HeapDominatorTreemap internal constructor(
     toObjectId: Long,
     /** Whether a path starts at a GC rooted object, which is then a step of it rather than left out. */
     isBelowGroup: Boolean,
-    overrides: LeakStatusOverrides,
+    overrides: VerdictOverrides,
     isSource: (Int) -> Boolean
   ): IndependentPaths {
     if (toObjectId == root || toObjectId !in nodes) {
@@ -779,15 +779,15 @@ class HeapDominatorTreemap internal constructor(
    */
   fun rootPathTo(
     objectId: Long,
-    /** The statuses set by hand, which win over what the inspectors make of the objects on this path. */
-    overrides: LeakStatusOverrides = LeakStatusOverrides.NONE
+    /** The verdicts set by hand, which win over what the inspectors make of the objects on this path. */
+    overrides: VerdictOverrides = VerdictOverrides.NONE
   ): RootPath = rootPathAlong(rootPathObjectIdsTo(objectId, overrides), overrides)
 
   /**
    * Whether [fromObjectId] holds [toObjectId], through any path of the references this tree was built by.
    *
    * Half of what "above" and "below" mean when they are asked about two objects rather than about one path:
-   * two objects of a heap dump often reach each other, and then neither is above the other, so a status set
+   * two objects of a heap dump often reach each other, and then neither is above the other, so a verdict set
    * by hand is settled against another one by asking this both ways round. See `isAbove`.
    *
    * One walk up the referrers from [toObjectId], which on an object the whole heap dump holds is a walk over
@@ -804,7 +804,7 @@ class HeapDominatorTreemap internal constructor(
     val fromIndex = referrerIndex.indexOf(fromObjectId)
     val toIndex = referrerIndex.indexOf(toObjectId)
     if (fromIndex == ReferrerIndex.NOT_AN_OBJECT || toIndex == ReferrerIndex.NOT_AN_OBJECT) {
-      // One of them is no object of this heap dump, which is what a status set on another dump's object is:
+      // One of them is no object of this heap dump, which is what a verdict set on another dump's object is:
       // an address is only an address of the dump it was written down in.
       SharkLog.d {
         "${hexObjectId(fromObjectId)} does not reach ${hexObjectId(toObjectId)}: one of them is no object " +
@@ -825,7 +825,7 @@ class HeapDominatorTreemap internal constructor(
    */
   private fun rootPathObjectIdsTo(
     objectId: Long,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): List<Long> {
     if (objectId == root || objectId !in nodes) {
       return emptyList()
@@ -855,7 +855,7 @@ class HeapDominatorTreemap internal constructor(
   /** The steps of [pathObjectIds], read out of the heap dump, with what dominates it marked. */
   private fun rootPathAlong(
     pathObjectIds: List<Long>,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): RootPath {
     if (pathObjectIds.isEmpty()) {
       return RootPath.NONE
@@ -880,7 +880,7 @@ class HeapDominatorTreemap internal constructor(
    */
   private fun stepsAlong(
     pathObjectIds: List<Long>,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): List<PathStep> =
     pathObjectIds.mapIndexed { index, stepObjectId ->
       if (index == 0) {
@@ -889,7 +889,7 @@ class HeapDominatorTreemap internal constructor(
       } else {
         stepTo(stepObjectId, referrerId = pathObjectIds[index - 1], overrides = overrides)
       }
-    }.withLeakStatuses()
+    }.withVerdicts()
 
   /** The objects that dominate [objectId], which every path from a GC root down to it goes through. */
   private fun dominatorIdsOf(objectId: Long): Set<Long> {
@@ -917,7 +917,7 @@ class HeapDominatorTreemap internal constructor(
    * asked for, like the list of every object, rather than anywhere near the pointer. Worked out once per
    * heap dump and kept.
    *
-   * **Read through the statuses set by hand**, like everything else here: an object someone marked leaking
+   * **Read through the verdicts set by hand**, like everything else here: an object someone marked leaking
    * is one of these however it reads, and one they marked anything else is none of them, whatever an
    * inspector recognized it as. Which is a list that changes as they are set rather than only a colour on
    * an object — marking something leaking halfway up a path puts it on this list and takes what it holds
@@ -926,20 +926,20 @@ class HeapDominatorTreemap internal constructor(
    * The price is that a [LeakGroup.leakFingerprint] only matches the one LeakCanary computes for the same
    * objects while nothing is set by hand: the fingerprint hashes the stretch of path between the last
    * expected object and the first stuck one, and moving either end is the point of
-   * setting a status. Nothing else compares fingerprints across the two. See [LeakStatusOverride].
+   * setting a verdict. Nothing else compares fingerprints across the two. See [VerdictOverride].
    *
-   * Worked out again per set of statuses and kept until the next one, since a status is set by hand and
+   * Worked out again per set of verdicts and kept until the next one, since a verdict is set by hand and
    * this is seconds: the window asks for the leaks again when someone sets one, and asks for the same
-   * statuses over and over while nobody is.
+   * verdicts over and over while nobody is.
    */
   fun findLeaks(
-    /** The statuses set by hand, which win over what the inspectors make of these objects. */
-    overrides: LeakStatusOverrides = LeakStatusOverrides.NONE
+    /** The verdicts set by hand, which win over what the inspectors make of these objects. */
+    overrides: VerdictOverrides = VerdictOverrides.NONE
   ): HeapLeaks = leaksThrough(overrides).leaks
 
-  /** The leaks as one set of statuses reads them, kept until another set is asked for. */
+  /** The leaks as one set of verdicts reads them, kept until another set is asked for. */
   private class ReadLeaks(
-    val overrides: LeakStatusOverrides,
+    val overrides: VerdictOverrides,
     val leaks: HeapLeaks,
     /** The same objects as a set, kept because [isBelowLeakingObject] asks about the ids per read. */
     val leakingObjectIds: Set<Long>
@@ -947,7 +947,7 @@ class HeapDominatorTreemap internal constructor(
 
   private var lastLeaks: ReadLeaks? = null
 
-  private fun leaksThrough(overrides: LeakStatusOverrides): ReadLeaks {
+  private fun leaksThrough(overrides: VerdictOverrides): ReadLeaks {
     lastLeaks?.let { read ->
       if (read.overrides == overrides) {
         return read
@@ -968,8 +968,8 @@ class HeapDominatorTreemap internal constructor(
    */
   fun isBelowLeakingObject(
     node: Long,
-    /** The statuses set by hand, which are as much a reason to shade a rectangle as an inspector is. */
-    overrides: LeakStatusOverrides = LeakStatusOverrides.NONE
+    /** The verdicts set by hand, which are as much a reason to shade a rectangle as an inspector is. */
+    overrides: VerdictOverrides = VerdictOverrides.NONE
   ): Boolean {
     val leakingObjectIds = leaksThrough(overrides).leakingObjectIds
     if (leakingObjectIds.isEmpty()) {
@@ -1007,17 +1007,17 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * The same objects with the statuses set by hand written over them, which is what [findLeaks] lists: one
+   * The same objects with the verdicts set by hand written over them, which is what [findLeaks] lists: one
    * marked leaking belongs on the list whatever the heap dump makes of it, and one marked anything else is
    * someone saying the heap dump is wrong about it.
    */
-  private fun leakingCandidateIdsThrough(overrides: LeakStatusOverrides): Collection<Long> {
+  private fun leakingCandidateIdsThrough(overrides: VerdictOverrides): Collection<Long> {
     if (overrides.isEmpty) {
       return leakingCandidateIds
     }
     val ids = LinkedHashSet(leakingCandidateIds)
     overrides.all.forEach { override ->
-      if (override.status == LeakStatus.STUCK) {
+      if (override.verdict == Verdict.STUCK) {
         ids += override.objectId
       } else {
         ids -= override.objectId
@@ -1026,7 +1026,7 @@ class HeapDominatorTreemap internal constructor(
     return ids
   }
 
-  private fun computeLeaks(overrides: LeakStatusOverrides): HeapLeaks {
+  private fun computeLeaks(overrides: VerdictOverrides): HeapLeaks {
     val startNanos = System.nanoTime()
     val candidateIds = leakingCandidateIdsThrough(overrides)
     // Largest first, and capped: the walk up to the GC roots per object is what this costs, and a heap
@@ -1076,7 +1076,7 @@ class HeapDominatorTreemap internal constructor(
   private fun foundLeak(
     objectId: Long,
     watcher: WatchedObject?,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): FoundLeak {
     val strength = strengthOf(objectId)
     // Which section it goes in, when that is decided by how firmly it is held rather than by what holds
@@ -1103,11 +1103,11 @@ class HeapDominatorTreemap internal constructor(
       objectId = objectId,
       className = target?.className ?: heapObject.className(),
       kind = target?.kind ?: heapObject.kind(),
-      headline = target?.headline ?: heapObject.headline(),
+      content = target?.content ?: heapObject.content(),
       retainedSize = nodes[objectId]?.retainedSize ?: 0L,
       retainedCount = nodes[objectId]?.retainedCount ?: 0,
       strength = strength,
-      leakingReason = target?.leakStatusReason?.takeIf { target.leakStatus == LeakStatus.STUCK },
+      verdictReason = target?.verdictReason?.takeIf { target.verdict == Verdict.STUCK },
       watcher = watcher
     )
     val simpleClassName = leakingObject.className.substringAfterLast('.')
@@ -1274,10 +1274,10 @@ class HeapDominatorTreemap internal constructor(
         LeakGroup(
           leakFingerprint = leakFingerprint,
           title = found.first().title,
+          // Off one object's path, and the same stretch whichever of them it is read off: that stretch is
+          // what [leakFingerprint] hashes, so two objects with different references between the last
+          // expected one and themselves are in two different groups. See [LeakGroup.objects].
           suspectPath = found.first().suspectPath,
-          // The object those came off, kept so that whoever picks this group picks the path they describe.
-          // See [LeakGroup.representativeObjectId].
-          representativeObjectId = found.first().leakingObject.objectId,
           // From whichever object was recognized first, since a leak is one thing however many objects
           // of it there are: they are all leaking for the same reason, which is what grouped them.
           subtitle = found.firstNotNullOfOrNull { it.subtitle },
@@ -1296,7 +1296,7 @@ class HeapDominatorTreemap internal constructor(
   private fun path(
     objectIndexes: IntArray,
     isBelowGroup: Boolean,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): IndependentPath {
     val objectIds = objectIndexes.map { referrerIndex.objectIdAt(it) }
     val steps = objectIds.mapIndexedNotNull { index, objectId ->
@@ -1307,9 +1307,13 @@ class HeapDominatorTreemap internal constructor(
         else -> null
       }
     }
+    // Looked up once and spelled two ways from the one root, the way `rootPathAlong` does it, so that the
+    // label and the type can never be about different roots. See [RootPath.gcRootType].
+    val gcRoot = if (isBelowGroup) gcRootOf(objectIds.first()) else null
     return IndependentPath(
-      gcRootLabel = if (isBelowGroup) gcRootLabelOf(objectIds.first()) else null,
-      steps = steps.withLeakStatuses()
+      gcRootLabel = if (isBelowGroup) gcRootLabelOf(objectIds.first(), gcRoot) else null,
+      steps = steps.withVerdicts(),
+      gcRootType = gcRoot?.let { LeakTrace.GcRootType.fromGcRoot(it) }
     )
   }
 
@@ -1319,10 +1323,10 @@ class HeapDominatorTreemap internal constructor(
    * Only the roots the tree followed, so that an object a local variable also happens to point at isn't
    * named after the local variable. See [TreeGcRootProvider].
    */
-  private fun gcRootLabelOf(objectId: Long): String {
-    val gcRoot = gcRootOf(objectId)
-    return if (gcRoot != null) gcRootLabel(gcRoot) else uncollectedLabelFor(objectId)
-  }
+  private fun gcRootLabelOf(
+    objectId: Long,
+    gcRoot: GcRoot?
+  ): String = if (gcRoot != null) gcRootLabel(gcRoot) else uncollectedLabelFor(objectId)
 
   /**
    * The GC root [objectId] is, and null for an object that is uncollected garbage.
@@ -1350,19 +1354,19 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * The steps of one path, each with a leak status: what the inspectors made of an object is only half of
+   * The steps of one path, each with a leak verdict: what the inspectors made of an object is only half of
    * what says whether it is leaking, and the other half is what they made of the objects above and below
-   * it on this path. See [leakStatusesOf].
+   * it on this path. See [verdictsOf].
    */
-  private fun List<InspectedStep>.withLeakStatuses(): List<PathStep> {
-    val statuses = leakStatusesOf(map { it.inspected })
+  private fun List<InspectedStep>.withVerdicts(): List<PathStep> {
+    val verdicts = verdictsOf(map { it.inspected })
     val steps = mapIndexed { index, inspected ->
       inspected.step.copy(
-        leakStatus = statuses[index].status,
-        leakStatusReason = statuses[index].reason
+        verdict = verdicts[index].verdict,
+        verdictReason = verdicts[index].reason
       )
     }
-    // And which of its references the leak is, when the same statuses say: one step from an object expected
+    // And which of its references the leak is, when the same verdicts say: one step from an object expected
     // to be in memory to a stuck one, which no step knows on its own. See [PathReference.isFaulty].
     val faultyIndex = steps.faultyReferenceIndexOrNull() ?: return steps
     return steps.mapIndexed { index, step ->
@@ -1378,7 +1382,7 @@ class HeapDominatorTreemap internal constructor(
   private fun stepTo(
     objectId: Long,
     referrerId: Long,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): InspectedStep {
     val details = pathReferenceReader.read(graph.findObjectById(referrerId))
       .firstOrNull { it.valueObjectId == objectId }
@@ -1418,7 +1422,7 @@ class HeapDominatorTreemap internal constructor(
   private fun step(
     objectId: Long,
     reference: PathReference?,
-    overrides: LeakStatusOverrides
+    overrides: VerdictOverrides
   ): InspectedStep {
     val node = nodes[objectId]
     // Every step of a path is an object of the heap dump, unlike a node of the tree, which can stand for a
@@ -1431,7 +1435,7 @@ class HeapDominatorTreemap internal constructor(
         objectId = objectId,
         className = className,
         kind = heapObject.kind(),
-        headline = heapObject.headline(),
+        content = heapObject.content(),
         strength = strengthOf(objectId),
         // Zero for an object whose bytes are folded into another one, which is no node of the tree: a
         // string's characters are counted inside the string. See
@@ -1439,9 +1443,9 @@ class HeapDominatorTreemap internal constructor(
         retainedSize = node?.retainedSize ?: 0L,
         retainedCount = node?.retainedCount ?: 0,
         inspectorLabels = reporter.labels.toList(),
-        // Filled in by [withLeakStatuses] once the whole path is known, since that is what decides it.
-        leakStatus = LeakStatus.UNKNOWN,
-        leakStatusReason = null,
+        // Filled in by [withVerdicts] once the whole path is known, since that is what decides it.
+        verdict = Verdict.UNKNOWN,
+        verdictReason = null,
         reference = reference,
         isTreeNode = objectId in nodes
       ),
@@ -1521,29 +1525,30 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * What's worth saying about an object before its fields, for the kinds this recognizes. Both cases
-   * here are objects whose fields say nothing about their size: a bitmap keeps its pixels in native
-   * memory, and a string's characters are folded into it by the size calculator.
+   * What an object is beyond its class, for the kinds this reads it off. See [ObjectContent].
+   *
+   * Every case here is an object whose own fields say nothing about its size: a bitmap keeps its pixels
+   * in native memory, a string's characters are folded into it by the size calculator, and an array's
+   * elements are what it is rather than something to scroll a field list for.
    */
-  private fun HeapObject.headline(): String? = when (this) {
+  private fun HeapObject.content(): ObjectContent? = when (this) {
     is HeapInstance -> when {
-      instanceOf("java.lang.String") -> readAsJavaString()?.let { "\"$it\"" }
-      instanceOf("android.graphics.Bitmap") -> bitmapHeadline()
+      instanceOf("java.lang.String") -> readAsJavaString()?.let { ObjectContent.JavaString(it) }
+      instanceOf("android.graphics.Bitmap") -> bitmapContent()
       instanceOf("java.lang.Thread") -> readStringField("java.lang.Thread", "name")
-        ?.let { "thread \"$it\"" }
+        ?.let { ObjectContent.Thread(it) }
       else -> null
     }
-    is HeapObjectArray -> "${readRecord().elementIds.size} elements"
-    is HeapPrimitiveArray -> "$recordSize bytes"
+    is HeapObjectArray -> ObjectContent.ObjectArray(readRecord().elementIds.size)
+    is HeapPrimitiveArray -> ObjectContent.PrimitiveArray(recordSize)
     is HeapClass -> null
   }
 
-  private fun HeapInstance.bitmapHeadline(): String {
-    val width = this[BITMAP_CLASS_NAME, "mWidth"]?.value?.asInt
-    val height = this[BITMAP_CLASS_NAME, "mHeight"]?.value?.asInt
-    val recycled = this[BITMAP_CLASS_NAME, "mRecycled"]?.value?.asBoolean == true
-    return "$width × $height pixels" + if (recycled) ", recycled" else ""
-  }
+  private fun HeapInstance.bitmapContent(): ObjectContent.Bitmap = ObjectContent.Bitmap(
+    width = this[BITMAP_CLASS_NAME, "mWidth"]?.value?.asInt,
+    height = this[BITMAP_CLASS_NAME, "mHeight"]?.value?.asInt,
+    isRecycled = this[BITMAP_CLASS_NAME, "mRecycled"]?.value?.asBoolean == true
+  )
 
   private fun HeapInstance.readStringField(
     declaringClassName: String,
@@ -1705,7 +1710,7 @@ class HeapDominatorTreemap internal constructor(
 
   /**
    * One step of a path, with what Shark's inspectors said about the object, before the path as a whole
-   * turns that into a [LeakStatus]. See [withLeakStatuses].
+   * turns that into a [Verdict]. See [withVerdicts].
    */
   private class InspectedStep(
     val step: PathStep,
@@ -1926,10 +1931,10 @@ data class HeapObjectSummary(
   /** Null for the virtual root above the heap dump, which is no object of it. */
   val kind: HeapObjectKind?,
   /**
-   * What this kind of object is worth saying before anything else — a string's content, a bitmap's
-   * dimensions — for the kinds Shark Dive recognizes, null for the rest.
+   * What this object is beyond its class — a string's characters, a bitmap's dimensions — for the kinds
+   * Shark Dive reads it off, null for the rest. See [ObjectContent].
    */
-  val headline: String?,
+  val content: ObjectContent?,
   val strength: ReachabilityStrength,
   val shallowSize: Long,
   val retainedSize: Long,
@@ -1944,14 +1949,14 @@ data class HeapObjectSummary(
    * inspectors made of it, or what someone set by hand instead.
    *
    * The other half of the answer is on the path that holds it — everything holding an object that is still
-   * needed is still needed too, and everything a leaking object holds is leaking — so a status here and the
+   * needed is still needed too, and everything a leaking object holds is leaking — so a verdict here and the
    * one the last step of a [RootPath] carries are two different questions, and the path's is the fuller one.
    * This is what the window has to go on for an object no path reaches: a piece of uncollected garbage, or
-   * one whose walk up to the GC roots hasn't come back yet. See [LeakStatus].
+   * one whose walk up to the GC roots hasn't come back yet. See [Verdict].
    */
-  val leakStatus: LeakStatus,
+  val verdict: Verdict,
   /** Why, in the same words a path gives. Null when nothing is known about it either way. */
-  val leakStatusReason: String?,
+  val verdictReason: String?,
   /** Its fields, or an array's elements, in the order the heap dump records them. */
   val fields: List<ObjectFieldValue>,
   /** How many more fields there are than [fields] holds, which only an array reaches. */

@@ -346,7 +346,7 @@ class AgentCommandLineTest {
   }
 
   @Test
-  fun `the help is every command of this build, one line each, and needs no run`() {
+  fun `the help is every command of this build, with its summary, and needs no run`() {
     val help = AgentCommandLine.commandsHelp(command = "shark-dive")
 
     // Generated from the registry, so a command added without a summary is a test failure rather than a
@@ -355,12 +355,44 @@ class AgentCommandLineTest {
     agentTools(FakeAgentHeapDumps()).all.forEach { command ->
       assertThat(help).contains(command.name).contains(command.summary)
     }
-    // The two ways in, since every other command needs the name one of them answers with.
-    assertThat(help).contains("Start with $OPEN_HEAP_DUMP").contains(LIST_HEAP_DUMPS)
+    // The three ways in, since every other command needs the key one of them answers with.
+    assertThat(help).contains(OPEN_HEAP_DUMP).contains(LIST_HEAP_DUMPS).contains(DUMP_HEAP)
     // And `reason` is said once rather than under each of nineteen commands, which would be a sixth of the
     // help spent on the one argument every command takes.
-    assertThat(help).contains("Every command takes `reason`")
+    assertThat(help).contains("takes `reason`")
     assertThat(help.lines().filter { it.trim().startsWith("reason (") }).isEmpty()
+  }
+
+  @Test
+  fun `the help spells what each command needs, so that calling one costs no second read`() {
+    val help = AgentCommandLine.commandsHelp(command = "shark-dive")
+
+    // The argument a command name does not already imply, beside the name. An agent that has chosen a
+    // command can write the call from this list; before it, every first call of a command was a `--help`
+    // of that command and then the call.
+    assertThat(help).contains("  $OPEN_HEAP_DUMP path=…")
+    assertThat(help).contains("  set_verdict object=… verdict=… why=…")
+    // And nothing for a command that needs only the two every command takes, rather than a bare `=…`.
+    assertThat(help).contains("  $LIST_HEAP_DUMPS\n")
+    // Those two are said once above the list. Spelled under each command they would be thirty-eight rows of
+    // what one sentence covers, and the argument that differs would be the hard one to find.
+    assertThat(help).doesNotContain("$HEAP_DUMP_KEY=… object=…")
+    assertThat(help.substringBefore("  $OPEN_HEAP_DUMP path=…")).contains(HEAP_DUMP_KEY)
+  }
+
+  @Test
+  fun `every command summary fits the line it is printed on`() {
+    val help = AgentCommandLine.commandsHelp(command = "shark-dive")
+
+    // The summaries hang under the commands at a fixed indent and nothing wraps them, so one written longer
+    // than a terminal is a row that folds and takes the shape of the list with it. Checked here rather than
+    // left to whoever is reading the help to notice, which is the same bargain `CliOptionsTest` makes for
+    // the option column.
+    agentTools(FakeAgentHeapDumps()).all.forEach { command ->
+      assertThat(command.summary.length + SUMMARY_INDENT_WIDTH)
+        .describedAs(command.name)
+        .isLessThanOrEqualTo(HELP_LINE_WIDTH)
+    }
   }
 
   @Test
@@ -377,7 +409,7 @@ class AgentCommandLineTest {
 
     val none = AgentCommandLine.commandHelp(command = "shark-dive", commandName = "path_from_a_gc_root")
 
-    assertThat(none).contains("There is no command").contains("path_from_gc_root")
+    assertThat(none).contains("There is no command").contains("path_from_gc_roots")
   }
 
   @Test
@@ -550,5 +582,11 @@ class AgentCommandLineTest {
 
     const val FORK_WAIT_MILLIS = 5_000
     const val FORK_POLL_MILLIS = 20L
+
+    /** What a command's summary hangs at under its command — `AgentCommandLine.SUMMARY_INDENT`. */
+    const val SUMMARY_INDENT_WIDTH = 6
+
+    /** Narrow enough to read in a terminal nobody widened, as `shark.dive.app.DiveHelp` wraps to. */
+    const val HELP_LINE_WIDTH = 100
   }
 }

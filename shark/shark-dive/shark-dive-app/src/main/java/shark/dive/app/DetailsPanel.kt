@@ -34,6 +34,7 @@ import shark.dive.ObjectGroupSummary
 import shark.dive.ReachabilityStrength
 import shark.dive.Topic
 import shark.dive.formatByteSize
+import shark.dive.headline
 import shark.dive.formatByteSizeOfTotal
 import shark.dive.formatObjectCount
 
@@ -60,12 +61,12 @@ internal fun DetailsPanel(
   bitmap: ImageBitmap?,
   isStarred: Boolean,
   /** Whether the selected object is meant to be in memory, and null when nothing is selected. */
-  leakStatus: ObjectLeakStatus?,
-  /** Whether the statuses set by hand have been read yet, which is what lets one be changed. */
-  isLeakStatusRead: Boolean,
-  /** What went wrong reading or writing them, shown under the status it is about. */
-  leakStatusProblem: String?,
-  onChangeLeakStatus: () -> Unit,
+  objectVerdict: ObjectVerdict?,
+  /** Whether the verdicts set by hand have been read yet, which is what lets one be changed. */
+  isVerdictRead: Boolean,
+  /** What went wrong reading or writing them, shown under the verdict it is about. */
+  verdictProblem: String?,
+  onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   /** Puts a link to a field's object on the clipboard, beside opening it. See [OpenTarget]. */
   onCopyLink: (Long) -> Unit,
@@ -97,10 +98,10 @@ internal fun DetailsPanel(
           stronglyReachableByteCount = stronglyReachableByteCount,
           bitmap = bitmap,
           isStarred = isStarred,
-          leakStatus = leakStatus,
-          isLeakStatusRead = isLeakStatusRead,
-          leakStatusProblem = leakStatusProblem,
-          onChangeLeakStatus = onChangeLeakStatus,
+          objectVerdict = objectVerdict,
+          isVerdictRead = isVerdictRead,
+          verdictProblem = verdictProblem,
+          onChangeVerdict = onChangeVerdict,
           onOpen = onOpen,
           onCopyLink = onCopyLink,
           onListInstances = onListInstances,
@@ -189,10 +190,10 @@ private fun ObjectDetails(
   stronglyReachableByteCount: Long,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  leakStatus: ObjectLeakStatus?,
-  isLeakStatusRead: Boolean,
-  leakStatusProblem: String?,
-  onChangeLeakStatus: () -> Unit,
+  objectVerdict: ObjectVerdict?,
+  isVerdictRead: Boolean,
+  verdictProblem: String?,
+  onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
@@ -206,18 +207,18 @@ private fun ObjectDetails(
       style = MaterialTheme.typography.bodyMedium
     )
   }
-  summary.headline?.let { headline ->
+  summary.content?.headline?.let { headline ->
     Text(headline, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
   }
   // Above everything measured about the object, because it is the one line here that is a conclusion:
   // the sizes and the fields below it are what it was concluded from. Above the picture of a bitmap too,
   // so that a screenshot several hundred pixels tall can't push the conclusion out of the panel.
-  if (leakStatus != null) {
-    LeakStatusDetail(
-      status = leakStatus,
-      isRead = isLeakStatusRead,
-      problem = leakStatusProblem,
-      onChange = onChangeLeakStatus
+  if (objectVerdict != null) {
+    VerdictDetail(
+      objectVerdict = objectVerdict,
+      isRead = isVerdictRead,
+      problem = verdictProblem,
+      onChange = onChangeVerdict
     )
   }
   // Under the headline, which for a bitmap is its size and its format: the picture is what the bitmap is,

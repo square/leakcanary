@@ -1,6 +1,7 @@
 package shark.dive.app
 
 import java.io.File
+import java.io.IOException
 import shark.SharkLog
 
 /**
@@ -21,7 +22,37 @@ import shark.SharkLog
  */
 internal fun launcherPathOrNull(): String? {
   val command = ProcessHandle.current().info().command().orElse(null) ?: return null
-  return command.takeIf { File(it).name !in JVM_EXECUTABLES }
+  return command.takeIf { File(it).name !in JVM_EXECUTABLES }?.let { pathToHandTheOs(it) }
+}
+
+/**
+ * One path as every OS this hands a path to needs it: absolute, and with no `.` or `..` left in it.
+ *
+ * **`File.absolutePath` is not enough, and the way it isn't is silent.** It puts the working directory in
+ * front and normalises nothing, so a launcher started as `./shark/…/Shark Dive.app/Contents/MacOS/Shark Dive`
+ * — which is what `shark-dive.sh` in the repository root does — comes out as `<working directory>/./shark/…`.
+ * That path is absolute and the file is there, and macOS `open -n -a` given a path with a `.` segment in it
+ * stops reading the argument as a path and looks the application up **by name**, so it launches whichever
+ * Shark Dive LaunchServices knows about: the installed one, a build from another worktree, either. Measured
+ * — `notes/agent-surface.md` has it, including why the symptom is nothing like the cause.
+ *
+ * Which is the worst shape a bug of this kind can take, because the run that starts is a *different build*:
+ * it refuses an option this one passes, exits before publishing itself, and the command that started it
+ * waits its full minute and reports that something went wrong opening a run. Nothing in that sentence points
+ * at the path.
+ *
+ * Canonical rather than only normalised, so that a bundle reached through a symlink resolves to the bundle;
+ * and the absolute path when the file system will not say, since a path that cannot be canonicalised is still
+ * worth handing over.
+ */
+internal fun pathToHandTheOs(path: String): String {
+  val file = File(path)
+  return try {
+    file.canonicalPath
+  } catch (ioException: IOException) {
+    SharkLog.d(ioException) { "Could not resolve $path, so ${file.absolutePath} is what is handed over" }
+    file.absolutePath
+  }
 }
 
 /**
@@ -39,7 +70,7 @@ internal fun relaunchCommand(): List<String>? {
     return null
   }
   if (File(command).name !in JVM_EXECUTABLES) {
-    return listOf(command)
+    return listOf(pathToHandTheOs(command))
   }
   val classPath = System.getProperty("java.class.path")
   if (classPath.isNullOrEmpty()) {

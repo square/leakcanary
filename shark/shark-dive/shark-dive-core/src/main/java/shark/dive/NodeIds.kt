@@ -18,7 +18,7 @@ fun hexObjectId(objectId: Long): String {
 
 /**
  * The same address, written so that it reads back as the same [Long] — for the files this app keeps between
- * runs. See [LeakStatusFile].
+ * runs. See [VerdictFile].
  *
  * The one thing [hexObjectId] gives up to be recognisable is exactly what a file can't: it prints a
  * sign-widened id as the 32 bit address it is, and `0xffff8000` is then two ids, the negative one of a 32 bit

@@ -96,23 +96,23 @@ object AgentCommandLine {
     if (commands.none { it.name == commandName }) {
       say(
         "There is no command called \"$commandName\". This build has " +
-          commands.joinToString(", ") { it.name } + ". `$command $HELP_OPTION <command>` is what one does."
+          commands.joinToString(", ") { it.name } + ". `$command $HELP_OPTION <command>` says what one does."
       )
       return NOTHING_ANSWERED
     }
     if (noWindow && commandName !in STARTS_A_RUN) {
       say(
-        "$NO_UI_OPTION says what kind of run to start, so it goes with the commands that start one — " +
-          STARTS_A_RUN.joinToString(", ") + " — and with no other: $commandName reads a dump that is open " +
-          "already, in whichever run has it."
+        "$NO_UI_OPTION says what kind of run to start, so it goes on the commands that start one: " +
+          STARTS_A_RUN.joinToString(", ") + ". $commandName reads a dump that is open already, in " +
+          "whichever run has it."
       )
       return NOTHING_ANSWERED
     }
     if (sessionName != null && !AgentSessionFile.isSessionName(sessionName)) {
       say(
         "\"$sessionName\" is no session name: it becomes part of a file name, so it is letters and digits, " +
-          "up to ${AgentSessionFile.MAX_SESSION_NAME_LENGTH} of them. Strip the rest out of yours rather " +
-          "than shortening it — an id with dashes in it is still an id without them."
+          "up to ${AgentSessionFile.MAX_SESSION_NAME_LENGTH} of them. Strip the other characters out of " +
+          "yours instead of shortening it, so that the id in it stays whole."
       )
       return NOTHING_ANSWERED
     }
@@ -162,9 +162,9 @@ object AgentCommandLine {
     command: String,
     commandName: String,
     sessionName: String
-  ): String = "$commandName needs `$REASON`: $SESSION_OPTION$sessionName says these calls are one " +
-    "investigation somebody will read afterwards, and a call with no sentence beside it is a read they " +
-    "cannot follow. Write what you are trying to learn, or what you concluded from the last answer: " +
+  ): String = "$commandName needs `$REASON`. $SESSION_OPTION$sessionName says these calls are one " +
+    "investigation somebody will read afterwards, so each of them has to say why it was made. Write " +
+    "what you are trying to learn, or what you concluded from the last answer: " +
     "`$command $CLI_OPTION $commandName … $REASON=\"what I am asking and why\"`. " +
     "`$command $HELP_OPTION $commandName` has the rest of what it takes."
 
@@ -186,33 +186,39 @@ object AgentCommandLine {
   ): String = """
     |COMMANDS
     |
-    |**Start with $OPEN_HEAP_DUMP on the heap dump you were given.** It opens that file, or joins the run
-    |that already has it, and answers with the key every command below names that dump by — along with its
-    |size and whatever verdicts somebody has already recorded about it. If you were given no heap dump,
-    |$LIST_HEAP_DUMPS says which are open. Every other command needs that key, so that each one says which
-    |heap dump it is about.
+    |Commands that operate on heap dumps require a `$HEAP_DUMP_KEY` parameter, which you can
+    |obtain by calling one of $OPEN_HEAP_DUMP,  $LIST_HEAP_DUMPS or $DUMP_HEAP.
     |
     |  $command $CLI_OPTION $OPEN_HEAP_DUMP path=/tmp/crash.hprof reason="Starting on the dump I was given"
-    |  $command $CLI_OPTION list_leak_groups heapDumpKey=crash.hprof reason="What this dump says shouldn't be here"
+    |  $command $CLI_OPTION list_leak_groups heapDumpKey=crash.hprof reason="Starting leak investigation"
     |
     |${commandColumn()}
     |
-    |Every command takes `reason`: why you are making it, or what you concluded from the last answer. It is
-    |logged beside the reads it causes and read afterwards on the *Agent logs* screen, so write the sentence
-    |you would say to the person watching — and it is required of every command of a session named with
-    |$SESSION_OPTION, which is every agent's. Addresses are `0x…`, exactly as this surface writes them, and
-    |never decimal.
+    |Agent instructions:
     |
-    |$SURFACE_METHOD_OPTION is how to work here, read once per session, and $LEAK_METHOD_OPTION is how to solve
-    |a leak, read once per investigation. Both are text this build prints with nothing open.
+    |Every command sent by an agent takes `reason`: what you are trying to learn, or what the last answer told you. It goes
+    |in the log beside the read it caused, so that somebody can follow the investigation afterwards. Every agent
+    |command should also name the agent session with $SESSION_OPTION. Write addresses as `0x…`, the way this
+    |surface writes them, never as a decimal number.
     |
-    |Opening a heap dump is the one command with a wait worth planning for — minutes, on a large dump, and it
-    |does not answer until the dump can be read. $DUMP_HEAP is the other, since it takes one off a device
-    |first.
+    |Put the `shark://` links you are answered with in your reply. A link opens that object in this heap
+    |dump, with the verdicts and notes recorded on it, after this run has ended, so whoever reads your
+    |answer can go and check it. `show` hands a link back for any object.
+    |
+    |An answer that carries a path carries it twice. `leakTrace` is the path as fields for you to read, an
+    |object at a time, and `humanLeakTrace` is the leak trace LeakCanary prints, which is the one to put in
+    |front of a person — quote it exactly.
+    |
+    |Say what you did not check.
+    |
+    |Prior to investigating leaks, you must read $LEAK_METHOD_OPTION first.
+    |
+    |$OPEN_HEAP_DUMP takes minutes on a large dump, and does not answer until the dump can be read.
+    |$DUMP_HEAP is slower still, since it takes the dump off a device first.
     |
     |Exit code $ANSWERED when the answer is on stdout, $REFUSED when the command was refused and the refusal
     |is on stderr, $NOTHING_ANSWERED when there was nothing to answer it.
-  """.trimMargin()
+  """.trimMargin().reflowed()
 
   /** All of one command: what it answers, and every argument it takes. See [commandsHelp]. */
   fun commandHelp(
@@ -231,15 +237,11 @@ object AgentCommandLine {
     "$CLI_OPTION <command> name=value" to
       "Makes one call and prints the answer as JSON. Required on every command.",
     "$SESSION_OPTION<name>" to
-      "Which session these commands are one of, letters and digits. An agent passes something naming its " +
-      "own session, so that a reviewer reading its logs can find the investigation beside them. Every " +
-      "command of a named session needs its `$REASON`.",
+      "Which session these commands are one of, letters and digits. An agent passes a name carrying its " +
+      "own session id, so that a reviewer of its logs can find this investigation from them.",
     NO_UI_OPTION to
       "With a command that starts a run: have it draw no window, for a machine with no screen.",
     "$HELP_OPTION <command>" to "All of one command: what it answers, and every argument it takes.",
-    SURFACE_METHOD_OPTION to
-      "How to work here: what every call records, what to put on screen, what to put in your reply. Read it " +
-      "once per session.",
     LEAK_METHOD_OPTION to
       "How to investigate leaks of objects that reached their lifecycle end. Read it once per investigation."
   )
@@ -256,9 +258,6 @@ object AgentCommandLine {
   fun debugCliOptions(): List<Pair<String, String>> = listOf(
     "$RUN_OPTION<pid>" to "Which run to talk to, for a machine with more than one open."
   )
-
-  /** How to work on this surface at all, which is text this build carries rather than an answer. */
-  fun surfaceMethod(): String = AgentMethod.SURFACE
 
   /** What to do with a leak, which is text this build carries rather than an answer. See [AgentMethod]. */
   fun leakMethod(): String = AgentMethod.LEAK
@@ -448,9 +447,28 @@ object AgentCommandLine {
   /** The commands of this build, described. Built per call, so nothing here is shared between threads. */
   private fun described(): List<AgentTool> = AgentTools(NoHeapDumpToDescribe) { nothingToDescribeWith() }.all
 
-  /** One line each, in the order an investigation uses them, which is the order [AgentTools.all] is in. */
-  private fun commandColumn(): String = described()
-    .joinToString("\n") { "  ${it.name.padEnd(COMMAND_WIDTH)}${it.summary}" }
+  /**
+   * Every command with what it needs, in the order an investigation uses them — [AgentTools.all]'s order.
+   *
+   * **The arguments are here so that choosing a command and calling it are one read.** A list of names and
+   * summaries answers "which command" and leaves every call needing `--help <command>` first, which is a
+   * round trip per command for the one fact — `object`, or `path`, or `place text` — that a name does not
+   * already imply.
+   *
+   * **`heapDumpKey` and `reason` are left out of it.** One is on every command and the other on all but
+   * three, so spelling them out nineteen times each is thirty-eight repetitions of what the sentence above
+   * the list says once, and it buries the argument that differs. Optional arguments are left out for the
+   * same reason the summaries are one line: this is the list somebody chooses from, and `--help <command>`
+   * is all of one.
+   *
+   * Two lines per command rather than a column, because a column wide enough for `set_verdict object=…
+   * verdict=… why=…` leaves under sixty for the summary, so most of them wrap anyway — and a wrapped second
+   * column reads worse than an indented second line. `AgentCommandLineTest` pins that the summaries still fit.
+   */
+  private fun commandColumn(): String = described().joinToString("\n") { tool ->
+    val signature = (listOf(tool.name) + tool.argumentsToSpell()).joinToString(" ")
+    "  $signature\n$SUMMARY_INDENT${tool.summary}"
+  }
 
   /** Answered: the command's own JSON is on stdout. */
   const val ANSWERED = 0
@@ -489,27 +507,28 @@ object AgentCommandLine {
   const val HELP_OPTION = "--help"
 
   /**
-   * And how to work on this surface at all, which is one of the two texts this build carries.
+   * What every help text this app prints is wrapped at, which is what fits a terminal nobody has widened.
    *
-   * An option rather than a field of the first answer of a session, which is where it used to be: a text
-   * prepended to whatever a session asked first is a text an agent reads *after* making the call it had already
-   * decided to make, and the half of it that says what to put in a reply is the half that arrives too late to
-   * change the first one. Both halves of the method are a read now, which is also the only shape in which
-   * reading one costs a session nothing until it asks. See [AgentMethod].
+   * Here rather than beside either printer, because there are two of them and they print into one page:
+   * `DiveHelp` lays out the options and this object lays out the commands under them, so two widths would be
+   * one document with a ragged edge halfway down. Eighty is the other answer and is too narrow for this —
+   * these sentences name commands and arguments in backticks, and a command name is a tenth of an eighty
+   * column line on its own.
    */
-  const val SURFACE_METHOD_OPTION = "--investigation-help"
+  const val HELP_WIDTH = 100
 
   /**
-   * And the method for solving a leak, which is the other text this build carries.
+   * And the method for solving a leak, which is the one text this build carries beside the help.
    *
    * An option rather than a field of `list_leak_groups`'s answer, which is where it used to be: an investigation of
    * several leaks called that once per leak and read the whole method again each time, and the method is about
    * the path rather than about the list. Read once per session, by the session that has a leak to work on.
    * See [AgentMethod].
    *
-   * The longer name of the two on purpose: [SURFACE_METHOD_OPTION] is the one every session reads and this is
-   * the one an investigation of a leak reads, so the names say which is the special case. A caller that guesses
-   * the short one and wanted this is pointed here by its second paragraph.
+   * There was a second option, `--investigation-help`, for how to work on this surface at all. Four
+   * paragraphs is not a document, and an option is only worth its own name when somebody would go looking
+   * for it: the reason on every call, the links to hand back, the gap to admit. All of it is in
+   * [commandsHelp] now, which is what an agent reads having been told nothing.
    */
   const val LEAK_METHOD_OPTION = "--leak-investigation-help"
 
@@ -562,9 +581,6 @@ object AgentCommandLine {
 
   /** See [defaultSessionName]. A shell inside a shell inside a shell, and then some. */
   private const val MAX_COMMAND_SHELLS_WALKED_PAST = 4
-
-  /** Wide enough for the longest command name, since the summaries read as a column or as nothing. */
-  private const val COMMAND_WIDTH = 20
 
   private const val LIST_SEPARATOR = ','
 
@@ -659,7 +675,7 @@ object AgentCommandLine {
       otherBuildRun(published, pid, buildSha)?.let { other ->
         say(
           "Shark Dive run $pid was built from ${other.buildSha}, and this command line is $buildSha, so the " +
-            "commands it has are not the commands this one knows about. Its own build is what to call it with."
+            "commands it has are not the commands this one knows about. Call it with its own build."
         )
         return null
       }
@@ -703,13 +719,12 @@ object AgentCommandLine {
     }
     say(
       if (noWindow) {
-        "Shark Dive run ${run.pid} draws windows, and $NO_UI_OPTION asks for a run that draws none — which " +
-          "is what a run is rather than what one heap dump is, so there is no opening a dump without a " +
-          "window inside it. Leave $NO_UI_OPTION off to open this dump in a window of that run."
+        "Shark Dive run ${run.pid} draws windows, and $NO_UI_OPTION asks for a run that draws none. " +
+          "Whether windows are drawn is settled once, as a run starts, so a dump opened in this one has " +
+          "a window. Leave $NO_UI_OPTION off to open it there."
       } else {
         "Shark Dive run ${run.pid} was started with $NO_UI_OPTION, so it draws no window and a heap dump " +
-          "opened in it has none either. Pass $NO_UI_OPTION to open it there anyway, which is what a " +
-          "machine with no screen does."
+          "opened in it has none either. Pass $NO_UI_OPTION to open it there anyway."
       }
     )
     return false
@@ -733,7 +748,7 @@ object AgentCommandLine {
   ): String = "${runs.size} Shark Dive runs are open, so which heap dumps there are to read depends on which " +
     "of them you meant. Pass $RUN_OPTION<pid> to say: " +
     runs.joinToString(", ") { "${it.pid} (${it.kindText()})" } + ". `$command $CLI_OPTION $LIST_HEAP_DUMPS " +
-    "$RUN_OPTION<pid> reason=…` is what each has open."
+    "$RUN_OPTION<pid> reason=…` says what each has open."
 
   private fun AgentServer.PublishedRun.kindText(): String = if (hasWindow) "with windows" else "with no window"
 
@@ -788,15 +803,93 @@ private class HelpArgument(
  * to say it is on every command.
  */
 private fun AgentTool.helpText(command: String): String = buildString {
-  appendLine("$name — $summary")
+  appendLine("$name — $summary".wrapped(indent = "", continuation = BODY_INDENT))
   appendLine()
-  appendLine("  ${AgentCommandLine.CLI_OPTION.let { "$command $it $name" }} " +
+  // The one thing here left to run off the edge, because it is the line somebody copies: a command broken
+  // over two lines is a command that has to be put back together before it can be pasted, and the absolute
+  // path to this build is most of its width.
+  appendLine("$BODY_INDENT${AgentCommandLine.CLI_OPTION.let { "$command $it $name" }} " +
     arguments().joinToString(" ") { if (it.isRequired) "${it.name}=…" else "[${it.name}=…]" })
   appendLine()
-  appendLine("  $description")
+  appendLine(description.wrapped(indent = BODY_INDENT))
   appendLine()
-  arguments().forEach { appendLine("  ${it.helpLine()}") }
+  // Hanging, so the argument names are the left edge somebody scans down and the sentence about each one
+  // reads as hanging off it, which is what the list of commands does with its summaries.
+  arguments().forEach { appendLine(it.helpLine().wrapped(indent = BODY_INDENT, continuation = SUMMARY_INDENT)) }
 }
+
+/**
+ * [this], wrapped at [HELP_WIDTH] with every line indented, and its paragraphs still paragraphs.
+ *
+ * **Every line rather than the first**, which is the whole of why this exists: a description is several
+ * paragraphs, `"$BODY_INDENT$description"` indents the first line of the first one, and what prints is one
+ * indented line followed by several hundred characters hard against the left edge. A terminal wraps those
+ * for you at whatever width it happens to be, mid-word, and the result reads as the output being broken.
+ *
+ * Paragraphs keep the blank line between them and nothing else does: a line of [indent] and no words would
+ * be trailing whitespace in the middle of a help page, which is the one thing a `diff` of this output would
+ * then be about.
+ */
+private fun String.wrapped(
+  indent: String,
+  /** What the lines after the first are indented by, for a sentence that hangs off what starts it. */
+  continuation: String = indent
+): String = split(PARAGRAPH_BREAK).joinToString(PARAGRAPH_BREAK) { paragraph ->
+  val lines = mutableListOf<StringBuilder>()
+  paragraph.split(WHITESPACE).filter { it.isNotEmpty() }.forEach { word ->
+    val line = lines.lastOrNull()
+    if (line == null || line.length + 1 + word.length > AgentCommandLine.HELP_WIDTH) {
+      lines += StringBuilder(if (lines.isEmpty()) indent else continuation).append(word)
+    } else {
+      line.append(' ').append(word)
+    }
+  }
+  lines.joinToString("\n")
+}
+
+/**
+ * The same page with its prose wrapped at one width, and the parts that are laid out left as they are.
+ *
+ * **Because the source's line breaks are not the output's**, which is what a hand wrapped help text gets
+ * wrong twice over: a paragraph wrapped to fit a Kotlin file is wrapped at whatever column it ended up at,
+ * so two paragraphs edited a year apart print with two different right edges — and a sentence that grows a
+ * clause has to be re-wrapped by hand or it prints one word wide. Reflowing here means the width is a number
+ * ([AgentCommandLine.HELP_WIDTH]) and the source can be written however it reads best.
+ *
+ * A block every line of which is indented is left exactly as it is, and that is the whole rule: the two
+ * example command lines and the column of commands are laid out rather than written, and re-wrapping either
+ * would be a command somebody cannot copy. Prose starts at the left edge, so this tells them apart without a
+ * marker for it.
+ */
+private fun String.reflowed(): String = split(PARAGRAPH_BREAK).joinToString(PARAGRAPH_BREAK) { block ->
+  if (block.lines().all { it.startsWith(BODY_INDENT) }) block else block.wrapped(indent = "")
+}
+
+/** Where the body of a help page sits, under the line naming what the page is about. */
+private const val BODY_INDENT = "  "
+
+/**
+ * What a summary is indented by, under the line spelling the command and what it needs.
+ *
+ * Deeper than the two spaces the command sits at, so that the commands are the left edge somebody scans
+ * and the summaries read as hanging off them. Both printers use it: the list of every command, and the
+ * arguments of one. See [AgentCommandLine.commandColumn].
+ */
+private const val SUMMARY_INDENT = "      "
+
+private const val PARAGRAPH_BREAK = "\n\n"
+
+private val WHITESPACE = Regex("\\s+")
+
+/**
+ * What one command needs spelled beside it in the list of every command, as a command line writes it.
+ *
+ * Its required arguments, less the two every command shares — see [AgentCommandLine.commandColumn] for why
+ * those two are said once instead.
+ */
+private fun AgentTool.argumentsToSpell(): List<String> = arguments()
+  .filter { it.isRequired && it.name != REASON && it.name != HEAP_DUMP_KEY }
+  .map { "${it.name}=…" }
 
 /** Which of a command's arguments are lists, which is the one thing a command line has to spell specially. */
 private fun AgentTool.listArguments(): Set<String> =

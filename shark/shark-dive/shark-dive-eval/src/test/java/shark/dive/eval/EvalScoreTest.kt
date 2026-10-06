@@ -40,7 +40,7 @@ class EvalScoreTest {
   @Test
   fun `a run that solved nothing says so whether or not it was refused along the way`() {
     val refused = score(calls = listOf(call(SET_VERDICT, refusal = "set_verdict needs `why`")))
-    val neverTried = score(calls = listOf(call("list_leak_groups"), call("path_from_gc_root")))
+    val neverTried = score(calls = listOf(call("list_leak_groups"), call("path_from_gc_roots")))
 
     // One outcome for both, because both left the heap dump naming no reference, which is the whole of what
     // solving a leak is. What tells them apart is the refusal count beside it rather than a fifth outcome:
@@ -100,7 +100,7 @@ class EvalScoreTest {
   @Test
   fun `a path read back after the verdicts added up is the same answer, not a second one`() {
     val result = score(
-      calls = listOf(solved(KEY, tool = "set_verdict"), solved(KEY, tool = "path_from_gc_root"))
+      calls = listOf(solved(KEY, tool = "set_verdict"), solved(KEY, tool = "path_from_gc_roots"))
     )
 
     // Both tools answer with the heap dump's own `leakSolved`, so a run that sets the last verdict and then

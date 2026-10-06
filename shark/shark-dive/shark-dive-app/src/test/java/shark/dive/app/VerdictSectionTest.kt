@@ -29,28 +29,28 @@ import shark.dump
 import shark.dive.Adb
 import shark.dive.AdbOutput
 import shark.dive.DeviceHeapDumps
-import shark.dive.LeakStatus
-import shark.dive.LeakStatusFile
-import shark.dive.LeakStatusOverride
-import shark.dive.LeakStatusOverrides
+import shark.dive.Verdict
+import shark.dive.VerdictFile
+import shark.dive.VerdictOverride
+import shark.dive.VerdictOverrides
 import shark.dive.Place
 import shark.dive.ReferencePage
 import shark.dive.Topic
 import shark.dive.hexObjectId
-import shark.dive.statusText
+import shark.dive.text
 
 /**
  * Whether the object a tab is on is meant to be in memory, said at the top of the panel that says what the
  * object is, changed by hand from there, and what the answer marks on the path beside it.
  *
- * What the statuses mean and how two of them disagree is `LeakStatusTest` and `HeapLeakStatusTest` in
- * `shark-dive-core`, and where they are kept is `LeakStatusFileTest`. What is only true here is that the
+ * What the verdicts mean and how two of them disagree is `VerdictTest` and `HeapVerdictTest` in
+ * `shark-dive-core`, and where they are kept is `VerdictFileTest`. What is only true here is that the
  * panel says what the heap dump says, that changing one asks for the reason before it writes anything, that
- * a status which cannot be true alongside another is shown rather than settled quietly, and that the path
+ * a verdict which cannot be true alongside another is shown rather than settled quietly, and that the path
  * says which reference the leak is.
  */
 @OptIn(ExperimentalTestApi::class)
-class LeakStatusSectionTest {
+class VerdictSectionTest {
 
   @get:Rule
   var testFolder = TemporaryFolder()
@@ -58,8 +58,8 @@ class LeakStatusSectionTest {
   /** Every UI test here records what Shark logged. See [RecordedLog]. */
   @get:Rule val logged = RecordedLog()
 
-  /** Where the statuses of the heap dump under test are kept, which is this test's own directory. */
-  private val statusesRoot by lazy { testFolder.newFolder("leak-statuses") }
+  /** Where the verdicts of the heap dump under test are kept, which is this test's own directory. */
+  private val verdictsRoot by lazy { testFolder.newFolder("verdicts") }
 
   private lateinit var heapDump: LeakyPathHeapDump
 
@@ -67,10 +67,10 @@ class LeakStatusSectionTest {
     diveUiTest {
       openHeapDump { it.activityObjectId }
 
-      onNodeWithText(STATUS_LABEL).assertIsDisplayed()
-      onNode(shows(LeakStatus.STUCK)).assertIsDisplayed()
-      // And why, because a status is a conclusion and half of them are about another object. The reason as
-      // the panel has it, which is what the path beside it prefixes with the status.
+      onNodeWithText(VERDICT_LABEL).assertIsDisplayed()
+      onNode(shows(Verdict.STUCK)).assertIsDisplayed()
+      // And why, because a verdict is a conclusion and half of them are about another object. The reason as
+      // the panel has it, which is what the path beside it prefixes with the verdict.
       onNodeWithText(DESTROYED_REASON).assertIsDisplayed()
     }
   }
@@ -80,47 +80,47 @@ class LeakStatusSectionTest {
     diveUiTest {
       openHeapDump { it.holderObjectId }
 
-      onNode(shows(LeakStatus.UNKNOWN)).assertIsDisplayed()
+      onNode(shows(Verdict.UNKNOWN)).assertIsDisplayed()
     }
   }
 
   /** There is nothing to inspect about the heap dump as a whole, and nothing to decide about it either. */
-  @Test fun `the tab on the whole heap dump has no status`() {
+  @Test fun `the tab on the whole heap dump has no verdict`() {
     diveUiTest {
       openHeapDump()
 
-      onNodeWithText(EDIT_STATUS_GLYPH).assertDoesNotExist()
-      onNode(shows(LeakStatus.UNKNOWN)).assertDoesNotExist()
+      onNodeWithText(EDIT_VERDICT_GLYPH).assertDoesNotExist()
+      onNode(shows(Verdict.UNKNOWN)).assertDoesNotExist()
     }
   }
 
-  @Test fun `a status set by hand is what the panel says, and it is on disk`() {
+  @Test fun `a verdict set by hand is what the panel says, and it is on disk`() {
     diveUiTest {
       openHeapDump { it.activityObjectId }
-      changeStatus()
+      changeVerdict()
 
-      choose(LeakStatus.EXPECTED)
+      choose(Verdict.EXPECTED)
       write(TYPED_REASON)
       set()
 
-      waitUntilAtLeastOneExists(shows(LeakStatus.EXPECTED), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(Verdict.EXPECTED), SAVE_TIMEOUT_MILLIS)
       // Marked as somebody's rather than the heap dump's, which is the difference between reading the dump
       // and reading a conclusion about it, and with what it overruled after it.
       onNodeWithText("$SET_BY_HAND$TYPED_REASON. Conflicts with $DESTROYED_REASON").assertIsDisplayed()
       waitUntil(timeoutMillis = SAVE_TIMEOUT_MILLIS) {
-        statusFile().read()[heapDump.activityObjectId]?.status == LeakStatus.EXPECTED
+        verdictFile().read()[heapDump.activityObjectId]?.verdict == Verdict.EXPECTED
       }
-      assertThat(statusFile().read()[heapDump.activityObjectId]!!.reason).isEqualTo(TYPED_REASON)
+      assertThat(verdictFile().read()[heapDump.activityObjectId]!!.reason).isEqualTo(TYPED_REASON)
     }
   }
 
-  /** The whole of why a status set by hand is worth keeping: without the why it is a colour somebody chose. */
-  @Test fun `a status cannot be set without a reason`() {
+  /** The whole of why a verdict set by hand is worth keeping: without the why it is a colour somebody chose. */
+  @Test fun `a verdict cannot be set without a reason`() {
     diveUiTest {
       openHeapDump { it.activityObjectId }
-      changeStatus()
+      changeVerdict()
 
-      choose(LeakStatus.EXPECTED)
+      choose(Verdict.EXPECTED)
 
       setButton().assertIsNotEnabled()
       write("because I read the code")
@@ -128,51 +128,51 @@ class LeakStatusSectionTest {
     }
   }
 
-  @Test fun `a status set by hand can be taken back off`() {
+  @Test fun `a verdict set by hand can be taken back off`() {
     diveUiTest {
       openHeapDump { it.activityObjectId }
-      changeStatus()
-      choose(LeakStatus.EXPECTED)
+      changeVerdict()
+      choose(Verdict.EXPECTED)
       write("this screen is deliberately kept")
       set()
-      waitUntilAtLeastOneExists(shows(LeakStatus.EXPECTED), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(shows(Verdict.EXPECTED), SAVE_TIMEOUT_MILLIS)
 
-      // Which is the one thing only the dialog of a status already set offers.
-      changeStatus()
-      onNode(hasText(CLEAR_STATUS) and isButton()).performClick()
+      // Which is the one thing only the dialog of a verdict already set offers.
+      changeVerdict()
+      onNode(hasText(CLEAR_VERDICT) and isButton()).performClick()
 
       // And the heap dump says what it said about the object again.
-      waitUntilAtLeastOneExists(shows(LeakStatus.STUCK), SAVE_TIMEOUT_MILLIS)
-      waitUntil(timeoutMillis = SAVE_TIMEOUT_MILLIS) { statusFile().read().isEmpty }
+      waitUntilAtLeastOneExists(shows(Verdict.STUCK), SAVE_TIMEOUT_MILLIS)
+      waitUntil(timeoutMillis = SAVE_TIMEOUT_MILLIS) { verdictFile().read().isEmpty }
     }
   }
 
-  @Test fun `a status that cannot be true alongside another is shown before anything is written`() {
+  @Test fun `a verdict that cannot be true alongside another is shown before anything is written`() {
     diveUiTest {
       // Set in a run before this one: the holder above the activity is leaking, so everything it holds is.
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
-      changeStatus()
+      changeVerdict()
 
-      choose(LeakStatus.EXPECTED)
+      choose(Verdict.EXPECTED)
       write("this screen is deliberately kept")
       set()
 
       // The one it disagrees with, by name, with what it was given as its reason: whoever is about to
       // overrule it is the only person who can weigh the two, and only if they can read it.
       waitUntilAtLeastOneExists(hasText("$HOLDER_NAME $CONFLICT_ABOVE"), SAVE_TIMEOUT_MILLIS)
-      onNodeWithText("${LeakStatus.STUCK.statusText}: $HOLDER_REASON").assertIsDisplayed()
-      onNodeWithText("$CONFLICT_BECOMES ${LeakStatus.EXPECTED.statusText}")
+      onNodeWithText("${Verdict.STUCK.text}: $HOLDER_REASON").assertIsDisplayed()
+      onNodeWithText("$CONFLICT_BECOMES ${Verdict.EXPECTED.text}")
         .assertIsDisplayed()
       // And nothing written while the question is open, which is what makes undoing it free.
-      assertThat(statusFile().read().all.map { it.status }).containsExactly(LeakStatus.STUCK)
+      assertThat(verdictFile().read().all.map { it.verdict }).containsExactly(Verdict.STUCK)
     }
   }
 
-  @Test fun `keeping the new status flips every status that disagreed with it`() {
+  @Test fun `keeping the new verdict flips every verdict that disagreed with it`() {
     diveUiTest {
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
-      changeStatus()
-      choose(LeakStatus.EXPECTED)
+      changeVerdict()
+      choose(Verdict.EXPECTED)
       write("this screen is deliberately kept")
       set()
       waitUntilAtLeastOneExists(hasText(SOLVE_CONFLICTS), SAVE_TIMEOUT_MILLIS)
@@ -180,32 +180,32 @@ class LeakStatusSectionTest {
       onNode(hasText(SOLVE_CONFLICTS) and isButton()).performClick()
 
       waitUntil(timeoutMillis = SAVE_TIMEOUT_MILLIS) {
-        statusFile().read()[heapDump.activityObjectId] != null
+        verdictFile().read()[heapDump.activityObjectId] != null
       }
-      val overrides = statusFile().read()
-      assertThat(overrides[heapDump.activityObjectId]!!.status).isEqualTo(LeakStatus.EXPECTED)
+      val overrides = verdictFile().read()
+      assertThat(overrides[heapDump.activityObjectId]!!.verdict).isEqualTo(Verdict.EXPECTED)
       val flipped = overrides[heapDump.holderObjectId]!!
-      assertThat(flipped.status).isEqualTo(LeakStatus.EXPECTED)
+      assertThat(flipped.verdict).isEqualTo(Verdict.EXPECTED)
       // Flipped rather than taken off, so that what was typed about it is still in the file.
       assertThat(flipped.reason).contains(HOLDER_REASON)
     }
   }
 
-  @Test fun `undoing leaves every status as it was`() {
+  @Test fun `undoing leaves every verdict as it was`() {
     diveUiTest {
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
-      changeStatus()
-      choose(LeakStatus.EXPECTED)
+      changeVerdict()
+      choose(Verdict.EXPECTED)
       write("this screen is deliberately kept")
       set()
-      waitUntilAtLeastOneExists(hasText(UNDO_STATUS), SAVE_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText(UNDO_VERDICT), SAVE_TIMEOUT_MILLIS)
 
-      onNode(hasText(UNDO_STATUS) and isButton()).performClick()
+      onNode(hasText(UNDO_VERDICT) and isButton()).performClick()
 
       onNodeWithText(SOLVE_CONFLICTS).assertDoesNotExist()
-      val overrides = statusFile().read()
+      val overrides = verdictFile().read()
       assertThat(overrides.all.map { it.objectId }).containsExactly(heapDump.holderObjectId)
-      assertThat(overrides[heapDump.holderObjectId]!!.status).isEqualTo(LeakStatus.STUCK)
+      assertThat(overrides[heapDump.holderObjectId]!!.verdict).isEqualTo(Verdict.STUCK)
       assertThat(overrides[heapDump.activityObjectId]).isNull()
     }
   }
@@ -230,8 +230,8 @@ class LeakStatusSectionTest {
       onNodeWithText(LEAK_SOLVED).assertIsDisplayed()
       onNodeWithText(FAULTY_STEP).assertIsDisplayed()
 
-      changeStatus()
-      choose(LeakStatus.EXPECTED)
+      changeVerdict()
+      choose(Verdict.EXPECTED)
       write(TYPED_REASON)
       set()
 
@@ -251,13 +251,13 @@ class LeakStatusSectionTest {
    * The reason a verdict was given is the case for the other reading, and weighing it against yours is
    * sometimes going and looking at the object — which a dialog over the window can only offer by being
    * dismissed, and dismissing it throws away the reason that had been typed. Here it is a tab, and the tab
-   * it was started in is still half set when you come back to it. See [LeakStatusSetter].
+   * it was started in is still half set when you come back to it. See [VerdictSetter].
    */
   @Test fun `going to look at a verdict this one disagrees with leaves it half set`() {
     diveUiTest {
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
-      changeStatus()
-      choose(LeakStatus.EXPECTED)
+      changeVerdict()
+      choose(Verdict.EXPECTED)
       write(TYPED_REASON)
       set()
       waitUntilAtLeastOneExists(hasText("$HOLDER_NAME $CONFLICT_ABOVE"), SAVE_TIMEOUT_MILLIS)
@@ -272,7 +272,7 @@ class LeakStatusSectionTest {
       onNodeWithText(settingVerdictTitle(ACTIVITY_NAME)).assertIsDisplayed()
       onNodeWithText(SOLVE_CONFLICTS).assertIsDisplayed()
       // Nothing written by any of that, which is what makes going to look free.
-      assertThat(statusFile().read().all.map { it.objectId }).containsExactly(heapDump.holderObjectId)
+      assertThat(verdictFile().read().all.map { it.objectId }).containsExactly(heapDump.holderObjectId)
     }
   }
 
@@ -285,8 +285,8 @@ class LeakStatusSectionTest {
   @Test fun `why two verdicts disagree is behind the question mark, in a tab`() {
     diveUiTest {
       openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
-      changeStatus()
-      choose(LeakStatus.EXPECTED)
+      changeVerdict()
+      choose(Verdict.EXPECTED)
       write(TYPED_REASON)
       set()
       waitUntilAtLeastOneExists(hasText(SOLVE_CONFLICTS), SAVE_TIMEOUT_MILLIS)
@@ -300,7 +300,7 @@ class LeakStatusSectionTest {
   }
 
   /**
-   * The other half of setting a status: the leaks are read through them, so the list changes rather than
+   * The other half of setting a verdict: the leaks are read through them, so the list changes rather than
    * only the colour of one object. See [shark.dive.HeapDominatorTreemap.findLeaks].
    */
   @Test fun `an object set to leaking by hand is what the leaks screen lists`() {
@@ -338,7 +338,7 @@ class LeakStatusSectionTest {
           linkedPlaces = listOfNotNull(place),
           // A directory of this test's, never `~/.shark-dive`: a test that saved into the real one would
           // rewrite the conclusions of whoever is running it.
-          leakStatuses = DiveLeakStatuses(statusesRoot),
+          verdicts = DiveVerdicts(verdictsRoot),
           // Nothing here opens a second heap dump, and which window one would land in is
           // `DiveWindowTest`'s.
           onHeapDumpChosen = { _, _ -> },
@@ -350,27 +350,27 @@ class LeakStatusSectionTest {
     waitForTheTree(OPEN_TIMEOUT_MILLIS)
     if (place != null) {
       // The panes describe the object a little after the tab opens, since describing it is a read of the heap
-      // dump: the pencil that changes its status is the first thing that says they have.
-      waitUntilAtLeastOneExists(hasText(EDIT_STATUS_GLYPH), OPEN_TIMEOUT_MILLIS)
+      // dump: the pencil that changes its verdict is the first thing that says they have.
+      waitUntilAtLeastOneExists(hasText(EDIT_VERDICT_GLYPH), OPEN_TIMEOUT_MILLIS)
     }
   }
 
   /**
-   * Opens the dialog that sets a status, which belongs to the tab the pencil was pressed in.
+   * Opens the dialog that sets a verdict, which belongs to the tab the pencil was pressed in.
    *
    * Waits for the button to be enabled rather than pressing it as it is: it stays disabled until the file
-   * has been read, which is what keeps a save from deleting statuses still on their way off the disk.
+   * has been read, which is what keeps a save from deleting verdicts still on their way off the disk.
    */
-  private fun ComposeUiTest.changeStatus() {
-    val pencil = hasText(EDIT_STATUS_GLYPH) and hasClickAction()
+  private fun ComposeUiTest.changeVerdict() {
+    val pencil = hasText(EDIT_VERDICT_GLYPH) and hasClickAction()
     waitUntilAtLeastOneExists(pencil and isEnabled(), RENDER_TIMEOUT_MILLIS)
     onNode(pencil).performClick()
     onNodeWithText(settingVerdictTitle(ACTIVITY_NAME)).assertIsDisplayed()
   }
 
-  /** Picks one of the three statuses, by the row it is on rather than by the mark beside it. */
-  private fun ComposeUiTest.choose(status: LeakStatus) {
-    onNode(hasText(status.statusText) and hasClickAction()).performClick()
+  /** Picks one of the three verdicts, by the row it is on rather than by the mark beside it. */
+  private fun ComposeUiTest.choose(verdict: Verdict) {
+    onNode(hasText(verdict.text) and hasClickAction()).performClick()
   }
 
   private fun ComposeUiTest.write(reason: String) {
@@ -381,34 +381,34 @@ class LeakStatusSectionTest {
     setButton().performClick()
   }
 
-  private fun ComposeUiTest.setButton() = onNode(hasText(SAVE_STATUS) and isButton())
+  private fun ComposeUiTest.setButton() = onNode(hasText(SAVE_VERDICT) and isButton())
 
-  /** The status at the top of the panel, which is the glyph and the status and nothing else. */
-  private fun shows(status: LeakStatus) = hasText("${status.glyphOf()} ${status.statusText}")
+  /** The verdict at the top of the panel, which is the glyph and the verdict and nothing else. */
+  private fun shows(verdict: Verdict) = hasText("${verdict.glyphOf()} ${verdict.text}")
 
   /** Repeated from the section rather than shared: a glyph is one of the words the window says. */
-  private fun LeakStatus.glyphOf() = when (this) {
-    LeakStatus.EXPECTED -> "✓"
-    LeakStatus.UNKNOWN -> "?"
-    LeakStatus.STUCK -> "✗"
+  private fun Verdict.glyphOf() = when (this) {
+    Verdict.EXPECTED -> "✓"
+    Verdict.UNKNOWN -> "?"
+    Verdict.STUCK -> "✗"
   }
 
-  /** A status set on the holder in a run before the one under test, which is the file being there. */
-  private fun holderIsLeaking() = holderWasSetTo(LeakStatus.STUCK, HOLDER_REASON)
+  /** A verdict set on the holder in a run before the one under test, which is the file being there. */
+  private fun holderIsLeaking() = holderWasSetTo(Verdict.STUCK, HOLDER_REASON)
 
   /** And the other way: a holder that belongs in memory, with the activity below it still stuck. */
-  private fun holderIsExpected() = holderWasSetTo(LeakStatus.EXPECTED, HOLDER_EXPECTED_REASON)
+  private fun holderIsExpected() = holderWasSetTo(Verdict.EXPECTED, HOLDER_EXPECTED_REASON)
 
   private fun holderWasSetTo(
-    status: LeakStatus,
+    verdict: Verdict,
     reason: String
   ) {
-    statusFile().write(
-      LeakStatusOverrides.of(
+    verdictFile().write(
+      VerdictOverrides.of(
         listOf(
-          LeakStatusOverride(
+          VerdictOverride(
             objectId = heapDump.holderObjectId,
-            status = status,
+            verdict = verdict,
             reason = reason
           )
         )
@@ -416,7 +416,7 @@ class LeakStatusSectionTest {
     )
   }
 
-  private fun statusFile() = LeakStatusFile(statusesRoot, heapDump.file)
+  private fun verdictFile() = VerdictFile(verdictsRoot, heapDump.file)
 
   /** A row of the leaks screen, which names the object it is about by its address. */
   private fun namesObject(objectId: Long) = hasText(hexObjectId(objectId), substring = true)
@@ -440,10 +440,10 @@ class LeakStatusSectionTest {
     /** And so does describing an object of it. */
     private const val RENDER_TIMEOUT_MILLIS = 5_000L
 
-    /** Setting a status is the heap dump read for what it disagrees with, and then a file written. */
+    /** Setting a verdict is the heap dump read for what it disagrees with, and then a file written. */
     private const val SAVE_TIMEOUT_MILLIS = 10_000L
 
-    /** How the window says a status is somebody's rather than the heap dump's. */
+    /** How the window says a verdict is somebody's rather than the heap dump's. */
     private const val SET_BY_HAND = "set by hand — "
 
     /** What a test types as the reason, which is the sentence the file has to come back with. */
@@ -464,10 +464,10 @@ class LeakStatusSectionTest {
     /** And what it was given as its reason, which the dialog has to show to be overruled. */
     private const val HOLDER_REASON = "this holder is the one to fix"
 
-    /** The reason for the other status a run before this one set on the holder. */
+    /** The reason for the other verdict a run before this one set on the holder. */
     private const val HOLDER_EXPECTED_REASON = "this holder is the app's own cache"
 
-    /** What the dialog says about a status set on an object that holds the one being changed. */
+    /** What the dialog says about a verdict set on an object that holds the one being changed. */
     private const val CONFLICT_ABOVE = "holds it"
 
     private const val CONFLICT_BECOMES = "Would become:"
@@ -479,7 +479,7 @@ class LeakStatusSectionTest {
 
 /**
  * A heap dump with a destroyed activity in it and the object holding it, which is the smallest path two
- * statuses can disagree along: what a leaking object holds is leaking, so a holder that is leaking and an
+ * verdicts can disagree along: what a leaking object holds is leaking, so a holder that is leaking and an
  * activity that isn't cannot both be read off it.
  */
 private fun TemporaryFolder.leakyPathHeapDump(): LeakyPathHeapDump {

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import shark.dive.ObjectListEntry
 import shark.dive.formatByteSize
 import shark.dive.formatPercentOfTotal
+import shark.dive.headline
 
 /**
  * One object as a row of a list, and the header over a column of them.
@@ -90,7 +91,7 @@ internal fun ObjectRow(
           typeName = entry.kind.typeName,
           objectId = entry.objectId
         )
-        entry.headline?.let { headline ->
+        entry.content?.headline?.let { headline ->
           Text(
             headline,
             style = MaterialTheme.typography.bodySmall,

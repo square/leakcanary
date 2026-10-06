@@ -273,7 +273,8 @@ one machine, so neither one's wall clock — 44 minutes and 51 — is a number a
 
 **Both arms are a build with `conclude` in it**, which is also why the columns here are `Refused` and `No
 conclusion` rather than today's `Not solved`: the tool went on 2026-10-03, with `list_leaks` renamed to
-`list_leak_groups` and `chain_from_gc_root` to `path_from_gc_root`. So read the tool names in this section
+`list_leak_groups` and `chain_from_gc_root` to `path_from_gc_root`, which is `path_from_gc_roots` today. So
+read the tool names in this section
 and the two below as the build's, not as commands to type — the numbers stand, the surface they were taken
 on is not the one in the checkout.
 
@@ -339,9 +340,10 @@ was supposed to.
 [`McpSession.withTheSurface`](https://github.com/square/leakcanary/blob/6d4a192c484437cb31299d756156f672834bcd82/shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/McpSession.kt#L302)
 prepended `AgentMethod.SURFACE` to the first *answered* call of every session, so every run was handed
 "**`show` puts what you are looking at on screen.** Use it when you reach something that matters"
-(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentMethod.kt:67`) whether it had asked for
-it or not. On this branch that text is only printed by
-`--investigation-help`. What that cost is not investigation: **nine of the before arm's twelve `show` calls
+(`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentMethod.kt:67`, as it was then) whether
+it had asked for it or not. That text moved to an `--investigation-help` of its own and then into `--help`,
+and either way it is read when somebody asks for it rather than carried by an answer. What that cost is not
+investigation: **nine of the before arm's twelve `show` calls
 came after the run's last `conclude`**, and eight of its fifteen sessions ended on one. Mid-investigation
 `show` was three calls before and two after. So a closing flourish went away and `close_heap_dump` took its
 place at the end of every run, which is the same ritual costing the same call.
@@ -590,7 +592,7 @@ Five exist. The rest are what the synthetic side is *for* — shapes a real dump
 - **Two candidates** — two references that both cross into stuck, so the answer depends on a verdict the agent
   has to defend rather than on the shape of the path.
 - **A loop** — objects holding each other, where the path's order is arbitrary and the conflict machinery
-  reports nothing (see `LeakStatusOverrides.isAbove`).
+  reports nothing (see `VerdictOverrides.isAbove`).
 - **A library leak** — the fault is in the framework, and the right answer says so rather than naming app
   code.
 - **Source to read** — the method sends an agent to the code at the version the dump is of, and no scenario
@@ -627,7 +629,7 @@ SHARK_DIVE_DIR="$TMPDIR/shark-dive-eval/<when it started>/shark-dive" \
 The *Agent logs* screen then has the whole investigation, call by call, with the verdicts and the note the
 agent left on its tabs. That is the artefact to look at when a scenario fails: a score says which runs to
 read, and the log says why. It is also what makes an eval leave nothing in `~/.shark-dive` to clear up —
-the notes, the `leak-statuses` files and the record of where each dump was are all in there with it.
+the notes, the verdict files and the record of where each dump was are all in there with it.
 
 Until the next eval, which deletes the ones before it: an 8 MB dump per run adds up, and the run that has to be
 read is the one that just failed. So read a failure before rerunning.

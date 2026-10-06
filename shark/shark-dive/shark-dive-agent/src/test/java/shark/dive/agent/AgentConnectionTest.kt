@@ -108,11 +108,11 @@ class AgentConnectionTest {
     val first = answered(call("list_leak_groups", """"reason":"Starting with what the dump says.""""))
     val second = answered(describeHolder("The holder next."))
 
-    // Both halves of the method used to be fields of an answer — how to work here prepended to whatever a
-    // session asked first, and how to find a leak in `list_leak_groups`'s own answer, which is this call. Both are
-    // text this build prints now, [AgentCommandLine.SURFACE_METHOD_OPTION] and
-    // [AgentCommandLine.LEAK_METHOD_OPTION], so a field here would be a session paying per call for a text it
-    // reads once. Which leaves nothing in an answer that the tool did not answer with.
+    // The method used to be a field of an answer — how to work here prepended to whatever a session asked
+    // first, and how to find a leak in `list_leak_groups`'s own answer, which is this call. Both are text
+    // this build prints now, `--help` and [AgentCommandLine.LEAK_METHOD_OPTION], so a field here would be a
+    // session paying per call for a text it reads once. Which leaves nothing in an answer that the tool did
+    // not answer with.
     assertThat(first.keys).doesNotContain(METHOD)
     assertThat(second.keys).doesNotContain(METHOD)
     assertThat(first.text("objectCount")).isNotEmpty()

@@ -377,7 +377,7 @@ internal fun TemporaryFolder.leakOnAStackAndInAFieldHeapDump(): File {
  * The paths drawn through it all take the executor's field rather than a frame, since [RootPathSearch] puts
  * a frame off, so what a reader sees is the wrapper above the task with the activity under both. **A frame
  * holds the activity too**, as the running thread's frames do in `leak_asynctask_o.hprof`, which is what
- * makes it the shorter way in the moment a status set by hand puts the way through the task off as well.
+ * makes it the shorter way in the moment a verdict set by hand puts the way through the task off as well.
  */
 internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump {
   val file = newFile("task-holding-its-own-thread.hprof")
@@ -420,7 +420,7 @@ internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump
   return TaskLoopHeapDump(file, wrapperObjectId, taskObjectId, activityObjectId)
 }
 
-/** A [taskHoldingItsOwnThreadHeapDump] and the three objects of it a status gets set on. */
+/** A [taskHoldingItsOwnThreadHeapDump] and the three objects of it a verdict gets set on. */
 internal class TaskLoopHeapDump(
   val file: File,
   /** The runnable the executor is running, which is on the loop and above the task on every path. */

@@ -632,24 +632,24 @@ internal fun outcomeOfTool(
   tool: String,
   answer: JsonObject
 ): String? = when (tool) {
-  "path_from_gc_root", "set_verdict" -> answer.faultyReferenceIfSolved()
+  "path_from_gc_roots", "set_verdict" -> answer.faultyReferenceIfSolved()
   else -> null
 }
 
 /**
  * The faulty reference an answer names, and null unless that answer also says the leak is solved.
  *
- * Both halves, because `faultyReference` is on the path itself and is null until the verdicts narrow to one
- * — so the pair can only disagree if this build changed one of them without the other, and null is how that
- * shows up rather than a session recording an outcome from a path that has none.
+ * Both halves, because `faultyReference` is absent until the verdicts narrow to one — so the pair can only
+ * disagree if this build changed one of them without the other, and null is how that shows up rather than a
+ * session recording an outcome from a path that has none.
  */
 private fun JsonObject.faultyReferenceIfSolved(): String? {
-  val says = this[ANSWER_WHAT_THE_PATH_SAYS] as? JsonObject ?: return null
-  if ((says[ANSWER_LEAK_SOLVED] as? JsonPrimitive)?.content != "true") {
+  val investigation = this[ANSWER_INVESTIGATION] as? JsonObject ?: return null
+  if ((investigation[ANSWER_LEAK_SOLVED] as? JsonPrimitive)?.content != "true") {
     return null
   }
-  val path = this[ANSWER_PATH] as? JsonObject ?: return null
-  return (path[ANSWER_FAULTY_REFERENCE] as? JsonPrimitive)?.content
+  val faulty = investigation[ANSWER_FAULTY_REFERENCE] as? JsonObject ?: return null
+  return (faulty[ANSWER_REFERENCE] as? JsonPrimitive)?.content
 }
 
 /**
@@ -682,7 +682,7 @@ internal fun verbOfTool(
   // Not "Described", which reads as the agent having written a description of something rather than having
   // asked what it is. Every tool here is a read unless it says otherwise, and the verbs have to say which.
   "describe_object" -> "Looked at"
-  "path_from_gc_root" -> "Read the path to"
+  "path_from_gc_roots" -> "Read the path to"
   "ways_held" -> "Looked for every way of holding"
   // Which is a search of the whole dump when it names no class, and that is the list of the biggest
   // objects rather than a search for nothing.
@@ -742,10 +742,15 @@ internal fun screenOfTool(
   else -> null
 }
 
-/** What a solved path answers with the reference under, which is one of the two answers this file records. */
+/**
+ * What a solved path answers with the reference under, which is one of the two answers this file records.
+ *
+ * On the investigation rather than on the path, and an object rather than a string: the label is under
+ * [ANSWER_REFERENCE] and the index of the object holding it beside that. See `AgentJson.investigation`.
+ */
+private const val ANSWER_INVESTIGATION = "investigation"
 private const val ANSWER_FAULTY_REFERENCE = "faultyReference"
-private const val ANSWER_PATH = "path"
-private const val ANSWER_WHAT_THE_PATH_SAYS = "whatThePathSays"
+private const val ANSWER_REFERENCE = "reference"
 private const val ANSWER_LEAK_SOLVED = "leakSolved"
 
 /** And what `list_heap_dumps` answers with the dumps under. See `AgentJson.heapDump`. */

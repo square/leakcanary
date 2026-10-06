@@ -61,7 +61,7 @@ import shark.dive.HeapLeaks
 import shark.dive.HeapObjectKind
 import shark.dive.HeapSizes
 import shark.dive.LayoutCell
-import shark.dive.LeakStatusOverrides
+import shark.dive.VerdictOverrides
 import shark.dive.NativeBitmapPixels
 import shark.dive.Note
 import shark.dive.NoteLink
@@ -89,7 +89,7 @@ import shark.dive.detours
 import shark.dive.exactHexObjectId
 import shark.dive.formatObjectCount
 import shark.dive.hexObjectId
-import shark.dive.leakStatusConflictsWith
+import shark.dive.verdictConflictsWith
 import shark.dive.nodeIdText
 import shark.dive.referencesOf
 import shark.dive.titleOf
@@ -127,8 +127,8 @@ internal fun HeapDumpDive(
   fetchedBitmapPixels: NativeBitmapPixels? = null,
   /** What has been written about the places of this heap dump, shared with every other window on it. */
   notes: HeapDumpNotes,
-  /** And what has been decided about its objects by hand, shared the same way. See [LeakStatusDetail]. */
-  leakStatuses: HeapDumpLeakStatuses,
+  /** And what has been decided about its objects by hand, shared the same way. See [VerdictDetail]. */
+  verdicts: HeapDumpVerdicts,
   /** And which of its objects are starred, shared the same way. See [HeapDumpStars]. */
   stars: HeapDumpStars,
   /** Places a link has asked for, opened as tabs. See [DiveWindow.linkedPlaces]. */
@@ -237,20 +237,20 @@ internal fun HeapDumpDive(
   /**
    * Where saving a star runs, which is the composition rather than an effect.
    *
-   * A `LaunchedEffect` keyed on what was clicked is how the leak status dialog does it, and it can't be that
+   * A `LaunchedEffect` keyed on what was clicked is how the leak verdict dialog does it, and it can't be that
    * here: two stars set in a row would key the effect twice, and the second would cancel the first between
    * its write landing and the list on screen being told about it. See [HeapDumpStars.toggle].
    */
   val starring = rememberCoroutineScope()
-  /** Which objects of this heap dump have a status someone set, which is what every path is read with. */
-  val overrides = leakStatuses.overrides
+  /** Which objects of this heap dump have a verdict someone set, which is what every path is read with. */
+  val overrides = verdicts.overrides
   /**
    * The verdict being set in each tab, by tab id, and empty in a window where nobody is setting one.
    *
    * Per tab rather than per window, because setting a verdict is not a dialog: it is drawn inside the tab
    * it was started from, so the reader can open the reference, go and look at a verdict this one disagrees
    * with, or read the path, and come back to the reason half typed. Tab ids are never reused, so an entry
-   * here can only ever be about the tab it was made for. See [SettingVerdict] and [LeakStatusSetter].
+   * here can only ever be about the tab it was made for. See [SettingVerdict] and [VerdictSetter].
    */
   val settingVerdicts = remember { mutableStateMapOf<Int, SettingVerdict>() }
   /** And the one in the tab on screen, which is the only one drawn. */
@@ -270,7 +270,7 @@ internal fun HeapDumpDive(
    * Whether the object the tab is on is meant to be in memory, for the panel that says what it is and the
    * dialog that overrules it.
    *
-   * From the last step of the path when there is one, because that is the status with everything above and
+   * From the last step of the path when there is one, because that is the verdict with everything above and
    * below the object taken into account, and from the object's own reading until the walk up to the GC roots
    * lands — or for good, for an object nothing reaches. So this can say `Unknown` for a beat and then say
    * `Stuck`, which is the panes filling in rather than the window changing its mind.
@@ -278,17 +278,17 @@ internal fun HeapDumpDive(
    * Nothing for the whole heap dump, which is no object of it: there is nothing to inspect and nothing to
    * decide about.
    */
-  val describedLeakStatus = describedSummary
+  val describedVerdict = describedSummary
     ?.takeIf { it.objectId != HeapDominatorTreemap.ROOT_OBJECT_ID }
     ?.let { summary ->
       val onPath = details?.rootPath?.steps?.lastOrNull()?.step
         ?.takeIf { it.objectId == summary.objectId }
-      ObjectLeakStatus(
+      ObjectVerdict(
         objectId = summary.objectId,
         objectName = summary.className.substringAfterLast('.') +
           summary.kind?.let { " ${it.typeName}" }.orEmpty(),
-        status = onPath?.leakStatus ?: summary.leakStatus,
-        reason = onPath?.leakStatusReason ?: summary.leakStatusReason,
+        verdict = onPath?.verdict ?: summary.verdict,
+        reason = onPath?.verdictReason ?: summary.verdictReason,
         setByHand = overrides[summary.objectId]
       )
     }
@@ -435,7 +435,7 @@ internal fun HeapDumpDive(
   // else clears the panes — and because the place is the whole of where the tab is, there is no second
   // piece of state for this to fall out of step with.
   //
-  // And on the statuses set by hand, because they are half of what a path says: setting one is asking the
+  // And on the verdicts set by hand, because they are half of what a path says: setting one is asking the
   // window to read the heap dump through it, which is this read again.
   LaunchedEffect(session, place, overrides) {
     if (place == null || place.viewRootObjectId == null) {
@@ -510,7 +510,7 @@ internal fun HeapDumpDive(
   // The leaks come with it, for the same reason and in the same breath: the map is shaded by them, so they
   // are what the window shows before anyone asks it anything, rather than what a checkbox goes looking for.
   //
-  // And again whenever a status is set by hand, because the list is read through those: marking something
+  // And again whenever a verdict is set by hand, because the list is read through those: marking something
   // leaking halfway up a path makes it a leak and takes what it was holding off the list, which is a
   // different list rather than a different colour on the same one. See [HeapDominatorTreemap.findLeaks].
   LaunchedEffect(session, overrides) {
@@ -614,8 +614,8 @@ internal fun HeapDumpDive(
 
   // And what has been decided about this heap dump's objects by hand, also once per run: one small file,
   // read before anything is drawn from it, because a path read without it would be the heap dump's own
-  // answer where someone has already recorded another. See [HeapDumpLeakStatuses].
-  LaunchedEffect(leakStatuses) { leakStatuses.read() }
+  // answer where someone has already recorded another. See [HeapDumpVerdicts].
+  LaunchedEffect(verdicts) { verdicts.read() }
 
   // And which of its objects are starred, the same way and for the same reason: a star is drawn beside every
   // object the panel describes, so a window that hasn't read the file yet would say every one of them isn't.
@@ -910,13 +910,13 @@ internal fun HeapDumpDive(
             sizes = sizes,
             bitmap = describedBitmap,
             isStarred = describedSummary?.let { stars.isStarred(it.objectId) } == true,
-            leakStatus = describedLeakStatus,
-            isLeakStatusRead = leakStatuses.isRead,
-            leakStatusProblem = leakStatuses.problem,
-            onChangeLeakStatus = {
+            objectVerdict = describedVerdict,
+            isVerdictRead = verdicts.isRead,
+            verdictProblem = verdicts.problem,
+            onChangeVerdict = {
               val tabId = tabs.selectedId
-              if (tabId != null && describedLeakStatus != null) {
-                settingVerdicts[tabId] = SettingVerdict(describedLeakStatus)
+              if (tabId != null && describedVerdict != null) {
+                settingVerdicts[tabId] = SettingVerdict(describedVerdict)
               }
             },
             onOpen = openObject,
@@ -955,22 +955,22 @@ internal fun HeapDumpDive(
       // Over the tab and no further: the scrim stops where this box does, so the screen bar and the tab
       // strip above it still take a click while a verdict is being set. Which is what the `?` inside it
       // needs — it opens the reference in a tab — and what going to look at a verdict this one contradicts
-      // needs. See [LeakStatusSetter].
+      // needs. See [VerdictSetter].
       settingVerdict?.let { setting ->
-        LeakStatusSetter(
+        VerdictSetter(
           setting = setting,
-          // A walk up the references per status already set, which is a read of the heap dump like any
+          // A walk up the references per verdict already set, which is a read of the heap dump like any
           // other — and one asked for, so it is not on the path the pointer takes. See
-          // [leakStatusConflictsWith].
+          // [verdictConflictsWith].
           onFindConflicts = { override ->
             session.read(
-              "what setting ${hexObjectId(override.objectId)} to ${override.status} disagrees with"
+              "what setting ${hexObjectId(override.objectId)} to ${override.verdict} disagrees with"
             ) {
-              it.tree.leakStatusConflictsWith(override, overrides)
+              it.tree.verdictConflictsWith(override, overrides)
             }
           },
-          onSet = { override, solved -> leakStatuses.set(override, solved) },
-          onClear = { leakStatuses.clear(setting.status.objectId) },
+          onSet = { override, solved -> verdicts.set(override, solved) },
+          onClear = { verdicts.clear(setting.objectVerdict.objectId) },
           // In a tab of its own and in front, the way a `?` opens a page: going to look at a verdict this
           // one disagrees with is reading, and the tab it was left in keeps what was typed into it.
           onOpenObject = { objectId -> openInNewTab(Place.Object(objectId)) },
@@ -1153,10 +1153,10 @@ private fun RowScope.DetailsPane(
   sizes: HeapSizes,
   bitmap: ImageBitmap?,
   isStarred: Boolean,
-  leakStatus: ObjectLeakStatus?,
-  isLeakStatusRead: Boolean,
-  leakStatusProblem: String?,
-  onChangeLeakStatus: () -> Unit,
+  objectVerdict: ObjectVerdict?,
+  isVerdictRead: Boolean,
+  verdictProblem: String?,
+  onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onListInstances: (String) -> Unit,
@@ -1177,10 +1177,10 @@ private fun RowScope.DetailsPane(
       stronglyReachableByteCount = sizes.stronglyReachableByteCount,
       bitmap = bitmap,
       isStarred = isStarred,
-      leakStatus = leakStatus,
-      isLeakStatusRead = isLeakStatusRead,
-      leakStatusProblem = leakStatusProblem,
-      onChangeLeakStatus = onChangeLeakStatus,
+      objectVerdict = objectVerdict,
+      isVerdictRead = isVerdictRead,
+      verdictProblem = verdictProblem,
+      onChangeVerdict = onChangeVerdict,
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onListInstances = onListInstances,
@@ -1750,8 +1750,8 @@ private class PlaceDetails(
  */
 private suspend fun HeapDumpSession.describing(
   place: Place,
-  /** The statuses set by hand, which decide half of what the path and the row above the panes say. */
-  overrides: LeakStatusOverrides,
+  /** The verdicts set by hand, which decide half of what the path and the row above the panes say. */
+  overrides: VerdictOverrides,
   onDetails: (PlaceDetails) -> Unit
 ) {
   val placeDetails = read(place.description()) { dive ->

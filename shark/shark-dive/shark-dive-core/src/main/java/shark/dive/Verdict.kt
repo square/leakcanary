@@ -20,7 +20,7 @@ package shark.dive
  * cleared, and everything under it is retained by that one mistake — so a word like `Leaking` on twenty
  * objects points a reader at the twenty rather than at the one thing to fix.
  */
-enum class LeakStatus {
+enum class Verdict {
 
   /** Something knows this object is still needed: a live activity, a class, a running thread. */
   EXPECTED,
@@ -43,8 +43,8 @@ enum class LeakStatus {
  * The same word as a sentence reads it: on a path, in the reason another object gives, in the row above the
  * panes. Only the case differs from the constant, which is what this exists for.
  *
- * In this module rather than in the window, because the reasons worked out here are sentences that name
- * statuses — a status set by hand says which status it was set from — and two spellings of one status
+ * In this module rather than in the window, because the reasons worked out here are sentences naming one of
+ * the three — a verdict set by hand records the one it overruled — so two spellings of the same constant
  * would show up in one line of one window.
  *
  * `Stuck` says what is true of the object without accusing it: it should be gone and something is holding
@@ -57,18 +57,18 @@ enum class LeakStatus {
  * is whether objects "are still legitimately on the heap or if a faulty reference keeps them alive", which
  * is the same split these two words are, and where the **faulty reference** gets its name.
  */
-val LeakStatus.statusText: String
+val Verdict.text: String
   get() = when (this) {
-    LeakStatus.EXPECTED -> "Expected"
-    LeakStatus.UNKNOWN -> "Unknown"
-    LeakStatus.STUCK -> "Stuck"
+    Verdict.EXPECTED -> "Expected"
+    Verdict.UNKNOWN -> "Unknown"
+    Verdict.STUCK -> "Stuck"
   }
 
-/** What one object of a path is, and why. See [LeakStatus]. */
-internal class LeakStatusAndReason(
-  val status: LeakStatus,
+/** What one object of a path is, and why. See [Verdict]. */
+internal class VerdictAndReason(
+  val verdict: Verdict,
   /**
-   * In words, e.g. `Activity#mDestroyed is true`. Null for [LeakStatus.UNKNOWN], unless a hand set it: an
+   * In words, e.g. `Activity#mDestroyed is true`. Null for [Verdict.UNKNOWN], unless a hand set it: an
    * object someone said nothing is known about has a reason for that too.
    */
   val reason: String?
@@ -84,7 +84,7 @@ internal class InspectedPathObject(
    * What someone reading this heap dump decided this object is, which wins over the reasons above it.
    * Null for every object nobody has said anything about, which is all of them to start with.
    */
-  val setByHand: LeakStatusOverride? = null
+  val setByHand: VerdictOverride? = null
 )
 
 /**
@@ -95,7 +95,7 @@ internal class InspectedPathObject(
  * expected too, because it is holding something that is still needed; and everything below a stuck object
  * is stuck, because the only thing keeping it in memory is an object that shouldn't be there. So the
  * inspectors have to recognize one object of a path for the whole path to read, and what's left in the
- * middle — between the last [LeakStatus.EXPECTED] and the first [LeakStatus.STUCK] — is where the
+ * middle — between the last [Verdict.EXPECTED] and the first [Verdict.STUCK] — is where the
  * **faulty reference** is: the one reference that should have been cleared, and the whole of what there is
  * to fix.
  *
@@ -105,94 +105,101 @@ internal class InspectedPathObject(
  * be stuck**. A leak trace ends where the leak is, so forcing it is right there; a path here ends
  * wherever the reader clicked, and calling whatever that was stuck would be the window inventing leaks.
  *
- * A status someone set by hand is what that object is — see [setByHandStatus] — and then these two rules
+ * A verdict someone set by hand is what that object is — see [setByHandVerdict] — and then these two rules
  * run over it like over any other: what an object is decides what the objects above and below it are, and
  * that is as true of an object a person recognized as of one an inspector did. Which is what makes two
- * statuses set by hand able to disagree, and [leakStatusConflictsWith] what finds it before they do.
+ * verdicts set by hand able to disagree, and [verdictConflictsWith] what finds it before they do.
  */
-internal fun leakStatusesOf(objects: List<InspectedPathObject>): List<LeakStatusAndReason> {
+internal fun verdictsOf(objects: List<InspectedPathObject>): List<VerdictAndReason> {
   if (objects.isEmpty()) {
     return emptyList()
   }
   val lastIndex = objects.lastIndex
   // A conflict is resolved in favour of the object still being needed, except at the end of the path:
   // that one is the object being asked about, so what is known to be wrong with it is the answer.
-  val statuses = objects.mapIndexed { index, inspected ->
-    inspected.ownStatus(stuckWins = index == lastIndex)
+  val verdicts = objects.mapIndexed { index, inspected ->
+    inspected.ownVerdict(stuckWins = index == lastIndex)
   }.toMutableList()
   var lastExpectedIndex = -1
   var firstStuckIndex = lastIndex
-  statuses.forEachIndexed { index, status ->
-    if (status.status == LeakStatus.EXPECTED) {
+  verdicts.forEachIndexed { index, andReason ->
+    if (andReason.verdict == Verdict.EXPECTED) {
       lastExpectedIndex = index
       // So that the first stuck object is never above the last expected one: an object that is stuck and
       // is held by one that is expected means the leak starts below it.
       firstStuckIndex = lastIndex
-    } else if (status.status == LeakStatus.STUCK && firstStuckIndex == lastIndex) {
+    } else if (andReason.verdict == Verdict.STUCK && firstStuckIndex == lastIndex) {
       firstStuckIndex = index
     }
   }
   for (index in 0 until lastExpectedIndex) {
     val nextExpectedIndex = (index + 1..lastExpectedIndex)
-      .first { statuses[it].status == LeakStatus.EXPECTED }
+      .first { verdicts[it].verdict == Verdict.EXPECTED }
     val nextExpectedName = "${objects[nextExpectedIndex].simpleClassName}↓"
-    val reason = statuses[index].reason
-    statuses[index] = LeakStatusAndReason(
-      status = LeakStatus.EXPECTED,
-      reason = when (statuses[index].status) {
+    val reason = verdicts[index].reason
+    verdicts[index] = VerdictAndReason(
+      verdict = Verdict.EXPECTED,
+      reason = when (verdicts[index].verdict) {
         // With a reason of its own only when a hand gave it one, which the path is then overruling: an
-        // object someone said nothing is known about is one of the two statuses this can disagree with.
-        LeakStatus.UNKNOWN -> "$nextExpectedName is expected".conflicting(reason)
-        LeakStatus.EXPECTED -> "$nextExpectedName is expected and $reason"
-        LeakStatus.STUCK -> "$nextExpectedName is expected. Conflicts with $reason"
+        // object someone said nothing is known about is one of the two verdicts this can disagree with.
+        Verdict.UNKNOWN -> "$nextExpectedName is expected".conflicting(reason)
+        Verdict.EXPECTED -> "$nextExpectedName is expected and $reason"
+        Verdict.STUCK -> "$nextExpectedName is expected. Conflicts with $reason"
       }
     )
   }
   for (index in lastIndex downTo firstStuckIndex + 1) {
     val previousStuckIndex = (index - 1 downTo firstStuckIndex)
-      .first { statuses[it].status == LeakStatus.STUCK }
+      .first { verdicts[it].verdict == Verdict.STUCK }
     val previousStuckName = "${objects[previousStuckIndex].simpleClassName}↑"
-    val reason = statuses[index].reason
-    statuses[index] = LeakStatusAndReason(
-      status = LeakStatus.STUCK,
-      reason = when (statuses[index].status) {
-        LeakStatus.UNKNOWN -> "$previousStuckName is stuck".conflicting(reason)
-        LeakStatus.STUCK -> "$previousStuckName is stuck and $reason"
+    val reason = verdicts[index].reason
+    verdicts[index] = VerdictAndReason(
+      verdict = Verdict.STUCK,
+      reason = when (verdicts[index].verdict) {
+        Verdict.UNKNOWN -> "$previousStuckName is stuck".conflicting(reason)
+        Verdict.STUCK -> "$previousStuckName is stuck and $reason"
         // No object below the first stuck one is left expected: the first stuck index is reset past every
         // expected object, and the loop above turned the rest into expected already.
-        LeakStatus.EXPECTED -> error(
+        Verdict.EXPECTED -> error(
           "${objects[index].simpleClassName} at $index is expected, below " +
             "${objects[previousStuckIndex].simpleClassName} at $previousStuckIndex, which is stuck"
         )
       }
     )
   }
-  return statuses
+  return verdicts
 }
 
 /**
- * Which references of a path the leak could be, as indexes into it: the stretch [leakStatusesOf] leaves in
+ * Which references of a path the leak could be, as indexes into it: the stretch [verdictsOf] leaves in
  * the middle, from the last object expected to be in memory down to the first stuck one.
  *
  * **What a leak is named after**, and what makes two objects instances of the same leak — the same stretch
  * LeakCanary underlines in a leak trace and hashes into a leak fingerprint. The fault is at one of these
  * references and the objects between them are the ones nothing knows either way about, so which one of them
  * it is only reads off the path when there is a single one: that one is [faultyReferenceIndexOrNull], and
- * narrowing a longer stretch to it is a person reading code, which is what setting a status by hand is for.
+ * narrowing a longer stretch to it is a person reading code, which is what setting a verdict by hand is for.
  *
  * Empty for a path with nothing stuck on it, which is most paths of a heap dump: the rules can point at a
  * reference only once something below it is known not to belong. And the references of steps that have none
  * are left out, which is the object a GC root reaches: a root holds its object through no field, so there is
  * nothing there to have cleared.
+ *
+ * Public, unlike [suspectReferenceLabels] beside it, because a reader outside this module needs this one per
+ * step rather than gathered: `AgentJson` marks each reference of a path it writes out with whether it is one
+ * of these, which is a boolean per step and not a list of words. [PathReference.isFaulty] is the field for
+ * the other question and is on the step already — it is at most one reference of a path and only once the
+ * verdicts have narrowed that far, so a path still being worked on has nothing marked and these indexes are
+ * the whole of what it has to say about where the fault is.
  */
-internal fun List<PathStep>.suspectReferenceIndexes(): List<Int> {
-  val firstStuck = indexOfFirst { it.leakStatus == LeakStatus.STUCK }
+fun List<PathStep>.suspectReferenceIndexes(): List<Int> {
+  val firstStuck = indexOfFirst { it.verdict == Verdict.STUCK }
   if (firstStuck == -1) {
     return emptyList()
   }
-  // Never below the first stuck object: [leakStatusesOf] pushes that one past every object expected to be
+  // Never below the first stuck object: [verdictsOf] pushes that one past every object expected to be
   // in memory, so the stretch between the two ends is never empty and never runs backwards.
-  val lastExpected = indexOfLast { it.leakStatus == LeakStatus.EXPECTED }
+  val lastExpected = indexOfLast { it.verdict == Verdict.EXPECTED }
   return (lastExpected + 1..firstStuck).filter { this[it].reference != null }
 }
 
@@ -225,12 +232,12 @@ internal fun List<PathStep>.suspectReferenceLabels(): List<String> =
  *   reference for being where the walk stopped.
  * - **Objects nothing is known about in between.** The fault is at one of those steps and the path doesn't
  *   say which, so marking one of them would be a guess drawn as an answer. They are
- *   [suspectReferenceIndexes], which is what a leak is named after, and a status set by hand is what turns
+ *   [suspectReferenceIndexes], which is what a leak is named after, and a verdict set by hand is what turns
  *   that stretch into a single reference.
  */
 internal fun List<PathStep>.faultyReferenceIndexOrNull(): Int? {
-  val firstStuck = indexOfFirst { it.leakStatus == LeakStatus.STUCK }
-  val lastExpected = indexOfLast { it.leakStatus == LeakStatus.EXPECTED }
+  val firstStuck = indexOfFirst { it.verdict == Verdict.STUCK }
+  val lastExpected = indexOfLast { it.verdict == Verdict.EXPECTED }
   if (firstStuck == -1 || lastExpected == -1 || firstStuck != lastExpected + 1) {
     return null
   }
@@ -248,59 +255,59 @@ private fun String.conflicting(overruled: String?): String =
  * still needed, unless it is the object the path is about.
  *
  * Unless a hand set it, in which case that is the answer and the inspectors are what it is recorded as
- * disagreeing with. See [setByHandStatus].
+ * disagreeing with. See [setByHandVerdict].
  */
-private fun InspectedPathObject.ownStatus(stuckWins: Boolean): LeakStatusAndReason {
+private fun InspectedPathObject.ownVerdict(stuckWins: Boolean): VerdictAndReason {
   val expected = expectedReasons.joinToString(" and ").takeIf { expectedReasons.isNotEmpty() }
   val stuck = stuckReasons.joinToString(" and ").takeIf { stuckReasons.isNotEmpty() }
   if (setByHand != null) {
-    return setByHandStatus(setByHand, stuck = stuck, expected = expected)
+    return setByHandVerdict(setByHand, stuck = stuck, expected = expected)
   }
   return when {
     stuck != null && expected != null -> if (stuckWins) {
-      LeakStatusAndReason(LeakStatus.STUCK, "$stuck. Conflicts with $expected")
+      VerdictAndReason(Verdict.STUCK, "$stuck. Conflicts with $expected")
     } else {
-      LeakStatusAndReason(LeakStatus.EXPECTED, "$expected. Conflicts with $stuck")
+      VerdictAndReason(Verdict.EXPECTED, "$expected. Conflicts with $stuck")
     }
-    stuck != null -> LeakStatusAndReason(LeakStatus.STUCK, stuck)
-    expected != null -> LeakStatusAndReason(LeakStatus.EXPECTED, expected)
-    else -> LeakStatusAndReason(LeakStatus.UNKNOWN, null)
+    stuck != null -> VerdictAndReason(Verdict.STUCK, stuck)
+    expected != null -> VerdictAndReason(Verdict.EXPECTED, expected)
+    else -> VerdictAndReason(Verdict.UNKNOWN, null)
   }
 }
 
 /**
- * What an object someone set the status of by hand is: whatever they said, whoever says otherwise.
+ * What an object someone set the verdict of by hand is: whatever they said, whoever says otherwise.
  *
  * **Overriding always wins**, which is the one place this differs from how two inspectors disagreeing is
  * settled: there the object being still needed wins, because two inspectors are two pieces of the same
  * automated reading and the safer of them is the one to believe. A hand is not that — someone who has read
  * the heap dump and typed a reason knows something the inspectors don't, and a rule that weighed the two
- * would mean a status that can't be changed to the one the inspectors already picked.
+ * would mean a verdict that can't be changed to the one the inspectors already picked.
  *
  * So the inspectors become the record of what was overruled, the way a conflict between two of them is
  * recorded, and the reason is the one that was typed.
  */
-private fun setByHandStatus(
-  setByHand: LeakStatusOverride,
+private fun setByHandVerdict(
+  setByHand: VerdictOverride,
   stuck: String?,
   expected: String?
-): LeakStatusAndReason {
-  val overruled = when (setByHand.status) {
-    LeakStatus.STUCK -> expected
-    LeakStatus.EXPECTED -> stuck
+): VerdictAndReason {
+  val overruled = when (setByHand.verdict) {
+    Verdict.STUCK -> expected
+    Verdict.EXPECTED -> stuck
     // Both of them, since saying nothing is known about an object overrules anything that claimed to know.
-    LeakStatus.UNKNOWN -> listOfNotNull(expected, stuck).joinToString(" and ").takeIf { it.isNotEmpty() }
+    Verdict.UNKNOWN -> listOfNotNull(expected, stuck).joinToString(" and ").takeIf { it.isNotEmpty() }
   }
-  return LeakStatusAndReason(
-    status = setByHand.status,
+  return VerdictAndReason(
+    verdict = setByHand.verdict,
     reason = "$SET_BY_HAND${setByHand.reason}".conflicting(overruled)
   )
 }
 
 /**
- * In front of the reason someone typed, wherever their status is read.
+ * In front of the reason someone typed, wherever their verdict is read.
  *
- * Because the reason is the whole of what a path says about an object, and a status a hand set has to be
+ * Because the reason is the whole of what a path says about an object, and a verdict a hand set has to be
  * readable as one there: half the objects of a path are green or red because of an inspector, and which of
  * them is there because someone decided so is the difference between reading the heap dump and reading
  * someone's conclusion about it.

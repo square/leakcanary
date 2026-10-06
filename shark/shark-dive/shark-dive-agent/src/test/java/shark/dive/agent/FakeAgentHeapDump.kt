@@ -8,8 +8,8 @@ import shark.dive.DeepLink
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
 import shark.dive.HeapSizes
-import shark.dive.LeakStatusOverride
-import shark.dive.LeakStatusOverrides
+import shark.dive.VerdictOverride
+import shark.dive.VerdictOverrides
 import shark.dive.Place
 
 /**
@@ -45,7 +45,7 @@ internal class FakeAgentHeapDump(
   // while opening the dump, and a listing of every open dump waits on none of them. See [AgentHeapDump.sizes].
   override val sizes: HeapSizes get() = dive.sizes
 
-  override var verdicts: LeakStatusOverrides = LeakStatusOverrides.NONE
+  override var verdicts: VerdictOverrides = VerdictOverrides.NONE
     private set
 
   /** What was written about each place, in the order it was written, so a test can read it back. */
@@ -71,8 +71,8 @@ internal class FakeAgentHeapDump(
   }
 
   override suspend fun setVerdict(
-    verdict: LeakStatusOverride,
-    solved: List<LeakStatusOverride>
+    verdict: VerdictOverride,
+    solved: List<VerdictOverride>
   ) {
     verdicts = verdicts.with(listOf(verdict) + solved)
   }

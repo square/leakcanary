@@ -2,7 +2,6 @@ package shark.dive.agent
 
 import java.io.File
 import java.time.Instant
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -145,7 +144,7 @@ class AgentSessionFileTest {
     assertThat(outcomeOfTool(SET_VERDICT, solved)).isEqualTo(FAULTY_REFERENCE)
     // The same answer from the other call that can carry it: a path read after the last verdict is this dump
     // saying the same thing, so it is the same outcome rather than a second one.
-    assertThat(outcomeOfTool(PATH_FROM_GC_ROOT, solved)).isEqualTo(FAULTY_REFERENCE)
+    assertThat(outcomeOfTool(PATH_FROM_GC_ROOTS, solved)).isEqualTo(FAULTY_REFERENCE)
     // Every other tool answers with data rather than an outcome, and a row saying what a read came back with
     // would be the answer printed twice.
     assertThat(outcomeOfTool("describe_object", solved)).isNull()
@@ -156,14 +155,13 @@ class AgentSessionFileTest {
     // Which is most of them: a path read before the verdicts add up names no reference, and a row claiming
     // one would be a session reading as solved from its first call.
     val narrowed = buildJsonObject {
-      putJsonObject("path") { put("faultyReference", JsonNull) }
-      putJsonObject("whatThePathSays") { put("leakSolved", false) }
+      putJsonObject("investigation") { put("leakSolved", false) }
     }
 
-    assertThat(outcomeOfTool(PATH_FROM_GC_ROOT, narrowed)).isNull()
+    assertThat(outcomeOfTool(PATH_FROM_GC_ROOTS, narrowed)).isNull()
     // And a build that changed one half of the answer without the other reads as null here rather than
     // recording an outcome from a path that has none.
-    assertThat(outcomeOfTool(PATH_FROM_GC_ROOT, buildJsonObject { put("leakSolved", true) })).isNull()
+    assertThat(outcomeOfTool(PATH_FROM_GC_ROOTS, buildJsonObject { put("leakSolved", true) })).isNull()
   }
 
   @Test
@@ -341,7 +339,7 @@ class AgentSessionFileTest {
     // Spelled here rather than read off the registry, like [AgentToolsTest]'s: a test that took the names
     // from the code it is testing would pass a rename that every session already on disk was written under.
     const val LIST_LEAK_GROUPS = "list_leak_groups"
-    const val PATH_FROM_GC_ROOT = "path_from_gc_root"
+    const val PATH_FROM_GC_ROOTS = "path_from_gc_roots"
     const val SET_VERDICT = "set_verdict"
 
     /**
@@ -371,8 +369,13 @@ class AgentSessionFileTest {
      * derived, and the heap dump's own reading of the verdicts on it saying the search is over.
      */
     fun solvedAnswer(faultyReference: String) = buildJsonObject {
-      putJsonObject("path") { put("faultyReference", faultyReference) }
-      putJsonObject("whatThePathSays") { put("leakSolved", true) }
+      putJsonObject("investigation") {
+        put("leakSolved", true)
+        putJsonObject("faultyReference") {
+          put("reference", faultyReference)
+          put("objectIndex", 1)
+        }
+      }
     }
   }
 }

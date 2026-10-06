@@ -2,8 +2,11 @@ package shark.dive
 
 import shark.LeakTrace
 import shark.LeakTraceObject
-import shark.LeakTraceObject.Verdict
 import shark.LeakTraceObject.ObjectType
+// Aliased because this module has a [Verdict] of its own with the same three constants, and this file is
+// where the two meet. The mapping below is the identity it looks like: these words started in Shark Dive
+// and went down into Shark, so the only thing between them is that they are two enums.
+import shark.LeakTraceObject.Verdict as TraceVerdict
 import shark.LeakTraceReference
 import shark.LeakTraceReference.ReferenceType
 import shark.ReferenceLocationType
@@ -39,7 +42,7 @@ internal fun List<PathStep>.leakFingerprint(): String =
  * is not read as a tool that renders less — it is read as a heap dump that says less, and the thing somebody
  * does with it is go looking for the fact in a report that has it. Measured against `shark-cli analyze` on
  * `shark/shark-android/src/test/resources/leak_asynctask_o.hprof`, which is the check to repeat after
- * changing this: identical fingerprint, identical path, identical labels and status reasons, and the only
+ * changing this: identical fingerprint, identical path, identical labels and verdict reasons, and the only
  * remaining difference is the `Also retains leaking object …` labels — those name the *other* leaks an
  * analysis found under this one, which Shark Dive drops from its list instead of labelling, see
  * `foldedIntoWhatHoldsThem`.
@@ -81,12 +84,12 @@ private fun PathStep.toLeakTraceObject(
   // the reporter before running a single inspector over it.
   labels = (listOfNotNull(libraryLeakOut?.let { "Library leak match: ${it.pattern}" }) + inspectorLabels)
     .toSet(),
-  verdict = when (leakStatus) {
-    LeakStatus.EXPECTED -> Verdict.EXPECTED
-    LeakStatus.UNKNOWN -> Verdict.UNKNOWN
-    LeakStatus.STUCK -> Verdict.STUCK
+  verdict = when (verdict) {
+    Verdict.EXPECTED -> TraceVerdict.EXPECTED
+    Verdict.UNKNOWN -> TraceVerdict.UNKNOWN
+    Verdict.STUCK -> TraceVerdict.STUCK
   },
-  verdictReason = leakStatusReason.orEmpty(),
+  verdictReason = verdictReason.orEmpty(),
   // Null for every step but the last, matching what LeakCanary credits: a retained size on each step is
   // what the path pane is for, and putting one on each here would be lines to explain away to whoever is
   // comparing this against a report. Null for an object folded into another one as well — [isTreeNode] is

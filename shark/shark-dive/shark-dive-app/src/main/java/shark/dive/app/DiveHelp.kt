@@ -24,19 +24,15 @@ import shark.dive.agent.AgentCommandLine
  * where it is needed. [AgentCommandLine.CLI_OPTION] with nothing after it lands here too, since a command line
  * that names no command is a question about what the commands are.
  *
- * **Both halves of the method are here too**, and that is what they are for: a text printed on demand is read
+ * **The method for solving a leak is here too**, and that is what it is for: a text printed on demand is read
  * once by whoever wants it, where a text carried in an answer is read again by every call that gets one. See
- * [AgentCommandLine.SURFACE_METHOD_OPTION] and [AgentCommandLine.LEAK_METHOD_OPTION].
+ * [AgentCommandLine.LEAK_METHOD_OPTION].
  *
  * Answered before any logging is installed, and it ends with 0: whoever typed this asked a question and got the
  * answer, so there is nothing to put in a log file and nothing to fail about.
  */
 internal fun helpExitCode(args: Array<String>): Int? {
-  // On stdout, every one of them, because the text is the whole of what the command was run for.
-  if (AgentCommandLine.SURFACE_METHOD_OPTION in args) {
-    println(AgentCommandLine.surfaceMethod())
-    return 0
-  }
+  // On stdout, both of them, because the text is the whole of what the command was run for.
   if (AgentCommandLine.LEAK_METHOD_OPTION in args) {
     println(AgentCommandLine.leakMethod())
     return 0
@@ -71,7 +67,7 @@ internal fun helpExitCode(args: Array<String>): Int? {
  * carries the commands under it.
  */
 private fun help(command: String): String = """
-  |Shark Dive opens heap dumps and answers commands about them, in a window or with no window at all.
+  |Shark Dive is a tool to explore heap dumps, using a UI and/or a CLI.
   |
   |  $command [<heap dump>…] [${DeepLink.SCHEME}://<heap dump>/<place>…]
   |  $command ${AgentCommandLine.CLI_OPTION} <command> name=value …
@@ -98,7 +94,7 @@ private fun options(): String = (
     "<heap dump>" to
       "Opened as this starts, a window each unless ${AgentCommandLine.NO_UI_OPTION} says to draw none.",
     "${DeepLink.SCHEME}://<heap dump>/<place>" to
-      "Goes to a place of a heap dump — a leak, an object, a tab — in whichever window has it open."
+      "Goes to a place of a heap dump (a leak, an object, a tab) in whichever window has it open."
   ) + AgentCommandLine.cliOptions() + debugOptions()
   ).asOptionColumn()
 
@@ -117,7 +113,7 @@ private fun debugOptions(): List<Pair<String, String>> = listOf(
 private fun List<Pair<String, String>>.asOptionColumn(): String {
   val continuation = " ".repeat(INDENT.length + OPTION_WIDTH)
   return flatMap { (option, what) ->
-    what.wrappedAt(LINE_WIDTH - continuation.length).mapIndexed { index, line ->
+    what.wrappedAt(AgentCommandLine.HELP_WIDTH - continuation.length).mapIndexed { index, line ->
       if (index == 0) "$INDENT${option.padEnd(OPTION_WIDTH)}$line" else "$continuation$line"
     }
   }.joinToString("\n")
@@ -158,6 +154,3 @@ private val HELP_OPTIONS = setOf(AgentCommandLine.HELP_OPTION, "-h")
 private const val OPTION_WIDTH = 31
 
 private const val INDENT = "  "
-
-/** Narrow enough to read in a terminal nobody widened, which is what a help text is printed into. */
-private const val LINE_WIDTH = 100

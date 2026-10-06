@@ -4,8 +4,8 @@
 #
 # What this is for: the tools in this module are meant to hold an investigation to a method, and whether
 # they do is not a thing a unit test can answer — it takes a model that has never seen this repository,
-# reading nothing but what the tools hand back. So this builds the app, copies it somewhere of its own, and
-# starts an agent on one heap dump with two sentences: which file, and where the launcher is.
+# reading nothing but what the tools hand back. So this builds the app, copies it and the heap dump into a
+# directory of its own, and starts an agent there with two sentences: which file, and where the launcher is.
 #
 # **Nothing here opens the heap dump.** The agent is told where the file is, and opening it is the first
 # thing it has to get right — which is the first thing a person has to get right too. A harness that handed
@@ -23,7 +23,7 @@
 # this script gives it one, at the cost of the window not appearing among the person's own dives. The eval does
 # that permanently, plus a hard-linked copy of the dump per run, and `run-eval.sh` says why.
 #
-# **And nothing here stages a skill.** What an agent needs to know is `--help`, `--investigation-help` and
+# **And nothing here stages a skill.** What an agent needs to know is `--help` and
 # `--leak-investigation-help`, which are text the build carries and therefore cannot go stale — so the prompt
 # names the launcher and stops, and finding out what it takes is the agent's own first move. The skill this
 # repository ships is one short page saying exactly that much, for somebody who has the app installed and
@@ -83,7 +83,7 @@ readonly WHERE_THE_LOG_IS="Once a heap dump is open, the Shark Dive agent logs (
 # answer only until somebody starts a second one — and then the command printed by the first quietly follows
 # the second. The reasoning text is the one thing the transcript hasn't got; `watch-transcript.sh` has what was
 # measured about that and why no option brings it back.
-readonly WHERE_THE_TRANSCRIPT_IS="Every call this run makes, and what comes back, is in the client's transcript as it is written:
+readonly WHERE_THE_TRANSCRIPT_IS="The detailed LLM logs can be watched with:
 
   $WATCH_TRANSCRIPT \\
     $HARNESS_DIRECTORY
@@ -121,15 +121,17 @@ main() {
   local app
   app="$(bundle_named_after_the_title)"
   local launcher="$app/Contents/MacOS/Shark Dive"
+  local staged_dump
+  staged_dump="$(dump_in_the_working_directory "$heap_dump")"
 
-  write_prompt "$heap_dump" "$launcher" >"$HARNESS_DIRECTORY/prompt.txt"
+  write_prompt "$staged_dump" "$launcher" >"$HARNESS_DIRECTORY/prompt.txt"
   # Which transcript belongs to this run, written down rather than worked out: the client keys its projects
   # directory on the *physical* working directory, and `$TMPDIR` here is a symlink into `/private/var`, so a
   # path built from `$HARNESS_DIRECTORY` is wrong on this machine and right on Linux. `watch-transcript.sh`
   # reads this and globs for it.
   echo "$SESSION_ID" >"$HARNESS_DIRECTORY/session-id.txt"
 
-  echo "Copied the Shark Dive app prompt.txt to $HARNESS_DIRECTORY."
+  echo "Staged the Shark Dive app, the heap dump and prompt.txt in $HARNESS_DIRECTORY."
   if [[ "$start_the_agent" == true ]]; then
     run_the_agent "$model"
   else
@@ -166,13 +168,35 @@ bundle_named_after_the_title() {
   echo "$copy"
 }
 
+# The heap dump, inside the directory the agent is started in, and it prints where it put it.
+#
+# **A client's working directory is what it can read without being granted anything**, so a dump left in the
+# checkout is a permission prompt in an interactive run and a refusal in one that cannot ask. `run_the_agent`
+# passes `--permission-mode bypassPermissions` and never saw it; `--print-command` is the half somebody drives
+# themselves, and that command has no bypass in it. Staging the file costs nothing and makes the two halves
+# behave the same.
+#
+# **It keeps its own name**, unlike the eval's, which renames every scenario to `heap-dump.hprof` so that the
+# file name cannot tell an agent what it is about before it has read anything. Nothing here is scored, and the
+# real name is what somebody reading a staged directory afterwards is looking for.
+#
+# `cp -c` clones rather than copies, so the 8 MB costs no disk on APFS — and a clone rather than the eval's
+# hard link, because a link shares an inode with the checkout and an agent here has an unrestricted shell.
+dump_in_the_working_directory() {
+  local dump="$1"
+  local staged
+  staged="$HARNESS_DIRECTORY/$(basename "$dump")"
+  cp -c "$dump" "$staged" 2>/dev/null || cp "$dump" "$staged"
+  echo "$staged"
+}
+
 # What the agent is asked: which file, and where the launcher is. Which is also the whole of what the shipped
 # skill says, deliberately — that page exists so a client reaches for Shark Dive unprompted, and once something
 # has been prompted there is nothing left in it to carry.
 #
 # **Not how to investigate, and not which tool to call.** What the agent follows has to come from the surface —
-# `--help` is the command list and `--investigation-help` is the method, both text this build prints — or what
-# this measures is this function. Opening the dump is itself a step of the investigation.
+# `--help` is the command list and `--leak-investigation-help` is the method, both text this build prints —
+# or what this measures is this function. Opening the dump is itself a step of the investigation.
 #
 # **The launcher is named rather than left to be found.** The alternative was measuring an `ls` that this
 # harness's own shape breaks: the app is a copy of a build in a temporary directory, in neither of the two
@@ -286,21 +310,19 @@ print_the_command() {
 Throw an agent at it:
 
   cd $HARNESS_DIRECTORY
-  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY CLAUDE_SECURESTORAGE_CONFIG_DIR= claude \\
+  CLAUDE_CONFIG_DIR=$CLIENT_CONFIG_DIRECTORY \\
+  CLAUDE_SECURESTORAGE_CONFIG_DIR= \\
+  claude \\
     --print "\$(cat prompt.txt)" \\
 $model_line    --session-id $SESSION_ID \\
     --permission-mode bypassPermissions
 
-Started from that directory, so nothing of this repository is in what the session is told, and the prompt
-beside you is the whole of it. Nothing opens the heap dump: the window is the agent's to open, which is the
-first thing an investigation can get wrong.
+This starts claude with no local context or history, the only context is the prompt, which directs
+claude to investigate the heap dump with shark dive.
 
 $WHERE_THE_LOG_IS
 
 $WHERE_THE_TRANSCRIPT_IS
-
-Which is the same two readers either way, because --session-id above is what names the transcript they read.
-Drop it and the client picks a name nothing can predict.
 
 END
 }

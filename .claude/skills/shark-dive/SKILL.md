@@ -16,9 +16,9 @@ ls -d /Applications/"Shark Dive.app" ~/Applications/"Shark Dive.app" 2>/dev/null
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --help
 ```
 
-`--help` is every command with a line each, `--help <command>` is one of them in full,
-`--investigation-help` is how to work on this surface, and `--leak-investigation-help` is how to solve a leak.
+`--help` is every command with a line each and how to work on this surface, `--help <command>` is one command
+in full, and `--leak-investigation-help` is how to solve a leak.
 
-**Read those four rather than a file like this one.** They are text the build carries, so they describe the
+**Read those three rather than a file like this one.** They are text the build carries, so they describe the
 commands that exist rather than the ones that existed when something was written down — which is why this
 skill says no more than where to start. The space in the path has to stay quoted.

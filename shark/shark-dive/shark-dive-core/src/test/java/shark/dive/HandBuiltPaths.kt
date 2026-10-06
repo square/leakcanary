@@ -21,13 +21,13 @@ internal fun pathStep(objectId: Long): PathStep = PathStep(
   objectId = objectId,
   className = "com.example.Step$objectId",
   kind = HeapObjectKind.INSTANCE,
-  headline = null,
+  content = null,
   strength = ReachabilityStrength.STRONG,
   retainedSize = 0L,
   retainedCount = 0,
   inspectorLabels = emptyList(),
-  leakStatus = LeakStatus.UNKNOWN,
-  leakStatusReason = null,
+  verdict = Verdict.UNKNOWN,
+  verdictReason = null,
   reference = null,
   isTreeNode = true
 )

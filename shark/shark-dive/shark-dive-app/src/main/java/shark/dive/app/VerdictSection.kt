@@ -36,30 +36,30 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import shark.SharkLog
-import shark.dive.LeakStatus
-import shark.dive.LeakStatusConflict
-import shark.dive.LeakStatusOverride
+import shark.dive.Verdict
+import shark.dive.VerdictConflict
+import shark.dive.VerdictOverride
 import shark.dive.Topic
-import shark.dive.statusText
+import shark.dive.text
 
 /**
  * The verdict on the object the tab is on, and the pencil that overrules it.
  *
  * At the top of what the object is, under its name and above its size, because it is the conclusion the
- * rest of that panel is the evidence for. In the colours a path draws a status in — because it is the same
+ * rest of that panel is the evidence for. In the colours a path draws a verdict in — because it is the same
  * answer, and a reader who has learnt the green and the red on one surface reads them on the other.
  *
- * **Loud for the two statuses that mean something and quiet for the third**: a heap dump is mostly objects
+ * **Loud for the two verdicts that mean something and quiet for the third**: a heap dump is mostly objects
  * nothing knows either way about, so shouting `Unknown` on every object would be a line nobody reads by the
- * time it says something. Which is also why the reason is here rather than in a tooltip: the status is a
+ * time it says something. Which is also why the reason is here rather than in a tooltip: the verdict is a
  * conclusion, and half the objects on a path are green or red because of what another object is.
  */
 @Composable
-internal fun LeakStatusDetail(
-  status: ObjectLeakStatus,
+internal fun VerdictDetail(
+  objectVerdict: ObjectVerdict,
   /**
-   * Whether the statuses of this heap dump have been read off the disk, which is what makes changing one
-   * safe. See [HeapDumpLeakStatuses.isRead].
+   * Whether the verdicts of this heap dump have been read off the disk, which is what makes changing one
+   * safe. See [HeapDumpVerdicts.isRead].
    */
   isRead: Boolean,
   /** What went wrong reading or writing them, which is the one thing this window can say about it. */
@@ -67,21 +67,21 @@ internal fun LeakStatusDetail(
   onChange: () -> Unit,
   modifier: Modifier = Modifier
 ) {
-  val isKnown = status.status != LeakStatus.UNKNOWN
+  val isKnown = objectVerdict.verdict != Verdict.UNKNOWN
   Column(modifier.fillMaxWidth()) {
-    // Named the way every other line of this panel is, because one word over a status is what lets the
-    // status itself be one word: a label nobody reads twice, on a line that repeats down a whole path.
-    Text(STATUS_LABEL, style = MaterialTheme.typography.labelSmall)
+    // Named the way every other line of this panel is, because one word over a verdict is what lets the
+    // verdict itself be one word: a label nobody reads twice, on a line that repeats down a whole path.
+    Text(VERDICT_LABEL, style = MaterialTheme.typography.labelSmall)
     Row(
       Modifier.fillMaxWidth(),
       horizontalArrangement = Arrangement.spacedBy(6.dp),
       verticalAlignment = Alignment.CenterVertically
     ) {
-      // Left of the answer rather than after it, because it is what changes that answer: reading the status
+      // Left of the answer rather than after it, because it is what changes that answer: reading the verdict
       // and reaching for the pencil is one movement, and a pencil at the end of a wrapping line is not.
-      Hint(if (status.setByHand == null) SET_STATUS_HINT else CHANGE_STATUS_HINT) {
+      Hint(if (objectVerdict.setByHand == null) SET_VERDICT_HINT else CHANGE_VERDICT_HINT) {
         Text(
-          EDIT_STATUS_GLYPH,
+          EDIT_VERDICT_GLYPH,
           Modifier.clickableRow(enabled = isRead, onClick = onChange).padding(horizontal = 2.dp),
           style = MaterialTheme.typography.bodyMedium,
           color = if (isRead) LINK_COLOR else MaterialTheme.colorScheme.outline
@@ -90,10 +90,10 @@ internal fun LeakStatusDetail(
       // The verdict behind its own shade, the way a step of a path is drawn, so that an object being
       // stuck is something you see before reading anything.
       Text(
-        "${status.status.glyph} ${status.status.statusText}",
+        "${objectVerdict.verdict.glyph} ${objectVerdict.verdict.text}",
         Modifier.then(
           if (isKnown) {
-            Modifier.background(status.status.background!!, TARGET_SHAPE)
+            Modifier.background(objectVerdict.verdict.background!!, TARGET_SHAPE)
               .padding(horizontal = TARGET_PADDING, vertical = 1.dp)
           } else {
             Modifier
@@ -104,18 +104,18 @@ internal fun LeakStatusDetail(
         } else {
           MaterialTheme.typography.bodySmall
         },
-        color = status.status.textColor,
+        color = objectVerdict.verdict.textColor,
         fontWeight = if (isKnown) FontWeight.Bold else FontWeight.Normal
       )
     }
     // Why, which is most of the answer: an object is red because of what it is, or because of what
     // something holding it is, and only the reason says which. On its own line and whole, because this
     // panel is a column narrow enough that any of these would wrap anyway.
-    status.reason?.let { reason ->
+    objectVerdict.reason?.let { reason ->
       Text(
         reason,
         style = MaterialTheme.typography.bodySmall,
-        color = status.status.textColor
+        color = objectVerdict.verdict.textColor
       )
     }
     if (problem != null) {
@@ -134,7 +134,7 @@ internal fun LeakStatusDetail(
  * Held by [HeapDumpDive] against the tab it was started in rather than `remember`ed by the composable that
  * draws it, which is half of what makes this a dialog of the tab rather than of the window: switching tabs
  * leaves it where it is, and coming back finds the reason half typed exactly as it was left. The other half
- * is where [LeakStatusSetter] draws — inside the tab's panes, so the scrim stops at them.
+ * is where [VerdictSetter] draws — inside the tab's panes, so the scrim stops at them.
  */
 internal class SettingVerdict(
   /**
@@ -144,20 +144,20 @@ internal class SettingVerdict(
    * to look at a verdict this one disagrees with is the whole point, and what is being set has to stay the
    * thing that was asked about.
    */
-  val status: ObjectLeakStatus
+  val objectVerdict: ObjectVerdict
 ) {
-  var chosen: LeakStatus by mutableStateOf(status.setByHand?.status ?: status.status)
-  var reason: String by mutableStateOf(status.setByHand?.reason.orEmpty())
+  var chosen: Verdict by mutableStateOf(objectVerdict.setByHand?.verdict ?: objectVerdict.verdict)
+  var reason: String by mutableStateOf(objectVerdict.setByHand?.reason.orEmpty())
   var step: SetStep by mutableStateOf(SetStep.Choosing)
 
   /** What has been asked for, and null while nothing has: the ask is what the reading below follows. */
-  var requested: LeakStatusOverride? by mutableStateOf(null)
+  var requested: VerdictOverride? by mutableStateOf(null)
 }
 
 /**
- * Sets the leaking status of one object by hand, and settles what that disagrees with.
+ * Sets the verdict of one object by hand, and settles what that disagrees with.
  *
- * Two steps, and the second one only when it has to be: a status, with the reason that makes it worth
+ * Two steps, and the second one only when it has to be: a verdict, with the reason that makes it worth
  * keeping, and then whatever else was set by hand that it cannot be true alongside. The reader decides which
  * of the two readings to keep — nothing is flipped without being shown, and nothing is written until it is.
  *
@@ -170,16 +170,16 @@ internal class SettingVerdict(
  * composable, so coming back finds the reason half typed exactly as it was left.
  *
  * Finding the disagreements is a walk up the heap dump's references, so it happens on the heap dump's thread
- * like everything else here and this waits for it. See [shark.dive.leakStatusConflictsWith].
+ * like everything else here and this waits for it. See [shark.dive.verdictConflictsWith].
  */
 @Composable
-internal fun LeakStatusSetter(
+internal fun VerdictSetter(
   setting: SettingVerdict,
-  /** What the new status would disagree with, read off the heap dump. See [HeapDumpDive]. */
-  onFindConflicts: suspend (LeakStatusOverride) -> List<LeakStatusConflict>,
+  /** What the new verdict would disagree with, read off the heap dump. See [HeapDumpDive]. */
+  onFindConflicts: suspend (VerdictOverride) -> List<VerdictConflict>,
   /** Sets it, along with whatever had to change for it to be true. */
-  onSet: suspend (LeakStatusOverride, List<LeakStatusOverride>) -> Unit,
-  /** Takes the status off the object, so that the heap dump says what it says about it again. */
+  onSet: suspend (VerdictOverride, List<VerdictOverride>) -> Unit,
+  /** Takes the verdict off the object, so that the heap dump says what it says about it again. */
   onClear: suspend () -> Unit,
   /** Where a verdict this one disagrees with leads: the object it is about, in a tab of its own. */
   onOpenObject: (Long) -> Unit,
@@ -189,14 +189,14 @@ internal fun LeakStatusSetter(
   onDone: () -> Unit,
   modifier: Modifier = Modifier
 ) {
-  val status = setting.status
+  val objectVerdict = setting.objectVerdict
 
   LaunchedEffect(setting, setting.requested) {
     val override = setting.requested ?: return@LaunchedEffect
     setting.step = SetStep.Checking
     val conflicts = onFindConflicts(override)
     setting.step = if (conflicts.isEmpty()) {
-      // Nothing to settle, so the status someone typed is the whole of what they were asked for.
+      // Nothing to settle, so the verdict someone typed is the whole of what they were asked for.
       SetStep.Writing(Decision.Set(override, emptyList()))
     } else {
       SetStep.Conflicts(override, conflicts)
@@ -239,14 +239,14 @@ internal fun LeakStatusSetter(
         Modifier.padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
       ) {
-        Text(settingVerdictTitle(status.objectName), style = MaterialTheme.typography.headlineSmall)
+        Text(settingVerdictTitle(objectVerdict.objectName), style = MaterialTheme.typography.headlineSmall)
         Column(
           Modifier.heightIn(max = DIALOG_MAX_HEIGHT).verticalScroll(rememberScrollState()),
           verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
           when (val currentStep = setting.step) {
-            SetStep.Choosing -> ChoosingStatus(
-              status = status,
+            SetStep.Choosing -> ChoosingVerdict(
+              objectVerdict = objectVerdict,
               chosen = setting.chosen,
               reason = setting.reason,
               onChoose = { setting.chosen = it },
@@ -259,7 +259,7 @@ internal fun LeakStatusSetter(
               onOpenObject = onOpenObject,
               onExplain = onExplain
             )
-            is SetStep.Writing -> Waiting(WRITING_STATUS)
+            is SetStep.Writing -> Waiting(WRITING_VERDICT)
           }
         }
         Row(
@@ -282,12 +282,12 @@ private fun SetterButtons(
   setting: SettingVerdict,
   onDone: () -> Unit
 ) {
-  val status = setting.status
-  // Only for a status a hand set: there is nothing to take off an object the inspectors alone spoke about,
+  val objectVerdict = setting.objectVerdict
+  // Only for a verdict a hand set: there is nothing to take off an object the inspectors alone spoke about,
   // and a button that says there is would read as a way to silence them.
-  if (setting.step == SetStep.Choosing && status.setByHand != null) {
+  if (setting.step == SetStep.Choosing && objectVerdict.setByHand != null) {
     TextButton(onClick = { setting.step = SetStep.Writing(Decision.Clear) }) {
-      Text(CLEAR_STATUS)
+      Text(CLEAR_VERDICT)
     }
   }
   if (setting.step !is SetStep.Writing) {
@@ -297,36 +297,36 @@ private fun SetterButtons(
           // Which is a reader who read what they were about to overrule and decided not to, and is worth as
           // much in the log as the other choice.
           SharkLog.d {
-            "Left the statuses of this heap dump as they were rather than setting " +
-              "${status.objectName} to ${setting.chosen}"
+            "Left the verdicts of this heap dump as they were rather than setting " +
+              "${objectVerdict.objectName} to ${setting.chosen}"
           }
         }
         onDone()
       }
     ) {
-      Text(if (setting.step is SetStep.Conflicts) UNDO_STATUS else CANCEL_STATUS)
+      Text(if (setting.step is SetStep.Conflicts) UNDO_VERDICT else CANCEL_VERDICT)
     }
   }
   when (val currentStep = setting.step) {
     SetStep.Choosing -> TextButton(
       onClick = {
-        setting.requested = LeakStatusOverride(
-          objectId = status.objectId,
-          status = setting.chosen,
+        setting.requested = VerdictOverride(
+          objectId = objectVerdict.objectId,
+          verdict = setting.chosen,
           reason = setting.reason.trim()
         )
       },
-      // A status set by hand overrules the heap dump, so it is worth nothing to whoever reads it next
+      // A verdict set by hand overrules the heap dump, so it is worth nothing to whoever reads it next
       // without the why — which is why this waits for one rather than filling one in.
       enabled = setting.reason.isNotBlank()
     ) {
-      Text(SAVE_STATUS)
+      Text(SAVE_VERDICT)
     }
     is SetStep.Conflicts -> TextButton(
       onClick = {
         SharkLog.d {
-          "Keeping ${currentStep.requested.status} for ${status.objectName} and flipping the " +
-            "${currentStep.conflicts.size} statuses set by hand that disagreed with it"
+          "Keeping ${currentStep.requested.verdict} for ${objectVerdict.objectName} and flipping the " +
+            "${currentStep.conflicts.size} verdicts set by hand that disagreed with it"
         }
         setting.step = SetStep.Writing(
           Decision.Set(currentStep.requested, currentStep.conflicts.map { it.solved })
@@ -341,23 +341,23 @@ private fun SetterButtons(
   }
 }
 
-/** What the object is now, the three statuses it could be, and the reason that has to come with a change. */
+/** What the object is now, the three verdicts it could be, and the reason that has to come with a change. */
 @Composable
-private fun ChoosingStatus(
-  status: ObjectLeakStatus,
-  chosen: LeakStatus,
+private fun ChoosingVerdict(
+  objectVerdict: ObjectVerdict,
+  chosen: Verdict,
   reason: String,
-  onChoose: (LeakStatus) -> Unit,
+  onChoose: (Verdict) -> Unit,
   onReason: (String) -> Unit
 ) {
   // What it is now and why, so that overruling it is done while reading it rather than from memory.
   Text(
-    "$NOW_LABEL ${status.status.statusText}${status.reason?.let { " — $it" }.orEmpty()}",
+    "$NOW_LABEL ${objectVerdict.verdict.text}${objectVerdict.reason?.let { " — $it" }.orEmpty()}",
     style = MaterialTheme.typography.bodySmall,
-    color = status.status.textColor
+    color = objectVerdict.verdict.textColor
   )
   HorizontalDivider()
-  LeakStatus.values().forEach { option ->
+  Verdict.values().forEach { option ->
     Row(
       Modifier.fillMaxWidth().clickable { onChoose(option) },
       horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -367,7 +367,7 @@ private fun ChoosingStatus(
       // easier to hit as the line than as the mark.
       RadioButton(selected = option == chosen, onClick = null)
       Text(
-        option.statusText,
+        option.text,
         style = MaterialTheme.typography.bodyMedium,
         color = option.textColor,
         fontWeight = if (option == chosen) FontWeight.Bold else FontWeight.Normal
@@ -386,7 +386,7 @@ private fun ChoosingStatus(
 }
 
 /**
- * Everything set by hand that the new status cannot be true alongside, and what keeping it would do to them.
+ * Everything set by hand that the new verdict cannot be true alongside, and what keeping it would do to them.
  *
  * Every one of them rather than a count, with the reason each was given, because that reason is the case for
  * the other reading: whoever is about to overrule it is the one person who can weigh the two, and they can
@@ -400,15 +400,15 @@ private fun ChoosingStatus(
  */
 @Composable
 private fun Conflicts(
-  requested: LeakStatusOverride,
-  conflicts: List<LeakStatusConflict>,
+  requested: VerdictOverride,
+  conflicts: List<VerdictConflict>,
   onOpenObject: (Long) -> Unit,
   onExplain: (Topic) -> Unit
 ) {
   Explain(Topic.CONFLICTING_VERDICTS, onExplain) {
     Text(
       "${conflicts.size} ${if (conflicts.size == 1) CONFLICT_ONE else CONFLICT_MANY} " +
-        "\"${requested.status.statusText}\".",
+        "\"${requested.verdict.text}\".",
       style = MaterialTheme.typography.bodyMedium,
       fontWeight = FontWeight.Bold
     )
@@ -426,21 +426,21 @@ private fun Conflicts(
         color = LINK_COLOR
       )
       Text(
-        "${conflict.existing.status.statusText}: ${conflict.existing.reason}",
+        "${conflict.existing.verdict.text}: ${conflict.existing.reason}",
         style = MaterialTheme.typography.bodySmall,
-        color = conflict.existing.status.textColor
+        color = conflict.existing.verdict.textColor
       )
       Text(
-        "$CONFLICT_BECOMES ${conflict.solved.status.statusText}",
+        "$CONFLICT_BECOMES ${conflict.solved.verdict.text}",
         style = MaterialTheme.typography.bodySmall,
-        color = conflict.solved.status.textColor
+        color = conflict.solved.verdict.textColor
       )
     }
   }
 }
 
 /**
- * Where the dialog is: choosing a status, waiting on the heap dump, or asking about what it disagrees with.
+ * Where the dialog is: choosing a verdict, waiting on the heap dump, or asking about what it disagrees with.
  *
  * Nothing has been written in any of the three. What is on disk changes once, when the last of them is
  * answered.
@@ -453,8 +453,8 @@ internal sealed interface SetStep {
 
   class Conflicts(
     /** What was asked for, which is what the conflicts are conflicts with. */
-    val requested: LeakStatusOverride,
-    val conflicts: List<LeakStatusConflict>
+    val requested: VerdictOverride,
+    val conflicts: List<VerdictConflict>
   ) : SetStep
 
   /** The one step that changes what is on disk, and the last: the dialog closes when it is done. */
@@ -465,9 +465,9 @@ internal sealed interface SetStep {
 internal sealed interface Decision {
 
   class Set(
-    val override: LeakStatusOverride,
+    val override: VerdictOverride,
     /** What had to be flipped for it to be true, which is empty unless something disagreed. */
-    val solved: List<LeakStatusOverride>
+    val solved: List<VerdictOverride>
   ) : Decision
 
   object Clear : Decision
@@ -477,25 +477,25 @@ internal sealed interface Decision {
  * The verdict on the object a tab is on, from wherever the window knows it.
  *
  * Which is either of two reads, and they answer slightly different questions: the last step of the path from
- * a GC root, which is the status with the objects above and below it taken into account, or the object's own
- * if no path reaches it. See [shark.dive.HeapObjectSummary.leakStatus].
+ * a GC root, which is the verdict with the objects above and below it taken into account, or the object's own
+ * if no path reaches it. See [shark.dive.HeapObjectSummary.verdict].
  */
-internal class ObjectLeakStatus(
+internal class ObjectVerdict(
   val objectId: Long,
   /** What the object is called, for a dialog that has to name what is being changed. */
   val objectName: String,
-  val status: LeakStatus,
+  val verdict: Verdict,
   val reason: String?,
-  /** What a hand set, and null for a status the heap dump alone decided. */
-  val setByHand: LeakStatusOverride?
+  /** What a hand set, and null for a verdict the heap dump alone decided. */
+  val setByHand: VerdictOverride?
 )
 
-/** A mark beside the words, so that which status this is doesn't rest on the colour alone. */
-private val LeakStatus.glyph: String
+/** A mark beside the words, so that which verdict this is doesn't rest on the colour alone. */
+private val Verdict.glyph: String
   get() = when (this) {
-    LeakStatus.EXPECTED -> "✓"
-    LeakStatus.UNKNOWN -> "?"
-    LeakStatus.STUCK -> "✗"
+    Verdict.EXPECTED -> "✓"
+    Verdict.UNKNOWN -> "?"
+    Verdict.STUCK -> "✗"
   }
 
 /**
@@ -505,35 +505,35 @@ private val LeakStatus.glyph: String
  * number is read off the heap dump, and this is what somebody — an inspector or a reader — made of it. Which
  * is also what says the pencil beside it is allowed to disagree.
  */
-internal const val STATUS_LABEL = "Verdict"
+internal const val VERDICT_LABEL = "Verdict"
 
 /** What the dialog setting one is titled, which is the one thing on it that names what is being changed. */
 internal fun settingVerdictTitle(objectName: String) = "Verdict on $objectName"
 
 /** What opens the dialog that sets one, set or not: the same mark the app writes a note with. */
-internal const val EDIT_STATUS_GLYPH = "✎"
+internal const val EDIT_VERDICT_GLYPH = "✎"
 
-internal const val SAVE_STATUS = "Set the verdict"
-internal const val CANCEL_STATUS = "Cancel"
-internal const val CLEAR_STATUS = "Take it off"
+internal const val SAVE_VERDICT = "Set the verdict"
+internal const val CANCEL_VERDICT = "Cancel"
+internal const val CLEAR_VERDICT = "Take it off"
 
-/** What keeping the new status and flipping everything that disagrees with it is called. */
+/** What keeping the new verdict and flipping everything that disagrees with it is called. */
 internal const val SOLVE_CONFLICTS = "Keep this and flip those"
 
 /** And what leaving the heap dump as it was is called, which is what the reader came in able to do. */
-internal const val UNDO_STATUS = "Undo"
+internal const val UNDO_VERDICT = "Undo"
 
 internal const val CHECKING_CONFLICTS =
   "Looking for verdicts set by hand that this one could not be true alongside…"
 
-private const val WRITING_STATUS = "Keeping it…"
+private const val WRITING_VERDICT = "Keeping it…"
 
 private const val NOW_LABEL = "Now:"
 
-private const val SET_STATUS_HINT =
+private const val SET_VERDICT_HINT =
   "Say whether this object is stuck, whatever the heap dump says. Kept between runs, and the reason with it."
 
-private const val CHANGE_STATUS_HINT = "Change or take off the verdict set by hand for this object."
+private const val CHANGE_VERDICT_HINT = "Change or take off the verdict set by hand for this object."
 
 private const val REASON_LABEL = "Why"
 

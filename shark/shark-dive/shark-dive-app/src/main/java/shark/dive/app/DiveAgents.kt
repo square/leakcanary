@@ -13,8 +13,8 @@ import shark.dive.DeviceHeapDumps
 import shark.dive.DeviceProcess
 import shark.dive.HeapDive
 import shark.dive.HeapSizes
-import shark.dive.LeakStatusOverride
-import shark.dive.LeakStatusOverrides
+import shark.dive.VerdictOverride
+import shark.dive.VerdictOverrides
 import shark.dive.Place
 import shark.dive.agent.AgentCommandLine
 import shark.dive.agent.AgentHeapDump
@@ -495,7 +495,7 @@ internal fun saidToTheCaller(message: String) {
 internal class OpenHeapDump(
   val session: HeapDumpSession,
   val notes: HeapDumpNotes,
-  val leakStatuses: HeapDumpLeakStatuses
+  val verdicts: HeapDumpVerdicts
 )
 
 /** This window's heap dump as an agent sees it: shown by going to a tab, the way a link does. */
@@ -533,19 +533,19 @@ internal class OpenAgentHeapDump(
     block: (HeapDive) -> T
   ): T = open.session.read(description, block)
 
-  override val verdicts: LeakStatusOverrides get() = open.leakStatuses.overrides
+  override val verdicts: VerdictOverrides get() = open.verdicts.overrides
 
   override suspend fun setVerdict(
-    verdict: LeakStatusOverride,
-    solved: List<LeakStatusOverride>
+    verdict: VerdictOverride,
+    solved: List<VerdictOverride>
   ) {
-    requireStatusesRead()
-    open.leakStatuses.set(verdict, solved)
+    requireVerdictsRead()
+    open.verdicts.set(verdict, solved)
   }
 
   override suspend fun clearVerdict(objectId: Long) {
-    requireStatusesRead()
-    open.leakStatuses.clear(objectId)
+    requireVerdictsRead()
+    open.verdicts.clear(objectId)
   }
 
   override suspend fun appendToNote(
@@ -618,17 +618,17 @@ internal class OpenAgentHeapDump(
   }
 
   /**
-   * Refuses until the file of statuses set by hand has been read.
+   * Refuses until the file of verdicts set by hand has been read.
    *
-   * [HeapDumpLeakStatuses.set] declines to write before then and says so in the log, which is right for the
+   * [HeapDumpVerdicts.set] declines to write before then and says so in the log, which is right for the
    * button it was written for — it is disabled — and silent for an agent, which would read "no error" as
    * "recorded". Saving over an unread file would delete every conclusion in it.
    */
-  private fun requireStatusesRead() {
-    if (!open.leakStatuses.isRead) {
+  private fun requireVerdictsRead() {
+    if (!open.verdicts.isRead) {
       throw AgentRefusal(
         "The verdicts already recorded about this heap dump have not been read yet, so recording one now " +
-          "could delete them: " + (open.leakStatuses.problem ?: "reading ${open.leakStatuses.file} " +
+          "could delete them: " + (open.verdicts.problem ?: "reading ${open.verdicts.file} " +
           "has not finished. Try again in a moment.")
       )
     }
@@ -648,7 +648,7 @@ private const val PARAGRAPH_BREAK = "\n\n"
 internal fun agentSessions(): List<AgentSession> =
   AgentSessionFile.sessionsIn(AgentServer.sessionsDirectory(AGENT_RUNS_DIRECTORY))
 
-/** Beside the runs answering links, the notes, the statuses and the logs. See [AgentServer]. */
+/** Beside the runs answering links, the notes, the verdicts and the logs. See [AgentServer]. */
 internal val AGENT_RUNS_DIRECTORY = File(SHARK_DIVE_DIRECTORY, "agents")
 
 /** What a run started by a command that found none is called, since nobody typed a title for it. */
