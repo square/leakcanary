@@ -12,8 +12,16 @@ object AndroidMetadataExtractor : MetadataExtractor {
     val metadata = mutableMapOf<String, String>()
 
     val build = AndroidBuildMirror.fromHeapGraph(graph)
+    val buildClass = graph.findClassByName("android.os.Build")
+    val versionClass = graph.findClassByName("android.os.Build\$VERSION")
     metadata["Build.VERSION.SDK_INT"] = build.sdkInt.toString()
+    metadata["Build.VERSION.RELEASE"] = versionClass.readStaticString("RELEASE")
+    metadata["Build.VERSION.CODENAME"] = versionClass.readStaticString("CODENAME")
+    // Added in API 23.
+    metadata["Build.VERSION.SECURITY_PATCH"] = versionClass.readStaticString("SECURITY_PATCH")
     metadata["Build.MANUFACTURER"] = build.manufacturer
+    metadata["Build.MODEL"] = buildClass.readStaticString("MODEL")
+    metadata["Build.FINGERPRINT"] = buildClass.readStaticString("FINGERPRINT")
     metadata["LeakCanary version"] = readLeakCanaryVersion(graph)
     metadata["App process name"] = readProcessName(graph)
     metadata["Class count"] = graph.classCount.toString()
@@ -26,6 +34,10 @@ object AndroidMetadataExtractor : MetadataExtractor {
     metadata.putDbLabels(graph)
 
     return metadata
+  }
+
+  private fun HeapClass?.readStaticString(fieldName: String): String {
+    return this?.get(fieldName)?.value?.readAsJavaString() ?: "Unknown"
   }
 
   private fun readHeapTotalBytes(graph: HeapGraph): Long {

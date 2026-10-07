@@ -248,11 +248,12 @@ internal class AgentTools(
     name = "heap_dump_metadata",
     summary = "Which Android version and which app this is, and what the heap is made of.",
     description = "What the heap dump says about itself, which is the map LeakCanary prints above a leak " +
-      "trace: the API level and the manufacturer of the device, the name of the app's process, the version " +
-      "of LeakCanary that wrote the dump, how many classes, instances and arrays are in it, how many " +
-      "threads, how many bytes, how many bitmaps and how many of those are bigger than the screen, and the " +
-      "SQLite databases the app has open. Call it once before reading any code, because it is where which " +
-      "Android version and which app come from. `Build.VERSION.SDK_INT` is the AOSP release to read the " +
+      "trace: the API level, release, security patch and fingerprint of the OS, the manufacturer and the " +
+      "model of the device, the name of the app's process, the version of LeakCanary that wrote the dump, " +
+      "how many classes, instances and arrays are in it, how many threads, how many bytes, how many " +
+      "bitmaps and how many of those are bigger than the screen, and the SQLite databases the app has " +
+      "open. Call it once before reading any code, because it is where which Android version and which " +
+      "app come from. `Build.VERSION.SDK_INT` is the AOSP release to read the " +
       "framework at. `App process name` is the app's package, so the repository and the APK to look for; " +
       "it is `ApplicationInfo.processName`, which is the package unless the app declares an " +
       "`android:process`. ${AgentCommandLine.LEAK_METHOD_OPTION} has the rest of how to pick a version " +
