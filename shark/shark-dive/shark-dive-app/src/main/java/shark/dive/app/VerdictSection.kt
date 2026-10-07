@@ -114,8 +114,8 @@ internal fun VerdictDetail(
     // something holding it is, and only the reason says which. On its own line and whole, because this
     // panel is a column narrow enough that any of these would wrap anyway.
     objectVerdict.reason?.let { reason ->
-      ReasonText(
-        reason = reason,
+      ProseText(
+        text = reason,
         reader = noteReader,
         style = MaterialTheme.typography.bodySmall,
         color = objectVerdict.verdict.textColor
@@ -364,8 +364,8 @@ private fun ChoosingVerdict(
   if (nowReason == null) {
     Text(now, style = MaterialTheme.typography.bodySmall, color = objectVerdict.verdict.textColor)
   } else {
-    ReasonText(
-      reason = nowReason,
+    ProseText(
+      text = nowReason,
       reader = noteReader,
       style = MaterialTheme.typography.bodySmall,
       color = objectVerdict.verdict.textColor,
@@ -442,8 +442,8 @@ private fun Conflicts(
         fontWeight = FontWeight.Bold,
         color = LINK_COLOR
       )
-      ReasonText(
-        reason = conflict.existing.reason,
+      ProseText(
+        text = conflict.existing.reason,
         reader = noteReader,
         style = MaterialTheme.typography.bodySmall,
         color = conflict.existing.verdict.textColor,

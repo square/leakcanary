@@ -203,13 +203,18 @@ internal fun PathStepRow(
     }
     if (detail == PathDetail.FULL) {
       step.inspectorLabels.forEach { label ->
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+        ProseText(
+          text = label,
+          reader = noteReader,
+          style = MaterialTheme.typography.bodySmall,
+          color = MUTED_TEXT
+        )
       }
       // Why this object is one or the other, which is most of the answer: half the objects of a path are
       // green or red because of what an object above or below them is, and the reason is what says so.
       step.verdictReason?.let { reason ->
-        ReasonText(
-          reason = reason,
+        ProseText(
+          text = reason,
           reader = noteReader,
           style = MaterialTheme.typography.bodySmall,
           color = step.verdict.textColor,

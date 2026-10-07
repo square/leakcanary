@@ -235,8 +235,15 @@ private fun ObjectDetails(
   // meaningful fraction of a heap dump, and a second percentage in the column would only dilute the
   // one that says something.
   Detail(SHALLOW, formatByteSize(summary.shallowSize))
+  // Read like a note, since what an inspector writes names classes, and the class an object is an instance
+  // of is the first thing worth opening from here.
   summary.inspectorLabels.forEach { label ->
-    Text(label, style = MaterialTheme.typography.bodySmall)
+    ProseText(
+      text = label,
+      reader = noteReader,
+      style = MaterialTheme.typography.bodySmall,
+      color = Color.Unspecified
+    )
   }
   // A class is where its instances are found: nothing else in the window leads from one to all of them.
   if (summary.kind == HeapObjectKind.CLASS) {

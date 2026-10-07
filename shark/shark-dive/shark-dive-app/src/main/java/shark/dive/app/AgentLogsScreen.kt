@@ -370,8 +370,8 @@ private fun AgentCallRow(
         // either follows from itself or doesn't, which is the whole of what this screen is for. Read like a
         // note, since an agent names what it is looking at by address. Only against this window's heap dump,
         // though: a call about another dump names that dump's objects.
-        ReasonText(
-          reason = reason,
+        ProseText(
+          text = reason,
           reader = noteReader,
           style = MaterialTheme.typography.bodySmall,
           color = MUTED_TEXT,

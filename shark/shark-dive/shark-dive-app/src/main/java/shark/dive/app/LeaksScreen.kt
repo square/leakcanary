@@ -491,8 +491,8 @@ private fun LeakingObjectRow(
             // like the description above it: a reason set by hand can run to several lines, and an address
             // or a link in the part an ellipsis cut off would lead nowhere.
             leakingObject.verdictReason?.let { reason ->
-              ReasonText(
-                reason = reason,
+              ProseText(
+                text = reason,
                 reader = noteReader,
                 style = MaterialTheme.typography.bodySmall,
                 color = MUTED_TEXT
