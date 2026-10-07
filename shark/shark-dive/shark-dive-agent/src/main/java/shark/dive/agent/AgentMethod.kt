@@ -58,6 +58,7 @@ internal object AgentMethod {
     - STUCK — this object should be gone.
     - UNKNOWN — you don't know yet. Most objects, most of the time.
 
+    Verdicts spread:
     - Everything holding an object that is meant to be in memory is meant to be in memory too, so an EXPECTED
       verdict spreads upwards in a path, towards the GC root.
     - Everything a stuck object holds is only in memory because of it, so a STUCK verdict spreads downwards.
@@ -71,8 +72,7 @@ internal object AgentMethod {
     that consists of suspect references is called the suspect path.
 
     The ONLY way for you to solve a leak is to figure out and set verdicts for UNKNOWN objects using the
-    `set_verdict` command. As we just saw, before a path has 3 zones, setting a verdict for a single object
-    can actually update the verdict for other objects: for a STUCK verdict, all objects further down in the
+    `set_verdict` command. As we just saw, verdicts spread: for a STUCK verdict, all objects further down in the
     path are automatically marked as STUCK. For an EXPECTED verdict, all objects further up in the path are
     automatically marked as EXPECTED.
 
@@ -83,8 +83,7 @@ internal object AgentMethod {
 
     - `Build.VERSION.SDK_INT` is the API level, so it is the AOSP release to read the framework at.
       `Build.VERSION.RELEASE`, `Build.VERSION.SECURITY_PATCH` and `Build.FINGERPRINT` narrow it to one
-      build. Read AOSP at the tag for that build. `main` is years ahead of any device. An installed SDK has
-      the framework sources under `sources/android-<SDK_INT>`.
+      build. Read AOSP at the tag for that build. `main` is years ahead of any device.
     - `Build.VERSION.CODENAME` is `REL` on a released build. Anything else is a preview of the next
       release, and its `SDK_INT` is still the API level of the one before.
     - `App process name` is the app's package, so it is the repository, the `applicationId` and the APK to
