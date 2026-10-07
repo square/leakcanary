@@ -127,6 +127,38 @@ class HeapVerdictTest {
     }
   }
 
+  /**
+   * The GC root is a reference too, the one holding the first object, so a stuck object a root holds directly
+   * is a leak of that root — with nothing expected above it, since nothing is above a root. See
+   * [RootPath.isGcRootFaulty].
+   */
+  @Test fun `a stuck object a GC root holds is a leak of that root`() {
+    val dump = testFolder.nestedLeaksHeapDump()
+
+    HeapDive.open(dump.file).use { dive ->
+      val plain = dive.tree.rootPathTo(dump.windowObjectId)
+      // Nothing expected above the activity, so the root holding the holder could be at fault as much as
+      // the holder's own field, and the holder's verdict is what decides between the two.
+      assertThat(plain.suspectReferences()).containsExactly(JNI_GLOBAL_ROOT, "Holder.activity")
+      assertThat(plain.isLeakSolved()).isFalse()
+
+      val holderObjectId = plain.steps.first().step.objectId
+      val path = dive.tree.rootPathTo(
+        objectId = dump.windowObjectId,
+        overrides = overrides(holderObjectId, STUCK, "done with the activity it was handed")
+      )
+
+      assertThat(path.steps.map { it.step.verdict }).containsOnly(STUCK)
+      assertThat(path.isLeakSolved()).isTrue()
+      // In the words the path pane draws the root's own line with, which is where the leak is.
+      assertThat(path.faultyReferenceLabel()).isEqualTo(JNI_GLOBAL_ROOT)
+      assertThat(path.suspectReferences()).containsExactly(JNI_GLOBAL_ROOT)
+      // And no field is marked, since the root holds the holder through none.
+      assertThat(path.faultyReferences()).isEmpty()
+      assertThat(path.faultyReference()).isNull()
+    }
+  }
+
   @Test fun `an object holds the ones it reaches and not the other way round`() {
     val dump = testFolder.nestedLeaksHeapDump()
 
@@ -446,5 +478,8 @@ class HeapVerdictTest {
   companion object {
     /** An address no dump these tests write has an object at, since they start at 1. */
     private const val NOT_AN_ADDRESS = -0x1234L
+
+    /** What holds the first object of [nestedLeaksHeapDump], as the path pane names it. */
+    private const val JNI_GLOBAL_ROOT = "GC root: JNI global reference"
   }
 }

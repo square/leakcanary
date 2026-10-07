@@ -1075,6 +1075,13 @@ further up than the path reaches. A guess drawn in the same bold red as an answe
 because being the one line to act on is the whole of what the mark is for. Shortening the stretch is what
 setting a verdict by hand does, and the mark appears when it becomes one step.
 
+**Except that *further up than the path reaches* is only ever the GC root, and the root is on the path.** A
+root holds the first object of every path, so it is a reference like the fields under it: with nothing
+`Expected` above the stuck object it is one of the candidates, and when the object it holds is `Stuck` it is
+the faulty reference, with nothing above it to wait for because nothing is above a root. The rule above read
+an all-`Stuck` path as unsolved and counted no candidates on it, which is the answer it gives a path with
+nothing stuck on it at all. `RootPath.isGcRootFaulty` is the case, and the window marks the root's own line.
+
 **Which makes the mark the exception on a real dump.** Measured over every `shark-android` test dump: 2 of
 their 12 app leaks carry one — `MainActivity$Lol.foo` and `DvFragment.mRoot` — and the other ten have between
 1 and 13 objects nothing knows either way about between the two verdicts, `AsyncTask.SERIAL_EXECUTOR` with its

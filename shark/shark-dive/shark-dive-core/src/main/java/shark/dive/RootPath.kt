@@ -68,22 +68,65 @@ fun RootPath.stepsBelow(rootNodeId: Long): List<RootPathStep> {
 }
 
 /**
- * The one reference this path is the leak *of*, and null for a path that isn't a solved leak.
+ * The field this path is the leak *of*, and null for a path that isn't a solved leak or whose leak is its
+ * GC root.
  *
  * Which is what a path is read for: the objects on it say what is still in memory, and this says what to
  * go and change. A reader who has set the two verdicts either side of one reference has finished — the heap
- * dump has no more to add — so this being non-null is the same fact as the investigation being over.
+ * dump has no more to add.
  *
  * At most one, because [PathReference.isFaulty] is set for the single crossing from expected to stuck and
  * for nothing else, so there is no need for a caller to decide between two of them. See
- * [faultyReferenceIndexOrNull] for the rule and for the three ways a path has none.
+ * [faultyReferenceIndexOrNull] for the rule and for the three ways a path has none. The GC root is the one
+ * faulty reference no step carries, which is [isGcRootFaulty], and [faultyReferenceLabel] is either of them.
  */
 fun RootPath.faultyReference(): PathReference? =
   steps.firstNotNullOfOrNull { step -> step.step.reference?.takeIf { it.isFaulty } }
 
 /**
- * Which references this path says the leak could be — [faultyReference] and nothing else once the verdicts
- * narrow to one, and the whole stretch between them while they haven't.
+ * Whether the leak is the GC root itself: the object it holds is stuck.
+ *
+ * **A GC root is a reference like the fields below it**, the one that holds the first object of the path, so
+ * a stuck object a root holds directly is a leak of that root. Nothing is above a GC root, so there is no
+ * expected object for it to cross from and none to wait for: a root is the top of every path, and what holds
+ * the first object of one is always the root. Which is why the rule [faultyReferenceIndexOrNull] applies to
+ * a field needs an expected object above it and this doesn't.
+ *
+ * No step carries it, because a root holds its object through no field, so [PathReference.isFaulty] is never
+ * where this is said. False for uncollected garbage and for [LeakTrace.GcRootType.UNREACHABLE], which are
+ * objects no GC root holds: nothing there is holding anything for a fix to let go of.
+ */
+fun RootPath.isGcRootFaulty(): Boolean =
+  isHeldByGcRoot() && steps.first().step.verdict == Verdict.STUCK
+
+/**
+ * Whether the GC root is still one of the references the leak could be, which it is for as long as nothing
+ * above the first stuck object is expected. See [isGcRootFaulty].
+ */
+fun RootPath.isGcRootSuspect(): Boolean {
+  if (!isHeldByGcRoot()) {
+    return false
+  }
+  val firstStuck = steps.indexOfFirst { it.step.verdict == Verdict.STUCK }
+  val lastExpected = steps.indexOfLast { it.step.verdict == Verdict.EXPECTED }
+  return firstStuck != -1 && lastExpected == -1
+}
+
+private fun RootPath.isHeldByGcRoot(): Boolean =
+  steps.isNotEmpty() && gcRootType != null && gcRootType != LeakTrace.GcRootType.UNREACHABLE
+
+/**
+ * The faulty reference in the words a leak is named with, and null for a path that isn't a solved leak.
+ *
+ * [faultyReference] by [leakLabel], or [gcRootLabel] when the GC root is the leak — which is the line the path
+ * pane draws for the root, so the leak is named the way the path reads either way.
+ */
+fun RootPath.faultyReferenceLabel(): String? =
+  if (isGcRootFaulty()) gcRootLabel else faultyReference()?.leakLabel()
+
+/**
+ * Which references this path says the leak could be — the faulty reference and nothing else once the
+ * verdicts narrow to one, and the whole stretch between them while they haven't.
  *
  * **Counted in references and not in objects**, which is the thing to get right about a narrowed path: one
  * object with no verdict between the two ends leaves *two* candidates, the reference into it and the
@@ -91,18 +134,21 @@ fun RootPath.faultyReference(): PathReference? =
  * stretch left has one question, and it is about an object rather than about a reference: is this object's
  * work done?
  *
- * Empty for a path with nothing stuck on it. The same words the leaks screen names a leak with — see
- * [suspectReferenceLabels].
+ * The GC root first while it is one of them, see [isGcRootSuspect]. Empty for a path with nothing stuck on
+ * it. The same words the leaks screen names a leak with — see [suspectReferenceLabels] — and the path pane
+ * names the root with.
  */
-fun RootPath.suspectReferences(): List<String> = steps.map { it.step }.suspectReferenceLabels()
+fun RootPath.suspectReferences(): List<String> =
+  listOfNotNull(gcRootLabel.takeIf { isGcRootSuspect() }) + steps.map { it.step }.suspectReferenceLabels()
 
 /**
  * Whether this path names the one reference the leak is, which is the whole of what solving a leak is.
  *
- * The same fact as [faultyReference] being non-null, named after what it means to somebody working: there
- * is nothing left for verdicts to narrow, and what remains is reading the code that assigns that field.
+ * The same fact as [faultyReferenceLabel] being non-null, named after what it means to somebody working:
+ * there is nothing left for verdicts to narrow, and what remains is reading the code that holds that object
+ * there.
  */
-fun RootPath.isLeakSolved(): Boolean = faultyReference() != null
+fun RootPath.isLeakSolved(): Boolean = faultyReferenceLabel() != null
 
 /**
  * How many references on this path are still candidates for being the faulty one. See [suspectReferences].
@@ -115,11 +161,12 @@ fun RootPath.suspectReferenceCount(): Int = suspectReferences().size
 /**
  * Every reference on this path, which is what [leakSolvingProgressRatio] measures the candidates against.
  *
- * One less than the steps for a path a GC root starts, whose first object no field points at — and the
- * filter rather than that subtraction because a step below the first can be missing its reference too, see
- * `HeapDominatorTreemap.stepTo`.
+ * As many as the steps for a path a GC root starts, the root being the reference that holds the first
+ * object, and one fewer for garbage that no root holds. Counted rather than taken from the number of steps
+ * because a step below the first can be missing its reference, see `HeapDominatorTreemap.stepTo`.
  */
-fun RootPath.referenceCount(): Int = steps.count { it.step.reference != null }
+fun RootPath.referenceCount(): Int =
+  (if (isHeldByGcRoot()) 1 else 0) + steps.count { it.step.reference != null }
 
 /**
  * How far the verdicts set so far have narrowed the search, from 0 to just under 1.

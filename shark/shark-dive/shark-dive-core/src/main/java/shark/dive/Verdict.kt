@@ -182,8 +182,8 @@ internal fun verdictsOf(objects: List<InspectedPathObject>): List<VerdictAndReas
  *
  * Empty for a path with nothing stuck on it, which is most paths of a heap dump: the rules can point at a
  * reference only once something below it is known not to belong. And the references of steps that have none
- * are left out, which is the object a GC root reaches: a root holds its object through no field, so there is
- * nothing there to have cleared.
+ * are left out, which is the object a GC root reaches: a root holds its object through no field, so it is no
+ * step's reference, and [RootPath.isGcRootSuspect] is where it is one of these.
  *
  * Public, unlike [suspectReferenceLabels] beside it, because a reader outside this module needs this one per
  * step rather than gathered: `AgentJson` marks each reference of a path it writes out with whether it is one
@@ -227,9 +227,10 @@ internal fun List<PathStep>.suspectReferenceLabels(): List<String> =
  *
  * - **Nothing stuck on the path.** There is no fault to point at, which is most of a heap dump.
  * - **Nothing expected above the stuck object**, a path of `Cleaner`s no inspector recognizes being the
- *   shape of it. What holds the stuck object may be something that should have let go of it too, and then
- *   the fault is further up than this path knows — so marking the top of the path would be naming a
- *   reference for being where the walk stopped.
+ *   shape of it. On a path a GC root starts, the root is then a candidate too, and the faulty reference once
+ *   the first object is stuck itself — but it is no step's reference, so [RootPath.isGcRootFaulty] says that
+ *   rather than this. A path that starts below an object rather than at a root doesn't know what holds that
+ *   object, so the fault may be further up than it reaches.
  * - **Objects nothing is known about in between.** The fault is at one of those steps and the path doesn't
  *   say which, so marking one of them would be a guess drawn as an answer. They are
  *   [suspectReferenceIndexes], which is what a leak is named after, and a verdict set by hand is what turns

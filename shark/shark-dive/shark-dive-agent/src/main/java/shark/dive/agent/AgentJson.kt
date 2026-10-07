@@ -29,7 +29,7 @@ import shark.dive.ReachabilityStrength
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
-import shark.dive.leakLabel
+import shark.dive.isGcRootSuspect
 import shark.dive.leakTrace
 import shark.dive.suspectReferenceIndexes
 
@@ -294,6 +294,9 @@ internal object AgentJson {
     // label for it and reads "GC root: loaded class" — two words this field already says. Null for
     // uncollected garbage, which no GC root reaches, and then the first object's `strength` is UNREACHABLE.
     put("gcRootType", path.gcRootType?.name)
+    // The root is a reference too, the one that holds the first object, so it is a candidate the way the
+    // fields below it are — and no object here carries it to be marked on. See [shark.dive.isGcRootSuspect].
+    put("gcRootIsSuspect", path.isGcRootSuspect())
     put("objectCount", path.steps.size)
     val suspects = path.steps.map { it.step }.suspectReferenceIndexes().toSet()
     putJsonArray("path") {
@@ -325,11 +328,12 @@ internal object AgentJson {
     investigation.faultyReference?.let { faulty ->
       putJsonObject("faultyReference") {
         // In the words the leaks screen names the same leak with, so that an answer handed to a person
-        // matches the row they are reading it under. See `shark.dive.leakLabel`.
-        put("reference", faulty.reference.leakLabel())
+        // matches the row they are reading it under. See `shark.dive.faultyReferenceLabel`.
+        put("reference", faulty.label)
         // And where it is on the path, which is the pointer to follow rather than a string to search for:
-        // `path[objectIndex].reference` is this reference, on the object that holds it.
-        put("objectIndex", faulty.objectIndex)
+        // `path[objectIndex].reference` is this reference, on the object that holds it. Absent for the GC
+        // root, which no object of the path holds.
+        faulty.objectIndex?.let { put("objectIndex", it) }
       }
     }
     put("suspectReferenceCount", investigation.suspectReferenceCount)

@@ -248,6 +248,23 @@ class VerdictSectionTest {
   }
 
   /**
+   * The GC root is a reference too, the one holding the first object of the path, so a stuck object a root
+   * holds directly is a leak of that root. See [shark.dive.isGcRootFaulty].
+   */
+  @Test fun `a stuck object a GC root holds names the root as the faulty reference`() {
+    diveUiTest {
+      openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
+
+      // On the root's own line of the path, marked the way a field is, and said again above the path.
+      onNodeWithText("$JNI_GLOBAL_ROOT $FAULTY_REFERENCE").assertIsDisplayed()
+      onNodeWithText(LEAK_SOLVED).assertIsDisplayed()
+      onNodeWithText(JNI_GLOBAL_ROOT).assertIsDisplayed()
+      // And on no field, since the root holds the holder through none.
+      onNodeWithText("$FAULTY_STEP $FAULTY_REFERENCE").assertDoesNotExist()
+    }
+  }
+
+  /**
    * What the dialog belonging to its tab rather than to the window is for.
    *
    * The reason a verdict was given is the case for the other reading, and weighing it against yours is
@@ -506,6 +523,9 @@ class VerdictSectionTest {
 
     /** The step of the path that holds the destroyed activity, which is the reference to clear. */
     private const val FAULTY_STEP = "Holder.activity"
+
+    /** What holds the holder, as the path's first line names it. */
+    private const val JNI_GLOBAL_ROOT = "GC root: JNI global reference"
 
     /** And what it was given as its reason, which the dialog has to show to be overruled. */
     private const val HOLDER_REASON = "this holder is the one to fix"

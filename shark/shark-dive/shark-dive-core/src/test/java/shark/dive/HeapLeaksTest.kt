@@ -117,8 +117,8 @@ class HeapLeaksTest {
 
       // The leak is named after one reference and that reference is still not marked, because nothing above
       // the activity is known to belong in memory: what holds it may be something that should have let go
-      // of it too, so the fault can be further up than this path reaches. A mark on the top of it would be
-      // a reference named for being where the walk started.
+      // of it too, and then the fault is the GC root holding the holder. Which of the two it is, is the
+      // holder's verdict to say.
       assertThat(group.suspectPath).containsExactly("Holder.activity")
       assertThat(steps.faultyReferences()).isEmpty()
     }

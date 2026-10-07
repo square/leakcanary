@@ -15,11 +15,12 @@ import shark.dive.Verdict
 import shark.dive.VerdictConflict
 import shark.dive.VerdictOverride
 import shark.dive.ObjectListFilter
-import shark.dive.PathReference
 import shark.dive.Place
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
+import shark.dive.isGcRootFaulty
+import shark.dive.isGcRootSuspect
 import shark.dive.leakLabel
 import shark.dive.leakSolvingProgressRatio
 import shark.dive.verdictConflictsWith
@@ -378,15 +379,16 @@ internal class AgentTools(
       "`$LEAK_TRACE.path` is the objects, from the GC root down, each with its verdict, the reason for it, " +
       "the inspectors' labels, and `reference`: the field it holds the next object through. So the last " +
       "object of the path has no `reference`. Objects marked isDominator are the ones every path to the " +
-      "object goes through, and a reference marked isSuspect is one the leak could still be.\n\n" +
+      "object goes through, and a reference marked isSuspect is one the leak could still be, which " +
+      "`gcRootIsSuspect` says of the GC root.\n\n" +
       "`$INVESTIGATION.$LEAK_SOLVED` is what an investigation works towards. It is true once the verdicts " +
       "recorded about these objects leave exactly one reference that could be at fault, and then " +
       "`faultyReference` is there: the reference to go and change, and the index in `path` of the object " +
-      "that holds it. Until then `$SUSPECT_REFERENCE_COUNT` is how many are still candidates, and " +
-      "`$LEAK_SOLVING_PROGRESS_RATIO` is the share of this path's references your verdicts have ruled " +
-      "out, 0 to 1 and not a percentage. You never decide which reference is at fault. You decide, object " +
-      "by object, whether that object's own work is done, with $SET_VERDICT, and the last verdict that " +
-      "narrows the stretch to one leaves the heap dump naming the reference.",
+      "that holds it, absent when that is the GC root. Until then `$SUSPECT_REFERENCE_COUNT` is how many " +
+      "are still candidates, and `$LEAK_SOLVING_PROGRESS_RATIO` is the share of this path's references " +
+      "your verdicts have ruled out, 0 to 1 and not a percentage. You never decide which reference is at " +
+      "fault. You decide, object by object, whether that object's own work is done, with $SET_VERDICT, and " +
+      "the last verdict that narrows the stretch to one leaves the heap dump naming the reference.",
     schema = schema(HEAP_DUMP_KEY to heapDumpArgument(), OBJECT to objectIdArgument("The object to walk up from."))
   ) { arguments ->
     val dump = arguments.heapDump()
@@ -992,8 +994,13 @@ internal class PathInvestigation(
  * reader follows, where the label is a string it would otherwise have to search the path for.
  */
 internal class FaultyReference(
-  val reference: PathReference,
-  val objectIndex: Int
+  /** In the words the leaks screen names the leak with. See [shark.dive.faultyReferenceLabel]. */
+  val label: String,
+  /**
+   * Null when the reference is the GC root, which no object of the path holds: the root is above the first
+   * of them. See [shark.dive.isGcRootFaulty].
+   */
+  val objectIndex: Int?
 )
 
 /** The shapes a path's verdicts come in, of which one is an investigation that is over. */
@@ -1032,7 +1039,20 @@ private fun RootPath.investigation(): PathInvestigation {
         "work you can show is done as ${Verdict.STUCK.name}, and the path narrows from there."
     )
   }
-  if (lastExpected == -1) {
+  if (isGcRootFaulty()) {
+    val label = gcRootLabel!!
+    return PathInvestigation(
+      faultyReference = FaultyReference(label, objectIndex = null),
+      state = InvestigationState.SOLVED,
+      suspectReferenceCount = suspectCount,
+      progressRatio = progressRatio,
+      next = "$label is the faulty reference: it holds ${steps.first().address()}, which should be gone, " +
+        "and nothing else on the path is above it. ${solvedNext("the code that holds that object there")}"
+    )
+  }
+  // Only a path no GC root starts gets this far with nothing expected on it: on one a root starts, the root
+  // is a candidate like any field, so it is the stretch below.
+  if (lastExpected == -1 && !isGcRootSuspect()) {
     return PathInvestigation(
       faultyReference = null,
       state = InvestigationState.NOTHING_EXPECTED_ABOVE,
@@ -1056,7 +1076,7 @@ private fun RootPath.investigation(): PathInvestigation {
         "it, and its own verdict rules one of them out. They are " +
         undecided.joinToString(", ") { it.address() } + ". So work out whether each of them is done with " +
         "its work, reading its fields with $DESCRIBE_OBJECT and the code that assigns the field holding " +
-        "the object below it, and record that with $SET_VERDICT."
+        "the object below it, and record that with $SET_VERDICT." + gcRootSuspectNote()
     )
   }
   val reference = steps[firstStuck].step.reference
@@ -1073,17 +1093,28 @@ private fun RootPath.investigation(): PathInvestigation {
   return PathInvestigation(
     // On the object above the stuck one, which is the object that holds this reference — and is
     // `lastExpected`, since the two are neighbours by the time a path is solved. See [FaultyReference].
-    faultyReference = FaultyReference(reference, objectIndex = firstStuck - 1),
+    faultyReference = FaultyReference(reference.leakLabel(), objectIndex = firstStuck - 1),
     state = InvestigationState.SOLVED,
     suspectReferenceCount = suspectCount,
     progressRatio = progressRatio,
     next = "${reference.leakLabel()} is the faulty reference: it is read on an object meant to be in " +
-      "memory and points at one that should be gone. This leak is solved, and what is left is not in the " +
-      "heap dump, so there is no further call to make about it. Read the code that assigns that field at the " +
-      "version this dump is of, work out what should have cleared it and why it didn't, and tell whoever " +
-      "asked you, with the $HUMAN_LEAK_TRACE below and the `$SHOW` link to this object. $TAKE_NOTE if you want what " +
-      "you worked out to be here for the next reader."
+      "memory and points at one that should be gone. ${solvedNext("the code that assigns that field")}"
   )
+}
+
+/** What is left once a leak is solved, whichever reference solved it: the code that [holds] the object. */
+private fun solvedNext(holds: String) =
+  "This leak is solved, and what is left is not in the heap dump, so there is no further call to make about " +
+    "it. Read $holds at the version this dump is of, work out what should have let go of it and why it " +
+    "didn't, and tell whoever asked you, with the $HUMAN_LEAK_TRACE below and the `$SHOW` link to this " +
+    "object. $TAKE_NOTE if you want what you worked out to be here for the next reader."
+
+/** That the GC root is a candidate too, for a path that has nothing expected on it. See [isGcRootSuspect]. */
+private fun RootPath.gcRootSuspectNote(): String = if (isGcRootSuspect()) {
+  " Nothing above them is ${Verdict.EXPECTED.name}, so the GC root holding the first of them is a " +
+    "candidate too, and it is the faulty reference if that object is ${Verdict.STUCK.name}."
+} else {
+  ""
 }
 
 /**

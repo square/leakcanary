@@ -29,15 +29,14 @@ import shark.dive.HEAD_INDEX
 import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectSummary
 import shark.dive.Verdict
-import shark.dive.PathReference
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.RootPathWay
 import shark.dive.Topic
 import shark.dive.detours
 import shark.dive.drawnWith
-import shark.dive.faultyReference
-import shark.dive.leakLabel
+import shark.dive.faultyReferenceLabel
+import shark.dive.isGcRootFaulty
 import shark.dive.stepsAfter
 import shark.dive.stepsBelow
 
@@ -128,7 +127,7 @@ internal fun RootPathPanel(
   }
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
     Column {
-      drawn?.path?.faultyReference()?.let { SolvedLeak(it, onExplain) }
+      drawn?.path?.faultyReferenceLabel()?.let { SolvedLeak(it, onExplain) }
       // A row per object, drawn only where the pane has the room for it: a path is as long as the heap dump
       // makes it, and the linked structures of a real one run to hundreds of steps — a pane that composed all
       // of them would take a minute to draw a path nobody has scrolled to yet.
@@ -196,7 +195,8 @@ internal fun RootPathPanel(
  */
 @Composable
 private fun SolvedLeak(
-  faultyReference: PathReference,
+  /** The faulty reference as the leaks screen names it. See [shark.dive.faultyReferenceLabel]. */
+  faultyReference: String,
   onExplain: (Topic) -> Unit
 ) {
   Column(Modifier.padding(start = 12.dp, top = 12.dp, end = 12.dp)) {
@@ -204,7 +204,7 @@ private fun SolvedLeak(
       Text(LEAK_SOLVED, style = MaterialTheme.typography.labelSmall, color = MUTED_TEXT)
     }
     Text(
-      faultyReference.leakLabel(),
+      faultyReference,
       style = MaterialTheme.typography.bodyMedium,
       color = Verdict.STUCK.textColor
     )
@@ -248,6 +248,7 @@ private fun LazyListScope.rootPathTrace(
     PathHeadRow(
       label = drawn.path.gcRootLabel.orEmpty(),
       reference = steps.first().step.reference,
+      isFaulty = drawn.path.isGcRootFaulty(),
       nextStrength = steps.first().step.strength,
       below = { WaysOfDetour(drawn, HEAD_INDEX, ways, chosenWays, onChooseWay, onExplain) }
     )
