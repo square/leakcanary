@@ -150,6 +150,43 @@ class AndroidObjectInspectorsTest {
     assertThat(held.verdict).isEqualTo(UNKNOWN)
   }
 
+  @Test fun `OBJECT_ANIMATOR reads an animator from before Android 7`() {
+    // ValueAnimator.mAnimationEndRequested was added in Android 7.0, and this heap dump is from 6.0.
+    val animators = analyzeObjectAnimators("leak_asynctask_m.hprof")
+
+    assertThat(animators).isNotEmpty.allSatisfy { animator ->
+      assertThat(animator.labels).anyMatch { it.startsWith("mRunning = ") }
+      assertThat(animator.labels).noneMatch { it.startsWith("mAnimationEndRequested") }
+    }
+  }
+
+  @Test fun `OBJECT_ANIMATOR says whether an animator was asked to end from Android 7 on`() {
+    val animators = analyzeObjectAnimators("leak_asynctask_o.hprof")
+
+    assertThat(animators).isNotEmpty.allSatisfy { animator ->
+      assertThat(animator.labels).anyMatch { it.startsWith("mAnimationEndRequested = ") }
+    }
+  }
+
+  /** Every ObjectAnimator of [hprofName], analyzed as if each was a leaking object. */
+  private fun analyzeObjectAnimators(hprofName: String): List<LeakTraceObject> {
+    val analysis = HeapAnalyzer(OnAnalysisProgressListener.NO_OP).analyze(
+      heapDumpFile = hprofName.classpathFile(),
+      leakingObjectFinder = { graph ->
+        graph.findClassByName("android.animation.ObjectAnimator")!!
+          .instances
+          .map { it.objectId }
+          .toSet()
+      },
+      referenceMatchers = AndroidReferenceMatchers.appDefaults,
+      objectInspectors = AndroidObjectInspectors.appDefaults
+    )
+    assertThat(analysis).isInstanceOf(HeapAnalysisSuccess::class.java)
+    analysis as HeapAnalysisSuccess
+    return analysis.allLeaks.flatMap { leak -> leak.leakTraces.map { it.leakingObject } }.toList() +
+      analysis.unreachableObjects
+  }
+
   /**
    * The leak trace of a watched object held by a binder stub through the field a compiler writes for a
    * non-static inner class, which is the shape every stub leak has.

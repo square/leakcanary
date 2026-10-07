@@ -849,7 +849,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
         labels += "mInitialized = " + instance["android.animation.ValueAnimator", "mInitialized"]!!.value.asBoolean!!
         labels += "mStarted = " + instance["android.animation.ValueAnimator", "mStarted"]!!.value.asBoolean!!
         labels += "mRunning = " + instance["android.animation.ValueAnimator", "mRunning"]!!.value.asBoolean!!
-        labels += "mAnimationEndRequested = " + instance["android.animation.ValueAnimator", "mAnimationEndRequested"]!!.value.asBoolean!!
+        // Added in Android 7.0, so a heap dump from before it has no such field to read.
+        instance["android.animation.ValueAnimator", "mAnimationEndRequested"]?.let { field ->
+          labels += "mAnimationEndRequested = " + field.value.asBoolean!!
+        }
         labels += "mDuration = " + instance["android.animation.ValueAnimator", "mDuration"]!!.value.asLong!!
         labels += "mStartDelay = " + instance["android.animation.ValueAnimator", "mStartDelay"]!!.value.asLong!!
         val repeatCount = instance["android.animation.ValueAnimator", "mRepeatCount"]!!.value.asInt!!
