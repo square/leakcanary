@@ -5,6 +5,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
 import shark.LeakTrace
@@ -35,9 +36,28 @@ class ReferrersTest {
         "Footer.image",
         "Footer.placeholder"
       )
-      assertThat(referrers.referrers).hasSize(2)
+      assertThat(referrers.referrerCount).isEqualTo(2)
       assertThat(referrers.holdingReferrerCount).isEqualTo(2)
-      assertThat(referrers.gcRoots).isEmpty()
+      assertThat(referrers.nextOffset).isNull()
+    }
+  }
+
+  @Test fun `pages of referrers add up to the whole list, in its order`() {
+    HeapDive.open(testFolder.sharedParentHeapDump()).use { dive ->
+      val tree = dive.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val first = tree.referrersOf(payload.objectId, offset = 0, limit = 1)
+      val second = tree.referrersOf(payload.objectId, offset = first.nextOffset!!, limit = 1)
+
+      // The footer has two fields to the header's one, so it is the larger and comes first.
+      assertThat(first.referenceLabels()).containsExactly("Footer.image", "Footer.placeholder")
+      assertThat(first.nextOffset).isEqualTo(1)
+      assertThat(second.referenceLabels()).containsExactly("Header.image")
+      assertThat(second.nextOffset).isNull()
+      assertThat(first.referrers + second.referrers).isEqualTo(tree.referrersOf(payload.objectId).referrers)
+      assertThat(listOf(first, second).map { it.referrerCount to it.holdingReferrerCount })
+        .containsOnly(2 to 2)
     }
   }
 
@@ -73,27 +93,41 @@ class ReferrersTest {
     }
   }
 
-  @Test fun `a gc rooted object nothing points at lists the root that holds it`() {
+  @Test fun `a gc root on an object nothing points at is its one referrer`() {
     HeapDive.open(testFolder.cachedPayloadHeapDump()).use { dive ->
       val tree = dive.tree
 
       val referrers = tree.referrersOf(tree.findByLabel("Tile").objectId)
 
-      assertThat(referrers.referrers).isEmpty()
-      assertThat(referrers.gcRoots)
-        .containsExactly(ReferrerGcRoot(gcRootType = LeakTrace.GcRootType.JNI_GLOBAL, holds = true))
+      assertThat(referrers.referrers)
+        .containsExactly(GcRootReferrer(gcRootType = LeakTrace.GcRootType.JNI_GLOBAL, holds = true))
+      assertThat(referrers.holdingReferrerCount).isEqualTo(1)
     }
   }
 
   @Test fun `a local variable pointing at an object a field holds is a root that holds nothing`() {
-    HeapDive.open(testFolder.inAFieldAndAFrameHeapDump()).use { dive ->
+    val heapDump = testFolder.inAFieldAndARootHeapDump { payload ->
+      JavaFrame(id = payload, threadSerialNumber = 1, frameNumber = 0)
+    }
+    HeapDive.open(heapDump).use { dive ->
       val tree = dive.tree
 
       val referrers = tree.referrersOf(tree.findByLabel("Object[]").objectId)
 
-      assertThat(referrers.referenceLabels()).containsExactly("Holder.payload")
-      assertThat(referrers.gcRoots)
-        .containsExactly(ReferrerGcRoot(gcRootType = LeakTrace.GcRootType.JAVA_FRAME, holds = false))
+      assertThat(referrers.referenceLabels()).containsExactly("Holder.payload", "JAVA_FRAME (holds nothing)")
+      assertThat(referrers.holdingReferrerCount).isEqualTo(1)
+    }
+  }
+
+  @Test fun `a gc root holding an object comes before the objects holding it`() {
+    val heapDump = testFolder.inAFieldAndARootHeapDump { payload -> JniGlobal(id = payload, jniGlobalRefId = 1) }
+    HeapDive.open(heapDump).use { dive ->
+      val tree = dive.tree
+
+      val referrers = tree.referrersOf(tree.findByLabel("Object[]").objectId)
+
+      assertThat(referrers.referenceLabels()).containsExactly("JNI_GLOBAL", "Holder.payload")
+      assertThat(referrers.holdingReferrerCount).isEqualTo(2)
     }
   }
 
@@ -106,14 +140,17 @@ class ReferrersTest {
   }
 
   /**
-   * How these tests read a list of referrers: the class declaring each reference, the reference, and
-   * whether the tree holds the object through it.
+   * How these tests read a list of referrers: the class declaring each reference and the reference, or the
+   * type of a GC root, and whether the tree holds the object through it.
    */
   private fun ObjectReferrers.referenceLabels(): List<String> = referrers.flatMap { referrer ->
-    referrer.references.map { (reference, holds) ->
-      "${reference.ownerClassName}.${reference.name}" + if (holds) "" else " (holds nothing)"
+    when (referrer) {
+      is GcRootReferrer -> listOf(referrer.gcRootType.name to referrer.holds)
+      is ObjectReferrer -> referrer.references.map { (reference, holds) ->
+        "${reference.ownerClassName}.${reference.name}" to holds
+      }
     }
-  }
+  }.map { (label, holds) -> label + if (holds) "" else " (holds nothing)" }
 
   /**
    * A heap dump where a GC rooted app holds a screen, which holds a header and a footer both pointing at
@@ -144,19 +181,19 @@ class ReferrersTest {
   }
 
   /**
-   * A heap dump where a GC rooted holder holds a payload that a running method also has in a local variable.
+   * A heap dump where a GC rooted holder holds a payload that [gcRootOn] is a second GC root on.
    *
-   * The frame's thread is no object of the dump, so the local is a GC root on the payload and nothing else.
-   * A thread the dump names would also be a referrer, since Shark reads a local as a reference from its
-   * thread: see [onAStackAndInAFieldHeapDump].
+   * A [JavaFrame] here has a thread that is no object of the dump, so the local is a GC root on the payload
+   * and nothing else. A thread the dump names would be a referrer too, since Shark reads a local as a
+   * reference from its thread: see [onAStackAndInAFieldHeapDump].
    */
-  private fun TemporaryFolder.inAFieldAndAFrameHeapDump(): File {
-    val file = newFile("in-a-field-and-a-frame.hprof")
+  private fun TemporaryFolder.inAFieldAndARootHeapDump(gcRootOn: (payload: Long) -> GcRoot): File {
+    val file = newFile("in-a-field-and-a-root.hprof")
     file.dump {
       val payload = objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
       val holder = "com.example.Holder" instance { field["payload"] = ReferenceHolder(payload) }
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
-      gcRoot(JavaFrame(id = payload, threadSerialNumber = 1, frameNumber = 0))
+      gcRoot(gcRootOn(payload))
     }
     return file
   }
