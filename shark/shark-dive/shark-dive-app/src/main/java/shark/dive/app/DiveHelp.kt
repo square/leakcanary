@@ -21,8 +21,13 @@ import shark.dive.agent.AgentCommandLine
  *
  * **Nothing here reaches a run**, and that is the point of answering it first: help is what somebody reads on
  * the machine where nothing is open, so a text that needed a run to print it would be help that fails exactly
- * where it is needed. [AgentCommandLine.CLI_OPTION] with nothing after it lands here too, since a command line
- * that names no command is a question about what the commands are.
+ * where it is needed.
+ *
+ * **Three texts, picked by what else the command line says.** `--help` alone is [help]. With
+ * [AgentCommandLine.CLI_OPTION] beside it, it is [AgentCommandLine.commandsHelp], the list of commands. With a
+ * command's name after either option, it is that one command, since `--cli describe_object --help` asks the
+ * same question as `--help describe_object`. [AgentCommandLine.CLI_OPTION] with nothing after it is the list
+ * too: a command line that names no command is asking what the commands are.
  *
  * **The method for solving a leak is here too**, and that is what it is for: a text printed on demand is read
  * once by whoever wants it, where a text carried in an answer is read again by every call that gets one. See
@@ -38,33 +43,40 @@ internal fun helpExitCode(args: Array<String>): Int? {
     return 0
   }
   val helpIndex = args.indexOfFirst { it in HELP_OPTIONS }
+  val cliIndex = args.indexOf(AgentCommandLine.CLI_OPTION)
   if (helpIndex >= 0) {
-    val commandName = args.commandNameAt(helpIndex)
+    val commandName = args.commandNameAt(helpIndex) ?: cliIndex.takeIf { it >= 0 }?.let { args.commandNameAt(it) }
     println(
-      if (commandName == null) {
-        help(commandToRunThis())
-      } else {
-        AgentCommandLine.commandHelp(command = commandToRunThis(), commandName = commandName)
+      when {
+        commandName != null -> AgentCommandLine.commandHelp(command = commandToRunThis(), commandName = commandName)
+        cliIndex >= 0 -> AgentCommandLine.commandsHelp(commandToRunThis())
+        else -> help(commandToRunThis())
       }
     )
     return 0
   }
   // Which is a command line saying it is a command and then naming none, so what it is asking is this.
   if (args.size == 1 && args.single() == AgentCommandLine.CLI_OPTION) {
-    println(help(commandToRunThis()))
+    println(AgentCommandLine.commandsHelp(commandToRunThis()))
     return 0
   }
   return null
 }
 
 /**
- * What this app takes, as text, with [command] being what somebody types to run it.
+ * What this app takes, as text, with [command] being what somebody types to run it: every option, then how an
+ * agent works here.
  *
- * One document rather than a window's help and a command surface's help, because **a reader does not know
+ * One option column rather than a window's help and a command surface's help, because **a reader does not know
  * which half their question is in**: opening a heap dump is a command, having one open is a window, and the
  * two were two texts with two option columns and one of them reachable only by knowing the option that prints
- * it. So the options are one column, in the order somebody meets them, and [AgentCommandLine.commandsHelp]
- * carries the commands under it.
+ * it. So the options are one column, in the order somebody meets them, and
+ * [AgentCommandLine.agentInstructions] is under it.
+ *
+ * **The commands are not in it.** They were, under the instructions, until an agent piped this through
+ * `head -50`. Agents do that to the help of a program they don't know, and the cut fell in the middle of the
+ * list. So the list is [AgentCommandLine.commandsHelp], printed by `--cli --help`, and this text is short enough
+ * to be read whole. `CliOptionsTest` holds it to that.
  */
 private fun help(command: String): String = """
   |Shark Dive is a tool to explore heap dumps, using a UI and/or a CLI.
@@ -74,7 +86,7 @@ private fun help(command: String): String = """
   |
   |${options()}
   |
-  |${AgentCommandLine.commandsHelp(command)}
+  |${AgentCommandLine.agentInstructions()}
 """.trimMargin()
 
 /**

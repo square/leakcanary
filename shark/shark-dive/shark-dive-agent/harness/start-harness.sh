@@ -195,8 +195,9 @@ dump_in_the_working_directory() {
 # has been prompted there is nothing left in it to carry.
 #
 # **Not how to investigate, and not which tool to call.** What the agent follows has to come from the surface —
-# `--help` is the command list and `--leak-investigation-help` is the method, both text this build prints —
-# or what this measures is this function. Opening the dump is itself a step of the investigation.
+# `--help` points at the rest, `--cli --help` is the command list and `--leak-investigation-help` is the method,
+# all of it text this build prints — or what this measures is this function. Opening the dump is itself a step
+# of the investigation.
 #
 # **The launcher is named rather than left to be found.** The alternative was measuring an `ls` that this
 # harness's own shape breaks: the app is a copy of a build in a temporary directory, in neither of the two

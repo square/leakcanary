@@ -84,7 +84,7 @@ object AgentCommandLine {
     val commands = described()
     val commandName = words.firstOrNull()
     if (commandName == null || isCallArgument(commandName)) {
-      say("$CLI_OPTION needs the name of a command. `$command $HELP_OPTION` prints the ones there are.")
+      say("$CLI_OPTION needs the name of a command. `$command $CLI_OPTION $HELP_OPTION` prints the ones there are.")
       return NOTHING_ANSWERED
     }
     // Locally, which it can be because a command line only talks to a run of its own build: the list here is
@@ -156,11 +156,19 @@ object AgentCommandLine {
     "`$command $HELP_OPTION $commandName` has the rest of what it takes."
 
   /**
-   * Every command of this build, one line each, and the rest of what a command line takes.
+   * Every command of this build, one line each, and what calling one answers with. What `--cli --help` prints,
+   * and `--cli` with nothing after it.
    *
    * Generated from [AgentTools.all], which is the same list every call is answered out of, so a command cannot
    * be in this text and missing from the surface or the other way round. [AgentTool.summary] is the line, and it
    * is written rather than cut out of the description for the reason that field records.
+   *
+   * **A text of its own, which `--help` names.** It was the bottom half of `--help`, and an agent handed a
+   * program it doesn't know reads that program's help through `head -50`. In the 94 lines of the build an agent
+   * was seen doing it to, the cut fell at `find_objects`, the tenth of nineteen commands, and took
+   * [agentInstructions] with it, the line sending an agent to [LEAK_METHOD_OPTION] included. So `--help` is short
+   * enough to be read whole, and this list is a read an agent asks for by name. Measured lengths are in
+   * `notes/agent-surface.md`.
    *
    * Answered with no run of the app and no heap dump anywhere, since it describes a build rather than anything
    * open: this is what an agent reads *before* there is something to read, so reaching for a run to print it
@@ -174,14 +182,40 @@ object AgentCommandLine {
     |COMMANDS
     |
     |Commands that operate on heap dumps require a `$HEAP_DUMP_KEY` parameter, which you can
-    |obtain by calling one of $OPEN_HEAP_DUMP,  $LIST_HEAP_DUMPS or $DUMP_HEAP.
+    |obtain by calling one of $OPEN_HEAP_DUMP, $LIST_HEAP_DUMPS or $DUMP_HEAP.
     |
     |  $command $CLI_OPTION $OPEN_HEAP_DUMP path=/tmp/crash.hprof reason="Starting on the dump I was given"
     |  $command $CLI_OPTION list_leak_groups heapDumpKey=crash.hprof reason="Starting leak investigation"
     |
     |${commandColumn()}
     |
+    |`$HELP_OPTION <command>` prints all of one command: what it answers, and every argument it takes.
+    |
+    |$OPEN_HEAP_DUMP takes minutes on a large dump, and does not answer until the dump can be read.
+    |$DUMP_HEAP is slower still, since it takes the dump off a device first.
+    |
+    |Exit code $ANSWERED when the answer is on stdout, $REFUSED when the command was refused and the refusal
+    |is on stderr, $NOTHING_ANSWERED when there was nothing to answer it.
+  """.trimMargin().reflowed()
+
+  /**
+   * How an agent works on this surface: the two reads to make before the first command, and the rules every
+   * command is called under. `--help` prints it under the options.
+   *
+   * **In `--help`, and kept out of [commandsHelp].** The rules hold for every command, so an agent needs them
+   * before its first call, and `--help` is what an agent told nothing reads first. Under the list of commands
+   * they were what a truncated read lost. Even on its own the list ends on line 46 of [commandsHelp], so
+   * whatever follows it is where a `head -50` cuts. See [commandsHelp].
+   *
+   * **The two reads come first**: [commandsHelp], asked for whole, and [LEAK_METHOD_OPTION]. They are what a
+   * cut further down must not take, and an option row saying what `--cli --help` prints is easy to read past.
+   */
+  fun agentInstructions(): String = """
     |Agent instructions:
+    |
+    |`$CLI_OPTION $HELP_OPTION` lists every command. Read the whole list before your first command.
+    |
+    |Prior to investigating leaks, you must read $LEAK_METHOD_OPTION first.
     |
     |Every command sent by an agent takes `reason`: what you are trying to learn, or what the last answer told you. It goes
     |in the log beside the read it caused, so that somebody can follow the investigation afterwards. Every agent
@@ -203,14 +237,6 @@ object AgentCommandLine {
     |front of a person — quote it exactly.
     |
     |Say what you did not check.
-    |
-    |Prior to investigating leaks, you must read $LEAK_METHOD_OPTION first.
-    |
-    |$OPEN_HEAP_DUMP takes minutes on a large dump, and does not answer until the dump can be read.
-    |$DUMP_HEAP is slower still, since it takes the dump off a device first.
-    |
-    |Exit code $ANSWERED when the answer is on stdout, $REFUSED when the command was refused and the refusal
-    |is on stderr, $NOTHING_ANSWERED when there was nothing to answer it.
   """.trimMargin().reflowed()
 
   /** All of one command: what it answers, and every argument it takes. See [commandsHelp]. */
@@ -229,6 +255,7 @@ object AgentCommandLine {
   fun cliOptions(): List<Pair<String, String>> = listOf(
     "$CLI_OPTION <command> name=value" to
       "Makes one call and prints the answer as JSON. Required on every command.",
+    "$CLI_OPTION $HELP_OPTION" to "Lists every command, with the arguments each one needs.",
     "$SESSION_OPTION<name>" to
       "Which session these commands are one of, letters and digits. An agent passes a name carrying its " +
       "own session id, so that a reviewer of its logs can find this investigation from them.",
@@ -488,12 +515,15 @@ object AgentCommandLine {
   const val CLI_OPTION = "--cli"
 
   /**
-   * And to read what the commands are, which needs no run and no heap dump. See [commandsHelp].
+   * And to read what this takes, which needs no run and no heap dump. Alone it is the options and
+   * [agentInstructions]; with [CLI_OPTION] it is [commandsHelp]; with a command's name it is that command.
    *
    * The same option the app's own command line answers, rather than an `--agent-help` beside it: one of the two
    * was the more likely thing for an agent to type and the other was the one that listed the commands, and a
    * program that answers "what do you take" with half of what it takes is a program that hid the half it was
-   * asked about.
+   * asked about. Moving the commands to `--cli --help` hid nothing: `--help` names that command twice, as an
+   * option and as the first agent instruction, so an agent that typed the likely thing is handed the exact
+   * command for the rest.
    */
   const val HELP_OPTION = "--help"
 
@@ -519,7 +549,7 @@ object AgentCommandLine {
    * There was a second option, `--investigation-help`, for how to work on this surface at all. Four
    * paragraphs is not a document, and an option is only worth its own name when somebody would go looking
    * for it: the reason on every call, the links to hand back, the gap to admit. All of it is in
-   * [commandsHelp] now, which is what an agent reads having been told nothing.
+   * [agentInstructions] now, which `--help` prints and an agent reads having been told nothing.
    */
   const val LEAK_METHOD_OPTION = "--leak-investigation-help"
 

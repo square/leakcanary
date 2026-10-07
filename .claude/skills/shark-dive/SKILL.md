@@ -14,11 +14,12 @@ what it takes:
 ```bash
 ls -d /Applications/"Shark Dive.app" ~/Applications/"Shark Dive.app" 2>/dev/null
 "/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --help
+"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --cli --help
 ```
 
-`--help` is every command with a line each and how to work on this surface, `--help <command>` is one command
-in full, and `--leak-investigation-help` is how to solve a leak.
+`--help` is the options and how to work on this surface, `--cli --help` is every command with a line each,
+`--help <command>` is one command in full, and `--leak-investigation-help` is how to solve a leak.
 
-**Read those three rather than a file like this one.** They are text the build carries, so they describe the
-commands that exist rather than the ones that existed when something was written down — which is why this
-skill says no more than where to start. The space in the path has to stay quoted.
+**Read those rather than a file like this one, and read each of them whole.** They are text the build carries,
+so they describe the commands that exist rather than the ones that existed when something was written down —
+which is why this skill says no more than where to start. The space in the path has to stay quoted.

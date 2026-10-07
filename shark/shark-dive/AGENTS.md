@@ -761,9 +761,9 @@ ten seconds for an incremental change, most of it Kotlin rather than jlink — t
 warn about is the first jlink, not each one.
 
 **A `--cli` command is answered by a Shark Dive that is already running, not by the one you just built.**
-The three help options are the exception: `helpExitCode` prints them and exits before anything connects,
-so `--help`, `--help <command>` and `--leak-investigation-help` always come from your build. Everything
-else goes over a loopback socket to a published run.
+The help options are the exception: `helpExitCode` prints them and exits before anything connects, so
+`--help`, `--cli --help`, `--help <command>` and `--leak-investigation-help` always come from your build.
+Everything else goes over a loopback socket to a published run.
 
 Which run it reaches is filtered by build sha, and that filter is narrower than it sounds. The sha is
 `git rev-parse --short HEAD` with no `-dirty` suffix, and `shark-dive-app/build.gradle.kts` says why: a

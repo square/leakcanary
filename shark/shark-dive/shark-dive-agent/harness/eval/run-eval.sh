@@ -228,10 +228,11 @@ set_up_run() {
 # The skill this repository ships, in the working directory of the run, so that what is measured is the skill
 # people get rather than a copy of it written for the eval.
 #
-# It is the whole of how a run is meant to start — which launcher to find, that `--help` is the command
-# list, that an address is `0x…`, that a refusal is the next thing to do — and **a client discovers it by its
-# description alone**, from the one sentence of frontmatter. So a run that never invokes it is a finding about
-# that sentence rather than about the model, and the client transcript beside each run is where that shows.
+# It is the whole of how a run is meant to start — which launcher to find, that `--help` and `--cli --help`
+# are the surface and the command list, that an address is `0x…`, that a refusal is the next thing to do —
+# and **a client discovers it by its description alone**, from the one sentence of frontmatter. So a run that
+# never invokes it is a finding about that sentence rather than about the model, and the client transcript
+# beside each run is where that shows.
 #
 # Copied rather than symlinked because a symlink out of a temporary directory into the checkout is a skill the
 # client may decline to load, and because a run has to stay readable after the checkout has moved on.

@@ -163,11 +163,12 @@ typed command was drawn as two rows — Connected, called, Connected, called, wh
 investigation is least able to afford — and `McpSession.isTheCommandLineSayingHello` existed to drop exactly
 that one message. **So don't reintroduce anything in front of the call.** A capabilities exchange, a
 `hello`, a version negotiation: each of them is a row of that screen saying a process started and did the
-thing the next row already names, and there is nothing for one to carry. What the commands are and how to work
-here is `--help`, and how to solve a leak is `--leak-investigation-help`, and both are text this build prints
-with no window and no heap dump — so **nothing an answer carries is anything but the answer**. The method was
-in one: how to work here prepended to whatever a session asked first, which made a call that only wanted to
-know which heap dumps are open the call that handed over the whole of it. See `AgentMethod`.
+thing the next row already names, and there is nothing for one to carry. What the commands are is
+`--cli --help`, how to work here is `--help`, and how to solve a leak is `--leak-investigation-help`, and all
+of them are text this build prints with no window and no heap dump — so **nothing an answer carries is
+anything but the answer**. The method was in one: how to work here prepended to whatever a session asked
+first, which made a call that only wanted to know which heap dumps are open the call that handed over the
+whole of it. See `AgentMethod`.
 
 The name is in `input` even though `tool` has it, and that is not an oversight: this field is read as one
 thing, and a set of arguments lifted away from what they are arguments *to* is the one form of a call nobody
@@ -236,7 +237,8 @@ answered with the names it does have, since what happened is usually a tool rena
 learned the old name — a session name that cannot be part of a file name, and a command of a named session with
 no `reason`. Keeping that list to three is what makes the surface one place: a fourth would be a rule to find out
 about twice. A `--cli` with no command name after it is not one of them: it prints the help on stdout and exits
-0, because a program asked what it takes is being asked a question rather than making a mistake.
+0, because a program asked what it takes is being asked a question rather than making a mistake. The help it
+prints is the list of commands, the same text as `--cli --help`.
 
 **The `reason` is required of a named session and of nothing else**, which is a pair rather than two rules:
 `--session=` is what an agent passes and the `reason` is what makes that session readable afterwards, so
@@ -488,8 +490,10 @@ a display**, since the reads happen on the heap dump's thread and the tests run 
 ```bash
 ./gradlew :shark:shark-dive:shark-dive-agent:check   # test + detekt
 
-# What the surface is, from a shell, with nothing open and no Gradle. Then one command, then the method.
+# What the surface is, from a shell, with nothing open and no Gradle. Then the commands, one of them, then
+# the method.
 "Shark Dive.app/Contents/MacOS/Shark Dive" --help
+"Shark Dive.app/Contents/MacOS/Shark Dive" --cli --help
 "Shark Dive.app/Contents/MacOS/Shark Dive" --help open_heap_dump
 "Shark Dive.app/Contents/MacOS/Shark Dive" --leak-investigation-help
 

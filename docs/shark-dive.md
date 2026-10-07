@@ -299,9 +299,9 @@ There is nothing to install and nothing to configure. The app's own launcher tak
 **`--cli` goes on every command**, and it is what tells a command from a run of the app: the same launcher with
 a heap dump after it opens a window, so nothing here is inferred from a command name arriving. And it is one or
 the other — a command line that says `--cli` and also names a heap dump is saying two different things to do,
-since a command opens a dump by calling `open_heap_dump path=…` and answers that it did. `--help` prints
-every command with a line each, `--help <command>` prints one of them in full, and both answer with no run
-open and no heap dump anywhere — which is the state an agent reads them in.
+since a command opens a dump by calling `open_heap_dump path=…` and answers that it did. `--cli --help`
+prints every command with a line each, `--help <command>` prints one of them in full, and both answer with no
+run open and no heap dump anywhere — which is the state an agent reads them in.
 
 **There are two ways in and everything else names a heap dump.** `open_heap_dump` opens the file you were
 given, or joins the run that already has it, and answers with the key every other command names that dump by;
@@ -335,9 +335,11 @@ with its own session id in the name: what you did then reads as one row of the *
 somebody reviewing the agent's own logs can search that id and find the investigation beside them. Left off,
 the calls of one shell are gathered for you, which is the case a person is in.
 
-`--help` prints every option of the command line, the ones above included, and `--cli` with nothing after it
-prints exactly that — so a launcher typed with no idea what it takes answers with all of it and reaches for
-nothing.
+`--help` prints every option of the command line, the ones above included, and how an agent works here. The
+commands are not in it: an agent reads the help of a program it doesn't know through `head -50`, and with
+every command in it the cut fell halfway down the list. So `--help` is short enough to be read whole and names
+`--cli --help` for the commands, which `--cli` with nothing after it prints too. None of them reaches for a
+run, so a launcher typed with no idea what it takes answers straight away.
 
 ### And no MCP server
 

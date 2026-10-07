@@ -52,9 +52,53 @@ class CliOptionsTest {
         // And how to work here, which was `--investigation-help` and is four paragraphs of this text now.
         // Spelled rather than read off the surface, since the argument is internal to the other module.
         .contains("reason")
-        // And where to start, since somebody reading this has a heap dump and nothing open.
-        .contains(OPEN_HEAP_DUMP)
+        // And the command that lists the commands, which are not in this text any more. Spelled out whole,
+        // since an agent copies it.
+        .contains("${AgentCommandLine.CLI_OPTION} ${AgentCommandLine.HELP_OPTION}")
     }
+  }
+
+  @Test
+  fun `the help is short enough to be read whole`() {
+    val printed = ByteArrayOutputStream()
+
+    onItsOwnStreams(printed) { helpExitCode(arrayOf("--help")) }
+
+    // An agent handed a program it doesn't know types `--help 2>&1 | head -50`. With every command in it this
+    // text was 94 lines, and the cut fell in the middle of the list, taking the agent instructions under it.
+    // The pointer to `--cli --help` is in those instructions, so this text has to fit where the cut falls.
+    assertThat(printed.toString(Charsets.UTF_8.name()).trimEnd().lines())
+      .hasSizeLessThanOrEqualTo(LINES_AN_AGENT_READS)
+  }
+
+  @Test
+  fun `the commands are listed by asking a command line for its help`() {
+    listOf(
+      arrayOf(AgentCommandLine.CLI_OPTION, AgentCommandLine.HELP_OPTION),
+      arrayOf(AgentCommandLine.HELP_OPTION, AgentCommandLine.CLI_OPTION),
+      arrayOf(AgentCommandLine.CLI_OPTION, "-h")
+    ).forEach { args ->
+      val printed = ByteArrayOutputStream()
+
+      val exitCode = onItsOwnStreams(printed) { helpExitCode(args) }
+
+      // Whichever order the two options come in, and either spelling of the help. `AgentCommandLineTest` pins
+      // that the list has every command in it.
+      assertThat(exitCode).describedAs(args.joinToString(" ")).isZero
+      assertThat(printed.toString(Charsets.UTF_8.name())).describedAs(args.joinToString(" "))
+        .isEqualToIgnoringWhitespace(AgentCommandLine.commandsHelp(commandToRunThis()))
+    }
+  }
+
+  @Test
+  fun `the help on its own has no list of commands`() {
+    val printed = ByteArrayOutputStream()
+
+    onItsOwnStreams(printed) { helpExitCode(arrayOf(AgentCommandLine.HELP_OPTION)) }
+
+    // `list_leak_groups` is named nowhere in the options or the instructions, so finding it means the list is
+    // back in this text, and so is the length that made agents cut it.
+    assertThat(printed.toString(Charsets.UTF_8.name())).doesNotContain("list_leak_groups")
   }
 
   @Test
@@ -78,26 +122,32 @@ class CliOptionsTest {
 
     val exitCode = onItsOwnStreams(printed) { helpExitCode(arrayOf(AgentCommandLine.CLI_OPTION)) }
 
-    // The same text `--help` prints, and reached before anything looks for a run: a command line that says it
-    // is a command and then names none is asking what the commands are, and the answer is this build's own.
+    // The same text `--cli --help` prints, and reached before anything looks for a run: a command line that says
+    // it is a command and then names none is asking what the commands are, and the answer is this build's own.
     assertThat(exitCode).isZero
-    assertThat(printed.toString(Charsets.UTF_8.name())).contains(OPEN_HEAP_DUMP)
+    assertThat(printed.toString(Charsets.UTF_8.name()))
+      .isEqualToIgnoringWhitespace(AgentCommandLine.commandsHelp(commandToRunThis()))
   }
 
   @Test
   fun `the help of one command is printed, and needs nothing open`() {
-    val printed = ByteArrayOutputStream()
+    listOf(
+      arrayOf(AgentCommandLine.HELP_OPTION, "ways_held"),
+      arrayOf(AgentCommandLine.CLI_OPTION, AgentCommandLine.HELP_OPTION, "ways_held"),
+      // The command written the way a call writes it, and the help asked for after it.
+      arrayOf(AgentCommandLine.CLI_OPTION, "ways_held", AgentCommandLine.HELP_OPTION)
+    ).forEach { args ->
+      val printed = ByteArrayOutputStream()
 
-    val exitCode = onItsOwnStreams(printed) {
-      helpExitCode(arrayOf(AgentCommandLine.HELP_OPTION, "ways_held"))
+      val exitCode = onItsOwnStreams(printed) { helpExitCode(args) }
+
+      assertThat(exitCode).describedAs(args.joinToString(" ")).isZero
+      // The command asked about, and not the eighteen others: reading a surface a piece at a time is what naming
+      // one is for.
+      assertThat(printed.toString(Charsets.UTF_8.name())).describedAs(args.joinToString(" "))
+        .contains("ways_held")
+        .doesNotContain("list_leak_groups")
     }
-
-    assertThat(exitCode).isZero
-    // The command asked about, and not the eighteen others: reading a surface a piece at a time is what naming
-    // one is for.
-    assertThat(printed.toString(Charsets.UTF_8.name()))
-      .contains("ways_held")
-      .doesNotContain("list_leak_groups")
   }
 
   @Test
@@ -196,7 +246,8 @@ class CliOptionsTest {
     // An argument is no command name, which is the case the help above doesn't catch: this command line says
     // more than that it is a command, so the answer is which word is missing rather than the whole surface.
     assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
-    assertThat(said.toString(Charsets.UTF_8.name())).contains(AgentCommandLine.HELP_OPTION)
+    assertThat(said.toString(Charsets.UTF_8.name()))
+      .contains("${AgentCommandLine.CLI_OPTION} ${AgentCommandLine.HELP_OPTION}")
   }
 
   /**
@@ -247,5 +298,8 @@ class CliOptionsTest {
      * `shark-dive-agent` — see `AgentTools.OPEN_HEAP_DUMP`, which is what the messages here are generated from.
      */
     private const val OPEN_HEAP_DUMP = "open_heap_dump"
+
+    /** How much of a help an agent reads when it pipes one through `head -50`, as agents do with a new program. */
+    private const val LINES_AN_AGENT_READS = 50
   }
 }
