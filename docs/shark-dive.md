@@ -234,9 +234,10 @@ it is the same string the Leaks screen and an agent's `faultyReference` both use
 **A path with no such step carries no mark**, which is deliberate: what would be marked would be a guess
 drawn as an answer. With objects nothing knows either way about between the two verdicts, the fault is at one
 of those steps and nothing on the path says which. With nothing `Expected` above the stuck object at all,
-what holds it may be something that should have let go of it too, so the fault can be further up than the
-path reaches. Overruling a verdict is what closes either gap: say what you know about one object in between,
-and the mark appears on the step that leaves.
+what holds it may be something that should have let go of it too, so the fault can be as far up as the GC
+root. Overruling a verdict is what closes either gap: say what you know about one object in between, and the
+mark appears on the step that leaves. A GC root is a reference like the fields below it, so when the object
+it holds is `Stuck`, the root's own line is the one marked.
 
 **The pencil beside it** overrules the verdict. Pick one of the three, type why, and **Set the verdict**:
 

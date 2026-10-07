@@ -551,9 +551,11 @@ class AgentToolsTest {
     val answer = call(PATH_FROM_GC_ROOTS, OBJECT to hex(heapDump.activityObjectId))
 
     assertThat(answer.text(HUMAN_LEAK_TRACE)).startsWith("┬───").contains(ACTIVITY_CLASS_NAME)
-    // Two of the two references are still candidates, so nothing has been ruled out yet. Which is the number
-    // a verdict moves, and the reason it is here rather than counted off the path by whoever reads it.
-    assertThat(answer.obj(INVESTIGATION).text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
+    // Two of the three references are still candidates: the GC root holding the application is the one
+    // ruled out, by the inspector that knows an application belongs in memory. Which is the number a verdict
+    // moves, and the reason it is here rather than counted off the path by whoever reads it.
+    assertThat(answer.obj(INVESTIGATION).text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.33")
+    assertThat(answer.obj(LEAK_TRACE).text("gcRootIsSuspect")).isEqualTo("false")
   }
 
   @Test
@@ -597,6 +599,40 @@ class AgentToolsTest {
   }
 
   /**
+   * The GC root is a reference too, the one holding the first object of the path, so a stuck object a root
+   * holds directly is a leak of that root. Nothing is above a root to be expected, and nothing needs to be.
+   * See [shark.dive.isGcRootFaulty].
+   */
+  @Test
+  fun `a stuck object a GC root holds is a leak of that root`() {
+    val answer = call(
+      SET_VERDICT,
+      OBJECT to hex(heapDump.applicationObjectId),
+      "verdict" to Verdict.STUCK.name,
+      SOLVING_LEAK_OF to hex(heapDump.activityObjectId),
+      WHY to "Recorded as stuck to read the path a GC root holding a stuck object makes."
+    )
+
+    assertThat(answer.text(LEAK_SOLVED)).isEqualTo("true")
+    val says = answer.obj(INVESTIGATION)
+    assertThat(says.text("state")).isEqualTo(InvestigationState.SOLVED.name)
+    // One candidate left, which is the root, as for any solved leak.
+    assertThat(says.text("suspectReferenceCount")).isEqualTo("1")
+    assertThat(says.text("next")).contains("$JNI_GLOBAL_ROOT is the faulty reference")
+    // Named the way the window's path draws its first line, and with no index: no object of the path holds
+    // the root, so there is no `path[objectIndex].reference` for it to be.
+    val faulty = says.obj("faultyReference")
+    assertThat(faulty.text("reference")).isEqualTo(JNI_GLOBAL_ROOT)
+    assertThat(faulty["objectIndex"]).isNull()
+    // And the candidate is marked where the path says what the root is, rather than on a reference of an
+    // object, none of which could be at fault now.
+    val leakTrace = answer.obj(LEAK_TRACE)
+    assertThat(leakTrace.text("gcRootIsSuspect")).isEqualTo("true")
+    assertThat(leakTrace.array("path").mapNotNull { it.jsonObject["reference"]?.jsonObject?.text("isSuspect") })
+      .containsOnly("false")
+  }
+
+  /**
    * What the verdict did, rather than where the path ended up.
    *
    * The pair and not the new number alone, which is the whole reason `solvingLeakOf` exists: a verdict that
@@ -616,10 +652,11 @@ class AgentToolsTest {
     val narrowed = answer.obj("narrowedBy")
     assertThat(narrowed.text("suspectReferencesBefore")).isEqualTo("2")
     assertThat(narrowed.text("suspectReferencesAfter")).isEqualTo("1")
-    assertThat(narrowed.text("progressRatioBefore")).isEqualTo("0.0")
-    // One of this path's two references ruled out. Not 1.0, and that is not an off-by-one: a solved leak
-    // still has the faulty reference as a candidate, so what says it is over is `leakSolved`.
-    assertThat(narrowed.text("progressRatioAfter")).isEqualTo("0.5")
+    assertThat(narrowed.text("progressRatioBefore")).isEqualTo("0.33")
+    // Two of this path's three references ruled out, the GC root being the other one. Not 1.0, and that is
+    // not an off-by-one: a solved leak still has the faulty reference as a candidate, so what says it is
+    // over is `leakSolved`.
+    assertThat(narrowed.text("progressRatioAfter")).isEqualTo("0.67")
   }
 
   @Test
@@ -1473,6 +1510,9 @@ class AgentToolsTest {
 
     /** The two fields an investigation is worked towards, on every answer that can move them. */
     const val LEAK_SOLVED = "leakSolved"
+
+    /** What holds the application of the fixture, as the window's path names it. */
+    const val JNI_GLOBAL_ROOT = "GC root: JNI global reference"
     const val LEAK_SOLVING_PROGRESS_RATIO = "leakSolvingProgressRatio"
 
     /** And what they, and the rest of how far the search has got, are answered under beside a path. */

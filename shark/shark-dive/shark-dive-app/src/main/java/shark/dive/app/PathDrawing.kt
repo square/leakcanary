@@ -105,6 +105,12 @@ internal fun PathHeadRow(
   label: String,
   /** What the head points at, which is nothing for a GC root: a root reaches its object with no field. */
   reference: PathReference?,
+  /**
+   * Whether the GC root is the faulty reference, which it is when the object it holds is stuck: no field
+   * holds that object, so the root is the line that says where the leak is. See
+   * [shark.dive.isGcRootFaulty].
+   */
+  isFaulty: Boolean = false,
   nextStrength: ReachabilityStrength?,
   /** What hangs under the label, which is where a stretch of the path running off the head is switched. */
   below: @Composable () -> Unit = {}
@@ -117,7 +123,23 @@ internal fun PathHeadRow(
       NodeGutter(kind = null, incoming = null, outgoing = nextStrength, endsInArrow = endsInArrow)
     }
   ) {
-    Text(label, style = MaterialTheme.typography.bodyMedium)
+    val line = @Composable {
+      Text(
+        buildAnnotatedString {
+          append(label)
+          // Marked the way a faulty field is, for the same reason. See [ReferenceLine].
+          if (isFaulty) {
+            withStyle(FAULTY_REFERENCE_SPAN) { append(" $FAULTY_REFERENCE") }
+          }
+        },
+        style = MaterialTheme.typography.bodyMedium
+      )
+    }
+    if (isFaulty) {
+      Hint(ReferencePage.of(Topic.FAULTY_REFERENCE).hint, content = line)
+    } else {
+      line()
+    }
     below()
   }
 }
