@@ -151,7 +151,7 @@ class OwnerReferencesTest {
         "View.mContext (holds nothing)",
         "View.mContext (holds nothing)"
       )
-      assertThat(referrers.referrers.first().step.className).isEqualTo("android.app.ActivityThread")
+      assertThat(referrers.referrers.first().entry.className).isEqualTo("android.app.ActivityThread")
       assertThat(referrers.holdingReferrerCount).isEqualTo(1)
     }
   }

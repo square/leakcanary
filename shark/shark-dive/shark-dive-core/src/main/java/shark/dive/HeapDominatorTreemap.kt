@@ -767,76 +767,61 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * Every object with a reference to [objectId], at most [limit] of them, each with every reference it
-   * points at the object through and whether the tree holds the object through that one. The ones it is
-   * held through come first, so that the cap never hides what keeps it in memory, then the largest.
+   * Everything pointing at [objectId]: every object with a reference to it, each with every reference it
+   * points at the object through and whether the tree holds the object through that one, and every GC root
+   * on it. The objects it is held through come first, then the largest.
    *
    * One step up, where [independentPathsFromRoots] walks to the roots. Two objects pointing at this one and
    * both held by a third are one path there, since the paths share no object in between, and they are two
    * referrers here.
    *
    * **This reads every reference, from an index of its own.** The index paths walk holds only the
-   * references the tree follows. Most of what points at an object holds it, but two kinds of reference don't, and a
-   * reader goes looking for both. A weak reference to an object held strongly as well is one. A reference
-   * to an object its owner already holds is the other: a running activity is owned by its activity thread,
-   * so the window, the context wrappers and the views pointing at it are all left out of the tree's graph.
-   * On `large-dump.hprof` that leaves one referrer of the 951 pointing at the running activity. See
-   * [ReferrerReference.holds].
+   * references the tree follows. Most of what points at an object holds it, but two kinds of reference
+   * don't, and a reader goes looking for both. A weak reference to an object held strongly as well is one.
+   * A reference to an object its owner already holds is the other: a running activity is owned by its
+   * activity thread, so the window, the context wrappers and the views pointing at it are all left out of
+   * the tree's graph. On `large-dump.hprof` that leaves one referrer of the 951 pointing at the running
+   * activity. See [ReferrerReference.holds].
    *
    * The first call for a heap dump builds that index, which is a pass over the whole dump. Every call after
-   * it reads the index and then the referrers it shows.
+   * it reads the index, then each referrer's references to the object. Nothing here runs an inspector, so
+   * no verdict changes the answer.
    */
-  fun referrersOf(
-    objectId: Long,
-    limit: Int = MAX_LISTED_OBJECTS,
-    /** The verdicts set by hand, which win over what the inspectors make of the referrers. */
-    overrides: VerdictOverrides = VerdictOverrides.NONE
-  ): ObjectReferrers {
+  fun referrersOf(objectId: Long): ObjectReferrers {
     val targetIndex = everyReferrerIndex.indexOf(objectId)
     if (objectId == root || targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
       SharkLog.d { "Nothing points at ${hexObjectId(objectId)}: it is no object of the heap dump" }
       return ObjectReferrers.NONE
     }
-    val holdingIndexes = MutableIntSet()
-    referrerIndex.forEachReferrer(targetIndex) { referrer, _ -> holdingIndexes += referrer }
-    val candidates = mutableListOf<Referrer>()
+    val referrers = mutableListOf<ObjectReferrer>()
     everyReferrerIndex.forEachReferrer(targetIndex) { referrer, _ ->
-      val referrerId = everyReferrerIndex.objectIdAt(referrer)
-      candidates += Referrer(
-        objectId = referrerId,
-        isHolding = referrer in holdingIndexes,
-        retainedSize = nodes[referrerId]?.retainedSize ?: 0L
-      )
+      referrers += referrerOf(everyReferrerIndex.objectIdAt(referrer), objectId)
     }
-    val shown = candidates
-      .sortedWith(compareByDescending<Referrer> { it.isHolding }.thenByDescending { it.retainedSize })
-      .take(limit)
     return ObjectReferrers(
-      referrers = shown.map { referrerOf(it.objectId, objectId, overrides) },
-      referrerCount = candidates.size,
-      holdingReferrerCount = holdingIndexes.size,
-      gcRootType = gcRootOf(objectId)?.let { LeakTrace.GcRootType.fromGcRoot(it) }
+      referrers = referrers.sortedWith(
+        compareByDescending<ObjectReferrer> { it.holds }.thenByDescending { it.entry.retainedSize }
+      ),
+      gcRoots = graph.gcRoots
+        .filter { it.id == objectId }
+        .map { gcRoot ->
+          ReferrerGcRoot(
+            gcRootType = LeakTrace.GcRootType.fromGcRoot(gcRoot),
+            holds = reachability.isHeldThrough(objectId, gcRoot.reachabilityStrength())
+          )
+        }
     )
   }
 
-  /** One object [referrersOf] found, before the read that turns it into a row. */
-  private class Referrer(
-    val objectId: Long,
-    val isHolding: Boolean,
-    val retainedSize: Long
-  )
-
   private fun referrerOf(
     referrerId: Long,
-    objectId: Long,
-    overrides: VerdictOverrides
+    objectId: Long
   ): ObjectReferrer {
     val holding = referencesFrom(pathReferenceReader, referrerId, objectId).toSet()
-    // A path of one, which is the verdict the object has on its own: the two rules that decide the rest of a
-    // verdict are about the objects above and below it, and a referrer has neither here. See [verdictsOf].
-    val step = listOf(step(referrerId, reference = null, overrides = overrides)).withVerdicts().single()
+    val node = nodes[referrerId]
+    // Zero for an object whose bytes are folded into another one, as on a step of a path. See [step].
+    val entry = Match(referrerId, node?.retainedSize ?: 0L, node?.shallowSize ?: 0L).entry()
     return ObjectReferrer(
-      step = step,
+      entry = entry,
       references = referencesFrom(everyReferenceReader, referrerId, objectId)
         .map { ReferrerReference(reference = it, holds = it in holding) }
         .toList()

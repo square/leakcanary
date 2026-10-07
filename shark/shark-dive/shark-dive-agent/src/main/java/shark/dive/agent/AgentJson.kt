@@ -23,6 +23,7 @@ import shark.dive.VerdictOverrides
 import shark.dive.ObjectContent
 import shark.dive.ObjectDominator
 import shark.dive.ObjectList
+import shark.dive.ObjectListEntry
 import shark.dive.ObjectReferrers
 import shark.dive.PathReference
 import shark.dive.PathStep
@@ -369,25 +370,29 @@ internal object AgentJson {
   }
 
   /**
-   * Every object pointing at one object. It is the first step of what [independentPaths] walks to the GC
+   * Everything pointing at one object. It is the first step of what [independentPaths] walks to the GC
    * roots, taken over every reference, where a path only takes the ones the dominator tree follows.
    *
-   * A referrer is written as a step of a path is, less the two things a path adds to one. It has no
-   * `reference` of its own, since what reaches the referrer is no part of this answer. And none of its
-   * references is a suspect: that is about a reference's place between two verdicts on a path, and this
-   * referrer is on none. Each reference carries `holds` instead.
+   * A referrer is a row of [objectList] with the references it points through. Every referrer is here,
+   * however many there are: an agent asking for the rest would have no way to get them.
    */
   fun referrers(referrers: ObjectReferrers): JsonObject = buildJsonObject {
-    put("referrerCount", referrers.referrerCount)
+    put("referrerCount", referrers.referrers.size)
     // So that "is this the only thing keeping it in memory?" is answered by a count. A running activity has
-    // hundreds of objects pointing at it and one that holds it, and a list read for that answer misleads.
+    // hundreds of objects pointing at it and one that holds it, and counting that off a list is error prone.
     put("holdingReferrerCount", referrers.holdingReferrerCount)
-    put("isComplete", !referrers.hasMore)
-    put("gcRootType", referrers.gcRootType?.name)
+    putJsonArray("gcRoots") {
+      referrers.gcRoots.forEach { gcRoot ->
+        addJsonObject {
+          put("gcRootType", gcRoot.gcRootType.name)
+          put("holds", gcRoot.holds)
+        }
+      }
+    }
     putJsonArray("referrers") {
       referrers.referrers.forEach { referrer ->
         addJsonObject {
-          pathStepInto(referrer.step, reference = null, isSuspect = false)
+          objectListEntryInto(referrer.entry)
           putJsonArray("references") {
             referrer.references.forEach { (reference, holds) ->
               addJsonObject { referenceInto(reference) { put("holds", holds) } }
@@ -495,18 +500,19 @@ internal object AgentJson {
     // however many rows fitted.
     put("isComplete", !list.hasMore)
     putJsonArray("objects") {
-      list.entries.forEach { entry ->
-        addJsonObject {
-          put("object", exactHexObjectId(entry.objectId))
-          put("className", entry.className)
-          put("kind", entry.kind.name)
-          objectContentInto(entry.content)
-          put("shallowBytes", entry.shallowSize)
-          put("retainedBytes", entry.retainedSize)
-          put("strength", entry.strength.name)
-        }
-      }
+      list.entries.forEach { entry -> addJsonObject { objectListEntryInto(entry) } }
     }
+  }
+
+  /** One row of a list of objects, which is also what a referrer is. See [referrers]. */
+  private fun JsonObjectBuilder.objectListEntryInto(entry: ObjectListEntry) {
+    put("object", exactHexObjectId(entry.objectId))
+    put("className", entry.className)
+    put("kind", entry.kind.name)
+    objectContentInto(entry.content)
+    put("shallowBytes", entry.shallowSize)
+    put("retainedBytes", entry.retainedSize)
+    put("strength", entry.strength.name)
   }
 
   private fun rootPathStep(

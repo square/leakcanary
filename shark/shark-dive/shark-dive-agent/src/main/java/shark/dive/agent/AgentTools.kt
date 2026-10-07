@@ -433,30 +433,24 @@ internal class AgentTools(
   private fun referrers() = AgentTool(
     name = REFERRERS,
     summary = "Every object pointing at an object, and each reference it points through.",
-    description = "Every object pointing at an object, and each reference it points through. This is one " +
-      "step up, where `$WAYS_HELD` walks to the GC roots and keeps only paths sharing no object. So two " +
-      "referrers held by one parent are one way there and two referrers here. `holds` is whether retained " +
-      "sizes and `$WAYS_HELD` count a reference as holding the object. It is false for a weak reference " +
-      "to an object held strongly. It is false too for a reference to an object its owner holds, such as " +
-      "a view held by its parent. Holders come first, then the largest retained size. `gcRootType` is " +
-      "set when a GC root holds the object as well.",
+    description = "Every object pointing at an object, and each reference it points through, then every " +
+      "GC root on it. This is one step up, where `$WAYS_HELD` walks to the GC roots and keeps only paths " +
+      "sharing no object. So two referrers held by one parent are one way there and two referrers here. " +
+      "`holds` is whether retained sizes and `$WAYS_HELD` count a reference or a root as holding the " +
+      "object. It is false for a weak reference to an object held strongly. It is false too for a " +
+      "reference to an object its owner holds, such as a view held by its parent. Holders come first, " +
+      "then the largest retained size.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
-      OBJECT to objectIdArgument("The object pointed at."),
-      LIMIT to integer(
-        "How many referrers to list, at most ${HeapDominatorTreemap.MAX_LISTED_OBJECTS}. The counts come " +
-          "back whole whatever this is."
-      ).optional()
+      OBJECT to objectIdArgument("The object pointed at.")
     )
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
-    val limit = arguments.int(LIMIT, default = DEFAULT_LISTED_OBJECTS)
-      .coerceIn(1, HeapDominatorTreemap.MAX_LISTED_OBJECTS)
     dump.read("what points at ${exactHexObjectId(objectId)}, for an agent") { dive ->
       val tree = dive.tree
       objectId.requireOneObjectOf(tree)
-      AgentJson.referrers(tree.referrersOf(objectId, limit, dump.verdicts))
+      AgentJson.referrers(tree.referrersOf(objectId))
     }
   }
 

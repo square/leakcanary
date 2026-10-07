@@ -254,8 +254,9 @@ documented in that build's own environment-variable help — "How many character
 PowerShell command's output Claude receives inline (default 30000; values clamp to 4000-128000). Output past
 this is saved to a file", in the strings of `~/.local/share/claude/versions/2.1.280` — and was confirmed by
 printing 35,000 characters at a live session and reading what came back. So the number to keep an answer under
-is 30,000 characters, and every answer on this surface is under it except one: see the next section for
-`agent_log session=…`, which is 33,035.
+is 30,000 characters, and every answer on this surface is under it except two. One is `agent_log session=…`,
+which is 33,035 and is in the next section. The other is `referrers` on an object dozens of others point at,
+in the section after it.
 
 `AgentMethod` is split in two against that, and against a second thing the caps make plain: **a session
 should not pay for a method it isn't following.** Both halves are **reads rather than answers**, printed with no
@@ -402,6 +403,20 @@ like-for-like number and the cap has not gone away**: a long investigation still
 reach for then is a way to ask for one call's exchange rather than a shorter version of every call's. Nothing
 truncates it here, deliberately: a session cut to fit is one where the answer that misled an agent is the part
 that got cut.
+
+## And what a list of every referrer costs
+
+`referrers` answers with every object pointing at an object, and nothing cuts the list. A row is about 530
+characters as the command line prints it, so an object with more than about 55 referrers is past the
+30,000-character cap. Measured on `large-dump.hprof`: the running `MainActivity` has 951 referrers, and the
+answer is 505,393 characters. Compact JSON would be 263,706 of them; the rest is indentation. What a Claude
+Code session gets for that is the 2 KB preview and a path to read.
+
+**The answer is ordered for that preview.** `referrerCount`, `holdingReferrerCount` and `gcRoots` come before
+the list, and the referrers the object is held through come first in it. So the preview of that call carries
+both counts and `ActivityThread.activities`, the one reference holding the activity. The other 950 are in the
+file, for an agent that wants them. The first version capped the list at a limit an agent passed, and an
+agent that wanted the rest had no call that would hand them over.
 
 ## The flow, end to end, traced
 

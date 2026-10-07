@@ -415,7 +415,7 @@ press, because a surface with less than that is one whose answer is "ask your hu
 | `path_from_gc_roots` | One path: the objects from the GC root down, each with its labels, its verdict and the reference it holds the next one through, and how far the verdicts have narrowed it. |
 | `describe_object` | What an object is: its class, fields, labels, size. |
 | `ways_held` | Every way an object is held, rather than the one path — the *X ways from here* list. |
-| `referrers` | Every object pointing at an object, through every reference, and which of those references hold it. The window has no screen for this yet. |
+| `referrers` | Every object pointing at an object, through every reference, then every GC root on it, each saying whether it holds the object. The window has no screen for this yet. |
 | `find_objects` | The object list, by class name. |
 | `dominator_tree` | The treemap, without the pixels: where the memory has gone, a level at a time. |
 | `set_verdict`, `clear_verdict` | The pencil, with the *Why* required the same way. |
