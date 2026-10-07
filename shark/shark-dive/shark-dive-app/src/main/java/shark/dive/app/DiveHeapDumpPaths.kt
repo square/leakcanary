@@ -11,8 +11,8 @@ import shark.dive.HeapDumpPaths
  * kept about a heap dump between runs.
  *
  * A function rather than an object held somewhere, because this keeps nothing in memory — it is a directory
- * and two ways of reading it — and the three callers are as far apart as a window, a run with no window, and
- * a socket answering another run.
+ * and two ways of reading it — and the callers are as far apart as a window and a socket answering another
+ * run.
  */
 internal fun diveHeapDumpPaths(): HeapDumpPaths = HeapDumpPaths(HEAP_DUMP_PATHS_DIRECTORY)
 

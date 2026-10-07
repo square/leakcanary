@@ -59,10 +59,9 @@ class AgentServerTest {
     assertThat(run.pid).isEqualTo(ProcessHandle.current().pid().toString())
     assertThat(run.port).isGreaterThan(0)
     assertThat(run.token).hasSize(32)
-    // The two a command line decides on before it connects: whether this run is its own build, and whether
-    // it draws windows. See [AgentCommandLine].
+    // What a command line decides on before it connects: whether this run is its own build. See
+    // [AgentCommandLine].
     assertThat(run.buildSha).isEqualTo(BUILD_SHA)
-    assertThat(run.hasWindow).isTrue()
 
     connect(run).use { client ->
       assertThat(client.accepted).isTrue()
@@ -226,7 +225,6 @@ class AgentServerTest {
     heapDumps = FakeAgentHeapDumps(listOf(dump)),
     serverVersion = "1.2.3",
     buildSha = BUILD_SHA,
-    hasWindow = true,
     directory = directory
   ).also { closeables += it }
 

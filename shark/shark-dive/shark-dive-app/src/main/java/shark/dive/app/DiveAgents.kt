@@ -2,7 +2,6 @@ package shark.dive.app
 
 import androidx.compose.runtime.snapshotFlow
 import java.io.File
-import java.util.concurrent.CountDownLatch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -23,7 +22,6 @@ import shark.dive.agent.AgentRefusal
 import shark.dive.agent.AgentServer
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionFile
-import shark.dive.agent.ShownPlace
 import shark.dive.placeOfNoteKeyOrNull
 
 /**
@@ -36,93 +34,14 @@ import shark.dive.placeOfNoteKeyOrNull
 internal fun listenForAgents(
   windows: DiveWindows,
   deviceHeapDumps: DeviceHeapDumps
-) = listenForAgents(WindowAgentHeapDumps(windows, deviceHeapDumps), hasWindow = true)
-
-/**
- * How this app publishes itself to agents, whatever it has open.
- *
- * One place, because **a run with no window is published exactly like a run with windows** — same directory,
- * same handshake, same sessions — so that a command finds either without being told which it is talking to.
- * What the published file says about the difference is [hasWindow], and it is there for the one decision that
- * has to be made before connecting: which kind of run a heap dump is opened in. See [HeadlessAgentHeapDumps].
- */
-internal fun listenForAgents(
-  heapDumps: AgentHeapDumps,
-  hasWindow: Boolean
 ) = AgentServer.listen(
-  heapDumps = heapDumps,
+  heapDumps = WindowAgentHeapDumps(windows, deviceHeapDumps),
   serverVersion = SharkDiveVersion.current,
   // So that a command only ever talks to a run of its own build, which is what makes this surface workable
   // while it is being worked on: the run from the last branch is still up. See [SharkDiveVersion.buildSha].
   buildSha = SharkDiveVersion.buildSha,
-  hasWindow = hasWindow,
   directory = AGENT_RUNS_DIRECTORY
 )
-
-/**
- * Everything an agent can ask this run that isn't a question about one open heap dump: which dumps are open,
- * opening another, and the two `adb` questions behind taking one off a device.
- *
- * Whether this run has windows shows up in exactly two places — which dumps are open, and what opening one
- * means — so those are what a subclass answers and the rest is here. A device is a device either way, and a
- * heap dump pulled off one is a file that then has to be opened, which is [open] again.
- */
-internal abstract class RunAgentHeapDumps(
-  private val deviceHeapDumps: DeviceHeapDumps
-) : AgentHeapDumps {
-
-  override suspend fun devices(): List<AndroidDevice> = onAdbThread {
-    deviceHeapDumps.connectedDevices()
-  }
-
-  override suspend fun processesOf(serialNumber: String): List<DeviceProcess> = onAdbThread {
-    deviceHeapDumps.appProcesses(device(serialNumber))
-  }
-
-  override suspend fun dumpHeap(
-    serialNumber: String,
-    processName: String
-  ): AgentHeapDump {
-    val heapDumpFile = onAdbThread {
-      val device = device(serialNumber)
-      val process = deviceHeapDumps.appProcesses(device).firstOrNull { it.name == processName }
-        ?: throw AgentRefusal(
-          "No process called \"$processName\" is running on ${device.description}. A process is dumped by " +
-            "name because a pid changes every time the app restarts, so ask list_processes again: what it " +
-            "answers with is what is running now."
-        )
-      // Every step of it in this run's log, which is the only place a dump that is taking minutes says how
-      // far it has got — the agent is waiting for one answer and there is nothing to stream it through.
-      deviceHeapDumps.dumpHeap(device, process) { step -> SharkLog.d { "For an agent: $step" } }
-    }
-    // No pixels fetched to go with it, unlike the dialog's tick box: that is a second suspension of the app,
-    // minutes of it, and an agent reads a bitmap's size rather than looking at it. Whoever ends up at the
-    // window can still fetch them from the panel afterwards.
-    return open(heapDumpFile)
-  }
-
-  /** The device with this serial number, or a refusal listing the ones there are. */
-  private fun device(serialNumber: String): AndroidDevice {
-    val devices = deviceHeapDumps.connectedDevices()
-    return devices.firstOrNull { it.serialNumber == serialNumber }
-      ?: throw AgentRefusal(
-        "`adb` is connected to no device called \"$serialNumber\". " + if (devices.isEmpty()) {
-          "It is connected to nothing at all."
-        } else {
-          "It is connected to " + devices.joinToString(", ") { "${it.serialNumber} (${it.description})" } +
-            "."
-        }
-      )
-  }
-
-  /**
-   * Everything `adb` blocks on, off the connection's thread.
-   *
-   * Which is not the heap dump's thread either: a dump takes minutes of shelling out, and whatever heap dump
-   * is already open is being read while it does.
-   */
-  private suspend fun <T> onAdbThread(block: () -> T): T = withContext(Dispatchers.IO) { block() }
-}
 
 /**
  * How an agent reaches the windows of this run: the app's side of `shark-dive-agent`.
@@ -139,8 +58,8 @@ internal abstract class RunAgentHeapDumps(
  */
 internal class WindowAgentHeapDumps(
   private val windows: DiveWindows,
-  deviceHeapDumps: DeviceHeapDumps
-) : RunAgentHeapDumps(deviceHeapDumps) {
+  private val deviceHeapDumps: DeviceHeapDumps
+) : AgentHeapDumps {
 
   override fun openHeapDumps(): List<AgentHeapDump> =
     // Asked per call rather than captured, because windows come and go while an agent is connected: a tool
@@ -211,6 +130,58 @@ internal class WindowAgentHeapDumps(
     // on the next frame, and `onDispose` closes the session.
     windows -= window
   }
+
+  override suspend fun devices(): List<AndroidDevice> = onAdbThread {
+    deviceHeapDumps.connectedDevices()
+  }
+
+  override suspend fun processesOf(serialNumber: String): List<DeviceProcess> = onAdbThread {
+    deviceHeapDumps.appProcesses(device(serialNumber))
+  }
+
+  override suspend fun dumpHeap(
+    serialNumber: String,
+    processName: String
+  ): AgentHeapDump {
+    val heapDumpFile = onAdbThread {
+      val device = device(serialNumber)
+      val process = deviceHeapDumps.appProcesses(device).firstOrNull { it.name == processName }
+        ?: throw AgentRefusal(
+          "No process called \"$processName\" is running on ${device.description}. A process is dumped by " +
+            "name because a pid changes every time the app restarts, so ask list_processes again: what it " +
+            "answers with is what is running now."
+        )
+      // Every step of it in this run's log, which is the only place a dump that is taking minutes says how
+      // far it has got — the agent is waiting for one answer and there is nothing to stream it through.
+      deviceHeapDumps.dumpHeap(device, process) { step -> SharkLog.d { "For an agent: $step" } }
+    }
+    // No pixels fetched to go with it, unlike the dialog's tick box: that is a second suspension of the app,
+    // minutes of it, and an agent reads a bitmap's size rather than looking at it. Whoever ends up at the
+    // window can still fetch them from the panel afterwards.
+    return open(heapDumpFile)
+  }
+
+  /** The device with this serial number, or a refusal listing the ones there are. */
+  private fun device(serialNumber: String): AndroidDevice {
+    val devices = deviceHeapDumps.connectedDevices()
+    return devices.firstOrNull { it.serialNumber == serialNumber }
+      ?: throw AgentRefusal(
+        "`adb` is connected to no device called \"$serialNumber\". " + if (devices.isEmpty()) {
+          "It is connected to nothing at all."
+        } else {
+          "It is connected to " + devices.joinToString(", ") { "${it.serialNumber} (${it.description})" } +
+            "."
+        }
+      )
+  }
+
+  /**
+   * Everything `adb` blocks on, off the connection's thread.
+   *
+   * Which is not the heap dump's thread either: a dump takes minutes of shelling out, and whatever heap dump
+   * is already open is being read while it does.
+   */
+  private suspend fun <T> onAdbThread(block: () -> T): T = withContext(Dispatchers.IO) { block() }
 }
 
 /**
@@ -246,7 +217,6 @@ internal fun cliExitCode(args: Array<String>): Int? {
     words = listOfNotNull(commandName) + args.filter { AgentCommandLine.isCallArgument(it) },
     buildSha = SharkDiveVersion.buildSha,
     pid = args.optionValue(AgentCommandLine.RUN_OPTION),
-    noWindow = AgentCommandLine.NO_UI_OPTION in args,
     // Null rather than a default, because null is what says nobody named a session: a command line with no
     // `--session=` is a person typing one command, and [AgentCommandLine.run] asks only an agent for a `reason`.
     sessionName = args.optionValue(AgentCommandLine.SESSION_OPTION),
@@ -255,75 +225,9 @@ internal fun cliExitCode(args: Array<String>): Int? {
     // one finds that run published and talks to it, so one command line starting a run is what makes the rest
     // of them cheap. Declined when this run has no way of knowing what started it — see [relaunchCommand].
     openARun = relaunchCommand()?.let { command ->
-      { noWindow -> openAnotherRun(command, arguments, noWindow) }
+      { openAnotherRun(command, arguments) }
     }
   )
-}
-
-/**
- * Whether this process was started to answer agents with no window, and what to exit with if it was. Null for
- * every other command line.
- *
- * **A run rather than a way in.** `--no-ui` opens no window and publishes the same socket every run publishes,
- * so a command reaches it exactly as it reaches a window and nothing on the calling side knows the difference
- * — which is what makes a machine with no screen, a build agent or a box over ssh, a machine this surface
- * works on. A headless mode with a transport of its own is what the MCP server had, and
- * `shark/shark-dive/notes/agent-surface.md` has why that is the half of it that went.
- *
- * What it costs is one call: `show` has nowhere to put a tab and hands back a link instead of claiming
- * somebody saw it. See [HeadlessAgentHeapDumps].
- *
- * Answered in `main` after [cliExitCode] and before any window, since a run with no window has no reason to
- * start Compose — and on a machine with no display, starting it is how this would die. Which is also why the
- * option reaches here at all: `--cli open_heap_dump --no-ui` is a *command*, answered above, and the run it
- * starts is this, carrying the option with no `--cli` in front of it.
- */
-internal fun headlessAgentExitCode(args: Array<String>): Int? {
-  if (AgentCommandLine.NO_UI_OPTION !in args) {
-    return null
-  }
-  val arguments = try {
-    // The heap dumps to open as this comes up, which is the whole of what is left once the option is off.
-    windowArguments(args)
-  } catch (invalidArguments: IllegalArgumentException) {
-    saidToTheCaller(invalidArguments.message.orEmpty())
-    return UNREADABLE_COMMAND_LINE
-  }
-  return serveAgentsWithNoWindow(arguments)
-}
-
-/**
- * Publishes this run, answers agents, and blocks until the last heap dump open is closed.
- *
- * Logging as usual — stdout and a file — because nothing here is a protocol: whoever started this reads every
- * call and the reads it caused in the terminal it is running in, which is the closest thing to watching a
- * window that a machine with no screen has. The MCP server had to put this on stderr, stdout being the pipe.
- *
- * **What ends it is the same rule a run with windows has**: a run is its heap dumps, and one with none left
- * has nothing to come back to. Nothing is left behind either way — the file naming this run is deleted as
- * [AgentServer.listen] is closed, and by the shutdown hook it installs.
- */
-private fun serveAgentsWithNoWindow(arguments: DiveArguments): Int {
-  installLogging().use {
-    SharkLog.d {
-      "Started with ${AgentCommandLine.NO_UI_OPTION}, so this run has no window and every call it answers " +
-        "is here"
-    }
-    // Counted down by closing the last heap dump open. See [HeadlessAgentHeapDumps.close].
-    val over = CountDownLatch(1)
-    HeadlessAgentHeapDumps(
-      deviceHeapDumps = commandLineDeviceHeapDumps(),
-      heapDumpFiles = arguments.heapDumpFiles,
-      endTheRun = over::countDown
-    ).use { heapDumps ->
-      listenForAgents(heapDumps, hasWindow = false).use {
-        // Calls are answered on the socket's own threads, so what this thread has left to do is keep the
-        // process they are in alive.
-        over.await()
-      }
-    }
-  }
-  return 0
 }
 
 /**
@@ -337,8 +241,8 @@ private fun serveAgentsWithNoWindow(arguments: DiveArguments): Int {
  */
 internal fun windowArguments(
   args: Array<String>,
-  /** The one word of a command that isn't `name=value`, and null for a command line that is no command. */
-  commandName: String? = null
+  /** The one word of a command that isn't `name=value`, and null for a command line that names none. */
+  commandName: String?
 ): DiveArguments = DiveArguments.parse(
   args.filterNot { word ->
     word.isCliOption() || AgentCommandLine.isCallArgument(word) ||
@@ -361,8 +265,8 @@ private fun Array<String>.optionValue(option: String): String? =
 /** What a word of the command line has to be to reach a command rather than a window. */
 internal fun String.isCliOption(): Boolean =
   this == AgentCommandLine.CLI_OPTION || this == AgentCommandLine.HELP_OPTION ||
-    this == AgentCommandLine.LEAK_METHOD_OPTION || this == AgentCommandLine.NO_UI_OPTION ||
-    startsWith(AgentCommandLine.RUN_OPTION) || startsWith(AgentCommandLine.SESSION_OPTION)
+    this == AgentCommandLine.LEAK_METHOD_OPTION || startsWith(AgentCommandLine.RUN_OPTION) ||
+    startsWith(AgentCommandLine.SESSION_OPTION)
 
 /**
  * What to type to run this app, for the examples in the help.
@@ -403,25 +307,21 @@ private fun twoFormsAtOnce(arguments: DiveArguments): String? {
 }
 
 /**
- * Starts another Shark Dive and leaves it running, with a window unless [noWindow].
+ * Starts another Shark Dive and leaves it running, with a window.
  *
  * **Deliberately outliving this process.** A command ends with its one answer, and the run it started is the
  * whole point: every command after it reaches that run, and whoever is at the machine reads the notes and the
  * verdicts afterwards, on the tabs the agent left open.
  *
- * **Opening nothing, and that is the whole command line it gets**: a title, and whether it draws windows. The
- * heap dump is the command's to open, the command being what answers that it was opened — see [twoFormsAtOnce]
- * for why a command line cannot say both.
+ * **Opening nothing, and that is the whole command line it gets**: a title. The heap dump is the command's to
+ * open, the command being what answers that it was opened — see [twoFormsAtOnce] for why a command line cannot
+ * say both.
  */
 private fun openAnotherRun(
   command: List<String>,
-  arguments: DiveArguments,
-  noWindow: Boolean
+  arguments: DiveArguments
 ) {
-  val started = command + listOfNotNull(
-    "$TITLE_OPTION=${arguments.titlePrefix ?: CLI_RUN_TITLE}",
-    AgentCommandLine.NO_UI_OPTION.takeIf { noWindow }
-  )
+  val started = command + "$TITLE_OPTION=${arguments.titlePrefix ?: CLI_RUN_TITLE}"
   val detached = detached(started)
   try {
     ProcessBuilder(detached)
@@ -490,7 +390,7 @@ internal fun saidToTheCaller(message: String) {
  * One heap dump open: the thread every read of it queues on, and the two things an investigation writes into.
  *
  * Gathered because they are all per heap dump and all wanted together by everything that isn't drawing the
- * window — which is an agent, whether or not there is a window. See [DiveWindow.openHeapDump].
+ * window, which is an agent. See [DiveWindow.openHeapDump].
  */
 internal class OpenHeapDump(
   val session: HeapDumpSession,
@@ -508,7 +408,7 @@ private fun DiveWindow.agentHeapDump(open: OpenHeapDump): AgentHeapDump =
     bringToFront()
     // And the link itself, which is the same one the right click menu copies: an agent's answer can then
     // point at this place rather than describe how to get to it.
-    ShownPlace.at(DeepLink(open.session.heapDumpFile, place).toUri())
+    DeepLink(open.session.heapDumpFile, place).toUri()
   }
 
 /**
@@ -521,7 +421,7 @@ private fun DiveWindow.agentHeapDump(open: OpenHeapDump): AgentHeapDump =
 internal class OpenAgentHeapDump(
   private val open: OpenHeapDump,
   /** Where a place goes, and the link to it. See [AgentHeapDump.show]. */
-  private val showPlace: (Place) -> ShownPlace
+  private val showPlace: (Place) -> String
 ) : AgentHeapDump {
 
   override val heapDumpPath: String get() = open.session.heapDumpFile.absolutePath
@@ -568,7 +468,7 @@ internal class OpenAgentHeapDump(
     return open.notes.writtenAbout.mapNotNull { key -> placeOfNoteKeyOrNull(key) }
   }
 
-  override fun show(place: Place): ShownPlace = showPlace(place)
+  override fun show(place: Place): String = showPlace(place)
 
   /**
    * Puts what [newText] makes of the saved note on disk, whether that is the note plus a paragraph or
@@ -576,7 +476,7 @@ internal class OpenAgentHeapDump(
    *
    * **Refuses while somebody is typing in that note**, which is the one case where writing would cost
    * something that exists nowhere else: a draft is unsaved text, and saving over it would put half a sentence
-   * of theirs on disk under an answer of ours. A run with no window has no drafts, so there it never fires.
+   * of theirs on disk under an answer of ours.
    */
   private suspend fun write(
     place: Place,

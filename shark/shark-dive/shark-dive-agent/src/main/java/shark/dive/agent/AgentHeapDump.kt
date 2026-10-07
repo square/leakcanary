@@ -105,51 +105,15 @@ interface AgentHeapDump {
    * Opens [place] in a tab of this window and brings the window to the front, which is what makes an agent's
    * work something the person at the machine can watch rather than read about afterwards.
    *
+   * Answers with the `shark://` link to that place, which matters as much as the showing does: it is what an
+   * agent puts in its *reply* so that whoever asked can open the place themselves, later, from wherever the
+   * conversation is. Showing raises a window over whatever they were doing, which is right once and wrong five
+   * times; a link in a sentence is right every time. See [AgentTools] `show`.
+   *
    * Not suspending: this is the same hand-over a `shark://` link makes — a place put where the tabs take it
    * on the next frame — so there is nothing to wait for.
    */
-  fun show(place: Place): ShownPlace
-}
-
-/**
- * What came of putting a place in front of the person watching: the link to it, and why there was nowhere.
- *
- * **One answer rather than two calls**, because a call to `show` raises two questions with one cause and an
- * agent needs both answers: whether anybody saw it, and what to write down so that somebody can. They are not
- * the same fact, since a `shark://` link names the *heap dump* — so a run with no window has nothing on screen
- * to point at and a link worth passing on all the same.
- *
- * The link matters as much as the showing does: it is what an agent puts in its *reply* so that whoever asked
- * can open the place themselves, later, from wherever the conversation is. Showing raises a window over
- * whatever they were doing, which is right once and wrong five times; a link in a sentence is right every
- * time. See [AgentTools] `show`.
- */
-class ShownPlace private constructor(
-  /** The `shark://` link a person can click to open it, and null when there is no heap dump to link to. */
-  val link: String?,
-  /** Why it wasn't shown, and null when it was. */
-  val problem: String?
-) {
-
-  companion object {
-
-    fun at(link: String) = ShownPlace(link = link, problem = null)
-
-    /**
-     * Nothing was shown and [problem] says why, with [link] to the place it would have been.
-     *
-     * Both, because either alone is misleading: an agent that told its human to look at something they cannot
-     * see has said the one thing worse than nothing, and one that dropped the link would leave them with a
-     * description of a place they could have been taken to.
-     */
-    fun onlyAsALink(
-      link: String,
-      problem: String
-    ) = ShownPlace(link = link, problem = problem)
-
-    /** Nothing was shown and there is nowhere to link to either, which [problem] has to account for. */
-    fun nowhere(problem: String) = ShownPlace(link = null, problem = problem)
-  }
+  fun show(place: Place): String
 }
 
 /**

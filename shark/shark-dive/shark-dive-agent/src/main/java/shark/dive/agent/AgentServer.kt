@@ -53,11 +53,6 @@ object AgentServer {
      * [PublishedRun.buildSha].
      */
     buildSha: String,
-    /**
-     * Whether this run draws windows, which is the one thing about a run a command line has to know before it
-     * connects. See [PublishedRun.hasWindow].
-     */
-    hasWindow: Boolean,
     /** Where the file naming this run goes, which is `~/.shark-dive/agents` for the real app. */
     directory: File
   ): Closeable {
@@ -70,10 +65,9 @@ object AgentServer {
     val token = newToken()
     val file = File(directory, "${ProcessHandle.current().pid()}$RUN_SUFFIX")
     return try {
-      write(file, serverSocket.localPort, token, buildSha, hasWindow)
+      write(file, serverSocket.localPort, token, buildSha)
       SharkLog.d {
-        "Answering agents on port ${serverSocket.localPort}, published as $file: built from $buildSha, " +
-          if (hasWindow) "with windows" else "with no window"
+        "Answering agents on port ${serverSocket.localPort}, published as $file: built from $buildSha"
       }
       val sessions = sessionsDirectory(directory)
       val callsInFlight = AtomicInteger()
@@ -117,7 +111,7 @@ object AgentServer {
    *
    * **A file naming a process that is running is left where it is, whatever is in it**, and the delete is only
    * for one that names a process that has gone. That is the half worth writing down, because it cost a run: a
-   * `--no-ui` run logged itself as published, the command line that had just started it never saw the file, the
+   * run a command line had just started logged itself as published, that command line never saw the file, the
    * file was gone afterwards, and the run stayed alive and unreachable for the rest of its life — a JVM holding
    * a heap dump nothing could ever ask about, while the command that started it waited its full sixty seconds
    * and then said something had gone wrong opening it. Nothing else reads this directory, so what deleted it was
@@ -136,7 +130,7 @@ object AgentServer {
     val properties = Properties()
     return try {
       file.inputStream().use { properties.load(it) }
-      // Every one of the four properties is what a call needs before it sends anything, so a file missing any
+      // Every one of the three properties is what a call needs before it sends anything, so a file missing any
       // of them names nothing a call can use — which a run of a build older than those properties is too, and
       // it is still that build's run to talk to.
       runOf(file, pid, properties) ?: run {
@@ -149,7 +143,7 @@ object AgentServer {
     }
   }
 
-  /** The run a file names, and null for a file that is missing any of the four things a call needs. */
+  /** The run a file names, and null for a file that is missing any of the three things a call needs. */
   private fun runOf(
     file: File,
     pid: String,
@@ -158,8 +152,7 @@ object AgentServer {
     val port = properties.getProperty(PORT_PROPERTY)?.toIntOrNull() ?: return null
     val token = properties.getProperty(TOKEN_PROPERTY) ?: return null
     val buildSha = properties.getProperty(BUILD_SHA_PROPERTY) ?: return null
-    val hasWindow = properties.getProperty(WINDOW_PROPERTY)?.toBooleanStrictOrNull() ?: return null
-    return PublishedRun(file, pid, port, token, buildSha, hasWindow)
+    return PublishedRun(file, pid, port, token, buildSha)
   }
 
   /**
@@ -198,15 +191,13 @@ object AgentServer {
     file: File,
     port: Int,
     token: String,
-    buildSha: String,
-    hasWindow: Boolean
+    buildSha: String
   ) {
     file.parentFile.mkdirs()
     val properties = Properties().apply {
       setProperty(PORT_PROPERTY, port.toString())
       setProperty(TOKEN_PROPERTY, token)
       setProperty(BUILD_SHA_PROPERTY, buildSha)
-      setProperty(WINDOW_PROPERTY, hasWindow.toString())
     }
     val writing = File(file.parentFile, "${file.name}$WRITING_SUFFIX")
     writing.outputStream().use { properties.store(it, "Where this Shark Dive run answers agents") }
@@ -372,17 +363,7 @@ object AgentServer {
      * is no tool called that" rather than as "that window is a different build". Which is the normal state of
      * this machine while the surface is being worked on: the run from the last branch is still up.
      */
-    val buildSha: String,
-    /**
-     * Whether this run draws windows.
-     *
-     * Written down rather than asked over the socket because it decides *whether to connect at all*: opening a
-     * heap dump with no window and opening one in a window are two things to want, and a run is one or the
-     * other for the life of it — see `shark.dive.app.HeadlessAgentHeapDumps`. So a command line that asked for
-     * the other kind says so before it makes a call, rather than after one opened a gigabyte in the wrong
-     * place.
-     */
-    val hasWindow: Boolean
+    val buildSha: String
   )
 
   private const val ANY_FREE_PORT = 0
@@ -409,6 +390,5 @@ object AgentServer {
   private const val PORT_PROPERTY = "port"
   private const val TOKEN_PROPERTY = "token"
   private const val BUILD_SHA_PROPERTY = "buildSha"
-  private const val WINDOW_PROPERTY = "window"
   private const val THREAD_NAME = "shark-dive-agents"
 }

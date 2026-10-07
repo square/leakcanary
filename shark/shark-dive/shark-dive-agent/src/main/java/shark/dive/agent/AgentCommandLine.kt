@@ -63,8 +63,6 @@ object AgentCommandLine {
     buildSha: String,
     /** Which run, by process id, or null for the one run there had better be. See [runToTalkTo]. */
     pid: String? = null,
-    /** Whether [NO_UI_OPTION] was passed, which only the commands in [STARTS_A_RUN] take. */
-    noWindow: Boolean = false,
     /**
      * What [SESSION_OPTION] said, and null for a command line that named no session. See [defaultSessionName].
      *
@@ -78,12 +76,10 @@ object AgentCommandLine {
      */
     sessionName: String? = null,
     /**
-     * How to start a run to investigate in when there is none, and null for a caller that cannot.
-     *
-     * Called with whether that run should draw no window, since [NO_UI_OPTION] is a property of a run rather
-     * than of one heap dump. See [runToTalkTo].
+     * How to start a run to investigate in when there is none, and null for a caller that cannot. See
+     * [runToTalkTo].
      */
-    openARun: ((noWindow: Boolean) -> Unit)? = null
+    openARun: (() -> Unit)? = null
   ): Int {
     val commands = described()
     val commandName = words.firstOrNull()
@@ -97,14 +93,6 @@ object AgentCommandLine {
       say(
         "There is no command called \"$commandName\". This build has " +
           commands.joinToString(", ") { it.name } + ". `$command $HELP_OPTION <command>` says what one does."
-      )
-      return NOTHING_ANSWERED
-    }
-    if (noWindow && commandName !in STARTS_A_RUN) {
-      say(
-        "$NO_UI_OPTION says what kind of run to start, so it goes on the commands that start one: " +
-          STARTS_A_RUN.joinToString(", ") + ". $commandName reads a dump that is open already, in " +
-          "whichever run has it."
       )
       return NOTHING_ANSWERED
     }
@@ -132,7 +120,6 @@ object AgentCommandLine {
       commandName = commandName,
       pid = pid,
       buildSha = buildSha,
-      noWindow = noWindow,
       openARun = openARun
     ) ?: return NOTHING_ANSWERED
     val socket = try {
@@ -245,8 +232,6 @@ object AgentCommandLine {
     "$SESSION_OPTION<name>" to
       "Which session these commands are one of, letters and digits. An agent passes a name carrying its " +
       "own session id, so that a reviewer of its logs can find this investigation from them.",
-    NO_UI_OPTION to
-      "With a command that starts a run: have it draw no window, for a machine with no screen.",
     "$HELP_OPTION <command>" to "All of one command: what it answers, and every argument it takes.",
     LEAK_METHOD_OPTION to
       "How to investigate leaks of objects that reached their lifecycle end. Read it once per investigation."
@@ -497,8 +482,8 @@ object AgentCommandLine {
    *
    * Required rather than implied by a command name, so that a command line is either a command or a run of the
    * app and nothing has to guess which — which is what the word `--agent` got wrong twice over: it read as the
-   * option for agents, on a surface a person types as often, and it left `--agent-help` and `--no-ui` looking
-   * like options of a different feature. See `shark.dive.app.DiveArguments`.
+   * option for agents, on a surface a person types as often, and it left `--agent-help` looking like an option
+   * of a different feature. See `shark.dive.app.DiveArguments`.
    */
   const val CLI_OPTION = "--cli"
 
@@ -560,19 +545,6 @@ object AgentCommandLine {
    */
   const val RUN_OPTION = "--debug-run="
 
-  /**
-   * Answer commands and open no window, for a machine that has no screen to open one on.
-   *
-   * Named after what it does *not* do, rather than `--headless` or `--server`, because every run of this app
-   * answers commands and only some of them have a user interface.
-   *
-   * **Two positions, one meaning.** On a run it is what that run is; on a command that may start one it is
-   * which kind to start, and a mismatch with the run that answers is refused rather than papered over — see
-   * [kindMatches]. It is on no other command, since every one of those reads a dump that is open already and a
-   * dump open with no window reads exactly like one open in a window. See [STARTS_A_RUN].
-   */
-  const val NO_UI_OPTION = "--no-ui"
-
   /** How the session of a command from here is named, so that a file says what made it. */
   private const val SESSION_NAME_PREFIX = "cli"
 
@@ -619,16 +591,6 @@ object AgentCommandLine {
   private val STARTS_A_RUN = setOf(OPEN_HEAP_DUMP, DUMP_HEAP, LIST_DEVICES, LIST_PROCESSES)
 
   /**
-   * The commands that open a heap dump, which are the ones a run's kind is checked against. See [kindMatches].
-   *
-   * [LIST_DEVICES] and [LIST_PROCESSES] may start a run and are deliberately not here: they open nothing, so
-   * whether the run that answers draws windows is nothing about their answers, and refusing one over that would
-   * be a refusal with no consequence behind it. What [NO_UI_OPTION] still does there is say what kind of run to
-   * start if one has to be.
-   */
-  private val OPENS_A_HEAP_DUMP = setOf(OPEN_HEAP_DUMP, DUMP_HEAP)
-
-  /**
    * The one run to talk to, starting one if there is none, and null for every reason there is no one run.
    *
    * **Two runs is an error rather than a choice**, which is the rule the rest of this reads out of: a command
@@ -657,8 +619,7 @@ object AgentCommandLine {
     commandName: String,
     pid: String?,
     buildSha: String,
-    noWindow: Boolean,
-    openARun: ((noWindow: Boolean) -> Unit)?
+    openARun: (() -> Unit)?
   ): AgentServer.PublishedRun? {
     var waited = 0L
     // Nothing to wait for until something is being started, which is the paragraph above.
@@ -676,7 +637,7 @@ object AgentCommandLine {
       }
       val run = if (pid == null) runs.singleOrNull() else runs.firstOrNull { it.pid == pid }
       if (run != null) {
-        return run.takeIf { kindMatches(it, command, commandName, noWindow) }
+        return run
       }
       otherBuildRun(published, pid, buildSha)?.let { other ->
         say(
@@ -687,7 +648,7 @@ object AgentCommandLine {
       }
       if (!started && startsARun) {
         say("No Shark Dive is running, so one is being started to investigate in.")
-        requireNotNull(openARun).invoke(noWindow)
+        requireNotNull(openARun).invoke()
         started = true
         // The whole of the waiting, and only from here: what there is to wait for is a JVM starting, Compose
         // coming up and a run publishing itself, which is a thing this command line knows is on its way.
@@ -702,41 +663,7 @@ object AgentCommandLine {
     }
   }
 
-  /**
-   * Whether this run draws windows if [NO_UI_OPTION] said it should, and a message either way that it doesn't.
-   *
-   * **Checked against the run rather than against the heap dump**, which is a reading of "open it with no
-   * window" worth being explicit about: whether anything is drawn is decided once, as a run starts — a run with
-   * no window cannot start Compose at all, and on the machine [NO_UI_OPTION] exists for there is no display to
-   * start it on. So there is no opening one dump of a run with a window and one without, and the two questions
-   * coincide wherever the dump asked about is open in the run being talked to.
-   *
-   * Only for the commands that open one — [OPENS_A_HEAP_DUMP] — since every other command reads a dump that is
-   * open already, and a dump open with no window answers exactly as one open in a window does.
-   */
-  private fun kindMatches(
-    run: AgentServer.PublishedRun,
-    command: String,
-    commandName: String,
-    noWindow: Boolean
-  ): Boolean {
-    if (commandName !in OPENS_A_HEAP_DUMP || run.hasWindow == !noWindow) {
-      return true
-    }
-    say(
-      if (noWindow) {
-        "Shark Dive run ${run.pid} draws windows, and $NO_UI_OPTION asks for a run that draws none. " +
-          "Whether windows are drawn is settled once, as a run starts, so a dump opened in this one has " +
-          "a window. Leave $NO_UI_OPTION off to open it there."
-      } else {
-        "Shark Dive run ${run.pid} was started with $NO_UI_OPTION, so it draws no window and a heap dump " +
-          "opened in it has none either. Pass $NO_UI_OPTION to open it there anyway."
-      }
-    )
-    return false
-  }
-
-  /** A run named by [pid] that this command line has no business talking to. See [kindMatches]. */
+  /** A run named by [pid] that this command line has no business talking to: one of another build. */
   private fun otherBuildRun(
     published: List<AgentServer.PublishedRun>,
     pid: String?,
@@ -753,10 +680,8 @@ object AgentCommandLine {
     runs: List<AgentServer.PublishedRun>
   ): String = "${runs.size} Shark Dive runs are open, so which heap dumps there are to read depends on which " +
     "of them you meant. Pass $RUN_OPTION<pid> to say: " +
-    runs.joinToString(", ") { "${it.pid} (${it.kindText()})" } + ". `$command $CLI_OPTION $LIST_HEAP_DUMPS " +
+    runs.joinToString(", ") { it.pid } + ". `$command $CLI_OPTION $LIST_HEAP_DUMPS " +
     "$RUN_OPTION<pid> reason=…` says what each has open."
-
-  private fun AgentServer.PublishedRun.kindText(): String = if (hasWindow) "with windows" else "with no window"
 
   private fun nothingToTalkTo(
     directory: File,

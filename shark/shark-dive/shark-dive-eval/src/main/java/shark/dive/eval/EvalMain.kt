@@ -133,7 +133,7 @@ private fun fail(message: String): Nothing {
   exitProcess(1)
 }
 
-/** Where a run with no window writes its sessions, which is where every other one writes them too. */
+/** Where a run writes its sessions. */
 private val DEFAULT_SESSIONS_DIRECTORY: File
   get() = AgentServer.sessionsDirectory(
     File(File(System.getProperty("user.home")), ".shark-dive/agents")

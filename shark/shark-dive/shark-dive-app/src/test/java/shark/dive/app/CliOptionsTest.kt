@@ -26,7 +26,6 @@ class CliOptionsTest {
 
     assertThat(helpExitCode(args)).isNull()
     assertThat(cliExitCode(args)).isNull()
-    assertThat(headlessAgentExitCode(args)).isNull()
   }
 
   @Test
@@ -49,7 +48,6 @@ class CliOptionsTest {
         .contains(AgentCommandLine.HELP_OPTION)
         .contains(AgentCommandLine.RUN_OPTION)
         .contains(AgentCommandLine.SESSION_OPTION)
-        .contains(AgentCommandLine.NO_UI_OPTION)
         .contains(AgentCommandLine.LEAK_METHOD_OPTION)
         // And how to work here, which was `--investigation-help` and is four paragraphs of this text now.
         // Spelled rather than read off the surface, since the argument is internal to the other module.
@@ -114,35 +112,6 @@ class CliOptionsTest {
     // being handed it again with each leak it asks about. See [AgentMethod.LEAK].
     assertThat(exitCode).isZero
     assertThat(printed.toString(Charsets.UTF_8.name())).isEqualToIgnoringWhitespace(AgentCommandLine.leakMethod())
-  }
-
-  @Test
-  fun `a command that also says no window is told where that word goes rather than having it ignored`() {
-    val said = ByteArrayOutputStream()
-
-    val exitCode = onItsOwnStreams(said = said) {
-      cliExitCode(arrayOf(AgentCommandLine.CLI_OPTION, "list_leak_groups", AgentCommandLine.NO_UI_OPTION))
-    }
-
-    // Rather than stripped and quietly dropped, which is what it would otherwise be: which kind of run a heap
-    // dump is opened in is decided when it is opened, and every command after that reads a dump that is open
-    // already. So the message names the one command the word belongs to.
-    assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
-    assertThat(said.toString(Charsets.UTF_8.name()))
-      .contains(AgentCommandLine.NO_UI_OPTION)
-      .contains(OPEN_HEAP_DUMP)
-  }
-
-  @Test
-  fun `no window is no part of what a run is opened with`() {
-    val arguments = windowArguments(
-      arrayOf(AgentCommandLine.NO_UI_OPTION, "$TITLE_OPTION=Over ssh", "dump.hprof")
-    )
-
-    // The one thing that has to hold for a run with no window to be a run of this app: what is left is an
-    // ordinary command line. A heap dump called `--no-ui` is what getting this wrong looks like.
-    assertThat(arguments.heapDumpFiles.map { it.name }).containsExactly("dump.hprof")
-    assertThat(arguments.titlePrefix).isEqualTo("Over ssh")
   }
 
   @Test

@@ -183,35 +183,35 @@ class AgentCommandLineTest {
     // Which is the one command that does: every other one is a question about a run, and a run this just
     // started has nothing open to answer it with. Publishing the run inline is what the app does a JVM later,
     // so the loop finds it on its next poll rather than timing out on a run nothing started.
-    val started = mutableListOf<Boolean>()
+    var started = 0
 
     val exitCode = cli(
       OPEN_HEAP_DUMP,
       "path=${window.heapDumpPath}",
       "reason=Starting on the dump I was given.",
-      openARun = { noWindow ->
-        started += noWindow
+      openARun = {
+        started++
         listen()
       }
     )
 
     assertThat(exitCode).isEqualTo(AgentCommandLine.ANSWERED)
-    assertThat(started).containsExactly(false)
+    assertThat(started).isEqualTo(1)
     assertThat(said()).contains("one is being started to investigate in")
     assertThat(printed()).contains(window.heapDumpName)
   }
 
   @Test
   fun `a command that is not opening a heap dump starts nothing, and says which one would`() {
-    val started = mutableListOf<Boolean>()
+    var started = 0
 
-    val exitCode = cli(LIST_HEAP_DUMPS, "reason=Finding out what is open.", openARun = { started += it })
+    val exitCode = cli(LIST_HEAP_DUMPS, "reason=Finding out what is open.", openARun = { started++ })
 
     // "Nothing is open" from a command that never talked to anything reads exactly like "a run is open and has
     // nothing in it", so the one that could only answer the first is refused with the next step as its
     // message. Which keeps the other half of it true: every JSON answer here came off the socket.
     assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
-    assertThat(started).isEmpty()
+    assertThat(started).isZero
     assertThat(said()).contains("`shark-dive $CLI_OPTION $OPEN_HEAP_DUMP")
   }
 
@@ -263,37 +263,6 @@ class AgentCommandLineTest {
     // "no run is $pid" would send somebody looking for a window that is on their screen.
     assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
     assertThat(said()).contains("was built from 0000000")
-  }
-
-  @Test
-  fun `the kind of run to open a heap dump in has to be the kind of run there is`() {
-    listen()
-
-    val exitCode = cli(
-      OPEN_HEAP_DUMP,
-      "path=${window.heapDumpPath}",
-      "reason=Opening it where nothing is drawn.",
-      noWindow = true
-    )
-
-    // Whether anything is drawn is decided once, as a run starts — a run with no window cannot start Compose
-    // at all — so there is no opening one dump of a run without a window. Refused rather than papered over,
-    // because a command line that asked for no window on a machine that has a screen meant something by it.
-    assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
-    assertThat(said()).contains("draws windows").contains(AgentCommandLine.NO_UI_OPTION)
-  }
-
-  @Test
-  fun `no window is said about the commands that start a run and about nothing else`() {
-    listen()
-
-    val exitCode = cli(LIST_HEAP_DUMPS, "reason=Finding out what is open.", noWindow = true)
-
-    // Refused locally, before a connect: the option says what kind of run to *start*, and every command that
-    // starts none reads a dump that is open already — which a dump open with no window answers exactly as one
-    // open in a window does. So a command line that passed it here has the wrong end of what it means.
-    assertThat(exitCode).isEqualTo(AgentCommandLine.NOTHING_ANSWERED)
-    assertThat(said()).contains("commands that start one").contains(OPEN_HEAP_DUMP)
   }
 
   @Test
@@ -460,7 +429,6 @@ class AgentCommandLineTest {
     heapDumps = FakeAgentHeapDumps(listOf(window), opens = { window }),
     serverVersion = "1.2.3",
     buildSha = BUILD_SHA,
-    hasWindow = true,
     directory = directory
   ).also { closeables += it }
 
@@ -474,11 +442,10 @@ class AgentCommandLineTest {
    */
   private fun publishedByHand(
     pid: Long,
-    buildSha: String = BUILD_SHA,
-    hasWindow: Boolean = true
+    buildSha: String = BUILD_SHA
   ): String {
     File(directory, "$pid${AgentServer.RUN_SUFFIX}").writeText(
-      "port=1\ntoken=nothing\nbuildSha=$buildSha\nwindow=$hasWindow\n"
+      "port=1\ntoken=nothing\nbuildSha=$buildSha\n"
     )
     return pid.toString()
   }
@@ -495,8 +462,7 @@ class AgentCommandLineTest {
     vararg words: String,
     sessionName: String? = SESSION_NAME,
     pid: String? = null,
-    noWindow: Boolean = false,
-    openARun: ((noWindow: Boolean) -> Unit)? = null
+    openARun: (() -> Unit)? = null
   ): Int {
     val previousOut = System.out
     val previousErr = System.err
@@ -509,7 +475,6 @@ class AgentCommandLineTest {
         words = words.toList(),
         buildSha = BUILD_SHA,
         pid = pid,
-        noWindow = noWindow,
         sessionName = sessionName,
         openARun = openARun
       )

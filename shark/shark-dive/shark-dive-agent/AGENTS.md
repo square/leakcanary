@@ -23,11 +23,6 @@ handshake to answer, a session file field saying which way a line came in, and a
 screen meant for an investigation. The command line is what an agent reaches for without being configured at
 all, so that is what is left. See `notes/agent-surface.md` for what each of them cost.
 
-**A run with no window is not a second way in.** `--no-ui` is a run of the app with nothing drawing it, and
-it publishes the socket below exactly as a window's run does, so the call that reaches it is the same call —
-see `shark-dive-app`'s `HeadlessAgentHeapDumps`. What went with MCP was a headless mode with a transport of
-its own, not the case of having no screen.
-
 This file is scoped to `shark/shark-dive/shark-dive-agent/`. Its parent,
 `shark/shark-dive/AGENTS.md`, has the app-wide rules — the heap dump being read off the UI thread, a
 verdict being an argument to every read — and they all apply here. This one only records what is specific to
@@ -238,11 +233,10 @@ rules of its own. `notes/agent-surface.md` has what a call costs.
 
 **What it refuses without a run is only what could not have reached one**: a name no command in this build has —
 answered with the names it does have, since what happened is usually a tool renamed under an agent that had
-learned the old name — `--no-ui` on a command that starts no run, a session name that cannot be part of a file
-name, and a command of a named session with no `reason`. Keeping that list to four is what makes the surface one
-place: a fifth would be a rule to find out about twice. A `--cli` with no command name after it is not one of
-them: it prints the help on stdout and exits 0, because a program asked what it takes is being asked a question
-rather than making a mistake.
+learned the old name — a session name that cannot be part of a file name, and a command of a named session with
+no `reason`. Keeping that list to three is what makes the surface one place: a fourth would be a rule to find out
+about twice. A `--cli` with no command name after it is not one of them: it prints the help on stdout and exits
+0, because a program asked what it takes is being asked a question rather than making a mistake.
 
 **The `reason` is required of a named session and of nothing else**, which is a pair rather than two rules:
 `--session=` is what an agent passes and the `reason` is what makes that session readable afterwards, so
@@ -284,16 +278,15 @@ keeping stdout for the JSON still shows the sentence.
 
 ## The transport
 
-**A run publishes a loopback port, a token, the commit it was built from and whether it draws windows** to
-`~/.shark-dive/agents/<pid>.agent`, and a call is a process that reads that file, connects and sends one line.
+**A run publishes a loopback port, a token and the commit it was built from** to `~/.shark-dive/agents/<pid>.agent`,
+and a call is a process that reads that file, connects and sends one line.
 
 **A command expects exactly one run, and two is an error rather than a choice.**
 `AgentCommandLine.runToTalkTo` is the whole of it. The version before this picked the newest of them and
 said so on stderr, which made the heap dump a command was answered about depend on what else was open on the
-machine — so now two runs is a message naming each of them by pid and by whether it has windows, and
-`--debug-run=<pid>` is how to mean one. **It is not called `--agent-run`**: this surface is designed for
-agents and typed by people, and an option naming one of the two readers is an option the other one is
-entitled to think is not for them. What `--debug-` says instead is *when* it applies — two runs of Shark
+machine — so now two runs is a message naming each of them by pid, and `--debug-run=<pid>` is how to mean one.
+**It is not called `--agent-run`**: this surface is designed for agents and typed by people, and an option naming
+one of the two readers is an option the other one is entitled to think is not for them. What `--debug-` says instead is *when* it applies — two runs of Shark
 Dive at once is a run from source beside the installed one, or two builds being compared, which is somebody
 working on this app rather than somebody reading a heap dump with it. It is last in `--help` for the same
 reason, with `--debug-title-prefix`.
@@ -329,15 +322,6 @@ the one to check that rule against: it needs no heap dump either, and it starts 
 answers *is* what the run has open. So the rest are refused, naming the four. `--debug-run=<pid>` starts
 nothing whichever command it is on: that names a run, and starting a different one would answer about the
 wrong heap dump.
-
-**Whether a run draws windows is checked here, before connecting.** `--no-ui` is a property of the *run* —
-`cascadedPosition` asks `GraphicsEnvironment` for the screen, so a run on a machine that has none cannot start
-Compose at all — which means there is no opening one heap dump of a run with a window and another without. So
-`kindMatches` refuses a mismatch either way with the sentence saying which it is, and it does that **only for
-the two commands that open a dump**: `list_devices` and `list_processes` may start a run and open nothing, so
-which kind of run answers them is nothing about their answer. `--no-ui` is refused outright on every command
-that starts no run, each of which reads a dump that is open already — and a dump open with no window answers
-exactly as one open in a window does.
 
 **And the run this starts is left out of this process's process group**, which is `detached` in
 `shark.dive.app.DiveAgents`. A child already survives its parent exiting; what kills it is a signal aimed at a

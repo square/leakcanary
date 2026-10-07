@@ -68,9 +68,6 @@ fun main(args: Array<String>) {
   // to the point, installing no logging: stdout carries the answer, and a log line in the middle of it is
   // JSON whoever typed the command cannot parse. See [AgentCommandLine].
   cliExitCode(args)?.let { exitProcess(it) }
-  // And a run that answers agents with a window nowhere, which is this same app with nothing drawing it: a
-  // build server or a box over ssh has no screen for the rest of this function. See [headlessAgentExitCode].
-  headlessAgentExitCode(args)?.let { exitProcess(it) }
   // Read before any logging is installed, and failing rather than opening: a command line nobody can read is
   // a message to whoever typed it — one line on stderr, where they are watching — and not a crash to report.
   // It used to be read below, which put that message in the middle of this run's own diagnostics and ended
