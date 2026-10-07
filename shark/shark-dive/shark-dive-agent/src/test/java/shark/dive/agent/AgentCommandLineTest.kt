@@ -326,9 +326,9 @@ class AgentCommandLineTest {
     }
     // The three ways in, since every other command needs the key one of them answers with.
     assertThat(help).contains(OPEN_HEAP_DUMP).contains(LIST_HEAP_DUMPS).contains(DUMP_HEAP)
-    // And `reason` is said once rather than under each of nineteen commands, which would be a sixth of the
-    // help spent on the one argument every command takes.
-    assertThat(help).contains("takes `reason`")
+    // And `reason` is said once, in the agent instructions `--help` prints, rather than under each of nineteen
+    // commands, which would be a sixth of the list spent on the one argument every command takes.
+    assertThat(AgentCommandLine.agentInstructions()).contains("takes `reason`")
     assertThat(help.lines().filter { it.trim().startsWith("reason (") }).isEmpty()
   }
 

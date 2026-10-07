@@ -21,7 +21,7 @@ import shark.dive.objectIdOfHex
 internal class AgentTool(
   val name: String,
   /**
-   * One line, for the list of every command there is — `--help` — where the descriptions below would be
+   * One line, for the list of every command there is — `--cli --help` — where the descriptions below would be
    * several screens.
    *
    * Written rather than taken as the first sentence of [description], because the two are read at different

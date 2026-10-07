@@ -30,7 +30,8 @@ run open on `leak_asynctask_o.hprof` and no window:
 | | Measured | Paid |
 | --- | --- | --- |
 | One call, JVM start to JSON on stdout | 201 ms, median of twenty-four | Per call |
-| `--help`, the whole surface: every option and all nineteen commands, one line each | 5,889 characters, ≈1,472 tokens | Only when read |
+| `--help`, every option and how an agent works here | 3,371 characters, ≈843 tokens | Only when read |
+| `--cli --help`, all nineteen commands, one line each | 2,899 characters, ≈725 tokens | Only when read |
 | `--help <command>`, one of them in full | 885–3,200 characters, ≈221–800 tokens | Only when read |
 | `--leak-investigation-help`, the method for solving a leak | 11,855 characters, ≈2,964 tokens | Once per investigation |
 
@@ -38,13 +39,13 @@ So **the standing cost is nothing** — no server is running, no definitions are
 session that never reaches for a heap dump never pays for this surface at all.
 
 **And what the whole surface costs to read is now a third of what it was**, 5,889 characters against 17,923,
-because `--help` lists a one-line summary per command and `--help <command>` is where the full description and
-every argument are. That is the split worth keeping: the list is what an agent reads to find the command, the
-description is what it reads to call one, and the version that printed every description in the list was
-paying 4,480 tokens to answer "what is here". MCP's `tools/list` was 23,877 characters of the same thing, every
-turn. The largest single command is `set_verdict` at 3,200 characters — two justifications to explain, and
-`solvingLeakOf` to say what a verdict is in service of — and it is the one to watch, because the help for one
-command is worth being the short answer.
+because the list of commands is a one-line summary per command and `--help <command>` is where the full
+description and every argument are. That is the split worth keeping: the list is what an agent reads to find
+the command, the description is what it reads to call one, and the version that printed every description in
+the list was paying 4,480 tokens to answer "what is here". MCP's `tools/list` was 23,877 characters of the
+same thing, every turn. The largest single command is `set_verdict` at 3,200 characters — two justifications
+to explain, and `solvingLeakOf` to say what a verdict is in service of — and it is the one to watch, because
+the help for one command is worth being the short answer.
 
 **Part of every figure here is the invocation path**, since what the help prints is the command to type on
 this machine: the full help carries it four times and a single command's help once. The path measured from is
@@ -52,6 +53,13 @@ this machine: the full help carries it four times and a single command's help on
 to compare a future build against, and the pair that hasn't moved since `5eaa0d78a` except for the method.
 An installed `/Applications/Shark Dive.app/Contents/MacOS/Shark Dive` is 54, which works the full help out at
 5,370.
+
+**The two `--help` rows are newer than the rest**: they are the build that took the commands out of `--help`
+and put them behind `--cli --help`, measured from a launcher path of 200 characters printed twice in each. So
+`--help` itself is 2,971 characters and the list 2,499, or 3,079 and 2,607 from an installed app, and that
+pair replaces the 5,154 above as the one to compare a future build against. In lines, which is what decided
+the split, `--help` is 47 and the list 54, its last command on line 46. See the section on finding the surface
+for why lines.
 
 **The per-call figure is a JVM starting, so it moves with what else the machine is doing** rather than with
 anything in this module: three batches of eight here ranged 168 to 209 ms, and the same measurement at
@@ -61,10 +69,10 @@ anything in this module: three batches of eight here ranged 168 to 209 ms, and t
 commands at `df043f985`, measured from a path that wasn't recorded, which is most of why it isn't the number
 above. Measure again when the command count changes rather than scaling the old one.
 
-**`--cli` with nothing after it prints exactly that help**, byte for byte, exit 0 and nothing on stderr —
-`diff` says identical, and so do `-h` and `--help`. Which is the point: the one command line that is a
-question about this program rather than a call to a run of it reaches no run at all, opens nothing, and
-answers immediately.
+**`--cli` with nothing after it prints exactly the list**, the text `--cli --help` prints, byte for byte, exit
+0 and nothing on stderr — `diff` says identical, and says the same of `-h` against `--help`. Which is the
+point: the one command line that is a question about this program rather than a call to a run of it reaches
+no run at all, opens nothing, and answers immediately.
 
 **A call from a shell is not a slower call.** It reaches the same window over the loopback socket the run
 already publishes, so the heap dump is the one that was parsed and indexed once and the read queues on that
@@ -572,12 +580,12 @@ arguments in and JSON out, not a second copy of the rules:
   the run publishes and prints what came back. It refuses nothing a run could have answered: every refusal
   about a heap dump that it reports was thrown by a handler, and the three it makes itself are the ones no run
   was reached for — a name this build has no command for, an unusable session name, and a named session that
-  sent no `reason`. `--help` is generated from the registry, so a command cannot be on one and missing from the
-  other, and it is described through `NoHeapDumpToDescribe` — a heap dump whose every method
+  sent no `reason`. `--cli --help` is generated from the registry, so a command cannot be on one and missing
+  from the other, and it is described through `NoHeapDumpToDescribe` — a heap dump whose every method
   throws — which makes "printed, never called" hold rather than be a habit.
-- The skill — `.claude/skills/shark-dive/SKILL.md`. Prose, not generated, and it points at `--help` and
-  at the method rather than repeating either, since a list of commands in a file is a list
-  that goes stale. See the next section for why it is in `.claude/`.
+- The skill — `.claude/skills/shark-dive/SKILL.md`. Prose, not generated, and it points at `--help`,
+  `--cli --help` and the method rather than repeating any of them, since a list of commands in a file is a
+  list that goes stale. See the next section for why it is in `.claude/`.
 
 `McpSession` was the second adapter and is gone, along with `AgentStdioBridge` and `AgentStdioServer`. What
 that removed, beyond the tokens above: a JSON-RPC envelope to keep on the right side of, a `tools/list` schema
@@ -642,10 +650,25 @@ smaller dead ends are covered by the same text: `--cli` with nothing after it pr
 identical, byte for byte), a `--cli` given a name no command answers to lists every command in the build, and
 `-h` is the same again.
 
+**Then the commands moved out again, to `--cli --help`.** An agent was seen reading the help the way agents
+read the help of a program they don't know, `--help 2>&1 | head -50`, and the help was 94 lines. The cut fell
+at `find_objects`, the tenth of nineteen commands, and took the agent instructions under the list with it,
+the line sending an agent to `--leak-investigation-help` included. What made `--agent-help` a dead end was
+that nothing in `--help` led to it. This `--help` names `--cli --help` twice: as a row of the option column,
+and as the first agent instruction, which also asks for the whole list to be read. So the help an agent types
+first is 47 lines and arrives whole, and the list is a read it asks for by name. `--cli` alone and
+`--cli <command> --help` follow the same split, printing the list and one command.
+
+**The instructions stayed in `--help`** instead of going with the list. They are rules for every call, so an
+agent needs them before its first one, and the list alone already ends on line 46: anything under it is where
+a `head -50` cuts. The two reads an agent has to make, `--cli --help` and `--leak-investigation-help`, are the
+first two lines of them for the same reason. `CliOptionsTest` holds `--help` to 50 lines.
+
 **And the help points at opening a heap dump, because that is the one thing nothing else can tell an agent.**
-The command list opens with `Start with open_heap_dump on the heap dump you were given`, and the two worked
-examples under it are that command and one call on what it hands back — since an agent that has read the whole
-list still has to find out that the answers name a dump by a key and that every other command takes that key.
+The command list opens by saying that every command on a heap dump takes a `heapDumpKey` and which three
+commands hand one back, and the two worked examples under it are `open_heap_dump` and one call on what it
+hands back — since an agent that has read the whole list still has to find out that the answers name a dump by
+a key and that every other command takes that key.
 
 Progressive disclosure is why a skill is the right home for the *pointer* and an option is the right home for
 the *method*: ~80 tokens of name and description at rest, the body loaded only for a session actually holding a
