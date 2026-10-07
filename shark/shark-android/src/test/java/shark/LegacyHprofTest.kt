@@ -44,6 +44,8 @@ class LegacyHprofTest {
         // Build.VERSION.SECURITY_PATCH was added in API 23.
         "Build.VERSION.SECURITY_PATCH" to "Unknown",
         "LeakCanary version" to "Unknown",
+        // ApplicationInfo.versionCode was added in API 21.
+        "ApplicationInfo.versionCode" to "Unknown",
         "ApplicationInfo.sourceDir" to "/data/app/com.example.leakcanary-2.apk",
         "ApplicationInfo.dataDir" to "/data/data/com.example.leakcanary",
         "ApplicationInfo.targetSdkVersion" to "21",
@@ -74,6 +76,13 @@ class LegacyHprofTest {
   @Test fun gcRootReferencesUnknownObject() {
     val analysis = analyzeHprof("gcroot_unknown_object.hprof")
 
+    assertThat(analysis.metadata).containsAllEntriesOf(
+      mapOf(
+        "Build.VERSION.SDK_INT" to "26",
+        "App process name" to "com.jumio.qa",
+        "ApplicationInfo.versionCode" to "1564579130"
+      )
+    )
     assertThat(analysis.applicationLeaks).hasSize(2)
     assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(5018520)
   }

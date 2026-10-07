@@ -250,20 +250,22 @@ internal class AgentTools(
     summary = "Which Android version and which app this is, and what the heap is made of.",
     description = "What the heap dump says about itself, which is the map LeakCanary prints above a leak " +
       "trace: the API level, release, security patch and fingerprint of the OS, the manufacturer and the " +
-      "model of the device, the name of the app's process, where its APK and its data directory are, its " +
-      "target and minimum SDK versions and whether it is debuggable, the version of LeakCanary that wrote " +
-      "the dump, how many classes, instances and arrays are in it, how many threads, how many bytes, how " +
-      "many bitmaps and how many of those are bigger than the screen, and the SQLite databases the app has " +
-      "open. Call it once before reading any code, because it is where which Android version and which " +
-      "app come from. `Build.VERSION.SDK_INT` is the AOSP release to read the framework at, and " +
-      "`ApplicationInfo.targetSdkVersion` is which of that release's compatibility paths the app is on. " +
-      "`App process name` is the app's package, so the repository and the APK to look for; it is " +
-      "`ApplicationInfo.processName`, which is the package unless the app declares an `android:process`. " +
-      "`ApplicationInfo.sourceDir` is where that APK is on the device the dump came from, to pull and " +
+      "model of the device, the name of the app's process and its version code, where its APK and its " +
+      "data directory are, its target and minimum SDK versions and whether it is debuggable, the version " +
+      "of LeakCanary that wrote the dump, how many classes, instances and arrays are in it, how many " +
+      "threads, how many bytes, how many bitmaps and how many of those are bigger than the screen, and the " +
+      "SQLite databases the app has open. Call it once before reading any code, because it is where which " +
+      "Android version and which app come from. `Build.VERSION.SDK_INT` is the AOSP release to read the " +
+      "framework at, and `ApplicationInfo.targetSdkVersion` is which of that release's compatibility " +
+      "paths the app is on. `App process name` is the app's package, so the repository and the APK to look " +
+      "for; it is `ApplicationInfo.processName`, which is the package unless the app declares an " +
+      "`android:process`. `ApplicationInfo.versionCode` is which build of the app this is, and `Unknown` " +
+      "below API 21. The version name is not in this map and a local build often leaves the code at " +
+      "`1`, so ask whoever gave you this dump which release it is when the code doesn't say. " +
+      "`ApplicationInfo.sourceDir` is where the APK is on the device the dump came from, to pull and " +
       "decompile when there is no source to read. ${AgentCommandLine.LEAK_METHOD_OPTION} has the rest of " +
-      "how to pick a version to read at. The app's own version number is in no heap dump, so ask whoever " +
-      "gave you this one for it. Refused for a dump that is not an Android one, every line of this being " +
-      "read off the Android framework. One pass over every object, so ask once.",
+      "how to pick a version to read at. Refused for a dump that is not an Android one, every line of this " +
+      "being read off the Android framework. One pass over every object, so ask once.",
     schema = schema(HEAP_DUMP_KEY to heapDumpArgument())
   ) { arguments ->
     val dump = arguments.heapDump()
