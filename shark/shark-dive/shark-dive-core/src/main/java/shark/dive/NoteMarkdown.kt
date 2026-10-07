@@ -115,6 +115,20 @@ fun unwrappedMarkdown(text: String): String {
   return unwrapped.joinToString("\n")
 }
 
+/**
+ * [text] with each markdown link written as the text it shows: `[Owner.kt:42](idea://open?file=…&line=42)`
+ * becomes `Owner.kt:42`.
+ *
+ * For text headed somewhere nothing renders markdown, where a link is printed as its whole target. A
+ * verdict's `why` links every line of source behind it, so a leak trace carrying a few of them is mostly
+ * absolute paths. What is left is what the window draws for the link, the same reading [noteBlocksOf] gives
+ * it: a link with no text is its target, and a link inside backticks is code and stays as it was typed.
+ */
+fun markdownLinksAsText(text: String): String =
+  CODE_OR_LINK_TOKEN.replace(text) { token ->
+    if (token.groups[LINK_GROUP] == null) token.value else markdownLinkText(token.value)
+  }
+
 /** Whether this line is prose, rather than one of the shapes [blockOf] reads as a block in its own right. */
 private fun isProse(line: String): Boolean =
   !RULE.matches(line) && !HEADING.matches(line) && !QUOTE.matches(line) && !ITEM.matches(line)
@@ -199,8 +213,7 @@ private fun markdownLinkSpan(
   token: String,
   styles: Set<NoteStyle>
 ): NoteSpan {
-  val target = token.substringAfterLast("](").removeSuffix(")")
-  val text = token.removePrefix("[").substringBeforeLast("](")
+  val target = markdownLinkTarget(token)
   val link = when {
     DeepLink.looksLikeOne(target) -> deepLinkOrNull(target)?.let { NoteLink.Deep(it) }
     isUrl(target) -> NoteLink.External(target)
@@ -208,8 +221,14 @@ private fun markdownLinkSpan(
     // line, is nothing a note can know. `idea://open?file=…` says both.
     else -> null
   }
-  return NoteSpan(text = text.ifEmpty { target }, styles = styles, link = link)
+  return NoteSpan(text = markdownLinkText(token), styles = styles, link = link)
 }
+
+private fun markdownLinkTarget(token: String): String = token.substringAfterLast("](").removeSuffix(")")
+
+/** What a `[text](target)` link is drawn as: its text, or its target when it has none. */
+private fun markdownLinkText(token: String): String =
+  token.removePrefix("[").substringBeforeLast("](").ifEmpty { markdownLinkTarget(token) }
 
 /** A URL written out on its own, which is what pasting one does. */
 private fun urlSpan(
@@ -408,6 +427,9 @@ private const val URL_GROUP = "url"
 private const val BOLD_GROUP = "bold"
 private const val ITALIC_GROUP = "italic"
 
+private const val CODE_TOKEN = """(?<$CODE_GROUP>`[^`\n]+`)"""
+private const val LINK_TOKEN = """(?<$LINK_GROUP>\[[^\]\n]*\]\([^)\s]+\))"""
+
 /**
  * What markdown spells inline, in the order it is looked for: whichever starts earliest in the line wins,
  * and at one place in the line the first of these does.
@@ -418,8 +440,8 @@ private const val ITALIC_GROUP = "italic"
  */
 private val INLINE_TOKEN = Regex(
   listOf(
-    """(?<$CODE_GROUP>`[^`\n]+`)""",
-    """(?<$LINK_GROUP>\[[^\]\n]*\]\([^)\s]+\))""",
+    CODE_TOKEN,
+    LINK_TOKEN,
     // Trailing punctuation is left out, so that a link at the end of a sentence isn't a link to the
     // sentence: `[^…]*` gives back whatever it has to for the last character to be part of the URL.
     """(?<$URL_GROUP>(?:https?|${DeepLink.SCHEME})://[^\s<>()\[\]"'`]*[^\s<>()\[\]"'`.,;:!?])""",
@@ -427,6 +449,9 @@ private val INLINE_TOKEN = Regex(
     """(?<$ITALIC_GROUP>\*\S(?:[^*]*\S)?\*|(?<!\w)_\S(?:[^_]*\S)?_(?!\w))"""
   ).joinToString("|")
 )
+
+/** The two of [INLINE_TOKEN] that [markdownLinksAsText] reads, in the same order and for the same reason. */
+private val CODE_OR_LINK_TOKEN = Regex("$CODE_TOKEN|$LINK_TOKEN")
 
 private const val OBJECT_ID_GROUP = "objectId"
 

@@ -143,6 +143,21 @@ class NoteTest {
       .isEqualTo(NoteSpan(text = "Owner.kt"))
   }
 
+  /** For text printed where nothing renders markdown, which is what is left of a link once it can't be one. */
+  @Test fun `a markdown link printed as text is what it says`() {
+    val url = "idea://open?file=/Users/someone/app/src/main/java/com/example/Owner.kt&line=42"
+
+    assertThat(markdownLinksAsText("Cleared in [Owner.kt:42]($url), see [](https://example.com/leaks)"))
+      .isEqualTo("Cleared in Owner.kt:42, see https://example.com/leaks")
+  }
+
+  /** Code in a note is drawn as typed, and so is it printed. */
+  @Test fun `a markdown link in backticks printed as text stays as it was typed`() {
+    val code = "`[Owner.kt:42](idea://open?file=/app/Owner.kt&line=42)`"
+
+    assertThat(markdownLinksAsText("Write $code")).isEqualTo("Write $code")
+  }
+
   @Test fun `emphasis is what markdown spells it as`() {
     assertThat(spansOf("**held** and *not held* and `mAttachInfo`")).containsExactly(
       NoteSpan(text = "held", styles = setOf(NoteStyle.BOLD)),

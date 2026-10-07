@@ -599,6 +599,30 @@ class AgentToolsTest {
   }
 
   /**
+   * A `why` links its sources, and the leak trace prints the `why` beside the object. The text form goes in
+   * front of a person, where nothing renders a link, so the link is its text there and the target is only in
+   * the fields. See [AgentJson.humanLeakTrace].
+   */
+  @Test
+  fun `the leak trace prints a link in a why as its text`() {
+    val link = "idea://open?file=/Users/someone/app/src/main/java/com/example/Holder.kt&line=12"
+    val answer = call(
+      SET_VERDICT,
+      OBJECT to hex(heapDump.holderObjectId),
+      "verdict" to Verdict.EXPECTED.name,
+      SOLVING_LEAK_OF to hex(heapDump.activityObjectId),
+      WHY to "Holder.INSTANCE is a static singleton, assigned once in [Holder.kt:12]($link)."
+    )
+
+    assertThat(answer.text(HUMAN_LEAK_TRACE))
+      .contains("assigned once in Holder.kt:12.")
+      .doesNotContain("idea://")
+    val holder = answer.obj(LEAK_TRACE).array("path").map { it.jsonObject }
+      .single { it.text("object") == hex(heapDump.holderObjectId) }
+    assertThat(holder.text("verdictReason")).contains("[Holder.kt:12]($link)")
+  }
+
+  /**
    * The GC root is a reference too, the one holding the first object of the path, so a stuck object a root
    * holds directly is a leak of that root. Nothing is above a root to be expected, and nothing needs to be.
    * See [shark.dive.isGcRootFaulty].

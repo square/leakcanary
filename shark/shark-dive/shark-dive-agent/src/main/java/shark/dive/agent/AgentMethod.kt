@@ -115,8 +115,8 @@ internal object AgentMethod {
        labels, any verdict automatically or manually set, and the reference it holds the next object through;
        a reference marked `isSuspect` is one the leak could still be, and `investigation` says how many of
        those are left. The command returns a JSON `leakTrace` path useful for you, and a `humanLeakTrace`
-       which can be displayed to a human. Never communicate back a made up leak trace, always copy it
-       character for character.
+       which can be shown to a person, as is. Never communicate back a transformed or shortened leak trace:
+       always copy it character for character, with no ellipsis, even if it's large.
     3. Work inwards from both ends. Top down: which of these objects is likely meant to be here, a running
        thread, a live activity, the application itself? Bottom up: which is likely done with? Read the source
        code, make a hypothesis about the verdict for an object and figure out how you could confirm that from
@@ -132,8 +132,9 @@ internal object AgentMethod {
     4. Once `leakSolved` is true, you've found the bad reference, now find out how it happened: what code
        assigns that field, what should have cleared it, and why didn't it? Add that context in your final
        reply as well as in `take_note` if it is worth leaving behind.
-    5. In your final reply, include a `shark://` link to the object you solved. Say how to reproduce the leak,
-       or say that you could not work that out.
+    5. In your final reply, paste the `humanLeakTrace` from the last answer that returned one, in a code
+       block, character for character, without any transformation or shortening. Then include a `shark://`
+       link to the object you solved. Say how to reproduce the leak, or say that you could not work that out.
 
     ## Rules you will be held to
 
