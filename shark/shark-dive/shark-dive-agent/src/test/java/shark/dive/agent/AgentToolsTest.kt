@@ -810,6 +810,34 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `what points at an object comes back with each reference and whether it holds the object`() {
+    val answer = call("referrers", OBJECT to hex(heapDump.activityObjectId))
+
+    assertThat(answer.text("referrerCount")).isEqualTo("1")
+    assertThat(answer.text("holdingReferrerCount")).isEqualTo("1")
+    assertThat(answer.text("isComplete")).isEqualTo("true")
+    assertThat(answer["gcRootType"]).isEqualTo(JsonNull)
+    val referrer = answer.array("referrers").single().jsonObject
+    assertThat(referrer.text("object")).isEqualTo(hex(heapDump.holderObjectId))
+    assertThat(referrer.text("className")).isEqualTo(HOLDER_CLASS_NAME)
+    // A referrer is on no path, so nothing reaches it and none of its references can be a suspect.
+    assertThat(referrer.keys).doesNotContain("reference")
+    val reference = referrer.array("references").single().jsonObject
+    assertThat(reference.text("name")).isEqualTo(ACTIVITY_FIELD_NAME)
+    assertThat(reference.text("holds")).isEqualTo("true")
+    assertThat(reference.keys).doesNotContain("isSuspect")
+  }
+
+  @Test
+  fun `an object only a gc root holds has no referrers and names the root`() {
+    val answer = call("referrers", OBJECT to hex(heapDump.applicationObjectId))
+
+    assertThat(answer.array("referrers")).isEmpty()
+    assertThat(answer.text("referrerCount")).isEqualTo("0")
+    assertThat(answer.text("gcRootType")).isEqualTo(LeakTrace.GcRootType.JNI_GLOBAL.name)
+  }
+
+  @Test
   fun `finding objects counts every match rather than the rows it showed`() {
     val capped = call("find_objects", "className" to "com.example", "limit" to "1")
 

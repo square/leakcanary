@@ -78,6 +78,7 @@ internal class AgentTools(
     describeObject(),
     pathFromGcRoots(),
     waysHeld(),
+    referrers(),
     findObjects(),
     dominatorTree(),
     setVerdict(),
@@ -399,12 +400,13 @@ internal class AgentTools(
   }
 
   private fun waysHeld() = AgentTool(
-    name = "ways_held",
+    name = WAYS_HELD,
     summary = "Every way an object is held, rather than the one path.",
     description = "Every way an object is held, rather than the one path. It answers \"is that reference " +
       "really the only thing keeping it in memory?\", which a single path cannot, and which decides " +
       "whether clearing a field would free anything. Give `from` to ask only about the ways between that " +
-      "object and this one.",
+      "object and this one. `$REFERRERS` is the single step up: every object pointing at it, through " +
+      "every reference.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object being held."),
@@ -425,6 +427,36 @@ internal class AgentTools(
         tree.independentPathsBetween(fromObjectId, objectId, dump.verdicts)
       }
       AgentJson.independentPaths(paths)
+    }
+  }
+
+  private fun referrers() = AgentTool(
+    name = REFERRERS,
+    summary = "Every object pointing at an object, and each reference it points through.",
+    description = "Every object pointing at an object, and each reference it points through. This is one " +
+      "step up, where `$WAYS_HELD` walks to the GC roots and keeps only paths sharing no object. So two " +
+      "referrers held by one parent are one way there and two referrers here. `holds` is whether retained " +
+      "sizes and `$WAYS_HELD` count a reference as holding the object. It is false for a weak reference " +
+      "to an object held strongly. It is false too for a reference to an object its owner holds, such as " +
+      "a view held by its parent. Holders come first, then the largest retained size. `gcRootType` is " +
+      "set when a GC root holds the object as well.",
+    schema = schema(
+      HEAP_DUMP_KEY to heapDumpArgument(),
+      OBJECT to objectIdArgument("The object pointed at."),
+      LIMIT to integer(
+        "How many referrers to list, at most ${HeapDominatorTreemap.MAX_LISTED_OBJECTS}. The counts come " +
+          "back whole whatever this is."
+      ).optional()
+    )
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val objectId = arguments.objectId(OBJECT)
+    val limit = arguments.int(LIMIT, default = DEFAULT_LISTED_OBJECTS)
+      .coerceIn(1, HeapDominatorTreemap.MAX_LISTED_OBJECTS)
+    dump.read("what points at ${exactHexObjectId(objectId)}, for an agent") { dive ->
+      val tree = dive.tree
+      objectId.requireOneObjectOf(tree)
+      AgentJson.referrers(tree.referrersOf(objectId, limit, dump.verdicts))
     }
   }
 
@@ -1175,6 +1207,8 @@ private const val DESCRIBE_OBJECT = "describe_object"
 private const val FIND_OBJECTS = "find_objects"
 private const val DOMINATOR_TREE = "dominator_tree"
 private const val PATH_FROM_GC_ROOTS = "path_from_gc_roots"
+private const val WAYS_HELD = "ways_held"
+private const val REFERRERS = "referrers"
 private const val SET_VERDICT = "set_verdict"
 private const val READ_NOTES = "read_notes"
 private const val TAKE_NOTE = "take_note"

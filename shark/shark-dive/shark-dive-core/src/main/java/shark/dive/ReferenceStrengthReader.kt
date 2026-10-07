@@ -460,3 +460,29 @@ internal class WeakeningAwareReferenceReader(
     }
   }
 }
+
+/**
+ * Every reference [WeakeningAwareReferenceReader] weighs, before it drops any: the ones that retain and the
+ * ones that don't, whatever their target's strength and whoever owns it. So everything that reader reports,
+ * this reports too.
+ *
+ * What an object pointing at another *is*, as against what the dominator tree counts as holding it. A
+ * running activity is the case to think with: its window, its context wrappers and its views all point at
+ * it, and the tree follows none of them, because the activity thread owns it. Read by
+ * [HeapDominatorTreemap.referrersOf] alone, since a path through one of the references the other reader
+ * drops would explain a retention the tree doesn't show.
+ */
+internal class EveryReferenceReader(
+  private val strengthReader: ReferenceStrengthReader
+) : ReferenceReader<HeapObject> {
+
+  override fun read(source: HeapObject): Sequence<Reference> {
+    val retaining = strengthReader.retainingReferencesOf(source)
+    val weakening = strengthReader.weakeningReferencesOf(source)
+    return if (weakening.isEmpty()) {
+      retaining
+    } else {
+      retaining + weakening.asSequence().map { it.toReference() }
+    }
+  }
+}
