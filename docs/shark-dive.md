@@ -115,6 +115,14 @@ leaks with the same groups unfolded, the starred objects, the metadata. So "look
 than a paragraph of directions, which is also how a tool or an agent that has read your heap dump can point
 you straight at what it found.
 
+**A LeakCanary leak trace names its objects the same way.** Every object of one is labeled with its id in the
+heap dump, `Object id: 0x12d6c588`, and the heap dump is the `Heap dump file path` printed at the end of the
+analysis, so the object a leak trace names is one link away:
+
+```
+shark://2026-10-07_09-45-13_713.hprof/object?id=0x12d6c588
+```
+
 The part after `shark://` is **the heap dump**, and it is the whole of what a link says about which one,
 because every place a link can name belongs to the dump rather than to the window showing it. So a link goes
 on working: following one opens that place in a window that has the dump open, and opens the file in a new

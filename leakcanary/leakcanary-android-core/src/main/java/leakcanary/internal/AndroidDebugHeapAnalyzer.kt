@@ -183,7 +183,7 @@ internal object AndroidDebugHeapAnalyzer {
           leakingObjectFinder = config.leakingObjectFinder,
           referenceMatchers = config.referenceMatchers,
           computeRetainedHeapSize = config.computeRetainedHeapSize,
-          objectInspectors = config.objectInspectors,
+          objectInspectors = listOf(ObjectIdInspector) + config.objectInspectors,
           metadataExtractor = config.metadataExtractor
         )
         if (result is HeapAnalysisSuccess) {
