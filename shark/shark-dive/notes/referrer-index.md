@@ -154,8 +154,9 @@ the same question about the same referrer. The second index is built the first t
 | `unloaded_classes-stripped.hprof` | 2 014 654 | 2 429 281 | 612 ms |
 
 Bytes are `bytesHeld`, measured on eight of the ten dumps above: the two under `shark/shark/src/test/resources`
-were not run. The first call includes building the index, and every call after it took about 8 ms on
-`large-dump.hprof`. The two indexes differ by 5% or less on all but one dump, because most references hold
+were not run. The first call includes building the index. Every call after it took 36 to 44 ms on
+`large-dump.hprof` for the running `MainActivity`, as the run's log times it: all 951 referrers, and the JSON
+answering with them. The two indexes differ by 5% or less on all but one dump, because most references hold
 what they point at: 514 515 references against 565 047 on `large-dump.hprof`. The exception is
 `unloaded_classes-stripped.hprof`, at 21% more.
 
