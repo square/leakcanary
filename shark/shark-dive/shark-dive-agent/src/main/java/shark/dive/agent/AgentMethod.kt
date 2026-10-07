@@ -72,9 +72,9 @@ internal object AgentMethod {
     that consists of suspect references is called the suspect path.
 
     The ONLY way for you to solve a leak is to figure out and set verdicts for UNKNOWN objects using the
-    `set_verdict` command. As we just saw, verdicts spread: for a STUCK verdict, all objects further down in the
-    path are automatically marked as STUCK. For an EXPECTED verdict, all objects further up in the path are
-    automatically marked as EXPECTED.
+    `set_verdict` command. As we just saw, verdicts spread: for a STUCK verdict, all objects further down in
+    the path are automatically marked as STUCK. For an EXPECTED verdict, all objects further up in the path
+    are automatically marked as EXPECTED.
 
     ## Before investigating
 
@@ -94,8 +94,8 @@ internal object AgentMethod {
     An installed SDK has the framework sources under `sources/android-<SDK_INT>`, you can also find AOSP
     sources online. For the app dependencies, leverage the build file to find dependencies and their version,
     then check internal code search as well as GitHub for open source libraries. Nothing to read? Decompile.
-    The APK is at `sourceDir` on the device the dump came from, the dependencies are jars, and a decompiler
-    answers most of what a verdict needs.
+    The APK is at the metadata's `ApplicationInfo.sourceDir` on the device the dump came from, the
+    dependencies are jars, and a decompiler answers most of what a verdict needs.
 
     ## Investigation steps
 
