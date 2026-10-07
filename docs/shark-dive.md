@@ -174,6 +174,12 @@ this heap dump recognises becomes a way back into the window**:
 | `0x7f2a4b18` | `Cache instance (0x7f2a4b18)` | Opens that object in a new tab |
 | `shark://bug-4821.hprof/leaks` | `Leaks` | Follows the link, like clicking it anywhere else |
 | `https://github.com/square/leakcanary/issues/2841` | `square/leakcanary#2841` | Opens it in your browser |
+| `[Owner.kt:42](idea://open?file=/path/to/Owner.kt&line=42)` | `Owner.kt:42` | Opens the file at that line in Android Studio |
+
+On macOS a link of any other scheme opens in whichever app has that scheme, so
+`vscode://file/path/to/Owner.kt:42` opens VS Code instead. On Windows every link goes to your browser first,
+and Android Studio has no `idea://` there. Agents are told to link the source they read this way, with
+`idea://` unless you ask them for another editor.
 
 A name or an address this dump has nothing for is left exactly as you typed it: a class this heap dump has
 never heard of is a class you wrote about, not a broken link. Which is also how the notes stay readable

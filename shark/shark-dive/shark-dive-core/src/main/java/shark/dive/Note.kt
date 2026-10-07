@@ -165,8 +165,15 @@ enum class NoteStyle { BOLD, ITALIC, CODE }
 /** Where clicking a span of a note goes. */
 sealed interface NoteLink {
 
-  /** Out of the app, into whatever the machine calls a browser. */
-  data class Web(val url: String) : NoteLink
+  /**
+   * Out of the app, to whichever app the OS opens [url] with: a browser for `https://`, Android Studio for
+   * `idea://open?file=…&line=…`. The second is how a note links to a line of source on this machine.
+   *
+   * Any scheme rather than a list of them, because which scheme opens which editor is the reader's choice and
+   * the OS already knows it. The notes on this machine are written by the person at it and by the agents they
+   * started, so a link in one is no more to be wary of than a command they typed.
+   */
+  data class External(val url: String) : NoteLink
 
   /**
    * Into the window the link names, as if the OS had handed it over.

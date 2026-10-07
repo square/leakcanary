@@ -76,7 +76,7 @@ class NoteTest {
 
     assertThat(spans).containsExactly(
       NoteSpan("See "),
-      NoteSpan(text = "https://example.com/leaks", link = NoteLink.Web("https://example.com/leaks"))
+      NoteSpan(text = "https://example.com/leaks", link = NoteLink.External("https://example.com/leaks"))
     )
   }
 
@@ -90,7 +90,7 @@ class NoteTest {
     val url = "https://github.com/square/leakcanary/issues/2841"
 
     assertThat(spansOf(url).single())
-      .isEqualTo(NoteSpan(text = "square/leakcanary#2841", link = NoteLink.Web(url)))
+      .isEqualTo(NoteSpan(text = "square/leakcanary#2841", link = NoteLink.External(url)))
   }
 
   @Test fun `a link to a comment on an issue says it is one`() {
@@ -118,14 +118,29 @@ class NoteTest {
   @Test fun `anything else on github is left as it was typed`() {
     val url = "https://github.com/square/leakcanary/blob/main/docs/changelog.md"
 
-    assertThat(spansOf(url).single()).isEqualTo(NoteSpan(text = url, link = NoteLink.Web(url)))
+    assertThat(spansOf(url).single()).isEqualTo(NoteSpan(text = url, link = NoteLink.External(url)))
   }
 
   @Test fun `a markdown link is drawn as what it says`() {
     val spans = spansOf("[the leak](https://example.com/leaks)")
 
     assertThat(spans.single())
-      .isEqualTo(NoteSpan(text = "the leak", link = NoteLink.Web("https://example.com/leaks")))
+      .isEqualTo(NoteSpan(text = "the leak", link = NoteLink.External("https://example.com/leaks")))
+  }
+
+  /** Which is how a note links to a line of source on this machine. See [NoteLink.External]. */
+  @Test fun `a markdown link of any scheme is handed to the OS`() {
+    val url = "idea://open?file=/Users/someone/app/src/main/java/com/example/Owner.kt&line=42"
+
+    assertThat(spansOf("[Owner.kt:42]($url)").single())
+      .isEqualTo(NoteSpan(text = "Owner.kt:42", link = NoteLink.External(url)))
+  }
+
+  @Test fun `a markdown link to a path is text, since nothing says which app opens it`() {
+    assertThat(spansOf("[Owner.kt](/Users/someone/app/Owner.kt)").single())
+      .isEqualTo(NoteSpan(text = "Owner.kt"))
+    assertThat(spansOf("[Owner.kt](C:/app/Owner.kt)").single())
+      .isEqualTo(NoteSpan(text = "Owner.kt"))
   }
 
   @Test fun `emphasis is what markdown spells it as`() {
@@ -296,7 +311,7 @@ class NoteTest {
   @Test fun `a URL in wrapped prose leads to it`() {
     val links = Note.ofDocument(WRAPPED_DESCRIPTION).blocks.single().spans.mapNotNull { it.link }
 
-    assertThat(links).containsExactly(NoteLink.Web("https://issuetracker.google.com/issues/318303120"))
+    assertThat(links).containsExactly(NoteLink.External("https://issuetracker.google.com/issues/318303120"))
   }
 
   /** And read as a note it would be four blocks, three of them ending mid-sentence. */

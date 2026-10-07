@@ -1,5 +1,8 @@
 package shark.dive
 
+import java.net.URI
+import java.net.URISyntaxException
+
 /**
  * Reading the markdown of a note. The other half of [Note], kept apart because a parser reads as one thing
  * and a model as another.
@@ -200,8 +203,9 @@ private fun markdownLinkSpan(
   val text = token.removePrefix("[").substringBeforeLast("](")
   val link = when {
     DeepLink.looksLikeOne(target) -> deepLinkOrNull(target)?.let { NoteLink.Deep(it) }
-    WEB_SCHEMES.any { target.startsWith(it) } -> NoteLink.Web(target)
-    // Anything else — a relative path, a file, a scheme this app has no business opening — is text.
+    isUrl(target) -> NoteLink.External(target)
+    // A relative path or a bare file path is text: what it is relative to, or which app opens it at which
+    // line, is nothing a note can know. `idea://open?file=…` says both.
     else -> null
   }
   return NoteSpan(text = text.ifEmpty { target }, styles = styles, link = link)
@@ -218,7 +222,22 @@ private fun urlSpan(
     // left as typed rather than drawn as a link that goes nowhere.
     return if (deepLink == null) NoteSpan(text = url, styles = styles) else deepLinkSpan(deepLink, styles)
   }
-  return NoteSpan(text = shortWebText(url), styles = styles, link = NoteLink.Web(url))
+  return NoteSpan(text = shortWebText(url), styles = styles, link = NoteLink.External(url))
+}
+
+/**
+ * Whether [target] is a URL the OS can be handed, whatever its scheme.
+ *
+ * Parsed here rather than when it is clicked, so that a target that isn't one is drawn as text rather than
+ * as a link that does nothing. A scheme of one letter is a Windows drive, `C:\…`, which is a path.
+ */
+private fun isUrl(target: String): Boolean {
+  val uri = try {
+    URI(target)
+  } catch (notAUri: URISyntaxException) {
+    return false
+  }
+  return (uri.scheme?.length ?: 0) > 1
 }
 
 /**
@@ -372,8 +391,6 @@ private val COMMENT_FRAGMENT_PREFIXES =
   listOf("issuecomment", "discussion_r", "pullrequestreview", "discussion-")
 
 private const val SHORT_SHA_LENGTH = 7
-
-private val WEB_SCHEMES = listOf("https://", "http://")
 
 private const val HEX_PREFIX = "0x"
 private const val HEX_RADIX = 16

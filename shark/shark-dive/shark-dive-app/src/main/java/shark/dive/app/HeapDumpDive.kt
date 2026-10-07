@@ -157,8 +157,8 @@ internal fun HeapDumpDive(
    * sessions of their own rather than the ones under this machine's home directory.
    */
   agentSessions: () -> List<AgentSession> = ::agentSessions,
-  /** Overridden by tests, which have no browser. */
-  openUrl: (String) -> Unit = ::openInBrowser,
+  /** Overridden by tests, so that a link a test clicks opens nothing on the machine running it. */
+  openUrl: (String) -> Unit = ::openWithTheOs,
   /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
   copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
   modifier: Modifier = Modifier
@@ -746,8 +746,8 @@ internal fun HeapDumpDive(
   /** And for the view's right click menu, which is on whatever the pointer is on. */
   val copyHoveredLink: () -> Unit = { hovered?.place?.let { copyLink(it) } }
   /**
-   * Where a link written in the notes goes: out to a browser, into whichever window a `shark://` link
-   * names, or to an object of this heap dump.
+   * Where a link written in the notes goes: out to whichever app the OS opens it with, into whichever window
+   * a `shark://` link names, or to an object of this heap dump.
    *
    * An object opens a tab in front, like a button on the bar rather than like a row of a list: the notes
    * are what the reader is working from, and replacing them with the object they just linked to would take
@@ -756,7 +756,7 @@ internal fun HeapDumpDive(
    */
   val followNoteLink: (NoteLink) -> Unit = { link ->
     when (link) {
-      is NoteLink.Web -> openUrl(link.url)
+      is NoteLink.External -> openUrl(link.url)
       is NoteLink.Deep -> followDeepLink(link.deepLink)
       is NoteLink.Object -> openInNewTab(Place.Object(link.objectId))
     }
@@ -1268,8 +1268,8 @@ private fun ListPlace(
   onReplacePlace: (Place) -> Unit,
   onRemoveStar: (Long) -> Unit,
   /**
-   * And how prose is read: where a link in it goes (a browser, this heap dump, or another window) and what
-   * the names in a reason stand for. See [NoteReader].
+   * And how prose is read: where a link in it goes (out of the app, into this heap dump, or to another
+   * window) and what the names in a reason stand for. See [NoteReader].
    */
   noteReader: NoteReader,
   /** And where a `?` goes, which is the page of the reference on that label. See [Explain]. */

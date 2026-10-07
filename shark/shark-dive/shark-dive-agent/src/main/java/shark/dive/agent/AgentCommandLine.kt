@@ -205,6 +205,12 @@ object AgentCommandLine {
     |dump, with the verdicts and notes recorded on it, after this run has ended, so whoever reads your
     |answer can go and check it. `show` hands a link back for any object.
     |
+    |Link the sources behind what you write in a note or in a verdict's `why`. Both are markdown, and the
+    |window opens a link when it is clicked. A page on the web is its `https://` URL. A file on this machine
+    |is an `idea://` link, which opens it in Android Studio at that line:
+    |`[Owner.kt:42](idea://open?file=/absolute/path/to/Owner.kt&line=42)`. Write a space in the path as
+    |`%20`. If the user prefers another editor, use its URL scheme instead.
+    |
     |An answer that carries a path carries it twice. `leakTrace` is the path as fields for you to read, an
     |object at a time, and `humanLeakTrace` is the leak trace LeakCanary prints, which is the one to put in
     |front of a person — quote it exactly.

@@ -344,8 +344,8 @@ internal fun DiveApp(
   onLinkedHeapDumpChosen: (File?) -> Unit = {},
   /** Overridden by tests, which have no system clipboard and want to read what would have been copied. */
   copyToClipboard: (String) -> Unit = ::copyTextToClipboard,
-  /** Overridden by tests, which have no browser to open a link written in the notes in. */
-  openUrl: (String) -> Unit = ::openInBrowser,
+  /** Overridden by tests, so that a link a test clicks opens nothing on the machine running it. */
+  openUrl: (String) -> Unit = ::openWithTheOs,
   /** Overridden by tests, which have no display to put a file dialog on. */
   chooseHeapDumpFile: () -> File? = ::showHeapDumpFileDialog,
   /** Overridden by tests, which have no device to go back to and no `adb` to ask. */
@@ -536,7 +536,7 @@ private fun UpdateBar(updateNotice: UpdateNotice) {
         updateAvailableText(update.version, SharkDiveVersion.current),
         style = MaterialTheme.typography.bodyMedium
       )
-      TextButton(onClick = { openInBrowser(update.releaseUrl) }) {
+      TextButton(onClick = { openWithTheOs(update.releaseUrl) }) {
         Text(DOWNLOAD_UPDATE)
       }
       TextButton(onClick = { updateNotice.dismiss() }) {
