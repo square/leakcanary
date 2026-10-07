@@ -139,8 +139,9 @@ holds it as a last resort.
 
 So `referrersOf` reads a second `ReferrerIndex`, built over `EveryReferenceReader`, which is every reference
 the other reader weighs before it drops any. It marks each reference `holds` by asking the tree's reader
-the same question about the same referrer. The second index is built the first time anything asks
-`referrersOf`, and nothing the window draws does.
+the same question about the same referrer. Whether a referrer holds the object at all is whether the tree's
+index has it, so sorting the whole list for one page reads no object, and only the page's objects are read.
+The second index is built the first time anything asks `referrersOf`, and nothing the window draws does.
 
 | dump | tree's index | every reference | first call |
 | --- | --- | --- | --- |
@@ -154,11 +155,12 @@ the same question about the same referrer. The second index is built the first t
 | `unloaded_classes-stripped.hprof` | 2 014 654 | 2 429 281 | 612 ms |
 
 Bytes are `bytesHeld`, measured on eight of the ten dumps above: the two under `shark/shark/src/test/resources`
-were not run. The first call includes building the index. Every call after it took 36 to 44 ms on
-`large-dump.hprof` for the running `MainActivity`, as the run's log times it: all 951 referrers, and the JSON
-answering with them. The two indexes differ by 5% or less on all but one dump, because most references hold
-what they point at: 514 515 references against 565 047 on `large-dump.hprof`. The exception is
-`unloaded_classes-stripped.hprof`, at 21% more.
+were not run. The first call includes building the index. It builds the tree's index too when nothing has
+walked a path yet, as in a run with no window: 1 285 ms on `large-dump.hprof`. A page of 30 of the running
+`MainActivity`'s 951 referrers took 6 to 17 ms after it on `large-dump.hprof`, as the run's log times it,
+JSON included. A page of 500 took 38 ms. The two indexes differ by 5% or less on all but one dump, because
+most references hold what they point at: 514 515 references against 565 047 on `large-dump.hprof`. The
+exception is `unloaded_classes-stripped.hprof`, at 21% more.
 
 **One index carrying a bit per reference would hold about half what the two do.** It would also change what
 every walk up the referrers reads, including the one the pointer triggers on hover. Each walk would skip the

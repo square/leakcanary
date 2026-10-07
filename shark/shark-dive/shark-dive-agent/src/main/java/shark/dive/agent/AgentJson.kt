@@ -14,6 +14,7 @@ import kotlinx.serialization.json.putJsonObject
 import shark.dive.AndroidDevice
 import shark.dive.DeviceProcess
 import shark.dive.DominatorOutline
+import shark.dive.GcRootReferrer
 import shark.dive.HeapLeaks
 import shark.dive.HeapObjectSummary
 import shark.dive.HeapSizes
@@ -24,6 +25,7 @@ import shark.dive.ObjectContent
 import shark.dive.ObjectDominator
 import shark.dive.ObjectList
 import shark.dive.ObjectListEntry
+import shark.dive.ObjectReferrer
 import shark.dive.ObjectReferrers
 import shark.dive.PathReference
 import shark.dive.PathStep
@@ -370,32 +372,35 @@ internal object AgentJson {
   }
 
   /**
-   * Everything pointing at one object. It is the first step of what [independentPaths] walks to the GC
-   * roots, taken over every reference, where a path only takes the ones the dominator tree follows.
+   * Everything pointing at one object, a page at a time. It is the first step of what [independentPaths]
+   * walks to the GC roots, taken over every reference, where a path only takes the ones the dominator tree
+   * follows.
    *
-   * A referrer is a row of [objectList] with the references it points through. Every referrer is here,
-   * however many there are: an agent asking for the rest would have no way to get them.
+   * An object pointing at it is a row of [objectList] with the references it points through. A GC root on it
+   * is its type and whether it holds the object. The counts are of every referrer, whichever page this is.
    */
   fun referrers(referrers: ObjectReferrers): JsonObject = buildJsonObject {
-    put("referrerCount", referrers.referrers.size)
+    put("referrerCount", referrers.referrerCount)
     // So that "is this the only thing keeping it in memory?" is answered by a count. A running activity has
     // hundreds of objects pointing at it and one that holds it, and counting that off a list is error prone.
     put("holdingReferrerCount", referrers.holdingReferrerCount)
-    putJsonArray("gcRoots") {
-      referrers.gcRoots.forEach { gcRoot ->
-        addJsonObject {
-          put("gcRootType", gcRoot.gcRootType.name)
-          put("holds", gcRoot.holds)
-        }
-      }
-    }
+    // The offset to ask for next, so that going on is a number to hand back rather than one to work out.
+    put("nextOffset", referrers.nextOffset)
     putJsonArray("referrers") {
       referrers.referrers.forEach { referrer ->
         addJsonObject {
-          objectListEntryInto(referrer.entry)
-          putJsonArray("references") {
-            referrer.references.forEach { (reference, holds) ->
-              addJsonObject { referenceInto(reference) { put("holds", holds) } }
+          when (referrer) {
+            is GcRootReferrer -> {
+              put("gcRootType", referrer.gcRootType.name)
+              put("holds", referrer.holds)
+            }
+            is ObjectReferrer -> {
+              objectListEntryInto(referrer.entry)
+              putJsonArray("references") {
+                referrer.references.forEach { (reference, holds) ->
+                  addJsonObject { referenceInto(reference) { put("holds", holds) } }
+                }
+              }
             }
           }
         }

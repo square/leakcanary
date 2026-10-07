@@ -254,9 +254,9 @@ documented in that build's own environment-variable help — "How many character
 PowerShell command's output Claude receives inline (default 30000; values clamp to 4000-128000). Output past
 this is saved to a file", in the strings of `~/.local/share/claude/versions/2.1.280` — and was confirmed by
 printing 35,000 characters at a live session and reading what came back. So the number to keep an answer under
-is 30,000 characters, and every answer on this surface is under it except two. One is `agent_log session=…`,
-which is 33,035 and is in the next section. The other is `referrers` on an object dozens of others point at,
-in the section after it.
+is 30,000 characters, and every answer on this surface is under it except one: see the next section for
+`agent_log session=…`, which is 33,035. `referrers` given a large `limit` can be another, in the section after
+it.
 
 `AgentMethod` is split in two against that, and against a second thing the caps make plain: **a session
 should not pay for a method it isn't following.** Both halves are **reads rather than answers**, printed with no
@@ -404,19 +404,18 @@ reach for then is a way to ask for one call's exchange rather than a shorter ver
 truncates it here, deliberately: a session cut to fit is one where the answer that misled an agent is the part
 that got cut.
 
-## And what a list of every referrer costs
+## And what a page of referrers costs
 
-`referrers` answers with every object pointing at an object, and nothing cuts the list. A row is about 530
-characters as the command line prints it, so an object with more than about 55 referrers is past the
-30,000-character cap. Measured on `large-dump.hprof`: the running `MainActivity` has 951 referrers, and the
-answer is 505,393 characters. Compact JSON would be 263,706 of them; the rest is indentation. What a Claude
-Code session gets for that is the 2 KB preview and a path to read.
+`referrers` answers a page at a time: 30 referrers unless `limit` says otherwise, up to 500, and `nextOffset`
+says where the next page starts. A row is about 520 characters as the command line prints it. Measured on
+`large-dump.hprof`, the running `MainActivity` has 951 referrers, and its first page is 15,536 characters.
+The whole list in one answer was 505,394 characters, which Claude Code saved to a file behind a 2 KB
+preview. A page of 500 is 260,842, so a large `limit` lands past the cap again.
 
-**The answer is ordered for that preview.** `referrerCount`, `holdingReferrerCount` and `gcRoots` come before
-the list, and the referrers the object is held through come first in it. So the preview of that call carries
-both counts and `ActivityThread.activities`, the one reference holding the activity. The other 950 are in the
-file, for an agent that wants them. The first version capped the list at a limit an agent passed, and an
-agent that wanted the rest had no call that would hand them over.
+**The order is what makes the first page enough.** What holds the object comes first, a GC root ahead of an
+object, then the largest retained size. So the first page of that call carries `ActivityThread.activities`,
+the one reference holding the activity. Both counts are of the whole list on every page, so whether
+anything else holds it is answered without reading another page.
 
 ## The flow, end to end, traced
 

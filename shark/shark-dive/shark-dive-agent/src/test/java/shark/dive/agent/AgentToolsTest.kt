@@ -815,7 +815,7 @@ class AgentToolsTest {
 
     assertThat(answer.text("referrerCount")).isEqualTo("1")
     assertThat(answer.text("holdingReferrerCount")).isEqualTo("1")
-    assertThat(answer.array("gcRoots")).isEmpty()
+    assertThat(answer["nextOffset"]).isEqualTo(JsonNull)
     val referrer = answer.array("referrers").single().jsonObject
     assertThat(referrer.text("object")).isEqualTo(hex(heapDump.holderObjectId))
     assertThat(referrer.text("className")).isEqualTo(HOLDER_CLASS_NAME)
@@ -828,13 +828,23 @@ class AgentToolsTest {
   }
 
   @Test
-  fun `an object only a gc root holds has no referrers and lists the root`() {
+  fun `a gc root on an object is a referrer with its type in place of an object`() {
     val answer = call("referrers", OBJECT to hex(heapDump.applicationObjectId))
 
-    assertThat(answer.array("referrers")).isEmpty()
-    val gcRoot = answer.array("gcRoots").single().jsonObject
+    assertThat(answer.text("referrerCount")).isEqualTo("1")
+    assertThat(answer.text("holdingReferrerCount")).isEqualTo("1")
+    val gcRoot = answer.array("referrers").single().jsonObject
     assertThat(gcRoot.text("gcRootType")).isEqualTo(LeakTrace.GcRootType.JNI_GLOBAL.name)
     assertThat(gcRoot.text("holds")).isEqualTo("true")
+    assertThat(gcRoot.keys).doesNotContain("object", "references")
+  }
+
+  @Test
+  fun `a page of referrers past the last one is refused with how many there are`() {
+    assertThatThrownBy { call("referrers", OBJECT to hex(heapDump.activityObjectId), "offset" to "1") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("`offset` is 1")
+      .hasMessageContaining("has a `referrerCount` of 1")
   }
 
   @Test

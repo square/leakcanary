@@ -767,9 +767,11 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * Everything pointing at [objectId]: every object with a reference to it, each with every reference it
-   * points at the object through and whether the tree holds the object through that one, and every GC root
-   * on it. The objects it is held through come first, then the largest.
+   * Everything pointing at [objectId], [limit] of them from [offset] on: every object with a reference to it,
+   * each with every reference it points at the object through and whether the tree holds the object through
+   * that one, and every GC root on it. What holds the object comes first, a GC root ahead of an object, then
+   * the largest. So the first page says what keeps the object in memory, and the order is the same on every
+   * call, which is what makes the pages add up to the list.
    *
    * One step up, where [independentPathsFromRoots] walks to the roots. Two objects pointing at this one and
    * both held by a third are one path there, since the paths share no object in between, and they are two
@@ -784,33 +786,66 @@ class HeapDominatorTreemap internal constructor(
    * activity. See [ReferrerReference.holds].
    *
    * The first call for a heap dump builds that index, which is a pass over the whole dump. Every call after
-   * it reads the index, then each referrer's references to the object. Nothing here runs an inspector, so
-   * no verdict changes the answer.
+   * it sorts what the two indexes say about every referrer, then reads the objects of one page. Nothing here
+   * runs an inspector, so no verdict changes the answer.
    */
-  fun referrersOf(objectId: Long): ObjectReferrers {
+  fun referrersOf(
+    objectId: Long,
+    /** Where the page starts in the whole list. [ObjectReferrers.nextOffset] is the next one's. */
+    offset: Int = 0,
+    limit: Int = MAX_LISTED_OBJECTS
+  ): ObjectReferrers {
+    require(offset >= 0) { "A page of referrers starts at 0 or after it, and offset was $offset" }
+    require(limit >= 1) { "A page of referrers lists at least one, and limit was $limit" }
     val targetIndex = everyReferrerIndex.indexOf(objectId)
     if (objectId == root || targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
       SharkLog.d { "Nothing points at ${hexObjectId(objectId)}: it is no object of the heap dump" }
       return ObjectReferrers.NONE
     }
-    val referrers = mutableListOf<ObjectReferrer>()
-    everyReferrerIndex.forEachReferrer(targetIndex) { referrer, _ ->
-      referrers += referrerOf(everyReferrerIndex.objectIdAt(referrer), objectId)
+    val candidates = mutableListOf<ReferrerCandidate>()
+    graph.gcRoots.filter { it.id == objectId }.forEach { gcRoot ->
+      val referrer = GcRootReferrer(
+        gcRootType = LeakTrace.GcRootType.fromGcRoot(gcRoot),
+        holds = reachability.isHeldThrough(objectId, gcRoot.reachabilityStrength())
+      )
+      candidates += ReferrerCandidate(holds = referrer.holds, isGcRoot = true, retainedSize = 0L) { referrer }
     }
+    // The tree's index has an object pointing at this one exactly when one of its references holds it, so
+    // the sort reads no object. The page is all that gets read.
+    val holdingIndexes = MutableIntSet()
+    referrerIndex.forEachReferrer(targetIndex) { referrer, _ -> holdingIndexes += referrer }
+    everyReferrerIndex.forEachReferrer(targetIndex) { referrer, _ ->
+      val referrerId = everyReferrerIndex.objectIdAt(referrer)
+      candidates += ReferrerCandidate(
+        holds = referrer in holdingIndexes,
+        isGcRoot = false,
+        retainedSize = nodes[referrerId]?.retainedSize ?: 0L
+      ) { referrerOf(referrerId, objectId) }
+    }
+    val page = candidates
+      .sortedWith(
+        compareByDescending<ReferrerCandidate> { it.holds }
+          .thenByDescending { it.isGcRoot }
+          .thenByDescending { it.retainedSize }
+      )
+      .drop(offset)
+      .take(limit)
+      .map { it.read() }
     return ObjectReferrers(
-      referrers = referrers.sortedWith(
-        compareByDescending<ObjectReferrer> { it.holds }.thenByDescending { it.entry.retainedSize }
-      ),
-      gcRoots = graph.gcRoots
-        .filter { it.id == objectId }
-        .map { gcRoot ->
-          ReferrerGcRoot(
-            gcRootType = LeakTrace.GcRootType.fromGcRoot(gcRoot),
-            holds = reachability.isHeldThrough(objectId, gcRoot.reachabilityStrength())
-          )
-        }
+      referrers = page,
+      offset = offset,
+      referrerCount = candidates.size,
+      holdingReferrerCount = candidates.count { it.holds }
     )
   }
+
+  /** One referrer [referrersOf] found, with what it is sorted by, before an object is read into a row. */
+  private class ReferrerCandidate(
+    val holds: Boolean,
+    val isGcRoot: Boolean,
+    val retainedSize: Long,
+    val read: () -> Referrer
+  )
 
   private fun referrerOf(
     referrerId: Long,

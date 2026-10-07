@@ -151,7 +151,8 @@ class OwnerReferencesTest {
         "View.mContext (holds nothing)",
         "View.mContext (holds nothing)"
       )
-      assertThat(referrers.referrers.first().entry.className).isEqualTo("android.app.ActivityThread")
+      val firstReferrer = referrers.referrers.first() as ObjectReferrer
+      assertThat(firstReferrer.entry.className).isEqualTo("android.app.ActivityThread")
       assertThat(referrers.holdingReferrerCount).isEqualTo(1)
     }
   }
@@ -181,12 +182,18 @@ class OwnerReferencesTest {
     }
   }
 
-  /** Each reference pointing at the object, as its declaring class and name, and whether it holds it. */
+  /**
+   * Each reference pointing at the object, as its declaring class and name, or the type of a GC root on it,
+   * and whether it holds it.
+   */
   private fun ObjectReferrers.referenceLabels(): List<String> = referrers.flatMap { referrer ->
-    referrer.references.map { (reference, holds) ->
-      "${reference.ownerClassName}.${reference.name}" + if (holds) "" else " (holds nothing)"
+    when (referrer) {
+      is GcRootReferrer -> listOf(referrer.gcRootType.name to referrer.holds)
+      is ObjectReferrer -> referrer.references.map { (reference, holds) ->
+        "${reference.ownerClassName}.${reference.name}" to holds
+      }
     }
-  }
+  }.map { (label, holds) -> label + if (holds) "" else " (holds nothing)" }
 
   /**
    * A heap dump shaped like the view hierarchies of a running app: an `ActivityThread` running an activity
