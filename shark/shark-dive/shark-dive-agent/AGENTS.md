@@ -406,6 +406,12 @@ and `isSuspect` on each reference — and `humanLeakTrace` is `shark.LeakTrace.t
 LeakCanary prints. `path_from_gc_roots` and `set_verdict` answer with both, and nothing else answers with
 either.
 
+**One edit is made to those characters: a markdown link is reduced to its text**, `markdownLinksAsText`. A
+verdict's `why` is printed in the trace beside its object, and the help asks for every source behind a `why`
+as an `idea://` link with an absolute path in it. The text form goes into a code block in front of a person,
+where nothing renders a link, so each one was printed as its whole target: an absolute path on the machine the
+agent ran on. The links stay in `leakTrace`'s `verdictReason`, which is the form an agent reads.
+
 **Two names for two things, spelled in `AgentTools` rather than at each call site.** A `leakTrace` that is an
 object on one answer and a string on another is a field nobody can write code against, so the names are
 constants and the paragraph describing them is `LEAK_TRACE_PAIR`, written once. A description telling an agent

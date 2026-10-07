@@ -31,6 +31,7 @@ import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
 import shark.dive.isGcRootSuspect
 import shark.dive.leakTrace
+import shark.dive.markdownLinksAsText
 import shark.dive.suspectReferenceIndexes
 
 /**
@@ -589,9 +590,15 @@ internal object AgentJson {
    * Newlines and all, as a JSON string: `shark.LeakTrace.toString` is many lines, and what goes over the
    * wire is one `\n`-escaped string that any JSON reader hands back as the lines it was.
    *
+   * **With each markdown link reduced to its text**, by [markdownLinksAsText]. A verdict's `why` is in the
+   * trace beside the object it is about, and a `why` links the source behind it as
+   * `[Owner.kt:42](idea://open?file=/absolute/path/to/Owner.kt&line=42)`, which nothing renders in a code
+   * block. So a trace with a few verdicts in it was mostly absolute paths, copied character for character
+   * into the reply. The links are still in [leakTrace]'s `verdictReason`, for the agent to read.
+   *
    * Null for a path with no steps, which is nothing to render. See [shark.dive.leakTrace].
    */
-  fun humanLeakTrace(path: RootPath): String? = path.leakTrace()?.toString()
+  fun humanLeakTrace(path: RootPath): String? = path.leakTrace()?.toString()?.let(::markdownLinksAsText)
 
   /**
    * A ratio as every answer carries one: still 0 to 1, rounded to two decimals.
