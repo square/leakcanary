@@ -91,6 +91,9 @@ internal object AgentMethod {
       `targetSdkVersion` in the source you read went the way this number says, whatever `SDK_INT` is.
     - `App process name` is the app's package, so it is the repository, the `applicationId` and the APK to
       look for.
+    - `ApplicationInfo.versionCode` is which build of the app this is, so it is the release of the app's
+      own code to read. The version name isn't in the metadata, and a local build often leaves the code
+      at `1`. Ask which release it is when the code doesn't say.
 
     Finding sources:
 

@@ -117,6 +117,10 @@ object AndroidMetadataExtractor : MetadataExtractor {
     fun field(name: String) = appInfo?.get("android.content.pm.ApplicationInfo", name)?.value
 
     this["App process name"] = field("processName")?.readAsJavaString() ?: "Unknown"
+    // Hidden, and added in API 21. From API 28 it's only the low 32 bits of longVersionCode, which also
+    // carries the manifest's versionCodeMajor.
+    this["ApplicationInfo.versionCode"] =
+      (field("longVersionCode")?.asLong ?: field("versionCode")?.asInt?.toLong())?.toString() ?: "Unknown"
     this["ApplicationInfo.sourceDir"] = field("sourceDir")?.readAsJavaString() ?: "Unknown"
     this["ApplicationInfo.dataDir"] = field("dataDir")?.readAsJavaString() ?: "Unknown"
     this["ApplicationInfo.targetSdkVersion"] = field("targetSdkVersion")?.asInt?.toString() ?: "Unknown"

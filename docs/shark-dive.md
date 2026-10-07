@@ -383,9 +383,10 @@ agent already has a leak in hand: `list_leak_groups`'s own description, the answ
 is, not how it happened, and stopping there is the most common way an investigation fails — so the method
 sends an agent to the code, at the version this dump is of, and tells it how to work out which version that
 is: `android.os.Build$VERSION.SDK_INT` for the framework, the app's `ApplicationInfo` for its package, its
-APK path and its target SDK, the build file or the APK for a library's version, and a decompiler when there
-is no source to read. What it can't work out — the app's own version number is usually absent, since
-`BuildConfig` constants never reach the heap — it is told to ask you for rather than guess.
+version code, its APK path and its target SDK, the build file or the APK for a library's version, and a
+decompiler when there is no source to read. What it can't work out — which release a version code is, since
+the version name is not in the metadata and a local build often leaves the code at `1` — it is told to ask
+you for rather than guess.
 
 **Everything the window can do, it can do** — there is no screen an agent can't reach and no button it can't
 press, because a surface with less than that is one whose answer is "ask your human to click something":

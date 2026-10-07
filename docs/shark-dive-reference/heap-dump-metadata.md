@@ -25,9 +25,11 @@ A few of them are worth knowing the shape of:
 - **`Db 1`, `Db 2` are the SQLite databases the app has open**, in the order they were found, each
   labelled `open` or `closed`.
 
-**The app's own version number is in no heap dump.** Nothing on this screen says which build of the app
-this is, so a chain read against the wrong source is a mistake no part of the dump will catch — ask
-whoever gave you the file.
+**`ApplicationInfo.versionCode` is which build of the app this is**, the version code it declared,
+from API 21 on. Its version name isn't part of `ApplicationInfo`, so it's only in a dump the app happened
+to keep a `PackageInfo` in or load its own `BuildConfig` into, and a local build often leaves the code at
+`1`. So when that number doesn't say which release to read the app's source at, ask whoever gave you the
+file — a chain read against the wrong source is a mistake no part of the dump will catch.
 
 **And none of this is here for a dump that isn't Android's.** Every line of it is read off the Android
 framework, starting with `android.os.Build`, so a JVM heap dump has an empty screen rather than a short
