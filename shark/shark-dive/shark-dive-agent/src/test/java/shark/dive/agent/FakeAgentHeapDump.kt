@@ -100,11 +100,11 @@ internal class FakeAgentHeapDump(
 
   override suspend fun notedPlaces(): List<Place> = notes.keys.toList()
 
-  override fun show(place: Place): ShownPlace {
+  override fun show(place: Place): String {
     shown += place
     // A window's answer, which is a link — built the way the window builds one, since a fake that spelled it
     // itself would be a test passing on a link nobody could follow.
-    return ShownPlace.at(DeepLink(File(heapDumpPath), place).toUri())
+    return DeepLink(File(heapDumpPath), place).toUri()
   }
 
   override fun close() {

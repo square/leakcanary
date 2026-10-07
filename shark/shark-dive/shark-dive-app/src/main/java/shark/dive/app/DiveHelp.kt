@@ -8,9 +8,9 @@ import shark.dive.agent.AgentCommandLine
  * command line.
  *
  * **The one place that names every half of it.** A run opens windows and answers commands, and the halves of
- * the command line are read in different places — [DiveArguments] takes the window's, [cliExitCode] and
- * [headlessAgentExitCode] the rest — so this is the only reader that has to know there is more than one. Which
- * is what makes it worth a declaration rather than a line in any of them.
+ * the command line are read in different places — [DiveArguments] takes the window's and [cliExitCode] the
+ * rest — so this is the only reader that has to know there is more than one. Which is what makes it worth a
+ * declaration rather than a line in either of them.
  *
  * **Both spellings, and that is not a nicety.** A program an agent has not been told about is one it types
  * `--help` at, and `-h` next. Neither was an option here, so both fell through to the parser and came back as
@@ -91,8 +91,7 @@ private fun help(command: String): String = """
  */
 private fun options(): String = (
   listOf(
-    "<heap dump>" to
-      "Opened as this starts, a window each unless ${AgentCommandLine.NO_UI_OPTION} says to draw none.",
+    "<heap dump>" to "Opened as this starts, a window each.",
     "${DeepLink.SCHEME}://<heap dump>/<place>" to
       "Goes to a place of a heap dump (a leak, an object, a tab) in whichever window has it open."
   ) + AgentCommandLine.cliOptions() + debugOptions()

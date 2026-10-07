@@ -15,9 +15,11 @@ this. The measurements below are what decided that the third one is the whole of
 are kept rather than deleted, because what it cost is the argument, and an argument whose numbers have been
 thrown away is a preference.
 
-**`--no-ui` is still here and is no longer a way in.** It is a run of this app with nothing drawing it,
-publishing the same socket a window's run publishes, so a call reaches it without knowing which kind of run it
-is. *So: one core, one adapter* has what that leaves to build.
+**`--no-ui` is gone as well.** It outlived MCP for a while as a run of this app with nothing drawing it,
+publishing the same socket a window's run publishes, and was then removed. A run for a machine with no screen is
+to come back in another form, probably a binary of its own. Some of the measurements below were taken against a
+`--no-ui` run and are kept, since what they measure is the call and not the window. *So: one core, one
+adapter* has what it was and what it took.
 
 ## What the command line costs
 
@@ -122,9 +124,10 @@ So there are three filters, in this order, and then either one run or a message:
   somebody typed deserves better than reading as no run at all.
 - **Then: one, none, or too many.** One is the call. None is either a run being started — see below — or a
   message saying so, with the `open_heap_dump` command line to type and the directory runs publish themselves
-  in. Too many is an error naming each of them by pid and by whether it draws windows, and `--debug-run=<pid>`
-  is how to mean one. Measured: `2 Shark Dive runs are open, so which heap dumps there are to read depends on
-  which of them you meant. Pass --debug-run=<pid> to say: 43049 (with no window), 42481 (with no window).`
+  in. Too many is an error naming each of them by pid, and `--debug-run=<pid>` is how to mean one. Measured
+  while runs still came in two kinds, which is what the parentheses said: `2 Shark Dive runs are open, so which
+  heap dumps there are to read depends on which of them you meant. Pass --debug-run=<pid> to say: 43049 (with
+  no window), 42481 (with no window).` It lists the pids alone now.
 
 **A reader deletes the file of a run that has ended, and of nothing else** — which is the correction the first
 filter needed, and it cost a run to find. A `--no-ui` run logged itself as published, the command line that had
@@ -152,7 +155,7 @@ answer to the two-runs refusal and still the wrong thing to meet first, which is
 `--debug-title-prefix` are the last two rows of `--help` rather than being mixed in with the surface.
 
 **Four commands start a run**, which is `STARTS_A_RUN` in
-`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt:577`: `open_heap_dump`,
+`shark/shark-dive/shark-dive-agent/src/main/java/shark/dive/agent/AgentCommandLine.kt:585`: `open_heap_dump`,
 `dump_heap`, `list_devices` and `list_processes`. "No run, so start one" narrowed, deliberately, and the rule it
 is narrowed by is **what each command's answer is about**. Those four answer the same in a run they just started
 as in the run somebody is working in — two of them hand back a heap dump they put there, and the other two ask
@@ -207,7 +210,7 @@ What the `open` route costs, and neither is a surprise once written down: it han
 free here because what waits for the run is the command line watching the directory runs publish themselves in,
 exactly as it would for a run somebody else started; and it gives the run **the root directory** to work in, so
 nothing on the command line it is handed can be a relative path. Which is free too, since `openAnotherRun`
-hands it no paths at all — a title and whether to draw windows, the heap dump being the command's own to open.
+hands it no paths at all — a title, the heap dump being the command's own to open.
 
 **The third cost is the bundle path itself, and it took a day to find.** `open -a` reads its argument as a
 path *or* as an application name, and which one it picks is not a flag: a path with a `.` segment left in it
@@ -413,7 +416,7 @@ keeps a trace out of the notes and logs of whoever is running it — see `sharkD
 
 The relay is worth describing, because **the two-runs rule is what makes one possible**. It reads the real
 run's file, listens on a port of its own, and writes a second `.agent` file naming that port with the same
-token, the same `buildSha` and the same `window=` — so it publishes itself as a run of this build. That
+token and the same `buildSha` — so it publishes itself as a run of this build. That
 makes two, which every command then refuses until one is named, and `--debug-run=<the relay's pid>` is how
 the trace was aimed through it. The file has to be called `<a live pid>.agent`, since
 `AgentServer.isRunning` deletes one named after a process that has gone.
@@ -427,7 +430,7 @@ window's own, which is `shark/shark-dive/shark-dive-app/src/main/java/shark/dive
 | --- | --- | --- | --- |
 | The window, `Main.kt` | The app: one per run, many windows | A heap dump on its command line | A window, and one `<pid>.agent` file |
 | `AgentServer.listen`, `AgentServer.kt:47` | A daemon thread of that process | A loopback connection | A thread per connection, with an `AgentConnection` on it |
-| `~/.shark-dive/agents/<pid>.agent` | A file, written as the run starts | — | `port=`, `token=`, `buildSha=`, `window=`, readable by its owner alone |
+| `~/.shark-dive/agents/<pid>.agent` | A file, written as the run starts | — | `port=`, `token=`, `buildSha=`, readable by its owner alone |
 | `AgentConnection.answer`, `AgentConnection.kt:40` | That thread | One line of JSON per call | One line back, and a line of the session file |
 | `AgentWire.kt` | Neither end's, which is the point | A call, or an answer | The two keys each of them is |
 | `AgentTools`, `AgentTools.kt:46` | Suspends onto the heap dump's own thread | A command name and its arguments | A `JsonObject`, or an `AgentRefusal` |
@@ -567,11 +570,10 @@ arguments in and JSON out, not a second copy of the rules:
 
 - `AgentCommandLine` — `--cli <command> name=value …`, which turns a command line into one call on the socket
   the run publishes and prints what came back. It refuses nothing a run could have answered: every refusal
-  about a heap dump that it reports was thrown by a handler, and the four it makes itself are the ones no run
-  was reached for — a name this build has no command for, `--no-ui` on a command that starts no run, an unusable
-  session name, and a named session that sent no `reason`. `--help` is generated from the
-  registry, so a command cannot be on one and
-  missing from the other, and it is described through `NoHeapDumpToDescribe` — a heap dump whose every method
+  about a heap dump that it reports was thrown by a handler, and the three it makes itself are the ones no run
+  was reached for — a name this build has no command for, an unusable session name, and a named session that
+  sent no `reason`. `--help` is generated from the registry, so a command cannot be on one and missing from the
+  other, and it is described through `NoHeapDumpToDescribe` — a heap dump whose every method
   throws — which makes "printed, never called" hold rather than be a habit.
 - The skill — `.claude/skills/shark-dive/SKILL.md`. Prose, not generated, and it points at `--help` and
   at the method rather than repeating either, since a list of commands in a file is a list
@@ -584,25 +586,16 @@ client-shaped row on a screen meant for an investigation, and the one case
 (`isTheCommandLineSayingHello`) that existed to undo the handshake's cost. **What it must never become again
 is two places that decide what a heap dump says about a leak.**
 
-**`--no-ui` stayed, rebuilt around the socket.** It is worth being explicit about because it was a capability
-rather than a transport, and the MCP version of it was a transport as well: the same tools served from the
-bridge process, no window, and no `<pid>.agent` file, so its only client was an MCP client and it could have
-had no other. What it is now is a run of the app that opens no window and **publishes the socket anyway**, so
-`--cli` reaches it exactly as it reaches a window and nothing on the calling side knows which it is talking
-to. One surface stays one surface, and a build server or a box over ssh is a machine this works on.
-
-**The one thing the calling side does know is which kind of run it is**, published as `window=true|false` and
-checked before connecting. Because whether anything is drawn is decided once, as a run starts — `--no-ui` is a
-run with nothing drawing it, and a run on a machine with no display cannot start Compose at all — so there is
-no mixed run to open one dump in a window of and another not. Which settles what `--no-ui` means on
-`open_heap_dump`: which kind of run to open the dump in, refused either way round if the run that is there is
-the other kind, and on no other command because a dump open with no window answers exactly as one in a window
-does.
-
-`HeadlessAgentHeapDumps` is the whole of the difference, and it is two answers and one refusal to answer:
-which dumps are open, what opening one means, and `show` handing back a link and saying it had nowhere to put
-a tab. Everything else — the notes, the verdicts, the sessions — is the same files a window reads, which is
-what makes an investigation over ssh today one a window opens tomorrow.
+**`--no-ui` outlived it, and then went too.** It was a capability more than a transport, and the MCP version
+of it was a transport as well: the same tools served from the bridge process, no window, and no `<pid>.agent`
+file, so its only client was an MCP client. It was rebuilt as a run of the app that opened no window and
+published the socket anyway, so `--cli` reached it exactly as it reached a window. That took a third property in
+the published file, `window=true|false`; a check before connecting that refused to open a dump in a run of the
+other kind; `HeadlessAgentHeapDumps`, holding the dumps a window would have held; and a `show` that answered
+with a link inside a refusal, having nowhere to put a tab. All of it was removed. A run for a machine with no
+screen is to come back in another form, probably a binary of its own. What it can build on is that the notes,
+the verdicts and the sessions were never on the screen: they are files a window reads, so a dump investigated
+with no window opens in one later with all of it there.
 
 ## Where the skill lives, and how an agent finds it
 

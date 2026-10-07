@@ -723,8 +723,7 @@ internal class AgentTools(
       "you are looking at is what the person at the machine is looking at. Use it when you reach something " +
       "that matters, not at every step. It answers with a `shark://` link to that place: put that link in " +
       "your reply to whoever asked you, because clicking it opens the place again, later, without you. " +
-      "`$PLACE` instead of `$OBJECT` shows a screen of this heap dump instead of one object. A run that " +
-      "has no window refuses this and puts the link in the refusal, since there is nobody to show it to.",
+      "`$PLACE` instead of `$OBJECT` shows a screen of this heap dump instead of one object.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object to show, which is what showing something usually is.").optional(),
@@ -733,18 +732,10 @@ internal class AgentTools(
   ) { arguments ->
     val dump = arguments.heapDump()
     val place = arguments.placeToShow()
-    val shown = dump.show(place)
-    val problem = shown.problem
-    // Refused rather than answered with `shown` false, because being seen is the whole of what this one tool
-    // does: an answer is a call that worked to whatever reads it, so an agent would go on to tell its human to
-    // look at a window that was never drawn on. Every other tool answers the same with no window; this is the
-    // one that can't, which is why the refusal carries the link rather than only the sentence.
-    if (problem != null) {
-      throw AgentRefusal(listOfNotNull(problem, shown.link?.let { "Link: $it" }).joinToString(" "))
-    }
+    val link = dump.show(place)
     buildJsonObject {
       put("shown", true)
-      put("link", shown.link)
+      put("link", link)
     }
   }
 

@@ -324,31 +324,6 @@ with its own session id in the name: what you did then reads as one row of the *
 somebody reviewing the agent's own logs can search that id and find the investigation beside them. Left off,
 the calls of one shell are gathered for you, which is the case a person is in.
 
-### And a case with no screen at all
-
-A build server, a heap dump on the far end of an ssh session, or something driving an agent with nobody
-watching. Open the dump in a run that draws nothing:
-
-```bash
-"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" --cli open_heap_dump --no-ui \
-  path=/var/dumps/bug-4821.hprof reason="No display on this machine"
-"/Applications/Shark Dive.app/Contents/MacOS/Shark Dive" \
-  --cli list_leak_groups heapDumpKey=bug-4821.hprof reason="Starting from what the dump says about itself"
-```
-
-That run draws no window and publishes itself exactly as a run with windows does — so every call after the
-first is the same call, and nothing has to be told which kind of run it is talking to. `--no-ui` goes with the
-commands that start a run and no other, because what it picks is the kind of run to start rather than anything
-about a dump that is already open; asking for the wrong kind is refused either way round rather than papered
-over.
-
-Everything works the same except `show`, which has nowhere to put a tab and is **refused** rather than
-answering that it showed you something — being seen is the whole of what that one command does. The refusal
-hands back the `shark://` link all the same, which names the heap dump: nobody saw the place, and the link
-opens it for the next reader on the machine the dump is on. Nothing else changes, because
-**notes and verdicts were never on the screen** — they are files beside the heap dump, so a dump investigated
-over ssh today opens in a window tomorrow with the verdicts and their reasons already on it.
-
 `--help` prints every option of the command line, the ones above included, and `--cli` with nothing after it
 prints exactly that — so a launcher typed with no idea what it takes answers with all of it and reaches for
 nothing.
