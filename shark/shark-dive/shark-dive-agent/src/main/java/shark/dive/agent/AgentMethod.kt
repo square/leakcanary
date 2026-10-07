@@ -86,6 +86,9 @@ internal object AgentMethod {
       build. Read AOSP at the tag for that build. `main` is years ahead of any device.
     - `Build.VERSION.CODENAME` is `REL` on a released build. Anything else is a preview of the next
       release, and its `SDK_INT` is still the API level of the one before.
+    - `ApplicationInfo.targetSdkVersion` is the API level the app targets. The framework keeps an old
+      behavior for an app that targets a release before the one that changed it, so a branch on
+      `targetSdkVersion` in the source you read went the way this number says, whatever `SDK_INT` is.
     - `App process name` is the app's package, so it is the repository, the `applicationId` and the APK to
       look for.
 

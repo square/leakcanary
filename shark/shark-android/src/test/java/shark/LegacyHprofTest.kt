@@ -43,7 +43,13 @@ class LegacyHprofTest {
         "Build.VERSION.CODENAME" to "REL",
         // Build.VERSION.SECURITY_PATCH was added in API 23.
         "Build.VERSION.SECURITY_PATCH" to "Unknown",
-        "LeakCanary version" to "Unknown"
+        "LeakCanary version" to "Unknown",
+        "ApplicationInfo.sourceDir" to "/data/app/com.example.leakcanary-2.apk",
+        "ApplicationInfo.dataDir" to "/data/data/com.example.leakcanary",
+        "ApplicationInfo.targetSdkVersion" to "21",
+        // ApplicationInfo.minSdkVersion was added in API 24.
+        "ApplicationInfo.minSdkVersion" to "Unknown",
+        "ApplicationInfo.FLAG_DEBUGGABLE" to "true"
       )
     )
     assertThat(analysis.allLeaks.sumBy { it.totalRetainedHeapByteSize!! }).isEqualTo(193431)
@@ -120,6 +126,17 @@ class LegacyHprofTest {
   @Test fun androidO() {
     val analysis = analyzeHprof("leak_asynctask_o.hprof")
 
+    assertThat(analysis.metadata).containsAllEntriesOf(
+      mapOf(
+        "Build.VERSION.SDK_INT" to "25",
+        "ApplicationInfo.sourceDir" to
+          "/data/app/com.example.leakcanary-o9IVO8X7vXNjszcZiXW85g==/base.apk",
+        "ApplicationInfo.dataDir" to "/data/user/0/com.example.leakcanary",
+        "ApplicationInfo.targetSdkVersion" to "25",
+        "ApplicationInfo.minSdkVersion" to "14",
+        "ApplicationInfo.FLAG_DEBUGGABLE" to "true"
+      )
+    )
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leak.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")
