@@ -8,6 +8,9 @@ import shark.HeapObject.HeapPrimitiveArray
 import shark.internal.friendly.mapNativeSizes
 
 object AndroidMetadataExtractor : MetadataExtractor {
+  /** A bit of `ApplicationInfo.flags`. */
+  private const val FLAG_DEBUGGABLE = 1 shl 1
+
   override fun extractMetadata(graph: HeapGraph): Map<String, String> {
     val metadata = mutableMapOf<String, String>()
 
@@ -23,7 +26,7 @@ object AndroidMetadataExtractor : MetadataExtractor {
     metadata["Build.MODEL"] = buildClass.readStaticString("MODEL")
     metadata["Build.FINGERPRINT"] = buildClass.readStaticString("FINGERPRINT")
     metadata["LeakCanary version"] = readLeakCanaryVersion(graph)
-    metadata["App process name"] = readProcessName(graph)
+    metadata.putApplicationInfo(graph)
     metadata["Class count"] = graph.classCount.toString()
     metadata["Instance count"] = graph.instanceCount.toString()
     metadata["Primitive array count"] = graph.primitiveArrayCount.toString()
@@ -102,7 +105,7 @@ object AndroidMetadataExtractor : MetadataExtractor {
     return versionHolderClass?.get("version")?.value?.readAsJavaString() ?: "Unknown"
   }
 
-  private fun readProcessName(graph: HeapGraph): String {
+  private fun MutableMap<String, String>.putApplicationInfo(graph: HeapGraph) {
     val activityThread = graph.findClassByName("android.app.ActivityThread")
       ?.get("sCurrentActivityThread")
       ?.valueAsInstance
@@ -111,9 +114,16 @@ object AndroidMetadataExtractor : MetadataExtractor {
     val appInfo = appBindData?.get("android.app.ActivityThread\$AppBindData", "appInfo")
       ?.valueAsInstance
 
-    return appInfo?.get(
-      "android.content.pm.ApplicationInfo", "processName"
-    )?.valueAsInstance?.readAsJavaString() ?: "Unknown"
+    fun field(name: String) = appInfo?.get("android.content.pm.ApplicationInfo", name)?.value
+
+    this["App process name"] = field("processName")?.readAsJavaString() ?: "Unknown"
+    this["ApplicationInfo.sourceDir"] = field("sourceDir")?.readAsJavaString() ?: "Unknown"
+    this["ApplicationInfo.dataDir"] = field("dataDir")?.readAsJavaString() ?: "Unknown"
+    this["ApplicationInfo.targetSdkVersion"] = field("targetSdkVersion")?.asInt?.toString() ?: "Unknown"
+    // Added in API 24.
+    this["ApplicationInfo.minSdkVersion"] = field("minSdkVersion")?.asInt?.toString() ?: "Unknown"
+    this["ApplicationInfo.FLAG_DEBUGGABLE"] = field("flags")?.asInt
+      ?.let { flags -> (flags and FLAG_DEBUGGABLE != 0).toString() } ?: "Unknown"
   }
 
   private fun MutableMap<String, String>.putDbLabels(graph: HeapGraph) {
