@@ -64,6 +64,8 @@ internal fun VerdictDetail(
   isRead: Boolean,
   /** What went wrong reading or writing them, which is the one thing this window can say about it. */
   problem: String?,
+  /** What the reason is read with, which makes the addresses and links in it lead somewhere. */
+  noteReader: NoteReader,
   onChange: () -> Unit,
   modifier: Modifier = Modifier
 ) {
@@ -112,8 +114,9 @@ internal fun VerdictDetail(
     // something holding it is, and only the reason says which. On its own line and whole, because this
     // panel is a column narrow enough that any of these would wrap anyway.
     objectVerdict.reason?.let { reason ->
-      Text(
-        reason,
+      ProseText(
+        text = reason,
+        reader = noteReader,
         style = MaterialTheme.typography.bodySmall,
         color = objectVerdict.verdict.textColor
       )
@@ -183,6 +186,8 @@ internal fun VerdictSetter(
   onClear: suspend () -> Unit,
   /** Where a verdict this one disagrees with leads: the object it is about, in a tab of its own. */
   onOpenObject: (Long) -> Unit,
+  /** What the reasons shown here are read with, the one being overruled and the ones disagreeing. */
+  noteReader: NoteReader,
   /** Where the `?` on what a disagreement is goes. See [Explain]. */
   onExplain: (Topic) -> Unit,
   /** Answered or abandoned, which is the same thing to whoever is holding this. */
@@ -249,6 +254,7 @@ internal fun VerdictSetter(
               objectVerdict = objectVerdict,
               chosen = setting.chosen,
               reason = setting.reason,
+              noteReader = noteReader,
               onChoose = { setting.chosen = it },
               onReason = { setting.reason = it }
             )
@@ -256,6 +262,7 @@ internal fun VerdictSetter(
             is SetStep.Conflicts -> Conflicts(
               requested = currentStep.requested,
               conflicts = currentStep.conflicts,
+              noteReader = noteReader,
               onOpenObject = onOpenObject,
               onExplain = onExplain
             )
@@ -347,15 +354,24 @@ private fun ChoosingVerdict(
   objectVerdict: ObjectVerdict,
   chosen: Verdict,
   reason: String,
+  noteReader: NoteReader,
   onChoose: (Verdict) -> Unit,
   onReason: (String) -> Unit
 ) {
   // What it is now and why, so that overruling it is done while reading it rather than from memory.
-  Text(
-    "$NOW_LABEL ${objectVerdict.verdict.text}${objectVerdict.reason?.let { " — $it" }.orEmpty()}",
-    style = MaterialTheme.typography.bodySmall,
-    color = objectVerdict.verdict.textColor
-  )
+  val now = "$NOW_LABEL ${objectVerdict.verdict.text}"
+  val nowReason = objectVerdict.reason
+  if (nowReason == null) {
+    Text(now, style = MaterialTheme.typography.bodySmall, color = objectVerdict.verdict.textColor)
+  } else {
+    ProseText(
+      text = nowReason,
+      reader = noteReader,
+      style = MaterialTheme.typography.bodySmall,
+      color = objectVerdict.verdict.textColor,
+      lead = "$now — "
+    )
+  }
   HorizontalDivider()
   Verdict.values().forEach { option ->
     Row(
@@ -402,6 +418,7 @@ private fun ChoosingVerdict(
 private fun Conflicts(
   requested: VerdictOverride,
   conflicts: List<VerdictConflict>,
+  noteReader: NoteReader,
   onOpenObject: (Long) -> Unit,
   onExplain: (Topic) -> Unit
 ) {
@@ -425,10 +442,12 @@ private fun Conflicts(
         fontWeight = FontWeight.Bold,
         color = LINK_COLOR
       )
-      Text(
-        "${conflict.existing.verdict.text}: ${conflict.existing.reason}",
+      ProseText(
+        text = conflict.existing.reason,
+        reader = noteReader,
         style = MaterialTheme.typography.bodySmall,
-        color = conflict.existing.verdict.textColor
+        color = conflict.existing.verdict.textColor,
+        lead = "${conflict.existing.verdict.text}: "
       )
       Text(
         "$CONFLICT_BECOMES ${conflict.solved.verdict.text}",

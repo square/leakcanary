@@ -16,6 +16,7 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performFirstLinkClick
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
@@ -391,6 +392,45 @@ class AgentLogsScreenTest {
     }
   }
 
+  /**
+   * An agent names what it is looking at by address, so the reason it gives is read the way a note is: the
+   * address is drawn as the object at it, and leads there. See [NoteReader].
+   */
+  @Test fun `an address in an agent's reason is drawn as the object at it, and leads there`() {
+    val other = heapDump.activityObjectIds.last()
+    diveUiTest {
+      openAgentLogs(listOf(session(calls = listOf(call(reason = "Is ${hex(other)} stuck the same way?")))))
+      onNodeWithText(SESSION_ID, substring = true).performClick()
+
+      val named = "Is ${otherActivityName(other)} stuck the same way?"
+      waitUntilAtLeastOneExists(hasText(named, substring = true), OPEN_TIMEOUT_MILLIS)
+      onNode(hasText(named, substring = true)).performFirstLinkClick()
+
+      // In a tab of its own, the way a link in a note opens one: the session is what is being read.
+      waitUntilAtLeastOneExists(hasText(hexObjectId(other), substring = true) and isTab(), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  /**
+   * And only against the heap dump the call was about. The same address in another dump is another object,
+   * so naming it after whatever this window has there would be naming the wrong object.
+   */
+  @Test fun `an address in the reason for a call about another heap dump is left as the agent wrote it`() {
+    val other = heapDump.activityObjectIds.last()
+    val reason = "Is ${hex(other)} stuck?"
+    diveUiTest {
+      openAgentLogs(
+        listOf(session(calls = listOf(call(reason = reason), call(heapDumpPath = DELETED_HEAP_DUMP, reason = reason))))
+      )
+      thisWindowsSession().performClick()
+
+      // The call about this dump names it, which is also this window having asked what the address is: the
+      // row below would have the same answer by now if it were asking too.
+      waitUntilAtLeastOneExists(hasText("Is ${otherActivityName(other)} stuck?", substring = true), OPEN_TIMEOUT_MILLIS)
+      onNode(hasText(reason, substring = true)).assertIsDisplayed()
+    }
+  }
+
   @Test fun `a window no agent has connected to says what would put something here`() {
     diveUiTest {
       openAgentLogs(emptyList())
@@ -442,13 +482,14 @@ class AgentLogsScreenTest {
     refusal: String? = null,
     error: String? = null,
     outcome: String? = null,
+    reason: String = REASON,
     // What the row reads as is built from these as well as from the tool — a verdict's own verb says which
     // verdict it was — so a test about a row has to be able to say what the call carried. See `verbOfTool`.
     arguments: Map<String, String> = mapOf("object" to hex(activityObjectId()))
   ) = AgentSessionCall(
     at = STARTED_AT,
     tool = tool,
-    reason = REASON,
+    reason = reason,
     heapDumpPath = heapDumpPath,
     place = Place.Object(activityObjectId()),
     arguments = arguments,
@@ -574,6 +615,10 @@ class AgentLogsScreenTest {
     "${LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.')} ${hexObjectId(activityObjectId())}"
 
   private fun hex(objectId: Long) = exactHexObjectId(objectId)
+
+  /** How a reason names an activity it mentions by address, which is how a note does. See `NoteSpan`. */
+  private fun otherActivityName(objectId: Long) =
+    "${LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.')} instance (${hexObjectId(objectId)})"
 
   /**
    * A button on the row of screens an open heap dump can be read through, as against the tab of the same

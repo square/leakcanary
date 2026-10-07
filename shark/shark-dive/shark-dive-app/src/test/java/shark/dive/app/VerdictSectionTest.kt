@@ -13,8 +13,10 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performFirstLinkClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
@@ -300,6 +302,47 @@ class VerdictSectionTest {
   }
 
   /**
+   * A reason is read the way a note is, because the object a verdict is about is usually explained by another
+   * one: the address it is named by is drawn as what is at it, and leads there. See [NoteReader].
+   */
+  @Test fun `an address in a reason is drawn as what is at it, and leads there`() {
+    diveUiTest {
+      openHeapDump { it.activityObjectId }
+      changeVerdict()
+
+      choose(Verdict.EXPECTED)
+      write("kept on purpose by ${hexObjectId(heapDump.holderObjectId)}")
+      set()
+
+      // In the panel and on the step of the path the activity is, which are the same reason drawn twice.
+      val named = "kept on purpose by $HOLDER_NAME (${hexObjectId(heapDump.holderObjectId)})"
+      waitUntilAtLeastOneExists(hasText(named, substring = true), SAVE_TIMEOUT_MILLIS)
+      onAllNodes(hasText(named, substring = true)).onFirst().performFirstLinkClick()
+
+      // A tab of its own, the way a link in a note opens one.
+      waitUntilAtLeastOneExists(tabOn(heapDump.holderObjectId), RENDER_TIMEOUT_MILLIS)
+    }
+  }
+
+  @Test fun `a link in a reason opens in a browser`() {
+    val opened = mutableListOf<String>()
+    diveUiTest {
+      openHeapDump(openUrl = { opened += it }) { it.activityObjectId }
+      changeVerdict()
+
+      choose(Verdict.EXPECTED)
+      write("kept on purpose, see $ISSUE_URL")
+      set()
+
+      // Shortened the way a note shortens it, since it is read the way a note is.
+      waitUntilAtLeastOneExists(hasText(SHORT_ISSUE, substring = true), SAVE_TIMEOUT_MILLIS)
+      onAllNodes(hasText(SHORT_ISSUE, substring = true)).onFirst().performFirstLinkClick()
+
+      assertThat(opened).containsExactly(ISSUE_URL)
+    }
+  }
+
+  /**
    * The other half of setting a verdict: the leaks are read through them, so the list changes rather than
    * only the colour of one object. See [shark.dive.HeapDominatorTreemap.findLeaks].
    */
@@ -326,6 +369,7 @@ class VerdictSectionTest {
    */
   private fun ComposeUiTest.openHeapDump(
     setAlready: () -> Unit = {},
+    openUrl: (String) -> Unit = {},
     objectId: (LeakyPathHeapDump) -> Long? = { null }
   ) {
     heapDump = testFolder.leakyPathHeapDump()
@@ -339,6 +383,8 @@ class VerdictSectionTest {
           // A directory of this test's, never `~/.shark-dive`: a test that saved into the real one would
           // rewrite the conclusions of whoever is running it.
           verdicts = DiveVerdicts(verdictsRoot),
+          // Never this machine's browser, which a link in a reason would otherwise open.
+          openUrl = openUrl,
           // Nothing here opens a second heap dump, and which window one would land in is
           // `DiveWindowTest`'s.
           onHeapDumpChosen = { _, _ -> },
@@ -463,6 +509,10 @@ class VerdictSectionTest {
 
     /** And what it was given as its reason, which the dialog has to show to be overruled. */
     private const val HOLDER_REASON = "this holder is the one to fix"
+
+    /** What a reason links to when it links out of the heap dump, and how it is drawn. */
+    private const val ISSUE_URL = "https://github.com/square/leakcanary/issues/2841"
+    private const val SHORT_ISSUE = "square/leakcanary#2841"
 
     /** The reason for the other verdict a run before this one set on the holder. */
     private const val HOLDER_EXPECTED_REASON = "this holder is the app's own cache"

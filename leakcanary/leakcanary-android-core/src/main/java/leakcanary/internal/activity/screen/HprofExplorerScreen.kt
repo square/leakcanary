@@ -167,7 +167,7 @@ internal class HprofExplorerScreen(
         .fieldsAsString()
       val className = instance.instanceClassName
       updateUi {
-        titleView.text = "Instance @${instance.objectId} of class $className"
+        titleView.text = "Instance @${hexObjectId(instance.objectId)} of class $className"
         listView.adapter = SimpleListAdapter(
           R.layout.leak_canary_simple_row, fields
         ) { view, position ->
@@ -309,3 +309,14 @@ internal class HprofExplorerScreen(
     }
   }
 }
+
+/**
+ * [objectId] in hex, the way shark writes an object id for someone to read: `0x12c0a6b8`. The
+ * same as the copy in `shark-graph`, which says why. This module can't see that one.
+ */
+private fun hexObjectId(objectId: Long): String {
+  val address = if (objectId < 0L) objectId and LOW_32_BITS else objectId
+  return "0x${address.toString(16)}"
+}
+
+private const val LOW_32_BITS = 0xffffffffL

@@ -12,6 +12,7 @@ import shark.ReferenceLocationType.ARRAY_ENTRY
 import shark.ReferenceLocationType.INSTANCE_FIELD
 import shark.ReferencePattern.Companion
 import shark.ReferencePattern.Companion.instanceField
+import shark.internal.hexObjectId
 
 enum class AndroidReferenceReaders : OptionalFactory {
 
@@ -369,7 +370,7 @@ enum class AndroidReferenceReaders : OptionalFactory {
     ): Long {
       return checkNotNull(asNonNullObjectId) {
         "${instance.instanceClassName}.$fieldName should never be a null reference, but is for" +
-          " the instance with object id ${instance.objectId}. Please report this at" +
+          " the instance with object id ${hexObjectId(instance.objectId)}. Please report this at" +
           " https://github.com/square/leakcanary/issues/new"
       }
     }

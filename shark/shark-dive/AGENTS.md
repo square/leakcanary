@@ -483,6 +483,19 @@ link.
 holding a link asks each of the others in turn rather than the second run handing its command line to the
 first and exiting.
 
+## `Desktop.browse` opens every URL in the browser, so links go through `openWithTheOs`
+
+On macOS and on Windows, AWT's browse hands any URL to the *default browser*, whatever its scheme, and returns
+as if it had worked. So an `idea://` link to a line of source never reaches Android Studio that way. Measured on
+Temurin 17.0.19 with a scheme registered to a test app: `/usr/bin/open` reached it, browse did not.
+`openWithTheOs` is the one way out of the app for a URL, and on macOS it is `open`. Don't call `Desktop.browse`
+anywhere else.
+
+**Trying it costs focus.** A link really opened goes to an app somebody is using, and brings it to the front,
+taking keystrokes meant for wherever they were typing. Prove the route with a scheme registered to a throwaway
+`osacompile` applet with `LSUIElement` set, whose `on open location` handler appends to a file. LaunchServices
+binds no URL scheme to an app under `/tmp`, so put it in `~/Applications` and `lsregister -u` it afterwards.
+
 ## A double clicked heap dump arrives three different ways, and on macOS at one run
 
 `.hprof` is declared this app's in the **build script**, `associateHeapDumpFiles()` on each

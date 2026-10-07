@@ -1,6 +1,8 @@
 package shark.dive.app
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
@@ -36,6 +38,7 @@ import shark.dive.LeakKind
 import shark.dive.Verdict
 import shark.dive.LeakSection
 import shark.dive.LeakingObject
+import shark.dive.NoteReferences
 import shark.dive.Place
 import shark.dive.ReachabilityStrength
 import shark.dive.ReferencePage
@@ -187,7 +190,9 @@ class LeaksScreenTest {
       // Rendered from leaks rather than read off a heap dump: what is being pinned is how the two ends of a
       // leak are named, and a dump whose leaks have the shape to show it is a dump built for it.
       setContent {
-        MaterialTheme { LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}, {}, {}) }
+        MaterialTheme {
+          LeaksScreen(TWO_ENDED_LEAKS, false, emptySet(), {}, { _, _ -> }, {}, {}, windowlessReader())
+        }
       }
 
       // Both ends and a gap for what is between them, then the leak whose two ends are one reference. Each
@@ -207,7 +212,9 @@ class LeaksScreenTest {
   @Test fun `a library leak's description is drawn in full`() {
     diveUiTest {
       setContent {
-        MaterialTheme { LeaksScreen(LIBRARY_LEAK, false, emptySet(), {}, { _, _ -> }, {}, {}, {}) }
+        MaterialTheme {
+          LeaksScreen(LIBRARY_LEAK, false, emptySet(), {}, { _, _ -> }, {}, {}, windowlessReader())
+        }
       }
 
       onNodeWithText(
@@ -224,7 +231,16 @@ class LeaksScreenTest {
       var explained: Topic? = null
       setContent {
         MaterialTheme {
-          LeaksScreen(LIBRARY_LEAK, false, emptySet(), {}, { _, _ -> }, {}, { explained = it }, {})
+          LeaksScreen(
+            LIBRARY_LEAK,
+            false,
+            emptySet(),
+            {},
+            { _, _ -> },
+            {},
+            { explained = it },
+            windowlessReader()
+          )
         }
       }
 
@@ -254,7 +270,7 @@ class LeaksScreenTest {
             { _, _ -> },
             {},
             { explained = it },
-            {}
+            windowlessReader()
           )
         }
       }
@@ -400,6 +416,11 @@ class LeaksScreenTest {
   /** And one of the boxes beside it that colour the map by how firmly an object is held. */
   private fun ComposeUiTest.strengthToggle(): SemanticsNodeInteraction =
     onNode(hasText(ReachabilityStrength.STRONG.label, substring = true) and isToggleable())
+
+  /** What a screen drawn on its own, outside any window, reads its prose with: nothing is asked or followed. */
+  @Composable
+  private fun windowlessReader() =
+    NoteReader(onLink = {}, scope = rememberCoroutineScope()) { NoteReferences.NONE }
 
   companion object {
     /** The two destroyed activities and the watched object of [leakyHeapDump]. */

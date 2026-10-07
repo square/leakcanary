@@ -174,6 +174,12 @@ this heap dump recognises becomes a way back into the window**:
 | `0x7f2a4b18` | `Cache instance (0x7f2a4b18)` | Opens that object in a new tab |
 | `shark://bug-4821.hprof/leaks` | `Leaks` | Follows the link, like clicking it anywhere else |
 | `https://github.com/square/leakcanary/issues/2841` | `square/leakcanary#2841` | Opens it in your browser |
+| `[Owner.kt:42](idea://open?file=/path/to/Owner.kt&line=42)` | `Owner.kt:42` | Opens the file at that line in Android Studio |
+
+On macOS a link of any other scheme opens in whichever app has that scheme, so
+`vscode://file/path/to/Owner.kt:42` opens VS Code instead. On Windows every link goes to your browser first,
+and Android Studio has no `idea://` there. Agents are told to link the source they read this way, with
+`idea://` unless you ask them for another editor.
 
 A name or an address this dump has nothing for is left exactly as you typed it: a class this heap dump has
 never heard of is a class you wrote about, not a broken link. Which is also how the notes stay readable
@@ -241,6 +247,10 @@ and the mark appears on the step that leaves.
   less. What you overruled is kept beside your reason rather than thrown away.
 * **It reads as yours**, wherever it appears: `set by hand — the cache is bounded, this is fine`, in the
   panel and on every path that runs through the object.
+* **It is read the way a note is.** Write `cleared too late by 0x7f2a4b18` and the panel says `cleared too
+  late by Cache instance (0x7f2a4b18)`, with a click on it opening that object. Class names, `shark://` links,
+  web links and the rest of the markdown work as they do in a note — see [Take notes](#take-notes) — wherever
+  the reason is drawn: the panel, the path, the Leaks screen and the list of verdicts yours disagrees with.
 * **Everything a stuck object holds is stuck too, and everything holding an expected one is expected too**,
   so a verdict you set changes what the objects around it read as. Which is why setting one is usually enough
   to make a whole path make sense.
@@ -501,6 +511,10 @@ and going to look at it are one move. A call that named nothing went somewhere a
 *Listed the leaks* is the leaks screen, and *dominator tree* on *Read the dominator tree* is the tree from its
 root. The one row that leads to several places keeps them behind its fold instead: *Asked which heap dumps are
 open* opens into the dumps that were open, each of them a window away.
+
+**The reason under a row is read the way a note is**, so an address the agent wrote into it is drawn as the
+object at that address and opens it, the same as in a note. On a row about another heap dump the addresses
+stay as the agent wrote them: they are that dump's objects, and this window has other objects at those numbers.
 
 **A refused call is a row too**, in red, under the reason the agent gave for making it — and those are the
 half of a session worth reading, since a refusal is where the method sent an agent back to the heap dump

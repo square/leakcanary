@@ -21,6 +21,7 @@ import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.ReferencePathNode.RootNode.NormalRootNode
+import shark.internal.hexObjectId
 import shark.internal.hppc.LongDeque
 import shark.internal.hppc.LongScatterSet
 import shark.internal.invalidObjectIdErrorMessage
@@ -295,8 +296,9 @@ class PrioritizingShortestPathFinder private constructor(
       val parentObject = graph.findObjectByIndex(parentObjectIndex)
       val reference = objectReferenceReader.read(parentObject).elementAtOrNull(referenceIndex)
       check(reference != null && reference.valueObjectId == objectId) {
-        "Expected reference $referenceIndex of object ${parentObject.objectId} to point to" +
-          " $objectId but it points to ${reference?.valueObjectId}. A ReferenceReader must return" +
+        "Expected reference $referenceIndex of object ${hexObjectId(parentObject.objectId)} to" +
+          " point to ${hexObjectId(objectId)} but it points to" +
+          " ${reference?.valueObjectId?.let(::hexObjectId)}. A ReferenceReader must return" +
           " the same references in the same order every time it reads the same object, since" +
           " that's how the traversal recovers the details of a reference it followed."
       }
@@ -434,8 +436,8 @@ class PrioritizingShortestPathFinder private constructor(
         // This should never happen (a heap should only have references to objects that exist)
         // but when it does happen, let's at least say which object we were looking at.
         throw RuntimeException(
-          "Failed to find object id $objectId, reached from leaking object" +
-            " id $leakingObjectId", objectIdNotFound
+          "Failed to find object id ${hexObjectId(objectId)}, reached from leaking object" +
+            " id ${hexObjectId(leakingObjectId)}", objectIdNotFound
         )
       }
       objectReferenceReader.read(heapObject).forEach { reference ->

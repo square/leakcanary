@@ -345,7 +345,7 @@ private fun NoteSpan.spanStyle(): SpanStyle = SpanStyle(
 
 /** What a link is called where something other than a person reads it: a screen reader, or a test. */
 private fun NoteLink.tag(): String = when (this) {
-  is NoteLink.Web -> url
+  is NoteLink.External -> url
   is NoteLink.Deep -> deepLink.toUri()
   is NoteLink.Object -> hexObjectId(objectId)
 }
@@ -389,8 +389,8 @@ private const val WRITE_NOTE_HINT = "Write a note about what this tab is on, kep
 private const val EDIT_NOTE_HINT = "Change what this note says."
 
 private const val NOTE_PLACEHOLDER =
-  "Markdown. Class names, 0x addresses and shark:// links become links into this heap dump, and http links " +
-    "open in a browser."
+  "Markdown. Class names, 0x addresses and shark:// links become links into this heap dump, and other links " +
+    "open outside it."
 
 private const val SAVED_IN = "Saved in"
 

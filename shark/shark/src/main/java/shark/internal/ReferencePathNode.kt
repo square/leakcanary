@@ -89,7 +89,7 @@ fun HeapGraph.invalidObjectIdErrorMessage(node: ReferencePathNode): String {
         )
       } + LeakTraceObject(
         type = INSTANCE,
-        className = "UnknownObject${node.objectId}",
+        className = "UnknownObject${hexObjectId(node.objectId)}",
         labels = emptySet(),
         verdict = UNKNOWN,
         verdictReason = "",

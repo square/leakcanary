@@ -23,6 +23,7 @@ import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
 import shark.internal.LruCache
+import shark.internal.hexObjectId
 
 /**
  * A [HeapGraph] that reads from an Hprof file indexed by [HprofIndex].
@@ -159,7 +160,7 @@ class HprofHeapGraph internal constructor(
 
   override fun findObjectById(objectId: Long): HeapObject {
     return findObjectByIdOrNull(objectId) ?: throw IllegalArgumentException(
-      "Object id $objectId not found in heap dump."
+      "Object id ${hexObjectId(objectId)} not found in heap dump."
     )
   }
 
@@ -223,7 +224,7 @@ class HprofHeapGraph internal constructor(
 
   override fun findHeapDumpIndex(objectId: Long): Int {
     val (_, indexedObject) = index.indexedObjectOrNull(objectId)?: throw IllegalArgumentException(
-      "Object id $objectId not found in heap dump."
+      "Object id ${hexObjectId(objectId)} not found in heap dump."
     )
     val position = indexedObject.position
 

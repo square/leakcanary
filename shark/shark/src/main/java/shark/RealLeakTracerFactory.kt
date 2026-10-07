@@ -39,6 +39,7 @@ import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.createSHA1Hash
+import shark.internal.hexObjectId
 import shark.internal.lastSegment
 
 // TODO kdoc
@@ -496,7 +497,7 @@ class RealLeakTracerFactory constructor(
   ): List<String> {
     val subLeakedLabels = groupByClassName(subLeakedObjectIds).map { (className, objectIds) ->
       if (objectIds.size == 1) {
-        "Also retains leaking object ${objectIds.single()} ($className)"
+        "Also retains leaking object ${hexObjectId(objectIds.single())} ($className)"
       } else {
         "Also retains ${objectIds.size} leaking $className objects"
       }
@@ -506,8 +507,8 @@ class RealLeakTracerFactory constructor(
     val alsoRetainingLabels =
       groupByClassName(alsoRetainingObjectIds).map { (className, objectIds) ->
         if (objectIds.size == 1) {
-          "Also retained by leaking object ${objectIds.single()} ($className), which has its own" +
-            " leak trace"
+          "Also retained by leaking object ${hexObjectId(objectIds.single())} ($className), which" +
+            " has its own leak trace"
         } else {
           "Also retained by ${objectIds.size} leaking $className objects, which have their own" +
             " leak traces"

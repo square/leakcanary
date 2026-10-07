@@ -531,7 +531,7 @@ internal class AgentTools(
         "The evidence for that verdict, which is kept with it in this heap dump and is what somebody " +
           "reading it next has to check it by: the field value you read, the inspector label, the app's " +
           "own watcher record, the line of source. Not \"probably a cache\". This is the box the window " +
-          "labels Why, so what you write here is what the person at the machine reads."
+          "labels Why, so what you write here is what the person at the machine reads. Markdown, like a note."
       ),
       SOLVING_LEAK_OF to objectIdArgument(
         "The stuck object whose leak you are solving: the one you picked out of $LIST_LEAK_GROUPS and " +

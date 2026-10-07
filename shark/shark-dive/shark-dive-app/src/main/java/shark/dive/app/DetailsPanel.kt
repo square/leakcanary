@@ -66,6 +66,8 @@ internal fun DetailsPanel(
   isVerdictRead: Boolean,
   /** What went wrong reading or writing them, shown under the verdict it is about. */
   verdictProblem: String?,
+  /** What the reason under the verdict is read with. See [NoteReader]. */
+  noteReader: NoteReader,
   onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   /** Puts a link to a field's object on the clipboard, beside opening it. See [OpenTarget]. */
@@ -101,6 +103,7 @@ internal fun DetailsPanel(
           objectVerdict = objectVerdict,
           isVerdictRead = isVerdictRead,
           verdictProblem = verdictProblem,
+          noteReader = noteReader,
           onChangeVerdict = onChangeVerdict,
           onOpen = onOpen,
           onCopyLink = onCopyLink,
@@ -193,6 +196,7 @@ private fun ObjectDetails(
   objectVerdict: ObjectVerdict?,
   isVerdictRead: Boolean,
   verdictProblem: String?,
+  noteReader: NoteReader,
   onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
@@ -218,6 +222,7 @@ private fun ObjectDetails(
       objectVerdict = objectVerdict,
       isRead = isVerdictRead,
       problem = verdictProblem,
+      noteReader = noteReader,
       onChange = onChangeVerdict
     )
   }
@@ -230,8 +235,15 @@ private fun ObjectDetails(
   // meaningful fraction of a heap dump, and a second percentage in the column would only dilute the
   // one that says something.
   Detail(SHALLOW, formatByteSize(summary.shallowSize))
+  // Read like a note, since what an inspector writes names classes, and the class an object is an instance
+  // of is the first thing worth opening from here.
   summary.inspectorLabels.forEach { label ->
-    Text(label, style = MaterialTheme.typography.bodySmall)
+    ProseText(
+      text = label,
+      reader = noteReader,
+      style = MaterialTheme.typography.bodySmall,
+      color = Color.Unspecified
+    )
   }
   // A class is where its instances are found: nothing else in the window leads from one to all of them.
   if (summary.kind == HeapObjectKind.CLASS) {

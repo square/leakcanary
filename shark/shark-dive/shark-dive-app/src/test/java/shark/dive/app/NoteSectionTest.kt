@@ -16,6 +16,7 @@ import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performFirstLinkClick
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
@@ -173,6 +174,23 @@ class NoteSectionTest {
       waitUntilAtLeastOneExists(hasText("square/leakcanary#2841"), RENDER_TIMEOUT_MILLIS)
 
       onNodeWithText("square/leakcanary#2841").performClick()
+
+      assertThat(opened).containsExactly(url)
+    }
+  }
+
+  /** Which is how an agent links the line of source it read: Android Studio has the `idea` scheme. */
+  @Test fun `a link to a source file is handed to the OS as it was written`() {
+    val opened = mutableListOf<String>()
+    val url = "idea://open?file=/Users/someone/app/src/main/java/com/example/Owner.kt&line=42"
+    diveUiTest {
+      openHeapDump(openUrl = { opened += it })
+      startNote()
+      write("cleared in [Owner.kt:42]($url)")
+      save()
+      waitUntilAtLeastOneExists(hasText("cleared in Owner.kt:42"), RENDER_TIMEOUT_MILLIS)
+
+      onNodeWithText("cleared in Owner.kt:42").performFirstLinkClick()
 
       assertThat(opened).containsExactly(url)
     }
