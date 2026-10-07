@@ -63,8 +63,11 @@ internal fun LeaksScreen(
   onCopyLink: (Long) -> Unit,
   /** Where the `?` beside what a leak is called goes. See [Explain]. */
   onExplain: (Topic) -> Unit,
-  /** And where a link written into a library leak's description goes, which is out to a browser. */
-  onFollowLink: (NoteLink) -> Unit,
+  /**
+   * And how the prose here is read: a library leak's description, whose links go out to a browser, and the
+   * reason each object is stuck, whose addresses lead into this heap dump. See [NoteReader].
+   */
+  noteReader: NoteReader,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -93,7 +96,7 @@ internal fun LeaksScreen(
               onOpen,
               onCopyLink,
               onExplain,
-              onFollowLink
+              noteReader
             )
         }
         val onTheWayOut = leaks.onTheWayOutSections
@@ -118,7 +121,7 @@ internal fun LeaksScreen(
               onOpen,
               onCopyLink,
               onExplain,
-              onFollowLink
+              noteReader
             )
           }
         }
@@ -137,7 +140,7 @@ private fun LazyListScope.leakSection(
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onExplain: (Topic) -> Unit,
-  onFollowLink: (NoteLink) -> Unit
+  noteReader: NoteReader
 ) {
   // Pinned while its own leaks scroll under it, which is what says they are its: a heading that scrolls away
   // leaves a list of rows with nothing above them saying which part they are.
@@ -148,13 +151,14 @@ private fun LazyListScope.leakSection(
     val groupKey = section.kind.groupKey(group)
     val isExpanded = groupKey in expandedGroups
     val hasMore = group.objects.size > 1
-    item(key = groupKey) { GroupRow(group, onExplain, onFollowLink) }
+    item(key = groupKey) { GroupRow(group, onExplain, noteReader.onLink) }
     // The first object always: a leak is a reference, and a reference with nothing under it says
     // what shouldn't be holding without ever saying what it is holding.
     item(key = "$groupKey ${group.objects.first().objectId}") {
       LeakingObjectRow(
         leakingObject = group.objects.first(),
         isLast = !hasMore,
+        noteReader = noteReader,
         onOpen = onOpen,
         onCopyLink = onCopyLink
       )
@@ -175,6 +179,7 @@ private fun LazyListScope.leakSection(
             LeakingObjectRow(
               leakingObject = leakingObject,
               isLast = index == group.objects.size - 2,
+              noteReader = noteReader,
               onOpen = onOpen,
               onCopyLink = onCopyLink
             )
@@ -446,6 +451,7 @@ private fun LeakingObjectRow(
   leakingObject: LeakingObject,
   /** Whether it closes the leak it is in, which is where the rule down the objects stops. */
   isLast: Boolean,
+  noteReader: NoteReader,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit
 ) {
@@ -481,14 +487,15 @@ private fun LeakingObjectRow(
               )
             }
             // Why *this* object is stuck, which the inspector that recognized it read off the object
-            // itself: two objects of one leak can be stuck for reasons that don't read the same.
+            // itself: two objects of one leak can be stuck for reasons that don't read the same. In full,
+            // like the description above it: a reason set by hand can run to several lines, and an address
+            // or a link in the part an ellipsis cut off would lead nowhere.
             leakingObject.verdictReason?.let { reason ->
-              Text(
-                reason,
+              ReasonText(
+                reason = reason,
+                reader = noteReader,
                 style = MaterialTheme.typography.bodySmall,
-                color = MUTED_TEXT,
-                maxLines = MAX_SUBTITLE_LINES,
-                overflow = TextOverflow.Ellipsis
+                color = MUTED_TEXT
               )
             }
           }

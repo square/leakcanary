@@ -80,6 +80,8 @@ internal fun RootPathPanel(
   /** Which of them is drawn, for the stretches the reader has switched. */
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
+  /** What the reason under each object is read with. See [NoteReader]. */
+  noteReader: NoteReader,
   onOpen: (Long, OpenIn) -> Unit,
   /** Puts a link to a step's object on the clipboard, beside opening it. See [OpenTarget]. */
   onCopyLink: (Long) -> Unit,
@@ -150,6 +152,7 @@ internal fun RootPathPanel(
             ways = ways,
             chosenWays = chosenWays,
             onChooseWay = onChooseWay,
+            noteReader = noteReader,
             onOpen = onOpen,
             onCopyLink = onCopyLink,
             onExplain = onExplain
@@ -163,14 +166,16 @@ internal fun RootPathPanel(
           hoveredTail(
             steps = tail,
             isCut = false,
-            stronglyReachableByteCount = stronglyReachableByteCount
+            stronglyReachableByteCount = stronglyReachableByteCount,
+            noteReader = noteReader
           )
         } else if (cutTail != null) {
           // Nothing above it on screen is what holds it, so the end of it is the object being described here.
           hoveredTail(
             steps = cutTail,
             isCut = true,
-            stronglyReachableByteCount = stronglyReachableByteCount
+            stronglyReachableByteCount = stronglyReachableByteCount,
+            noteReader = noteReader
           )
         }
       }
@@ -233,6 +238,7 @@ private fun LazyListScope.rootPathTrace(
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
+  noteReader: NoteReader,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onExplain: (Topic) -> Unit
@@ -254,6 +260,7 @@ private fun LazyListScope.rootPathTrace(
       reference = next?.step?.reference,
       nextStrength = next?.step?.strength,
       stronglyReachableByteCount = stronglyReachableByteCount,
+      noteReader = noteReader,
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       role = when {
@@ -278,7 +285,8 @@ private fun LazyListScope.hoveredTail(
   steps: List<RootPathStep>,
   /** Whether it runs on from the path above or starts somewhere else, which the dots say. */
   isCut: Boolean,
-  stronglyReachableByteCount: Long
+  stronglyReachableByteCount: Long,
+  noteReader: NoteReader
 ) {
   item {
     Column {
@@ -297,6 +305,7 @@ private fun LazyListScope.hoveredTail(
       reference = next?.step?.reference,
       nextStrength = next?.step?.strength,
       stronglyReachableByteCount = stronglyReachableByteCount,
+      noteReader = noteReader,
       // Nothing to click: the pointer is on the map, and it leaving the map is what takes this away.
       onOpen = { _, _ -> },
       onCopyLink = {},

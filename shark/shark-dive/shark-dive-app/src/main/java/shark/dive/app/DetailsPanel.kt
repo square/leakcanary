@@ -66,6 +66,8 @@ internal fun DetailsPanel(
   isVerdictRead: Boolean,
   /** What went wrong reading or writing them, shown under the verdict it is about. */
   verdictProblem: String?,
+  /** What the reason under the verdict is read with. See [NoteReader]. */
+  noteReader: NoteReader,
   onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   /** Puts a link to a field's object on the clipboard, beside opening it. See [OpenTarget]. */
@@ -101,6 +103,7 @@ internal fun DetailsPanel(
           objectVerdict = objectVerdict,
           isVerdictRead = isVerdictRead,
           verdictProblem = verdictProblem,
+          noteReader = noteReader,
           onChangeVerdict = onChangeVerdict,
           onOpen = onOpen,
           onCopyLink = onCopyLink,
@@ -193,6 +196,7 @@ private fun ObjectDetails(
   objectVerdict: ObjectVerdict?,
   isVerdictRead: Boolean,
   verdictProblem: String?,
+  noteReader: NoteReader,
   onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
@@ -218,6 +222,7 @@ private fun ObjectDetails(
       objectVerdict = objectVerdict,
       isRead = isVerdictRead,
       problem = verdictProblem,
+      noteReader = noteReader,
       onChange = onChangeVerdict
     )
   }

@@ -230,6 +230,8 @@ internal fun AgentLogScreen(
   heapDumpFile: File,
   /** What this window calls the places the agent asked about, for the calls about its own heap dump. */
   placeTitles: Map<Place, String>,
+  /** What the reason the agent gave for each call is read with. See [NoteReader]. */
+  noteReader: NoteReader,
   onOpen: (Place, OpenIn) -> Unit,
   onCopyLink: (Place) -> Unit,
   /** Where a row about another heap dump goes. See [AgentLogsScreen]. */
@@ -268,6 +270,7 @@ internal fun AgentLogScreen(
           call = call,
           heapDumpFile = heapDumpFile,
           placeTitles = placeTitles,
+          noteReader = noteReader,
           onOpen = onOpen,
           onCopyLink = onCopyLink,
           onOpenHeapDump = onOpenHeapDump,
@@ -303,6 +306,7 @@ private fun AgentCallRow(
   call: AgentSessionCall,
   heapDumpFile: File,
   placeTitles: Map<Place, String>,
+  noteReader: NoteReader,
   onOpen: (Place, OpenIn) -> Unit,
   onCopyLink: (Place) -> Unit,
   onOpenHeapDump: (File, Place) -> Unit,
@@ -363,8 +367,17 @@ private fun AgentCallRow(
       }
       call.reason?.let { reason ->
         // The agent's own sentence, indented under what it did: read down the column of these and a session
-        // either follows from itself or doesn't, which is the whole of what this screen is for.
-        Text("$BECAUSE $reason", style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
+        // either follows from itself or doesn't, which is the whole of what this screen is for. Read like a
+        // note, since an agent names what it is looking at by address. Only against this window's heap dump,
+        // though: a call about another dump names that dump's objects.
+        ReasonText(
+          reason = reason,
+          reader = noteReader,
+          style = MaterialTheme.typography.bodySmall,
+          color = MUTED_TEXT,
+          lead = "$BECAUSE ",
+          isAboutThisHeapDump = elsewhere == null
+        )
       }
       call.refusal?.let { refusal ->
         Text(

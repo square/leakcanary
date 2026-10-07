@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -760,6 +761,22 @@ internal fun HeapDumpDive(
       is NoteLink.Object -> openInNewTab(Place.Object(link.objectId))
     }
   }
+  // Through the latest one, because the reader below is remembered across compositions and a link in a
+  // reason has to go wherever one in a note would go now.
+  val currentFollowNoteLink by rememberUpdatedState(followNoteLink)
+  val readingReasons = rememberCoroutineScope()
+  /**
+   * What the reasons in this window are read with, the verdicts' and the agents'. One per heap dump, so a name
+   * asked about once is known to every reason that mentions it. See [NoteReader].
+   */
+  val noteReader = remember(session) {
+    NoteReader(
+      onLink = { link -> currentFollowNoteLink(link) },
+      scope = readingReasons
+    ) { mentions ->
+      session.read("what the reasons on screen mention") { dive -> dive.tree.referencesOf(mentions) }
+    }
+  }
 
   if (showsBitmapsFromDevice) {
     BitmapsFromDeviceDialog(
@@ -859,7 +876,7 @@ internal fun HeapDumpDive(
           onCopyPlaceLink = copyLink,
           onReplacePlace = { tabs = tabs.replacingCurrent(it) },
           onRemoveStar = { objectId -> starring.launch { stars.toggle(objectId) } },
-          onFollowLink = followNoteLink,
+          noteReader = noteReader,
           onExplain = explain,
           modifier = Modifier.fillMaxSize()
         )
@@ -875,6 +892,7 @@ internal fun HeapDumpDive(
             ways = detourWays,
             chosenWays = chosenWays,
             onChooseWay = { detour, way -> chosenWays = chosenWays + (detour to way) },
+            noteReader = noteReader,
             onOpen = openObject,
             onCopyLink = copyObjectLink,
             onExplain = explain
@@ -913,6 +931,7 @@ internal fun HeapDumpDive(
             objectVerdict = describedVerdict,
             isVerdictRead = verdicts.isRead,
             verdictProblem = verdicts.problem,
+            noteReader = noteReader,
             onChangeVerdict = {
               val tabId = tabs.selectedId
               if (tabId != null && describedVerdict != null) {
@@ -974,6 +993,7 @@ internal fun HeapDumpDive(
           // In a tab of its own and in front, the way a `?` opens a page: going to look at a verdict this
           // one disagrees with is reading, and the tab it was left in keeps what was typed into it.
           onOpenObject = { objectId -> openInNewTab(Place.Object(objectId)) },
+          noteReader = noteReader,
           onExplain = explain,
           onDone = { tabs.selectedId?.let { settingVerdicts.remove(it) } }
         )
@@ -1032,6 +1052,7 @@ private fun RowScope.PathPane(
   ways: Map<Int, List<RootPathWay>>,
   chosenWays: Map<Int, Int>,
   onChooseWay: (Int, Int) -> Unit,
+  noteReader: NoteReader,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
   onExplain: (Topic) -> Unit
@@ -1053,6 +1074,7 @@ private fun RowScope.PathPane(
       ways = ways,
       chosenWays = chosenWays,
       onChooseWay = onChooseWay,
+      noteReader = noteReader,
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onExplain = onExplain,
@@ -1156,6 +1178,7 @@ private fun RowScope.DetailsPane(
   objectVerdict: ObjectVerdict?,
   isVerdictRead: Boolean,
   verdictProblem: String?,
+  noteReader: NoteReader,
   onChangeVerdict: () -> Unit,
   onOpen: (Long, OpenIn) -> Unit,
   onCopyLink: (Long) -> Unit,
@@ -1180,6 +1203,7 @@ private fun RowScope.DetailsPane(
       objectVerdict = objectVerdict,
       isVerdictRead = isVerdictRead,
       verdictProblem = verdictProblem,
+      noteReader = noteReader,
       onChangeVerdict = onChangeVerdict,
       onOpen = onOpen,
       onCopyLink = onCopyLink,
@@ -1243,8 +1267,11 @@ private fun ListPlace(
   onCopyPlaceLink: (Place) -> Unit,
   onReplacePlace: (Place) -> Unit,
   onRemoveStar: (Long) -> Unit,
-  /** And where a link written in prose goes: a browser, this heap dump, or another window. */
-  onFollowLink: (NoteLink) -> Unit,
+  /**
+   * And how prose is read: where a link in it goes (a browser, this heap dump, or another window) and what
+   * the names in a reason stand for. See [NoteReader].
+   */
+  noteReader: NoteReader,
   /** And where a `?` goes, which is the page of the reference on that label. See [Explain]. */
   onExplain: (Topic) -> Unit,
   modifier: Modifier = Modifier
@@ -1278,7 +1305,7 @@ private fun ListPlace(
       onOpen = onOpen,
       onCopyLink = onCopyLink,
       onExplain = onExplain,
-      onFollowLink = onFollowLink,
+      noteReader = noteReader,
       modifier = modifier
     )
     is Place.Starred -> StarredScreen(
@@ -1299,7 +1326,7 @@ private fun ListPlace(
       page = ReferencePage.of(place.topic),
       onOpenTopic = { topic, openIn -> onOpenPlace(Place.Reference(topic), openIn) },
       onCopyTopicLink = { topic -> onCopyPlaceLink(Place.Reference(topic)) },
-      onLink = onFollowLink,
+      onLink = noteReader.onLink,
       modifier = modifier
     )
     is Place.AgentLogs -> AgentLogsScreen(
@@ -1316,6 +1343,7 @@ private fun ListPlace(
       session = sessions.firstOrNull { it.sessionId == place.sessionId },
       heapDumpFile = heapDumpFile,
       placeTitles = agentPlaceTitles,
+      noteReader = noteReader,
       onOpen = onOpenPlace,
       onCopyLink = onCopyPlaceLink,
       onOpenHeapDump = onOpenHeapDump,
