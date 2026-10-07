@@ -182,13 +182,17 @@ internal class ReferrerIndex private constructor(
     private fun positionAfter(read: Long): Int = (read ushr Int.SIZE_BITS).toInt()
 
     /**
-     * Reads every object of [graph] and indexes the references [referenceReader] reports, which has to be
-     * the reader the dominator tree was built with: a path through a reference the tree ignored would
-     * explain a retention the tree doesn't show.
+     * Reads every object of [graph] and indexes the references [referenceReader] reports.
+     *
+     * For an index a path is walked over, that has to be the reader the dominator tree was built with: a
+     * path through a reference the tree ignored would explain a retention the tree doesn't show. The one
+     * index built with another is the one listing every reference — see [EveryReferenceReader].
      */
     fun buildFor(
       graph: HeapGraph,
-      referenceReader: ReferenceReader<HeapObject>
+      referenceReader: ReferenceReader<HeapObject>,
+      /** Which references these are, for the log line saying what the index holds. */
+      referencesName: String
     ): ReferrerIndex {
       val objectCount = graph.objectCount
       require(objectCount <= MAX_OBJECT_COUNT) {
@@ -225,7 +229,7 @@ internal class ReferrerIndex private constructor(
       ).also { index ->
         SharkLog.d {
           val bytesPerReference = index.bytesHeld.toDouble() / maxOf(referenceCount, 1)
-          "Indexed which objects point at which: ${formatObjectCount(objectCount)}, " +
+          "Indexed which objects point at which through $referencesName: ${formatObjectCount(objectCount)}, " +
             String.format(Locale.US, "%,d references, ", referenceCount) +
             "${formatByteSize(index.bytesHeld)}, " +
             String.format(Locale.US, "%.2f bytes a reference", bytesPerReference)

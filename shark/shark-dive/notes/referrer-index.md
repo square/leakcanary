@@ -119,6 +119,52 @@ Which is why there is no leak-fingerprint sweep to go with this change. The swee
 `decisions.md` records at 8 of 10 dumps and 12 of 15 leaks is a function of which referrers the index hands
 back in which order, and that is byte for byte what it was.
 
+## A second index, of every reference
+
+`HeapDominatorTreemap.referrersOf` — the agent's `referrers` tool — lists what points at an object, and the
+index above can't answer that. It holds what `WeakeningAwareReferenceReader` reports, which is the
+references the tree follows. That reader drops a weak reference to an object something holds strongly, and
+it drops every reference to an owned object except the owner's. Measured on `large-dump.hprof`:
+
+| object | pointing at it | in the tree's index |
+| --- | --- | --- |
+| the running `MainActivity` | 951 | 1, `ActivityThread.activities` |
+| the running `PaymentActivity` | 25 | 1 |
+| a `MainActivity` the thread doesn't run | 922 | 920 |
+
+The running activity's views, context wrappers and window all point at it, and all of them lose to the
+thread that runs it. A list built off the tree's index would have answered one referrer and said it was
+complete. The third row is the owner rule giving way: no thread runs that activity, so what points at it
+holds it as a last resort.
+
+So `referrersOf` reads a second `ReferrerIndex`, built over `EveryReferenceReader`, which is every reference
+the other reader weighs before it drops any. It marks each reference `holds` by asking the tree's reader
+the same question about the same referrer. The second index is built the first time anything asks
+`referrersOf`, and nothing the window draws does.
+
+| dump | tree's index | every reference | first call |
+| --- | --- | --- | --- |
+| `large-dump.hprof` | 1 932 355 | 2 026 248 | 605 ms |
+| `compose_leak.hprof` | 1 447 191 | 1 467 580 | 345 ms |
+| `gc_root_in_non_primary_heap.hprof` | 467 028 | 476 104 | 100 ms |
+| `gcroot_unknown_object.hprof` | 2 085 578 | 2 131 498 | 585 ms |
+| `leak_asynctask_m.hprof` | 608 214 | 615 502 | 114 ms |
+| `leak_asynctask_o.hprof` | 473 415 | 484 080 | 103 ms |
+| `leak_asynctask_pre_m.hprof` | 220 773 | 222 165 | 56 ms |
+| `unloaded_classes-stripped.hprof` | 2 014 654 | 2 429 281 | 612 ms |
+
+Bytes are `bytesHeld`, measured on eight of the ten dumps above: the two under `shark/shark/src/test/resources`
+were not run. The first call includes building the index, and every call after it took about 8 ms on
+`large-dump.hprof`. The two indexes differ by 5% or less on all but one dump, because most references hold
+what they point at: 514 515 references against 565 047 on `large-dump.hprof`. The exception is
+`unloaded_classes-stripped.hprof`, at 21% more.
+
+**One index carrying a bit per reference would hold about half what the two do.** It would also change what
+every walk up the referrers reads, including the one the pointer triggers on hover. Each walk would skip the
+references that hold nothing, over an index that is no longer the one the order above was verified on. Two
+indexes leave the first byte for byte what it was, and the second costs nothing in a session that never asks
+for it.
+
 ## Two places this deliberately differs from `parttimenerd/hprof-analyzer`
 
 Read `src/pass2/model.rs` (`encode_phase4` and the `INB_BLOCK` comment), `src/vbyte.rs` and

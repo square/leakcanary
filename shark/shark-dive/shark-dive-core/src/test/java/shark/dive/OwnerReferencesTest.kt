@@ -133,6 +133,44 @@ class OwnerReferencesTest {
     }
   }
 
+  @Test fun `everything pointing at a running activity is a referrer, and only its thread holds it`() {
+    HeapDive.open(viewHierarchyHeapDump()).use { dive ->
+      val tree = dive.tree
+
+      val referrers = tree.referrersOf(tree.findByLabel("MainActivity").objectId)
+
+      // The record, the leaker and every view's context lose to the thread's own reference, so a path has
+      // one way up from the activity. A list of what points at it has them all, and says which one holds.
+      assertThat(referrers.referenceLabels()).containsExactlyInAnyOrder(
+        "ActivityThread.activities",
+        "ActivityThread\$ActivityClientRecord.activity (holds nothing)",
+        "Leaker.activity (holds nothing)",
+        "View.mContext (holds nothing)",
+        "View.mContext (holds nothing)",
+        "View.mContext (holds nothing)",
+        "View.mContext (holds nothing)",
+        "View.mContext (holds nothing)"
+      )
+      assertThat(referrers.referrers.first().step.className).isEqualTo("android.app.ActivityThread")
+      assertThat(referrers.holdingReferrerCount).isEqualTo(1)
+    }
+  }
+
+  @Test fun `a view is pointed at by more than its parent and held by its parent alone`() {
+    HeapDive.open(viewHierarchyHeapDump()).use { dive ->
+      val tree = dive.tree
+
+      val referrers = tree.referrersOf(tree.findByLabel("LeafView").objectId)
+
+      assertThat(referrers.referenceLabels()).containsExactlyInAnyOrder(
+        "DecorView.0",
+        "View[].0 (holds nothing)",
+        "InputMethodManager.mServedView (holds nothing)"
+      )
+      assertThat(referrers.holdingReferrerCount).isEqualTo(1)
+    }
+  }
+
   @Test fun `the tree still retains every byte when a reference loses to an owner`() {
     HeapDive.open(viewHierarchyHeapDump()).use { dive ->
       // The rule takes edges out of the graph the tree is built from, so this is what says it takes none
@@ -142,6 +180,14 @@ class OwnerReferencesTest {
         .isEqualTo(dive.sizes.totalByteCount)
     }
   }
+
+  /** Each reference pointing at the object, as its declaring class and name, and whether it holds it. */
+  private fun ObjectReferrers.referenceLabels(): List<String> = referrers.flatMap { referrer ->
+    referrer.references.map { (reference, holds) ->
+      "${reference.ownerClassName}.${reference.name}" + if (holds) "" else " (holds nothing)"
+    }
+  }
+
   /**
    * A heap dump shaped like the view hierarchies of a running app: an `ActivityThread` running an activity
    * through the `ArrayMap` of records it keeps them in, the activity holding its decor view, the decor view
