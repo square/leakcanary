@@ -378,7 +378,7 @@ class OpenJdkInstanceRefReadersTest {
 
     with(refPath.first()) {
       assertThat(referenceDisplayName).matches(
-        "\\[instance @\\d* of shark\\.OpenJdkInstanceRefReadersTest\\\$SomeKey]"
+        "\\[instance @0x[0-9a-f]+ of shark\\.OpenJdkInstanceRefReadersTest\\\$SomeKey]"
       )
     }
   }
@@ -441,7 +441,9 @@ class OpenJdkInstanceRefReadersTest {
 
     with(refPath[0]) {
       assertThat(owningClassName).isEqualTo(WeakHashMap::class.qualifiedName)
-      assertThat(referenceDisplayName).matches("\\[instance @\\d* of shark\\.OpenJdkInstanceRefReadersTest\\\$SomeKey]")
+      assertThat(referenceDisplayName).matches(
+        "\\[instance @0x[0-9a-f]+ of shark\\.OpenJdkInstanceRefReadersTest\\\$SomeKey]"
+      )
     }
   }
 

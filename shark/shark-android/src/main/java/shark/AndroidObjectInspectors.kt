@@ -544,8 +544,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
               (contextReceivers.indices step 2).mapNotNull { contextReceivers[it].asObject?.asInstance }
             val contextInstance = context.asObject!!.asInstance!!
             val contextString =
-              "${contextInstance.instanceClassSimpleName}@${contextInstance.objectId}"
-            contextString to receivers.map { "${it.instanceClassSimpleName}@${it.objectId}" }
+              "${contextInstance.instanceClassSimpleName}@${hexObjectId(contextInstance.objectId)}"
+            contextString to receivers.map {
+              "${it.instanceClassSimpleName}@${hexObjectId(it.objectId)}"
+            }
           } else {
             null
           }
@@ -1145,3 +1147,14 @@ https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-ap
       """
   )
 }
+
+/**
+ * [objectId] in hex, the way shark writes an object id for someone to read: `0x12c0a6b8`. The
+ * same as the copy in `shark-graph`, which says why. This module can't see that one.
+ */
+private fun hexObjectId(objectId: Long): String {
+  val address = if (objectId < 0L) objectId and LOW_32_BITS else objectId
+  return "0x${address.toString(16)}"
+}
+
+private const val LOW_32_BITS = 0xffffffffL

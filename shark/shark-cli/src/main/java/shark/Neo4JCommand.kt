@@ -580,7 +580,7 @@ class Neo4JCommand : CliktCommand(
               "create (:Object :Instance {objectType: 'Instance', name:\$name, className:\$className, objectId:\$objectId})",
               mapOf(
                 "name" to "${heapObject.instanceClassSimpleName}@" + (heapObject.hexIdentityHashCode
-                  ?: heapObject.positiveObjectId),
+                  ?: hexObjectId(heapObject.objectId)),
                 "className" to heapObject.instanceClassName,
                 "objectId" to heapObject.objectId,
               )
@@ -591,7 +591,8 @@ class Neo4JCommand : CliktCommand(
               "create (:Object :ObjectArray {objectType: 'ObjectArray', name:\$name," +
                 " className:\$className, objectId:\$objectId})",
               mapOf(
-                "name" to "${heapObject.arrayClassSimpleName}[]@${heapObject.positiveObjectId}",
+                "name" to
+                  "${heapObject.arrayClassSimpleName}[]@${hexObjectId(heapObject.objectId)}",
                 "className" to heapObject.arrayClassName,
                 "objectId" to heapObject.objectId,
               )
@@ -602,7 +603,7 @@ class Neo4JCommand : CliktCommand(
               "create (:Object :PrimitiveArray {objectType: 'PrimitiveArray', name:\$name," +
                 " className:\$className, objectId:\$objectId})",
               mapOf(
-                "name" to "${heapObject.arrayClassName}@${heapObject.positiveObjectId}",
+                "name" to "${heapObject.arrayClassName}@${hexObjectId(heapObject.objectId)}",
                 "className" to heapObject.arrayClassName,
                 "objectId" to heapObject.objectId
               )

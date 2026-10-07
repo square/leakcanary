@@ -17,6 +17,7 @@ import shark.internal.IndexedObject.IndexedClass
 import shark.internal.IndexedObject.IndexedInstance
 import shark.internal.IndexedObject.IndexedObjectArray
 import shark.internal.IndexedObject.IndexedPrimitiveArray
+import shark.internal.hexObjectId
 
 /**
  * An object in the heap dump.
@@ -511,13 +512,13 @@ sealed class HeapObject {
         }
         else -> throw UnsupportedOperationException(
           "'value' field ${this["java.lang.String", "value"]!!.value} was expected to be either" +
-            " a char or byte array in string instance with id $objectId"
+            " a char or byte array in string instance with id ${hexObjectId(objectId)}"
         )
       }
     }
 
     override fun toString(): String {
-      return "instance @$objectId of $instanceClassName"
+      return "instance @${hexObjectId(objectId)} of $instanceClassName"
     }
   }
 
@@ -588,7 +589,7 @@ sealed class HeapObject {
     }
 
     override fun toString(): String {
-      return "object array @$objectId of $arrayClassName"
+      return "object array @${hexObjectId(objectId)} of $arrayClassName"
     }
   }
 
@@ -642,7 +643,7 @@ sealed class HeapObject {
       get() = indexedObject.recordSize
 
     override fun toString(): String {
-      return "primitive array @$objectId of $arrayClassName"
+      return "primitive array @${hexObjectId(objectId)} of $arrayClassName"
     }
   }
 

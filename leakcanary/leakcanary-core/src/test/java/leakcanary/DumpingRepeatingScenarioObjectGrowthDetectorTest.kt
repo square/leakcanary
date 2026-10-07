@@ -182,6 +182,6 @@ class DumpingRepeatingScenarioObjectGrowthDetectorTest {
     assertThatThrownBy {
       detector.findRepeatedlyGrowingObjects {
       }
-    }.hasMessageContaining(unknownObjectId.toString())
+    }.hasMessageContaining("0x${unknownObjectId.toString(16)}")
   }
 }

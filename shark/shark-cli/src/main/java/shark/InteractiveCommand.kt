@@ -325,18 +325,21 @@ class InteractiveCommand : CliktCommand(
         content.substring(identifierIndex + 1)
     }
 
-    val objectId = objectIdStart?.toLongOrNull()
-    val checkObjectId = objectId != null
+    // In hex, the way ids are printed, with or without the 0x they are printed with.
+    val hexIdStart = objectIdStart?.removePrefix(HEX_PREFIX)?.lowercase(Locale.US)
+      ?.takeIf { digits -> digits.isNotEmpty() && digits.all { it in HEX_DIGITS } }
     val matchingObjects = objects
       .filter {
         classNamePart in namer(it) &&
-          (!checkObjectId ||
-            it.objectId.toString().startsWith(objectIdStart!!))
+          (hexIdStart == null ||
+            hexObjectId(it.objectId).removePrefix(HEX_PREFIX).startsWith(hexIdStart))
       }
       .toList()
 
-    if (objectIdStart != null) {
-      val exactMatchingByObjectId = matchingObjects.firstOrNull { objectId == it.objectId }
+    if (hexIdStart != null) {
+      val exactMatchingByObjectId = matchingObjects.firstOrNull {
+        hexObjectId(it.objectId) == HEX_PREFIX + hexIdStart
+      }
       if (exactMatchingByObjectId != null) {
         return listOf(exactMatchingByObjectId)
       }
@@ -493,7 +496,8 @@ class InteractiveCommand : CliktCommand(
       is ReferenceHolder -> {
         when {
           holder.isNull -> "null"
-          !heapValue.graph.objectExists(holder.value) -> "@${holder.value} object not found"
+          !heapValue.graph.objectExists(holder.value) ->
+            "@${hexObjectId(holder.value)} object not found"
           else -> {
             val heapObject = heapValue.asObject!!
             renderHeapObject(heapObject)
@@ -520,7 +524,8 @@ class InteractiveCommand : CliktCommand(
           else -> heapObject.instances
         }.count()
         val plural = if (instanceCount != 1) "s" else ""
-        "$CLASS ${heapObject.name}@${heapObject.objectId} (${instanceCount} instance$plural)"
+        val id = hexObjectId(heapObject.objectId)
+        "$CLASS ${heapObject.name}@$id (${instanceCount} instance$plural)"
       }
       is HeapInstance -> {
         val asJavaString = heapObject.readAsJavaString()
@@ -530,16 +535,17 @@ class InteractiveCommand : CliktCommand(
             " \"${asJavaString}\""
           } else ""
 
-        "$INSTANCE ${heapObject.instanceClassSimpleName}@${heapObject.objectId}$value"
+        "$INSTANCE ${heapObject.instanceClassSimpleName}@${hexObjectId(heapObject.objectId)}$value"
       }
       is HeapObjectArray -> {
         val className = heapObject.arrayClassSimpleName.removeSuffix("[]")
-        "$ARRAY $className[${heapObject.readElements().count()}]@${heapObject.objectId}"
+        val id = hexObjectId(heapObject.objectId)
+        "$ARRAY $className[${heapObject.readElements().count()}]@$id"
       }
       is HeapPrimitiveArray -> {
         val record = heapObject.readRecord()
         val primitiveName = heapObject.primitiveType.name.lowercase(Locale.US)
-        "$ARRAY $primitiveName[${record.size}]@${heapObject.objectId}"
+        "$ARRAY $primitiveName[${record.size}]@${hexObjectId(heapObject.objectId)}"
       }
     }
   }
@@ -552,7 +558,7 @@ class InteractiveCommand : CliktCommand(
   ) {
     if (leakingObjectId != null) {
       if (!graph.objectExists(leakingObjectId)) {
-        echo("@$leakingObjectId not found")
+        echo("@${hexObjectId(leakingObjectId)} not found")
         return
       } else {
         val heapObject = graph.findObjectById(leakingObjectId)
@@ -606,3 +612,16 @@ class InteractiveCommand : CliktCommand(
     }
   }
 }
+
+/**
+ * [objectId] in hex, the way shark writes an object id for someone to read: `0x12c0a6b8`. The
+ * same as the copy in `shark-graph`, which says why. This module can't see that one.
+ */
+internal fun hexObjectId(objectId: Long): String {
+  val address = if (objectId < 0L) objectId and LOW_32_BITS else objectId
+  return "$HEX_PREFIX${address.toString(16)}"
+}
+
+private const val HEX_PREFIX = "0x"
+private const val HEX_DIGITS = "0123456789abcdef"
+private const val LOW_32_BITS = 0xffffffffL

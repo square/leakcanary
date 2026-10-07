@@ -8,6 +8,7 @@ import androidx.collection.MutableIntList
 import androidx.collection.MutableLongIntMap
 import androidx.collection.MutableLongList
 import shark.ObjectDominators.DominatorNode
+import shark.internal.hexObjectId
 
 /**
  * The dominator tree of every object reachable from the GC roots of a [HeapGraph]: object A
@@ -46,7 +47,7 @@ class HeapDominatorTree private constructor(
   fun immediateDominatorOf(objectId: Long): Long {
     val dfsNumber = dfsNumberByObjectId.getOrDefault(objectId, NOT_REACHABLE)
     require(dfsNumber != NOT_REACHABLE && dfsNumber != VIRTUAL_ROOT) {
-      "Object id $objectId is not reachable from the GC roots"
+      "Object id ${hexObjectId(objectId)} is not reachable from the GC roots"
     }
     return objectIdByDfsNumber[dominatorDfsNumberByDfsNumber[dfsNumber]]
   }
