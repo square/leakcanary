@@ -35,7 +35,14 @@ class LegacyHprofTest {
       mapOf(
         "App process name" to "com.example.leakcanary",
         "Build.MANUFACTURER" to "Genymotion",
+        "Build.MODEL" to "Google Nexus 4 - 4.4.4 - API 19 - 768x1280",
+        "Build.FINGERPRINT" to
+          "generic/vbox86p/vbox86p:4.4.4/KTU84P/eng.buildbot.20141001.101335:userdebug/test-keys",
         "Build.VERSION.SDK_INT" to "19",
+        "Build.VERSION.RELEASE" to "4.4.4",
+        "Build.VERSION.CODENAME" to "REL",
+        // Build.VERSION.SECURITY_PATCH was added in API 23.
+        "Build.VERSION.SECURITY_PATCH" to "Unknown",
         "LeakCanary version" to "Unknown"
       )
     )
@@ -45,6 +52,12 @@ class LegacyHprofTest {
   @Test fun androidM() {
     val analysis = analyzeHprof("leak_asynctask_m.hprof")
 
+    assertThat(analysis.metadata).containsAllEntriesOf(
+      mapOf(
+        "Build.VERSION.SDK_INT" to "23",
+        "Build.VERSION.SECURITY_PATCH" to "2015-10-01"
+      )
+    )
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leak.leakingObject.className).isEqualTo("com.example.leakcanary.MainActivity")

@@ -154,22 +154,20 @@ internal object AgentMethod {
     Android version and which app, the two things you need before opening any source at all:
 
     - `Build.VERSION.SDK_INT` is the API level, so it is the AOSP release to read the framework at.
+      `Build.VERSION.RELEASE`, `Build.VERSION.SECURITY_PATCH` and `Build.FINGERPRINT` narrow it to one
+      build. Read AOSP at the tag for that build. `main` is years ahead of any device. An installed SDK has
+      the framework sources under `sources/android-<SDK_INT>`.
+    - `Build.VERSION.CODENAME` is `REL` on a released build. Anything else is a preview of the next
+      release, and its `SDK_INT` is still the API level of the one before.
     - `App process name` is the app's package, so it is the repository, the `applicationId` and the APK to
       look for. It is `ApplicationInfo.processName`, which is the package name unless the app declares an
       `android:process` of its own. The usual form of that is `<package>:suffix`, so the package is still
       what comes before the colon.
 
-    `Build.MANUFACTURER` is beside them, and a manufacturer that isn't `Google` means the framework on that
-    device is not the AOSP you are about to read. The rest of this section is for what that map does not
-    carry.
+    `Build.MANUFACTURER` and `Build.MODEL` are beside them. A manufacturer that isn't `Google` means the
+    framework on that device is not the AOSP you are about to read. The rest of this section is for what
+    that map does not carry.
 
-    - The OS, past the API level. `RELEASE`, `CODENAME`, `SECURITY_PATCH` and the build fingerprint are a
-      read of the classes themselves, and a class is an object of the dump like any other, so that is two
-      calls: `find_objects` with `className=android.os.Build${'$'}VERSION`, `exactMatch=true` and
-      `kinds=CLASS` for its address, then `describe_object` on that address for its static fields.
-      `android.os.Build` has the device and the fingerprint the same way. Read AOSP at the tag for that
-      release, and not `main`, which is years ahead of any device. An installed SDK has the framework
-      sources under `sources/android-<SDK_INT>`.
     - The app, past its package. Its `android.content.pm.ApplicationInfo` is in most dumps: `sourceDir` is
       the APK it was installed from, `dataDir` the directory it writes to, `minSdkVersion` is a field of
       its own, `seInfo` often carries `targetSdkVersion=<n>`, and bit `0x2` of `flags` is `FLAG_DEBUGGABLE`.
