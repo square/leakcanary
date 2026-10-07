@@ -26,7 +26,7 @@ class PrioritizingShortestPathFinderTest {
     val leakingObject = leakTraces.single().leakingObject
     assertThat(leakingObject.className).isEqualTo("Parent")
     assertThat(leakingObject.labels).contains(
-      "Also retains leaking object $childObjectId (Child)"
+      "Also retains leaking object ${childObjectId.asObjectIdString()} (Child)"
     )
   }
 
@@ -78,7 +78,7 @@ class PrioritizingShortestPathFinderTest {
     // Only Child says so: the path it's reached through isn't in either leak trace, and Parent has
     // its own path to explain rather than the leaking objects it happens to also retain.
     assertThat(leakTraces.getValue("Child").leakingObject.labels).contains(
-      "Also retained by leaking object $parentObjectId (Parent), which has its own leak trace"
+      "Also retained by leaking object ${parentObjectId.asObjectIdString()} (Parent), which has its own leak trace"
     )
     assertThat(leakTraces.getValue("Parent").leakingObject.labels).noneMatch {
       it.startsWith("Also retain")

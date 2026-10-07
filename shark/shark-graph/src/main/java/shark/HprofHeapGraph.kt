@@ -159,7 +159,7 @@ class HprofHeapGraph internal constructor(
 
   override fun findObjectById(objectId: Long): HeapObject {
     return findObjectByIdOrNull(objectId) ?: throw IllegalArgumentException(
-      "Object id $objectId not found in heap dump."
+      "Object id ${objectId.asObjectIdString()} not found in heap dump."
     )
   }
 

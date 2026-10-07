@@ -263,3 +263,7 @@ public final class shark/HprofIndex$Companion {
 	public static synthetic fun indexRecordsOf$default (Lshark/HprofIndex$Companion;Lshark/DualSourceProvider;Lshark/HprofHeader;Lshark/ProguardMapping;Ljava/util/Set;Lshark/CancelSignal;ILjava/lang/Object;)Lshark/HprofIndex;
 }
 
+public final class shark/ObjectIdFormattingKt {
+	public static final fun asObjectIdString (J)Ljava/lang/String;
+}
+

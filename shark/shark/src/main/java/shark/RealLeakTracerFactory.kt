@@ -496,7 +496,7 @@ class RealLeakTracerFactory constructor(
   ): List<String> {
     val subLeakedLabels = groupByClassName(subLeakedObjectIds).map { (className, objectIds) ->
       if (objectIds.size == 1) {
-        "Also retains leaking object ${objectIds.single()} ($className)"
+        "Also retains leaking object ${objectIds.single().asObjectIdString()} ($className)"
       } else {
         "Also retains ${objectIds.size} leaking $className objects"
       }
@@ -506,7 +506,7 @@ class RealLeakTracerFactory constructor(
     val alsoRetainingLabels =
       groupByClassName(alsoRetainingObjectIds).map { (className, objectIds) ->
         if (objectIds.size == 1) {
-          "Also retained by leaking object ${objectIds.single()} ($className), which has its own" +
+          "Also retained by leaking object ${objectIds.single().asObjectIdString()} ($className), which has its own" +
             " leak trace"
         } else {
           "Also retained by ${objectIds.size} leaking $className objects, which have their own" +

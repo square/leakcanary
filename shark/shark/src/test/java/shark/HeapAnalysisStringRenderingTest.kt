@@ -171,7 +171,7 @@ class HeapAnalysisStringRenderingTest {
       |Please include this in bug reports and Stack Overflow questions.
       |
       |Analysis duration: \d* ms
-      |Heap dump file path: ${hprofFile.absolutePath}
+      |Heap dump file path: ${Pattern.quote(hprofFile.absolutePath)}
       |Heap dump timestamp: \d*
       |Heap dump duration: Unknown
       |===================================="""
