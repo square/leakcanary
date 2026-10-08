@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import shark.dive.Note
 import shark.dive.NoteBlock
-import shark.dive.NoteLink
 import shark.dive.NoteMentions
 import shark.dive.NoteReferences
 import shark.dive.NoteSpan
@@ -37,8 +36,8 @@ import shark.dive.NoteSpan
  * marked as asked and never answered, for every other text that mentions them.
  */
 internal class NoteReader(
-  /** Where clicking a link in the text goes. See [HeapDumpDive]. */
-  val onLink: (NoteLink) -> Unit,
+  /** What the links in the text do. See [HeapDumpDive]. */
+  val links: NoteLinks,
   private val scope: CoroutineScope,
   /** What the heap dump has for [NoteMentions], which is a read of it. See [shark.dive.referencesOf]. */
   private val read: suspend (NoteMentions) -> NoteReferences
@@ -99,7 +98,7 @@ internal fun ProseText(
   val resolved = if (isAboutThisHeapDump) note.resolvedWith(reader.references) else note
   Column {
     resolved.blocks.ledBy(lead).forEach { block ->
-      NoteBlockView(block, reader.onLink, style, color)
+      NoteBlockView(block, reader.links, style, color)
     }
   }
 }

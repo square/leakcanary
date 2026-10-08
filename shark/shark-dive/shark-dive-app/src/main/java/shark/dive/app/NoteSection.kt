@@ -1,5 +1,8 @@
 package shark.dive.app
 
+import androidx.compose.foundation.ContextMenuArea
+import androidx.compose.foundation.ContextMenuItem
+import androidx.compose.foundation.ContextMenuState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,16 +21,28 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerButton
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -76,8 +91,8 @@ import shark.dive.hexObjectId
 @Composable
 internal fun NoteSection(
   notes: PlaceNotes,
-  /** Where clicking a link in the written note goes. See [HeapDumpDive]. */
-  onLink: (NoteLink) -> Unit,
+  /** What the links in the written note do. See [HeapDumpDive]. */
+  links: NoteLinks,
   /** How tall it has been dragged to, and where a drag of its bottom edge goes. See [PanesState]. */
   height: Dp,
   onResize: (Dp) -> Unit,
@@ -103,7 +118,7 @@ internal fun NoteSection(
         notes.text.isNotEmpty() -> WrittenNote(
           notes = notes,
           height = height,
-          onLink = onLink,
+          links = links,
           onEdit = { notes.edit() }
         )
         // Only a problem to report, which is a note that could not be read: the section is the one place
@@ -162,7 +177,7 @@ internal fun AddNoteButton(
 private fun WrittenNote(
   notes: PlaceNotes,
   height: Dp,
-  onLink: (NoteLink) -> Unit,
+  links: NoteLinks,
   onEdit: () -> Unit
 ) {
   Row(
@@ -177,7 +192,7 @@ private fun WrittenNote(
       verticalArrangement = Arrangement.spacedBy(BLOCK_SPACING)
     ) {
       notes.note.blocks.forEach { block ->
-        NoteBlockView(block, onLink)
+        NoteBlockView(block, links)
       }
     }
     Hint(EDIT_NOTE_HINT) {
@@ -272,20 +287,20 @@ private fun Modifier.noteHeight(
 @Composable
 internal fun NoteBlockView(
   block: NoteBlock,
-  onLink: (NoteLink) -> Unit,
+  links: NoteLinks,
   style: TextStyle = MaterialTheme.typography.bodyMedium,
   color: Color = Color.Unspecified
 ) {
   when (block) {
-    is NoteBlock.Paragraph -> NoteText(block.spans, style, onLink, color)
-    is NoteBlock.Heading -> NoteText(block.spans, headingStyle(block.level), onLink, color)
+    is NoteBlock.Paragraph -> NoteText(block.spans, style, links, color)
+    is NoteBlock.Heading -> NoteText(block.spans, headingStyle(block.level), links, color)
     is NoteBlock.Item -> Row(Modifier.padding(start = INDENT_WIDTH * block.depth)) {
       Text(block.marker, Modifier.width(MARKER_WIDTH), style = style, color = MUTED_TEXT)
-      NoteText(block.spans, style, onLink, color)
+      NoteText(block.spans, style, links, color)
     }
     is NoteBlock.Quote -> Row {
       Text(QUOTE_BAR, style = style, color = MUTED_TEXT)
-      NoteText(block.spans, style, onLink, color = MUTED_TEXT)
+      NoteText(block.spans, style, links, color = MUTED_TEXT)
     }
     is NoteBlock.Code -> Surface(color = MaterialTheme.colorScheme.surfaceVariant) {
       Text(
@@ -300,24 +315,125 @@ internal fun NoteBlockView(
 }
 
 /**
- * One block's worth of styled text, with a click handler on every span that leads somewhere.
+ * What the links in a piece of markdown do: where a click on one goes, and what its right click menu copies.
+ *
+ * One value for every surface that draws markdown — a note, a page of the reference, a library leak's
+ * description, a verdict's reason, an agent's reason, an inspector's label — so that a link reads the same
+ * wherever it is. The window supplies it. See [HeapDumpDive].
+ */
+internal class NoteLinks(
+  /**
+   * A click on [NoteLink], and which gesture it was. A plain click is [OpenIn.CURRENT_TAB]; a middle click, a
+   * ⌘ or Ctrl click and "Open in a new tab" are [OpenIn.NEW_TAB].
+   */
+  val onOpen: (NoteLink, OpenIn) -> Unit,
+  /** "Copy link" on [NoteLink]: the URL it was written as, or a `shark://` link to the object it names. */
+  val onCopy: (NoteLink) -> Unit
+)
+
+/**
+ * One block's worth of styled text, where every span that leads somewhere answers the gestures that every
+ * other way to a place in this window answers. See [OpenIn].
  *
  * Through [LinkAnnotation], which is what makes part of a line clickable at all: a `Text` is one node, so a
- * link inside a sentence cannot be a composable of its own.
+ * link inside a sentence cannot be a composable of its own. A link annotation hears a plain click and nothing
+ * else, so [openable] and [OpenTarget] can't be used here. The middle click, the ⌘ click and the right click
+ * are read off the pointer instead, and matched to the span under it through the laid out text.
+ *
+ * They are read before the link sees them, and only over a link. A press anywhere else in the text is left
+ * alone, so a reason drawn inside a row that leads somewhere still opens that row's menu on a right click.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun NoteText(
   spans: List<NoteSpan>,
   style: TextStyle,
-  onLink: (NoteLink) -> Unit,
+  links: NoteLinks,
   color: Color = Color.Unspecified
 ) {
-  Text(annotatedNote(spans, onLink), style = style, color = color)
+  var laidOut by remember { mutableStateOf<TextLayoutResult?>(null) }
+  var menuLink by remember { mutableStateOf<NoteLink?>(null) }
+  val menu = remember { ContextMenuState() }
+  // Never opened by its own right click detection, which would open on any press inside the text and swallow
+  // it. It opens below, and only over a link.
+  ContextMenuArea(
+    items = { menuLink?.let { links.menuItems(it) }.orEmpty() },
+    state = menu,
+    enabled = false
+  ) {
+    Text(
+      annotatedNote(spans) { link -> links.onOpen(link, OpenIn.CURRENT_TAB) },
+      Modifier.pointerInput(spans, links) {
+        awaitPointerEventScope {
+          while (true) {
+            // The initial pass, so that this sees a press before the link under it does and can keep a ⌘ click
+            // from also reaching it as a plain one.
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            if (event.type != PointerEventType.Press) {
+              continue
+            }
+            val position = event.changes.first().position
+            val link = laidOut?.let { spans.linkAt(it, position) } ?: continue
+            when {
+              event.button == PointerButton.Secondary -> {
+                menuLink = link
+                menu.status = ContextMenuState.Status.Open(Rect(position, 0f))
+              }
+              event.openIn() == OpenIn.NEW_TAB -> links.onOpen(link, OpenIn.NEW_TAB)
+              // A plain click, which the link answers itself.
+              else -> continue
+            }
+            event.changes.forEach { it.consume() }
+          }
+        }
+      },
+      style = style,
+      color = color,
+      onTextLayout = { laidOut = it }
+    )
+  }
+}
+
+/**
+ * What the right click menu on [link] offers.
+ *
+ * "Open in a new tab" only for an object, the one kind of link that opens in a tab of this window. A
+ * `shark://` link opens in whichever window has its heap dump, and anything else leaves the app.
+ */
+private fun NoteLinks.menuItems(link: NoteLink): List<ContextMenuItem> = listOfNotNull(
+  if (link is NoteLink.Object) ContextMenuItem(OPEN_IN_NEW_TAB) { onOpen(link, OpenIn.NEW_TAB) } else null,
+  ContextMenuItem(COPY_LINK) { onCopy(link) }
+)
+
+/**
+ * The link drawn under [position], and null when the pointer is on plain text or on the space around it.
+ *
+ * The closest gap between two characters is all the layout says about a point, so the character under the
+ * pointer is whichever of the two either side of that gap contains it. Past the end of a line, neither does.
+ */
+private fun List<NoteSpan>.linkAt(
+  laidOut: TextLayoutResult,
+  position: Offset
+): NoteLink? {
+  val gap = laidOut.getOffsetForPosition(position)
+  val length = laidOut.layoutInput.text.length
+  val under = listOf(gap - 1, gap).firstOrNull { offset ->
+    offset in 0 until length && laidOut.getBoundingBox(offset).contains(position)
+  } ?: return null
+  var start = 0
+  for (span in this) {
+    val end = start + span.text.length
+    if (under < end) {
+      return span.link
+    }
+    start = end
+  }
+  return null
 }
 
 private fun annotatedNote(
   spans: List<NoteSpan>,
-  onLink: (NoteLink) -> Unit
+  onClick: (NoteLink) -> Unit
 ): AnnotatedString = buildAnnotatedString {
   spans.forEach { span ->
     val link = span.link
@@ -328,7 +444,7 @@ private fun annotatedNote(
         LinkAnnotation.Clickable(
           tag = link.tag(),
           styles = TextLinkStyles(SpanStyle(color = LINK_COLOR)),
-          linkInteractionListener = { onLink(link) }
+          linkInteractionListener = { onClick(link) }
         )
       ) {
         withStyle(span.spanStyle()) { append(span.text) }

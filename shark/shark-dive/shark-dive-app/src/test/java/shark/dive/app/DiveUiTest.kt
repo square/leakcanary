@@ -3,13 +3,16 @@ package shark.dive.app
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.MouseInjectionScope
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.v2.runSkikoComposeUiTest
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 
 /**
@@ -82,4 +85,20 @@ internal fun ComposeUiTest.stackRow(
 internal fun MouseInjectionScope.hover(offset: Offset) {
   moveTo(offset + Offset(1f, 1f))
   moveTo(offset)
+}
+
+/**
+ * Where the first link in this text is drawn, from the text's top left corner: the middle of its first
+ * character.
+ *
+ * A link is part of a line rather than a node of its own, so a gesture about the link has to land on it, and
+ * the middle of the text is wherever the line happens to put it. Asked of a node of the unmerged tree, since
+ * that is the text that was laid out.
+ */
+internal fun SemanticsNodeInteraction.firstLinkPosition(): Offset {
+  val laidOut = mutableListOf<TextLayoutResult>()
+  fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action!!.invoke(laidOut)
+  val text = laidOut.single().layoutInput.text
+  val link = text.getLinkAnnotations(0, text.length).first()
+  return laidOut.single().getBoundingBox(link.start).center
 }

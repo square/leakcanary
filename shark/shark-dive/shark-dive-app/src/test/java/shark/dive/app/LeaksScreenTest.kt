@@ -420,7 +420,10 @@ class LeaksScreenTest {
   /** What a screen drawn on its own, outside any window, reads its prose with: nothing is asked or followed. */
   @Composable
   private fun windowlessReader() =
-    NoteReader(onLink = {}, scope = rememberCoroutineScope()) { NoteReferences.NONE }
+    NoteReader(
+      links = NoteLinks(onOpen = { _, _ -> }, onCopy = {}),
+      scope = rememberCoroutineScope()
+    ) { NoteReferences.NONE }
 
   companion object {
     /** The two destroyed activities and the watched object of [leakyHeapDump]. */

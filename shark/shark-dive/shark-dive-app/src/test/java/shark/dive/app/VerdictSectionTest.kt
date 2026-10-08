@@ -5,10 +5,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.MouseButton
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnySibling
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
@@ -17,7 +23,9 @@ import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performFirstLinkClick
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import java.io.File
 import org.assertj.core.api.Assertions.assertThat
@@ -27,6 +35,7 @@ import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ReferenceHolder
+import shark.dive.DeepLink
 import shark.dump
 import shark.dive.Adb
 import shark.dive.AdbOutput
@@ -296,6 +305,59 @@ class VerdictSectionTest {
   }
 
   /**
+   * A verdict this one disagrees with leads to the object it is about, so it answers the gestures every other
+   * way to an object does.
+   */
+  @Test fun `a verdict this one disagrees with opens in a tab behind from its menu`() {
+    diveUiTest {
+      openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
+      disagreeWithTheHolder()
+
+      onNodeWithText("$HOLDER_NAME $CONFLICT_ABOVE").performMouseInput { rightClick() }
+      onNodeWithText(OPEN_IN_NEW_TAB).performClick()
+
+      waitUntilAtLeastOneExists(tabOn(heapDump.holderObjectId), OPEN_TIMEOUT_MILLIS)
+      onNode(tabOn(heapDump.activityObjectId)).assertIsSelected()
+      onNodeWithText(SOLVE_CONFLICTS).assertIsDisplayed()
+    }
+  }
+
+  @Test fun `a verdict this one disagrees with copies a link to its object from its menu`() {
+    val copied = mutableListOf<String>()
+    diveUiTest {
+      openHeapDump(setAlready = { holderIsLeaking() }, copyToClipboard = { copied += it }) {
+        it.activityObjectId
+      }
+      disagreeWithTheHolder()
+
+      onNodeWithText("$HOLDER_NAME $CONFLICT_ABOVE").performMouseInput { rightClick() }
+      onNodeWithText(COPY_LINK).performClick()
+
+      assertThat(copied).containsExactly(DeepLink(heapDump.file, Place.Object(heapDump.holderObjectId)).toUri())
+    }
+  }
+
+  /**
+   * A reason only answers a right click on its links. Anywhere else in it, the click belongs to the row the
+   * reason is drawn in.
+   */
+  @Test fun `right clicking the reason of a verdict this one disagrees with opens the row's menu`() {
+    diveUiTest {
+      openHeapDump(setAlready = { holderIsLeaking() }) { it.activityObjectId }
+      disagreeWithTheHolder()
+
+      // The reason in the dialog rather than the same one on the holder's step of the path, under the scrim.
+      onNode(
+        hasText(HOLDER_REASON, substring = true) and hasAnySibling(hasText("$HOLDER_NAME $CONFLICT_ABOVE")),
+        useUnmergedTree = true
+      ).performMouseInput { rightClick() }
+      onNodeWithText(OPEN_IN_NEW_TAB).performClick()
+
+      waitUntilAtLeastOneExists(tabOn(heapDump.holderObjectId), OPEN_TIMEOUT_MILLIS)
+    }
+  }
+
+  /**
    * And why two verdicts can disagree at all, which is a paragraph read once above a list read every time.
    *
    * The `?` everywhere else in the window opens the reference in a tab, and that is exactly what a dialog
@@ -338,6 +400,54 @@ class VerdictSectionTest {
 
       // A tab of its own, the way a link in a note opens one.
       waitUntilAtLeastOneExists(tabOn(heapDump.holderObjectId), RENDER_TIMEOUT_MILLIS)
+    }
+  }
+
+  /**
+   * The same menu every other way to an object has, though the address is part of a sentence rather than a row
+   * of its own. See [OpenTarget].
+   */
+  @Test fun `an address in a reason opens in a tab behind from its menu`() {
+    diveUiTest {
+      openHeapDump { it.activityObjectId }
+      keptOnPurposeByTheHolder()
+
+      val reason = reasonNamingTheHolder()
+      reason.performMouseInput { rightClick(reason.firstLinkPosition()) }
+      onNodeWithText(OPEN_IN_NEW_TAB).performClick()
+
+      // Behind, the way the menu opens a tab everywhere else, unlike a plain click on the address.
+      waitUntilAtLeastOneExists(tabOn(heapDump.holderObjectId), RENDER_TIMEOUT_MILLIS)
+      onNode(tabOn(heapDump.activityObjectId)).assertIsSelected()
+      onNode(tabOn(heapDump.holderObjectId)).assertIsNotSelected()
+    }
+  }
+
+  @Test fun `an address in a reason copies a link to that object from its menu`() {
+    val copied = mutableListOf<String>()
+    diveUiTest {
+      openHeapDump(copyToClipboard = { copied += it }) { it.activityObjectId }
+      keptOnPurposeByTheHolder()
+
+      val reason = reasonNamingTheHolder()
+      reason.performMouseInput { rightClick(reason.firstLinkPosition()) }
+      onNodeWithText(COPY_LINK).performClick()
+
+      // The link the holder's own menu copies anywhere else in the window.
+      assertThat(copied).containsExactly(DeepLink(heapDump.file, Place.Object(heapDump.holderObjectId)).toUri())
+    }
+  }
+
+  @Test fun `middle clicking an address in a reason opens it in a tab behind`() {
+    diveUiTest {
+      openHeapDump { it.activityObjectId }
+      keptOnPurposeByTheHolder()
+
+      val reason = reasonNamingTheHolder()
+      reason.performMouseInput { click(reason.firstLinkPosition(), MouseButton.Tertiary) }
+
+      waitUntilAtLeastOneExists(tabOn(heapDump.holderObjectId), RENDER_TIMEOUT_MILLIS)
+      onNode(tabOn(heapDump.activityObjectId)).assertIsSelected()
     }
   }
 
@@ -387,6 +497,7 @@ class VerdictSectionTest {
   private fun ComposeUiTest.openHeapDump(
     setAlready: () -> Unit = {},
     openUrl: (String) -> Unit = {},
+    copyToClipboard: (String) -> Unit = {},
     objectId: (LeakyPathHeapDump) -> Long? = { null }
   ) {
     heapDump = testFolder.leakyPathHeapDump()
@@ -402,6 +513,8 @@ class VerdictSectionTest {
           verdicts = DiveVerdicts(verdictsRoot),
           // Never this machine's browser, which a link in a reason would otherwise open.
           openUrl = openUrl,
+          // Nor its clipboard, which "Copy link" would otherwise write over.
+          copyToClipboard = copyToClipboard,
           // Nothing here opens a second heap dump, and which window one would land in is
           // `DiveWindowTest`'s.
           onHeapDumpChosen = { _, _ -> },
@@ -429,6 +542,30 @@ class VerdictSectionTest {
     waitUntilAtLeastOneExists(pencil and isEnabled(), RENDER_TIMEOUT_MILLIS)
     onNode(pencil).performClick()
     onNodeWithText(settingVerdictTitle(ACTIVITY_NAME)).assertIsDisplayed()
+  }
+
+  /** Sets the activity to expected, kept by the holder, which names the holder by its address. */
+  private fun ComposeUiTest.keptOnPurposeByTheHolder() {
+    changeVerdict()
+    choose(Verdict.EXPECTED)
+    write("kept on purpose by ${hexObjectId(heapDump.holderObjectId)}")
+    set()
+    waitUntilAtLeastOneExists(hasText(holderNamedInTheReason(), substring = true), SAVE_TIMEOUT_MILLIS)
+  }
+
+  /** The text of the reason [keptOnPurposeByTheHolder] wrote, in the panel or on the path. */
+  private fun ComposeUiTest.reasonNamingTheHolder(): SemanticsNodeInteraction =
+    onAllNodes(hasText(holderNamedInTheReason(), substring = true), useUnmergedTree = true).onFirst()
+
+  private fun holderNamedInTheReason() = "kept on purpose by $HOLDER_NAME (${hexObjectId(heapDump.holderObjectId)})"
+
+  /** Sets the activity to expected while the holder is set to stuck, which the dialog lists before writing. */
+  private fun ComposeUiTest.disagreeWithTheHolder() {
+    changeVerdict()
+    choose(Verdict.EXPECTED)
+    write(TYPED_REASON)
+    set()
+    waitUntilAtLeastOneExists(hasText("$HOLDER_NAME $CONFLICT_ABOVE"), SAVE_TIMEOUT_MILLIS)
   }
 
   /** Picks one of the three verdicts, by the row it is on rather than by the mark beside it. */

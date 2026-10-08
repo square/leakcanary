@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performFirstLinkClick
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.waitUntilAtLeastOneExists
 import androidx.compose.ui.test.waitUntilDoesNotExist
 import androidx.compose.ui.test.waitUntilExactlyOneExists
@@ -176,6 +177,26 @@ class NoteSectionTest {
       onNodeWithText("square/leakcanary#2841").performClick()
 
       assertThat(opened).containsExactly(url)
+    }
+  }
+
+  /** A link out of the app has no tab of this window to open in, so its menu is the link and nothing else. */
+  @Test fun `a web link's menu copies it as it was written`() {
+    val copied = mutableListOf<String>()
+    val url = "https://github.com/square/leakcanary/issues/2841"
+    diveUiTest {
+      openHeapDump(copyToClipboard = { copied += it })
+      startNote()
+      write(url)
+      save()
+      waitUntilAtLeastOneExists(hasText("square/leakcanary#2841"), RENDER_TIMEOUT_MILLIS)
+
+      val link = onNode(hasText("square/leakcanary#2841"), useUnmergedTree = true)
+      link.performMouseInput { rightClick(link.firstLinkPosition()) }
+
+      onNodeWithText(OPEN_IN_NEW_TAB).assertDoesNotExist()
+      onNodeWithText(COPY_LINK).performClick()
+      assertThat(copied).containsExactly(url)
     }
   }
 
@@ -370,7 +391,8 @@ class NoteSectionTest {
     heapDumpFile: File = testHeapDump(),
     notesRoot: File = testFolder.newFolder("notes"),
     openUrl: (String) -> Unit = {},
-    followDeepLink: (DeepLink) -> Unit = {}
+    followDeepLink: (DeepLink) -> Unit = {},
+    copyToClipboard: (String) -> Unit = {}
   ) {
     setContent {
       MaterialTheme {
@@ -381,6 +403,7 @@ class NoteSectionTest {
           notes = DiveNotes(notesRoot),
           openUrl = openUrl,
           followDeepLink = followDeepLink,
+          copyToClipboard = copyToClipboard,
           // Nothing here opens a second heap dump, and which window one would land in is
           // `DiveWindowTest`'s.
           onHeapDumpChosen = { _, _ -> },

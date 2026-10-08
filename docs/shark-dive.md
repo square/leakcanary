@@ -102,7 +102,8 @@ the front and opens that place in a new tab.
 
 It sits beside "open in a new tab" everywhere that offers one: a tab, a button along the top, a rectangle
 of the map, a row of the object list or of the leaks, a step of a path, a field of the details panel, a
-starred object. Wherever the window will take you somewhere, it will also hand you the link to it.
+starred object, a link written in a note or a reason. Wherever the window will take you somewhere, it will
+also hand you the link to it.
 
 ```
 shark://bug-4821.hprof/object?id=0x7f2a4b18
@@ -175,6 +176,11 @@ this heap dump recognises becomes a way back into the window**:
 | `shark://bug-4821.hprof/leaks` | `Leaks` | Follows the link, like clicking it anywhere else |
 | `https://github.com/square/leakcanary/issues/2841` | `square/leakcanary#2841` | Opens it in your browser |
 | `[Owner.kt:42](idea://open?file=/path/to/Owner.kt&line=42)` | `Owner.kt:42` | Opens the file at that line in Android Studio |
+
+A class or an object opens in front, because the note is what you are reading from. Middle click or ⌘/Ctrl
+click it to open it behind instead, or right click it for **Open in a new tab** and **Copy link**, the same
+menu as anywhere else in the window. Right clicking any other link offers **Copy link**, which copies it as
+it was written.
 
 On macOS a link of any other scheme opens in whichever app has that scheme, so
 `vscode://file/path/to/Owner.kt:42` opens VS Code instead. On Windows every link goes to your browser first,

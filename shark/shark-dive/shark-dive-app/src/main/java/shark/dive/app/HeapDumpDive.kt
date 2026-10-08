@@ -722,16 +722,22 @@ internal fun HeapDumpDive(
    */
   val openHovered: (OpenIn) -> Unit = { openIn -> hovered?.place?.let { open(it, openIn) } }
   /**
+   * Where every "copy link" ends up, whatever it links to.
+   *
+   * In the log as well as on the clipboard, so that a link someone reports as not working can be compared
+   * against the one this window actually handed out.
+   */
+  val copyUri: (String) -> Unit = { uri ->
+    SharkLog.d { "Copied $uri" }
+    copyToClipboard(uri)
+  }
+  /**
    * Where every "copy link" about another heap dump ends up, which the *Agent logs* screens are full of: a
    * link is a heap dump and a place, so a row about a dump this window hasn't got is something to send as
    * well as something to click. See [shark.dive.DeepLink].
    */
   val copyHeapDumpLink: (File, Place) -> Unit = { heapDumpFile, destination ->
-    val link = DeepLink(heapDumpFile, destination).toUri()
-    // In the log as well as on the clipboard, so that a link someone reports as not working can be compared
-    // against the one this window actually handed out.
-    SharkLog.d { "Copied $link" }
-    copyToClipboard(link)
+    copyUri(DeepLink(heapDumpFile, destination).toUri())
   }
   /**
    * And for this window's own heap dump, which is every other "copy link" there is, for the same reason
@@ -746,24 +752,56 @@ internal fun HeapDumpDive(
   /** And for the view's right click menu, which is on whatever the pointer is on. */
   val copyHoveredLink: () -> Unit = { hovered?.place?.let { copyLink(it) } }
   /**
-   * Where a link written in the notes goes: out to whichever app the OS opens it with, into whichever window
-   * a `shark://` link names, or to an object of this heap dump.
+   * Where a way to an object goes when it is drawn inside something being read: a link in a note or a reason,
+   * and a verdict that the one being set disagrees with.
    *
-   * An object opens a tab in front, like a button on the bar rather than like a row of a list: the notes
-   * are what the reader is working from, and replacing them with the object they just linked to would take
-   * away the thing they are reading. A `shark://` link is followed the way one arriving from outside the
-   * app is, which is the whole point of it being the same link.
+   * A plain click opens a tab in front, like a button on the bar rather than like a row of a list. The note or
+   * the dialog is what the reader is working from, and replacing it with the object it names would take away
+   * the thing they are reading. Asking for a new tab still parks it behind, as it does everywhere else.
    */
-  val followNoteLink: (NoteLink) -> Unit = { link ->
+  val openBeside: (Place, OpenIn) -> Unit = { destination, openIn ->
+    when (openIn) {
+      OpenIn.CURRENT_TAB -> openInNewTab(destination)
+      OpenIn.NEW_TAB -> open(destination, OpenIn.NEW_TAB)
+    }
+  }
+  /**
+   * Where a link written in the notes goes: out to whichever app the OS opens it with, into whichever window
+   * a `shark://` link names, or to an object of this heap dump. See [openBeside] for the last.
+   *
+   * A `shark://` link is followed the way one arriving from outside the app is, so it works the same whether
+   * it was clicked here or in a chat message. Neither of the first two has a tab of this window to open
+   * behind, so a middle click follows them like a plain one.
+   */
+  val followNoteLink: (NoteLink, OpenIn) -> Unit = { link, openIn ->
     when (link) {
       is NoteLink.External -> openUrl(link.url)
       is NoteLink.Deep -> followDeepLink(link.deepLink)
-      is NoteLink.Object -> openInNewTab(Place.Object(link.objectId))
+      is NoteLink.Object -> openBeside(Place.Object(link.objectId), openIn)
     }
   }
-  // Through the latest one, because the reader below is remembered across compositions and a link in a
+  /**
+   * And "Copy link" on one: the URL as it was written, or the `shark://` link the object's own menu copies
+   * everywhere else in the window.
+   */
+  val copyNoteLink: (NoteLink) -> Unit = { link ->
+    when (link) {
+      is NoteLink.External -> copyUri(link.url)
+      is NoteLink.Deep -> copyUri(link.deepLink.toUri())
+      is NoteLink.Object -> copyObjectLink(link.objectId)
+    }
+  }
+  // Through the latest ones, because what reads them below is remembered across compositions and a link in a
   // reason has to go wherever one in a note would go now.
   val currentFollowNoteLink by rememberUpdatedState(followNoteLink)
+  val currentCopyNoteLink by rememberUpdatedState(copyNoteLink)
+  /** What every link written in this window does: in the notes, the reference, the reasons and the labels. */
+  val noteLinks = remember {
+    NoteLinks(
+      onOpen = { link, openIn -> currentFollowNoteLink(link, openIn) },
+      onCopy = { link -> currentCopyNoteLink(link) }
+    )
+  }
   val readingReasons = rememberCoroutineScope()
   /**
    * What the reasons in this window are read with, the verdicts' and the agents'. One per heap dump, so a name
@@ -771,7 +809,7 @@ internal fun HeapDumpDive(
    */
   val noteReader = remember(session) {
     NoteReader(
-      onLink = { link -> currentFollowNoteLink(link) },
+      links = noteLinks,
       scope = readingReasons
     ) { mentions ->
       session.read("what the reasons on screen mention") { dive -> dive.tree.referencesOf(mentions) }
@@ -847,7 +885,7 @@ internal fun HeapDumpDive(
     if (tabNote != null) {
       NoteSection(
         notes = tabNote.notes,
-        onLink = followNoteLink,
+        links = noteLinks,
         height = panes.noteHeight,
         onResize = { delta -> panes.resizeNote(delta) }
       )
@@ -992,7 +1030,8 @@ internal fun HeapDumpDive(
           onClear = { verdicts.clear(setting.objectVerdict.objectId) },
           // In a tab of its own and in front, the way a `?` opens a page: going to look at a verdict this
           // one disagrees with is reading, and the tab it was left in keeps what was typed into it.
-          onOpenObject = { objectId -> openInNewTab(Place.Object(objectId)) },
+          onOpenObject = { objectId, openIn -> openBeside(Place.Object(objectId), openIn) },
+          onCopyLink = copyObjectLink,
           noteReader = noteReader,
           onExplain = explain,
           onDone = { tabs.selectedId?.let { settingVerdicts.remove(it) } }
@@ -1326,7 +1365,7 @@ private fun ListPlace(
       page = ReferencePage.of(place.topic),
       onOpenTopic = { topic, openIn -> onOpenPlace(Place.Reference(topic), openIn) },
       onCopyTopicLink = { topic -> onCopyPlaceLink(Place.Reference(topic)) },
-      onLink = noteReader.onLink,
+      links = noteReader.links,
       modifier = modifier
     )
     is Place.AgentLogs -> AgentLogsScreen(
