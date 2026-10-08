@@ -185,7 +185,9 @@ internal fun VerdictSetter(
   /** Takes the verdict off the object, so that the heap dump says what it says about it again. */
   onClear: suspend () -> Unit,
   /** Where a verdict this one disagrees with leads: the object it is about, in a tab of its own. */
-  onOpenObject: (Long) -> Unit,
+  onOpenObject: (Long, OpenIn) -> Unit,
+  /** A link to that object, from the right click menu on the verdict. See [OpenTarget]. */
+  onCopyLink: (Long) -> Unit,
   /** What the reasons shown here are read with, the one being overruled and the ones disagreeing. */
   noteReader: NoteReader,
   /** Where the `?` on what a disagreement is goes. See [Explain]. */
@@ -264,6 +266,7 @@ internal fun VerdictSetter(
               conflicts = currentStep.conflicts,
               noteReader = noteReader,
               onOpenObject = onOpenObject,
+              onCopyLink = onCopyLink,
               onExplain = onExplain
             )
             is SetStep.Writing -> Waiting(WRITING_VERDICT)
@@ -419,7 +422,8 @@ private fun Conflicts(
   requested: VerdictOverride,
   conflicts: List<VerdictConflict>,
   noteReader: NoteReader,
-  onOpenObject: (Long) -> Unit,
+  onOpenObject: (Long, OpenIn) -> Unit,
+  onCopyLink: (Long) -> Unit,
   onExplain: (Topic) -> Unit
 ) {
   Explain(Topic.CONFLICTING_VERDICTS, onExplain) {
@@ -431,29 +435,33 @@ private fun Conflicts(
     )
   }
   conflicts.forEach { conflict ->
-    Column(
-      Modifier.fillMaxWidth()
-        .clickableRow { onOpenObject(conflict.existing.objectId) }
-        .padding(vertical = 4.dp)
-    ) {
-      Text(
-        "${conflict.objectName} ${if (conflict.isAbove) CONFLICT_ABOVE else CONFLICT_BELOW}",
-        style = MaterialTheme.typography.bodyMedium,
-        fontWeight = FontWeight.Bold,
-        color = LINK_COLOR
-      )
-      ProseText(
-        text = conflict.existing.reason,
-        reader = noteReader,
-        style = MaterialTheme.typography.bodySmall,
-        color = conflict.existing.verdict.textColor,
-        lead = "${conflict.existing.verdict.text}: "
-      )
-      Text(
-        "$CONFLICT_BECOMES ${conflict.solved.verdict.text}",
-        style = MaterialTheme.typography.bodySmall,
-        color = conflict.solved.verdict.textColor
-      )
+    val objectId = conflict.existing.objectId
+    val open: (OpenIn) -> Unit = { openIn -> onOpenObject(objectId, openIn) }
+    OpenTarget(open, { onCopyLink(objectId) }) {
+      Column(
+        Modifier.fillMaxWidth()
+          .openable(open)
+          .padding(vertical = 4.dp)
+      ) {
+        Text(
+          "${conflict.objectName} ${if (conflict.isAbove) CONFLICT_ABOVE else CONFLICT_BELOW}",
+          style = MaterialTheme.typography.bodyMedium,
+          fontWeight = FontWeight.Bold,
+          color = LINK_COLOR
+        )
+        ProseText(
+          text = conflict.existing.reason,
+          reader = noteReader,
+          style = MaterialTheme.typography.bodySmall,
+          color = conflict.existing.verdict.textColor,
+          lead = "${conflict.existing.verdict.text}: "
+        )
+        Text(
+          "$CONFLICT_BECOMES ${conflict.solved.verdict.text}",
+          style = MaterialTheme.typography.bodySmall,
+          color = conflict.solved.verdict.textColor
+        )
+      }
     }
   }
 }

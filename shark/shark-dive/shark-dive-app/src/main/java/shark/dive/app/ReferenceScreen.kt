@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import shark.dive.NoteLink
 import shark.dive.ReferencePage
 import shark.dive.Topic
 
@@ -34,8 +33,8 @@ internal fun ReferenceScreen(
   page: ReferencePage,
   onOpenTopic: (Topic, OpenIn) -> Unit,
   onCopyTopicLink: (Topic) -> Unit,
-  /** Where a link written in the reference goes: out to a browser, or into this heap dump. */
-  onLink: (NoteLink) -> Unit,
+  /** What a link written in the reference does: out to a browser, or into this heap dump. */
+  links: NoteLinks,
   modifier: Modifier = Modifier
 ) {
   Surface(modifier, color = MaterialTheme.colorScheme.surface) {
@@ -51,7 +50,7 @@ internal fun ReferenceScreen(
       ) {
         Text(page.title, style = MaterialTheme.typography.titleLarge)
         page.blocks.forEach { block ->
-          NoteBlockView(block, onLink)
+          NoteBlockView(block, links)
         }
       }
       HorizontalDivider(Modifier.fillMaxWidth().padding(top = 8.dp))

@@ -35,7 +35,6 @@ import shark.dive.LeakKind
 import shark.dive.LeakSection
 import shark.dive.LeakingObject
 import shark.dive.Note
-import shark.dive.NoteLink
 import shark.dive.Place
 import shark.dive.Topic
 import shark.dive.WatchedObject
@@ -151,7 +150,7 @@ private fun LazyListScope.leakSection(
     val groupKey = section.kind.groupKey(group)
     val isExpanded = groupKey in expandedGroups
     val hasMore = group.objects.size > 1
-    item(key = groupKey) { GroupRow(group, onExplain, noteReader.onLink) }
+    item(key = groupKey) { GroupRow(group, onExplain, noteReader.links) }
     // The first object always: a leak is a reference, and a reference with nothing under it says
     // what shouldn't be holding without ever saying what it is holding.
     item(key = "$groupKey ${group.objects.first().objectId}") {
@@ -323,7 +322,7 @@ private fun OnTheWayOutHeader(
 private fun GroupRow(
   group: LeakGroup,
   onExplain: (Topic) -> Unit,
-  onFollowLink: (NoteLink) -> Unit
+  links: NoteLinks
 ) {
   Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
     SectionBar()
@@ -351,7 +350,7 @@ private fun GroupRow(
           // introduced the leak or the file it is in — which is where the way round it is, and which three
           // lines of ellipsized plain text was throwing away. See [Note.ofDocument].
           Note.ofDocument(subtitle).blocks.forEach { block ->
-            NoteBlockView(block, onFollowLink, MaterialTheme.typography.bodySmall, MUTED_TEXT)
+            NoteBlockView(block, links, MaterialTheme.typography.bodySmall, MUTED_TEXT)
           }
         }
         // What makes a leak something to write down: the addresses in this list are of one heap dump, and

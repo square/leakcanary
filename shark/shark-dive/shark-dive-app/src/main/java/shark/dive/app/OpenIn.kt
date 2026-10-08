@@ -133,7 +133,7 @@ internal suspend fun PointerInputScope.detectOpenPresses(onPress: (Offset, OpenI
 
 /** Which tab a press is asking for, which is the same three gestures [openable] answers. */
 @OptIn(ExperimentalComposeUiApi::class)
-private fun PointerEvent.openIn(): OpenIn = when {
+internal fun PointerEvent.openIn(): OpenIn = when {
   button == PointerButton.Tertiary -> OpenIn.NEW_TAB
   keyboardModifiers.isMetaPressed || keyboardModifiers.isCtrlPressed -> OpenIn.NEW_TAB
   else -> OpenIn.CURRENT_TAB
