@@ -42,6 +42,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.Lo
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.ObjectDominators.DominatorNode
 import shark.ObjectReporter
+import shark.ReferenceReader
 import shark.AndroidObjectInspectors
 import shark.SharkLog
 import shark.ValueHolder.BooleanHolder
@@ -109,7 +110,19 @@ class HeapDominatorTreemap internal constructor(
    * pays for a pass over the heap dump, and every question after it is answered from memory.
    */
   private val referrerIndex: ReferrerIndex by lazy {
-    ReferrerIndex.buildFor(graph, pathReferenceReader)
+    ReferrerIndex.buildFor(graph, pathReferenceReader, referencesName = "the references the tree follows")
+  }
+
+  /** Every reference [pathReferenceReader] weighs, before it drops the ones that hold nothing. */
+  private val everyReferenceReader by lazy { EveryReferenceReader(strengthReader) }
+
+  /**
+   * Which object points at each object through any reference at all, built the first time [referrersOf] is
+   * asked: one more pass over the heap dump, and an index about the size of [referrerIndex] held beside it
+   * from then on. Nothing a window draws asks for it, so a dump nobody asks that of never pays for it.
+   */
+  private val everyReferrerIndex: ReferrerIndex by lazy {
+    ReferrerIndex.buildFor(graph, everyReferenceReader, referencesName = "every reference")
   }
 
   /** Where the pixels of the heap dump's bitmaps come from, and whether it has any. */
@@ -754,6 +767,103 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
+   * Everything pointing at [objectId], [limit] of them from [offset] on: every object with a reference to it,
+   * each with every reference it points at the object through and whether the tree holds the object through
+   * that one, and every GC root on it. What holds the object comes first, a GC root ahead of an object, then
+   * the largest. So the first page says what keeps the object in memory, and the order is the same on every
+   * call, which is what makes the pages add up to the list.
+   *
+   * One step up, where [independentPathsFromRoots] walks to the roots. Two objects pointing at this one and
+   * both held by a third are one path there, since the paths share no object in between, and they are two
+   * referrers here.
+   *
+   * **This reads every reference, from an index of its own.** The index paths walk holds only the
+   * references the tree follows. Most of what points at an object holds it, but two kinds of reference
+   * don't, and a reader goes looking for both. A weak reference to an object held strongly as well is one.
+   * A reference to an object its owner already holds is the other: a running activity is owned by its
+   * activity thread, so the window, the context wrappers and the views pointing at it are all left out of
+   * the tree's graph. On `large-dump.hprof` that leaves one referrer of the 951 pointing at the running
+   * activity. See [ReferrerReference.holds].
+   *
+   * The first call for a heap dump builds that index, which is a pass over the whole dump. Every call after
+   * it sorts what the two indexes say about every referrer, then reads the objects of one page. Nothing here
+   * runs an inspector, so no verdict changes the answer.
+   */
+  fun referrersOf(
+    objectId: Long,
+    /** Where the page starts in the whole list. [ObjectReferrers.nextOffset] is the next one's. */
+    offset: Int = 0,
+    limit: Int = MAX_LISTED_OBJECTS
+  ): ObjectReferrers {
+    require(offset >= 0) { "A page of referrers starts at 0 or after it, and offset was $offset" }
+    require(limit >= 1) { "A page of referrers lists at least one, and limit was $limit" }
+    val targetIndex = everyReferrerIndex.indexOf(objectId)
+    if (objectId == root || targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
+      SharkLog.d { "Nothing points at ${hexObjectId(objectId)}: it is no object of the heap dump" }
+      return ObjectReferrers.NONE
+    }
+    val candidates = mutableListOf<ReferrerCandidate>()
+    graph.gcRoots.filter { it.id == objectId }.forEach { gcRoot ->
+      val referrer = GcRootReferrer(
+        gcRootType = LeakTrace.GcRootType.fromGcRoot(gcRoot),
+        holds = reachability.isHeldThrough(objectId, gcRoot.reachabilityStrength())
+      )
+      candidates += ReferrerCandidate(holds = referrer.holds, isGcRoot = true, retainedSize = 0L) { referrer }
+    }
+    // The tree's index has an object pointing at this one exactly when one of its references holds it, so
+    // the sort reads no object. The page is all that gets read.
+    val holdingIndexes = MutableIntSet()
+    referrerIndex.forEachReferrer(targetIndex) { referrer, _ -> holdingIndexes += referrer }
+    everyReferrerIndex.forEachReferrer(targetIndex) { referrer, _ ->
+      val referrerId = everyReferrerIndex.objectIdAt(referrer)
+      candidates += ReferrerCandidate(
+        holds = referrer in holdingIndexes,
+        isGcRoot = false,
+        retainedSize = nodes[referrerId]?.retainedSize ?: 0L
+      ) { referrerOf(referrerId, objectId) }
+    }
+    val page = candidates
+      .sortedWith(
+        compareByDescending<ReferrerCandidate> { it.holds }
+          .thenByDescending { it.isGcRoot }
+          .thenByDescending { it.retainedSize }
+      )
+      .drop(offset)
+      .take(limit)
+      .map { it.read() }
+    return ObjectReferrers(
+      referrers = page,
+      offset = offset,
+      referrerCount = candidates.size,
+      holdingReferrerCount = candidates.count { it.holds }
+    )
+  }
+
+  /** One referrer [referrersOf] found, with what it is sorted by, before an object is read into a row. */
+  private class ReferrerCandidate(
+    val holds: Boolean,
+    val isGcRoot: Boolean,
+    val retainedSize: Long,
+    val read: () -> Referrer
+  )
+
+  private fun referrerOf(
+    referrerId: Long,
+    objectId: Long
+  ): ObjectReferrer {
+    val holding = referencesFrom(pathReferenceReader, referrerId, objectId).toSet()
+    val node = nodes[referrerId]
+    // Zero for an object whose bytes are folded into another one, as on a step of a path. See [step].
+    val entry = Match(referrerId, node?.retainedSize ?: 0L, node?.shallowSize ?: 0L).entry()
+    return ObjectReferrer(
+      entry = entry,
+      references = referencesFrom(everyReferenceReader, referrerId, objectId)
+        .map { ReferrerReference(reference = it, holds = it in holding) }
+        .toList()
+    )
+  }
+
+  /**
    * Reads the heap dump to work out which object points at which, and says how many objects that
    * covered.
    *
@@ -1384,11 +1494,8 @@ class HeapDominatorTreemap internal constructor(
     referrerId: Long,
     overrides: VerdictOverrides
   ): InspectedStep {
-    val details = pathReferenceReader.read(graph.findObjectById(referrerId))
-      .firstOrNull { it.valueObjectId == objectId }
-      ?.lazyDetailsResolver
-      ?.resolve()
-    if (details == null) {
+    val reference = referencesFrom(pathReferenceReader, referrerId, objectId).firstOrNull()
+    if (reference == null) {
       // The walk found this step through the referrer index, which was built with this same reader, so a
       // step with no reference to name means the two disagree about the same pair of objects. Shows as a
       // step naming the object and not how it's held.
@@ -1397,27 +1504,36 @@ class HeapDominatorTreemap internal constructor(
           "was found through one"
       }
     }
-    return step(
-      objectId = objectId,
-      overrides = overrides,
-      reference = details?.let { resolved ->
-        PathReference(
-          name = resolved.name,
-          // The class that declares the field rather than the referrer's own class, which is what tells a
-          // field inherited from a base class apart from one the subclass added.
-          ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
-            ?.let { (it as? HeapClass)?.simpleName }
-            ?: label(referrerId),
-          locationType = resolved.locationType,
-          // Which is the whole of what the library leak matchers added to the reader do: they name the
-          // references that are known to leak, and change nothing about which of them are followed.
-          libraryLeak = resolved.matchedLibraryLeak?.let { matcher ->
-            LibraryLeakPattern(pattern = matcher.pattern.toString(), description = matcher.description)
-          }
-        )
-      }
-    )
+    return step(objectId = objectId, overrides = overrides, reference = reference)
   }
+
+  /**
+   * Every reference [referenceReader] reads from [referrerId] to [objectId], named the way a path names
+   * one. Resolved as they are asked for, since a path wants the first of them and naming one is a read.
+   */
+  private fun referencesFrom(
+    referenceReader: ReferenceReader<HeapObject>,
+    referrerId: Long,
+    objectId: Long
+  ): Sequence<PathReference> = referenceReader.read(graph.findObjectById(referrerId))
+    .filter { it.valueObjectId == objectId }
+    .map { reference ->
+      val resolved = reference.lazyDetailsResolver.resolve()
+      PathReference(
+        name = resolved.name,
+        // The class that declares the field rather than the referrer's own class, which is what tells a
+        // field inherited from a base class apart from one the subclass added.
+        ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
+          ?.let { (it as? HeapClass)?.simpleName }
+          ?: label(referrerId),
+        locationType = resolved.locationType,
+        // Which is the whole of what the library leak matchers added to the reader do: they name the
+        // references that are known to leak, and change nothing about which of them are followed.
+        libraryLeak = resolved.matchedLibraryLeak?.let { matcher ->
+          LibraryLeakPattern(pattern = matcher.pattern.toString(), description = matcher.description)
+        }
+      )
+    }
 
   private fun step(
     objectId: Long,

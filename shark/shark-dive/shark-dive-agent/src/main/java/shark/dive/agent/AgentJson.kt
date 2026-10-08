@@ -14,6 +14,7 @@ import kotlinx.serialization.json.putJsonObject
 import shark.dive.AndroidDevice
 import shark.dive.DeviceProcess
 import shark.dive.DominatorOutline
+import shark.dive.GcRootReferrer
 import shark.dive.HeapLeaks
 import shark.dive.HeapObjectSummary
 import shark.dive.HeapSizes
@@ -23,6 +24,9 @@ import shark.dive.VerdictOverrides
 import shark.dive.ObjectContent
 import shark.dive.ObjectDominator
 import shark.dive.ObjectList
+import shark.dive.ObjectListEntry
+import shark.dive.ObjectReferrer
+import shark.dive.ObjectReferrers
 import shark.dive.PathReference
 import shark.dive.PathStep
 import shark.dive.ReachabilityStrength
@@ -373,6 +377,43 @@ internal object AgentJson {
   }
 
   /**
+   * Everything pointing at one object, a page at a time. It is the first step of what [independentPaths]
+   * walks to the GC roots, taken over every reference, where a path only takes the ones the dominator tree
+   * follows.
+   *
+   * An object pointing at it is a row of [objectList] with the references it points through. A GC root on it
+   * is its type and whether it holds the object. The counts are of every referrer, whichever page this is.
+   */
+  fun referrers(referrers: ObjectReferrers): JsonObject = buildJsonObject {
+    put("referrerCount", referrers.referrerCount)
+    // So that "is this the only thing keeping it in memory?" is answered by a count. A running activity has
+    // hundreds of objects pointing at it and one that holds it, and counting that off a list is error prone.
+    put("holdingReferrerCount", referrers.holdingReferrerCount)
+    // The offset to ask for next, so that going on is a number to hand back rather than one to work out.
+    put("nextOffset", referrers.nextOffset)
+    putJsonArray("referrers") {
+      referrers.referrers.forEach { referrer ->
+        addJsonObject {
+          when (referrer) {
+            is GcRootReferrer -> {
+              put("gcRootType", referrer.gcRootType.name)
+              put("holds", referrer.holds)
+            }
+            is ObjectReferrer -> {
+              objectListEntryInto(referrer.entry)
+              putJsonArray("references") {
+                referrer.references.forEach { (reference, holds) ->
+                  addJsonObject { referenceInto(reference) { put("holds", holds) } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * The leaks screen: what is stuck in this dump, gathered the way the window gathers it.
    *
    * **Field for field what that screen shows**, which is a rule and not a coincidence: the person watching
@@ -469,18 +510,19 @@ internal object AgentJson {
     // however many rows fitted.
     put("isComplete", !list.hasMore)
     putJsonArray("objects") {
-      list.entries.forEach { entry ->
-        addJsonObject {
-          put("object", exactHexObjectId(entry.objectId))
-          put("className", entry.className)
-          put("kind", entry.kind.name)
-          objectContentInto(entry.content)
-          put("shallowBytes", entry.shallowSize)
-          put("retainedBytes", entry.retainedSize)
-          put("strength", entry.strength.name)
-        }
-      }
+      list.entries.forEach { entry -> addJsonObject { objectListEntryInto(entry) } }
     }
+  }
+
+  /** One row of a list of objects, which is also what a referrer is. See [referrers]. */
+  private fun JsonObjectBuilder.objectListEntryInto(entry: ObjectListEntry) {
+    put("object", exactHexObjectId(entry.objectId))
+    put("className", entry.className)
+    put("kind", entry.kind.name)
+    objectContentInto(entry.content)
+    put("shallowBytes", entry.shallowSize)
+    put("retainedBytes", entry.retainedSize)
+    put("strength", entry.strength.name)
   }
 
   private fun rootPathStep(
@@ -532,16 +574,29 @@ internal object AgentJson {
     reference: PathReference,
     isSuspect: Boolean
   ): JsonObject = buildJsonObject {
+    referenceInto(reference) {
+      // Whether the leak could still be this reference, which is what a path says about each of them while
+      // an investigation runs: true for the stretch the verdicts have not ruled out, and true of a single
+      // reference once they have, which is the one to go and change. `faultyReference` on the investigation
+      // is that last case named, and `leakSolved` is how to tell the two apart without counting these.
+      // PathReference.isFaulty is not here: it is this field in the one state where exactly one of them is
+      // left, so a reference carrying both would be the same fact under two names on every path.
+      put("isSuspect", isSuspect)
+    }
+  }
+
+  /**
+   * A reference as every answer here spells one, with what the answer it is on says about it after the
+   * three fields naming it: [pathReference]'s suspect, or [referrers]' `holds`.
+   */
+  private fun JsonObjectBuilder.referenceInto(
+    reference: PathReference,
+    judgement: JsonObjectBuilder.() -> Unit
+  ) {
     put("name", reference.name)
     put("ownerClassName", reference.ownerClassName)
     put("locationType", reference.locationType.name)
-    // Whether the leak could still be this reference, which is what a path says about each of them while an
-    // investigation runs: true for the stretch the verdicts have not ruled out, and true of a single
-    // reference once they have, which is the one to go and change. `faultyReference` on the investigation
-    // is that last case named, and `leakSolved` is how to tell the two apart without counting these.
-    // PathReference.isFaulty is not here: it is this field in the one state where exactly one of them is
-    // left, so a reference carrying both would be the same fact under two names on every path.
-    put("isSuspect", isSuspect)
+    judgement()
     val libraryLeak = reference.libraryLeak
     if (libraryLeak != null) {
       putJsonObject("libraryLeak") {

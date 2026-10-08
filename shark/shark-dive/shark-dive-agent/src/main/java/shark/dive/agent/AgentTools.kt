@@ -11,6 +11,7 @@ import shark.dive.DEFAULT_OUTLINE_CHILDREN
 import shark.dive.DEFAULT_OUTLINE_DEPTH
 import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectKind
+import shark.dive.ObjectReferrers
 import shark.dive.Verdict
 import shark.dive.VerdictConflict
 import shark.dive.VerdictOverride
@@ -79,6 +80,7 @@ internal class AgentTools(
     describeObject(),
     pathFromGcRoots(),
     waysHeld(),
+    referrers(),
     findObjects(),
     dominatorTree(),
     setVerdict(),
@@ -407,12 +409,13 @@ internal class AgentTools(
   }
 
   private fun waysHeld() = AgentTool(
-    name = "ways_held",
+    name = WAYS_HELD,
     summary = "Every way an object is held, rather than the one path.",
     description = "Every way an object is held, rather than the one path. It answers \"is that reference " +
       "really the only thing keeping it in memory?\", which a single path cannot, and which decides " +
       "whether clearing a field would free anything. Give `from` to ask only about the ways between that " +
-      "object and this one.",
+      "object and this one. `$REFERRERS` is the single step up: every object pointing at it, through " +
+      "every reference.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object being held."),
@@ -433,6 +436,42 @@ internal class AgentTools(
         tree.independentPathsBetween(fromObjectId, objectId, dump.verdicts)
       }
       AgentJson.independentPaths(paths)
+    }
+  }
+
+  private fun referrers() = AgentTool(
+    name = REFERRERS,
+    summary = "Every object and GC root pointing at an object, a page at a time.",
+    description = "Every object pointing at an object with each reference it points through, and every GC " +
+      "root on it, a page at a time. This is one step up, where `$WAYS_HELD` walks to the GC roots and " +
+      "keeps only paths sharing no object. So two referrers held by one parent are one way there and two " +
+      "referrers here. A GC root is a referrer with a `gcRootType` in place of an object and its " +
+      "references. `holds` is whether retained sizes and `$WAYS_HELD` count a reference or a root as " +
+      "holding the object. It is false for a weak reference to an object held strongly. It is false too " +
+      "for a reference to an object its owner holds, such as a view held by its parent. Holders come " +
+      "first, GC roots ahead of objects, then the largest retained size. `nextOffset` is where the next " +
+      "page starts, and null on the last one.",
+    schema = schema(
+      HEAP_DUMP_KEY to heapDumpArgument(),
+      OBJECT to objectIdArgument("The object pointed at."),
+      OFFSET to integer(
+        "Where the page starts in the whole list, 0 by default. The `nextOffset` of a page is the next one's."
+      ).optional(),
+      LIMIT to integer(
+        "How many referrers to list, at most ${HeapDominatorTreemap.MAX_LISTED_OBJECTS}. The counts come " +
+          "back whole whatever this is."
+      ).optional()
+    )
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val objectId = arguments.objectId(OBJECT)
+    val offset = arguments.pageOffset()
+    val limit = arguments.int(LIMIT, default = DEFAULT_LISTED_OBJECTS)
+      .coerceIn(1, HeapDominatorTreemap.MAX_LISTED_OBJECTS)
+    dump.read("what points at ${exactHexObjectId(objectId)} from $offset on, for an agent") { dive ->
+      val tree = dive.tree
+      objectId.requireOneObjectOf(tree)
+      AgentJson.referrers(tree.referrersOf(objectId, offset, limit).requireAPage(objectId))
     }
   }
 
@@ -1147,6 +1186,29 @@ private fun VerdictConflict.asSentence(): String {
     "${existing.reason} Keeping yours makes it ${solved.verdict}."
 }
 
+/** Where a page of a list starts, refused below 0. */
+private fun AgentArguments.pageOffset(): Int {
+  val offset = int(OFFSET, default = 0)
+  if (offset < 0) {
+    throw AgentRefusal("`$OFFSET` is $offset, and a page starts at 0 or after it.")
+  }
+  return offset
+}
+
+/**
+ * Refuses a page that starts past the last referrer of [objectId]. An empty page answered there would read
+ * as nothing pointing at the object.
+ */
+private fun ObjectReferrers.requireAPage(objectId: Long): ObjectReferrers {
+  if (offset > 0 && referrers.isEmpty()) {
+    throw AgentRefusal(
+      "`$OFFSET` is $offset, and ${exactHexObjectId(objectId)} has a `referrerCount` of $referrerCount. A " +
+        "page has to start below $referrerCount."
+    )
+  }
+  return this
+}
+
 /**
  * Refuses an id that is no single object of the heap dump, which is four different mistakes.
  *
@@ -1203,6 +1265,8 @@ private const val DESCRIBE_OBJECT = "describe_object"
 private const val FIND_OBJECTS = "find_objects"
 private const val DOMINATOR_TREE = "dominator_tree"
 private const val PATH_FROM_GC_ROOTS = "path_from_gc_roots"
+private const val WAYS_HELD = "ways_held"
+private const val REFERRERS = "referrers"
 private const val SET_VERDICT = "set_verdict"
 private const val READ_NOTES = "read_notes"
 private const val TAKE_NOTE = "take_note"
@@ -1277,6 +1341,7 @@ private const val CLASS_NAME = "className"
 private const val EXACT_MATCH = "exactMatch"
 private const val KINDS = "kinds"
 private const val LIMIT = "limit"
+private const val OFFSET = "offset"
 private const val VERDICT = "verdict"
 
 /**

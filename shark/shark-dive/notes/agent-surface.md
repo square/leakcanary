@@ -266,7 +266,8 @@ PowerShell command's output Claude receives inline (default 30000; values clamp 
 this is saved to a file", in the strings of `~/.local/share/claude/versions/2.1.280` — and was confirmed by
 printing 35,000 characters at a live session and reading what came back. So the number to keep an answer under
 is 30,000 characters, and every answer on this surface is under it except one: see the next section for
-`agent_log session=…`, which is 33,035.
+`agent_log session=…`, which is 33,035. `referrers` given a large `limit` can be another, in the section after
+it.
 
 `AgentMethod` is split in two against that, and against a second thing the caps make plain: **a session
 should not pay for a method it isn't following.** Both halves are **reads rather than answers**, printed with no
@@ -413,6 +414,19 @@ like-for-like number and the cap has not gone away**: a long investigation still
 reach for then is a way to ask for one call's exchange rather than a shorter version of every call's. Nothing
 truncates it here, deliberately: a session cut to fit is one where the answer that misled an agent is the part
 that got cut.
+
+## And what a page of referrers costs
+
+`referrers` answers a page at a time: 30 referrers unless `limit` says otherwise, up to 500, and `nextOffset`
+says where the next page starts. A row is about 520 characters as the command line prints it. Measured on
+`large-dump.hprof`, the running `MainActivity` has 951 referrers, and its first page is 15,536 characters.
+The whole list in one answer was 505,394 characters, which Claude Code saved to a file behind a 2 KB
+preview. A page of 500 is 260,842, so a large `limit` lands past the cap again.
+
+**The order is what makes the first page enough.** What holds the object comes first, a GC root ahead of an
+object, then the largest retained size. So the first page of that call carries `ActivityThread.activities`,
+the one reference holding the activity. Both counts are of the whole list on every page, so whether
+anything else holds it is answered without reading another page.
 
 ## The flow, end to end, traced
 

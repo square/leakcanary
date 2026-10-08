@@ -871,6 +871,44 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `what points at an object comes back with each reference and whether it holds the object`() {
+    val answer = call("referrers", OBJECT to hex(heapDump.activityObjectId))
+
+    assertThat(answer.text("referrerCount")).isEqualTo("1")
+    assertThat(answer.text("holdingReferrerCount")).isEqualTo("1")
+    assertThat(answer["nextOffset"]).isEqualTo(JsonNull)
+    val referrer = answer.array("referrers").single().jsonObject
+    assertThat(referrer.text("object")).isEqualTo(hex(heapDump.holderObjectId))
+    assertThat(referrer.text("className")).isEqualTo(HOLDER_CLASS_NAME)
+    // A row of a list of objects, which is on no path: nothing reaches it, and no verdict is read for it.
+    assertThat(referrer.keys).doesNotContain("reference", "verdict")
+    val reference = referrer.array("references").single().jsonObject
+    assertThat(reference.text("name")).isEqualTo(ACTIVITY_FIELD_NAME)
+    assertThat(reference.text("holds")).isEqualTo("true")
+    assertThat(reference.keys).doesNotContain("isSuspect")
+  }
+
+  @Test
+  fun `a gc root on an object is a referrer with its type in place of an object`() {
+    val answer = call("referrers", OBJECT to hex(heapDump.applicationObjectId))
+
+    assertThat(answer.text("referrerCount")).isEqualTo("1")
+    assertThat(answer.text("holdingReferrerCount")).isEqualTo("1")
+    val gcRoot = answer.array("referrers").single().jsonObject
+    assertThat(gcRoot.text("gcRootType")).isEqualTo(LeakTrace.GcRootType.JNI_GLOBAL.name)
+    assertThat(gcRoot.text("holds")).isEqualTo("true")
+    assertThat(gcRoot.keys).doesNotContain("object", "references")
+  }
+
+  @Test
+  fun `a page of referrers past the last one is refused with how many there are`() {
+    assertThatThrownBy { call("referrers", OBJECT to hex(heapDump.activityObjectId), "offset" to "1") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("`offset` is 1")
+      .hasMessageContaining("has a `referrerCount` of 1")
+  }
+
+  @Test
   fun `finding objects counts every match rather than the rows it showed`() {
     val capped = call("find_objects", "className" to "com.example", "limit" to "1")
 
