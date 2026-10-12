@@ -258,7 +258,12 @@ enum class AndroidReferenceMatchers : ReferenceMatcher.ListBuilder {
         "android.view.inputmethod.InputMethodManager", "mImeInsetsConsumer"
       ).leak(
         description = """
-              InputMethodManager.mImeInsetsConsumer isn't set to null when the activity is destroyed.
+              InputMethodManager.mImeInsetsConsumer holds the IME insets consumer of a window that
+              was removed while its focus gain was still queued, e.g. a dialog shown then dismissed
+              while the main thread was busy: ViewRootImpl handles that focus gain after the
+              window is gone, which registers the consumer again. It stays until another window
+              gains focus. Android 16 doesn't set this field anymore. This leak is fixed by
+              AndroidLeakFixes.IMM_IME_INSETS_CONSUMER in plumber-android.
             """.trimIndent(),
         patternApplies = applyIf { sdkInt >= 30 }
       )

@@ -13,11 +13,13 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.UserManager
 import android.view.View
+import android.view.View.OnAttachStateChangeListener
 import android.view.Window
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import curtains.Curtains
+import curtains.OnRootViewAddedListener
 import curtains.OnRootViewRemovedListener
 import java.lang.reflect.Array
 import java.lang.reflect.Field
@@ -397,6 +399,49 @@ enum class AndroidLeakFixes {
   },
 
   /**
+   * InputMethodManager#mImeInsetsConsumer is the IME insets consumer of the window that last
+   * gained focus, set when ViewRootImpl#handleWindowFocusChanged() calls
+   * InsetsController#onWindowFocusGained():
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-11.0.0_r1/core/java/android/view/ImeInsetsSourceConsumer.java#85
+   *
+   * handleWindowFocusChanged() makes that call before checking whether the window is still added,
+   * and removing a window doesn't remove the focus change messages already queued for it:
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-11.0.0_r1/core/java/android/view/ViewRootImpl.java#3215
+   * So when a window is removed while its focus gain is still queued, that focus gain runs after
+   * the window is gone and registers the consumer of the removed window. If the window that got
+   * focus back had its own focus gain run first, InputMethodManager keeps holding the removed
+   * window's consumer, and through it the removed ViewRootImpl, until another window gains focus.
+   * This happens when a dialog is shown then dismissed while the main thread is busy.
+   *
+   * Android 16 doesn't register IME insets consumers anymore: the registration is behind the
+   * refactor_insets_controller flag, which the Android 16 release configuration enables.
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-16.0.0_r1/core/java/android/view/ImeInsetsSourceConsumer.java#105
+   * https://android.googlesource.com/platform/build/release/+/refs/tags/android-16.0.0_r1/aconfig/bp1a/android.view.inputmethod/refactor_insets_controller_flag_values.textproto
+   * Android 15 has the same check, but its release configuration leaves the flag disabled.
+   *
+   * This fix removes the focus change messages still queued for a window when its root view is
+   * detached, which only happens as the window is removed.
+   */
+  IMM_IME_INSETS_CONSUMER {
+    override fun apply(application: Application) {
+      if (SDK_INT !in 30..35) {
+        return
+      }
+      Curtains.onRootViewsChangedListeners += OnRootViewAddedListener { rootView ->
+        rootView.addOnAttachStateChangeListener(object : OnAttachStateChangeListener {
+          override fun onViewAttachedToWindow(view: View) = Unit
+
+          override fun onViewDetachedFromWindow(view: View) {
+            // Still attached at this point, so this is the handler of the window being removed.
+            view.handler.removeMessages(VIEW_ROOT_IMPL_MSG_WINDOW_FOCUS_CHANGED)
+            view.removeOnAttachStateChangeListener(this)
+          }
+        })
+      }
+    }
+  },
+
+  /**
    * PermissionControllerManager stores the first context it's initialized with forever.
    * Sometimes it's an Activity context which then leaks after Activity is destroyed.
    *
@@ -429,6 +474,9 @@ enum class AndroidLeakFixes {
 
     private const val SAMSUNG = "samsung"
     private const val LG = "LGE"
+
+    // ViewRootImpl.MSG_WINDOW_FOCUS_CHANGED, 6 from Android 11 to Android 16.
+    private const val VIEW_ROOT_IMPL_MSG_WINDOW_FOCUS_CHANGED = 6
 
     fun applyFixes(
       application: Application,
