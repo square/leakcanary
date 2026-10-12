@@ -28,6 +28,17 @@ object FinalizingInProcessGcTrigger : GcTrigger {
     enqueueReferences()
     System.runFinalization()
     System.gc()
+    // The last GC hands the references it cleared to ART's ReferenceQueueDaemon, which enqueues
+    // them on its own thread. Callers count retained objects by polling a reference queue as soon
+    // as this returns, so without waiting they count the objects that GC just collected as still
+    // retained, and dump a heap with nothing in it to report. Objects only get collected by the
+    // last GC when the first one couldn't, e.g. because a Reference.get() during the first GC's
+    // concurrent marking kept them alive.
+    // On ART, runFinalization() waits for the daemon: it puts a sentinel on the daemon's list,
+    // behind the references already there, and returns once that sentinel is finalized. It doesn't
+    // run another GC, which it only does when a System.gc() call before it deferred one. On the
+    // JVM, it doesn't wait for the Reference Handler thread that does the daemon's job there.
+    System.runFinalization()
   }
 
   private fun enqueueReferences() {
