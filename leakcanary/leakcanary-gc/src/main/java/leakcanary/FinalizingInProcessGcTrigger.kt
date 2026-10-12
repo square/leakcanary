@@ -16,8 +16,9 @@
 package leakcanary
 
 /**
- * A [GcTrigger] that attempts to perform a GC by invoking the corresponding JDK API then waiting
- * and then running finalization. Based on FinalizationTest in AOSP.
+ * A [GcTrigger] that attempts to perform a GC by invoking the corresponding JDK API, then running
+ * finalization, then performing a GC again to collect what finalization released. Based on
+ * FinalizationTest in AOSP.
  */
 object FinalizingInProcessGcTrigger : GcTrigger {
   override fun runGc() {
@@ -25,7 +26,9 @@ object FinalizingInProcessGcTrigger : GcTrigger {
     // https://android.googlesource.com/platform/libcore/+/master/support/src/test/java/libcore/
     // java/lang/ref/FinalizationTester.java
     System.gc()
-    enqueueReferences()
+    if (!runningOnArt) {
+      waitForReferenceHandler()
+    }
     System.runFinalization()
     System.gc()
     // The last GC hands the references it cleared to ART's ReferenceQueueDaemon, which enqueues
@@ -41,9 +44,18 @@ object FinalizingInProcessGcTrigger : GcTrigger {
     System.runFinalization()
   }
 
-  private fun enqueueReferences() {
-    // Hack. We don't have a programmatic way to wait for the reference queue daemon to move
-    // references to the appropriate queues.
+  private val runningOnArt = System.getProperty("java.vm.name")?.startsWith("Dalvik") == true
+
+  /**
+   * On the JVM, the Reference Handler thread moves the references a GC cleared onto their queues,
+   * and [System.runFinalization] only finalizes what is already on its queue, so without waiting it
+   * can find nothing to finalize. There's no programmatic way to wait for that thread.
+   *
+   * ART doesn't need this. Its ReferenceQueueDaemon does that job, and since Android 5,
+   * [System.runFinalization] waits for the daemon, as described in [runGc]. AOSP's
+   * FinalizationTester added its sleep in 2011, before that, and still has it.
+   */
+  private fun waitForReferenceHandler() {
     try {
       Thread.sleep(100)
     } catch (e: InterruptedException) {
