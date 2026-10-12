@@ -2,6 +2,7 @@ public abstract class leakcanary/AndroidLeakFixes : java/lang/Enum {
 	public static final field ACCESSIBILITY_NODE_INFO Lleakcanary/AndroidLeakFixes;
 	public static final field BUBBLE_POPUP Lleakcanary/AndroidLeakFixes;
 	public static final field Companion Lleakcanary/AndroidLeakFixes$Companion;
+	public static final field DECOR_CONTEXT Lleakcanary/AndroidLeakFixes;
 	public static final field FLUSH_HANDLER_THREADS Lleakcanary/AndroidLeakFixes;
 	public static final field IMM_CUR_ROOT_VIEW Lleakcanary/AndroidLeakFixes;
 	public static final field IMM_IME_INSETS_CONSUMER Lleakcanary/AndroidLeakFixes;
