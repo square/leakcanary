@@ -492,10 +492,16 @@ enum class AndroidLeakFixes {
    * PhoneWindow creates the DecorContext with whatever Window#getContext() returns:
    * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/core/java/com/android/internal/policy/PhoneWindow.java#2325
    * and Window.mContext, the field it returns, can. So this fix sets that field to a wrapper of
-   * the activity while the activity is created, which is when the DecorView is created, then sets
-   * it back. The DecorContext then references the wrapper rather than the activity, and when a new
-   * activity is created with a preserved window, this fix replaces the base context of that
-   * wrapper with the new activity.
+   * the activity while the activity is created, then sets it back. That's when the DecorView is
+   * created, even for an activity that doesn't set its content view in onCreate(), because
+   * Activity#performCreate() calls ActivityTransitionState#setEnterActivityOptions() right before
+   * it dispatches onActivityPostCreated():
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/core/java/android/app/Activity.java#7810
+   * and that creates it:
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/core/java/android/app/ActivityTransitionState.java#171
+   * The DecorContext then references the wrapper rather than the activity, and when a new activity
+   * is created with a preserved window, this fix replaces the base context of that wrapper with the
+   * new activity.
    */
   DECOR_CONTEXT {
     override fun apply(application: Application) {
@@ -546,8 +552,7 @@ enum class AndroidLeakFixes {
           try {
             val decorActivityContext = windowContextField[window] as? DecorActivityContext ?: return
             windowContextField[window] = activity
-            // The DecorContext only has a weak reference to the wrapper. If the activity didn't
-            // create its DecorView yet, the DecorContext created later references the activity.
+            // The DecorContext only has a weak reference to the wrapper.
             window.peekDecorView()?.setTag(
               R.id.leak_canary_plumber_decor_activity_context, decorActivityContext
             )
