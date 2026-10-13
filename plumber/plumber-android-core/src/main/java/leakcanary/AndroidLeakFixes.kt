@@ -511,7 +511,7 @@ enum class AndroidLeakFixes {
         baseContextField = ContextWrapper::class.java.getDeclaredField("mBase").apply {
           isAccessible = true
         }
-      } catch (ignored: Throwable) {
+      } catch (ignored: NoSuchFieldException) {
         SharkLog.d(ignored) { "Could not fix the $name leak" }
         return
       }
@@ -533,7 +533,7 @@ enum class AndroidLeakFixes {
               ) as DecorActivityContext? ?: return
               baseContextField[decorActivityContext] = activity
             }
-          } catch (ignored: Throwable) {
+          } catch (ignored: IllegalAccessException) {
             SharkLog.d(ignored) { "Could not fix the $name leak" }
           }
         }
@@ -551,7 +551,7 @@ enum class AndroidLeakFixes {
             window.peekDecorView()?.setTag(
               R.id.leak_canary_plumber_decor_activity_context, decorActivityContext
             )
-          } catch (ignored: Throwable) {
+          } catch (ignored: IllegalAccessException) {
             SharkLog.d(ignored) { "Could not fix the $name leak" }
           }
         }
