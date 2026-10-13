@@ -452,7 +452,7 @@ cannot argue with:
 ```json
 {
   "leakSolved": false,
-  "state": "NARROWED",
+  "state": "UNSOLVED",
   "suspectReferenceCount": 2,
   "leakSolvingProgressRatio": 0.67,
   "next": "The fault is at one of those references, and what settles which is the objects between them that

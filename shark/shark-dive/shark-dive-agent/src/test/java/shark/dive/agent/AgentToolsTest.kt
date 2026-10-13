@@ -475,7 +475,7 @@ class AgentToolsTest {
     assertThat(objects.mapNotNull { it["reference"]?.jsonObject?.text("isSuspect") })
       .containsOnly("true")
     val says = answer.obj(INVESTIGATION)
-    assertThat(says.text("state")).isEqualTo(InvestigationState.NARROWED.name)
+    assertThat(says.text("state")).isEqualTo(InvestigationState.UNSOLVED.name)
     assertThat(says.text(LEAK_SOLVED)).isEqualTo("false")
     // Which is the field an agent reads to know whether it is done, so an unsolved path leaves the reference
     // out rather than answering with something that could be mistaken for a name.
@@ -537,6 +537,27 @@ class AgentToolsTest {
     // is `1 - 0/2`. A search that hasn't begun is 0. See [shark.dive.leakSolvingProgressRatio].
     assertThat(says.text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
     assertThat(says.text("next")).contains(Verdict.STUCK.name)
+  }
+
+  @Test
+  fun `a stuck object nothing holds is unsolved with nothing left to settle`() {
+    val (dive, activityObjectId) = temporaryFolder.uncollectedDestroyedActivity()
+    dive.use {
+      val garbage = FakeAgentHeapDump(dive)
+      tools = agentTools(FakeAgentHeapDumps(listOf(garbage)))
+
+      val answer = call(PATH_FROM_GC_ROOTS, HEAP_DUMP to garbage.heapDumpName, OBJECT to hex(activityObjectId))
+
+      // The activity is the whole path, and stuck. A GC root holding it directly would be the faulty
+      // reference, but nothing holds it, so there is no reference to name and no object above it to decide.
+      assertThat(answer.obj(LEAK_TRACE).array("path").map { it.jsonObject.text("object") })
+        .containsExactly(hex(activityObjectId))
+      val says = answer.obj(INVESTIGATION)
+      assertThat(says.text("state")).isEqualTo(InvestigationState.UNSOLVED.name)
+      assertThat(says.text(LEAK_SOLVED)).isEqualTo("false")
+      assertThat(says.text("suspectReferenceCount")).isEqualTo("0")
+      assertThat(says.text("next")).contains("uncollected garbage")
+    }
   }
 
   /**

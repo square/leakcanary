@@ -162,8 +162,7 @@ fun RootPath.suspectReferenceCount(): Int = suspectReferences().size
  * Every reference on this path, which is what [leakSolvingProgressRatio] measures the candidates against.
  *
  * As many as the steps for a path a GC root starts, the root being the reference that holds the first
- * object, and one fewer for garbage that no root holds. Counted rather than taken from the number of steps
- * because a step below the first can be missing its reference, see `HeapDominatorTreemap.stepTo`.
+ * object, and one fewer for garbage that no root holds, whose first object is reached through nothing.
  */
 fun RootPath.referenceCount(): Int =
   (if (isHeldByGcRoot()) 1 else 0) + steps.count { it.step.reference != null }

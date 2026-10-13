@@ -92,8 +92,11 @@ to answer with, never one to ask it to repeat.
 What replaced the refusal is that the answer carries the distance left. `path_from_gc_roots` and a
 `set_verdict` given `solvingLeakOf` both answer with `investigation` — `leakSolved`, `faultyReference` once
 there is one, `suspectReferenceCount` and `leakSolvingProgressRatio` — and `InvestigationState` is which of
-the six shapes those verdicts are in, which is the field to branch on rather than the prose in
-`next`. A verdict answers with `narrowedBy` as well, the counts and the progress on both sides of it, because
+the four shapes those verdicts are in, which is the field to branch on rather than the prose in
+`next`. **`UNSOLVED` is where every investigation starts, and it is one state.** Whether or not anything
+above the stuck object is expected, the next move is the same: settle the undecided objects. There used to be
+a `NOTHING_EXPECTED_ABOVE` beside it, and it stopped meaning anything once a GC root holding a stuck object
+could solve a leak on its own. A verdict answers with `narrowedBy` as well, the counts and the progress on both sides of it, because
 a verdict that ruled nothing out and a verdict that halved the search are the same single number afterwards
 and are not the same move. **The `Ratio` on all three of those names is load-bearing** — the number is 0 to 1
 and the other way to spell a share is 0 to 100, so a name that says neither gets read as whichever the reader

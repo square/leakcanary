@@ -242,9 +242,8 @@ internal fun List<PathStep>.faultyReferenceIndexOrNull(): Int? {
   if (firstStuck == -1 || lastExpected == -1 || firstStuck != lastExpected + 1) {
     return null
   }
-  // A step below the first can still be missing its reference, when reading the referrer again doesn't find
-  // the reference the referrer index walked through — see `stepTo`. Nothing to mark then.
-  return firstStuck.takeIf { this[firstStuck].reference != null }
+  // Below an expected object, so never the first step, which is the only one reached through no reference.
+  return firstStuck
 }
 
 /** The same sentence with what it is overruling recorded after it, when there is anything to record. */

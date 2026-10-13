@@ -19,6 +19,7 @@ import shark.dive.Place
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
+import shark.dive.faultyReference
 import shark.dive.isGcRootFaulty
 import shark.dive.isGcRootSuspect
 import shark.dive.leakLabel
@@ -955,9 +956,10 @@ internal class AgentTarget(
  * How far an investigation of one path has got: whether a reference is at fault, how many it could still
  * be, and what to do next when the path doesn't say which.
  *
- * The same rule `shark.dive.faultyReferenceIndexOrNull` applies, read off the path rather than asked
- * of it, because the ways a path names no reference are different things to do next — and telling an agent
- * which of them it is, is most of what this is worth.
+ * Read off the path, which `shark.dive.faultyReferenceIndexOrNull` has already marked the faulty reference
+ * on, so an agent and the window agree on whether a leak is solved. What this adds is [state] and [next]. A
+ * path with no steps or with nothing stuck on it is a dead end. Every other unsolved path is narrowed the same
+ * way, by settling the objects between the last expected one and the first stuck one.
  *
  * **Counted in references, and the candidates themselves are not here.** A path narrowed to one object with
  * no verdict has two candidate references, the one into that object and the one out of it, and what decides
@@ -1008,13 +1010,21 @@ internal class FaultyReference(
   val objectIndex: Int?
 )
 
-/** The shapes a path's verdicts come in, of which one is an investigation that is over. */
+/**
+ * The shapes a path's verdicts come in. An investigation starts at [UNSOLVED] and ends at [SOLVED], and the
+ * other two are paths with nothing to investigate.
+ */
 internal enum class InvestigationState {
+  /** Nothing the heap dump was walked from reaches the object. */
   NO_PATH,
+
+  /** No object on the path is stuck, so there is no fault for a reference to be at. */
   NOTHING_STUCK,
-  NOTHING_EXPECTED_ABOVE,
-  NARROWED,
-  REFERENCE_UNREADABLE,
+
+  /** An object on the path is stuck, and the verdicts don't name the one reference holding it yet. */
+  UNSOLVED,
+
+  /** The verdicts leave one reference, which is [PathInvestigation.faultyReference]. */
   SOLVED
 }
 
@@ -1032,7 +1042,6 @@ private fun RootPath.investigation(): PathInvestigation {
     )
   }
   val firstStuck = steps.indexOfFirst { it.step.verdict == Verdict.STUCK }
-  val lastExpected = steps.indexOfLast { it.step.verdict == Verdict.EXPECTED }
   if (firstStuck == -1) {
     return PathInvestigation(
       faultyReference = null,
@@ -1055,55 +1064,46 @@ private fun RootPath.investigation(): PathInvestigation {
         "and nothing else on the path is above it. ${solvedNext("the code that holds that object there")}"
     )
   }
-  // Only a path no GC root starts gets this far with nothing expected on it: on one a root starts, the root
-  // is a candidate like any field, so it is the stretch below.
-  if (lastExpected == -1 && !isGcRootSuspect()) {
+  val reference = faultyReference()
+  if (reference != null) {
     return PathInvestigation(
-      faultyReference = null,
-      state = InvestigationState.NOTHING_EXPECTED_ABOVE,
+      // On the object above the stuck one, which is the object that holds this reference: the faulty
+      // reference is the one the first stuck object is reached through. See [FaultyReference].
+      faultyReference = FaultyReference(reference.leakLabel(), objectIndex = firstStuck - 1),
+      state = InvestigationState.SOLVED,
       suspectReferenceCount = suspectCount,
       progressRatio = progressRatio,
-      next = "${steps[firstStuck].address()} is ${Verdict.STUCK.name} and nothing above it is " +
-        "${Verdict.EXPECTED.name}, so whatever holds it may be something that should have let go too " +
-        "and the fault could be further up than this path reaches. Find the highest object here that is " +
-        "meant to be in memory and record it as ${Verdict.EXPECTED.name}."
+      next = "${reference.leakLabel()} is the faulty reference: it is read on an object meant to be in " +
+        "memory and points at one that should be gone. ${solvedNext("the code that assigns that field")}"
     )
   }
-  if (firstStuck != lastExpected + 1) {
-    val undecided = (lastExpected + 1 until firstStuck).map { steps[it] }
+  // From the top of the path when nothing on it is expected, which on a path a GC root starts makes the root
+  // a candidate too. See [gcRootSuspectNote].
+  val lastExpected = steps.indexOfLast { it.step.verdict == Verdict.EXPECTED }
+  val undecided = (lastExpected + 1 until firstStuck).map { steps[it] }
+  if (undecided.isEmpty()) {
+    // The first object of a path no GC root starts, stuck itself. Anywhere else, a stuck object with nothing
+    // undecided above it is held by an expected object or by a GC root, and either way the path is solved.
     return PathInvestigation(
       faultyReference = null,
-      state = InvestigationState.NARROWED,
+      state = InvestigationState.UNSOLVED,
       suspectReferenceCount = suspectCount,
       progressRatio = progressRatio,
-      next = "The fault is at one of those references, and what settles which is the objects between them " +
-        "that have no verdict: one undecided object leaves the reference into it and the reference out of " +
-        "it, and its own verdict rules one of them out. They are " +
-        undecided.joinToString(", ") { it.address() } + ". So work out whether each of them is done with " +
-        "its work, reading its fields with $DESCRIBE_OBJECT and the code that assigns the field holding " +
-        "the object below it, and record that with $SET_VERDICT." + gcRootSuspectNote()
+      next = "${steps.first().address()} is uncollected garbage: no GC root reaches it, so no reference " +
+        "keeps it in memory and there is none to find."
     )
   }
-  val reference = steps[firstStuck].step.reference
-    ?: return PathInvestigation(
-      faultyReference = null,
-      state = InvestigationState.REFERENCE_UNREADABLE,
-      suspectReferenceCount = suspectCount,
-      progressRatio = progressRatio,
-      next = "${steps[firstStuck].address()} is the one ${Verdict.STUCK.name} object under an " +
-        "${Verdict.EXPECTED.name} one, but reading the object above it again didn't find the field it " +
-        "was reached through, so there is no reference to name. $DESCRIBE_OBJECT on the object above says " +
-        "which fields it does have."
-    )
   return PathInvestigation(
-    // On the object above the stuck one, which is the object that holds this reference — and is
-    // `lastExpected`, since the two are neighbours by the time a path is solved. See [FaultyReference].
-    faultyReference = FaultyReference(reference.leakLabel(), objectIndex = firstStuck - 1),
-    state = InvestigationState.SOLVED,
+    faultyReference = null,
+    state = InvestigationState.UNSOLVED,
     suspectReferenceCount = suspectCount,
     progressRatio = progressRatio,
-    next = "${reference.leakLabel()} is the faulty reference: it is read on an object meant to be in " +
-      "memory and points at one that should be gone. ${solvedNext("the code that assigns that field")}"
+    next = "The fault is at one of those references, and what settles which is the objects between them " +
+      "that have no verdict: one undecided object leaves the reference into it and the reference out of " +
+      "it, and its own verdict rules one of them out. They are " +
+      undecided.joinToString(", ") { it.address() } + ". So work out whether each of them is done with " +
+      "its work, reading its fields with $DESCRIBE_OBJECT and the code that assigns the field holding " +
+      "the object below it, and record that with $SET_VERDICT." + gcRootSuspectNote()
   )
 }
 

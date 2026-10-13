@@ -70,6 +70,26 @@ internal fun TemporaryFolder.jvmHeapDump(fileName: String = "jvm.hprof"): HeapDi
 }
 
 /**
+ * A destroyed activity nothing holds, and its address: uncollected garbage, so the path to it is the activity
+ * alone and starts at no GC root.
+ *
+ * The application is there so that the dump has a GC root at all, and holds nothing.
+ */
+internal fun TemporaryFolder.uncollectedDestroyedActivity(
+  fileName: String = "uncollected-destroyed-activity.hprof"
+): Pair<HeapDive, Long> {
+  val file = newFile(fileName)
+  var activityObjectId = 0L
+  file.dump {
+    androidBuild()
+    activityObjectId = instance(activityClass(), fields = listOf(BooleanHolder(true))).value
+    val application = APPLICATION_CLASS_NAME instance { }
+    gcRoot(JniGlobal(id = application.value, jniGlobalRefId = 0))
+  }
+  return HeapDive.open(file) to activityObjectId
+}
+
+/**
  * An open heap dump and the addresses a test names its objects by.
  *
  * The addresses come from the fixture rather than from a search of the dump so that a test that fails is a

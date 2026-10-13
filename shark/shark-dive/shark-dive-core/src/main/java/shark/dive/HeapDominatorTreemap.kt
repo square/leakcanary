@@ -1378,44 +1378,44 @@ class HeapDominatorTreemap internal constructor(
     }
   }
 
-  /** How [referrerId] points at [objectId], which takes reading the referrer's references again. */
+  /**
+   * How [referrerId] points at [objectId], which takes reading the referrer's references again.
+   *
+   * **Always finds one.** Every path is walked over [referrerIndex], which was built by reading each object
+   * with this same [pathReferenceReader], so the reference the walk went through is in what this reads. Not
+   * finding it means the reader answered differently for the same object twice, which is a bug in the reader
+   * rather than a shape of path, so this throws instead of handing back a step that names no reference.
+   */
   private fun stepTo(
     objectId: Long,
     referrerId: Long,
     overrides: VerdictOverrides
   ): InspectedStep {
-    val details = pathReferenceReader.read(graph.findObjectById(referrerId))
+    val resolved = pathReferenceReader.read(graph.findObjectById(referrerId))
       .firstOrNull { it.valueObjectId == objectId }
       ?.lazyDetailsResolver
       ?.resolve()
-    if (details == null) {
-      // The walk found this step through the referrer index, which was built with this same reader, so a
-      // step with no reference to name means the two disagree about the same pair of objects. Shows as a
-      // step naming the object and not how it's held.
-      SharkLog.d {
-        "No reference from ${hexObjectId(referrerId)} to ${hexObjectId(objectId)}, though the path to it " +
-          "was found through one"
-      }
-    }
+      ?: error(
+        "No reference from ${hexObjectId(referrerId)} to ${hexObjectId(objectId)}, though the referrer index " +
+          "built with the same reader has one: that reader read ${hexObjectId(referrerId)} differently twice"
+      )
     return step(
       objectId = objectId,
       overrides = overrides,
-      reference = details?.let { resolved ->
-        PathReference(
-          name = resolved.name,
-          // The class that declares the field rather than the referrer's own class, which is what tells a
-          // field inherited from a base class apart from one the subclass added.
-          ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
-            ?.let { (it as? HeapClass)?.simpleName }
-            ?: label(referrerId),
-          locationType = resolved.locationType,
-          // Which is the whole of what the library leak matchers added to the reader do: they name the
-          // references that are known to leak, and change nothing about which of them are followed.
-          libraryLeak = resolved.matchedLibraryLeak?.let { matcher ->
-            LibraryLeakPattern(pattern = matcher.pattern.toString(), description = matcher.description)
-          }
-        )
-      }
+      reference = PathReference(
+        name = resolved.name,
+        // The class that declares the field rather than the referrer's own class, which is what tells a
+        // field inherited from a base class apart from one the subclass added.
+        ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
+          ?.let { (it as? HeapClass)?.simpleName }
+          ?: label(referrerId),
+        locationType = resolved.locationType,
+        // Which is the whole of what the library leak matchers added to the reader do: they name the
+        // references that are known to leak, and change nothing about which of them are followed.
+        libraryLeak = resolved.matchedLibraryLeak?.let { matcher ->
+          LibraryLeakPattern(pattern = matcher.pattern.toString(), description = matcher.description)
+        }
+      )
     )
   }
 
