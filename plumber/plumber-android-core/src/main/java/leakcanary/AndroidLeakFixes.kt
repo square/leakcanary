@@ -8,6 +8,7 @@ import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.ContextWrapper
 import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
+import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -18,6 +19,7 @@ import android.view.Window
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
+import com.squareup.leakcanary.plumber.core.R
 import curtains.Curtains
 import curtains.OnRootViewAddedListener
 import curtains.OnRootViewRemovedListener
@@ -462,6 +464,99 @@ enum class AndroidLeakFixes {
         SharkLog.d(ignored) { "Unable to fix PermissionControllerManager leak" }
       }
     }
+  },
+
+  /**
+   * When Android relaunches an activity and preserves its window, the new activity reuses the
+   * DecorView of the destroyed one:
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/core/java/com/android/internal/policy/PhoneWindow.java#335
+   * On Android 10, the context of that DecorView is a DecorContext with a weak reference to the
+   * activity it was created for, and DecorContext#setPhoneWindow() doesn't update it, so it keeps
+   * returning the destroyed activity:
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/core/java/com/android/internal/policy/DecorContext.java#56
+   * DecorView#getResources() reads that weak reference on every call. A weak reference read while
+   * the garbage collector is marking keeps its referent alive through that garbage collection, so
+   * the destroyed activity can outlive many of them while the window keeps drawing, and LeakCanary
+   * reports it as retained even though the heap dump has no strong path to it.
+   *
+   * Android 10 preserves windows when it relaunches every activity of an app because an overlay
+   * the app uses was enabled or disabled, e.g. a change of navigation mode, display cutout or
+   * accent color:
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/core/java/android/app/ActivityThread.java#5701
+   * and when it relaunches an activity whose window was only resized, e.g. in split screen:
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/services/core/java/com/android/server/wm/ActivityRecord.java#3296
+   * Android 11 fixed it by replacing the weak reference in setPhoneWindow():
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-11.0.0_r1/core/java/com/android/internal/policy/DecorContext.java#56
+   *
+   * The fields of DecorContext can't be accessed through reflection on Android 10, but
+   * PhoneWindow creates the DecorContext with whatever Window#getContext() returns:
+   * https://android.googlesource.com/platform/frameworks/base/+/refs/tags/android-10.0.0_r1/core/java/com/android/internal/policy/PhoneWindow.java#2325
+   * and Window.mContext, the field it returns, can. So this fix sets that field to a wrapper of
+   * the activity while the activity is created, which is when the DecorView is created, then sets
+   * it back. The DecorContext then references the wrapper rather than the activity, and when a new
+   * activity is created with a preserved window, this fix replaces the base context of that
+   * wrapper with the new activity.
+   */
+  DECOR_CONTEXT {
+    override fun apply(application: Application) {
+      if (SDK_INT != 29) {
+        return
+      }
+      val windowContextField: Field
+      val baseContextField: Field
+      try {
+        windowContextField = Window::class.java.getDeclaredField("mContext").apply {
+          isAccessible = true
+        }
+        baseContextField = ContextWrapper::class.java.getDeclaredField("mBase").apply {
+          isAccessible = true
+        }
+      } catch (ignored: Throwable) {
+        SharkLog.d(ignored) { "Could not fix the $name leak" }
+        return
+      }
+      application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks
+      by noOpDelegate() {
+        override fun onActivityPreCreated(
+          activity: Activity,
+          savedInstanceState: Bundle?
+        ) {
+          val window = activity.window ?: return
+          try {
+            // A window that has a DecorView before its activity is created is a preserved window.
+            val preservedDecorView = window.peekDecorView()
+            if (preservedDecorView == null) {
+              windowContextField[window] = DecorActivityContext(activity)
+            } else {
+              val decorActivityContext = preservedDecorView.getTag(
+                R.id.leak_canary_plumber_decor_activity_context
+              ) as DecorActivityContext? ?: return
+              baseContextField[decorActivityContext] = activity
+            }
+          } catch (ignored: Throwable) {
+            SharkLog.d(ignored) { "Could not fix the $name leak" }
+          }
+        }
+
+        override fun onActivityPostCreated(
+          activity: Activity,
+          savedInstanceState: Bundle?
+        ) {
+          val window = activity.window ?: return
+          try {
+            val decorActivityContext = windowContextField[window] as? DecorActivityContext ?: return
+            windowContextField[window] = activity
+            // The DecorContext only has a weak reference to the wrapper. If the activity didn't
+            // create its DecorView yet, the DecorContext created later references the activity.
+            window.peekDecorView()?.setTag(
+              R.id.leak_canary_plumber_decor_activity_context, decorActivityContext
+            )
+          } catch (ignored: Throwable) {
+            SharkLog.d(ignored) { "Could not fix the $name leak" }
+          }
+        }
+      })
+    }
   }
 
   ;
@@ -564,6 +659,12 @@ enum class AndroidLeakFixes {
         newCallback
       }
     }
+
+    /**
+     * What the DecorContext of an activity's DecorView takes for that activity, see
+     * [DECOR_CONTEXT].
+     */
+    private class DecorActivityContext(activity: Activity) : ContextWrapper(activity)
 
     private class WindowDelegateCallback constructor(
       private val delegate: Window.Callback
