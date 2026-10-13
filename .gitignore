@@ -5,6 +5,9 @@ build
 local.properties
 reports
 
+# Kotlin Gradle plugin
+.kotlin
+
 # Maven
 target
 pom.xml.*
