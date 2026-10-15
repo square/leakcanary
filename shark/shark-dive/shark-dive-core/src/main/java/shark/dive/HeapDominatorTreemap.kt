@@ -1539,10 +1539,18 @@ class HeapDominatorTreemap internal constructor(
         ?.let { ObjectContent.Thread(it) }
       else -> null
     }
-    is HeapObjectArray -> ObjectContent.ObjectArray(readRecord().elementIds.size)
+    is HeapObjectArray -> ObjectContent.ObjectArray(elementCount)
     is HeapPrimitiveArray -> ObjectContent.PrimitiveArray(recordSize)
     is HeapClass -> null
   }
+
+  /**
+   * How many elements this array holds, from the size of its record, which the index already has. Every element
+   * is one object id, so this reads nothing — reading the record to count it would read every element of an
+   * array that can be millions of them long, to draw one line.
+   */
+  private val HeapObjectArray.elementCount: Int
+    get() = (byteSize / graph.identifierByteSize).toInt()
 
   private fun HeapInstance.bitmapContent(): ObjectContent.Bitmap = ObjectContent.Bitmap(
     width = this[BITMAP_CLASS_NAME, "mWidth"]?.value?.asInt,
