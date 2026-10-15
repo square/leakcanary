@@ -34,8 +34,7 @@ class HexObjectIdTest {
     file.openHeapGraph().use { graph ->
       val holder = graph.findClassByName("com.example.Holder")!!.instances.single()
 
-      // Read back widened by sign, which written as is would be 0x-7dffff..
-      assertThat(holder.objectId).isNegative()
+      assertThat(holder.objectId).isGreaterThan(FIRST_HIGH_ADDRESS)
       assertThat(holder.toString()).matches("instance @0x820000[0-9a-f]{2} of com\\.example\\.Holder")
     }
   }
@@ -53,7 +52,7 @@ class HexObjectIdTest {
   }
 
   private companion object {
-    /** 0x82000000 as shark reads a 4 byte id. */
-    const val FIRST_HIGH_ADDRESS = -0x7E000000L
+    /** Past the 2 GB mark, which the 4 byte ids of an Android heap dump reach. */
+    const val FIRST_HIGH_ADDRESS = 0x82000000L
   }
 }

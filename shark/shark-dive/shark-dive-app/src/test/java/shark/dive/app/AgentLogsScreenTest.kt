@@ -35,7 +35,6 @@ import shark.dive.HeapDominatorTreemap
 import shark.dive.Place
 import shark.dive.agent.AgentSession
 import shark.dive.agent.AgentSessionCall
-import shark.dive.exactHexObjectId
 import shark.dive.hexObjectId
 
 /**
@@ -614,7 +613,7 @@ class AgentLogsScreenTest {
   private fun activityName() =
     "${LEAKING_ACTIVITY_CLASS_NAME.substringAfterLast('.')} ${hexObjectId(activityObjectId())}"
 
-  private fun hex(objectId: Long) = exactHexObjectId(objectId)
+  private fun hex(objectId: Long) = hexObjectId(objectId)
 
   /** How a reason names an activity it mentions by address, which is how a note does. See `NoteSpan`. */
   private fun otherActivityName(objectId: Long) =

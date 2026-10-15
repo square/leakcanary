@@ -13,8 +13,8 @@ internal class FieldIdReader(
 
   private var position = 0
 
+  /** Unsigned, like [shark.HprofRecordReader.readId]. */
   fun readId(): Long {
-    // As long as we don't interpret IDs, reading signed values here is fine.
     val value = when (identifierByteSize) {
       1 -> readByteId(position, record.fieldValues)
       2 -> readShortId(position, record.fieldValues)
@@ -34,7 +34,7 @@ internal class FieldIdReader(
     index: Int,
     array: ByteArray
   ) =
-    array[index].toLong()
+    array[index] and 0xffL
 
   private fun readShortId(
     index: Int,
@@ -50,10 +50,10 @@ internal class FieldIdReader(
     array: ByteArray
   ): Long {
     var pos = index
-    return (array[pos++] and 0xff shl 24
-      or (array[pos++] and 0xff shl 16)
-      or (array[pos++] and 0xff shl 8)
-      or (array[pos] and 0xff)).toLong()
+    return (array[pos++] and 0xffL shl 24
+      or (array[pos++] and 0xffL shl 16)
+      or (array[pos++] and 0xffL shl 8)
+      or (array[pos] and 0xffL))
   }
 
   private fun readLongId(

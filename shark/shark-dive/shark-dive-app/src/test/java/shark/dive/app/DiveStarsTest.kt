@@ -7,7 +7,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.dive.exactHexObjectId
+import shark.dive.hexObjectId
 
 /**
  * What a star does when the file it goes in hasn't been read yet, which is the one way a click here can be
@@ -33,7 +33,7 @@ class DiveStarsTest {
     runBlocking { stars.toggle(OBJECT_ID) }
 
     assertThat(stars.objectIds).containsExactly(OBJECT_ID)
-    assertThat(stars.file.readText()).contains(exactHexObjectId(OBJECT_ID))
+    assertThat(stars.file.readText()).contains(hexObjectId(OBJECT_ID))
   }
 
   @Test fun `a star set before the file is read keeps what the file already had`() {
@@ -53,7 +53,7 @@ class DiveStarsTest {
     val stars = starsOf(testFolder.newFolder())
     // A read that fails rather than one that hasn't happened, which is what the guard in toggle is left for:
     // the list is unknown, so writing one worked out from it would still take the star off whatever is there.
-    stars.file.writeText(exactHexObjectId(ALREADY_STARRED))
+    stars.file.writeText(hexObjectId(ALREADY_STARRED))
     check(stars.file.setReadable(false)) { "Could not make ${stars.file} unreadable" }
     assumeTrue("Running as a user that reads an unreadable file", !stars.file.canRead())
 

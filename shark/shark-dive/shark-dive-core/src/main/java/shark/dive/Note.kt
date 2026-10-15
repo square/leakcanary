@@ -28,7 +28,7 @@ data class Note(val blocks: List<NoteBlock>) {
       val mentions = blocks.flatMap { block -> block.spans }.mapNotNull { it.mention }
       return NoteMentions(
         classNames = mentions.filterIsInstance<NoteMention.ClassName>().map { it.className }.toSet(),
-        objectIds = mentions.filterIsInstance<NoteMention.ObjectId>().flatMap { it.objectIds }.toSet()
+        objectIds = mentions.filterIsInstance<NoteMention.ObjectId>().map { it.objectId }.toSet()
       )
     }
 
@@ -151,10 +151,11 @@ data class NoteSpan(
     } ?: this
     // An address on its own says nothing, so a recognised one is drawn as what it points at, with the
     // address it was typed as kept beside it: that is what the reader wrote and what they will search for.
-    is NoteMention.ObjectId -> mention.objectIds.firstNotNullOfOrNull { objectId ->
-      references.objectNames[objectId]?.let { name ->
-        copy(text = "$name (${hexObjectId(objectId)})", link = link ?: NoteLink.Object(objectId))
-      }
+    is NoteMention.ObjectId -> references.objectNames[mention.objectId]?.let { name ->
+      copy(
+        text = "$name (${hexObjectId(mention.objectId)})",
+        link = link ?: NoteLink.Object(mention.objectId)
+      )
     } ?: this
   }
 }
@@ -194,14 +195,8 @@ sealed interface NoteMention {
   /** A dotted name, which is a class of this heap dump or is prose that looks like one. */
   data class ClassName(val className: String) : NoteMention
 
-  /**
-   * An address, as every reading of what was typed.
-   *
-   * Two of them, because a 32 bit heap dump records ids in four bytes and shark widens them by sign, so an
-   * object above the 2 GB mark has a negative id whose low 32 bits are what every tool prints. `0xffff8000`
-   * is therefore either of two [Long]s, and only the heap dump says which one it has. See [hexObjectId].
-   */
-  data class ObjectId(val objectIds: List<Long>) : NoteMention
+  /** An address, as the object id it reads as. See [hexObjectId]. */
+  data class ObjectId(val objectId: Long) : NoteMention
 }
 
 /** What a note mentions, gathered so that the heap dump is asked once for all of it. */

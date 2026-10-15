@@ -157,12 +157,12 @@ class HprofPrimitiveArrayStripper {
     // An efficient map of type to size. Some entries aren't used.
     val typeSizes = IntArray(maxKey + 1) { key -> typeSizesRawMap[key] ?: 0 }
 
+    // Unsigned, like HprofRecordReader.readId().
     fun CopyingSource.transferId(): Long {
-      // As long as we don't interpret IDs, reading signed values here is fine.
       return when (identifierByteSize) {
-        1 -> transferByte().toLong()
-        2 -> transferShort().toLong()
-        4 -> transferInt().toLong()
+        1 -> transferByte().toLong() and 0xffL
+        2 -> transferShort().toLong() and 0xffffL
+        4 -> transferInt().toLong() and 0xffffffffL
         8 -> transferLong()
         else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
       }

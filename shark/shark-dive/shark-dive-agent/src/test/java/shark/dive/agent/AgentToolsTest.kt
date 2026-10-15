@@ -36,7 +36,7 @@ import shark.dive.LeakingObject
 import shark.dive.ObjectListFilter
 import shark.dive.Place
 import shark.dive.ReachabilityStrength
-import shark.dive.exactHexObjectId
+import shark.dive.hexObjectId
 
 /**
  * What an agent gets back from each tool, and what it gets refused for.
@@ -338,7 +338,7 @@ class AgentToolsTest {
       section.jsonObject.array("groups").flatMap { it.jsonObject.array("objects") }
     }
     assertThat(objects.map { it.jsonObject.text("object") })
-      .contains(exactHexObjectId(heapDump.activityObjectId))
+      .contains(hexObjectId(heapDump.activityObjectId))
     assertThat(objects.map { it.jsonObject.text("className") }).contains(ACTIVITY_CLASS_NAME)
   }
 
@@ -370,7 +370,7 @@ class AgentToolsTest {
 
     assertThat(group.keys).doesNotContain("representativeObject")
     assertThat(group.array("objects").map { it.jsonObject.text("object") })
-      .contains(exactHexObjectId(heapDump.activityObjectId))
+      .contains(hexObjectId(heapDump.activityObjectId))
     assertThat(tools.byName(LIST_LEAK_GROUPS)!!.description)
       .contains("one address out of its `objects`")
       .contains("the first is as good as any")
@@ -1096,6 +1096,15 @@ class AgentToolsTest {
   }
 
   @Test
+  fun `a sign widened address is refused as no object rather than as a pile`() {
+    // What an object above the 2 GB mark of an Android heap dump was spelled as before shark read ids
+    // unsigned, so an agent can still have one from an older answer.
+    assertThatThrownBy { call("describe_object", OBJECT to "0xffffffff82000010") }
+      .isInstanceOf(AgentRefusal::class.java)
+      .hasMessageContaining("is no object of this heap dump")
+  }
+
+  @Test
   fun `every read of the heap dump says what it was for`() {
     call("describe_object", OBJECT to hex(heapDump.activityObjectId))
 
@@ -1525,7 +1534,7 @@ class AgentToolsTest {
     tool.call(arguments)
   }
 
-  private fun hex(objectId: Long) = exactHexObjectId(objectId)
+  private fun hex(objectId: Long) = hexObjectId(objectId)
 
   /**
    * The link an answer hands back, read as a link rather than compared as text.

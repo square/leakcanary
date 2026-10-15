@@ -221,25 +221,25 @@ class NoteTest {
       NoteSpan(
         text = "MainActivity instance (0x12ab34cd)",
         link = NoteLink.Object(0x12ab34cdL),
-        mention = NoteMention.ObjectId(listOf(0x12ab34cdL))
+        mention = NoteMention.ObjectId(0x12ab34cdL)
       )
     )
   }
 
   /**
-   * An address above the 2 GB mark of a 32 bit dump is a negative id in the tree, and what every tool —
-   * including this app's own labels — prints for it is the low 32 bits. So both readings are offered and
-   * the dump picks.
+   * An address above the 2 GB mark of a 32 bit dump, where the biggest objects of an Android dump are, is the
+   * one id the tree has for it: what every tool prints is what the tree holds.
    */
-  @Test fun `an address of a 32 bit heap dump is the negative id it is stored as`() {
-    val negativeId = -2112345088L
-    val note = Note.of("Look at 0x82182c00").resolvedWith(
-      NoteReferences(classObjectIds = emptyMap(), objectNames = mapOf(negativeId to "Bitmap instance"))
+  @Test fun `an address above the 2 GB mark of a 32 bit heap dump is the id it is stored as`() {
+    val note = Note.of("Look at 0x82182c00")
+    val resolved = note.resolvedWith(
+      NoteReferences(classObjectIds = emptyMap(), objectNames = mapOf(0x82182c00L to "Bitmap instance"))
     )
 
-    val span = note.blocks.single().spans.last()
+    assertThat(note.mentions.objectIds).containsExactly(0x82182c00L)
+    val span = resolved.blocks.single().spans.last()
     assertThat(span.text).isEqualTo("Bitmap instance (0x82182c00)")
-    assertThat(span.link).isEqualTo(NoteLink.Object(negativeId))
+    assertThat(span.link).isEqualTo(NoteLink.Object(0x82182c00L))
   }
 
   @Test fun `an address the heap dump has no object at stays as it was typed`() {

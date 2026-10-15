@@ -11,7 +11,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import shark.dive.exactHexObjectId
+import shark.dive.hexObjectId
 
 /**
  * One command typed at a run that is already open, which is the whole of how this app is talked to.
@@ -62,7 +62,7 @@ class AgentCommandLineTest {
     val exitCode = cli(
       "describe_object",
       "heapDumpKey=${window.heapDumpName}",
-      "object=${exactHexObjectId(heapDump.holderObjectId)}",
+      "object=${hexObjectId(heapDump.holderObjectId)}",
       "reason=Reading the holder's fields."
     )
 

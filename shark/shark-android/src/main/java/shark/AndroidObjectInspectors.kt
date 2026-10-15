@@ -1156,8 +1156,5 @@ https://square.github.io/leakcanary/recipes/#using-leakcanary-with-obfuscated-ap
  * same as the copy in `shark-graph`, which says why. This module can't see that one.
  */
 private fun hexObjectId(objectId: Long): String {
-  val address = if (objectId < 0L) objectId and LOW_32_BITS else objectId
-  return "0x${address.toString(16)}"
+  return "0x${java.lang.Long.toHexString(objectId)}"
 }
-
-private const val LOW_32_BITS = 0xffffffffL

@@ -19,7 +19,7 @@ import shark.dive.Place
 import shark.dive.ReachabilityStrength
 import shark.dive.RootPath
 import shark.dive.RootPathStep
-import shark.dive.exactHexObjectId
+import shark.dive.hexObjectId
 import shark.dive.faultyReference
 import shark.dive.isGcRootFaulty
 import shark.dive.isGcRootSuspect
@@ -369,7 +369,7 @@ internal class AgentTools(
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
-    dump.read("${exactHexObjectId(objectId)} for an agent") { dive ->
+    dump.read("${hexObjectId(objectId)} for an agent") { dive ->
       val tree = dive.tree
       objectId.requireOneObjectOf(tree)
       AgentJson.objectSummary(
@@ -435,7 +435,7 @@ internal class AgentTools(
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
     val fromObjectId = arguments.optionalObjectId(FROM)
-    dump.read("every way ${exactHexObjectId(objectId)} is held, for an agent") { dive ->
+    dump.read("every way ${hexObjectId(objectId)} is held, for an agent") { dive ->
       val tree = dive.tree
       objectId.requireOneObjectOf(tree)
       // Whether or not `from` is given, since only garbage holds garbage: the ways found for it start at pieces
@@ -523,7 +523,7 @@ internal class AgentTools(
       val tree = dive.tree
       if (nodeId != HeapDominatorTreemap.ROOT_OBJECT_ID && nodeId !in tree) {
         throw AgentRefusal(
-          "${exactHexObjectId(nodeId)} is no node of this heap dump's dominator tree, so there is nothing " +
+          "${hexObjectId(nodeId)} is no node of this heap dump's dominator tree, so there is nothing " +
             "under it to walk. Leave `$OBJECT` out for the whole heap dump."
         )
       }
@@ -579,14 +579,14 @@ internal class AgentTools(
     // that difference stops existing the moment it is recorded.
     val before = solvingLeakOf?.let { dump.readRootPath(it).requireStuck(it) }
     val conflicts = dump.read(
-      "what setting ${exactHexObjectId(objectId)} to $verdict disagrees with, for an agent"
+      "what setting ${hexObjectId(objectId)} to $verdict disagrees with, for an agent"
     ) { dive ->
       objectId.requireOneObjectOf(dive.tree)
       dive.tree.verdictConflictsWith(override, dump.verdicts)
     }
     if (conflicts.isNotEmpty() && !arguments.boolean(SOLVE_CONFLICTS, default = false)) {
       throw AgentRefusal(
-        "Not set: $verdict on ${exactHexObjectId(objectId)} contradicts ${conflicts.size} verdict(s) " +
+        "Not set: $verdict on ${hexObjectId(objectId)} contradicts ${conflicts.size} verdict(s) " +
           "already recorded about this heap dump. Everything a stuck object holds is stuck, and " +
           "everything holding an object that is meant to be here is meant to be here, so these cannot " +
           "all be read off one path. Either your verdict is wrong, or theirs is:\n" +
@@ -644,7 +644,7 @@ internal class AgentTools(
     val last = steps.last()
     if (last.step.verdict != Verdict.STUCK) {
       throw AgentRefusal(
-        "${exactHexObjectId(objectId)} ${last.step.className} is ${last.step.verdict.name} in this heap " +
+        "${hexObjectId(objectId)} ${last.step.className} is ${last.step.verdict.name} in this heap " +
           "dump, and `$SOLVING_LEAK_OF` is the ${Verdict.STUCK.name} object whose leak you are solving: " +
           "the one you picked out of $LIST_LEAK_GROUPS, not the object you are setting a verdict on. A " +
           "path ending at an object that isn't stuck has no fault on it to narrow."
@@ -668,7 +668,7 @@ internal class AgentTools(
     val objectId = arguments.objectId(OBJECT)
     val existing = dump.verdicts[objectId]
       ?: throw AgentRefusal(
-        "Nothing to clear: no verdict has been recorded about ${exactHexObjectId(objectId)}."
+        "Nothing to clear: no verdict has been recorded about ${hexObjectId(objectId)}."
       )
     dump.clearVerdict(objectId)
     buildJsonObject {
@@ -832,7 +832,7 @@ internal class AgentTools(
 
   /** The path to [objectId], read through the verdicts, refusing an address that is no object of the dump. */
   private suspend fun AgentHeapDump.readRootPath(objectId: Long): RootPath =
-    read("the path to ${exactHexObjectId(objectId)}, for an agent") { dive ->
+    read("the path to ${hexObjectId(objectId)}, for an agent") { dive ->
       objectId.requireOneObjectOf(dive.tree)
       dive.tree.rootPathTo(objectId, verdicts)
     }
@@ -1141,14 +1141,14 @@ private fun RootPath.gcRootSuspectNote(): String = if (isGcRootSuspect()) {
  * call takes, and the class is already on that object of the path the sentence is about — so repeating it
  * makes the sentence longer where the pointer was the whole of what it had to hand over.
  */
-private fun RootPathStep.address(): String = exactHexObjectId(step.objectId)
+private fun RootPathStep.address(): String = hexObjectId(step.objectId)
 
 /**
  * What every tool says about an object no GC root holds, which is no leak: `path_from_gc_roots` as its `next`,
  * and `ways_held` and a `solvingLeakOf` as their refusal.
  */
 private fun uncollectedGarbage(objectId: Long): String =
-  "${exactHexObjectId(objectId)} is uncollected garbage: no GC root reaches it, so nothing keeps it in memory " +
+  "${hexObjectId(objectId)} is uncollected garbage: no GC root reaches it, so nothing keeps it in memory " +
     "and the next collection frees it. Pick a group from a section of $LIST_LEAK_GROUPS that is not marked " +
     "isOnTheWayOut."
 
@@ -1164,7 +1164,7 @@ private fun uncollectedGarbage(objectId: Long): String =
  */
 private fun VerdictConflict.asSentence(): String {
   val side = if (isAbove) "which holds it" else "which it holds"
-  return "- ${exactHexObjectId(existing.objectId)} $objectName, $side, is ${existing.verdict}: " +
+  return "- ${hexObjectId(existing.objectId)} $objectName, $side, is ${existing.verdict}: " +
     "${existing.reason} Keeping yours makes it ${solved.verdict}."
 }
 
@@ -1178,20 +1178,20 @@ private fun VerdictConflict.asSentence(): String {
 private fun Long.requireOneObjectOf(tree: HeapDominatorTreemap) {
   val refusal = when {
     this == HeapDominatorTreemap.ROOT_OBJECT_ID ->
-      "${exactHexObjectId(this)} is the whole heap dump rather than an object of it, so there is nothing " +
+      "${hexObjectId(this)} is the whole heap dump rather than an object of it, so there is nothing " +
         "to read about it."
-    HeapDominatorTreemap.isPileId(this) ->
-      "${exactHexObjectId(this)} stands for a pile of small objects the map had no room to draw, rather " +
+    HeapDominatorTreemap.isPileId(this) && this in tree ->
+      "${hexObjectId(this)} stands for a pile of small objects the map had no room to draw, rather " +
         "than for one object. Name one of the objects instead."
     tree.objectNameOrNull(this) == null ->
-      "${exactHexObjectId(this)} is no object of this heap dump. An address is only an address of the dump " +
+      "${hexObjectId(this)} is no object of this heap dump. An address is only an address of the dump " +
         "it was read from, so one copied from another dump, or from another window, names nothing here."
     // An address of a folded object only ever arrives from outside this surface — a note, another tool, a
     // profiler — since nothing here hands one out: a field whose value is folded has no `valueObject`. So
     // it is a reasonable question with an answer, and the answer is that the object it is part of is the
     // one to read.
     this !in tree ->
-      "${exactHexObjectId(this)} has its bytes counted inside another object, the way a string's " +
+      "${hexObjectId(this)} has its bytes counted inside another object, the way a string's " +
         "characters or a wrapper array's boxed numbers are, so nothing this heap dump was walked from " +
         "points at it and no path reaches it. Read the object it is part of instead."
     else -> return

@@ -485,11 +485,11 @@ internal const val TILE_COUNT = 205
 internal const val PATH_LINK_COUNT = 25
 
 /**
- * A heap dump whose objects sit above the 2 GB mark, which gives every one of them a negative object id.
+ * A heap dump whose objects sit above the 2 GB mark, where a 4 byte id has its top bit set.
  *
- * Where the large objects of a real 32 bit Android dump are: an id is 4 bytes there and shark widens those
- * by sign, so a bitmap or a byte array up in that half of the address space is a negative id everywhere
- * below shark's reader. Which is what the tree's own ids have to stay out of the way of.
+ * Where the large objects of a real 32 bit Android dump are: its bitmaps and byte arrays. An id up there is a
+ * number that reads as negative to anything taking 4 bytes as an [Int], and the tree's own ids are negative,
+ * so this is the dump that shows an object id being mistaken for one of them.
  */
 internal fun TemporaryFolder.highAddressHeapDump(): HighAddressHeapDump {
   val file = newFile("high-address.hprof")
@@ -507,9 +507,9 @@ internal fun TemporaryFolder.highAddressHeapDump(): HighAddressHeapDump {
 /** A [highAddressHeapDump] and the object of it a test asks about. */
 internal class HighAddressHeapDump(
   val file: File,
-  /** The payload array, negative the way every id of this dump is. */
+  /** The payload array, above the 2 GB mark like every object of this dump. */
   val payloadObjectId: Long
 )
 
-/** 0x82000000 as shark reads a 4 byte id: the first address a 32 bit dump's ids come out negative at. */
-private const val FIRST_HIGH_ADDRESS = -0x7E000000L
+/** Just past the 2 GB mark, where a 4 byte id has its top bit set. */
+private const val FIRST_HIGH_ADDRESS = 0x82000000L

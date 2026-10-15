@@ -42,8 +42,8 @@ class HprofWriterHelper constructor(
   /**
    * The id of the first object written, which every object after it counts up from.
    *
-   * Negative to write the ids of a 32 bit heap dump whose objects sit above the 2 GB mark: an id is 4 bytes
-   * there, and shark widens those by sign, so that is what such an address reads back as.
+   * An id is the address of an object, so `0x82000000` writes a heap dump whose objects sit above the 2 GB
+   * mark, which the 4 byte ids of an Android heap dump reach.
    */
   firstObjectId: Long = 1L
 ) : Closeable {

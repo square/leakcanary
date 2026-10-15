@@ -54,7 +54,7 @@ class StarredFile(
       ""
     } else {
       objectIds.joinToString(separator = "\n", prefix = "$HEADER\n", postfix = "\n") {
-        exactHexObjectId(it)
+        hexObjectId(it)
       }
     }
     writeWholeFile(file, text)

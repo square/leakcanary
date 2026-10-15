@@ -190,24 +190,24 @@ subdivide, 2 dp to draw, against 12 dp and 3 dp. A level of a stack costs no wid
 narrow block still buys a full row of detail, where in a picture that pays area for nesting it buys a
 sliver of a sliver.
 
-### A negative node id is not the tree's own
+### A negative node id is a pile
 
-The tree's nodes are object ids, and the piles it invents — the uncollected garbage, and the class
-groups — need ids of their own. **`nodeId < 0` is not the test for one**, and taking it for one is a bug that
-looks like nothing: an object id is a heap address, a 32 bit dump records it in 4 bytes, and shark widens
-those by sign, so **every object above the 2 GB mark of such a dump has a negative id**. `isPileId` is a range
-check against `Int.MIN_VALUE` instead, and the pile ids start at `Long.MIN_VALUE`.
+The tree's nodes are object ids, and the piles it invents — the uncollected garbage, and the class groups —
+need ids of their own. They start at `Long.MIN_VALUE` and count up, and **`isPileId` is `nodeId < 0`**,
+because an object id is never negative: it is the address the heap dump recorded, and shark reads it unsigned.
 
-What the sign test cost, before it was a range check: on `large-dump.hprof`, **44 of the 4,616 rectangles of
-the opening view** had `contains()` say the tree didn't hold them, so pointing at one selected nothing, the
-path pane never filled in, and clicking one went to the root instead of into it — with no error anywhere,
-because every one of those answers is also a legitimate one. Their hex was wrong too (`0x-7deb3000`), which
-is what `NodeIds.hexObjectId` is for and what makes such an id recognisable in the log.
+That has only been true since 2026-10-15. Before, shark read a 32 bit dump's four byte ids signed, so **every
+object above the 2 GB mark of such a dump had a negative id**, and `isPileId` had to be a range check against
+`Int.MIN_VALUE`. What the sign test had cost before it became that range check: on `large-dump.hprof`, **44 of
+the 4,616 rectangles of the opening view** had `contains()` say the tree didn't hold them, so pointing at one
+selected nothing, the path pane never filled in, and clicking one went to the root instead of into it — with
+no error anywhere, because every one of those answers is also a legitimate one. Their hex was wrong too
+(`0x-7deb3000`).
 
-The lesson for new code here: an id from a heap dump is an opaque 64 bit value, not a number to compare
-against zero, and only a dump with objects past 2 GB will tell you otherwise. `highAddressHeapDump()` in
-`HeapDiveDumps` is built up there for exactly this — `dump { }` takes a `firstObjectId` so that a test
-can ask for such a dump in one argument.
+Code that takes an object id is still worth testing against a dump with objects past 2 GB, which is where a
+32 bit Android dump keeps its bitmaps and large arrays. `highAddressHeapDump()` in `HeapDiveDumps` is built up
+there for exactly this — `dump { }` takes a `firstObjectId` so that a test can ask for such a dump in one
+argument.
 
 Two consequences worth knowing before writing a test against the layout:
 

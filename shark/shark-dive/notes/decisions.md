@@ -864,8 +864,10 @@ recognise stays exactly as typed: a class this dump has never heard of is a clas
   per pause in the typing. It only runs at all for a note that mentions something.
 - **Resolving is idempotent**, because a note is resolved again every time the dump answers: what is drawn is
   built from the mention rather than from what the span is showing now.
-- **An address is two `Long`s.** A 32 bit dump's ids are four bytes widened by sign, so `0x82182c00` is
-  either that or the negative id `hexObjectId` prints as `0x82182c00`, and only the dump says which.
+- **An address is one `Long`, since 2026-10-15.** It was two until then: shark read a 32 bit dump's four
+  byte ids signed, so `0x82182c00` was either that or the negative id a label printed as `0x82182c00`, and
+  only the dump said which. Shark reads ids unsigned now, the way other heap tools show them, so
+  `0x82182c00` is the object at that address and a mention is one id.
 - **A `shark://` link keeps its link and gains a name.** Resolving a mention never replaces a link that is
   already there, so a link to an object reads as that object and still leads where it names — followed
   exactly the way one arriving from the OS is, which is what makes the same link work in a note, a chat
@@ -1207,8 +1209,15 @@ question here is about all of them at once. Columns named in a comment at the to
 tabs escaped, the lines sorted by address, so that the file reads as evidence: two runs that set the same
 verdicts write the same file, and a line of it can be pasted into an issue. A line that can't be read is
 skipped with a log line rather than thrown over — it is hand editable on purpose, and one typo must not be a
-heap dump whose other verdicts have gone. Addresses are written with `exactHexObjectId`, not `hexObjectId`,
-since the latter gives up exactly what a file can't.
+heap dump whose other verdicts have gone. Addresses are written with `hexObjectId` and read back with
+`objectIdOfHex`.
+
+**Superseded, 2026-10-15: a file used to have a spelling of its own.** Shark read a 32 bit dump's four byte
+ids signed, so an object above the 2 GB mark had a negative id, and `hexObjectId` printed its low 32 bits to
+read the way other tools do — which a file can't read back. The files used `exactHexObjectId`, all 16 digits.
+Shark reads ids unsigned now, so both were the same function and only `hexObjectId` is left. A verdicts or
+starred file written before then names such an object as `0xffffffff82182c00`, which matches nothing now;
+dropping the `ffffffff` with `sed` brings it back.
 
 **Nothing is applied that wasn't written**, which is also the opposite of the notes beside it: a verdict only
 this process knows about is a path explained by a reason that will be gone next run. And nothing is saved

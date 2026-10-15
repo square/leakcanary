@@ -33,9 +33,9 @@ class DeepLinkTest {
       HeapDominatorTreemap.UNREACHABLE_NODE_ID + 1,
       Long.MAX_VALUE,
       -1L,
-      // An object above the 2 GB mark of a 32 bit heap dump, which shark widens by sign.
-      Int.MIN_VALUE.toLong(),
-      -2112345088L
+      // An object above the 2 GB mark of a 32 bit heap dump, and the last address of one.
+      0x82182c00L,
+      0xffffffffL
     )
 
     nodeIds.forEach { nodeId ->
@@ -46,17 +46,13 @@ class DeepLinkTest {
     }
   }
 
-  /**
-   * [hexObjectId] masks an id down to its low 32 bits so a label reads the way other tools write an address.
-   * A link cannot do that: two different nodes would come back as one.
-   */
+  /** An address in a link is the one on the object's label, so either can be searched for the other. */
   @Test
-  fun `a negative object id is not written the way a label writes it`() {
-    val link = DeepLink("leak.hprof", Place.Object(-2112345088L)).toUri()
+  fun `an object above the 2 GB mark is linked to by the address its label shows`() {
+    val link = DeepLink("leak.hprof", Place.Object(0x82182c00L)).toUri()
 
-    assertThat(link).isEqualTo("shark://leak.hprof/object?id=0xffffffff82182c00")
-    // Which is 0x82182c00 on a label, and that is a different node of the tree.
-    assertThat(link).doesNotContain(hexObjectId(-2112345088L))
+    assertThat(link).isEqualTo("shark://leak.hprof/object?id=0x82182c00")
+    assertThat(link).endsWith(hexObjectId(0x82182c00L))
   }
 
   @Test
