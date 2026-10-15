@@ -145,24 +145,25 @@ The second index is built the first time anything asks `referrersOf`, and nothin
 
 | dump | tree's index | every reference | first call |
 | --- | --- | --- | --- |
-| `large-dump.hprof` | 1 930 168 | 2 026 248 | 605 ms |
-| `compose_leak.hprof` | 1 446 567 | 1 467 580 | 345 ms |
-| `gc_root_in_non_primary_heap.hprof` | 466 812 | 476 104 | 100 ms |
-| `gcroot_unknown_object.hprof` | 2 085 103 | 2 131 498 | 585 ms |
-| `leak_asynctask_m.hprof` | 608 125 | 615 502 | 114 ms |
-| `leak_asynctask_o.hprof` | 473 132 | 484 080 | 103 ms |
-| `leak_asynctask_pre_m.hprof` | 220 690 | 222 165 | 56 ms |
-| `unloaded_classes-stripped.hprof` | 2 013 661 | 2 429 281 | 612 ms |
+| `large-dump.hprof` | 1 930 177 | 2 026 263 | 605 ms |
+| `compose_leak.hprof` | 1 446 576 | 1 467 599 | 345 ms |
+| `gc_root_in_non_primary_heap.hprof` | 466 821 | 476 116 | 100 ms |
+| `gcroot_unknown_object.hprof` | 2 085 115 | 2 131 537 | 585 ms |
+| `leak_asynctask_m.hprof` | 608 134 | 615 526 | 114 ms |
+| `leak_asynctask_o.hprof` | 473 141 | 484 092 | 103 ms |
+| `leak_asynctask_pre_m.hprof` | 220 696 | 222 181 | 56 ms |
+| `unloaded_classes-stripped.hprof` | 2 013 670 | 2 429 309 | 612 ms |
 
 Bytes are `bytesHeld`, measured on eight of the ten dumps above: the two under `shark/shark/src/test/resources`
 were not run. The first call includes building the index. It builds the tree's index too when nothing has
 walked a path yet, as in a run with no window: 1 285 ms on `large-dump.hprof`. A page of 30 of the running
 `MainActivity`'s 951 referrers took 6 to 17 ms after it on `large-dump.hprof`, as the run's log times it,
 JSON included. A page of 500 took 38 ms. The two indexes differ by 5% or less on all but one dump, because
-most references hold what they point at: 511 638 references against 565 047 on `large-dump.hprof`. The
+most references hold what they point at: 511 647 references against 565 225 on `large-dump.hprof`. The
 exception is `unloaded_classes-stripped.hprof`, at 21% more. On `large-dump.hprof` the tree's index lost 2 877
-references when a local variable of a thread stopped holding what a field holds. The index of every reference
-is byte for byte what it was, on all eight dumps.
+references when a local variable of a thread stopped holding what a field holds. Reading a thread's
+`JNI_LOCAL` and `NATIVE_STACK` roots as its references added 178 to the index of every reference there, and 9
+to the tree's.
 
 **One index carrying a bit per reference would hold about half what the two do.** It would also change what
 every walk up the referrers reads, including the one the pointer triggers on hover. Each walk would skip the

@@ -6,6 +6,8 @@ import shark.ClassReferenceReader
 import shark.FieldInstanceReferenceReader
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
+import shark.GcRoot.JniLocal
+import shark.GcRoot.NativeStack
 import shark.GcRoot.ThreadObject
 import shark.HeapGraph
 import shark.HeapObject
@@ -18,6 +20,7 @@ import shark.LibraryLeakReferenceMatcher
 import shark.ObjectArrayReferenceReader
 import shark.Reference
 import shark.Reference.LazyDetails
+import shark.ReferenceLocationType
 import shark.ReferenceLocationType.INSTANCE_FIELD
 import shark.ReferenceLocationType.STATIC_FIELD
 import shark.ReferenceMatcher
@@ -119,18 +122,31 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   private val localVariableReader = JavaLocalReferenceReader(graph, referenceMatchers)
 
   /**
-   * The threads [localVariableReader] reads the stack frames of, by the serial number a [JavaFrame] root
+   * The threads [localVariableReader] reads the stack frames of, by the serial number a root on a stack
    * names its thread with. Read once: a heap dump has a few hundred threads and tens of thousands of frames.
    */
-  private val threadSerialNumbersReadAsReferences: Set<Int> by lazy {
+  private val threadObjectIdBySerialNumber: Map<Int, Long> by lazy {
     graph.gcRoots.asSequence()
       .filterIsInstance<ThreadObject>()
       .filter { root ->
         val thread = graph.findObjectByIdOrNull(root.id)
         thread is HeapInstance && localVariableReader.matches(thread)
       }
-      .map { it.threadSerialNumber }
-      .toSet()
+      .associate { it.threadSerialNumber to it.id }
+  }
+
+  /**
+   * What the native code each of those threads is running holds, by the thread's object id: the objects of
+   * its [JniLocal] and [NativeStack] roots. Shark reads neither as a reference of the thread, so this does.
+   */
+  private val nativeLocalIdsByThreadObjectId: Map<Long, List<Long>> by lazy {
+    graph.gcRoots.asSequence()
+      .filter { it is JniLocal || it is NativeStack }
+      .mapNotNull { root ->
+        val threadObjectId = threadSerialNumberOf(root)?.let { threadObjectIdBySerialNumber[it] }
+        if (threadObjectId != null && graph.objectExists(root.id)) threadObjectId to root.id else null
+      }
+      .groupBy({ it.first }, { it.second })
   }
 
   private val viewChildReader = ViewChildReferenceReader(graph)
@@ -202,7 +218,15 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
    * See [TreeGcRootProvider].
    */
   fun isReadAsAReference(gcRoot: GcRoot): Boolean =
-    gcRoot is JavaFrame && gcRoot.threadSerialNumber in threadSerialNumbersReadAsReferences
+    threadSerialNumberOf(gcRoot)?.let { it in threadObjectIdBySerialNumber } == true
+
+  /** The thread a root on a stack is on, and null for a root that is on none. */
+  private fun threadSerialNumberOf(gcRoot: GcRoot): Int? = when (gcRoot) {
+    is JavaFrame -> gcRoot.threadSerialNumber
+    is JniLocal -> gcRoot.threadSerialNumber
+    is NativeStack -> gcRoot.threadSerialNumber
+    else -> null
+  }
 
   /**
    * The arrays ART hangs off a class object to hold what it embeds — its method tables in
@@ -287,19 +311,45 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   /**
    * What the methods [source] is running hold in their local variables, at [LOCAL], when [source] is a
-   * thread the heap dump names. Shark reads each [JavaFrame] root of that thread as one of these. Unlike
-   * the root, the reference says which thread the local variable is on.
+   * thread the heap dump names. Shark reads each [JavaFrame] root of that thread as one of these, and this
+   * reads each of its [JniLocal] and [NativeStack] roots the same way. Unlike the root, the reference says
+   * which thread the local variable is on.
    *
    * At [LOCAL] like the root, so that an object a field also holds is the field's. A local variable
    * retaining it put it under the whole heap dump, as the thread and the field's owner both holding it:
    * 160 objects of `large-dump.hprof` were drawn there that way, retaining 45 KB between them.
+   *
+   * The native ones too, or an object both a frame and native code of one thread hold has two holders: the
+   * thread, and the native root. Six objects of `large-dump.hprof` were drawn under the whole heap dump that
+   * way.
    */
-  private fun localVariableReferencesOf(source: HeapInstance): List<WeakeningReference> =
-    if (localVariableReader.matches(source)) {
-      localVariableReader.read(source).map { WeakeningReference(LOCAL, it) }.toList()
-    } else {
-      emptyList()
+  private fun localVariableReferencesOf(source: HeapInstance): List<WeakeningReference> {
+    if (!localVariableReader.matches(source)) {
+      return emptyList()
     }
+    val nativeLocals = nativeLocalIdsByThreadObjectId[source.objectId].orEmpty().asSequence().map { objectId ->
+      nativeLocalReference(source, objectId)
+    }
+    return (localVariableReader.read(source) + nativeLocals).map { WeakeningReference(LOCAL, it) }.toList()
+  }
+
+  /** The reference Shark's [JavaLocalReferenceReader] reads a frame as, for an object native code holds. */
+  private fun nativeLocalReference(
+    thread: HeapInstance,
+    objectId: Long
+  ) = Reference(
+    valueObjectId = objectId,
+    isLowPriority = true,
+    lazyDetailsResolver = {
+      LazyDetails(
+        name = "",
+        locationClassObjectId = thread.instanceClassId,
+        locationType = ReferenceLocationType.LOCAL,
+        matchedLibraryLeak = null,
+        isVirtual = true
+      )
+    }
+  )
 
   /**
    * What [source] holds as an entry of a cache that keeps its values in a map, at [CACHE] and named after

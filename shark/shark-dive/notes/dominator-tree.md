@@ -561,31 +561,37 @@ the tree still holds every object of the dump. Withholding a *root* edge is how 
 since `HeapDominatorTree` is exact and has no notion of a low priority root.
 
 **Shark reads a local variable twice, and the tree takes one of the two readings.** A `JavaFrame` root is
-the local as the hprof records it. `JavaLocalReferenceReader` also reads each root of a thread the dump
-names as a `LOCAL` reference from that `Thread`, marked `isVirtual`. `ReferenceStrengthReader` reads that
-reference as a weakening one at `LOCAL`, and `TreeGcRootProvider` takes no `JavaFrame` root a thread reads.
-So an object only a stack holds is under its thread, and an object a field also holds is under the field.
+the local as the hprof records it, naming its thread by serial number. `JavaLocalReferenceReader` also reads
+each frame of a thread the dump names as a `LOCAL` reference from that `Thread`, marked `isVirtual`, and
+`MatchingGcRootProvider` drops the root. `ReferenceStrengthReader` reads that reference as a weakening one
+at `LOCAL`. So an object only a stack holds is under its thread, and an object a field also holds is under
+the field.
 
-It used to be read as retaining, like the rest of what `ActualMatchingReferenceReaderFactory` reads. That
-made every local variable of a named thread strong, so no object of any of these dumps was `LOCAL`. And an
-object a field also held had two holders, the thread and the field's owner, so it sat under the whole heap
-dump. Measured on `large-dump.hprof`:
+**Native code a thread runs holds objects through `JNI_LOCAL` and `NATIVE_STACK` roots, read the same
+way.** These name a thread by serial number too, and on every dump here it is a thread the dump names. Shark
+reads neither as a reference, so `ReferenceStrengthReader` does, and `TreeGcRootProvider` drops the roots as
+Shark drops the frames. Left as roots, they are a second holder beside the thread. On `large-dump.hprof`
+that put 7 objects under the whole heap dump: six with a frame and a native root on one thread, and a
+`String[]` one of the six holds.
+
+The local used to be read as retaining, like the rest of what `ActualMatchingReferenceReaderFactory` reads.
+That made every local variable of a named thread strong, so no object of any of these dumps was `LOCAL`.
+And an object a field also held had two holders, the thread and the field's owner, so it sat under the
+whole heap dump. Measured on `large-dump.hprof`, against that reading:
 
 | | Objects | Retained |
 | --- | --- | --- |
-| On a stack frame, moved from under the whole heap dump to under an object | 160 | 45 KB |
-| On a stack frame, moved from under a thread to under the whole heap dump | 7 | 1.3 KB |
+| On a stack, moved from under the whole heap dump to under an object | 160 | 45 KB |
+| On a stack, moved from under the whole heap dump to under its thread | 3 | 182 B |
 | `STRONG` before, `LOCAL` now | 38 | 2.3 KB |
 
 The 160 are mostly what a parked thread waits on: 36 under an `AbstractQueuedSynchronizer$ConditionObject`,
 44 under a `ScheduledThreadPoolExecutor` or its queue, 16 under a `LinkedBlockingQueue`.
 
-The 7 had a second holder all along, which the wrong strength hid. Six of them have a `JNI_LOCAL` or
-`NATIVE_STACK` root besides their frame, on the same thread: three on the main thread, three on two
-`HandlerThread`s. Shark reads neither kind as a reference of the thread. While a local variable was strong,
-the object was `STRONG` and the rule above dropped that root. Now the object is `LOCAL` and the root is kept,
-so the thread and the root both hold it. The seventh, a `String[]` with no such root, is held by one of the
-six.
+The 3 are `String`s only a `JNI_LOCAL` root on the main thread holds. Every other dump here has 2 to 4 of
+them, all `String`s. What a stack holds and is still under the whole heap dump is on the stacks of two
+threads. One is a `Message` that frames of the main thread and of a `HandlerThread` both hold, in
+`leak_asynctask_pre_m.hprof`.
 
 **A garbage cycle has no entry point**, and that's the part to get right: a doubly linked list nothing
 points at any more has every node pointed at by another, so "the ones nothing points at" finds none of

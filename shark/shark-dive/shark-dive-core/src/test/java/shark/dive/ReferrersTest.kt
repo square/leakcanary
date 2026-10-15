@@ -8,6 +8,8 @@ import org.junit.rules.TemporaryFolder
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.JniLocal
+import shark.GcRoot.NativeStack
 import shark.GcRoot.ThreadObject
 import shark.LeakTrace
 import shark.ValueHolder.ReferenceHolder
@@ -163,6 +165,38 @@ class ReferrersTest {
   }
 
   /**
+   * Native code a thread runs holds objects through `JNI_LOCAL` and `NATIVE_STACK` roots on that thread, and
+   * those are its local variables too. Read as roots, they would be a second holder beside the thread's frame.
+   */
+  @Test fun `an object native code of a named thread holds is held through its thread`() {
+    val heapDump = testFolder.onlyOnAStackHeapDump { payload, threadSerialNumber ->
+      listOf(
+        JavaFrame(id = payload, threadSerialNumber = threadSerialNumber, frameNumber = 0),
+        JniLocal(id = payload, threadSerialNumber = threadSerialNumber, frameNumber = 0),
+        NativeStack(id = payload, threadSerialNumber = threadSerialNumber)
+      )
+    }
+    HeapDive.open(heapDump).use { dive ->
+      val tree = dive.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val referrers = tree.referrersOf(payload.objectId)
+
+      assertThat(referrers.referenceLabels()).containsExactly(
+        "Thread.<local variable> (virtual)",
+        "Thread.<local variable> (virtual)",
+        "Thread.<local variable> (virtual)",
+        "JAVA_FRAME (holds nothing)",
+        "JNI_LOCAL (holds nothing)",
+        "NATIVE_STACK (holds nothing)"
+      )
+      assertThat(tree.dominatorOf(payload.objectId)?.nodeId)
+        .isEqualTo(tree.instancesOf("Thread").single().objectId)
+      assertThat(tree.strengthOf(payload.objectId)).isEqualTo(ReachabilityStrength.LOCAL)
+    }
+  }
+
+  /**
    * Shark reads a list as holding its elements, where the heap dump has it holding an array that holds them.
    * Both are referrers, and the list's reference says it is Shark's reading.
    */
@@ -258,17 +292,25 @@ class ReferrersTest {
     return file
   }
 
-  /** A heap dump where a payload is a local variable of a method running on the main thread, and nothing else. */
-  private fun TemporaryFolder.onlyOnAStackHeapDump(): File {
+  /**
+   * A heap dump where a payload is held by the main thread's stack and by nothing else, through the roots
+   * [gcRootsOn] puts on it: a local variable of a method running there, by default.
+   */
+  private fun TemporaryFolder.onlyOnAStackHeapDump(
+    gcRootsOn: (payload: Long, threadSerialNumber: Int) -> List<GcRoot> = { payload, threadSerialNumber ->
+      listOf(JavaFrame(id = payload, threadSerialNumber = threadSerialNumber, frameNumber = 0))
+    }
+  ): File {
     val file = newFile("only-on-a-stack.hprof")
     file.dump {
       val thread = instance(
         clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class)),
         fields = listOf(string("main"))
       )
-      gcRoot(ThreadObject(id = thread.value, threadSerialNumber = 42, stackTraceSerialNumber = 0))
+      val threadSerialNumber = 42
+      gcRoot(ThreadObject(id = thread.value, threadSerialNumber = threadSerialNumber, stackTraceSerialNumber = 0))
       val payload = objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
-      gcRoot(JavaFrame(id = payload, threadSerialNumber = 42, frameNumber = 0))
+      gcRootsOn(payload, threadSerialNumber).forEach { gcRoot(it) }
     }
     return file
   }

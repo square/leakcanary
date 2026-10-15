@@ -206,9 +206,11 @@ internal fun millisSince(startNanos: Long): Long =
  * see [HeapReachability.isHeldThrough] — and the same reason it's safe: a root that is the only way to an
  * object is kept, because then nothing holds it more firmly.
  *
- * So is a local variable of a thread the heap dump names, which the tree reaches through that thread
- * instead. Kept, it would be a second way to the same object, and the object would be drawn under the whole
- * heap dump rather than under its thread. See [ReferenceStrengthReader.isReadAsAReference].
+ * So is a root on the stack of a thread the heap dump names, which the tree reaches through that thread
+ * instead. Shark's [MatchingGcRootProvider] leaves out such a thread's `JAVA_FRAME` roots, and this leaves out
+ * its `JNI_LOCAL` and `NATIVE_STACK` roots the same way. Kept, a root would be a second way to an object its
+ * thread holds, and the object would be drawn under the whole heap dump. See
+ * [ReferenceStrengthReader.isReadAsAReference].
  */
 internal class TreeGcRootProvider(
   private val reachability: HeapReachability,

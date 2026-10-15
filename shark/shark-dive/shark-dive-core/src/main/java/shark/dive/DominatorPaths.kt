@@ -141,7 +141,7 @@ data class PathReference(
    * Whether the heap dump has no such reference, and this is Shark's reading of the objects it goes
    * through. An `ArrayList` holding its elements is one: the dump has the list holding an array, and the
    * array holding them. A thread holding a local variable of a method it runs is another, read off a
-   * `JAVA_FRAME` GC root.
+   * `JAVA_FRAME`, `JNI_LOCAL` or `NATIVE_STACK` GC root.
    *
    * What it goes through is still in the heap dump, with references of its own. So an object an
    * `ArrayList` holds is held by the list through this, and by the array through an element of it. See
