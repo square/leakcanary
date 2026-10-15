@@ -8,7 +8,8 @@ import java.io.Serializable
 sealed class ReferencePattern : Serializable {
 
   /**
-   * Matches local references held in the stack of frames of a given thread, identified by its name.
+   * Matches local references held in the stack of frames of a given thread, identified by its name,
+   * by the Java code it runs as well as by its native code.
    */
   data class JavaLocalPattern(
     val threadName: String

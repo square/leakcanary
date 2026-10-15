@@ -5,9 +5,14 @@ import shark.HeapObject.HeapInstance
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.LOCAL
 import shark.ReferencePattern.JavaLocalPattern
-import shark.internal.JavaFrames
 import shark.internal.ThreadObjects
+import shark.internal.ThreadStackRoots
 
+/**
+ * Reads the roots on a thread's stack as low priority [LOCAL] references from that thread: one for
+ * each `JAVA_FRAME`, `JNI_LOCAL` and `NATIVE_STACK` root the heap dump has for it.
+ * [MatchingGcRootProvider] leaves those roots out, so a leak trace through one names the thread.
+ */
 class JavaLocalReferenceReader(
   val graph: HeapGraph,
   referenceMatchers: List<ReferenceMatcher>
@@ -49,11 +54,11 @@ class JavaLocalReferenceReader(
       return emptySequence()
     }
     val threadClassId = source.instanceClassId
-    return JavaFrames.getByThreadObjectId(graph, source.objectId)?.let { frames ->
-      frames.asSequence().map { frame ->
+    return ThreadStackRoots.getByThreadObjectId(graph, source.objectId)?.let { stackRoots ->
+      stackRoots.asSequence().map { stackRoot ->
         Reference(
-          valueObjectId = frame.id,
-          // Java Frames always have low priority because their path is harder to understand
+          valueObjectId = stackRoot.id,
+          // Locals always have low priority because their path is harder to understand
           // for developers
           isLowPriority = true,
           lazyDetailsResolver = {

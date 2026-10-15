@@ -232,9 +232,9 @@ class LegacyHprofTest {
     analysis as HeapAnalysisSuccess
     assertThat(analysis.applicationLeaks).hasSize(1)
     val leak = analysis.applicationLeaks[0].leakTraces.first()
-    val firstReference = leak.referencePath.first()
-    assertThat(firstReference.originObject.className).isEqualTo("android.os.MessageQueue")
-    assertThat(firstReference.referenceDisplayName).isEqualTo("[0]")
+    val messageReference = leak.referencePath.last()
+    assertThat(messageReference.originObject.className).isEqualTo("android.os.MessageQueue")
+    assertThat(messageReference.referenceDisplayName).isEqualTo("[0]")
   }
 
   @Test fun `duplicated unloaded classes are ignored`() {
