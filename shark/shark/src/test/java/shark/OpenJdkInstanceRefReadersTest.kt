@@ -2,6 +2,7 @@ package shark
 
 import java.io.File
 import java.lang.ref.ReferenceQueue
+import java.lang.ref.WeakReference
 import java.util.LinkedList
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
@@ -49,9 +50,24 @@ class OpenJdkInstanceRefReadersTest {
      * Clears every weakly reachable referent, which for a [WeakHashMap] means its stale keys. The
      * entries that held them stay in the table: only an operation on the map expunges those, and
      * not calling one is the point of the tests that call this.
+     *
+     * Then waits for the Reference Handler thread to take the cleared entries off the pending list.
+     * Until it does, the VM holds that list, which HotSpot dumps as a JNI global root chained
+     * through `Reference.discovered`, so a heap dump can reach an entry's value from there on a
+     * shorter path than any the test is about. A collection hands everything it cleared to that
+     * thread as one list, so a sentinel cleared with the entries coming out of its queue only says
+     * the thread has taken that list. The sentinel of a second collection only comes out once the
+     * thread is through it.
      */
     private fun clearWeakKeys() {
-      System.gc()
+      repeat(2) {
+        val queue = ReferenceQueue<Any>()
+        val sentinel = WeakReference(Any(), queue)
+        System.gc()
+        check(queue.remove(10_000) === sentinel) {
+          "The Reference Handler thread didn't enqueue a cleared reference within 10 seconds"
+        }
+      }
     }
   }
 
