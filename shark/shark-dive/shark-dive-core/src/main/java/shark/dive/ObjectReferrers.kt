@@ -78,8 +78,9 @@ data class GcRootReferrer(
    * says of a reference. False for a weaker root on an object something firmer holds, such as a local
    * variable pointing at an object a field holds. See [HeapReachability.isHeldThrough].
    *
-   * Shark also reads a local variable as a reference from its thread, when the heap dump names the thread.
-   * So the same local can be a [GcRootReferrer] that holds nothing and an [ObjectReferrer] that holds.
+   * False too for a local variable of a thread the heap dump names. Shark reads that local as a reference
+   * from the thread as well, and the tree reaches the object through the thread. So the one local variable
+   * is this root and an [ObjectReferrer] whose reference is [PathReference.isVirtual].
    */
   override val holds: Boolean
 ) : Referrer

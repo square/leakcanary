@@ -8,6 +8,7 @@ import org.junit.rules.TemporaryFolder
 import shark.GcRoot
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.ThreadObject
 import shark.LeakTrace
 import shark.ValueHolder.ReferenceHolder
 import shark.dump
@@ -119,6 +120,63 @@ class ReferrersTest {
     }
   }
 
+  /**
+   * A local variable of a thread the heap dump names is read twice: as the GC root the dump records, and as
+   * a reference from the thread. Neither holds an object a field holds, so it is drawn under the field.
+   */
+  @Test fun `a local variable of a named thread holds nothing a field holds, read either way`() {
+    HeapDive.open(testFolder.onAStackAndInAFieldHeapDump()).use { dive ->
+      val tree = dive.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val referrers = tree.referrersOf(payload.objectId)
+
+      assertThat(referrers.referenceLabels()).containsExactly(
+        "Holder.payload",
+        "JAVA_FRAME (holds nothing)",
+        "Thread.<local variable> (virtual, holds nothing)"
+      )
+      assertThat(referrers.holdingReferrerCount).isEqualTo(1)
+      assertThat(tree.dominatorOf(payload.objectId)?.nodeId).isEqualTo(tree.findByLabel("Holder").objectId)
+    }
+  }
+
+  /**
+   * And an object only a local variable holds is the thread's, through the reference that says which thread.
+   * Through the root as well, it would have two holders and be drawn under the whole heap dump.
+   */
+  @Test fun `an object only a local variable of a named thread holds is held through its thread`() {
+    HeapDive.open(testFolder.onlyOnAStackHeapDump()).use { dive ->
+      val tree = dive.tree
+      val payload = tree.findByLabel("Object[]")
+
+      val referrers = tree.referrersOf(payload.objectId)
+
+      assertThat(referrers.referenceLabels()).containsExactly(
+        "Thread.<local variable> (virtual)",
+        "JAVA_FRAME (holds nothing)"
+      )
+      assertThat(tree.dominatorOf(payload.objectId)?.nodeId)
+        .isEqualTo(tree.instancesOf("Thread").single().objectId)
+      assertThat(tree.strengthOf(payload.objectId)).isEqualTo(ReachabilityStrength.LOCAL)
+    }
+  }
+
+  /**
+   * Shark reads a list as holding its elements, where the heap dump has it holding an array that holds them.
+   * Both are referrers, and the list's reference says it is Shark's reading.
+   */
+  @Test fun `an element of a list is held by the list and by the array the list keeps it in`() {
+    HeapDive.open(testFolder.leakInAListHeapDump()).use { dive ->
+      val tree = dive.tree
+
+      val referrers = tree.referrersOf(tree.instancesOf("MainActivity").single().objectId)
+
+      assertThat(referrers.referenceLabels()).containsExactly("ArrayList[x] (virtual)", "Object[][x]")
+      assertThat(referrers.holdingReferrerCount).isEqualTo(2)
+    }
+  }
+
   @Test fun `a gc root holding an object comes before the objects holding it`() {
     val heapDump = testFolder.inAFieldAndARootHeapDump { payload -> JniGlobal(id = payload, jniGlobalRefId = 1) }
     HeapDive.open(heapDump).use { dive ->
@@ -140,17 +198,19 @@ class ReferrersTest {
   }
 
   /**
-   * How these tests read a list of referrers: the class declaring each reference and the reference, or the
-   * type of a GC root, and whether the tree holds the object through it.
+   * How these tests read a list of referrers: each reference the way a leak is named after it, or the type of
+   * a GC root, then whether it is Shark's reading and whether the tree holds the object through it.
    */
   private fun ObjectReferrers.referenceLabels(): List<String> = referrers.flatMap { referrer ->
     when (referrer) {
-      is GcRootReferrer -> listOf(referrer.gcRootType.name to referrer.holds)
+      is GcRootReferrer -> listOf(referrer.gcRootType.name to listOfNotNull(holdsNothing(referrer.holds)))
       is ObjectReferrer -> referrer.references.map { (reference, holds) ->
-        "${reference.ownerClassName}.${reference.name}" to holds
+        reference.leakLabel() to listOfNotNull("virtual".takeIf { reference.isVirtual }, holdsNothing(holds))
       }
     }
-  }.map { (label, holds) -> label + if (holds) "" else " (holds nothing)" }
+  }.map { (label, notes) -> if (notes.isEmpty()) label else "$label (${notes.joinToString()})" }
+
+  private fun holdsNothing(holds: Boolean) = "holds nothing".takeIf { !holds }
 
   /**
    * A heap dump where a GC rooted app holds a screen, which holds a header and a footer both pointing at
@@ -194,6 +254,21 @@ class ReferrersTest {
       val holder = "com.example.Holder" instance { field["payload"] = ReferenceHolder(payload) }
       gcRoot(JniGlobal(id = holder.value, jniGlobalRefId = 0))
       gcRoot(gcRootOn(payload))
+    }
+    return file
+  }
+
+  /** A heap dump where a payload is a local variable of a method running on the main thread, and nothing else. */
+  private fun TemporaryFolder.onlyOnAStackHeapDump(): File {
+    val file = newFile("only-on-a-stack.hprof")
+    file.dump {
+      val thread = instance(
+        clazz(className = "java.lang.Thread", fields = listOf("name" to ReferenceHolder::class)),
+        fields = listOf(string("main"))
+      )
+      gcRoot(ThreadObject(id = thread.value, threadSerialNumber = 42, stackTraceSerialNumber = 0))
+      val payload = objectArray(arrayClass("java.lang.Object"), LongArray(PAYLOAD_ELEMENT_COUNT))
+      gcRoot(JavaFrame(id = payload, threadSerialNumber = 42, frameNumber = 0))
     }
     return file
   }

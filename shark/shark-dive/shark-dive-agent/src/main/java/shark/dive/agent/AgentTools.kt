@@ -465,9 +465,10 @@ internal class AgentTools(
       "referrers here. A GC root is a referrer with a `gcRootType` in place of an object and its " +
       "references. `holds` is whether retained sizes and `$WAYS_HELD` count a reference or a root as " +
       "holding the object. It is false for a weak reference to an object held strongly. It is false too " +
-      "for a reference to an object its owner holds, such as a view held by its parent. Holders come " +
-      "first, GC roots ahead of objects, then the largest retained size. `nextOffset` is where the next " +
-      "page starts, and null on the last one.",
+      "for a reference to an object its owner holds, such as a view held by its parent. `isVirtual` marks " +
+      "a reference Shark reads off a structure, such as a list holding its elements. The array the list " +
+      "keeps them in is a referrer too. Holders come first, GC roots ahead of objects, then the largest " +
+      "retained size. `nextOffset` is where the next page starts, and null on the last one.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object pointed at."),

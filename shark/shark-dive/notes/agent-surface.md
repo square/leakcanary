@@ -418,10 +418,10 @@ that got cut.
 ## And what a page of referrers costs
 
 `referrers` answers a page at a time: 30 referrers unless `limit` says otherwise, up to 500, and `nextOffset`
-says where the next page starts. A row is about 520 characters as the command line prints it. Measured on
-`large-dump.hprof`, the running `MainActivity` has 951 referrers, and its first page is 15,536 characters.
+says where the next page starts. A row is about 560 characters as the command line prints it. Measured on
+`large-dump.hprof`, the running `MainActivity` has 951 referrers, and its first page is 16,734 characters.
 The whole list in one answer was 505,394 characters, which Claude Code saved to a file behind a 2 KB
-preview. A page of 500 is 260,842, so a large `limit` lands past the cap again.
+preview. A page of 500 is 281,799, so a large `limit` lands past the cap again.
 
 **The order is what makes the first page enough.** What holds the object comes first, a GC root ahead of an
 object, then the largest retained size. So the first page of that call carries `ActivityThread.activities`,

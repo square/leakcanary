@@ -587,7 +587,7 @@ internal object AgentJson {
 
   /**
    * A reference as every answer here spells one, with what the answer it is on says about it after the
-   * three fields naming it: [pathReference]'s suspect, or [referrers]' `holds`.
+   * four fields naming it: [pathReference]'s suspect, or [referrers]' `holds`.
    */
   private fun JsonObjectBuilder.referenceInto(
     reference: PathReference,
@@ -596,6 +596,9 @@ internal object AgentJson {
     put("name", reference.name)
     put("ownerClassName", reference.ownerClassName)
     put("locationType", reference.locationType.name)
+    // On every reference, paths included. A list holding an element is an INSTANCE with an ARRAY_ENTRY
+    // reference, and without this it reads as an array that isn't one.
+    put("isVirtual", reference.isVirtual)
     judgement()
     val libraryLeak = reference.libraryLeak
     if (libraryLeak != null) {

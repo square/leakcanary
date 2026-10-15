@@ -252,15 +252,42 @@ class HeapVerdictTest {
   }
 
   /**
-   * The loop of [taskHoldingItsOwnThreadHeapDump], which is what makes both of the next two questions
-   * questions: every pair of objects on it reaches the other, so reaching is not what says which is above.
+   * The loop of [taskHoldingItsOwnThreadHeapDump], which is what makes the next question a question: the two
+   * objects on it reach each other, so reaching is not what says which is above.
    */
   @Test fun `objects that hold each other each reach the other`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
+      assertThat(dive.tree.reaches(dump.executorObjectId, dump.wrapperObjectId)).isTrue()
+      assertThat(dive.tree.reaches(dump.wrapperObjectId, dump.executorObjectId)).isTrue()
+    }
+  }
+
+  /**
+   * The runnable holds the executor, so a stuck runnable would force the executor to be stuck too, if it
+   * were above it. It is not, since the executor holds it back.
+   */
+  @Test fun `two verdicts on objects that hold each other do not conflict`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapDive.open(dump.file).use { dive ->
+      val conflicts = dive.tree.verdictConflictsWith(
+        override = override(dump.wrapperObjectId, STUCK, "this runnable should have finished"),
+        overrides = overrides(dump.executorObjectId, EXPECTED, "the app's executor")
+      )
+
+      assertThat(conflicts).isEmpty()
+    }
+  }
+
+  /** And a frame closes no loop: the task does not reach the runnable through the thread running it. */
+  @Test fun `a stack frame holding an object a field holds closes no loop`() {
+    val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
+
+    HeapDive.open(dump.file).use { dive ->
       assertThat(dive.tree.reaches(dump.wrapperObjectId, dump.taskObjectId)).isTrue()
-      assertThat(dive.tree.reaches(dump.taskObjectId, dump.wrapperObjectId)).isTrue()
+      assertThat(dive.tree.reaches(dump.taskObjectId, dump.wrapperObjectId)).isFalse()
     }
   }
 
@@ -269,7 +296,7 @@ class HeapVerdictTest {
    * runnable the executor is running belongs in memory and the task it holds does not, said in that order,
    * with the faulty reference between them the whole point of saying it.
    */
-  @Test fun `two verdicts on objects that hold each other do not conflict`() {
+  @Test fun `the two verdicts of the AsyncTask leak do not conflict`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
 
     HeapDive.open(dump.file).use { dive ->
@@ -329,11 +356,11 @@ class HeapVerdictTest {
     HeapDive.open(dump.file).use { dive ->
       val conflicts = dive.tree.verdictConflictsWith(
         override = override(dump.activityObjectId, EXPECTED, "this screen is coming back"),
-        overrides = overrides(dump.taskObjectId, STUCK, "this task should have been cancelled")
+        overrides = overrides(dump.wrapperObjectId, STUCK, "this runnable should have finished")
       )
 
       val conflict = conflicts.single()
-      assertThat(conflict.existing.objectId).isEqualTo(dump.taskObjectId)
+      assertThat(conflict.existing.objectId).isEqualTo(dump.wrapperObjectId)
       assertThat(conflict.isAbove).isTrue()
     }
   }
@@ -433,7 +460,7 @@ class HeapVerdictTest {
   /**
    * The way round a leak is only worth taking while it is a way anybody can read, and a running method's
    * stack frame is not one: it says the object was in use when the dump was taken, which is nothing to fix.
-   * So a path gives up going round rather than take a frame — see [RootPathSearch].
+   * A frame holds nothing a field holds, so it is no way round at all.
    */
   @Test fun `a path runs through what shouldn't be in memory rather than through a stack frame`() {
     val dump = testFolder.taskHoldingItsOwnThreadHeapDump()
@@ -444,8 +471,8 @@ class HeapVerdictTest {
         overrides = overrides(dump.taskObjectId, STUCK, "this task should have been cancelled")
       )
 
-      // The frame holding the activity is two steps from the thread where the executor's field is four, and
-      // it is the four that says what holds this activity: the task somebody has just said shouldn't be
+      // The frame pointing at the activity is two steps from the thread where the executor's field is four,
+      // and it is the four that says what holds this activity: the task somebody has just said shouldn't be
       // running.
       assertThat(path.steps.map { it.step.objectId }).contains(dump.taskObjectId)
       assertThat(path.steps.map { it.step.className }).doesNotContain("java.lang.Thread")

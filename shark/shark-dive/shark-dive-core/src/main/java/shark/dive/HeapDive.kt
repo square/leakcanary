@@ -116,7 +116,7 @@ class HeapDive private constructor(
             objectSizeCalculator = AndroidObjectSizeCalculator(graph)
           )
         }
-        val gcRootProvider = TreeGcRootProvider(reachability)
+        val gcRootProvider = TreeGcRootProvider(reachability, strengthReader)
         val tree = steps.run("Working out what retains what") {
           val dominatorTree = HeapDominatorTree.buildFor(
             graph = graph,
@@ -205,18 +205,29 @@ internal fun millisSince(startNanos: Long): Long =
  * would put it flat under the GC roots rather than under the field. Same rule as for a weak reference —
  * see [HeapReachability.isHeldThrough] — and the same reason it's safe: a root that is the only way to an
  * object is kept, because then nothing holds it more firmly.
+ *
+ * So is a local variable of a thread the heap dump names, which the tree reaches through that thread
+ * instead. Kept, it would be a second way to the same object, and the object would be drawn under the whole
+ * heap dump rather than under its thread. See [ReferenceStrengthReader.isReadAsAReference].
  */
-internal class TreeGcRootProvider(private val reachability: HeapReachability) : GcRootProvider {
+internal class TreeGcRootProvider(
+  private val reachability: HeapReachability,
+  private val strengthReader: ReferenceStrengthReader
+) : GcRootProvider {
 
   override fun provideGcRoots(graph: HeapGraph): Sequence<GcRootReference> =
     MatchingGcRootProvider(emptyList()).provideGcRoots(graph)
-      .filter { reference ->
-        reachability.isHeldThrough(reference.gcRoot.id, reference.gcRoot.reachabilityStrength())
-      } + reachability.unreachableRootObjectIds.asSequence().map { objectId ->
-      GcRootReference(
-        gcRoot = GcRoot.Unreachable(objectId),
-        isLowPriority = true,
-        matchedLibraryLeak = null
-      )
-    }
+      .filter { reference -> holds(reference.gcRoot) } +
+      reachability.unreachableRootObjectIds.asSequence().map { objectId ->
+        GcRootReference(
+          gcRoot = GcRoot.Unreachable(objectId),
+          isLowPriority = true,
+          matchedLibraryLeak = null
+        )
+      }
+
+  /** Whether the tree hangs the object [gcRoot] is on off it, which is every root this provides. */
+  fun holds(gcRoot: GcRoot): Boolean =
+    !strengthReader.isReadAsAReference(gcRoot) &&
+      reachability.isHeldThrough(gcRoot.id, gcRoot.reachabilityStrength())
 }

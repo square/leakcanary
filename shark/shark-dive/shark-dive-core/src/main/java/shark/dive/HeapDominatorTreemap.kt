@@ -20,7 +20,6 @@ import shark.GcRoot.ThreadObject
 import shark.GcRoot.Unknown
 import shark.GcRoot.Unreachable
 import shark.GcRoot.VmInternal
-import shark.GcRootProvider
 import shark.HeapDominatorTree
 import shark.HeapField
 import shark.HeapGraph
@@ -83,7 +82,7 @@ class HeapDominatorTreemap internal constructor(
   private val strengthReader: ReferenceStrengthReader,
   private val ownerReferences: OwnerReferences,
   /** The roots the tree was built from, which is where a path up from an object can end. */
-  private val gcRootProvider: GcRootProvider,
+  private val gcRootProvider: TreeGcRootProvider,
   private val dominatorTree: HeapDominatorTree,
   private val nodes: Map<Long, DominatorNode>
 ) : TreemapTree<Long> {
@@ -802,7 +801,7 @@ class HeapDominatorTreemap internal constructor(
     graph.gcRoots.filter { it.id == objectId }.forEach { gcRoot ->
       val referrer = GcRootReferrer(
         gcRootType = LeakTrace.GcRootType.fromGcRoot(gcRoot),
-        holds = reachability.isHeldThrough(objectId, gcRoot.reachabilityStrength())
+        holds = gcRootProvider.holds(gcRoot)
       )
       candidates += ReferrerCandidate(holds = referrer.holds, isGcRoot = true, retainedSize = 0L) { referrer }
     }
@@ -1441,7 +1440,7 @@ class HeapDominatorTreemap internal constructor(
    * [RootPath.gcRootType].
    */
   private fun gcRootOf(objectId: Long): GcRoot? = graph.gcRoots.firstOrNull {
-    it.id == objectId && reachability.isHeldThrough(objectId, it.reachabilityStrength())
+    it.id == objectId && gcRootProvider.holds(it)
   }
 
   /** The label for an object no GC root reaches, which says so in the log when the two halves disagree. */
@@ -1524,6 +1523,7 @@ class HeapDominatorTreemap internal constructor(
           ?.let { (it as? HeapClass)?.simpleName }
           ?: label(referrerId),
         locationType = resolved.locationType,
+        isVirtual = resolved.isVirtual,
         // Which is the whole of what the library leak matchers added to the reader do: they name the
         // references that are known to leak, and change nothing about which of them are followed.
         libraryLeak = resolved.matchedLibraryLeak?.let { matcher ->
