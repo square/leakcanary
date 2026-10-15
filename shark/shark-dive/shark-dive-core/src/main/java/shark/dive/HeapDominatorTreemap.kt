@@ -41,6 +41,7 @@ import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.In
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.LongArrayDump
 import shark.HprofRecord.HeapDumpRecord.ObjectRecord.PrimitiveArrayDumpRecord.ShortArrayDump
 import shark.ObjectDominators.DominatorNode
+import shark.SyntheticField
 import shark.ObjectReporter
 import shark.AndroidObjectInspectors
 import shark.SharkLog
@@ -488,7 +489,7 @@ class HeapDominatorTreemap internal constructor(
       label = label(objectId),
       className = className ?: ROOT_LABEL,
       kind = heapObject?.kind(),
-      content = heapObject?.content(),
+      syntheticFields = reporter?.syntheticFields?.toList() ?: emptyList(),
       strength = strengthOf(objectId),
       shallowSize = node.shallowSize,
       retainedSize = node.retainedSize,
@@ -503,8 +504,8 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * What Shark's inspectors have to say about an object: labels to draw beside it, e.g. that an activity
-   * is destroyed, and whether it is meant to still be in memory.
+   * What Shark's inspectors have to say about an object: what they read off it, e.g. a thread's name, labels
+   * to draw beside it, e.g. that an activity is destroyed, and whether it is meant to still be in memory.
    *
    * Both halves every time, because they are the same read: the inspectors work out the reasons on the way
    * to the labels, and a path that kept only the labels would be one heap dump read away from knowing
@@ -608,7 +609,7 @@ class HeapDominatorTreemap internal constructor(
       objectId = objectId,
       className = heapObject.className(),
       kind = heapObject.kind(),
-      content = heapObject.content(),
+      syntheticFields = heapObject.inspect().syntheticFields.toList(),
       shallowSize = shallowSize,
       retainedSize = retainedSize,
       strength = reachability.strengthOf(heapObject)
@@ -1098,7 +1099,7 @@ class HeapDominatorTreemap internal constructor(
       objectId = objectId,
       className = target?.className ?: heapObject.className(),
       kind = target?.kind ?: heapObject.kind(),
-      content = target?.content ?: heapObject.content(),
+      syntheticFields = target?.syntheticFields ?: heapObject.inspect().syntheticFields.toList(),
       retainedSize = nodes[objectId]?.retainedSize ?: 0L,
       retainedCount = nodes[objectId]?.retainedCount ?: 0,
       strength = strength,
@@ -1430,7 +1431,6 @@ class HeapDominatorTreemap internal constructor(
         objectId = objectId,
         className = className,
         kind = heapObject.kind(),
-        content = heapObject.content(),
         syntheticFields = reporter.syntheticFields.toList(),
         strength = strengthOf(objectId),
         // Zero for an object whose bytes are folded into another one, which is no node of the tree: a
@@ -1519,45 +1519,6 @@ class HeapDominatorTreemap internal constructor(
       return path.toIntArray()
     }
   }
-
-  /**
-   * What an object is beyond its class, for the kinds this reads it off. See [ObjectContent].
-   *
-   * Every case here is an object whose own fields say nothing about its size: a bitmap keeps its pixels
-   * in native memory, a string's characters are folded into it by the size calculator, and an array's
-   * elements are what it is rather than something to scroll a field list for.
-   */
-  private fun HeapObject.content(): ObjectContent? = when (this) {
-    is HeapInstance -> when {
-      instanceOf("java.lang.String") -> readAsJavaString()?.let { ObjectContent.JavaString(it) }
-      instanceOf("android.graphics.Bitmap") -> bitmapContent()
-      instanceOf("java.lang.Thread") -> readStringField("java.lang.Thread", "name")
-        ?.let { ObjectContent.Thread(it) }
-      else -> null
-    }
-    is HeapObjectArray -> ObjectContent.ObjectArray(elementCount)
-    is HeapPrimitiveArray -> ObjectContent.PrimitiveArray(recordSize)
-    is HeapClass -> null
-  }
-
-  /**
-   * How many elements this array holds, from the size of its record, which the index already has. Every element
-   * is one object id, so this reads nothing — reading the record to count it would read every element of an
-   * array that can be millions of them long, to draw one line.
-   */
-  private val HeapObjectArray.elementCount: Int
-    get() = (byteSize / graph.identifierByteSize).toInt()
-
-  private fun HeapInstance.bitmapContent(): ObjectContent.Bitmap = ObjectContent.Bitmap(
-    width = this[BITMAP_CLASS_NAME, "mWidth"]?.value?.asInt,
-    height = this[BITMAP_CLASS_NAME, "mHeight"]?.value?.asInt,
-    isRecycled = this[BITMAP_CLASS_NAME, "mRecycled"]?.value?.asBoolean == true
-  )
-
-  private fun HeapInstance.readStringField(
-    declaringClassName: String,
-    fieldName: String
-  ): String? = this[declaringClassName, fieldName]?.value?.readAsJavaString()
 
   /**
    * Every field of an object, with object valued ones inspectable so that the panel can walk the graph
@@ -1848,7 +1809,6 @@ class HeapDominatorTreemap internal constructor(
      */
     fun isPileId(nodeId: Long): Boolean = nodeId < 0L
 
-    private const val BITMAP_CLASS_NAME = "android.graphics.Bitmap"
     private const val NULL_VALUE = "null"
     private const val UNKNOWN_VALUE = "object not in the heap dump"
 
@@ -1929,11 +1889,8 @@ data class HeapObjectSummary(
   val className: String,
   /** Null for the virtual root above the heap dump, which is no object of it. */
   val kind: HeapObjectKind?,
-  /**
-   * What this object is beyond its class — a string's characters, a bitmap's dimensions — for the kinds
-   * Shark Dive reads it off, null for the rest. See [ObjectContent].
-   */
-  val content: ObjectContent?,
+  /** What Shark's object inspectors reported as fields of this object. Its leak trace prints them. */
+  val syntheticFields: List<SyntheticField>,
   val strength: ReachabilityStrength,
   val shallowSize: Long,
   val retainedSize: Long,
