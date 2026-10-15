@@ -628,7 +628,7 @@ internal class HprofInMemoryIndex private constructor(
       }
       val index = sortedClassDumpIds.binarySearch(classId)
       require(index >= 0) {
-        "Heap dump has an object of class 0x${classId.toString(16)} but no class dump record for " +
+        "Heap dump has an object of class ${hexObjectId(classId)} but no class dump record for " +
           "that class, so the class of that object cannot be resolved."
       }
       lastClassId = classId
@@ -912,8 +912,8 @@ internal class HprofInMemoryIndex private constructor(
       for (classObjectIndex in 0 until classCount) {
         val classId = sortedClassIndex.keyAt(classObjectIndex)
         require(classId == sortedClassDumpIds[classObjectIndex]) {
-          "Class index entry $classObjectIndex is class 0x${classId.toString(16)} but the class " +
-            "dump ids sorted that position to 0x${sortedClassDumpIds[classObjectIndex].toString(16)}"
+          "Class index entry $classObjectIndex is class ${hexObjectId(classId)} but the class " +
+            "dump ids sorted that position to ${hexObjectId(sortedClassDumpIds[classObjectIndex])}"
         }
       }
       // Passing references to avoid copying the underlying data structures.

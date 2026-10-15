@@ -15,6 +15,10 @@ import org.junit.rules.TemporaryFolder
 import shark.AndroidReferenceMatchers.FINALIZER_WATCHDOG_DAEMON
 import shark.AndroidReferenceMatchers.REFERENCES
 import shark.GcRoot.ThreadObject
+import shark.HeapObject.HeapClass
+import shark.HeapObject.HeapInstance
+import shark.HeapObject.HeapObjectArray
+import shark.HeapObject.HeapPrimitiveArray
 import shark.HprofHeapGraph.Companion.openHeapGraph
 import shark.OnAnalysisProgressListener.Step.COMPUTING_NATIVE_RETAINED_SIZE
 import shark.OnAnalysisProgressListener.Step.COMPUTING_RETAINED_SIZE
@@ -25,6 +29,8 @@ import shark.OnAnalysisProgressListener.Step.INSPECTING_OBJECTS
 import shark.OnAnalysisProgressListener.Step.PARSING_HEAP_DUMP
 
 private const val ANALYSIS_THREAD = "analysis"
+
+private const val MIN_RENDERED_RETAINED_SIZE = 200
 
 class HprofRetainedHeapPerfTest {
 
@@ -220,21 +226,20 @@ class HprofRetainedHeapPerfTest {
     val heapAnalyzer = HeapAnalyzer(OnAnalysisProgressListener.NO_OP)
 
     val (analysis, dominatorTree) = openHeapGraph().use { graph ->
+      val threadObjectId = graph.gcRoots.first { gcRoot ->
+        gcRoot is ThreadObject &&
+          graph.objectExists(gcRoot.id) &&
+          graph.findObjectById(gcRoot.id)
+            .asInstance!!["java.lang.Thread", "name"]!!
+            .value.readAsJavaString() == threadName
+      }.id
       val analysis = heapAnalyzer.analyze(
         heapDumpFile = this,
         graph = graph,
         referenceMatchers = ReferenceMatcher.fromListBuilders(
           EnumSet.of(REFERENCES, FINALIZER_WATCHDOG_DAEMON)
         ),
-        leakingObjectFinder = {
-          setOf(graph.gcRoots.first { gcRoot ->
-            gcRoot is ThreadObject &&
-              graph.objectExists(gcRoot.id) &&
-              graph.findObjectById(gcRoot.id)
-                .asInstance!!["java.lang.Thread", "name"]!!
-                .value.readAsJavaString() == threadName
-          }.id)
-        },
+        leakingObjectFinder = { setOf(threadObjectId) },
         computeRetainedHeapSize = true
       )
       check(analysis is HeapAnalysisSuccess) {
@@ -246,14 +251,83 @@ class HprofRetainedHeapPerfTest {
         val ignoredRefs = ReferenceMatcher.fromListBuilders(weakAndFinalizerRefs).map { matcher ->
           matcher as IgnoredReferenceMatcher
         }
-        ObjectDominators().renderDominatorTree(
-          graph, ignoredRefs, 200, threadName, true
-        )
+        renderDominatorTree(graph, ignoredRefs, threadObjectId)
       } else ""
       analysis to dominatorTree
     }
 
     return analysis.applicationLeaks.single().leakTraces.single().retainedHeapByteSize!!.bytes to dominatorTree
+  }
+
+  /**
+   * What the object at [rootObjectId] keeps alive, as the tree of the objects it dominates that
+   * retain more than [MIN_RENDERED_RETAINED_SIZE] bytes. Printed when a freeze fails, to show where
+   * the memory went.
+   */
+  private fun renderDominatorTree(
+    graph: HeapGraph,
+    ignoredRefs: List<IgnoredReferenceMatcher>,
+    rootObjectId: Long
+  ): String {
+    val tree = ObjectDominators().buildDominatorTree(graph, ignoredRefs)
+    val root = tree.getValue(ValueHolder.NULL_REFERENCE)
+    return buildString {
+      append(
+        "Total retained: ${root.retainedSize} bytes in ${root.retainedCount} objects. " +
+          "Root dominators: ${root.dominatedObjectIds.size}\n\n"
+      )
+      appendDominatorTree(graph, tree, rootObjectId, depth = 0, prefix = "", isLast = true)
+    }
+  }
+
+  @Suppress("LongParameterList")
+  private fun StringBuilder.appendDominatorTree(
+    graph: HeapGraph,
+    tree: Map<Long, ObjectDominators.DominatorNode>,
+    objectId: Long,
+    depth: Int,
+    prefix: String,
+    isLast: Boolean
+  ) {
+    val node = tree.getValue(objectId)
+    val heapObject = graph.findObjectById(objectId)
+    val className = when (heapObject) {
+      is HeapClass -> "class ${heapObject.name}"
+      is HeapInstance -> heapObject.instanceClassName
+      is HeapObjectArray -> heapObject.arrayClassName
+      is HeapPrimitiveArray -> heapObject.arrayClassName
+    }
+    val anchor = if (depth == 0) "" else if (isLast) "╰─" else "├─"
+    val size = if (node.retainedSize != node.shallowSize) {
+      "${node.retainedSize} bytes (${node.shallowSize} self)"
+    } else {
+      "${node.shallowSize} bytes"
+    }
+    val count = if (node.retainedCount > 1) " ${node.retainedCount} objects" else ""
+    val stringContent = if (heapObject is HeapInstance && heapObject.instanceClassName == "java.lang.String") {
+      " \"${heapObject.readAsJavaString()}\""
+    } else {
+      ""
+    }
+    append("$prefix$anchor$className @0x${java.lang.Long.toHexString(objectId)} Retained: $size$count$stringContent\n")
+
+    val newPrefix = when {
+      depth == 0 -> ""
+      isLast -> "$prefix  "
+      else -> "$prefix│ "
+    }
+    val largeChildren =
+      node.dominatedObjectIds.filter { tree.getValue(it).retainedSize > MIN_RENDERED_RETAINED_SIZE }
+    largeChildren.forEachIndexed { index, childObjectId ->
+      appendDominatorTree(
+        graph, tree, childObjectId, depth + 1, newPrefix,
+        // Not the last child drawn when smaller ones follow, which the ╰┄ below stands for.
+        isLast = index == node.dominatedObjectIds.lastIndex
+      )
+    }
+    if (largeChildren.size < node.dominatedObjectIds.size) {
+      append("$newPrefix╰┄\n")
+    }
   }
 
   class BytesAssert(

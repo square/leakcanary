@@ -137,6 +137,7 @@ Releases before 2.8.1 predate these markers.
 * 🔀 Shark reads a 4 byte object id as the unsigned address it is, the way Android Studio, ahat, MAT and every other heap dump tool show it. An object above the 2 GB mark of an Android heap dump now has the id `0x82000010` where it used to have `0xffffffff82000010`, a negative `Long`, and that's true of `HeapObject.objectId`, `ValueHolder.ReferenceHolder`, GC roots and anywhere else Shark reads an id. Every object below the 2 GB mark keeps the id it had, and leak signatures don't change.
     * 🔀 `HprofWriter` throws on an id that doesn't fit in the heap dump's id size, where it used to write its low bytes. A negative id written to a heap dump with 4 byte ids would now read back as a different, positive one.
     * ⚠️ `HeapObject.positiveObjectId` is gone, since it would now be the same as `objectId`.
+* ⚠️ `ObjectDominators.renderDominatorTree()` is gone. Nothing in LeakCanary or Shark called it, and it named each object by its position in Shark's index of the heap dump, `#1234`, which no other tool can look up. `ObjectDominators.buildDominatorTree()` still returns the tree it printed.
 
 ### Breaking change: `Leaking: YES` / `NO` is now `Verdict: Stuck` / `Expected`
 
