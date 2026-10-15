@@ -291,6 +291,11 @@ private fun AnnotatedString.Builder.appendLeakTraceObject(
       append('\n')
     }
 
+    syntheticFields.forEach { syntheticField ->
+      append(INDENTATION)
+      appendExtra(syntheticField.toString())
+      append('\n')
+    }
     labels.forEach { label ->
       append(INDENTATION)
       appendExtra(label)

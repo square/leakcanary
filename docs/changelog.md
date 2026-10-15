@@ -169,6 +169,40 @@ A leak trace now prints:
 * 🐤 [#3008](https://github.com/square/leakcanary/pull/3008) Automatic fix of the AOSP leak where an activity relaunched with its window preserved leaves `DecorContext.mActivityContext` pointing at the destroyed activity. `DecorView.getResources()` reads that weak reference on every call, which keeps the destroyed activity alive through garbage collections while the window draws, so LeakCanary reported it as retained and then found no leak in the heap dump. Android preserves the window when an overlay the app uses changes, e.g. the navigation mode or the accent color, which relaunches every activity, and when an activity is resized in multi-window mode. The fix applies on Android 10: Android 11 fixed the leak.
 * 🐛 LeakCanary sometimes dumped the heap for objects that its own garbage collection had just collected, and the analysis of that heap dump then found no leak. Before dumping, LeakCanary runs a GC and counts the watched objects that are still retained, by polling the reference queue their weak references go to once they're cleared. ART clears a weak reference during the GC, but only puts it on its queue afterwards, from its `ReferenceQueueDaemon` thread, so an object collected by the last of the GCs `FinalizingInProcessGcTrigger.runGc()` runs was counted as still retained. The last GC is the one that collects whatever the first one couldn't, such as a destroyed window that is only reachable through a weak reference which something reads while the GC is marking: reading it keeps the window alive through that GC, the same way `ObjectAnimator` keeps the objects it animates alive. `runGc()` now waits for the daemon before returning. That also spares `LeakAssertions.assertNoLeaks()` a heap dump and an analysis in that situation. In the debug builds of a large app, a third of the heap dumps LeakCanary took found no leak, and in 21 of the 24 we looked at, this is what had happened.
 
+### Inspectors report synthetic fields
+
+An `ObjectInspector` can now report a value it reads off an object as a synthetic field: a name such as `Thread.name`, and the value as a string. A leak trace prints the synthetic fields of an object before its labels, one per line, as `Thread.name = "main"`. The built-in inspectors used to write these values as labels, each in its own format: `Thread name: 'main'`, `Fragment.mTag=home`, `mRunning = true`. They all report synthetic fields now. Labels remain for sentences, such as `View not part of a window view hierarchy`. [Shark Dive](shark-dive.md) shows the same synthetic fields.
+
+The end of a leak trace now prints:
+
+```
+├─ androidx.fragment.app.Fragment[] array 0x13b398a8
+│    Verdict: Expected (DvFragment↓ is expected)
+│    length = 6
+│    ↓ Fragment[3]
+├─ com.jumio.qa.view.DvFragment instance 0x13aaa748
+│    Verdict: Expected (Fragment.mLifecycleRegistry.state is CREATED)
+│    Fragment.mTag = "android:switcher:2131296475:3"
+│    ↓ DvFragment.mRoot
+│                 ~~~~~
+╰→ android.widget.ScrollView instance 0x13aaa868
+​     Verdict: Stuck (ObjectWatcher was watching this)
+​     Retaining 5.8 kB in 89 objects
+​     KeyedWeakReference.key = "e4157a1a-b2ce-4775-9520-d5cfab82e6df"
+​     KeyedWeakReference.watchDurationMillis = 75359
+​     KeyedWeakReference.retainedDurationMillis = 70357
+​     View.mWindowAttachCount = 1
+​     View not part of a window view hierarchy
+​     View.mAttachInfo is null (view detached)
+​     mContext instance of com.jumio.qa.MainActivity with mDestroyed = false
+```
+
+* ✨ `ObjectReporter.addSyntheticField(name, value)` reports a synthetic field, and `LeakTraceObject.syntheticFields` carries them into the analysis. See [Identifying leaking objects and labeling objects](recipes.md#identifying-leaking-objects-and-labeling-objects).
+* ✨ Three new inspectors, in `ObjectInspectors.jdkDefaults` and `AndroidObjectInspectors.appDefaults`. `ObjectInspectors.STRING` reports the characters of a string as `String.value`. `ObjectInspectors.ARRAY` reports the `length` of an array, computed from the size of its record without reading its elements. `AndroidObjectInspectors.BITMAP` reports `Bitmap.mWidth`, `Bitmap.mHeight` and `Bitmap.mRecycled`.
+* 🔀 The lines the built-in inspectors used to print as labels read differently. Each one is named after the class that declares the field, and strings are quoted: `key = …` is now `KeyedWeakReference.key = "…"`, `mRunning = true` is now `ValueAnimator.mRunning = true`, and `state = DESTROYED` is now `LifecycleRegistry.state = DESTROYED`. A field that holds another object prints that object, as in `Message.target = android.os.Handler@0x12c0a6b8`. It used to print `not null` or `instance @0x12c0a6b8 of android.os.Handler`. A view id with no resource name in the heap dump prints the number instead of `R.id.null`. Update any code that parses these lines out of a leak trace.
+* 🔀 This version can't read heap analyses stored by an earlier version. `LeakTraceObject`'s `serialVersionUID` changed again, and LeakCanary's database drops and recreates its tables.
+* ⚠️ `LeakTraceObject` has a new last constructor parameter, `syntheticFields`, with an empty list as its default. Kotlin source that creates one compiles unchanged. Recompile code that was compiled against an earlier version and calls its constructor or `copy()`.
+
 ## Version 3.0 Alpha 9 (2026-06-25)
 
 * 🐛 [#2733](https://github.com/square/leakcanary/pull/2733) Fix reading `ActivityRecord`'s fields for `ACTIVITY_THREAD__NEW_ACTIVITIES` in `AndroidReferenceReaders`.

@@ -20,7 +20,10 @@ import kotlin.math.absoluteValue
 import shark.AndroidObjectInspectors.Companion.appDefaults
 import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
+import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
+import shark.HeapObject.HeapObjectArray
+import shark.HeapObject.HeapPrimitiveArray
 import shark.internal.InternalSharkCollectionsHelper
 
 /**
@@ -158,14 +161,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         AndroidResourceIdNames.readFromHeap(instance.graph)
           ?.let { resIds ->
-            val mID = instance["android.view.View", "mID"]!!.value.asInt!!
+            val mIDField = instance["android.view.View", "mID"]!!
+            val mID = mIDField.value.asInt!!
             val noViewId = -1
             if (mID != noViewId) {
-              val resourceName = resIds[mID]
-              labels += "View.mID = R.id.$resourceName"
+              addSyntheticField(mIDField, resIds[mID]?.let { "R.id.$it" } ?: mID.toString())
             }
           }
-        labels += "View.mWindowAttachCount = $mWindowAttachCount"
+        addSyntheticField("View.mWindowAttachCount", mWindowAttachCount.toString())
       }
     }
   },
@@ -369,11 +372,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         // Can't infer leaking status: mDecor null means either never shown or dismiss.
         // mDecor non null means the dialog is showing, but sometimes dialogs stay showing
         // after activity destroyed so that's not really a non leak either.
-        labels += mDecor describedWithValue if (mDecor.value.isNullReference) {
-          "null"
-        } else {
-          "not null"
-        }
+        addReferenceField(mDecor)
       }
     }
   },
@@ -425,7 +424,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
         val mTag = instance["android.app.Fragment", "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          labels += "Fragment.mTag=$mTag"
+          addSyntheticField("Fragment.mTag", mTag.quoted())
         }
       }
     }
@@ -454,7 +453,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
         val mTag = instance[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          labels += "Fragment.mTag=$mTag"
+          addSyntheticField("Fragment.mTag", mTag.quoted())
         }
       }
     }
@@ -478,7 +477,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
         val mTag = instance[ANDROIDX_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          labels += "Fragment.mTag = $mTag"
+          addSyntheticField("Fragment.mTag", mTag.quoted())
         }
       }
     }
@@ -571,8 +570,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("mortar.Presenter") { instance ->
-        val view = instance.getOrThrow("mortar.Presenter", "view")
-        labels += view describedWithValue if (view.value.isNullReference) "null" else "not null"
+        addReferenceField(instance.getOrThrow("mortar.Presenter", "view"))
       }
     }
   },
@@ -603,7 +601,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
     ) {
       reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
         val attached = instance.getOrThrow("com.squareup.coordinators.Coordinator", "attached")
-        labels += attached describedWithValue "${attached.value.asBoolean}"
+        addSyntheticField(attached, attached.value.asBoolean!!.toString())
       }
     }
   },
@@ -658,26 +656,22 @@ enum class AndroidObjectInspectors : ObjectInspector {
               stuckReasons += "ViewRootImpl.mContext references a destroyed activity, did you forget to cancel toasts or dismiss dialogs?"
             }
           }
-          labels += mViewField describedWithValue "not null"
+          addReferenceField(mViewField)
         }
         val mWindowAttributes =
           instance["android.view.ViewRootImpl", "mWindowAttributes"]!!.valueAsInstance!!
         val mTitleField = mWindowAttributes["android.view.WindowManager\$LayoutParams", "mTitle"]!!
-        labels += if (mTitleField.value.isNonNullReference) {
-          val mTitle =
-            mTitleField.valueAsInstance!!.readAsJavaString()!!
-          "mWindowAttributes.mTitle = \"$mTitle\""
-        } else {
-          "mWindowAttributes.mTitle is null"
-        }
+        addSyntheticField(
+          "ViewRootImpl.mWindowAttributes.mTitle",
+          mTitleField.valueAsInstance?.let { it.readAsJavaString()!!.quoted() } ?: "null"
+        )
 
         val type =
           mWindowAttributes["android.view.WindowManager\$LayoutParams", "type"]!!.value.asInt!!
-        // android.view.WindowManager.LayoutParams.TYPE_TOAST
-        val details = if (type == 2005) {
-          " (Toast)"
-        } else ""
-        labels += "mWindowAttributes.type = $type$details"
+        addSyntheticField(
+          "ViewRootImpl.mWindowAttributes.type",
+          if (type == TYPE_TOAST) "TYPE_TOAST ($TYPE_TOAST)" else type.toString()
+        )
       }
     }
   },
@@ -699,7 +693,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
           stuckReasons += mDestroyed describedWithValue "true"
         } else {
           // A dialog window could be leaking, destroy is only set to false for activity windows.
-          labels += mDestroyed describedWithValue "false"
+          addSyntheticField(mDestroyed, "false")
         }
       }
     }
@@ -708,25 +702,24 @@ enum class AndroidObjectInspectors : ObjectInspector {
   MESSAGE {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.os.Message") { instance ->
-        labels += "Message.what = ${instance["android.os.Message", "what"]!!.value.asInt}"
+        val what = instance["android.os.Message", "what"]!!.value.asInt!!
+        addSyntheticField("Message.what", what.toString())
 
         val heapDumpUptimeMillis = KeyedWeakReferenceFinder.heapDumpUptimeMillis(instance.graph)
         val whenUptimeMillis = instance["android.os.Message", "when"]!!.value.asLong!!
-
-        labels += if (heapDumpUptimeMillis != null) {
+        addSyntheticField("Message.when", whenUptimeMillis.toString())
+        if (heapDumpUptimeMillis != null) {
           val diffMs = whenUptimeMillis - heapDumpUptimeMillis
-          if (diffMs > 0) {
-            "Message.when = $whenUptimeMillis ($diffMs ms after heap dump)"
+          labels += if (diffMs > 0) {
+            "Message.when is $diffMs ms after the heap dump"
           } else {
-            "Message.when = $whenUptimeMillis (${diffMs.absoluteValue} ms before heap dump)"
+            "Message.when is ${diffMs.absoluteValue} ms before the heap dump"
           }
-        } else {
-          "Message.when = $whenUptimeMillis"
         }
 
-        labels += "Message.obj = ${instance["android.os.Message", "obj"]!!.value.asObject}"
-        labels += "Message.callback = ${instance["android.os.Message", "callback"]!!.value.asObject}"
-        labels += "Message.target = ${instance["android.os.Message", "target"]!!.value.asObject}"
+        addReferenceField(instance["android.os.Message", "obj"]!!)
+        addReferenceField(instance["android.os.Message", "callback"]!!)
+        addReferenceField(instance["android.os.Message", "target"]!!)
       }
     }
   },
@@ -799,9 +792,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
             when (val stateValue = stateField.value.asInt!!) {
               3 -> stuckReasons += "Composition disposed" // DISPOSED state
               0 -> expectedReasons += "Composition running" // RUNNING state
-              1 -> labels += "Composition deactivated" // DEACTIVATED state
-              2 -> labels += "Composition inconsistent" // INCONSISTENT state
-              else -> labels += "Composition state: $stateValue"
+              1 -> addSyntheticField(stateField, "DEACTIVATED (1)")
+              2 -> addSyntheticField(stateField, "INCONSISTENT (2)")
+              else -> addSyntheticField(stateField, stateValue.toString())
             }
           } else {
             // Neither field exists - can't determine composition state
@@ -835,36 +828,46 @@ enum class AndroidObjectInspectors : ObjectInspector {
   OBJECT_ANIMATOR {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.animation.ObjectAnimator") { instance ->
-        labels += "mPropertyName = " + (instance["android.animation.ObjectAnimator", "mPropertyName"]!!.valueAsInstance?.readAsJavaString()
-          ?: "null")
-        val mProperty = instance["android.animation.ObjectAnimator", "mProperty"]!!.valueAsInstance
+        val mPropertyName = instance["android.animation.ObjectAnimator", "mPropertyName"]!!
+        addSyntheticField(mPropertyName, mPropertyName.valueAsInstance?.readAsJavaString()?.quoted() ?: "null")
+        val mPropertyField = instance["android.animation.ObjectAnimator", "mProperty"]!!
+        val mProperty = mPropertyField.valueAsInstance
         if (mProperty == null) {
-          labels += "mProperty = null"
+          addSyntheticField(mPropertyField, "null")
         } else {
-          labels += "mProperty.mName = " + (mProperty["android.util.Property", "mName"]!!.valueAsInstance?.readAsJavaString()
-            ?: "null")
-          labels += "mProperty.mType = " + (mProperty["android.util.Property", "mType"]!!.valueAsClass?.name
-            ?: "null")
+          val mName = mProperty["android.util.Property", "mName"]!!.valueAsInstance?.readAsJavaString()
+          addSyntheticField("ObjectAnimator.mProperty.mName", mName?.quoted() ?: "null")
+          val mType = mProperty["android.util.Property", "mType"]!!.valueAsClass
+          addSyntheticField("ObjectAnimator.mProperty.mType", mType?.referenceText ?: "null")
         }
-        labels += "mInitialized = " + instance["android.animation.ValueAnimator", "mInitialized"]!!.value.asBoolean!!
-        labels += "mStarted = " + instance["android.animation.ValueAnimator", "mStarted"]!!.value.asBoolean!!
-        labels += "mRunning = " + instance["android.animation.ValueAnimator", "mRunning"]!!.value.asBoolean!!
-        // Added in Android 7.0, so a heap dump from before it has no such field to read.
-        instance["android.animation.ValueAnimator", "mAnimationEndRequested"]?.let { field ->
-          labels += "mAnimationEndRequested = " + field.value.asBoolean!!
+        listOf("mInitialized", "mStarted", "mRunning", "mAnimationEndRequested").forEach { name ->
+          // mAnimationEndRequested was added in Android 7.0, so a heap dump from before it has no such
+          // field to read.
+          instance["android.animation.ValueAnimator", name]?.let { field ->
+            addSyntheticField(field, field.value.asBoolean!!.toString())
+          }
         }
-        labels += "mDuration = " + instance["android.animation.ValueAnimator", "mDuration"]!!.value.asLong!!
-        labels += "mStartDelay = " + instance["android.animation.ValueAnimator", "mStartDelay"]!!.value.asLong!!
-        val repeatCount = instance["android.animation.ValueAnimator", "mRepeatCount"]!!.value.asInt!!
-        labels += "mRepeatCount = " + if (repeatCount == -1) "INFINITE (-1)" else repeatCount
-
-        val repeatModeConstant = when (val repeatMode =
-          instance["android.animation.ValueAnimator", "mRepeatMode"]!!.value.asInt!!) {
-          1 -> "RESTART (1)"
-          2 -> "REVERSE (2)"
-          else -> "Unknown ($repeatMode)"
+        listOf("mDuration", "mStartDelay").forEach { name ->
+          val field = instance["android.animation.ValueAnimator", name]!!
+          addSyntheticField(field, field.value.asLong!!.toString())
         }
-        labels += "mRepeatMode = $repeatModeConstant"
+        val mRepeatCount = instance["android.animation.ValueAnimator", "mRepeatCount"]!!
+        addSyntheticField(
+          mRepeatCount,
+          when (val repeatCount = mRepeatCount.value.asInt!!) {
+            -1 -> "INFINITE (-1)"
+            else -> repeatCount.toString()
+          }
+        )
+        val mRepeatMode = instance["android.animation.ValueAnimator", "mRepeatMode"]!!
+        addSyntheticField(
+          mRepeatMode,
+          when (val repeatMode = mRepeatMode.value.asInt!!) {
+            1 -> "RESTART (1)"
+            2 -> "REVERSE (2)"
+            else -> repeatMode.toString()
+          }
+        )
       }
     }
   },
@@ -879,7 +882,23 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (state != "DESTROYED") {
           expectedReasons += "state is $state"
         } else {
-          labels += "state = $state"
+          addSyntheticField("LifecycleRegistry.state", state)
+        }
+      }
+    }
+  },
+
+  BITMAP {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.graphics.Bitmap") { instance ->
+        // A bitmap from a platform version that kept its dimensions elsewhere has no such fields.
+        listOf("mWidth", "mHeight").forEach { name ->
+          instance["android.graphics.Bitmap", name]?.let { field ->
+            addSyntheticField(field, field.value.asInt!!.toString())
+          }
+        }
+        instance["android.graphics.Bitmap", "mRecycled"]?.let { field ->
+          addSyntheticField(field, field.value.asBoolean!!.toString())
         }
       }
     }
@@ -1007,6 +1026,53 @@ private infix fun HeapField.describedWithValue(valueDescription: String): String
   return "${declaringClass.simpleName}#$name is $valueDescription"
 }
 
+/** [value] as a synthetic field named after [field]: `Dialog.mDecor`. */
+private fun ObjectReporter.addSyntheticField(
+  field: HeapField,
+  value: String
+) = addSyntheticField("${field.declaringClass.simpleName}.${field.name}", value)
+
+/** The object [field] points to, as a synthetic field named after [field]. */
+private fun ObjectReporter.addReferenceField(field: HeapField) =
+  addSyntheticField(field, field.value.asObject?.referenceText ?: "null")
+
+/**
+ * This object the way the JDK prints one: `android.os.Handler@0x12c0a6b8`, and
+ * `class android.os.Handler@0x12c0a6b8` for a class.
+ */
+private val HeapObject.referenceText: String
+  get() {
+    val className = when (this) {
+      is HeapClass -> "class $name"
+      is HeapInstance -> instanceClassName
+      is HeapObjectArray -> arrayClassName
+      is HeapPrimitiveArray -> arrayClassName
+    }
+    return "$className@${hexObjectId(objectId)}"
+  }
+
+/**
+ * This string in double quotes, with what would end the quote or the line escaped: `"a \"b\""`. A copy of
+ * the one in shark.
+ */
+private fun String.quoted(): String {
+  val builder = StringBuilder(length + 2).append('"')
+  for (char in this) {
+    when (char) {
+      '"' -> builder.append("\\\"")
+      '\\' -> builder.append("\\\\")
+      '\n' -> builder.append("\\n")
+      '\r' -> builder.append("\\r")
+      '\t' -> builder.append("\\t")
+      else -> builder.append(char)
+    }
+  }
+  return builder.append('"').toString()
+}
+
+/** android.view.WindowManager.LayoutParams.TYPE_TOAST */
+private const val TYPE_TOAST = 2005
+
 private fun ObjectReporter.applyFromField(
   inspector: ObjectInspector,
   field: HeapField?
@@ -1022,6 +1088,7 @@ private fun ObjectReporter.applyFromField(
   inspector.inspect(delegateReporter)
   val prefix = "${field.declaringClass.simpleName}#${field.name}:"
 
+  delegateReporter.syntheticFields.forEach { addSyntheticField("$prefix ${it.name}", it.value) }
   labels += delegateReporter.labels.map { "$prefix $it" }
   stuckReasons += delegateReporter.stuckReasons.map { "$prefix $it" }
   expectedReasons += delegateReporter.expectedReasons.map { "$prefix $it" }

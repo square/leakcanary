@@ -102,12 +102,12 @@ class AndroidXFragmentInspectorTest {
     assertThat(fragment.labels).contains("Fragment.mLifecycleRegistry = null")
   }
 
-  @Test fun `fragment tag is reported as a label`() {
+  @Test fun `fragment tag is reported as a synthetic field`() {
     val fragment = analyzeFragment(
       fragmentOneOne(state = "RESUMED", called = true, tag = "my-fragment")
     )
 
-    assertThat(fragment.labels).contains("Fragment.mTag = my-fragment")
+    assertThat(fragment.syntheticFields).contains(SyntheticField("Fragment.mTag", "\"my-fragment\""))
   }
 
   @Test fun `destroyed fragment 1_1_0 matches the leaking object filter`() {

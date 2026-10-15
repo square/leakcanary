@@ -61,8 +61,45 @@ class LabelerTest {
 
     val leak = analysis.applicationLeaks[0]
 
-    assertThat(leak.leakTraces.first().referencePath.first().originObject.labels).contains(
-      "Thread name: 'kroutine'"
+    assertThat(leak.leakTraces.first().referencePath.first().originObject.syntheticFields).contains(
+      SyntheticField("Thread.name", "\"kroutine\"")
     )
+  }
+
+  @Test fun stringCharactersAsSyntheticField() {
+    hprofFile.writeSinglePathToString("World")
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+      objectInspectors = listOf(ObjectInspectors.STRING)
+    )
+
+    assertThat(analysis.applicationLeaks[0].leakTraces.first().leakingObject.syntheticFields)
+      .contains(SyntheticField("String.value", "\"World\""))
+  }
+
+  @Test fun stringCharactersThatWouldEndTheQuoteOrTheLineAreEscaped() {
+    hprofFile.writeSinglePathToString("a \"b\"\n\\c")
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+      objectInspectors = listOf(ObjectInspectors.STRING)
+    )
+
+    assertThat(analysis.applicationLeaks[0].leakTraces.first().leakingObject.syntheticFields)
+      .contains(SyntheticField("String.value", """"a \"b\"\n\\c""""))
+  }
+
+  @Test fun arrayLengthAsSyntheticField() {
+    hprofFile.writeSinglePathsToCharArrays(listOf("Hello"))
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+      objectInspectors = listOf(ObjectInspectors.ARRAY)
+    )
+
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    // The char[][] holding the leaking char[], then the char[] itself.
+    assertThat(leakTrace.referencePath.last().originObject.syntheticFields)
+      .containsExactly(SyntheticField("length", "1"))
+    assertThat(leakTrace.leakingObject.syntheticFields)
+      .contains(SyntheticField("length", "5"))
   }
 }

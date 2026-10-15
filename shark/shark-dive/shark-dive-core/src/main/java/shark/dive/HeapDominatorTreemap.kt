@@ -1549,6 +1549,7 @@ class HeapDominatorTreemap internal constructor(
         className = className,
         kind = heapObject.kind(),
         content = heapObject.content(),
+        syntheticFields = reporter.syntheticFields.toList(),
         strength = strengthOf(objectId),
         // Zero for an object whose bytes are folded into another one, which is no node of the tree: a
         // string's characters are counted inside the string. See

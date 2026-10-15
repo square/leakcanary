@@ -106,7 +106,8 @@ class AndroidObjectInspectorsTest {
     val lifecycleRegistry = analyzeLifecycleRegistry(state = "DESTROYED")
 
     assertThat(lifecycleRegistry.verdict).isEqualTo(UNKNOWN)
-    assertThat(lifecycleRegistry.labels).contains("state = DESTROYED")
+    assertThat(lifecycleRegistry.syntheticFields)
+      .contains(SyntheticField("LifecycleRegistry.state", "DESTROYED"))
   }
 
   @Test fun `LIFECYCLE_REGISTRY that is not destroyed is not leaking`() {
@@ -155,8 +156,8 @@ class AndroidObjectInspectorsTest {
     val animators = analyzeObjectAnimators("leak_asynctask_m.hprof")
 
     assertThat(animators).isNotEmpty.allSatisfy { animator ->
-      assertThat(animator.labels).anyMatch { it.startsWith("mRunning = ") }
-      assertThat(animator.labels).noneMatch { it.startsWith("mAnimationEndRequested") }
+      assertThat(animator.syntheticFields).anyMatch { it.name == "ValueAnimator.mRunning" }
+      assertThat(animator.syntheticFields).noneMatch { it.name == "ValueAnimator.mAnimationEndRequested" }
     }
   }
 
@@ -164,7 +165,7 @@ class AndroidObjectInspectorsTest {
     val animators = analyzeObjectAnimators("leak_asynctask_o.hprof")
 
     assertThat(animators).isNotEmpty.allSatisfy { animator ->
-      assertThat(animator.labels).anyMatch { it.startsWith("mAnimationEndRequested = ") }
+      assertThat(animator.syntheticFields).anyMatch { it.name == "ValueAnimator.mAnimationEndRequested" }
     }
   }
 

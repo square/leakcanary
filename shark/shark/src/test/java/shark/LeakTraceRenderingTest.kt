@@ -42,9 +42,9 @@ class LeakTraceRenderingTest {
     │                    ~~~~
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
@@ -76,9 +76,9 @@ class LeakTraceRenderingTest {
     │                    ~~~~
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
@@ -155,10 +155,10 @@ class LeakTraceRenderingTest {
     │                    ~~~~
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     ​     ¯\_(ツ)_/¯
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
     """
   }
 
@@ -196,9 +196,9 @@ class LeakTraceRenderingTest {
     │             ~~~~
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
@@ -230,9 +230,9 @@ class LeakTraceRenderingTest {
     │                    ~~~~
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
@@ -260,9 +260,9 @@ class LeakTraceRenderingTest {
     │            ~~~
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
@@ -280,14 +280,14 @@ class LeakTraceRenderingTest {
     │
     ├─ MyThread instance 0x1a
     │    Verdict: Unknown
-    │    Thread name: 'kroutine'
+    │    Thread.name = "kroutine"
     │    ↓ MyThread<Java Local>
     │              ~~~~~~~~~~~~
     ╰→ Leaking instance 0x1d
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
@@ -309,14 +309,14 @@ class LeakTraceRenderingTest {
     │
     ├─ MyThread instance 0x1a
     │    Verdict: Unknown
-    │    Thread name: 'kroutine'
+    │    Thread.name = "kroutine"
     │    ↓ MyThread<Native Local>
     │              ~~~~~~~~~~~~~~
     ╰→ Leaking instance 0x1d
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
@@ -348,9 +348,9 @@ class LeakTraceRenderingTest {
     │                  ~~~~
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
         """
   }
 
@@ -374,9 +374,9 @@ class LeakTraceRenderingTest {
     ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     Retaining 0 B in 1 objects
-    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
-    ​     watchDurationMillis = 25000
-    ​     retainedDurationMillis = 10000
+    ​     KeyedWeakReference.key = "39efcc1a-67bf-2040-e7ab-3fc9f94731dc"
+    ​     KeyedWeakReference.watchDurationMillis = 25000
+    ​     KeyedWeakReference.retainedDurationMillis = 10000
     """
   }
 
