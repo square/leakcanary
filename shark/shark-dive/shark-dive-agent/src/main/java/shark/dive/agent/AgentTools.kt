@@ -395,16 +395,25 @@ internal class AgentTools(
       "are still candidates, and `$LEAK_SOLVING_PROGRESS_RATIO` is the share of this path's references " +
       "your verdicts have ruled out, 0 to 1 and not a percentage. You never decide which reference is at " +
       "fault. You decide, object by object, whether that object's own work is done, with $SET_VERDICT, and " +
-      "the last verdict that narrows the stretch to one leaves the heap dump naming the reference.",
+      "the last verdict that narrows the stretch to one leaves the heap dump naming the reference.\n\n" +
+      "An object no GC root reaches is uncollected garbage. Its answer is `$INVESTIGATION` alone, with " +
+      "state ${InvestigationState.UNREACHABLE.name}, and no path.",
     schema = schema(HEAP_DUMP_KEY to heapDumpArgument(), OBJECT to objectIdArgument("The object to walk up from."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
     val path = dump.readRootPath(objectId)
-    buildJsonObject {
-      put(LEAK_TRACE, AgentJson.leakTrace(path))
-      put(INVESTIGATION, AgentJson.investigation(path.investigation()))
-      AgentJson.humanLeakTrace(path)?.let { put(HUMAN_LEAK_TRACE, it) }
+    val investigation = AgentJson.investigation(path.investigation())
+    if (path.isHeldByGcRoot()) {
+      buildJsonObject {
+        put(LEAK_TRACE, AgentJson.leakTrace(path))
+        put(INVESTIGATION, investigation)
+        AgentJson.humanLeakTrace(path)?.let { put(HUMAN_LEAK_TRACE, it) }
+      }
+    } else {
+      // What the walk found for garbage starts at a piece of garbage rather than at a GC root, so it is no
+      // path from one, and its leak trace would be the trace of no leak.
+      buildJsonObject { put(INVESTIGATION, investigation) }
     }
   }
 
@@ -1037,21 +1046,23 @@ internal enum class InvestigationState {
 }
 
 private fun RootPath.investigation(): PathInvestigation {
-  val steps = steps
-  val suspectCount = suspectReferenceCount()
-  val progressRatio = leakSolvingProgressRatio()
   // Never empty: the only paths with no steps are of what is no one object, which every tool reading a path
   // refuses first. See [requireOneObjectOf].
   if (!isHeldByGcRoot()) {
+    // Nothing counted, since no path is shown for garbage to count candidates on. See [pathFromGcRoots].
     return PathInvestigation(
       faultyReference = null,
       state = InvestigationState.UNREACHABLE,
-      suspectReferenceCount = suspectCount,
-      progressRatio = progressRatio,
+      suspectReferenceCount = 0,
+      progressRatio = 0.0,
       next = "${steps.last().address()} is uncollected garbage: no GC root reaches it, so nothing keeps it " +
-        "in memory and the next collection frees it. There is no leak here to solve."
+        "in memory and the next collection frees it. Pick a group from a section of $LIST_LEAK_GROUPS " +
+        "that is not marked isOnTheWayOut."
     )
   }
+  val steps = steps
+  val suspectCount = suspectReferenceCount()
+  val progressRatio = leakSolvingProgressRatio()
   val firstStuck = steps.indexOfFirst { it.step.verdict == Verdict.STUCK }
   if (firstStuck == -1) {
     return PathInvestigation(

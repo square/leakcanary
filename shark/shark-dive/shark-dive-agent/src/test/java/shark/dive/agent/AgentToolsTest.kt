@@ -548,13 +548,13 @@ class AgentToolsTest {
 
       val answer = call(PATH_FROM_GC_ROOTS, HEAP_DUMP to garbage.heapDumpName, OBJECT to hex(activityObjectId))
 
-      // The activity is the whole path, and stuck. A GC root holding it directly would be the faulty
-      // reference, but nothing holds it, so the next collection frees it and there is no leak.
-      assertThat(answer.obj(LEAK_TRACE).array("path").map { it.jsonObject.text("object") })
-        .containsExactly(hex(activityObjectId))
+      // A stuck activity, which a GC root holding it directly would make a leak of that root. Nothing holds
+      // it, so the next collection frees it: no leak, and no path from a GC root to show.
+      assertThat(answer.keys).containsExactly(INVESTIGATION)
       val says = answer.obj(INVESTIGATION)
       assertThat(says.text("state")).isEqualTo(InvestigationState.UNREACHABLE.name)
       assertThat(says.text(LEAK_SOLVED)).isEqualTo("false")
+      assertThat(says.text("suspectReferenceCount")).isEqualTo("0")
       assertThat(says.text("next")).contains("uncollected garbage")
       assertThatThrownBy {
         call(

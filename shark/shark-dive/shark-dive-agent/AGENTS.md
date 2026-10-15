@@ -96,8 +96,9 @@ the four shapes those verdicts are in, which is the field to branch on rather th
 `next`. **`UNSOLVED` is where every investigation starts, and it is one state.** Whether or not anything
 above the stuck object is expected, the next move is the same: settle the undecided objects. There used to be
 a `NOTHING_EXPECTED_ABOVE` beside it, and it stopped meaning anything once a GC root holding a stuck object
-could solve a leak on its own. **`UNREACHABLE` is a path no GC root holds**, which is uncollected garbage and
-no leak, and it took the place of a `NO_PATH` for a path with no steps. No tool can answer with a path of no
+could solve a leak on its own. **`UNREACHABLE` is an object no GC root holds**, which is uncollected garbage
+and no leak, so `path_from_gc_roots` answers it with `investigation` and no path. It took the place of a
+`NO_PATH` for a path with no steps. No tool can answer with a path of no
 steps: the only objects without a path are the ones the tree has no node for, and every tool refuses those
 before reading one. A verdict answers with `narrowedBy` as well, the counts and the progress on both sides of it, because
 a verdict that ruled nothing out and a verdict that halved the search are the same single number afterwards
