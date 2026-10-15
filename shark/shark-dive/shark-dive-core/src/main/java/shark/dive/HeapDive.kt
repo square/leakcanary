@@ -207,9 +207,10 @@ internal fun millisSince(startNanos: Long): Long =
  * object is kept, because then nothing holds it more firmly.
  *
  * So is a root on the stack of a thread the heap dump names, which the tree reaches through that thread
- * instead. Shark's [MatchingGcRootProvider] leaves out such a thread's `JAVA_FRAME` roots, and this leaves out
- * its `JNI_LOCAL` and `NATIVE_STACK` roots the same way. Kept, a root would be a second way to an object its
- * thread holds, and the object would be drawn under the whole heap dump. See
+ * instead. Kept, a root would be a second way to an object its thread holds, and the object would be drawn
+ * under the whole heap dump. Shark's [MatchingGcRootProvider] already leaves out a named thread's
+ * `JAVA_FRAME`, `JNI_LOCAL` and `NATIVE_STACK` roots, so [holds] saying the same is for the list of every
+ * root on an object, which comes from the heap dump rather than from here. See
  * [ReferenceStrengthReader.isReadAsAReference].
  */
 internal class TreeGcRootProvider(

@@ -569,10 +569,9 @@ the field.
 
 **Native code a thread runs holds objects through `JNI_LOCAL` and `NATIVE_STACK` roots, read the same
 way.** These name a thread by serial number too, and on every dump here it is a thread the dump names. Shark
-reads neither as a reference, so `ReferenceStrengthReader` does, and `TreeGcRootProvider` drops the roots as
-Shark drops the frames. Left as roots, they are a second holder beside the thread. On `large-dump.hprof`
-that put 7 objects under the whole heap dump: six with a frame and a native root on one thread, and a
-`String[]` one of the six holds.
+reads both as `LOCAL` references from the thread and drops the roots, as it does for frames. Left as roots,
+they are a second holder beside the thread. On `large-dump.hprof` that put 7 objects under the whole heap
+dump: six with a frame and a native root on one thread, and a `String[]` one of the six holds.
 
 The local used to be read as retaining, like the rest of what `ActualMatchingReferenceReaderFactory` reads.
 That made every local variable of a named thread strong, so no object of any of these dumps was `LOCAL`.
