@@ -540,15 +540,22 @@ class InteractiveCommand : CliktCommand(
       is HeapObjectArray -> {
         val className = heapObject.arrayClassSimpleName.removeSuffix("[]")
         val id = hexObjectId(heapObject.objectId)
-        "$ARRAY $className[${heapObject.readElements().count()}]@$id"
+        "$ARRAY $className[${heapObject.elementCount}]@$id"
       }
       is HeapPrimitiveArray -> {
-        val record = heapObject.readRecord()
         val primitiveName = heapObject.primitiveType.name.lowercase(Locale.US)
-        "$ARRAY $primitiveName[${record.size}]@${hexObjectId(heapObject.objectId)}"
+        "$ARRAY $primitiveName[${heapObject.elementCount}]@${hexObjectId(heapObject.objectId)}"
       }
     }
   }
+
+  // An array's length, from the size of its record, which the index already has. Reading the record to count
+  // it reads every element.
+  private val HeapObjectArray.elementCount: Long
+    get() = byteSize / graph.identifierByteSize
+
+  private val HeapPrimitiveArray.elementCount: Long
+    get() = byteSize / primitiveType.byteSize
 
   private fun analyze(
     heapDumpFile: File,
