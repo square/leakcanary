@@ -627,8 +627,6 @@ public final class shark/ObjectArrayReferenceReader : shark/ReferenceReader {
 public final class shark/ObjectDominators {
 	public fun <init> ()V
 	public final fun buildDominatorTree (Lshark/HeapGraph;Ljava/util/List;)Ljava/util/Map;
-	public final fun renderDominatorTree (Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;Z)Ljava/lang/String;
-	public static synthetic fun renderDominatorTree$default (Lshark/ObjectDominators;Lshark/HeapGraph;Ljava/util/List;ILjava/lang/String;ZILjava/lang/Object;)Ljava/lang/String;
 }
 
 public final class shark/ObjectDominators$DominatorNode : java/io/Serializable {

@@ -127,6 +127,7 @@ Releases before 2.8.1 predate these markers.
     * 🔀 It's also a low priority reference, so a leak trace reaches the value through any other holder it has, and only names the map when the map is the only thing left holding it. An entry waiting to be expunged is rarely what someone wants to be sent to fix.
 * 🔨 Object ids are now written in hex wherever Shark writes one for someone to read: leak trace labels, `HeapObject.toString()`, error messages, the Shark CLI and the heap explorer of the LeakCanary activity. `instance @314615480 of com.example.Foo` now reads `instance @0x12c0a6b8 of com.example.Foo`, the way heap dump viewers write an address, so an id copied out of a leak trace can be searched for in one. An object above the 2 GB mark of a 32 bit heap dump is written as its address too, where it used to come out negative. Leak signatures don't change.
     * 🔀 In the Shark CLI's interactive mode, the `ID` of `instance CLASS_NAME@ID` and the other commands is read as hex, with or without the `0x`.
+* ⚠️ `ObjectDominators.renderDominatorTree()` is gone. Nothing in LeakCanary or Shark called it, and it named each object by its position in Shark's index of the heap dump, `#1234`, which no other tool can look up. `ObjectDominators.buildDominatorTree()` still returns the tree it printed.
 
 ### Breaking change: `Leaking: YES` / `NO` is now `Verdict: Stuck` / `Expected`
 

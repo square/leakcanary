@@ -213,7 +213,7 @@ class HeapDominatorTreemap internal constructor(
    * object of another heap dump reads as, three frames below whatever asked.
    */
   private fun nodeOf(nodeId: Long): DominatorNode = requireNotNull(nodes[nodeId]) {
-    "$nodeId is no node of this tree, which has ${nodes.size} of them. Ask contains() first."
+    "${nodeIdText(nodeId)} is no node of this tree, which has ${nodes.size} of them. Ask contains() first."
   }
 
   /**
@@ -467,7 +467,7 @@ class HeapDominatorTreemap internal constructor(
     overrides: VerdictOverrides = VerdictOverrides.NONE
   ): HeapObjectSummary {
     require(group(objectId) == null) {
-      "$objectId stands for a pile of objects rather than for one. Ask groupOrNull() first, and " +
+      "${nodeIdText(objectId)} stands for a pile of objects rather than for one. Ask groupOrNull() first, and " +
         "describe it with what that returns."
     }
     val node = nodeOf(objectId)
