@@ -14,6 +14,7 @@ import shark.HeapAnalysisSuccess
 import shark.HeapAnalyzer
 import shark.OnAnalysisProgressListener
 import shark.dive.LeakKind.APPLICATION
+import shark.dive.LeakKind.LIBRARY
 
 /**
  * The leaks Shark Dive finds in a heap dump, against the leaks LeakCanary finds in the same one, compared
@@ -26,7 +27,8 @@ import shark.dive.LeakKind.APPLICATION
  *
  * The heap dumps here are the differences that used to make the two disagree, each on its own — see
  * `notes/decisions.md` for the sweep over the repo's real Android dumps and for the two differences that
- * remain, which are about which leaking objects get a path of their own rather than about the paths.
+ * remain, which are about which leaking objects get a path of their own rather than about the paths. Plus a
+ * library leak, whose trace carries a line Shark Dive writes out itself.
  */
 class LeakFingerprintTest {
 
@@ -44,10 +46,17 @@ class LeakFingerprintTest {
     assertSameLeaks(testFolder.leakOnAStackAndInAFieldHeapDump())
   }
 
+  @Test fun `a library leak is named by the pattern that matched it`() {
+    // And its trace labels the object holding the matched reference `Library leak match: <pattern>`. Shark
+    // writes that label while it walks to the leak, which Shark Dive doesn't, so `toLeakTrace` writes its own
+    // copy of the words, and this is what notices the two copies drifting apart.
+    assertSameLeaks(testFolder.libraryLeakHeapDump())
+  }
+
   /**
    * That the two find the same leaks in [heapDumpFile], by the leak fingerprint each prints under one and by
-   * the leak trace each prints over it, and that they find any at all: two empty lists are equal and say
-   * nothing.
+   * the leak trace each prints over it, application leaks and library leaks each on their own, and that they
+   * find any at all: two empty lists are equal and say nothing.
    */
   private fun assertSameLeaks(heapDumpFile: File) {
     val analysis = HeapAnalyzer(OnAnalysisProgressListener.NO_OP).analyze(
@@ -69,20 +78,29 @@ class LeakFingerprintTest {
       "LeakCanary read no leak out of $heapDumpFile: ${(analysis as HeapAnalysisFailure).exception}"
     }
 
-    HeapDive.open(heapDumpFile).use { dive ->
-      val explored = dive.tree.findLeaks().sections.single { it.kind == APPLICATION }.groups
-      assertThat(explored.map { it.leakFingerprint })
-        .isNotEmpty
-        .containsExactlyInAnyOrderElementsOf(analysis.applicationLeaks.map { it.leakFingerprint })
+    val analyzedByKind = mapOf(
+      APPLICATION to analysis.applicationLeaks,
+      LIBRARY to analysis.libraryLeaks
+    )
+    assertThat(analyzedByKind.values.flatten()).isNotEmpty
 
-      val leakTracesByFingerprint = analysis.applicationLeaks.associate { leak ->
-        leak.leakFingerprint to leak.leakTraces.single().toString()
-      }
-      explored.forEach { group ->
-        // Any object of the group walks to the same suspect references, and `leakTraces.single()` above is
-        // what says there is one of them here anyway. See [LeakGroup.objects].
-        val path = dive.tree.rootPathTo(group.objects.first().objectId)
-        assertSameLeakTraces(path.leakTrace()!!.toString(), leakTracesByFingerprint[group.leakFingerprint]!!)
+    HeapDive.open(heapDumpFile).use { dive ->
+      val sections = dive.tree.findLeaks().sections
+      analyzedByKind.forEach { (kind, analyzed) ->
+        val explored = sections.single { it.kind == kind }.groups
+        assertThat(explored.map { it.leakFingerprint })
+          .describedAs("The fingerprints of the $kind leaks")
+          .containsExactlyInAnyOrderElementsOf(analyzed.map { it.leakFingerprint })
+
+        val leakTracesByFingerprint = analyzed.associate { leak ->
+          leak.leakFingerprint to leak.leakTraces.single().toString()
+        }
+        explored.forEach { group ->
+          // Any object of the group walks to the same suspect references, and `leakTraces.single()` above is
+          // what says there is one of them here anyway. See [LeakGroup.objects].
+          val path = dive.tree.rootPathTo(group.objects.first().objectId)
+          assertSameLeakTraces(path.leakTrace()!!.toString(), leakTracesByFingerprint[group.leakFingerprint]!!)
+        }
       }
     }
   }
