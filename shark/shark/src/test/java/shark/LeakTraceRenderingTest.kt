@@ -291,6 +291,35 @@ class LeakTraceRenderingTest {
     """
   }
 
+  @Test fun rendersThreadNativeLocal() {
+    hprofFile.writeJavaLocalLeak(
+      threadClass = "MyThread",
+      threadName = "kroutine",
+      stackRoot = ::jniLocal
+    )
+
+    val analysis =
+      hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+        objectInspectors = ObjectInspectors.jdkDefaults
+      )
+
+    analysis renders """
+    ┬───
+    │ GC Root: Thread object
+    │
+    ├─ MyThread instance
+    │    Verdict: Unknown
+    │    Thread name: 'kroutine'
+    │    ↓ MyThread<Native Local>
+    │              ~~~~~~~~~~~~~~
+    ╰→ Leaking instance
+    ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
+    ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
+    ​     watchDurationMillis = 25000
+    ​     retainedDurationMillis = 10000
+    """
+  }
+
   @Test fun renderFieldFromSuperClass() {
     hprofFile.dump {
       val leakingInstance = "Leaking" watchedInstance {}

@@ -359,6 +359,7 @@ class RealLeakTracerFactory constructor(
           ReferenceLocationType.STATIC_FIELD -> LeakTraceReference.ReferenceType.STATIC_FIELD
           ReferenceLocationType.LOCAL -> LeakTraceReference.ReferenceType.LOCAL
           ReferenceLocationType.ARRAY_ENTRY -> LeakTraceReference.ReferenceType.ARRAY_ENTRY
+          ReferenceLocationType.NATIVE_LOCAL -> LeakTraceReference.ReferenceType.NATIVE_LOCAL
         },
         owningClassName = graph.findObjectById(details.locationClassObjectId).asClass!!.name,
         referenceName = details.name

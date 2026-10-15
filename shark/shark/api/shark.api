@@ -525,6 +525,7 @@ public final class shark/LeakTraceReference$ReferenceType : java/lang/Enum {
 	public static final field ARRAY_ENTRY Lshark/LeakTraceReference$ReferenceType;
 	public static final field INSTANCE_FIELD Lshark/LeakTraceReference$ReferenceType;
 	public static final field LOCAL Lshark/LeakTraceReference$ReferenceType;
+	public static final field NATIVE_LOCAL Lshark/LeakTraceReference$ReferenceType;
 	public static final field STATIC_FIELD Lshark/LeakTraceReference$ReferenceType;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/LeakTraceReference$ReferenceType;
@@ -838,6 +839,7 @@ public final class shark/ReferenceLocationType : java/lang/Enum {
 	public static final field ARRAY_ENTRY Lshark/ReferenceLocationType;
 	public static final field INSTANCE_FIELD Lshark/ReferenceLocationType;
 	public static final field LOCAL Lshark/ReferenceLocationType;
+	public static final field NATIVE_LOCAL Lshark/ReferenceLocationType;
 	public static final field STATIC_FIELD Lshark/ReferenceLocationType;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/ReferenceLocationType;

@@ -3,6 +3,7 @@ package shark
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
 import shark.LeakTraceReference.ReferenceType.LOCAL
+import shark.LeakTraceReference.ReferenceType.NATIVE_LOCAL
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.internal.lastSegment
 import java.io.Serializable
@@ -27,8 +28,13 @@ data class LeakTraceReference(
   enum class ReferenceType {
     INSTANCE_FIELD,
     STATIC_FIELD,
+    /** A local variable of a Java method running on a thread. See [ReferenceLocationType.LOCAL]. */
     LOCAL,
-    ARRAY_ENTRY
+    ARRAY_ENTRY,
+    /**
+     * An object that native code running on a thread holds. See [ReferenceLocationType.NATIVE_LOCAL].
+     */
+    NATIVE_LOCAL
   }
 
   /**
@@ -43,6 +49,7 @@ data class LeakTraceReference(
         ARRAY_ENTRY -> "[$referenceName]"
         STATIC_FIELD, INSTANCE_FIELD -> referenceName
         LOCAL -> "<Java Local>"
+        NATIVE_LOCAL -> "<Native Local>"
       }
     }
 
@@ -53,6 +60,7 @@ data class LeakTraceReference(
         ARRAY_ENTRY -> "[x]"
         STATIC_FIELD, INSTANCE_FIELD -> referenceName
         LOCAL -> "<Java Local>"
+        NATIVE_LOCAL -> "<Native Local>"
       }
     }
 

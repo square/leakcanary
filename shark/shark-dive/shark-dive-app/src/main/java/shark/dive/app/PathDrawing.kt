@@ -541,6 +541,7 @@ private fun PathReference.ownerPrefix(): String =
 private fun PathReference.displayName(): String = when (locationType) {
   ReferenceLocationType.ARRAY_ENTRY -> "[$name]"
   ReferenceLocationType.LOCAL -> LOCAL_VARIABLE
+  ReferenceLocationType.NATIVE_LOCAL -> NATIVE_LOCAL
   ReferenceLocationType.INSTANCE_FIELD, ReferenceLocationType.STATIC_FIELD -> name
 }
 
@@ -669,6 +670,9 @@ internal const val DOMINATES_BELOW = "Dominates ↓"
 
 /** How a leak trace names the reference a running method holds, which has no field to name. */
 private const val LOCAL_VARIABLE = "<local variable>"
+
+/** How a leak trace names what native code running on a thread holds: a JNI local reference or a native stack root. */
+private const val NATIVE_LOCAL = "<native local>"
 
 /** What a reference Shark knows leaks in code the app doesn't control says about itself. */
 internal const val LIBRARY_LEAK = "· known library leak"
