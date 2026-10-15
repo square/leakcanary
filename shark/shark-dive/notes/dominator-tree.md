@@ -578,9 +578,14 @@ dump. Measured on `large-dump.hprof`:
 | `STRONG` before, `LOCAL` now | 38 | 2.3 KB |
 
 The 160 are mostly what a parked thread waits on: 36 under an `AbstractQueuedSynchronizer$ConditionObject`,
-44 under a `ScheduledThreadPoolExecutor` or its queue, 16 under a `LinkedBlockingQueue`. The 7 are held by
-the main thread alone, through a local variable and a `JNI_LOCAL` or `NATIVE_STACK` root on the same object.
-Shark reads those two kinds as no reference of a thread, so the object has two holders at `LOCAL`.
+44 under a `ScheduledThreadPoolExecutor` or its queue, 16 under a `LinkedBlockingQueue`.
+
+The 7 had a second holder all along, which the wrong strength hid. Six of them have a `JNI_LOCAL` or
+`NATIVE_STACK` root besides their frame, on the same thread: three on the main thread, three on two
+`HandlerThread`s. Shark reads neither kind as a reference of the thread. While a local variable was strong,
+the object was `STRONG` and the rule above dropped that root. Now the object is `LOCAL` and the root is kept,
+so the thread and the root both hold it. The seventh, a `String[]` with no such root, is held by one of the
+six.
 
 **A garbage cycle has no entry point**, and that's the part to get right: a doubly linked list nothing
 points at any more has every node pointed at by another, so "the ones nothing points at" finds none of
