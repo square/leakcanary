@@ -157,7 +157,7 @@ internal fun RootPathPanel(
             onExplain = onExplain
           )
         } else {
-          noPathText(selection, summary, isWholeHeapDump, rootPath, hasTail = cutTail != null)?.let {
+          noPathText(selection, summary, isWholeHeapDump, hasTail = cutTail != null)?.let {
             item { Text(it, style = MaterialTheme.typography.bodySmall) }
           }
         }
@@ -217,7 +217,6 @@ private fun noPathText(
   selection: Selection?,
   summary: HeapObjectSummary?,
   isWholeHeapDump: Boolean,
-  rootPath: RootPath?,
   hasTail: Boolean
 ): String? = when {
   // The whole heap dump is the row above: every path starts below it rather than reaching it.
@@ -227,8 +226,8 @@ private fun noPathText(
   selection == null -> NO_ROOT_PATH_YET
   // A pile of objects is held as many ways as it has objects in it, so there is no one path.
   summary == null -> NO_ROOT_PATH_FOR_A_PILE
-  rootPath == null -> SEARCHING_ROOT_PATH
-  else -> NO_ROOT_PATH
+  // Every object has a path, so not having one yet is all this can be. See [HeapDominatorTreemap.rootPathTo].
+  else -> SEARCHING_ROOT_PATH
 }
 
 /** The path itself: the GC root at the top, the object the window is describing at the bottom. */
@@ -387,8 +386,6 @@ internal const val NO_ROOT_PATH_FOR_A_PILE = "Not one object. Click it for the o
 
 /** Shown while the walk up to the GC roots is still running. */
 internal const val SEARCHING_ROOT_PATH = "Working out what holds it…"
-
-internal const val NO_ROOT_PATH = "No path from a GC root reaches it."
 
 /** What the count between the arrows counts, after which of them is drawn: `2 of 3 ways from here`. */
 internal const val WAYS_FROM_HERE = "ways from here"

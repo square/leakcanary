@@ -13,8 +13,8 @@ import shark.LeakTrace
  */
 data class RootPath(
   /**
-   * Which kind of GC root the path starts at, or that the object is uncollected garbage. Null when
-   * nothing the tree was built from reaches it, which is when [steps] is empty.
+   * Which kind of GC root the path starts at, or that the object is uncollected garbage. Null for [NONE],
+   * which is when [steps] is empty.
    */
   val gcRootLabel: String?,
   /** From the GC rooted object down to the object itself, which is the last step. */
@@ -33,7 +33,10 @@ data class RootPath(
   val gcRootType: LeakTrace.GcRootType? = null
 ) {
   companion object {
-    /** No path: nothing the tree was built from reaches the object. */
+    /**
+     * No path, which is what anything that is no node of the tree has: the whole heap dump, a pile of
+     * objects, an object whose bytes are folded into another one. See [HeapDominatorTreemap.rootPathTo].
+     */
     val NONE = RootPath(gcRootLabel = null, steps = emptyList())
   }
 }
@@ -112,7 +115,14 @@ fun RootPath.isGcRootSuspect(): Boolean {
   return firstStuck != -1 && lastExpected == -1
 }
 
-private fun RootPath.isHeldByGcRoot(): Boolean =
+/**
+ * Whether a GC root is at the top of this path, which it is for everything but uncollected garbage: a path
+ * to garbage starts at a piece of it nothing else points at.
+ *
+ * No GC root keeping an object means nothing keeps it in memory: it is garbage the next collection frees,
+ * whatever the verdicts on its path say.
+ */
+fun RootPath.isHeldByGcRoot(): Boolean =
   steps.isNotEmpty() && gcRootType != null && gcRootType != LeakTrace.GcRootType.UNREACHABLE
 
 /**

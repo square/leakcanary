@@ -540,7 +540,7 @@ class AgentToolsTest {
   }
 
   @Test
-  fun `a stuck object nothing holds is unsolved with nothing left to settle`() {
+  fun `a stuck object nothing holds is unreachable, and no leak to solve`() {
     val (dive, activityObjectId) = temporaryFolder.uncollectedDestroyedActivity()
     dive.use {
       val garbage = FakeAgentHeapDump(dive)
@@ -549,14 +549,25 @@ class AgentToolsTest {
       val answer = call(PATH_FROM_GC_ROOTS, HEAP_DUMP to garbage.heapDumpName, OBJECT to hex(activityObjectId))
 
       // The activity is the whole path, and stuck. A GC root holding it directly would be the faulty
-      // reference, but nothing holds it, so there is no reference to name and no object above it to decide.
+      // reference, but nothing holds it, so the next collection frees it and there is no leak.
       assertThat(answer.obj(LEAK_TRACE).array("path").map { it.jsonObject.text("object") })
         .containsExactly(hex(activityObjectId))
       val says = answer.obj(INVESTIGATION)
-      assertThat(says.text("state")).isEqualTo(InvestigationState.UNSOLVED.name)
+      assertThat(says.text("state")).isEqualTo(InvestigationState.UNREACHABLE.name)
       assertThat(says.text(LEAK_SOLVED)).isEqualTo("false")
-      assertThat(says.text("suspectReferenceCount")).isEqualTo("0")
       assertThat(says.text("next")).contains("uncollected garbage")
+      assertThatThrownBy {
+        call(
+          SET_VERDICT,
+          HEAP_DUMP to garbage.heapDumpName,
+          OBJECT to hex(activityObjectId),
+          "verdict" to Verdict.STUCK.name,
+          SOLVING_LEAK_OF to hex(activityObjectId),
+          WHY to "Recorded as stuck to read what solving a leak of garbage answers."
+        )
+      }
+        .isInstanceOf(AgentRefusal::class.java)
+        .hasMessageContaining("uncollected garbage")
     }
   }
 
