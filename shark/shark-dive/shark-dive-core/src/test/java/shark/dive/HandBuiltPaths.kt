@@ -22,6 +22,7 @@ internal fun pathStep(objectId: Long): PathStep = PathStep(
   className = "com.example.Step$objectId",
   kind = HeapObjectKind.INSTANCE,
   content = null,
+  syntheticFields = emptyList(),
   strength = ReachabilityStrength.STRONG,
   retainedSize = 0L,
   retainedCount = 0,

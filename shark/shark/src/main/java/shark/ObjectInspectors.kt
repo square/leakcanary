@@ -18,6 +18,8 @@ package shark
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
+import shark.HeapObject.HeapObjectArray
+import shark.HeapObject.HeapPrimitiveArray
 import java.util.EnumSet
 
 /**
@@ -49,12 +51,16 @@ enum class ObjectInspectors : ObjectInspector {
           } else {
             "ObjectWatcher was watching this"
           }
-          reporter.labels += "key = ${ref.key}"
+          reporter.addSyntheticField("KeyedWeakReference.key", ref.key.quoted())
           if (ref.watchDurationMillis != null) {
-            reporter.labels += "watchDurationMillis = ${ref.watchDurationMillis}"
+            reporter.addSyntheticField(
+              "KeyedWeakReference.watchDurationMillis", ref.watchDurationMillis.toString()
+            )
           }
           if (ref.retainedDurationMillis != null) {
-            reporter.labels += "retainedDurationMillis = ${ref.retainedDurationMillis}"
+            reporter.addSyntheticField(
+              "KeyedWeakReference.retainedDurationMillis", ref.retainedDurationMillis.toString()
+            )
           }
         }
       }
@@ -120,8 +126,36 @@ enum class ObjectInspectors : ObjectInspector {
     ) {
       reporter.whenInstanceOf(Thread::class) { instance ->
         val threadName = instance[Thread::class, "name"]!!.value.readAsJavaString()
-        labels += "Thread name: '$threadName'"
+        addSyntheticField("Thread.name", threadName?.quoted() ?: "null")
       }
+    }
+  },
+
+  STRING {
+    override fun inspect(
+      reporter: ObjectReporter
+    ) {
+      reporter.whenInstanceOf(String::class) { instance ->
+        // Null for a string whose characters this heap dump doesn't carry.
+        instance.readAsJavaString()?.let { value ->
+          addSyntheticField("String.value", value.quoted())
+        }
+      }
+    }
+  },
+
+  ARRAY {
+    override fun inspect(
+      reporter: ObjectReporter
+    ) {
+      // The index already has the size of the array's record. Reading the record to count its elements
+      // would read an array that can be millions long.
+      val length = when (val heapObject = reporter.heapObject) {
+        is HeapObjectArray -> heapObject.byteSize / heapObject.graph.identifierByteSize
+        is HeapPrimitiveArray -> heapObject.byteSize / heapObject.primitiveType.byteSize
+        else -> return
+      }
+      reporter.addSyntheticField("length", length.toString())
     }
   };
 
@@ -152,4 +186,23 @@ enum class ObjectInspectors : ObjectInspector {
           LeakingObjectFilter { heapObject -> filter(heapObject) }
         }
   }
+}
+
+/**
+ * This string in double quotes, with what would end the quote or the line escaped: `"a \"b\""`. A copy of
+ * the one in shark-android.
+ */
+private fun String.quoted(): String {
+  val builder = StringBuilder(length + 2).append('"')
+  for (char in this) {
+    when (char) {
+      '"' -> builder.append("\\\"")
+      '\\' -> builder.append("\\\\")
+      '\n' -> builder.append("\\n")
+      '\r' -> builder.append("\\r")
+      '\t' -> builder.append("\\t")
+      else -> builder.append(char)
+    }
+  }
+  return builder.append('"').toString()
 }

@@ -1,6 +1,7 @@
 package shark.dive
 
 import shark.LeakTrace
+import shark.SyntheticField
 import shark.ReferenceLocationType
 
 /**
@@ -107,6 +108,8 @@ data class PathStep(
    * of the same class. See [ObjectContent].
    */
   val content: ObjectContent?,
+  /** What Shark's object inspectors reported as fields of this object. Its leak trace prints them. */
+  val syntheticFields: List<SyntheticField>,
   val strength: ReachabilityStrength,
   /** Bytes retained, and how many objects that is: 0 for an object folded into another one. */
   val retainedSize: Long,

@@ -61,7 +61,12 @@ data class LeakTraceObject(
    * [retainedHeapByteSize]. Not null only if the retained heap size was computed AND
    * [verdict] is equal to [Verdict.UNKNOWN] or [Verdict.STUCK].
    */
-  val retainedObjectCount: Int?
+  val retainedObjectCount: Int?,
+  /**
+   * What the [ObjectInspector]s reported as fields of this object, such as `Thread.name = "main"`.
+   * [toString] prints them above [labels].
+   */
+  val syntheticFields: List<SyntheticField> = emptyList()
 ) : Serializable {
 
   /**
@@ -101,6 +106,9 @@ data class LeakTraceObject(
       val humanReadableRetainedHeapSize =
         humanReadableByteCount(retainedHeapByteSize.toLong())
       result += "\n${additionalLinesPrefix}Retaining $humanReadableRetainedHeapSize in $retainedObjectCount objects"
+    }
+    for (syntheticField in syntheticFields) {
+      result += "\n${additionalLinesPrefix}$syntheticField"
     }
     for (label in labels) {
       result += "\n${additionalLinesPrefix}$label"
@@ -154,8 +162,8 @@ data class LeakTraceObject(
     // part of what Java serialization writes, so an analysis serialized by an older version has to
     // fail to deserialize rather than come back with a null verdict on a non-null property.
     // Bumped again when objectId was added, which an analysis serialized before it would come
-    // back with as 0.
-    private const val serialVersionUID = 2632384339546474547L
+    // back with as 0, and again when syntheticFields was added.
+    private const val serialVersionUID = -2875325317366406932L
 
     // https://stackoverflow.com/a/3758880
     private fun humanReadableByteCount(bytes: Long): String {

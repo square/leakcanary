@@ -279,13 +279,14 @@ class Neo4JCommand : CliktCommand(
           )
         )
 
-        if (reporter.labels.isNotEmpty()) {
+        val labels = reporter.syntheticFields.map { it.toString() } + reporter.labels
+        if (labels.isNotEmpty()) {
           labelsTx.execute(
             "match (node:Object{objectId:\$objectId})" +
               " set node.labels = \$labels",
             mapOf(
               "objectId" to heapObject.objectId,
-              "labels" to reporter.labels,
+              "labels" to labels,
             )
           )
         }

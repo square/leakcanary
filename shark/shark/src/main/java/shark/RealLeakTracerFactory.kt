@@ -154,7 +154,7 @@ class RealLeakTracerFactory constructor(
         }
       }
       InspectedObject(
-        reporter.heapObject, STUCK, reason, reporter.labels
+        reporter.heapObject, STUCK, reason, reporter.syntheticFields, reporter.labels
       )
     }
 
@@ -333,6 +333,7 @@ class RealLeakTracerFactory constructor(
         type = heapObject.leakTraceObjectType,
         className = className,
         objectId = inspectedObject.heapObject.objectId,
+        syntheticFields = inspectedObject.syntheticFields,
         labels = inspectedObject.labels,
         verdict = inspectedObject.verdict,
         verdictReason = inspectedObject.verdictReason,
@@ -366,6 +367,7 @@ class RealLeakTracerFactory constructor(
     val heapObject: HeapObject,
     val verdict: Verdict,
     val verdictReason: String,
+    val syntheticFields: List<SyntheticField>,
     val labels: MutableSet<String>
   )
 
@@ -446,7 +448,7 @@ class RealLeakTracerFactory constructor(
     return leakReporters.mapIndexed { index, objectReporter ->
       val (verdict, verdictReason) = verdicts[index]
       InspectedObject(
-        objectReporter.heapObject, verdict, verdictReason, objectReporter.labels
+        objectReporter.heapObject, verdict, verdictReason, objectReporter.syntheticFields, objectReporter.labels
       )
     }
   }
