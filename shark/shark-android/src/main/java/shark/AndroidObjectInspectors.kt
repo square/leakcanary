@@ -905,51 +905,20 @@ enum class AndroidObjectInspectors : ObjectInspector {
   },
 
   /**
-   * A binder stub is the object a remote process holds a proxy to, and the runtime keeps it alive until
-   * that proxy is collected — in another process, on another heap, at a time this one has no say in. So a
-   * stub still being here after the activity or service it was made for has gone is the design working,
-   * not a leak, which is why this is the one inspector that reports a framework class as not leaking.
+   * Reports a binder stub, any subclass of `android.os.Binder`, as expected. Another process holds a proxy
+   * to the stub, and the stub stays in memory until that process garbage collects the proxy. The app has no
+   * say in when that happens.
    *
-   * **It says that about the stub and nothing else.** A not-leaking verdict spreads to what *holds* an
-   * object, never to what it holds, and that is the whole of why this is safe to report: every object
-   * below the stub is still open, and one of them is usually the leak. The label is there to say so,
-   * because the reading that costs an investigation is "the stub is fine, therefore what the stub holds
-   * is fine" — which is the Android framework being assumed right about an object it has never heard of.
-   *
-   * **And the test for what it holds is whether that object's work is done, not whether the reference could
-   * have been cleared.** Which is the second way this reads backwards, and the harder one to catch, because
-   * it looks like engineering judgement rather than deference: the field from a stub is a `this$0` a compiler
-   * wrote, in a class the app doesn't ship, so an investigation concludes there is nothing here to clear and
-   * moves the fault one step down the chain to a field somebody owns. That is true about the code and no
-   * evidence at all about the heap. A receiver whose result has arrived should not still be reachable
-   * however it came to be held, so the reference out of the stub is the faulty one, and the fix being
-   * somebody else's — or being to stop the object under the stub existing at all — is the next question
-   * rather than a reason to answer this one differently.
+   * An expected verdict spreads up a leak trace to what holds the stub, never down to what the stub holds.
+   * The leak is usually one of the objects below the stub. The label says to look there and links to
+   * [BINDER_STUBS_PAGE] for how to fix it.
    */
   STUB {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.os.Binder") { instance ->
         val name = instance.instanceClassSimpleName
-        expectedReasons += "$name is a binder stub, and a stub stays in memory until the process on" +
-          " the other side gets GCed, so outliving what it was made for is by design"
-        labels += "This says nothing about what $name holds. A stub has to be a *static* class, so that" +
-          " it holds nothing it wasn't given, and every reference it was given has to be cleared when" +
-          " the work is done — so read what $name holds and ask of each object whether the work it was" +
-          " made for is finished. If it is, that object is leaking, and it is leaking however it came to" +
-          " be held: a reference you can't clear is still a reference that shouldn't be there, so" +
-          " \"there is no field here to clear\" is a fact about the code and not a verdict about the" +
-          " heap. That is where the leak is, and the framework being unable to help it" +
-          " is not the same as the framework being right: an AOSP or library stub holding your object" +
-          " past its life is a bug, it is only a bug you can't edit. What to do about it, in order:" +
-          " if $name is yours, make it static and clear what it holds at the end of the work it was" +
-          " made for — a compiler generated outer reference (this\$0) is what a non-static one looks" +
-          " like here. If it is framework or library code, file a ticket against it —" +
-          " https://issuetracker.google.com/issues/new?component=192705 for the platform — and then" +
-          " fix it from below anyway: the reference that has to go is often further down the chain and" +
-          " in your code, so if the stub holds your callback and your callback holds an activity," +
-          " clearing that activity field in onDestroy ends the leak whoever owns the stub. What is" +
-          " never the fix is swapping a reference for a WeakReference, which only makes the behaviour" +
-          " depend on when a GC runs."
+        expectedReasons += "$name is a binder stub"
+        labels += "Look for the leak in what $name holds, see $BINDER_STUBS_PAGE"
       }
     }
   },
@@ -1072,6 +1041,9 @@ private fun String.quoted(): String {
 
 /** android.view.WindowManager.LayoutParams.TYPE_TOAST */
 private const val TYPE_TOAST = 2005
+
+/** The page the label of [AndroidObjectInspectors.STUB] links to, `docs/binder-stubs.md`. */
+private const val BINDER_STUBS_PAGE = "https://square.github.io/leakcanary/binder-stubs/"
 
 private fun ObjectReporter.applyFromField(
   inspector: ObjectInspector,
