@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import shark.dive.CellSubject
 import shark.dive.HeapObjectKind
@@ -34,7 +33,6 @@ import shark.dive.ObjectGroupSummary
 import shark.dive.ReachabilityStrength
 import shark.dive.Topic
 import shark.dive.formatByteSize
-import shark.dive.headline
 import shark.dive.formatByteSizeOfTotal
 import shark.dive.formatObjectCount
 
@@ -211,9 +209,6 @@ private fun ObjectDetails(
       style = MaterialTheme.typography.bodyMedium
     )
   }
-  summary.content?.headline?.let { headline ->
-    Text(headline, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-  }
   // Above everything measured about the object, because it is the one line here that is a conclusion:
   // the sizes and the fields below it are what it was concluded from. Above the picture of a bitmap too,
   // so that a screenshot several hundred pixels tall can't push the conclusion out of the panel.
@@ -226,8 +221,6 @@ private fun ObjectDetails(
       onChange = onChangeVerdict
     )
   }
-  // Under the headline, which for a bitmap is its size and its format: the picture is what the bitmap is,
-  // and the sentence describing it stops just short of saying it.
   BitmapPreview(bitmap)
   StrengthRow(summary.strength, onExplain)
   Detail(RETAINED, retainedText(summary.retainedSize, summary.retainedCount, stronglyReachableByteCount))
@@ -235,8 +228,16 @@ private fun ObjectDetails(
   // meaningful fraction of a heap dump, and a second percentage in the column would only dilute the
   // one that says something.
   Detail(SHALLOW, formatByteSize(summary.shallowSize))
-  // Read like a note, since what an inspector writes names classes, and the class an object is an instance
-  // of is the first thing worth opening from here.
+  // Read like a note. What an inspector writes names classes and objects, and the class an object is an
+  // instance of is the first thing worth opening from here. The fields go first, as in a leak trace.
+  summary.syntheticFields.forEach { field ->
+    ProseText(
+      text = field.toString(),
+      reader = noteReader,
+      style = MaterialTheme.typography.bodySmall,
+      color = Color.Unspecified
+    )
+  }
   summary.inspectorLabels.forEach { label ->
     ProseText(
       text = label,

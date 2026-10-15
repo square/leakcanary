@@ -7,6 +7,7 @@ import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import shark.SyntheticField
 import shark.dive.ReachabilityStrength.CACHE
 import shark.dive.ReachabilityStrength.LOCAL
 import shark.dive.ReachabilityStrength.STRONG
@@ -73,23 +74,24 @@ class HeapDiveTest {
     }
   }
 
-  @Test fun `a string leads with its content`() {
+  @Test fun `a string reports its characters`() {
     testFolder.openTestHeapDump().use { dive ->
       val string = dive.tree.findByLabel("String")
 
-      assertThat(string.content).isEqualTo(ObjectContent.JavaString("Kept alive by the holder"))
-      // And the one line a window draws that on, which is the only place the quotes are added.
-      assertThat(string.content?.headline).isEqualTo("\"Kept alive by the holder\"")
+      assertThat(string.syntheticFields)
+        .contains(SyntheticField("String.value", "\"Kept alive by the holder\""))
     }
   }
 
-  @Test fun `a bitmap leads with its dimensions`() {
+  @Test fun `a bitmap reports its dimensions`() {
     HeapDive.open(testFolder.bitmapHeapDump()).use { dive ->
       val bitmap = dive.tree.findByLabel("Bitmap")
 
-      assertThat(bitmap.content)
-        .isEqualTo(ObjectContent.Bitmap(width = 420, height = 467, isRecycled = false))
-      assertThat(bitmap.content?.headline).isEqualTo("420 × 467 pixels")
+      assertThat(bitmap.syntheticFields).contains(
+        SyntheticField("Bitmap.mWidth", "420"),
+        SyntheticField("Bitmap.mHeight", "467"),
+        SyntheticField("Bitmap.mRecycled", "false")
+      )
     }
   }
 
@@ -147,7 +149,7 @@ class HeapDiveTest {
       val tree = dive.tree
       val array = tree.findByLabel("Object[]")
 
-      assertThat(array.content).isEqualTo(ObjectContent.ObjectArray(PAYLOAD_ELEMENT_COUNT))
+      assertThat(array.syntheticFields).contains(SyntheticField("length", PAYLOAD_ELEMENT_COUNT.toString()))
       assertThat(array.fields).hasSize(MAX_FIELDS_SHOWN)
       assertThat(array.hiddenFieldCount).isEqualTo(PAYLOAD_ELEMENT_COUNT - MAX_FIELDS_SHOWN)
       assertThat(array.fields.first().name).isEqualTo("[0]")

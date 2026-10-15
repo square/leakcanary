@@ -1460,7 +1460,7 @@ class AgentToolsTest {
         objectId = heapDump.activityObjectId,
         className = ACTIVITY_CLASS_NAME,
         kind = HeapObjectKind.INSTANCE,
-        content = null,
+        syntheticFields = emptyList(),
         retainedSize = 1,
         retainedCount = 1,
         strength = ReachabilityStrength.STRONG,

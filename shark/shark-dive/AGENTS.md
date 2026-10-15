@@ -222,6 +222,13 @@ And it is one *place*, not one *copy*. A second spelling is obvious; a second **
 sentence — the enum's KDoc and the reference page both saying what `SOFT` means — reads as fine and goes
 stale silently, which is why `LeakKind.explanation` is null for the five kinds named after a strength.
 
+**What an object is beyond its class comes from Shark's object inspectors.** A model type carries the
+`shark.SyntheticField`s they reported, and every surface prints each one as `name = value`, as a leak trace
+does. The window lists them, or joins them on one line with `SyntheticFieldsLine`, and never picks one out by
+name. Shark Dive used to read strings, bitmaps and threads itself, in an `ObjectContent` that spelled the
+values differently from the leak trace beside them. So something new worth showing about an object goes in an
+inspector, in `shark` or `shark-android`, and LeakCanary's leak traces get it in the same change.
+
 ## A verdict set by hand is an argument to every read, never state of the tree
 
 **`STUCK`, `EXPECTED` and `UNKNOWN` are the only words for this, everywhere** — the enum, the window, the
@@ -257,14 +264,6 @@ asked per step — `AgentJson.pathStepInto`. The two agree in exactly one state,
 single suspect is the faulty one and `faultyReference` on the agent's `investigation` names it. So a JSON
 step carrying both would be the same fact under two names on every step of every path, and the one it
 carries is the one that says something while an investigation is still running.
-
-**And the same split is why no model type here holds a formatted string.** `ObjectContent` is a string's
-characters, a bitmap's width, height and recycled flag, a thread's name — the facts — and `ObjectContent.headline`
-is the one line a window draws them as. It was the other way round, a `headline: String?` formatted while the
-heap dump was read and carried by four model types, which put `"420 × 467 pixels, recycled"` on a surface
-that is also read by a program: three facts as characters to parse back, plus a `headline` of null on every
-object that is none of those kinds. A fact goes in the model and its wording goes at the edge that needs it,
-the way `Verdict.text` does.
 
 **And it marks nothing unless one step crosses from `Expected` to `Stuck`.** `suspectReferenceIndexes`, the
 whole stretch between the two verdicts, is what a leak is *named* after — `suspectSubpath`, and Shark's leak
@@ -896,10 +895,11 @@ numbers belong in `notes/bitmaps.md`.
   the machine's `adb`, so a test that takes it has whatever device is plugged in to answer for — and the
   window can dump the heap of a real process. `FakeAdb` matches command prefixes, because the remote dump
   path contains a timestamp.
-- **A synthetic Android class needs the fields the object inspectors read.** `HeapObjectSummary` runs
-  `AndroidObjectInspectors`, and those read fields with `!!` — an `android.view.View` without `mParent`,
-  `mWindowAttachCount`, `mAttachInfo` and `mContext` makes `summarize()` throw a bare
-  `NullPointerException` from inside shark-android, which reads like a bug in Shark Dive.
+- **A synthetic Android class needs the fields the object inspectors read.** Every object this app
+  describes runs `AndroidObjectInspectors`, in a row of a list as much as in the details panel, and those
+  inspectors read fields with `!!`. An `android.view.View` without `mParent`, `mWindowAttachCount`,
+  `mAttachInfo` and `mContext` throws a bare `NullPointerException` from inside shark-android. It reads
+  like a bug in Shark Dive.
 
 ## Notes
 

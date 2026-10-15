@@ -27,7 +27,6 @@ import shark.dive.ReachabilityStrength
 import shark.dive.formatByteSize
 import shark.dive.formatByteSizeOfTotal
 import shark.dive.formatObjectCount
-import shark.dive.headline
 
 /**
  * What the pointer is on, in a card that follows it around the view.
@@ -82,9 +81,7 @@ private fun ObjectLines(
     typeName = summary.kind?.typeName,
     objectId = summary.objectId
   )
-  summary.content?.headline?.let { headline ->
-    Text(headline, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-  }
+  SyntheticFieldsLine(summary.syntheticFields)
   StrengthLine(summary.strength)
   // The same numbers the details panel gives a labelled row each, on two lines: a card that follows the
   // pointer has to be read at a glance, and it covers the map for as long as it's up.

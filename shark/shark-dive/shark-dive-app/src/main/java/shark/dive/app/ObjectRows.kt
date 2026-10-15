@@ -15,12 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import shark.dive.ObjectListEntry
 import shark.dive.formatByteSize
 import shark.dive.formatPercentOfTotal
-import shark.dive.headline
 
 /**
  * One object as a row of a list, and the header over a column of them.
@@ -91,15 +89,7 @@ internal fun ObjectRow(
           typeName = entry.kind.typeName,
           objectId = entry.objectId
         )
-        entry.content?.headline?.let { headline ->
-          Text(
-            headline,
-            style = MaterialTheme.typography.bodySmall,
-            color = MUTED_TEXT,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-          )
-        }
+        SyntheticFieldsLine(entry.syntheticFields)
       }
       Text(
         formatByteSize(entry.shallowSize),

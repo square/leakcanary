@@ -34,10 +34,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import shark.ReferenceLocationType
+import shark.SyntheticField
 import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectKind
 import shark.dive.Verdict
@@ -47,7 +49,6 @@ import shark.dive.ReachabilityStrength
 import shark.dive.ReferencePage
 import shark.dive.Topic
 import shark.dive.formatByteSizeOfTotal
-import shark.dive.headline
 import shark.dive.hexObjectId
 import shark.dive.text
 
@@ -206,7 +207,6 @@ internal fun PathStepRow(
       )
     }
     if (detail == PathDetail.FULL) {
-      step.content?.headline?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
       if (step.retainedCount > 0) {
         // The same word and the same numbers the details panel and the card at the pointer give an object,
         // since a step of the path is one of those objects. See [RETAINED].
@@ -224,6 +224,14 @@ internal fun PathStepRow(
       )
     }
     if (detail == PathDetail.FULL) {
+      step.syntheticFields.forEach { field ->
+        ProseText(
+          text = field.toString(),
+          reader = noteReader,
+          style = MaterialTheme.typography.bodySmall,
+          color = MUTED_TEXT
+        )
+      }
       step.inspectorLabels.forEach { label ->
         ProseText(
           text = label,
@@ -447,6 +455,22 @@ private fun ObjectIdentityLines(
       Text(hexObjectId(objectId), style = MaterialTheme.typography.bodySmall, color = MUTED_TEXT)
     }
   }
+}
+
+/**
+ * The fields Shark's object inspectors reported for an object, on one line. A row of a list and the card at
+ * the pointer draw this. The details panel and a path drawn in full list the fields one per line instead.
+ */
+@Composable
+internal fun SyntheticFieldsLine(syntheticFields: List<SyntheticField>) {
+  if (syntheticFields.isEmpty()) return
+  Text(
+    syntheticFields.joinToString(", "),
+    style = MaterialTheme.typography.bodySmall,
+    color = MUTED_TEXT,
+    maxLines = 1,
+    overflow = TextOverflow.Ellipsis
+  )
 }
 
 /** What a step of a path that is only being glanced at says: its class, and how much of the heap it holds. */

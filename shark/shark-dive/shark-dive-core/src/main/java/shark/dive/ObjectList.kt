@@ -1,5 +1,7 @@
 package shark.dive
 
+import shark.SyntheticField
+
 /**
  * Which kind of thing an object is, which is both what a list of objects filters on and what a path
  * prints after a class name.
@@ -56,12 +58,8 @@ data class ObjectListEntry(
   /** Fully qualified class name, or array type. */
   val className: String,
   val kind: HeapObjectKind,
-  /**
-   * What this object is beyond its class — a string's characters, a bitmap's dimensions, an array's length
-   * — or null for an object that says none of that. What tells two instances of a class apart in a list of
-   * them. See [ObjectContent].
-   */
-  val content: ObjectContent?,
+  /** What Shark's object inspectors reported as fields of this object. Its leak trace prints them. */
+  val syntheticFields: List<SyntheticField>,
   val shallowSize: Long,
   /** The same number the treemap draws this object's rectangle from. */
   val retainedSize: Long,
