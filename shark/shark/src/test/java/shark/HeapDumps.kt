@@ -1,6 +1,8 @@
 package shark
 
 import shark.GcRoot.JavaFrame
+import shark.GcRoot.JniLocal
+import shark.GcRoot.NativeStack
 import shark.GcRoot.ThreadObject
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.ReferenceHolder
@@ -113,7 +115,8 @@ fun File.writeMultipleActivityLeaks(leakCount: Int) {
 
 fun File.writeJavaLocalLeak(
   threadClass: String? = null,
-  threadName: String? = null
+  threadName: String? = null,
+  stackRoot: (objectId: Long, threadSerialNumber: Int) -> GcRoot = ::javaFrame
 ) {
   dump {
     val threadClassId =
@@ -140,13 +143,14 @@ fun File.writeJavaLocalLeak(
     )
 
     val leaking = "Leaking" watchedInstance {}
-    gcRoot(JavaFrame(id = leaking.value, threadSerialNumber = 42, frameNumber = 0))
+    gcRoot(stackRoot(leaking.value, 42))
   }
 }
 
 fun File.writeTwoPathJavaLocalShorterLeak(
   threadClass: String,
-  threadName: String
+  threadName: String,
+  stackRoot: (objectId: Long, threadSerialNumber: Int) -> GcRoot = ::javaFrame
 ) {
   dump {
     val threadClassId =
@@ -160,7 +164,7 @@ fun File.writeTwoPathJavaLocalShorterLeak(
     )
 
     val leaking = "Leaking" watchedInstance {}
-    gcRoot(JavaFrame(id = leaking.value, threadSerialNumber = 42, frameNumber = 0))
+    gcRoot(stackRoot(leaking.value, 42))
 
     val hasLeaking = instance(
       clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
@@ -173,3 +177,18 @@ fun File.writeTwoPathJavaLocalShorterLeak(
     )
   }
 }
+
+fun javaFrame(
+  objectId: Long,
+  threadSerialNumber: Int
+) = JavaFrame(id = objectId, threadSerialNumber = threadSerialNumber, frameNumber = 0)
+
+fun jniLocal(
+  objectId: Long,
+  threadSerialNumber: Int
+) = JniLocal(id = objectId, threadSerialNumber = threadSerialNumber, frameNumber = 0)
+
+fun nativeStack(
+  objectId: Long,
+  threadSerialNumber: Int
+) = NativeStack(id = objectId, threadSerialNumber = threadSerialNumber)

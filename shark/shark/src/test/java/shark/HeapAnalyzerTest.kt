@@ -7,6 +7,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.GcRoot.JniGlobal
 import shark.GcRoot.ThreadObject
+import shark.LeakTrace.GcRootType
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.LeakTraceReference.ReferenceType.LOCAL
 import shark.ValueHolder.ReferenceHolder
@@ -127,6 +128,57 @@ class HeapAnalyzerTest {
 
     val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
     println(analysis)
+
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath).hasSize(2)
+    assertThat(leakTrace.referencePath[0].originObject.className).isEqualTo("GcRoot")
+    assertThat(leakTrace.referencePath[0].referenceType).isEqualTo(STATIC_FIELD)
+  }
+
+  @Test fun nativeLocalVariableLeak() {
+    hprofFile.writeJavaLocalLeak(
+      threadClass = "MyThread",
+      threadName = "kroutine",
+      stackRoot = ::jniLocal
+    )
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.gcRootType).isEqualTo(GcRootType.THREAD_OBJECT)
+    assertThat(leakTrace.referencePath).hasSize(1)
+    assertThat(leakTrace.referencePath[0].originObject.className).isEqualTo("MyThread")
+    assertThat(leakTrace.referencePath[0].referenceType).isEqualTo(LOCAL)
+    assertThat(leakTrace.leakingObject.className).isEqualTo("Leaking")
+  }
+
+  @Test fun nativeStackShortestPathGoesLast() {
+    hprofFile.writeTwoPathJavaLocalShorterLeak(
+      threadClass = "MyThread",
+      threadName = "kroutine",
+      stackRoot = ::nativeStack
+    )
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
+
+    val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
+    assertThat(leakTrace.referencePath).hasSize(2)
+    assertThat(leakTrace.referencePath[0].originObject.className).isEqualTo("GcRoot")
+    assertThat(leakTrace.referencePath[0].referenceType).isEqualTo(STATIC_FIELD)
+  }
+
+  @Test fun nativeStackOfNoThreadShortestPathGoesLast() {
+    hprofFile.dump {
+      val leaking = "Leaking" watchedInstance {}
+      gcRoot(nativeStack(leaking.value, threadSerialNumber = 42))
+      val hasLeaking = instance(
+        clazz("HasLeaking", fields = listOf("leaking" to ReferenceHolder::class)),
+        fields = listOf(leaking)
+      )
+      clazz("GcRoot", staticFields = listOf("longestPath" to hasLeaking))
+    }
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>()
 
     val leakTrace = analysis.applicationLeaks[0].leakTraces.first()
     assertThat(leakTrace.referencePath).hasSize(2)

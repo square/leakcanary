@@ -2,6 +2,8 @@ package shark
 
 import shark.GcRoot.JavaFrame
 import shark.GcRoot.JniGlobal
+import shark.GcRoot.JniLocal
+import shark.GcRoot.NativeStack
 import shark.GcRoot.ThreadObject
 import shark.GcRoot.Unknown
 import shark.GcRoot.InternedString
@@ -16,6 +18,7 @@ import shark.HeapObject.HeapObjectArray
 import shark.HeapObject.HeapPrimitiveArray
 import shark.ReferencePattern.NativeGlobalVariablePattern
 import shark.internal.ThreadObjects
+import shark.internal.ThreadStackRoots
 
 /**
  * TODO Extracted from PathFinder, this should eventually be part of public API surface
@@ -44,9 +47,11 @@ class MatchingGcRootProvider(
 
     return sortedGcRoots(graph).asSequence().mapNotNull { (heapObject, gcRoot) ->
       when (gcRoot) {
-        // Note: in sortedGcRoots we already filter out any java frame that has an associated
-        // thread. These are the remaining ones (shouldn't be any, this is just in case).
+        // Note: in sortedGcRoots we already filter out any root on the stack of a thread the heap
+        // dump has an object for. These are the remaining ones.
         is JavaFrame,
+        is JniLocal,
+        is NativeStack,
         is Unknown,
         is InternedString,
         is Finalizing,
@@ -99,8 +104,8 @@ class MatchingGcRootProvider(
   /**
    * Sorting GC roots to get stable shortest path
    * Once sorted all ThreadObject Gc Roots are located before JavaLocalPattern Gc Roots.
-   * This ensures ThreadObjects are visited before JavaFrames, and threadsBySerialNumber can be
-   * built before JavaFrames.
+   * This ensures ThreadObjects are visited before the roots on their stack, and
+   * threadsBySerialNumber can be built before those roots.
    */
   private fun sortedGcRoots(graph: HeapGraph): List<Pair<HeapObject, GcRoot>> {
     val rootClassName: (HeapObject) -> String = { graphObject ->
@@ -128,15 +133,17 @@ class MatchingGcRootProvider(
         // GC roots sometimes reference objects that don't exist in the heap dump
         // See https://github.com/square/leakcanary/issues/1516
         graph.objectExists(gcRoot.id) &&
-          // Only include java frames that do not have a corresponding ThreadObject.
-          // JavaLocalReferenceReader will insert the other java frames.
-          !(gcRoot is JavaFrame && gcRoot.threadSerialNumber in threadSerialNumbers)
+          // Only include roots on a thread's stack that do not have a corresponding ThreadObject.
+          // JavaLocalReferenceReader will insert the others as references from their thread.
+          ThreadStackRoots.threadSerialNumberOf(gcRoot).let { threadSerialNumber ->
+            threadSerialNumber == null || threadSerialNumber !in threadSerialNumbers
+          }
       }
       .map { graph.findObjectById(it.id) to it }
       .sortedWith { (graphObject1, root1), (graphObject2, root2) ->
         // Sorting based on pattern name first, but we want ThreadObjects to be first because
-        // they'll later enqueue java frames via JavaLocalReferenceReader in the low priority queue
-        // and we want those java frames at the head of the low priority queue.
+        // they'll later enqueue the roots on their stack via JavaLocalReferenceReader in the low
+        // priority queue and we want those at the head of the low priority queue.
         if (root1 is ThreadObject && root2 !is ThreadObject) {
           return@sortedWith -1
         } else if (root1 !is ThreadObject && root2 is ThreadObject) {

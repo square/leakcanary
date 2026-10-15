@@ -102,6 +102,37 @@ class ReferenceMatcherTest {
     assertThat(leak.pattern).isEqualTo(matcher.pattern)
   }
 
+  @Test fun excludedThreadNativeLocal() {
+    hprofFile.writeJavaLocalLeak(
+      threadClass = "MyThread",
+      threadName = "kroutine",
+      stackRoot = ::nativeStack
+    )
+
+    val matcher = javaLocal("kroutine").leak()
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+      referenceMatchers = listOf(matcher)
+    )
+
+    val leak = analysis.libraryLeaks[0]
+    assertThat(leak.pattern).isEqualTo(matcher.pattern)
+  }
+
+  @Test fun ignoredThreadNativeLocal() {
+    hprofFile.writeJavaLocalLeak(
+      threadClass = "MyThread",
+      threadName = "kroutine",
+      stackRoot = ::jniLocal
+    )
+
+    val analysis = hprofFile.checkForLeaks<HeapAnalysisSuccess>(
+      referenceMatchers = listOf(javaLocal("kroutine").ignored())
+    )
+
+    assertThat(analysis.applicationLeaks).isEmpty()
+    assertThat(analysis.libraryLeaks).isEmpty()
+  }
+
   @Test fun overrideSuperclassExclusion() {
     hprofFile.dump {
       "GcRoot" clazz {
