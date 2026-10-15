@@ -137,6 +137,8 @@ Releases before 2.8.1 predate these markers.
 * 🔀 Shark reads a 4 byte object id as the unsigned address it is, the way Android Studio, ahat, MAT and every other heap dump tool show it. An object above the 2 GB mark of an Android heap dump now has the id `0x82000010` where it used to have `0xffffffff82000010`, a negative `Long`, and that's true of `HeapObject.objectId`, `ValueHolder.ReferenceHolder`, GC roots and anywhere else Shark reads an id. Every object below the 2 GB mark keeps the id it had, and leak signatures don't change.
     * 🔀 `HprofWriter` throws on an id that doesn't fit in the heap dump's id size, where it used to write its low bytes. A negative id written to a heap dump with 4 byte ids would now read back as a different, positive one.
     * ⚠️ `HeapObject.positiveObjectId` is gone, since it would now be the same as `objectId`.
+* 🔨 Every object of a leak trace is now followed by its id in the heap dump, e.g. `├─ java.util.ArrayList instance 0x12d6c588`, which is the id [Shark Dive](shark-dive.md) takes to open that object: `shark://2026-10-07_09-45-13_713.hprof/object?id=0x12d6c588`. Going from a leak trace to the heap dump it came from no longer means finding the object again by its class and its fields. The id isn't part of the leak fingerprint, so fingerprints don't change.
+    * ⚠️ `LeakTraceObject` has a new `objectId` property, which its constructor takes after `className`.
 * ⚠️ `ObjectDominators.renderDominatorTree()` is gone. Nothing in LeakCanary or Shark called it, and it named each object by its position in Shark's index of the heap dump, `#1234`, which no other tool can look up. `ObjectDominators.buildDominatorTree()` still returns the tree it printed.
 
 ### Breaking change: `Leaking: YES` / `NO` is now `Verdict: Stuck` / `Expected`
@@ -146,14 +148,14 @@ A leak trace says, for each object on it, whether that object is meant to still 
 A leak trace now prints:
 
 ```
-├─ com.example.MySingleton class
+├─ com.example.MySingleton class 0x12c41e88
 │    Verdict: Expected (a class is always expected)
 │    ↓ static MySingleton.leakedView
 │                         ~~~~~~~~~~
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12d6c1a0
 │    Verdict: Stuck (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
-╰→ com.example.MainActivity instance
+╰→ com.example.MainActivity instance 0x12d3f8b0
      Verdict: Stuck (Activity#mDestroyed is true)
 ```
 

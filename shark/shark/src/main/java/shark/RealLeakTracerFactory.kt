@@ -338,6 +338,7 @@ class RealLeakTracerFactory constructor(
       LeakTraceObject(
         type = objectType,
         className = className,
+        objectId = inspectedObject.heapObject.objectId,
         labels = inspectedObject.labels,
         verdict = inspectedObject.verdict,
         verdictReason = inspectedObject.verdictReason,

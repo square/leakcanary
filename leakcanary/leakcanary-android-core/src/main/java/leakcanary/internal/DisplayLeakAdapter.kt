@@ -173,7 +173,7 @@ internal class DisplayLeakAdapter constructor(
           )
         )
       }.$styledClassName" else styledClassName
-    htmlString += " ${extra(typeName)}<br>"
+    htmlString += " ${extra("$typeName ${hexObjectId(objectId)}")}<br>"
 
     val verdictString = when (verdict) {
       UNKNOWN -> extra("Unknown")

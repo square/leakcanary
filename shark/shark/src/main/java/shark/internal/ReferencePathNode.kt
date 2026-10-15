@@ -82,6 +82,7 @@ fun HeapGraph.invalidObjectIdErrorMessage(node: ReferencePathNode): String {
         LeakTraceObject(
           type = objectType,
           className = className,
+          objectId = it.objectId,
           labels = emptySet(),
           verdict = UNKNOWN,
           verdictReason = "",
@@ -90,7 +91,8 @@ fun HeapGraph.invalidObjectIdErrorMessage(node: ReferencePathNode): String {
         )
       } + LeakTraceObject(
         type = INSTANCE,
-        className = "UnknownObject${hexObjectId(node.objectId)}",
+        className = "UnknownObject",
+        objectId = node.objectId,
         labels = emptySet(),
         verdict = UNKNOWN,
         verdictReason = "",

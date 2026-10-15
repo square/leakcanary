@@ -106,7 +106,7 @@ class HeapAnalysisStringRenderingTest {
       |┬───
       |│ GC Root: System class
       |│
-      |├─ GcRoot class
+      |├─ GcRoot class 0x1c
       |.*?
       |====================================
       |0 LIBRARY LEAKS
@@ -153,7 +153,7 @@ class HeapAnalysisStringRenderingTest {
       |┬───
       |│ GC Root: System class
       |│
-      |├─ GcRoot class
+      |├─ GcRoot class 0x1c
       |.*
       |====================================
       |0 LIBRARY LEAKS

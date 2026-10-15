@@ -180,7 +180,7 @@ fun LeakScreen(viewModel: LeakViewModel = viewModel()) {
             val leakTraceObject = referencePath.originObject
             val typeName =
               if (index == 0 && leakTrace.gcRootType == JAVA_FRAME) "thread" else leakTraceObject.typeName
-            appendLeakTraceObject(leakTrace.leakingObject, overriddenTypeName = typeName)
+            appendLeakTraceObject(leakTraceObject, overriddenTypeName = typeName)
             append(INDENTATION)
             val isStatic = referencePath.referenceType == STATIC_FIELD
             if (isStatic) {
@@ -260,7 +260,7 @@ private fun AnnotatedString.Builder.appendLeakTraceObject(
     val simpleName = classSimpleName.replace("[]", "[ ]")
     appendWithColor(simpleName, HIGHLIGHT_COLOR)
     append(' ')
-    appendExtra(overriddenTypeName)
+    appendExtra("$overriddenTypeName ${hexObjectId(objectId)}")
     append('\n')
 
     append(INDENTATION)
@@ -310,6 +310,14 @@ private fun AnnotatedString.Builder.appendWithColor(
   withStyle(style = SpanStyle(color = color)) {
     append(text)
   }
+}
+
+/**
+ * [objectId] in hex, the way shark writes an object id for someone to read: `0x12c0a6b8`. The
+ * same as the copy in `shark-graph`, which says why. This module can't see that one.
+ */
+private fun hexObjectId(objectId: Long): String {
+  return "0x${java.lang.Long.toHexString(objectId)}"
 }
 
 // https://stackoverflow.com/a/3758880

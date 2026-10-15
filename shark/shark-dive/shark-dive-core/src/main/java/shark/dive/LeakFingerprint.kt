@@ -79,6 +79,7 @@ private fun PathStep.toLeakTraceObject(
     HeapObjectKind.OBJECT_ARRAY, HeapObjectKind.PRIMITIVE_ARRAY -> ObjectType.ARRAY
   },
   className = className,
+  objectId = objectId,
   // The library leak label first and the inspectors' after, which is the order a leak trace prints them in
   // because that is the order they were added in: `RealLeakTracerFactory.inspectObjects` puts this one on
   // the reporter before running a single inspector over it.

@@ -109,24 +109,24 @@ These same suspicious references are underlined with `~~~` when the leak trace i
 ```
 ...
 │  
-├─ com.example.leakcanary.LeakingSingleton class
+├─ com.example.leakcanary.LeakingSingleton class 0x12c3f1a8
 │    Verdict: Expected (a class is always expected)
 │    ↓ static LeakingSingleton.leakedViews
 │                              ~~~~~~~~~~~
-├─ java.util.ArrayList instance
+├─ java.util.ArrayList instance 0x12d4cd48
 │    Verdict: Unknown
 │    ↓ ArrayList.elementData
 │                ~~~~~~~~~~~
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12d4cd60
 │    Verdict: Unknown
 │    ↓ Object[].[0]
 │               ~~~
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12e5f3a0
 │    Verdict: Stuck (View.mContext references a destroyed activity)
 ...
 ```
 
-In the example above, the leak fingerprint would be computed as:
+The hex number after each object is its id in that heap dump, so it isn't part of the fingerprint: the same leak has the same fingerprint in every heap dump. In the example above, the leak fingerprint would be computed as:
 
 ```kotlin
 val leakFingerprint = sha1Hash(
@@ -173,12 +173,12 @@ Description: Android Q added a new IRequestFinishCallback$Stub class [...]
 ┬───
 │ GC Root: Global variable in native code
 │
-├─ android.app.Activity$1 instance
+├─ android.app.Activity$1 instance 0x12d1e5c0
 │    Verdict: Unknown
 │    Anonymous subclass of android.app.IRequestFinishCallback$Stub
 │    ↓ Activity$1.this$0
 │                 ~~~~~~
-╰→ com.example.MainActivity instance
+╰→ com.example.MainActivity instance 0x12e1b2c8
 ```
 
 !!! quote "What did I do to cause this leak?"
