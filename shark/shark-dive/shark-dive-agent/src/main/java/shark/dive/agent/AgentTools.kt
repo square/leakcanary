@@ -16,6 +16,7 @@ import shark.dive.VerdictConflict
 import shark.dive.VerdictOverride
 import shark.dive.ObjectListFilter
 import shark.dive.Place
+import shark.dive.ReachabilityStrength
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
@@ -423,7 +424,7 @@ internal class AgentTools(
     description = "Every way an object is held, rather than the one path. It answers \"is that reference " +
       "really the only thing keeping it in memory?\", which a single path cannot, and which decides " +
       "whether clearing a field would free anything. Give `from` to ask only about the ways between that " +
-      "object and this one.",
+      "object and this one. Refused for uncollected garbage, which nothing holds.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object being held."),
@@ -437,6 +438,11 @@ internal class AgentTools(
     dump.read("every way ${exactHexObjectId(objectId)} is held, for an agent") { dive ->
       val tree = dive.tree
       objectId.requireOneObjectOf(tree)
+      // Whether or not `from` is given, since only garbage holds garbage: the ways found for it start at pieces
+      // of garbage, and none of them keeps it in memory.
+      if (tree.strengthOf(objectId) == ReachabilityStrength.UNREACHABLE) {
+        throw AgentRefusal(uncollectedGarbage(objectId))
+      }
       val paths = if (fromObjectId == null) {
         tree.independentPathsFromRoots(objectId, dump.verdicts)
       } else {
@@ -633,10 +639,7 @@ internal class AgentTools(
    */
   private fun RootPath.requireStuck(objectId: Long): RootPath {
     if (!isHeldByGcRoot()) {
-      throw AgentRefusal(
-        "${exactHexObjectId(objectId)} is uncollected garbage: no GC root reaches it, so it is no leak to " +
-          "solve. Pick a group from a section of $LIST_LEAK_GROUPS that is not marked isOnTheWayOut."
-      )
+      throw AgentRefusal(uncollectedGarbage(objectId))
     }
     val last = steps.last()
     if (last.step.verdict != Verdict.STUCK) {
@@ -1055,9 +1058,7 @@ private fun RootPath.investigation(): PathInvestigation {
       state = InvestigationState.UNREACHABLE,
       suspectReferenceCount = 0,
       progressRatio = 0.0,
-      next = "${steps.last().address()} is uncollected garbage: no GC root reaches it, so nothing keeps it " +
-        "in memory and the next collection frees it. Pick a group from a section of $LIST_LEAK_GROUPS " +
-        "that is not marked isOnTheWayOut."
+      next = uncollectedGarbage(steps.last().step.objectId)
     )
   }
   val steps = steps
@@ -1141,6 +1142,15 @@ private fun RootPath.gcRootSuspectNote(): String = if (isGcRootSuspect()) {
  * makes the sentence longer where the pointer was the whole of what it had to hand over.
  */
 private fun RootPathStep.address(): String = exactHexObjectId(step.objectId)
+
+/**
+ * What every tool says about an object no GC root holds, which is no leak: `path_from_gc_roots` as its `next`,
+ * and `ways_held` and a `solvingLeakOf` as their refusal.
+ */
+private fun uncollectedGarbage(objectId: Long): String =
+  "${exactHexObjectId(objectId)} is uncollected garbage: no GC root reaches it, so nothing keeps it in memory " +
+    "and the next collection frees it. Pick a group from a section of $LIST_LEAK_GROUPS that is not marked " +
+    "isOnTheWayOut."
 
 /**
  * One verdict a new one disagrees with, as a line of the refusal that says so.

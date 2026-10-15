@@ -97,10 +97,10 @@ the four shapes those verdicts are in, which is the field to branch on rather th
 above the stuck object is expected, the next move is the same: settle the undecided objects. There used to be
 a `NOTHING_EXPECTED_ABOVE` beside it, and it stopped meaning anything once a GC root holding a stuck object
 could solve a leak on its own. **`UNREACHABLE` is an object no GC root holds**, which is uncollected garbage
-and no leak, so `path_from_gc_roots` answers it with `investigation` and no path. It took the place of a
-`NO_PATH` for a path with no steps. No tool can answer with a path of no
-steps: the only objects without a path are the ones the tree has no node for, and every tool refuses those
-before reading one. A verdict answers with `narrowedBy` as well, the counts and the progress on both sides of it, because
+and no leak, so `path_from_gc_roots` answers it with `investigation` and no path, and `ways_held` refuses it.
+It took the place of a `NO_PATH` for a path with no steps. No tool can answer with a path of no steps: the
+only objects without a path are the ones the tree has no node for, and every tool refuses those before
+reading one. A verdict answers with `narrowedBy` as well, the counts and the progress on both sides of it, because
 a verdict that ruled nothing out and a verdict that halved the search are the same single number afterwards
 and are not the same move. **The `Ratio` on all three of those names is load-bearing** — the number is 0 to 1
 and the other way to spell a share is 0 to 100, so a name that says neither gets read as whichever the reader

@@ -540,7 +540,7 @@ class AgentToolsTest {
   }
 
   @Test
-  fun `a stuck object nothing holds is unreachable, and no leak to solve`() {
+  fun `a stuck object nothing holds is unreachable, with no path and no leak to solve`() {
     val (dive, activityObjectId) = temporaryFolder.uncollectedDestroyedActivity()
     dive.use {
       val garbage = FakeAgentHeapDump(dive)
@@ -566,6 +566,9 @@ class AgentToolsTest {
           WHY to "Recorded as stuck to read what solving a leak of garbage answers."
         )
       }
+        .isInstanceOf(AgentRefusal::class.java)
+        .hasMessageContaining("uncollected garbage")
+      assertThatThrownBy { call("ways_held", HEAP_DUMP to garbage.heapDumpName, OBJECT to hex(activityObjectId)) }
         .isInstanceOf(AgentRefusal::class.java)
         .hasMessageContaining("uncollected garbage")
     }
