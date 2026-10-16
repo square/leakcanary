@@ -116,7 +116,7 @@ class HeapDive private constructor(
             objectSizeCalculator = AndroidObjectSizeCalculator(graph)
           )
         }
-        val gcRootProvider = TreeGcRootProvider(reachability)
+        val gcRootProvider = TreeGcRootProvider(graph, reachability)
         val tree = steps.run("Working out what retains what") {
           val dominatorTree = HeapDominatorTree.buildFor(
             graph = graph,
@@ -205,18 +205,42 @@ internal fun millisSince(startNanos: Long): Long =
  * would put it flat under the GC roots rather than under the field. Same rule as for a weak reference —
  * see [HeapReachability.isHeldThrough] — and the same reason it's safe: a root that is the only way to an
  * object is kept, because then nothing holds it more firmly.
+ *
+ * Every root starts from Shark's [MatchingGcRootProvider], which leaves out the `JAVA_FRAME`, `JNI_LOCAL`
+ * and `NATIVE_STACK` roots on the stack of a thread the heap dump has. [shark.JavaLocalReferenceReader]
+ * reads each of those as a reference from the thread, and the tree reaches the object through it.
  */
-internal class TreeGcRootProvider(private val reachability: HeapReachability) : GcRootProvider {
+internal class TreeGcRootProvider(
+  private val graph: HeapGraph,
+  private val reachability: HeapReachability
+) : GcRootProvider {
+
+  /**
+   * The roots Shark keeps, by the object each one is on. 17,936 roots on `large-dump.hprof`, built in 50 ms.
+   *
+   * What lists the roots on an object reads them from here rather than from [HeapGraph.gcRoots]. The heap
+   * dump also has the roots Shark moved onto a thread, so a local variable would be listed twice: once as a
+   * root, and once as its thread's reference.
+   */
+  private val keptRootsByObjectId: Map<Long, List<GcRoot>> by lazy {
+    keptRoots(graph).map { it.gcRoot }.groupBy { it.id }
+  }
 
   override fun provideGcRoots(graph: HeapGraph): Sequence<GcRootReference> =
-    MatchingGcRootProvider(emptyList()).provideGcRoots(graph)
-      .filter { reference ->
-        reachability.isHeldThrough(reference.gcRoot.id, reference.gcRoot.reachabilityStrength())
-      } + reachability.unreachableRootObjectIds.asSequence().map { objectId ->
-      GcRootReference(
-        gcRoot = GcRoot.Unreachable(objectId),
-        isLowPriority = true,
-        matchedLibraryLeak = null
-      )
-    }
+    keptRoots(graph).filter { reference -> holds(reference.gcRoot) } +
+      reachability.unreachableRootObjectIds.asSequence().map { objectId ->
+        GcRootReference(
+          gcRoot = GcRoot.Unreachable(objectId),
+          isLowPriority = true,
+          matchedLibraryLeak = null
+        )
+      }
+
+  /** The GC roots on [objectId], less the ones Shark reads as references from a thread. */
+  fun rootsOn(objectId: Long): List<GcRoot> = keptRootsByObjectId[objectId].orEmpty()
+
+  /** Whether the tree hangs the object [gcRoot] is on off it. Every root this provides does. */
+  fun holds(gcRoot: GcRoot): Boolean = reachability.isHeldThrough(gcRoot.id, gcRoot.reachabilityStrength())
+
+  private fun keptRoots(graph: HeapGraph) = MatchingGcRootProvider(emptyList()).provideGcRoots(graph)
 }

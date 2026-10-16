@@ -137,6 +137,17 @@ data class PathReference(
   /** Simple name of the class that declares the field, which isn't always the referrer's own class. */
   val ownerClassName: String,
   val locationType: ReferenceLocationType,
+  /**
+   * Whether the heap dump has no such reference, and this is Shark's reading of the objects it goes
+   * through. An `ArrayList` holding its elements is one: the dump has the list holding an array, and the
+   * array holding them. A thread holding a local variable of a method it runs is another, read off a
+   * `JAVA_FRAME`, `JNI_LOCAL` or `NATIVE_STACK` GC root.
+   *
+   * What it goes through is still in the heap dump, with references of its own. So an object an
+   * `ArrayList` holds is held by the list through this, and by the array through an element of it. See
+   * Shark's [shark.Reference.LazyDetails.isVirtual].
+   */
+  val isVirtual: Boolean,
   /** Set for the references Shark knows leak in code an app doesn't control, null for the rest. */
   val libraryLeak: LibraryLeakPattern?,
   /**

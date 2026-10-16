@@ -164,9 +164,9 @@ fun HeapDominatorTreemap.verdictConflictsWith(
  * Whether [aboveObjectId] is above [belowObjectId]: it holds it, and is not held by it in turn.
  *
  * **Both directions, because objects that hold each other are ordinary in a heap dump** rather than a corner
- * case: an `AsyncTask` holds the thread running it, that thread's stack frame holds the runnable the executor
- * wrapped the task in, and that runnable holds the task — three objects each of which reaches the other two.
- * [HeapDominatorTreemap.reaches] on its own answers yes whichever way it is asked about any of those pairs, so
+ * case: an `AsyncTask`'s executor holds the runnable it is running, and that runnable is an inner class of the
+ * executor, holding it back through `this$0`. A thread pool's worker and its thread hold each other the same
+ * way. [HeapDominatorTreemap.reaches] on its own answers yes whichever way it is asked about such a pair, so
  * a conflict worked out from one direction of it is a conflict reported with whichever direction was asked
  * first, which reads back to whoever set the verdict as the two objects the wrong way round.
  *

@@ -82,7 +82,8 @@ class ReferrerIndexTest {
         }
       val index = ReferrerIndex.buildFor(
         graph,
-        ActualMatchingReferenceReaderFactory(knownLeaks).createFor(graph)
+        ActualMatchingReferenceReaderFactory(knownLeaks).createFor(graph),
+        referencesName = "every field"
       )
 
       val payload = index.indexOf(graph.findByClassName("com.example.Payload"))
@@ -116,7 +117,7 @@ class ReferrerIndexTest {
     }
     file.openHeapGraph().use { graph ->
       val referenceReader = ActualMatchingReferenceReaderFactory(emptyList()).createFor(graph)
-      val index = ReferrerIndex.buildFor(graph, referenceReader)
+      val index = ReferrerIndex.buildFor(graph, referenceReader, referencesName = "every field")
 
       val referrers = index.referrerIndexesOf(graph.findByClassName("com.example.Payload"))
       assertThat(referrers.map { graph.findObjectByIndex(it).simpleClassName() })
@@ -155,7 +156,7 @@ class ReferrerIndexTest {
     }
     file.openHeapGraph().use { graph ->
       val referenceReader = ActualMatchingReferenceReaderFactory(emptyList()).createFor(graph)
-      block(graph, ReferrerIndex.buildFor(graph, referenceReader))
+      block(graph, ReferrerIndex.buildFor(graph, referenceReader, referencesName = "every field"))
     }
   }
 

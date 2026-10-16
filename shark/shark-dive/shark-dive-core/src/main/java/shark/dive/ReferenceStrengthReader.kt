@@ -1,14 +1,19 @@
 package shark.dive
 
 import androidx.collection.MutableLongObjectMap
-import shark.ActualMatchingReferenceReaderFactory
 import shark.AndroidReferenceMatchers
+import shark.ClassReferenceReader
+import shark.FieldInstanceReferenceReader
+import shark.GcRoot
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
 import shark.HeapObject.HeapObjectArray
+import shark.HeapObject.HeapPrimitiveArray
+import shark.JavaLocalReferenceReader
 import shark.LibraryLeakReferenceMatcher
+import shark.ObjectArrayReferenceReader
 import shark.Reference
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.INSTANCE_FIELD
@@ -22,6 +27,7 @@ import shark.ValueHolder
 import shark.ignored
 import shark.dive.ReachabilityStrength.CACHE
 import shark.dive.ReachabilityStrength.FINALIZER
+import shark.dive.ReachabilityStrength.LOCAL
 import shark.dive.ReachabilityStrength.PHANTOM
 import shark.dive.ReachabilityStrength.SOFT
 import shark.dive.ReachabilityStrength.STRONG
@@ -34,24 +40,35 @@ import shark.dive.ReachabilityStrength.WEAK
  */
 internal class WeakeningReference(
   val strength: ReachabilityStrength,
-  val valueObjectId: Long,
-  val fieldName: String,
-  private val locationClassObjectId: Long
+  val reference: Reference
 ) {
 
-  fun toReference(): Reference = Reference(
-    valueObjectId = valueObjectId,
-    isLowPriority = false,
-    lazyDetailsResolver = {
-      LazyDetails(
-        name = fieldName,
-        locationClassObjectId = locationClassObjectId,
-        locationType = INSTANCE_FIELD,
-        matchedLibraryLeak = null,
-        isVirtual = false
+  val valueObjectId: Long get() = reference.valueObjectId
+
+  companion object {
+    /** One held by the field named [fieldName], which the class [locationClassObjectId] declares. */
+    fun ofField(
+      strength: ReachabilityStrength,
+      valueObjectId: Long,
+      fieldName: String,
+      locationClassObjectId: Long
+    ) = WeakeningReference(
+      strength = strength,
+      reference = Reference(
+        valueObjectId = valueObjectId,
+        isLowPriority = false,
+        lazyDetailsResolver = {
+          LazyDetails(
+            name = fieldName,
+            locationClassObjectId = locationClassObjectId,
+            locationType = INSTANCE_FIELD,
+            matchedLibraryLeak = null,
+            isVirtual = false
+          )
+        }
       )
-    }
-  )
+    )
+  }
 }
 
 /**
@@ -87,9 +104,17 @@ internal class WeakeningReference(
  */
 internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
-  private val retainingReader: ReferenceReader<HeapObject> =
-    ActualMatchingReferenceReaderFactory(WEAKENING_REFERENCE_MATCHERS + libraryLeakMatchers(graph))
-      .createFor(graph)
+  private val referenceMatchers = WEAKENING_REFERENCE_MATCHERS + libraryLeakMatchers(graph)
+
+  // What ActualMatchingReferenceReaderFactory builds, less the local variables of a thread: those are read by
+  // localVariableReader, as references that don't retain.
+  private val classReader = ClassReferenceReader(graph, referenceMatchers)
+
+  private val instanceFieldReader = FieldInstanceReferenceReader(graph, referenceMatchers)
+
+  private val objectArrayReader = ObjectArrayReferenceReader()
+
+  private val localVariableReader = JavaLocalReferenceReader(graph, referenceMatchers)
 
   private val viewChildReader = ViewChildReferenceReader(graph)
 
@@ -125,7 +150,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
       // KDoc of [SlotTableReferenceReader] is about why.
       return emptySequence()
     }
-    val references = retainingReader.read(source) + classMetadataReferencesOf(source) +
+    val references = fieldReferencesOf(source) + classMetadataReferencesOf(source) +
       viewChildReader.childReferencesOf(source) + layoutNodeChildReader.childReferencesOf(source) +
       slotTableReader.groupReferencesOf(source) + dataStructureReader.entryReferencesOf(source) +
       runningActivityReader.activityReferencesOf(source)
@@ -140,6 +165,18 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
       // the same way for the same reason — see [CachedMapValues].
       references.filter { !cachedValueIds.contains(it.valueObjectId) }
     }
+  }
+
+  /**
+   * The references a heap dump records for [source], read by Shark: a class's static fields, an instance's
+   * fields, an array's elements. With [WEAKENING_REFERENCE_MATCHERS] left out, and the known library leaks
+   * named.
+   */
+  private fun fieldReferencesOf(source: HeapObject): Sequence<Reference> = when (source) {
+    is HeapClass -> classReader.read(source)
+    is HeapInstance -> instanceFieldReader.read(source)
+    is HeapObjectArray -> objectArrayReader.read(source)
+    is HeapPrimitiveArray -> emptySequence()
   }
 
   /**
@@ -195,18 +232,19 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
   /**
    * The references from [source] that don't keep their target alive: a `java.lang.ref.Reference`'s
    * `referent`, the `zombie` a `FinalizerReference` holds an object in while it's being finalized, a
-   * thread's own storage, and the entries of a cache — from [CACHE_FIELDS_BY_CLASS_NAME] when the cache
-   * wraps each value in a class of its own, and from [CachedMapValues] when it keeps them in a map. Empty
-   * for anything else, which is nearly every object of a heap dump.
+   * thread's own storage, the local variables of the methods a thread is running, and the entries of a
+   * cache — from [CACHE_FIELDS_BY_CLASS_NAME] when the cache wraps each value in a class of its own, and
+   * from [CachedMapValues] when it keeps them in a map. Empty for anything else, which is nearly every
+   * object of a heap dump.
    */
   fun weakeningReferencesOf(source: HeapObject): List<WeakeningReference> {
     if (source !is HeapInstance) {
       return emptyList()
     }
-    val cachedValue = cachedValueReferenceOf(source)
+    val others = listOfNotNull(cachedValueReferenceOf(source)) + localVariableReferencesOf(source)
     val weakening = weakeningFieldsOf(source.instanceClass)
     if (weakening === NOTHING_WEAKENING) {
-      return listOfNotNull(cachedValue)
+      return others
     }
     val locationClassObjectId = source.instanceClass.objectId
     return source.readFields()
@@ -216,10 +254,26 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
         if (strength == null || valueObjectId == null || !graph.objectExists(valueObjectId)) {
           null
         } else {
-          WeakeningReference(strength, valueObjectId, field.name, locationClassObjectId)
+          WeakeningReference.ofField(strength, valueObjectId, field.name, locationClassObjectId)
         }
       }
-      .toList() + listOfNotNull(cachedValue)
+      .toList() + others
+  }
+
+  /**
+   * What the methods [source] is running hold in their local variables, at [LOCAL], when [source] is a
+   * thread the heap dump names. Shark reads each [GcRoot.JavaFrame], [GcRoot.JniLocal] and [GcRoot.NativeStack] root of that
+   * thread as one of these. Unlike the root, the reference says which thread the local variable is on.
+   *
+   * At [LOCAL] like the root, so that an object a field also holds is the field's. A local variable
+   * retaining it put it under the whole heap dump, as the thread and the field's owner both holding it:
+   * 160 objects of `large-dump.hprof` were drawn there that way, retaining 45 KB between them.
+   */
+  private fun localVariableReferencesOf(source: HeapInstance): List<WeakeningReference> {
+    if (!localVariableReader.matches(source)) {
+      return emptyList()
+    }
+    return localVariableReader.read(source).map { WeakeningReference(LOCAL, it) }.toList()
   }
 
   /**
@@ -234,7 +288,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
     return if (cachedValueId == ValueHolder.NULL_REFERENCE) {
       null
     } else {
-      WeakeningReference(
+      WeakeningReference.ofField(
         strength = CACHE,
         valueObjectId = cachedValueId,
         fieldName = CachedMapValues.VALUE_FIELD_NAME,
@@ -456,7 +510,33 @@ internal class WeakeningAwareReferenceReader(
     return if (followed.isEmpty()) {
       retaining
     } else {
-      retaining + followed.asSequence().map { it.toReference() }
+      retaining + followed.asSequence().map { it.reference }
+    }
+  }
+}
+
+/**
+ * Every reference [WeakeningAwareReferenceReader] weighs, before it drops any: the ones that retain and the
+ * ones that don't, whatever their target's strength and whoever owns it. So everything that reader reports,
+ * this reports too.
+ *
+ * What an object pointing at another *is*, as against what the dominator tree counts as holding it. A
+ * running activity is the case to think with: its window, its context wrappers and its views all point at
+ * it, and the tree follows none of them, because the activity thread owns it. Read by
+ * [HeapDominatorTreemap.referrersOf] alone, since a path through one of the references the other reader
+ * drops would explain a retention the tree doesn't show.
+ */
+internal class EveryReferenceReader(
+  private val strengthReader: ReferenceStrengthReader
+) : ReferenceReader<HeapObject> {
+
+  override fun read(source: HeapObject): Sequence<Reference> {
+    val retaining = strengthReader.retainingReferencesOf(source)
+    val weakening = strengthReader.weakeningReferencesOf(source)
+    return if (weakening.isEmpty()) {
+      retaining
+    } else {
+      retaining + weakening.asSequence().map { it.reference }
     }
   }
 }
