@@ -1,5 +1,7 @@
 package shark
 
+import me.saket.bytesize.DecimalByteSize
+import me.saket.bytesize.decimalBytes
 import shark.internal.packedWith
 import shark.internal.unpackAsFirstInt
 import shark.internal.unpackAsSecondInt
@@ -13,7 +15,7 @@ inline fun Retained(
    * held by several objects is attributed to depends on the analysis that computed this. Should
    * not exceed [Int.MAX_VALUE] bytes.
    */
-  heapSize: ByteSize,
+  heapSize: DecimalByteSize,
 
   /**
    * The number of objects attributed to this object.
@@ -28,8 +30,8 @@ value class Retained @PublishedApi internal constructor(
   @PublishedApi @JvmField
   internal val packedValue: Long
 ) {
-  inline val heapSize: ByteSize
-    get() = packedValue.unpackAsFirstInt.bytes
+  inline val heapSize: DecimalByteSize
+    get() = packedValue.unpackAsFirstInt.decimalBytes
 
   inline val objectCount: Int
     get() = packedValue.unpackAsSecondInt
@@ -41,7 +43,7 @@ value class Retained @PublishedApi internal constructor(
     get() = this == ZERO_RETAINED
 }
 
-val ZERO_RETAINED = Retained(ZERO_BYTES, 0)
+val ZERO_RETAINED = Retained(0.decimalBytes, 0)
 
 /**
  * A [Retained] that isn't known. Encoded with [Int.MIN_VALUE], which neither a real [Retained] nor
@@ -49,4 +51,4 @@ val ZERO_RETAINED = Retained(ZERO_BYTES, 0)
  * at worst -[Int.MAX_VALUE]. That's what keeps a [Retained] that decreased by exactly 1 from
  * looking like an unknown one.
  */
-val UNKNOWN_RETAINED = Retained(Int.MIN_VALUE.bytes, Int.MIN_VALUE)
+val UNKNOWN_RETAINED = Retained(Int.MIN_VALUE.decimalBytes, Int.MIN_VALUE)

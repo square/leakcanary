@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
   api(projects.shark.sharkGraph)
+  api(libs.bytesize)
 
   implementation(libs.kotlin.stdlib)
   implementation(libs.okio2)

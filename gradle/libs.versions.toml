@@ -102,6 +102,7 @@ androidX-work-runtime = { module = "androidx.work:work-runtime", version.ref = "
 androidX-work-multiprocess = { module = "androidx.work:work-multiprocess", version.ref = "workManager" }
 # Exposed transitively by shark-graph, avoid increasing
 androidX-collections = { module = "androidx.collection:collection-ktx", version = "1.4.0" }
+bytesize = { module = "me.saket.bytesize:bytesize", version = "2.3.0" }
 
 assertjCore = { module = "org.assertj:assertj-core", version = "3.27.7" }
 # AssertJ 3.16.0 builds java.time formatters in StandardRepresentation's static initializer, and

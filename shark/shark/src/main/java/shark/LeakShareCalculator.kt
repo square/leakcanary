@@ -6,6 +6,7 @@ import androidx.collection.MutableLongLongMap
 import androidx.collection.MutableLongSet
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
+import me.saket.bytesize.decimalBytes
 import shark.internal.HeapObjectIdSet
 import shark.internal.hppc.LongDeque
 import shark.internal.packedWith
@@ -225,7 +226,7 @@ internal class LeakShareCalculator(
     heapSize: Double,
     objectCount: Double
   ) = Retained(
-    heapSize = heapSize.roundToLong().coerceAtMost(Int.MAX_VALUE.toLong()).toInt().bytes,
+    heapSize = heapSize.roundToLong().coerceAtMost(Int.MAX_VALUE.toLong()).toInt().decimalBytes,
     objectCount = objectCount.roundToInt()
   )
 
