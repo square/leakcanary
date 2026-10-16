@@ -11,6 +11,7 @@ import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceObject.ObjectType.INSTANCE
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
+import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 
 class AndroidObjectInspectorsTest {
@@ -162,6 +163,49 @@ class AndroidObjectInspectorsTest {
 
     assertThat(animators).isNotEmpty.allSatisfy { animator ->
       assertThat(animator.syntheticFields).anyMatch { it.name == "ValueAnimator.mAnimationEndRequested" }
+    }
+  }
+
+  @Test fun `MESSAGE says how far when is from the heap dump in a larger unit too`() {
+    assertThat(messageWhenLabel(150_000)).isEqualTo(
+      "Message.when is 150000 ms (2.5 minutes) after the heap dump"
+    )
+    assertThat(messageWhenLabel(-7_200_000)).isEqualTo(
+      "Message.when is 7200000 ms (2 hours) before the heap dump"
+    )
+    assertThat(messageWhenLabel(1_000)).isEqualTo("Message.when is 1000 ms (1 second) after the heap dump")
+    assertThat(messageWhenLabel(129_600_000)).isEqualTo(
+      "Message.when is 129600000 ms (1.5 days) after the heap dump"
+    )
+  }
+
+  @Test fun `MESSAGE picks the unit after rounding`() {
+    assertThat(messageWhenLabel(59_999)).isEqualTo("Message.when is 59999 ms (1 minute) after the heap dump")
+  }
+
+  @Test fun `MESSAGE says nothing more than ms under a second`() {
+    assertThat(messageWhenLabel(-500)).isEqualTo("Message.when is 500 ms before the heap dump")
+  }
+
+  /**
+   * The label [AndroidObjectInspectors.MESSAGE] gives a message due [offsetMillis] after the heap dump,
+   * which the dump DSL takes at 30000 ms of uptime.
+   */
+  private fun messageWhenLabel(offsetMillis: Long): String {
+    val heapDump = dump {
+      "android.os.Message" instance {
+        field["what"] = IntHolder(0)
+        field["when"] = LongHolder(30_000 + offsetMillis)
+        field["obj"] = ReferenceHolder(ValueHolder.NULL_REFERENCE)
+        field["callback"] = ReferenceHolder(ValueHolder.NULL_REFERENCE)
+        field["target"] = ReferenceHolder(ValueHolder.NULL_REFERENCE)
+      }
+    }
+    return heapDump.openHeapGraph().use { graph ->
+      val message = graph.findClassByName("android.os.Message")!!.instances.single()
+      val reporter = ObjectReporter(message)
+      AndroidObjectInspectors.MESSAGE.inspect(reporter)
+      reporter.labels.single { it.startsWith("Message.when") }
     }
   }
 
