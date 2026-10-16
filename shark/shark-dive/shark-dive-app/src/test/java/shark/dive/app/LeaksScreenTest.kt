@@ -512,7 +512,7 @@ class LeaksScreenTest {
           objectId = suspectPath.first().hashCode().toLong(),
           className = "com.example.MainActivity",
           kind = HeapObjectKind.INSTANCE,
-          content = null,
+          syntheticFields = emptyList(),
           retainedSize = 0L,
           retainedCount = 1,
           strength = ReachabilityStrength.STRONG,

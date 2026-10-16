@@ -77,6 +77,7 @@ nav:
     - 'Introduction': 'fundamentals.md'
     - 'How LeakCanary works': 'fundamentals-how-leakcanary-works.md'
     - 'Fixing a memory leak': 'fundamentals-fixing-a-memory-leak.md'
+    - 'Leaks through a binder stub': 'binder-stubs.md'
     - 'Design decisions': 'design.md'
     - 'History': 'history.md'
   - 'LeakCanary at scale':

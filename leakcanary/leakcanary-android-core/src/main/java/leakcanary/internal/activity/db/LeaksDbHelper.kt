@@ -17,12 +17,12 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
 
   /**
    * Every version below [VERSION] is recreated rather than migrated, because
-   * [shark.LeakTraceObject.leakingStatus] became `verdict` and `LEAKING` / `NOT_LEAKING` became
-   * `STUCK` / `EXPECTED`. Java serialization writes both field names and enum constant names, so
-   * every `heap_analysis` blob written before that is unreadable, and
-   * [shark.LeakTraceObject]'s `serialVersionUID` now says so rather than letting one come back with
-   * a null verdict on a non-null property. Rewriting them would mean mapping constants this version
-   * no longer declares, for analyses of heap dumps that are long gone.
+   * [shark.LeakTraceObject.leakingStatus] became `verdict`, `LEAKING` / `NOT_LEAKING` became
+   * `STUCK` / `EXPECTED`, and [shark.LeakTraceObject.syntheticFields] was added. Java serialization writes
+   * both field names and enum constant names, so every `heap_analysis` blob written before that is
+   * unreadable, and [shark.LeakTraceObject]'s `serialVersionUID` now says so rather than letting
+   * one come back with a null on a non-null property. Rewriting them would mean mapping constants
+   * this version no longer declares, for analyses of heap dumps that are long gone.
    */
   override fun onUpgrade(
     db: SQLiteDatabase,
@@ -48,7 +48,7 @@ internal class LeaksDbHelper(context: Context) : SQLiteOpenHelper(
   }
 
   companion object {
-    internal const val VERSION = 27
+    internal const val VERSION = 28
     internal const val DATABASE_NAME = "leaks.db"
   }
 }

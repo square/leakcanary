@@ -96,7 +96,8 @@ private fun PathStep.toLeakTraceObject(
   // comparing this against a report. Null for an object folded into another one as well — [isTreeNode] is
   // false and both numbers are zero, which would print as a leaking object retaining nothing.
   retainedHeapByteSize = if (isLeakingObject && isTreeNode) retainedSize.asTraceSize() else null,
-  retainedObjectCount = if (isLeakingObject && isTreeNode) retainedCount else null
+  retainedObjectCount = if (isLeakingObject && isTreeNode) retainedCount else null,
+  syntheticFields = syntheticFields
 )
 
 /**

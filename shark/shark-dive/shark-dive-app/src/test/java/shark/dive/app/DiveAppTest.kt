@@ -170,7 +170,7 @@ class DiveAppTest {
 
       // The panel was already describing the whole heap dump the window opened on, so what a click does is
       // move it onto the object clicked: what it says has to be about that object and not about the tree.
-      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("length = $PAYLOAD_LENGTH"), OPEN_TIMEOUT_MILLIS)
       onNodeWithText(RETAINED).assertIsDisplayed()
       onNodeWithText(STRONG.label).assertIsDisplayed()
     }
@@ -184,7 +184,7 @@ class DiveAppTest {
 
       // Reading the map is moving the mouse across it, so what a rectangle is arrives without a click —
       // in the card beside the pointer, which is where the reader is already looking.
-      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("length = $PAYLOAD_LENGTH"), OPEN_TIMEOUT_MILLIS)
       // And nowhere else — the assertion above is for exactly one node: pointing at a rectangle is how you
       // find out whether it's worth going to, so the panes stay on the place the tab is open on.
       onNodeWithText(hexObjectId(payloadObjectId)).assertIsDisplayed()
@@ -360,7 +360,7 @@ class DiveAppTest {
 
       hoverView(TREEMAP_X, TREEMAP_Y)
 
-      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("length = $PAYLOAD_LENGTH"), OPEN_TIMEOUT_MILLIS)
     }
 
     // A search that indexes the whole heap dump and then walks it several times is nothing to run as the
@@ -395,7 +395,7 @@ class DiveAppTest {
       waitUntilAtLeastOneExists(hasText("[0] = null"), OPEN_TIMEOUT_MILLIS)
       // What the array is, said twice: once by the panel and once by the path beside it, which ends at
       // the same object.
-      assertThat(onAllNodesWithText("$PAYLOAD_LENGTH elements").fetchSemanticsNodes()).hasSize(2)
+      assertThat(onAllNodesWithText("length = $PAYLOAD_LENGTH").fetchSemanticsNodes()).hasSize(2)
     }
   }
 
@@ -510,7 +510,7 @@ class DiveAppTest {
       // Comparing two rectangles means looking at them one after the other, and a treemap has no room to
       // keep the first on screen. So the one starred is a row of the same kind every other list has, read
       // out of the heap dump again rather than remembered from the moment it was starred.
-      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("length = $PAYLOAD_LENGTH"), OPEN_TIMEOUT_MILLIS)
       // Named the way every surface of this window names an object, address included: a row of a list is
       // where an address written in a note or handed back by an agent has to be findable again.
       onNodeWithText(hexObjectId(payloadObjectId)).assertIsDisplayed()
@@ -543,7 +543,7 @@ class DiveAppTest {
       onNodeWithText(UNSTARRED_GLYPH, substring = true).performClick()
       waitUntilAtLeastOneExists(hasText("$STARRED_GLYPH 1 starred"), OPEN_TIMEOUT_MILLIS)
       screenButton("$STARRED_GLYPH 1 starred").performClick()
-      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("length = $PAYLOAD_LENGTH"), OPEN_TIMEOUT_MILLIS)
 
       // The star on the row itself, which is the one thing this list offers that the object list doesn't.
       onNode(hasText(STARRED_GLYPH) and isButton()).performClick()
@@ -567,7 +567,7 @@ class DiveAppTest {
       // And back down through the field, without touching the treemap.
       onNodeWithText("payload = Object[]").performClick()
 
-      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("length = $PAYLOAD_LENGTH"), OPEN_TIMEOUT_MILLIS)
     }
   }
 
@@ -831,7 +831,7 @@ class DiveAppTest {
     diveUiTest {
       openHeapDump()
       clickView(TREEMAP_X, TREEMAP_Y)
-      waitUntilAtLeastOneExists(hasText("$PAYLOAD_LENGTH elements"), OPEN_TIMEOUT_MILLIS)
+      waitUntilAtLeastOneExists(hasText("length = $PAYLOAD_LENGTH"), OPEN_TIMEOUT_MILLIS)
 
       // Every move takes the panels with it: a window showing one object and describing another is a window
       // that has to be read twice. The path is a move like any other.

@@ -39,7 +39,6 @@ import shark.dive.Place
 import shark.dive.Topic
 import shark.dive.WatchedObject
 import shark.dive.formatByteSize
-import shark.dive.headline
 
 /**
  * Every leaking object of the heap dump, in two halves: the leaks to do something about, which is the app's
@@ -476,15 +475,7 @@ private fun LeakingObjectRow(
               objectId = leakingObject.objectId,
               nameStyle = MaterialTheme.typography.bodySmall
             )
-            leakingObject.content?.headline?.let { headline ->
-              Text(
-                headline,
-                style = MaterialTheme.typography.bodySmall,
-                color = MUTED_TEXT,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-              )
-            }
+            SyntheticFieldsLine(leakingObject.syntheticFields)
             // Why *this* object is stuck, which the inspector that recognized it read off the object
             // itself: two objects of one leak can be stuck for reasons that don't read the same. In full,
             // like the description above it: a reason set by hand can run to several lines, and an address

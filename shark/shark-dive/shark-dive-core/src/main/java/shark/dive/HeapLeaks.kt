@@ -1,6 +1,7 @@
 package shark.dive
 
 import java.security.MessageDigest
+import shark.SyntheticField
 
 /**
  * Every stuck object of a heap dump, gathered into the leaks they are instances of. See
@@ -296,11 +297,8 @@ data class LeakingObject(
   /** Fully qualified class name, or array type. */
   val className: String,
   val kind: HeapObjectKind,
-  /**
-   * What tells it apart from the next object of its class — a string's characters, a bitmap's dimensions —
-   * for the kinds Shark Dive reads it off, null for the rest. See [ObjectContent].
-   */
-  val content: ObjectContent?,
+  /** What Shark's object inspectors reported as fields of this object. Its leak trace prints them. */
+  val syntheticFields: List<SyntheticField>,
   val retainedSize: Long,
   /** Number of objects retained, including this one. */
   val retainedCount: Int,

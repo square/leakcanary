@@ -18,6 +18,7 @@ package leakcanary.internal
 import android.content.Context
 import android.text.Html
 import android.text.SpannableStringBuilder
+import android.text.TextUtils
 import android.text.method.LinkMovementMethod
 import android.view.View
 import android.view.ViewGroup
@@ -192,6 +193,10 @@ internal class DisplayLeakAdapter constructor(
       }$retainedObjectCount${extra(" objects")}<br>"
     }
 
+    syntheticFields.forEach { syntheticField ->
+      // A value can hold characters read off the heap, such as a fragment tag. Escape it.
+      htmlString += "$INDENTATION${extra(TextUtils.htmlEncode(syntheticField.toString()))}<br>"
+    }
     labels.forEach { label ->
       htmlString += "$INDENTATION${extra(label)}<br>"
     }
