@@ -16,11 +16,14 @@ import shark.dive.VerdictConflict
 import shark.dive.VerdictOverride
 import shark.dive.ObjectListFilter
 import shark.dive.Place
+import shark.dive.ReachabilityStrength
 import shark.dive.RootPath
 import shark.dive.RootPathStep
 import shark.dive.exactHexObjectId
+import shark.dive.faultyReference
 import shark.dive.isGcRootFaulty
 import shark.dive.isGcRootSuspect
+import shark.dive.isHeldByGcRoot
 import shark.dive.leakLabel
 import shark.dive.leakSolvingProgressRatio
 import shark.dive.verdictConflictsWith
@@ -393,16 +396,25 @@ internal class AgentTools(
       "are still candidates, and `$LEAK_SOLVING_PROGRESS_RATIO` is the share of this path's references " +
       "your verdicts have ruled out, 0 to 1 and not a percentage. You never decide which reference is at " +
       "fault. You decide, object by object, whether that object's own work is done, with $SET_VERDICT, and " +
-      "the last verdict that narrows the stretch to one leaves the heap dump naming the reference.",
+      "the last verdict that narrows the stretch to one leaves the heap dump naming the reference.\n\n" +
+      "An object no GC root reaches is uncollected garbage. Its answer is `$INVESTIGATION` alone, with " +
+      "state ${InvestigationState.UNREACHABLE.name}, and no path.",
     schema = schema(HEAP_DUMP_KEY to heapDumpArgument(), OBJECT to objectIdArgument("The object to walk up from."))
   ) { arguments ->
     val dump = arguments.heapDump()
     val objectId = arguments.objectId(OBJECT)
     val path = dump.readRootPath(objectId)
-    buildJsonObject {
-      put(LEAK_TRACE, AgentJson.leakTrace(path))
-      put(INVESTIGATION, AgentJson.investigation(path.investigation()))
-      AgentJson.humanLeakTrace(path)?.let { put(HUMAN_LEAK_TRACE, it) }
+    val investigation = AgentJson.investigation(path.investigation())
+    if (path.isHeldByGcRoot()) {
+      buildJsonObject {
+        put(LEAK_TRACE, AgentJson.leakTrace(path))
+        put(INVESTIGATION, investigation)
+        AgentJson.humanLeakTrace(path)?.let { put(HUMAN_LEAK_TRACE, it) }
+      }
+    } else {
+      // What the walk found for garbage starts at a piece of garbage rather than at a GC root, so it is no
+      // path from one, and its leak trace would be the trace of no leak.
+      buildJsonObject { put(INVESTIGATION, investigation) }
     }
   }
 
@@ -412,7 +424,7 @@ internal class AgentTools(
     description = "Every way an object is held, rather than the one path. It answers \"is that reference " +
       "really the only thing keeping it in memory?\", which a single path cannot, and which decides " +
       "whether clearing a field would free anything. Give `from` to ask only about the ways between that " +
-      "object and this one.",
+      "object and this one. Refused for uncollected garbage, which nothing holds.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object being held."),
@@ -426,6 +438,11 @@ internal class AgentTools(
     dump.read("every way ${exactHexObjectId(objectId)} is held, for an agent") { dive ->
       val tree = dive.tree
       objectId.requireOneObjectOf(tree)
+      // Whether or not `from` is given, since only garbage holds garbage: the ways found for it start at pieces
+      // of garbage, and none of them keeps it in memory.
+      if (tree.strengthOf(objectId) == ReachabilityStrength.UNREACHABLE) {
+        throw AgentRefusal(uncollectedGarbage(objectId))
+      }
       val paths = if (fromObjectId == null) {
         tree.independentPathsFromRoots(objectId, dump.verdicts)
       } else {
@@ -611,20 +628,20 @@ internal class AgentTools(
   }
 
   /**
-   * [this] if the object it leads to is stuck, and a refusal naming what it is instead if it isn't.
+   * [this] if the object it leads to is stuck and a GC root holds it, and a refusal naming what it is instead
+   * if not.
    *
-   * Because `solvingLeakOf` names *the leak being solved*, and a leak is a stuck object: a path to an object
-   * this dump reads as expected, or has nothing recorded about, has no fault on it for a verdict to narrow,
-   * so every number the answer would carry about it would be about nothing. Caught here rather than left to
-   * read as a progress of 0 that never moves, which is the same answer as a verdict that achieved nothing.
+   * Because `solvingLeakOf` names *the leak being solved*, and a leak is a stuck object something keeps in
+   * memory: a path to an object this dump reads as expected, or has nothing recorded about, has no fault on
+   * it for a verdict to narrow, and neither has a path to garbage, so every number the answer would carry
+   * about either would be about nothing. Caught here rather than left to read as a progress of 0 that never
+   * moves, which is the same answer as a verdict that achieved nothing.
    */
   private fun RootPath.requireStuck(objectId: Long): RootPath {
-    val last = steps.lastOrNull()
-      ?: throw AgentRefusal(
-        "Nothing this heap dump was walked from reaches ${exactHexObjectId(objectId)}, so it is no leak to " +
-          "solve. $LIST_LEAK_GROUPS is what this dump says is stuck, each group with the objects to work " +
-          "it through."
-      )
+    if (!isHeldByGcRoot()) {
+      throw AgentRefusal(uncollectedGarbage(objectId))
+    }
+    val last = steps.last()
     if (last.step.verdict != Verdict.STUCK) {
       throw AgentRefusal(
         "${exactHexObjectId(objectId)} ${last.step.className} is ${last.step.verdict.name} in this heap " +
@@ -955,9 +972,11 @@ internal class AgentTarget(
  * How far an investigation of one path has got: whether a reference is at fault, how many it could still
  * be, and what to do next when the path doesn't say which.
  *
- * The same rule `shark.dive.faultyReferenceIndexOrNull` applies, read off the path rather than asked
- * of it, because the ways a path names no reference are different things to do next — and telling an agent
- * which of them it is, is most of what this is worth.
+ * Read off the path, which `shark.dive.faultyReferenceIndexOrNull` has already marked the faulty reference
+ * on, so an agent and the window agree on whether a leak is solved wherever a GC root holds the object. What
+ * this adds is [state] and [next]. A path to uncollected garbage or with nothing stuck on it is a dead end.
+ * Every other unsolved path is narrowed the same way, by settling the objects between the last expected one
+ * and the first stuck one.
  *
  * **Counted in references, and the candidates themselves are not here.** A path narrowed to one object with
  * no verdict has two candidate references, the one into that object and the one out of it, and what decides
@@ -1008,31 +1027,44 @@ internal class FaultyReference(
   val objectIndex: Int?
 )
 
-/** The shapes a path's verdicts come in, of which one is an investigation that is over. */
+/**
+ * The shapes a path's verdicts come in. An investigation starts at [UNSOLVED] and ends at [SOLVED], and the
+ * other two are paths with nothing to investigate.
+ */
 internal enum class InvestigationState {
-  NO_PATH,
+  /**
+   * No GC root holds the object, so it is uncollected garbage: nothing keeps it in memory, and the next
+   * collection frees it. See [shark.dive.isHeldByGcRoot].
+   */
+  UNREACHABLE,
+
+  /** No object on the path is stuck, so there is no fault for a reference to be at. */
   NOTHING_STUCK,
-  NOTHING_EXPECTED_ABOVE,
-  NARROWED,
-  REFERENCE_UNREADABLE,
+
+  /** An object on the path is stuck, and the verdicts don't name the one reference holding it yet. */
+  UNSOLVED,
+
+  /** The verdicts leave one reference, which is [PathInvestigation.faultyReference]. */
   SOLVED
 }
 
 private fun RootPath.investigation(): PathInvestigation {
+  // Never empty: the only paths with no steps are of what is no one object, which every tool reading a path
+  // refuses first. See [requireOneObjectOf].
+  if (!isHeldByGcRoot()) {
+    // Nothing counted, since no path is shown for garbage to count candidates on. See [pathFromGcRoots].
+    return PathInvestigation(
+      faultyReference = null,
+      state = InvestigationState.UNREACHABLE,
+      suspectReferenceCount = 0,
+      progressRatio = 0.0,
+      next = uncollectedGarbage(steps.last().step.objectId)
+    )
+  }
   val steps = steps
   val suspectCount = suspectReferenceCount()
   val progressRatio = leakSolvingProgressRatio()
-  if (steps.isEmpty()) {
-    return PathInvestigation(
-      faultyReference = null,
-      state = InvestigationState.NO_PATH,
-      suspectReferenceCount = suspectCount,
-      progressRatio = progressRatio,
-      next = "Nothing this heap dump was walked from reaches that object, so there is no path to read."
-    )
-  }
   val firstStuck = steps.indexOfFirst { it.step.verdict == Verdict.STUCK }
-  val lastExpected = steps.indexOfLast { it.step.verdict == Verdict.EXPECTED }
   if (firstStuck == -1) {
     return PathInvestigation(
       faultyReference = null,
@@ -1055,55 +1087,35 @@ private fun RootPath.investigation(): PathInvestigation {
         "and nothing else on the path is above it. ${solvedNext("the code that holds that object there")}"
     )
   }
-  // Only a path no GC root starts gets this far with nothing expected on it: on one a root starts, the root
-  // is a candidate like any field, so it is the stretch below.
-  if (lastExpected == -1 && !isGcRootSuspect()) {
+  val reference = faultyReference()
+  if (reference != null) {
     return PathInvestigation(
-      faultyReference = null,
-      state = InvestigationState.NOTHING_EXPECTED_ABOVE,
+      // On the object above the stuck one, which is the object that holds this reference: the faulty
+      // reference is the one the first stuck object is reached through. See [FaultyReference].
+      faultyReference = FaultyReference(reference.leakLabel(), objectIndex = firstStuck - 1),
+      state = InvestigationState.SOLVED,
       suspectReferenceCount = suspectCount,
       progressRatio = progressRatio,
-      next = "${steps[firstStuck].address()} is ${Verdict.STUCK.name} and nothing above it is " +
-        "${Verdict.EXPECTED.name}, so whatever holds it may be something that should have let go too " +
-        "and the fault could be further up than this path reaches. Find the highest object here that is " +
-        "meant to be in memory and record it as ${Verdict.EXPECTED.name}."
+      next = "${reference.leakLabel()} is the faulty reference: it is read on an object meant to be in " +
+        "memory and points at one that should be gone. ${solvedNext("the code that assigns that field")}"
     )
   }
-  if (firstStuck != lastExpected + 1) {
-    val undecided = (lastExpected + 1 until firstStuck).map { steps[it] }
-    return PathInvestigation(
-      faultyReference = null,
-      state = InvestigationState.NARROWED,
-      suspectReferenceCount = suspectCount,
-      progressRatio = progressRatio,
-      next = "The fault is at one of those references, and what settles which is the objects between them " +
-        "that have no verdict: one undecided object leaves the reference into it and the reference out of " +
-        "it, and its own verdict rules one of them out. They are " +
-        undecided.joinToString(", ") { it.address() } + ". So work out whether each of them is done with " +
-        "its work, reading its fields with $DESCRIBE_OBJECT and the code that assigns the field holding " +
-        "the object below it, and record that with $SET_VERDICT." + gcRootSuspectNote()
-    )
-  }
-  val reference = steps[firstStuck].step.reference
-    ?: return PathInvestigation(
-      faultyReference = null,
-      state = InvestigationState.REFERENCE_UNREADABLE,
-      suspectReferenceCount = suspectCount,
-      progressRatio = progressRatio,
-      next = "${steps[firstStuck].address()} is the one ${Verdict.STUCK.name} object under an " +
-        "${Verdict.EXPECTED.name} one, but reading the object above it again didn't find the field it " +
-        "was reached through, so there is no reference to name. $DESCRIBE_OBJECT on the object above says " +
-        "which fields it does have."
-    )
+  // From the top of the path when nothing on it is expected, which makes the GC root a candidate too. See
+  // [gcRootSuspectNote]. Never empty: a stuck object with nothing undecided above it is held by an expected
+  // object or by the GC root, and either way the path is solved.
+  val lastExpected = steps.indexOfLast { it.step.verdict == Verdict.EXPECTED }
+  val undecided = (lastExpected + 1 until firstStuck).map { steps[it] }
   return PathInvestigation(
-    // On the object above the stuck one, which is the object that holds this reference — and is
-    // `lastExpected`, since the two are neighbours by the time a path is solved. See [FaultyReference].
-    faultyReference = FaultyReference(reference.leakLabel(), objectIndex = firstStuck - 1),
-    state = InvestigationState.SOLVED,
+    faultyReference = null,
+    state = InvestigationState.UNSOLVED,
     suspectReferenceCount = suspectCount,
     progressRatio = progressRatio,
-    next = "${reference.leakLabel()} is the faulty reference: it is read on an object meant to be in " +
-      "memory and points at one that should be gone. ${solvedNext("the code that assigns that field")}"
+    next = "The fault is at one of those references, and what settles which is the objects between them " +
+      "that have no verdict: one undecided object leaves the reference into it and the reference out of " +
+      "it, and its own verdict rules one of them out. They are " +
+      undecided.joinToString(", ") { it.address() } + ". So work out whether each of them is done with " +
+      "its work, reading its fields with $DESCRIBE_OBJECT and the code that assigns the field holding " +
+      "the object below it, and record that with $SET_VERDICT." + gcRootSuspectNote()
   )
 }
 
@@ -1130,6 +1142,15 @@ private fun RootPath.gcRootSuspectNote(): String = if (isGcRootSuspect()) {
  * makes the sentence longer where the pointer was the whole of what it had to hand over.
  */
 private fun RootPathStep.address(): String = exactHexObjectId(step.objectId)
+
+/**
+ * What every tool says about an object no GC root holds, which is no leak: `path_from_gc_roots` as its `next`,
+ * and `ways_held` and a `solvingLeakOf` as their refusal.
+ */
+private fun uncollectedGarbage(objectId: Long): String =
+  "${exactHexObjectId(objectId)} is uncollected garbage: no GC root reaches it, so nothing keeps it in memory " +
+    "and the next collection frees it. Pick a group from a section of $LIST_LEAK_GROUPS that is not marked " +
+    "isOnTheWayOut."
 
 /**
  * One verdict a new one disagrees with, as a line of the refusal that says so.

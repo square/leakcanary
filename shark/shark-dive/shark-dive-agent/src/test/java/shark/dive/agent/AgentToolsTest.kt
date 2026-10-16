@@ -475,7 +475,7 @@ class AgentToolsTest {
     assertThat(objects.mapNotNull { it["reference"]?.jsonObject?.text("isSuspect") })
       .containsOnly("true")
     val says = answer.obj(INVESTIGATION)
-    assertThat(says.text("state")).isEqualTo(InvestigationState.NARROWED.name)
+    assertThat(says.text("state")).isEqualTo(InvestigationState.UNSOLVED.name)
     assertThat(says.text(LEAK_SOLVED)).isEqualTo("false")
     // Which is the field an agent reads to know whether it is done, so an unsolved path leaves the reference
     // out rather than answering with something that could be mistaken for a name.
@@ -537,6 +537,41 @@ class AgentToolsTest {
     // is `1 - 0/2`. A search that hasn't begun is 0. See [shark.dive.leakSolvingProgressRatio].
     assertThat(says.text(LEAK_SOLVING_PROGRESS_RATIO)).isEqualTo("0.0")
     assertThat(says.text("next")).contains(Verdict.STUCK.name)
+  }
+
+  @Test
+  fun `a stuck object nothing holds is unreachable, with no path and no leak to solve`() {
+    val (dive, activityObjectId) = temporaryFolder.uncollectedDestroyedActivity()
+    dive.use {
+      val garbage = FakeAgentHeapDump(dive)
+      tools = agentTools(FakeAgentHeapDumps(listOf(garbage)))
+
+      val answer = call(PATH_FROM_GC_ROOTS, HEAP_DUMP to garbage.heapDumpName, OBJECT to hex(activityObjectId))
+
+      // A stuck activity, which a GC root holding it directly would make a leak of that root. Nothing holds
+      // it, so the next collection frees it: no leak, and no path from a GC root to show.
+      assertThat(answer.keys).containsExactly(INVESTIGATION)
+      val says = answer.obj(INVESTIGATION)
+      assertThat(says.text("state")).isEqualTo(InvestigationState.UNREACHABLE.name)
+      assertThat(says.text(LEAK_SOLVED)).isEqualTo("false")
+      assertThat(says.text("suspectReferenceCount")).isEqualTo("0")
+      assertThat(says.text("next")).contains("uncollected garbage")
+      assertThatThrownBy {
+        call(
+          SET_VERDICT,
+          HEAP_DUMP to garbage.heapDumpName,
+          OBJECT to hex(activityObjectId),
+          "verdict" to Verdict.STUCK.name,
+          SOLVING_LEAK_OF to hex(activityObjectId),
+          WHY to "Recorded as stuck to read what solving a leak of garbage answers."
+        )
+      }
+        .isInstanceOf(AgentRefusal::class.java)
+        .hasMessageContaining("uncollected garbage")
+      assertThatThrownBy { call("ways_held", HEAP_DUMP to garbage.heapDumpName, OBJECT to hex(activityObjectId)) }
+        .isInstanceOf(AgentRefusal::class.java)
+        .hasMessageContaining("uncollected garbage")
+    }
   }
 
   /**

@@ -723,14 +723,10 @@ class HeapDominatorTreemap internal constructor(
     if (toObjectId == root || toObjectId !in nodes) {
       return IndependentPaths.NONE
     }
+    // Every node of the tree is an object of the heap dump. See [rootPathObjectIdsTo].
     val targetIndex = referrerIndex.indexOf(toObjectId)
-    if (targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
-      // A node of the tree the heap dump has no object for: nothing to walk up from, and the tree and
-      // the dump disagreeing about what is in the dump.
-      SharkLog.d {
-        "No paths to ${hexObjectId(toObjectId)}: it is a node of the tree and no object of the heap dump"
-      }
-      return IndependentPaths.NONE
+    check(targetIndex != ReferrerIndex.NOT_AN_OBJECT) {
+      "${hexObjectId(toObjectId)} is a node of the tree and no object of the heap dump the tree was built from"
     }
     val paths = mutableListOf<IndependentPath>()
     // A GC root's own object, or a piece of garbage nothing points at: what holds it is the root or nothing
@@ -765,8 +761,9 @@ class HeapDominatorTreemap internal constructor(
   fun indexReferrers(): Int = referrerIndex.objectCount
 
   /**
-   * The shortest way a GC root reaches [objectId], or [RootPath.NONE] when nothing the tree was built
-   * from does.
+   * The shortest way a GC root reaches [objectId], or a piece of uncollected garbage when no GC root does.
+   * [RootPath.NONE] for the root of the tree and for anything else that is no node of it — see [contains] —
+   * and every node has a path.
    *
    * Shortest in steps, over the same references the tree was built by, so it is the plainest answer to
    * "how is this held" — and the steps that dominate [objectId] are marked, which is what ties the path
@@ -816,8 +813,8 @@ class HeapDominatorTreemap internal constructor(
   }
 
   /**
-   * That same path as object ids, the whole of it, from the GC rooted object down to [objectId]. Empty
-   * when nothing the tree was built from reaches it.
+   * That same path as object ids, the whole of it, from the GC rooted object down to [objectId]. Empty when
+   * [objectId] is no node of the tree, and for every node there is one.
    *
    * The walk is what finding a path costs, and reading a step out of the heap dump is what showing one
    * does, so the walk is separate: a question about the whole path that ids alone answer — whether another
@@ -827,29 +824,27 @@ class HeapDominatorTreemap internal constructor(
     objectId: Long,
     overrides: VerdictOverrides
   ): List<Long> {
+    // The whole heap dump, which is what the window describes on the screen it opens on, and whatever else
+    // the tree has no node for: a pile, an object whose bytes are folded into another one, an id of no
+    // object. Nothing holds any of them through a reference this tree was built by.
     if (objectId == root || objectId !in nodes) {
       return emptyList()
     }
+    // Every node of the tree is an object of the heap dump: its walk starts at GC roots and garbage that
+    // are objects, and reads every object it steps onto, so an id of none fails building the tree.
     val targetIndex = referrerIndex.indexOf(objectId)
-    if (targetIndex == ReferrerIndex.NOT_AN_OBJECT) {
-      // A node of the tree the heap dump has no object for: nothing to walk up from, and the tree and the
-      // dump disagreeing about what is in the dump.
-      SharkLog.d {
-        "No path to ${hexObjectId(objectId)}: it is a node of the tree and no object of the heap dump"
-      }
-      return emptyList()
+    check(targetIndex != ReferrerIndex.NOT_AN_OBJECT) {
+      "${hexObjectId(objectId)} is a node of the tree and no object of the heap dump the tree was built from"
     }
-    val found = rootPathSearchThrough(overrides).findPath(targetIndex)
-    if (found == null) {
-      // The tree hangs every object off one of the roots it walked from, so there is a path by
-      // construction. Not finding one means this walk and that one followed different references, which
-      // shows as the panel saying nothing reaches an object the treemap draws.
-      SharkLog.d {
-        "No path from a GC root down to ${hexObjectId(objectId)}, though the tree hangs it off one"
-      }
-      return emptyList()
-    }
-    return found.map { referrerIndex.objectIdAt(it) }
+    // And every node has a path. The tree was walked down from the roots this search walks up to, along the
+    // references the referrer index was built from, and the search goes round what it deprioritises rather
+    // than stopping at it.
+    return rootPathSearchThrough(overrides).findPath(targetIndex)
+      ?.map { referrerIndex.objectIdAt(it) }
+      ?: error(
+        "No path from a GC root down to ${hexObjectId(objectId)}, though the tree hangs it off one: the " +
+          "referrer index and the tree were built through different references or from different roots"
+      )
   }
 
   /** The steps of [pathObjectIds], read out of the heap dump, with what dominates it marked. */
@@ -1378,44 +1373,44 @@ class HeapDominatorTreemap internal constructor(
     }
   }
 
-  /** How [referrerId] points at [objectId], which takes reading the referrer's references again. */
+  /**
+   * How [referrerId] points at [objectId], which takes reading the referrer's references again.
+   *
+   * **Always finds one.** Every path is walked over [referrerIndex], which was built by reading each object
+   * with this same [pathReferenceReader], so the reference the walk went through is in what this reads. Not
+   * finding it means the reader answered differently for the same object twice, which is a bug in the reader
+   * rather than a shape of path, so this throws instead of handing back a step that names no reference.
+   */
   private fun stepTo(
     objectId: Long,
     referrerId: Long,
     overrides: VerdictOverrides
   ): InspectedStep {
-    val details = pathReferenceReader.read(graph.findObjectById(referrerId))
+    val resolved = pathReferenceReader.read(graph.findObjectById(referrerId))
       .firstOrNull { it.valueObjectId == objectId }
       ?.lazyDetailsResolver
       ?.resolve()
-    if (details == null) {
-      // The walk found this step through the referrer index, which was built with this same reader, so a
-      // step with no reference to name means the two disagree about the same pair of objects. Shows as a
-      // step naming the object and not how it's held.
-      SharkLog.d {
-        "No reference from ${hexObjectId(referrerId)} to ${hexObjectId(objectId)}, though the path to it " +
-          "was found through one"
-      }
-    }
+      ?: error(
+        "No reference from ${hexObjectId(referrerId)} to ${hexObjectId(objectId)}, though the referrer index " +
+          "built with the same reader has one: that reader read ${hexObjectId(referrerId)} differently twice"
+      )
     return step(
       objectId = objectId,
       overrides = overrides,
-      reference = details?.let { resolved ->
-        PathReference(
-          name = resolved.name,
-          // The class that declares the field rather than the referrer's own class, which is what tells a
-          // field inherited from a base class apart from one the subclass added.
-          ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
-            ?.let { (it as? HeapClass)?.simpleName }
-            ?: label(referrerId),
-          locationType = resolved.locationType,
-          // Which is the whole of what the library leak matchers added to the reader do: they name the
-          // references that are known to leak, and change nothing about which of them are followed.
-          libraryLeak = resolved.matchedLibraryLeak?.let { matcher ->
-            LibraryLeakPattern(pattern = matcher.pattern.toString(), description = matcher.description)
-          }
-        )
-      }
+      reference = PathReference(
+        name = resolved.name,
+        // The class that declares the field rather than the referrer's own class, which is what tells a
+        // field inherited from a base class apart from one the subclass added.
+        ownerClassName = graph.findObjectByIdOrNull(resolved.locationClassObjectId)
+          ?.let { (it as? HeapClass)?.simpleName }
+          ?: label(referrerId),
+        locationType = resolved.locationType,
+        // Which is the whole of what the library leak matchers added to the reader do: they name the
+        // references that are known to leak, and change nothing about which of them are followed.
+        libraryLeak = resolved.matchedLibraryLeak?.let { matcher ->
+          LibraryLeakPattern(pattern = matcher.pattern.toString(), description = matcher.description)
+        }
+      )
     )
   }
 
