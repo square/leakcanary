@@ -1,17 +1,22 @@
 package shark
 
 import shark.ChainingInstanceReferenceReader.VirtualInstanceReferenceReader
+import shark.GcRoot.JavaFrame
+import shark.GcRoot.JniLocal
+import shark.GcRoot.NativeStack
 import shark.HeapObject.HeapInstance
 import shark.Reference.LazyDetails
 import shark.ReferenceLocationType.LOCAL
+import shark.ReferenceLocationType.NATIVE_LOCAL
 import shark.ReferencePattern.JavaLocalPattern
 import shark.internal.ThreadObjects
 import shark.internal.ThreadStackRoots
 
 /**
- * Reads the roots on a thread's stack as low priority [LOCAL] references from that thread: one for
- * each `JAVA_FRAME`, `JNI_LOCAL` and `NATIVE_STACK` root the heap dump has for it.
- * [MatchingGcRootProvider] leaves those roots out, so a leak trace through one names the thread.
+ * Reads the roots on a thread's stack as low priority references from that thread: a [LOCAL] one for
+ * each `JAVA_FRAME` root the heap dump has for it, and a [NATIVE_LOCAL] one for each `JNI_LOCAL` and
+ * `NATIVE_STACK` root. [MatchingGcRootProvider] leaves those roots out, so a leak trace through one
+ * names the thread.
  */
 class JavaLocalReferenceReader(
   val graph: HeapGraph,
@@ -68,7 +73,11 @@ class JavaLocalReferenceReader(
               // reference to be held.
               name = "",
               locationClassObjectId = threadClassId,
-              locationType = LOCAL,
+              locationType = when (stackRoot) {
+                is JavaFrame -> LOCAL
+                is JniLocal, is NativeStack -> NATIVE_LOCAL
+                else -> error("Not a root on a thread's stack: $stackRoot")
+              },
               matchedLibraryLeak = referenceMatcher as LibraryLeakReferenceMatcher?,
               isVirtual = true
             )

@@ -10,6 +10,7 @@ import shark.GcRoot.ThreadObject
 import shark.LeakTrace.GcRootType
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.LeakTraceReference.ReferenceType.LOCAL
+import shark.LeakTraceReference.ReferenceType.NATIVE_LOCAL
 import shark.ValueHolder.ReferenceHolder
 import java.io.File
 
@@ -148,7 +149,7 @@ class HeapAnalyzerTest {
     assertThat(leakTrace.gcRootType).isEqualTo(GcRootType.THREAD_OBJECT)
     assertThat(leakTrace.referencePath).hasSize(1)
     assertThat(leakTrace.referencePath[0].originObject.className).isEqualTo("MyThread")
-    assertThat(leakTrace.referencePath[0].referenceType).isEqualTo(LOCAL)
+    assertThat(leakTrace.referencePath[0].referenceType).isEqualTo(NATIVE_LOCAL)
     assertThat(leakTrace.leakingObject.className).isEqualTo("Leaking")
   }
 

@@ -110,4 +110,5 @@ private fun ReferenceLocationType.toReferenceType() = when (this) {
   ReferenceLocationType.STATIC_FIELD -> ReferenceType.STATIC_FIELD
   ReferenceLocationType.LOCAL -> ReferenceType.LOCAL
   ReferenceLocationType.ARRAY_ENTRY -> ReferenceType.ARRAY_ENTRY
+  ReferenceLocationType.NATIVE_LOCAL -> ReferenceType.NATIVE_LOCAL
 }

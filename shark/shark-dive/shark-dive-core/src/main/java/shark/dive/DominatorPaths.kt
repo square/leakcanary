@@ -173,6 +173,7 @@ fun PathReference.leakLabel(): String = when (locationType) {
   // than shared with it: what a leak is named after has to read the way the path reads, and that is a
   // string rather than a module's API.
   ReferenceLocationType.LOCAL -> "$ownerClassName.<local variable>"
+  ReferenceLocationType.NATIVE_LOCAL -> "$ownerClassName.<native local>"
   ReferenceLocationType.INSTANCE_FIELD, ReferenceLocationType.STATIC_FIELD -> "$ownerClassName.$name"
 }
 

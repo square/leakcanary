@@ -17,6 +17,7 @@ import shark.LeakTraceReference
 import shark.LeakTraceReference.ReferenceType.ARRAY_ENTRY
 import shark.LeakTraceReference.ReferenceType.INSTANCE_FIELD
 import shark.LeakTraceReference.ReferenceType.LOCAL
+import shark.LeakTraceReference.ReferenceType.NATIVE_LOCAL
 import shark.LeakTraceReference.ReferenceType.STATIC_FIELD
 import shark.LibraryLeakReferenceMatcher
 import shark.Reference.LazyDetails
@@ -104,6 +105,7 @@ fun HeapGraph.invalidObjectIdErrorMessage(node: ReferencePathNode): String {
             ReferenceLocationType.STATIC_FIELD -> STATIC_FIELD
             ReferenceLocationType.LOCAL -> LOCAL
             ReferenceLocationType.ARRAY_ENTRY -> ARRAY_ENTRY
+            ReferenceLocationType.NATIVE_LOCAL -> NATIVE_LOCAL
           },
           owningClassName = findObjectById(details.locationClassObjectId).asClass!!.name,
           referenceName = details.name
