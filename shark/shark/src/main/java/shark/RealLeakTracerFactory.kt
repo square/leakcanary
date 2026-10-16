@@ -28,6 +28,7 @@ import shark.LeakTraceObject.Verdict
 import shark.LeakTraceObject.Verdict.STUCK
 import shark.LeakTraceObject.Verdict.EXPECTED
 import shark.LeakTraceObject.Verdict.UNKNOWN
+import shark.LeakTraceObject.ObjectType
 import shark.LeakTraceObject.ObjectType.ARRAY
 import shark.LeakTraceObject.ObjectType.CLASS
 import shark.LeakTraceObject.ObjectType.INSTANCE
@@ -39,7 +40,6 @@ import shark.internal.ReferencePathNode.ChildNode
 import shark.internal.ReferencePathNode.RootNode
 import shark.internal.ReferencePathNode.RootNode.LibraryLeakRootNode
 import shark.internal.createSHA1Hash
-import shark.internal.hexObjectId
 import shark.internal.lastSegment
 
 // TODO kdoc
@@ -318,12 +318,6 @@ class RealLeakTracerFactory constructor(
       val heapObject = inspectedObject.heapObject
       val className = recordClassName(heapObject)
 
-      val objectType = when (heapObject) {
-        is HeapClass -> CLASS
-        is HeapObjectArray, is HeapPrimitiveArray -> ARRAY
-        else -> INSTANCE
-      }
-
       var retainedHeapByteSize: Int? = null
       var retainedObjectCount: Int? = null
 
@@ -336,7 +330,7 @@ class RealLeakTracerFactory constructor(
       }
 
       LeakTraceObject(
-        type = objectType,
+        type = heapObject.leakTraceObjectType,
         className = className,
         objectId = inspectedObject.heapObject.objectId,
         labels = inspectedObject.labels,
@@ -499,7 +493,7 @@ class RealLeakTracerFactory constructor(
   ): List<String> {
     val subLeakedLabels = groupByClassName(subLeakedObjectIds).map { (className, objectIds) ->
       if (objectIds.size == 1) {
-        "Also retains leaking object ${hexObjectId(objectIds.single())} ($className)"
+        "Also retains ${nameInLeakTrace(objectIds.single())}"
       } else {
         "Also retains ${objectIds.size} leaking $className objects"
       }
@@ -509,8 +503,7 @@ class RealLeakTracerFactory constructor(
     val alsoRetainingLabels =
       groupByClassName(alsoRetainingObjectIds).map { (className, objectIds) ->
         if (objectIds.size == 1) {
-          "Also retained by leaking object ${hexObjectId(objectIds.single())} ($className), which" +
-            " has its own leak trace"
+          "Also retained by ${nameInLeakTrace(objectIds.single())}, which has its own leak trace"
         } else {
           "Also retained by ${objectIds.size} leaking $className objects, which have their own" +
             " leak traces"
@@ -518,6 +511,23 @@ class RealLeakTracerFactory constructor(
       }
     return subLeakedLabels + alsoRetainingLabels
   }
+
+  /** [objectId] the way a leak trace names an object, e.g. `java.util.ArrayList instance 0x12d4cd48`. */
+  private fun FindLeakInput.nameInLeakTrace(objectId: Long): String {
+    val heapObject = graph.findObjectById(objectId)
+    return leakTraceObjectName(
+      className = recordClassName(heapObject),
+      typeName = heapObject.leakTraceObjectType.typeName,
+      objectId = objectId
+    )
+  }
+
+  private val HeapObject.leakTraceObjectType: ObjectType
+    get() = when (this) {
+      is HeapClass -> CLASS
+      is HeapObjectArray, is HeapPrimitiveArray -> ARRAY
+      is HeapInstance -> INSTANCE
+    }
 
   private fun FindLeakInput.groupByClassName(objectIds: LongArray?): Map<String, List<Long>> {
     if (objectIds == null) {

@@ -71,7 +71,7 @@ data class LeakTraceObject(
   val classSimpleName: String get() = className.lastSegment('.')
 
   val typeName
-    get() = type.name.lowercase(Locale.US)
+    get() = type.typeName
 
   override fun toString(): String {
     val firstLinePrefix = ""
@@ -92,7 +92,7 @@ data class LeakTraceObject(
     }
 
     var result = ""
-    result += "$firstLinePrefix$className $typeName ${hexObjectId(objectId)}"
+    result += "$firstLinePrefix${leakTraceObjectName(className, typeName, objectId)}"
     if (showVerdict) {
       result += "\n${additionalLinesPrefix}Verdict: $verdictText"
     }
@@ -111,7 +111,10 @@ data class LeakTraceObject(
   enum class ObjectType {
     CLASS,
     ARRAY,
-    INSTANCE
+    INSTANCE;
+
+    internal val typeName: String
+      get() = name.lowercase(Locale.US)
   }
 
   /**
@@ -164,3 +167,13 @@ data class LeakTraceObject(
     }
   }
 }
+
+/**
+ * How a leak trace names an object, e.g. `java.util.ArrayList instance 0x12d4cd48`: on the first
+ * line of that object, and in the labels that name another leaking object it's related to.
+ */
+internal fun leakTraceObjectName(
+  className: String,
+  typeName: String,
+  objectId: Long
+) = "$className $typeName ${hexObjectId(objectId)}"

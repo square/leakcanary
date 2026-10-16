@@ -542,7 +542,7 @@ labels, identical verdicts and reasons. Three things about getting there.
   210,978 bytes in 984 objects here against its 211.0 kB in 986. Same line in the same place, agreeing to
   within the approximation rather than to the byte — so `LeakFingerprintTest` blanks the two numbers and
   asserts everything else character for character.
-- **`Also retains leaking object …` has no equivalent here and is not meant to.** Those labels name the
+- **`Also retains com.example.Foo instance 0x…` has no equivalent here and is not meant to.** Those labels name the
   other leaks an analysis found under this one. Shark Dive drops those from the list instead of labelling
   what holds them — `foldedIntoWhatHoldsThem`, above — and the map is where it says what a leak is holding.
 
