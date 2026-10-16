@@ -534,20 +534,21 @@ class HeapDiveTest {
     HeapDive.open(dump.file).use { dive ->
       val tree = dive.tree
 
-      // The premise: a 4 byte id that far up the address space reads back negative. Which the tree's own
-      // ids have to stay clear of, or the biggest objects of a 32 bit Android dump — its bitmaps and their
-      // pixels — are each read as a pile of objects that this tree has never heard of, and every panel
-      // asking about one is told there is nothing there.
-      assertThat(dump.payloadObjectId).isNegative()
+      // The premise: a 4 byte id that far up the address space has its top bit set, and reads back as the
+      // address it is rather than as a negative number. The tree's own ids are negative, so an id read the
+      // other way would make the biggest objects of a 32 bit Android dump — its bitmaps and their pixels —
+      // each a pile of objects this tree has never heard of, and every panel asking about one would be told
+      // there is nothing there.
+      assertThat(dump.payloadObjectId).isGreaterThan(Int.MAX_VALUE.toLong())
       assertThat(HeapDominatorTreemap.isPileId(dump.payloadObjectId)).isFalse()
       assertThat(dump.payloadObjectId in tree).isTrue()
       assertThat(tree.groupOrNull(dump.payloadObjectId)).isNull()
       assertThat(tree.summarize(dump.payloadObjectId).className).isEqualTo("java.lang.Object[]")
       assertThat(tree.rootPathTo(dump.payloadObjectId).stepLabels())
         .containsExactly("Holder", "payload → Object[]")
-      // And a tab opened on it is named after it, rather than after a pile this tree has never heard of.
-      assertThat(tree.titleOf(Place.Object(dump.payloadObjectId)))
-        .isEqualTo("Object[] ${hexObjectId(dump.payloadObjectId)}")
+      // And a tab opened on it is named after it, at the address every other tool prints for it, rather than
+      // after a pile this tree has never heard of.
+      assertThat(tree.titleOf(Place.Object(dump.payloadObjectId))).isEqualTo("Object[] 0x82000010")
     }
   }
 

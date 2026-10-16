@@ -36,13 +36,13 @@ The leak trace for that singleton looks like this:
 ┬───
 │ GC Root: Local variable in native code
 │
-├─ dalvik.system.PathClassLoader instance
+├─ dalvik.system.PathClassLoader instance 0x12c05a30
 │    ↓ PathClassLoader.runtimeInternalObjects
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12c3e7f0
 │    ↓ Object[].[43]
-├─ com.example.Utils class
+├─ com.example.Utils class 0x12c6b108
 │    ↓ static Utils.helper
-╰→ java.example.Helper
+╰→ java.example.Helper instance 0x12d8a4e0
 ```
 
 Let's break it down! At the top, a `PathClassLoader` instance is held by a **garbage collection (GC) root**, more specifically a local variable in native code. GC roots are special objects that are always reachable, ie they cannot be garbage collected. There are 4 main types of GC root:
@@ -56,25 +56,25 @@ Let's break it down! At the top, a `PathClassLoader` instance is held by a **gar
 ┬───
 │ GC Root: Local variable in native code
 │
-├─ dalvik.system.PathClassLoader instance
+├─ dalvik.system.PathClassLoader instance 0x12c05a30
 ```
 
-A line starting with `├─ ` represents a Java object (either a class, an object array or an instance), and a line starting with `│    ↓ ` represents a reference to the Java object on the next line.
+A line starting with `├─ ` represents a Java object (either a class, an object array or an instance), followed by its id in the heap dump, which is what to look it up by in [Shark Dive](shark-dive.md) or any other heap dump tool. A line starting with `│    ↓ ` represents a reference to the Java object on the next line.
 
 `PathClassLoader` has a `runtimeInternalObjects` field that is a reference to an array of `Object`:
 
 ```
-├─ dalvik.system.PathClassLoader instance
+├─ dalvik.system.PathClassLoader instance 0x12c05a30
 │    ↓ PathClassLoader.runtimeInternalObjects
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12c3e7f0
 ```
 
 The element at position 43 in that array of `Object` is a reference to the `Utils` class.
 
 ```
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12c3e7f0
 │    ↓ Object[].[43]
-├─ com.example.Utils class
+├─ com.example.Utils class 0x12c6b108
 ```
 
 A line starting with `╰→ ` represents the leaking object, ie the object that is passed to [AppWatcher.objectWatcher.watch()](/leakcanary/api/object-watcher-android-core/object-watcher-android-core/leakcanary/-app-watcher/object-watcher/).
@@ -82,9 +82,9 @@ A line starting with `╰→ ` represents the leaking object, ie the object that
 The `Utils` class has a static `helper` field which is a reference to the leaking object, which is the Helper singleton instance:
 
 ```
-├─ com.example.Utils class
+├─ com.example.Utils class 0x12c6b108
 │    ↓ static Utils.helper
-╰→ java.example.Helper instance
+╰→ java.example.Helper instance 0x12d8a4e0
 ```
 
 ## 2. Narrow down the suspect references
@@ -118,17 +118,17 @@ LeakCanary produces a leak trace that looks like this:
 ┬───
 │ GC Root: System class
 │
-├─ android.provider.FontsContract class
+├─ android.provider.FontsContract class 0x6fe6a1b0
 │    ↓ static FontsContract.sContext
-├─ com.example.leakcanary.ExampleApplication instance
+├─ com.example.leakcanary.ExampleApplication instance 0x12c0a6b8
 │    ↓ ExampleApplication.leakedViews
-├─ java.util.ArrayList instance
+├─ java.util.ArrayList instance 0x12d4cd48
 │    ↓ ArrayList.elementData
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12d4cd60
 │    ↓ Object[].[0]
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12e5f3a0
 │    ↓ TextView.mContext
-╰→ com.example.leakcanary.MainActivity instance
+╰→ com.example.leakcanary.MainActivity instance 0x12e1b2c8
 ```
 
 Here's how to read that leak trace:
@@ -141,23 +141,23 @@ LeakCanary highlights all references suspected of causing this leak using ~~~ un
 ┬───
 │ GC Root: System class
 │
-├─ android.provider.FontsContract class
+├─ android.provider.FontsContract class 0x6fe6a1b0
 │    ↓ static FontsContract.sContext
 │                           ~~~~~~~~
-├─ com.example.leakcanary.ExampleApplication instance
+├─ com.example.leakcanary.ExampleApplication instance 0x12c0a6b8
 │    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
-├─ java.util.ArrayList instance
+├─ java.util.ArrayList instance 0x12d4cd48
 │    ↓ ArrayList.elementData
 │                ~~~~~~~~~~~
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12d4cd60
 │    ↓ Object[].[0]
 │               ~~~
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12e5f3a0
 │    ↓ TextView.mContext
 │               ~~~~~~~~
-╰→ com.example.leakcanary.MainActivity instance
+╰→ com.example.leakcanary.MainActivity instance 0x12e1b2c8
 ```
 
 Then, LeakCanary makes deductions about the **state** and the **lifecycle** of the objects in the leak trace. In an Android app the `Application` instance is a singleton that is never garbage collected, so it being in memory is expected (`Verdict: Expected (Application is a singleton)`). From that, LeakCanary concludes that the leak is not caused by `FontsContract.sContext` (removal of corresponding `~~~`). Here's the updated leak trace:
@@ -166,22 +166,22 @@ Then, LeakCanary makes deductions about the **state** and the **lifecycle** of t
 ┬───
 │ GC Root: System class
 │
-├─ android.provider.FontsContract class
+├─ android.provider.FontsContract class 0x6fe6a1b0
 │    ↓ static FontsContract.sContext
-├─ com.example.leakcanary.ExampleApplication instance
+├─ com.example.leakcanary.ExampleApplication instance 0x12c0a6b8
 │    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
-├─ java.util.ArrayList instance
+├─ java.util.ArrayList instance 0x12d4cd48
 │    ↓ ArrayList.elementData
 │                ~~~~~~~~~~~
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12d4cd60
 │    ↓ Object[].[0]
 │               ~~~
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12e5f3a0
 │    ↓ TextView.mContext
 │               ~~~~~~~~
-╰→ com.example.leakcanary.MainActivity instance
+╰→ com.example.leakcanary.MainActivity instance 0x12e1b2c8
 ```
 
 The `TextView` instance references the destroyed `MainActivity` instance via it's `mContext` field. Views should not survive the lifecycle of their context, so LeakCanary knows that this `TextView` instance should be gone and isn't (`Verdict: Stuck (View.mContext references a destroyed activity)`), and therefore that the leak is not caused by `TextView.mContext` (removal of corresponding `~~~`). Here's the updated leak trace:
@@ -190,22 +190,22 @@ The `TextView` instance references the destroyed `MainActivity` instance via it'
 ┬───
 │ GC Root: System class
 │
-├─ android.provider.FontsContract class
+├─ android.provider.FontsContract class 0x6fe6a1b0
 │    ↓ static FontsContract.sContext
-├─ com.example.leakcanary.ExampleApplication instance
+├─ com.example.leakcanary.ExampleApplication instance 0x12c0a6b8
 │    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
-├─ java.util.ArrayList instance
+├─ java.util.ArrayList instance 0x12d4cd48
 │    ↓ ArrayList.elementData
 │                ~~~~~~~~~~~
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12d4cd60
 │    ↓ Object[].[0]
 │               ~~~
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12e5f3a0
 │    Verdict: Stuck (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
-╰→ com.example.leakcanary.MainActivity instance
+╰→ com.example.leakcanary.MainActivity instance 0x12e1b2c8
 ```
 
 To summarize, LeakCanary inspects the state of objects in the leak trace to figure out whether each should still be in memory (`Verdict: Stuck` vs `Verdict: Expected`), and leverages that information to narrow down the suspect references. You can provide custom `ObjectInspector` implementations to improve how LeakCanary works in your codebase (see [Identifying leaking objects and labeling objects](recipes.md#identifying-leaking-objects-and-labeling-objects)).
@@ -238,22 +238,22 @@ In the previous example, LeakCanary narrowed down the suspect references to `Exa
 ┬───
 │ GC Root: System class
 │
-├─ android.provider.FontsContract class
+├─ android.provider.FontsContract class 0x6fe6a1b0
 │    ↓ static FontsContract.sContext
-├─ com.example.leakcanary.ExampleApplication instance
+├─ com.example.leakcanary.ExampleApplication instance 0x12c0a6b8
 │    Verdict: Expected (Application is a singleton)
 │    ↓ ExampleApplication.leakedViews
 │                         ~~~~~~~~~~~
-├─ java.util.ArrayList instance
+├─ java.util.ArrayList instance 0x12d4cd48
 │    ↓ ArrayList.elementData
 │                ~~~~~~~~~~~
-├─ java.lang.Object[] array
+├─ java.lang.Object[] array 0x12d4cd60
 │    ↓ Object[].[0]
 │               ~~~
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12e5f3a0
 │    Verdict: Stuck (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
-╰→ com.example.leakcanary.MainActivity instance
+╰→ com.example.leakcanary.MainActivity instance 0x12e1b2c8
 ```
 
 `ArrayList.elementData` and `Object[].[0]` are implementation details of `ArrayList`, and it's unlikely that there's a bug in the `ArrayList` implementation, so the reference causing the leak is the only remaining reference: `ExampleApplication.leakedViews`.

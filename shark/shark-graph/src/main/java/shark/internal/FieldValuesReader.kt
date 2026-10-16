@@ -49,12 +49,12 @@ internal class FieldValuesReader(
     }
   }
 
+  /** Unsigned, like [shark.HprofRecordReader.readId]. */
   private fun readId(): Long {
-    // As long as we don't interpret IDs, reading signed values here is fine.
     return when (identifierByteSize) {
-      1 -> readByte().toLong()
-      2 -> readShort().toLong()
-      4 -> readInt().toLong()
+      1 -> readByte().toLong() and BYTE_MASK
+      2 -> readShort().toLong() and SHORT_MASK
+      4 -> readInt().toLong() and INT_MASK
       8 -> readLong()
       else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
     }
@@ -113,5 +113,9 @@ internal class FieldValuesReader(
     private val SHORT_TYPE = SHORT.hprofType
     private val INT_TYPE = INT.hprofType
     private val LONG_TYPE = LONG.hprofType
+
+    private const val BYTE_MASK = 0xffL
+    private const val SHORT_MASK = 0xffffL
+    private const val INT_MASK = 0xffffffffL
   }
 }

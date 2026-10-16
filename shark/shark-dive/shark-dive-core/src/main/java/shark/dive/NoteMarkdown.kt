@@ -285,7 +285,7 @@ private fun deepLinkSpan(
     text = "$OBJECT_PREFIX${hexObjectId(place.objectId)}",
     styles = styles,
     link = link,
-    mention = NoteMention.ObjectId(listOf(place.objectId))
+    mention = NoteMention.ObjectId(place.objectId)
   )
 }
 
@@ -361,32 +361,22 @@ private fun mentionSpan(
       styles = styles,
       mention = NoteMention.ClassName(token.value)
     )
-  val objectIds = objectIdsOf(address.value)
   return NoteSpan(
     text = address.value,
     styles = styles,
-    mention = if (objectIds.isEmpty()) null else NoteMention.ObjectId(objectIds)
+    mention = objectIdOf(address.value)?.let { NoteMention.ObjectId(it) }
   )
 }
 
 /**
- * Every [Long] `0x…` can mean, which is one of them or two.
+ * The [Long] `0x…` means, read unsigned the way [objectIdOfHex] reads one, or null for one that isn't.
  *
- * Two when it fits in 32 bits with the top one set: shark reads a 32 bit heap dump's four byte ids as
- * [Long]s widened by sign, so the object every other tool calls `0xffff8000` is the negative id
- * `0xffffffffffff8000` in the tree, and both readings have to be offered. See [NoteMention.ObjectId].
+ * Not [objectIdOfHex] itself, because a note is typed by hand and `0X1234` is the same address.
  */
-private fun objectIdsOf(text: String): List<Long> {
-  val address = try {
-    java.lang.Long.parseUnsignedLong(text.substring(HEX_PREFIX.length), HEX_RADIX)
-  } catch (notAnAddress: NumberFormatException) {
-    return emptyList()
-  }
-  return if (address and INT_MASK == address && address and INT_SIGN_BIT != 0L) {
-    listOf(address, address.toInt().toLong())
-  } else {
-    listOf(address)
-  }
+private fun objectIdOf(text: String): Long? = try {
+  java.lang.Long.parseUnsignedLong(text.substring(HEX_PREFIX.length), HEX_RADIX)
+} catch (notAnAddress: NumberFormatException) {
+  null
 }
 
 private const val CODE_FENCE = "```"
@@ -413,8 +403,6 @@ private const val SHORT_SHA_LENGTH = 7
 
 private const val HEX_PREFIX = "0x"
 private const val HEX_RADIX = 16
-private const val INT_MASK = 0xffffffffL
-private const val INT_SIGN_BIT = 0x80000000L
 
 private val RULE = Regex(""" {0,3}(?:-{3,}|\*{3,}|_{3,}) *""")
 private val HEADING = Regex(""" {0,3}(#{1,6}) +(.*)""")

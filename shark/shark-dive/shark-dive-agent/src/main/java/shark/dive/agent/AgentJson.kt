@@ -28,7 +28,7 @@ import shark.dive.PathStep
 import shark.dive.ReachabilityStrength
 import shark.dive.RootPath
 import shark.dive.RootPathStep
-import shark.dive.exactHexObjectId
+import shark.dive.hexObjectId
 import shark.dive.isGcRootSuspect
 import shark.dive.leakTrace
 import shark.dive.markdownLinksAsText
@@ -41,7 +41,7 @@ import shark.dive.suspectReferenceIndexes
  *
  * **An address is a string, never a number.** A heap dump's addresses fill the whole range of `Long`, and a
  * JSON number is a double to most clients of this protocol — anything above 2^53 comes back rounded, which
- * for an address means a different object, silently. So every one of them is [exactHexObjectId], the same
+ * for an address means a different object, silently. So every one of them is [hexObjectId], the same
  * spelling this app's own files use, and [shark.dive.objectIdOfHex] is the only way back.
  *
  * **Nothing is summarised away, and every cap says so.** A field an agent can't see is a field it will
@@ -172,7 +172,7 @@ internal object AgentJson {
   fun verdicts(overrides: VerdictOverrides): JsonArray = buildJsonArray {
     overrides.all.sortedBy { it.objectId }.forEach { override ->
       addJsonObject {
-        put("object", exactHexObjectId(override.objectId))
+        put("object", hexObjectId(override.objectId))
         put("verdict", override.verdict.name)
         put("why", override.reason)
       }
@@ -184,7 +184,7 @@ internal object AgentJson {
     summary: HeapObjectSummary,
     dominator: ObjectDominator?
   ): JsonObject = buildJsonObject {
-    put("object", exactHexObjectId(summary.objectId))
+    put("object", hexObjectId(summary.objectId))
     put("label", summary.label)
     put("className", summary.className)
     put("kind", summary.kind?.name)
@@ -200,7 +200,7 @@ internal object AgentJson {
     // The one object releasing which would free this one, which is the answer to "what would fix this".
     if (dominator != null) {
       putJsonObject("dominator") {
-        put("node", exactHexObjectId(dominator.nodeId))
+        put("node", hexObjectId(dominator.nodeId))
         put("label", dominator.label)
         put("kind", dominator.kind.name)
         put("retainedBytes", dominator.retainedSize)
@@ -212,7 +212,7 @@ internal object AgentJson {
           put("name", field.name)
           put("declaringClass", field.declaringClassName)
           put("value", field.value)
-          put("valueObject", field.inspectableObjectId?.let { exactHexObjectId(it) })
+          put("valueObject", field.inspectableObjectId?.let { hexObjectId(it) })
         }
       }
     }
@@ -229,7 +229,7 @@ internal object AgentJson {
    * using 400 MB has nowhere else to start.
    */
   fun dominatorOutline(outline: DominatorOutline): JsonObject = buildJsonObject {
-    put("node", exactHexObjectId(outline.nodeId))
+    put("node", hexObjectId(outline.nodeId))
     put("label", outline.label)
     put("retainedBytes", outline.retainedSize)
     put("strength", outline.strength.name)
@@ -422,7 +422,7 @@ internal object AgentJson {
                 putJsonArray("objects") {
                   group.objects.forEach { leaking ->
                     addJsonObject {
-                      put("object", exactHexObjectId(leaking.objectId))
+                      put("object", hexObjectId(leaking.objectId))
                       put("className", leaking.className)
                       put("kind", leaking.kind.name)
                       objectContentInto(leaking.content)
@@ -438,7 +438,7 @@ internal object AgentJson {
                           // The `KeyedWeakReference` itself, because the row this answers with is a link on
                           // the screen: it is the leak seen from the watcher's side, and an agent that can
                           // read every other object of the dump should be able to open this one.
-                          put("object", exactHexObjectId(watcher.weakReferenceObjectId))
+                          put("object", hexObjectId(watcher.weakReferenceObjectId))
                           put("key", watcher.key)
                           put("description", watcher.description)
                           // How long before the dump the app handed it over, which the row says too. Null in
@@ -471,7 +471,7 @@ internal object AgentJson {
     putJsonArray("objects") {
       list.entries.forEach { entry ->
         addJsonObject {
-          put("object", exactHexObjectId(entry.objectId))
+          put("object", hexObjectId(entry.objectId))
           put("className", entry.className)
           put("kind", entry.kind.name)
           objectContentInto(entry.content)
@@ -507,7 +507,7 @@ internal object AgentJson {
     /** Whether [reference] is one the leak could still be. See [shark.dive.suspectReferenceIndexes]. */
     isSuspect: Boolean
   ) {
-    put("object", exactHexObjectId(step.objectId))
+    put("object", hexObjectId(step.objectId))
     put("className", step.className)
     put("kind", step.kind.name)
     objectContentInto(step.content)

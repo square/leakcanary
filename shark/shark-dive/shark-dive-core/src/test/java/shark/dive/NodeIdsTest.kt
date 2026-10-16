@@ -11,11 +11,10 @@ class NodeIdsTest {
     assertThat(hexObjectId(0x2b09c880L)).isEqualTo("0x2b09c880")
   }
 
-  @Test fun `an object above the 2 GB mark reads as its address rather than as a negative number`() {
-    // What shark's reader makes of the 4 byte id 0x8214d000, which is where a large Android dump keeps the
-    // pixels of its bitmaps. Printing the long as it stands gives 0x-7deb3000, an address no other tool
-    // and no colleague will recognise.
-    assertThat(hexObjectId(-2112565248L)).isEqualTo("0x8214d000")
+  @Test fun `an object above the 2 GB mark reads as its address and back`() {
+    // Where a large Android dump keeps the pixels of its bitmaps, with the top bit of a 4 byte id set.
+    assertThat(hexObjectId(0x8214d000L)).isEqualTo("0x8214d000")
+    assertThat(objectIdOfHex("0x8214d000")).isEqualTo(0x8214d000L)
   }
 
   @Test fun `a pile of objects reads as which pile it is`() {

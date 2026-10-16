@@ -10,8 +10,8 @@ class ObjectIdEncodingTest {
     assertThat(ObjectIdEncoding.of(42, 42).byteCount).`as`("a single id").isEqualTo(1)
     assertThat(ObjectIdEncoding.of(-3, 252).byteCount).`as`("255 apart").isEqualTo(1)
     assertThat(ObjectIdEncoding.of(-3, 253).byteCount).`as`("256 apart").isEqualTo(2)
-    // An Android heap dump: 4 byte ids, sign extended, ART spreading its heaps over the range.
-    assertThat(ObjectIdEncoding.of(Int.MIN_VALUE.toLong(), Int.MAX_VALUE.toLong()).byteCount)
+    // An Android heap dump: 4 byte ids, ART spreading its heaps over the range.
+    assertThat(ObjectIdEncoding.of(0L, 0xffffffffL).byteCount)
       .`as`("the whole 4 byte id range").isEqualTo(4)
     // A JVM heap dump: 8 byte ids, but a heap that spans well under 4 GB of them.
     assertThat(ObjectIdEncoding.of(0x7f9c40000000L, 0x7f9c40000000L + 3_000_000_000L).byteCount)

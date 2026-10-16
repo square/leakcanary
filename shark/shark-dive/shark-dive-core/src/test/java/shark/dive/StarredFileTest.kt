@@ -90,7 +90,7 @@ class StarredFileTest {
   @Test fun `an address listed twice is one starred object`() {
     val file = starredFile("heap.hprof")
     file.write(listOf(HOLDER_ID))
-    file.file.appendText("${exactHexObjectId(HOLDER_ID)}\n")
+    file.file.appendText("${hexObjectId(HOLDER_ID)}\n")
 
     assertThat(file.read()).containsExactly(HOLDER_ID)
   }

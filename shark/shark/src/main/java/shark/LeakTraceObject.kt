@@ -5,6 +5,7 @@ import shark.LeakTraceObject.Verdict
 import shark.LeakTraceObject.Verdict.EXPECTED
 import shark.LeakTraceObject.Verdict.STUCK
 import shark.LeakTraceObject.Verdict.UNKNOWN
+import shark.internal.hexObjectId
 import shark.internal.lastSegment
 import java.io.Serializable
 import java.util.Locale
@@ -18,6 +19,14 @@ data class LeakTraceObject(
    * The class name format is the same as what would be returned by [Class.getName].
    */
   val className: String,
+
+  /**
+   * The id of this object in the heap dump it was found in, printed in hex after its type, e.g.
+   * `java.util.ArrayList instance 0x12d4cd48`, which is how Shark Dive names an object and what to
+   * look it up by there or in any other heap dump tool. It only means something in that one heap
+   * dump, which is why [LeakTrace.leakFingerprint] doesn't include it.
+   */
+  val objectId: Long,
 
   /**
    * Labels that were computed during analysis. A label provides extra information that helps
@@ -62,7 +71,7 @@ data class LeakTraceObject(
   val classSimpleName: String get() = className.lastSegment('.')
 
   val typeName
-    get() = type.name.lowercase(Locale.US)
+    get() = type.typeName
 
   override fun toString(): String {
     val firstLinePrefix = ""
@@ -83,7 +92,7 @@ data class LeakTraceObject(
     }
 
     var result = ""
-    result += "$firstLinePrefix$className $typeName"
+    result += "$firstLinePrefix${leakTraceObjectName(className, typeName, objectId)}"
     if (showVerdict) {
       result += "\n${additionalLinesPrefix}Verdict: $verdictText"
     }
@@ -102,7 +111,10 @@ data class LeakTraceObject(
   enum class ObjectType {
     CLASS,
     ARRAY,
-    INSTANCE
+    INSTANCE;
+
+    internal val typeName: String
+      get() = name.lowercase(Locale.US)
   }
 
   /**
@@ -141,7 +153,9 @@ data class LeakTraceObject(
     // NOT_LEAKING became STUCK / EXPECTED. Both the field names and the enum constant names are
     // part of what Java serialization writes, so an analysis serialized by an older version has to
     // fail to deserialize rather than come back with a null verdict on a non-null property.
-    private const val serialVersionUID = 8013094195741270893L
+    // Bumped again when objectId was added, which an analysis serialized before it would come
+    // back with as 0.
+    private const val serialVersionUID = 2632384339546474547L
 
     // https://stackoverflow.com/a/3758880
     private fun humanReadableByteCount(bytes: Long): String {
@@ -153,3 +167,13 @@ data class LeakTraceObject(
     }
   }
 }
+
+/**
+ * How a leak trace names an object, e.g. `java.util.ArrayList instance 0x12d4cd48`: on the first
+ * line of that object, and in the labels that name another leaking object it's related to.
+ */
+internal fun leakTraceObjectName(
+  className: String,
+  typeName: String,
+  objectId: Long
+) = "$className $typeName ${hexObjectId(objectId)}"

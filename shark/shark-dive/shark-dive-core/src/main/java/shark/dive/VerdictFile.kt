@@ -96,7 +96,7 @@ class VerdictFile(
   }
 
   private fun VerdictOverride.line(): String =
-    listOf(exactHexObjectId(objectId), verdict.name, reason.escaped()).joinToString(SEPARATOR)
+    listOf(hexObjectId(objectId), verdict.name, reason.escaped()).joinToString(SEPARATOR)
 
   companion object {
     /**

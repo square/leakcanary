@@ -56,7 +56,6 @@ public abstract class shark/HeapObject {
 	public abstract fun getGraph ()Lshark/HeapGraph;
 	public abstract fun getObjectId ()J
 	public abstract fun getObjectIndex ()I
-	public final fun getPositiveObjectId ()J
 	public abstract fun getRecordSize ()J
 	public abstract fun readRecord ()Lshark/HprofRecord$HeapDumpRecord$ObjectRecord;
 }

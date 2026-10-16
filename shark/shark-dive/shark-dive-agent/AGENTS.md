@@ -469,9 +469,9 @@ sit on and hangs off the path itself, under `reference`, null for a path walked 
 
 A heap dump's addresses fill the range of `Long`, and a JSON number is a double to most clients of this
 protocol: anything above 2^53 comes back rounded, which for an address means a different object, silently. So
-every address on this surface is `exactHexObjectId` — `0x12d368b8`, the same spelling the app's own files use
-— and `objectIdOfHex` is the only way back. The refusal for a decimal names that case, because a model that
-has seen a numeric address elsewhere will write one here.
+every address on this surface is `hexObjectId` — `0x12d368b8`, the same spelling the window, its links and
+its files use — and `objectIdOfHex` is the only way back. The refusal for a decimal names that case, because a
+model that has seen a numeric address elsewhere will write one here.
 
 ## kotlinx-serialization without the plugin
 

@@ -36,11 +36,11 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x1c
     │    Verdict: Unknown
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -70,11 +70,11 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x1c
     │    Verdict: Unknown
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -114,15 +114,15 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x24
     │    Verdict: Unknown
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
-    ├─ ClassA instance
+    ├─ ClassA instance 0x22
     │    Verdict: Unknown
     │    ↓ ClassA.instanceB
     │             ~~~~~~~~~
-    ╰→ ClassB instance
+    ╰→ ClassB instance 0x1e
     ​     Verdict: Stuck (because reasons)
     """
   }
@@ -148,12 +148,12 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x1c
     │    Verdict: Unknown
     │    ¯\_(ツ)_/¯
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     ¯\_(ツ)_/¯
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
@@ -185,16 +185,16 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x20
     │    Verdict: Unknown
     │    ↓ static GcRoot.instanceA
     │                    ~~~~~~~~~
-    ├─ ClassA instance
+    ├─ ClassA instance 0x1e
     │    Verdict: Unknown
     │    Library leak match: instance field ClassA#leak
     │    ↓ ClassA.leak
     │             ~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -223,12 +223,12 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x1c
     │    Verdict: Unknown
     │    Library leak match: static field GcRoot#leak
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -250,15 +250,15 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x1f
     │    Verdict: Unknown
     │    ↓ static GcRoot.array
     │                    ~~~~~
-    ├─ java.lang.Object[] array
+    ├─ java.lang.Object[] array 0x1d
     │    Verdict: Unknown
     │    ↓ Object[0]
     │            ~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -278,12 +278,12 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: Thread object
     │
-    ├─ MyThread instance
+    ├─ MyThread instance 0x1a
     │    Verdict: Unknown
     │    Thread name: 'kroutine'
     │    ↓ MyThread<Java Local>
     │              ~~~~~~~~~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x1d
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -307,12 +307,12 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: Thread object
     │
-    ├─ MyThread instance
+    ├─ MyThread instance 0x1a
     │    Verdict: Unknown
     │    Thread name: 'kroutine'
     │    ↓ MyThread<Native Local>
     │              ~~~~~~~~~~~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x1d
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -338,15 +338,15 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x22
     │    Verdict: Unknown
     │    ↓ static GcRoot.child
     │                    ~~~~~
-    ├─ com.ChildClass instance
+    ├─ com.ChildClass instance 0x20
     │    Verdict: Unknown
     │    ↓ ParentClass.leak
     │                  ~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     ​     watchDurationMillis = 25000
@@ -367,11 +367,11 @@ class LeakTraceRenderingTest {
     ┬───
     │ GC Root: System class
     │
-    ├─ GcRoot class
+    ├─ GcRoot class 0x1c
     │    Verdict: Unknown
     │    ↓ static GcRoot.leak
     │                    ~~~~
-    ╰→ Leaking instance
+    ╰→ Leaking instance 0x11
     ​     Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     ​     Retaining 0 B in 1 objects
     ​     key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc

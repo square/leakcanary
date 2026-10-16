@@ -87,7 +87,6 @@ import shark.dive.TreemapRect
 import shark.dive.agent.AgentSession
 import shark.dive.agent.subject
 import shark.dive.detours
-import shark.dive.exactHexObjectId
 import shark.dive.formatObjectCount
 import shark.dive.hexObjectId
 import shark.dive.verdictConflictsWith
@@ -1879,7 +1878,7 @@ private suspend fun HeapDumpSession.describing(
  */
 private fun HeapDominatorTreemap.agentPlaceTitle(place: Place): String = when (place) {
   is Place.Object ->
-    if (objectNameOrNull(place.objectId) == null) exactHexObjectId(place.objectId) else titleOf(place)
+    if (objectNameOrNull(place.objectId) == null) hexObjectId(place.objectId) else titleOf(place)
   else -> titleOf(place)
 }
 

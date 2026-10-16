@@ -43,7 +43,7 @@ internal fun List<PathStep>.leakFingerprint(): String =
  * does with it is go looking for the fact in a report that has it. Measured against `shark-cli analyze` on
  * `shark/shark-android/src/test/resources/leak_asynctask_o.hprof`, which is the check to repeat after
  * changing this: identical fingerprint, identical path, identical labels and verdict reasons, and the only
- * remaining difference is the `Also retains leaking object …` labels — those name the *other* leaks an
+ * remaining difference is the `Also retains com.example.Foo instance 0x…` labels — those name the *other* leaks an
  * analysis found under this one, which Shark Dive drops from its list instead of labelling, see
  * `foldedIntoWhatHoldsThem`.
  */
@@ -79,6 +79,7 @@ private fun PathStep.toLeakTraceObject(
     HeapObjectKind.OBJECT_ARRAY, HeapObjectKind.PRIMITIVE_ARRAY -> ObjectType.ARRAY
   },
   className = className,
+  objectId = objectId,
   // The library leak label first and the inspectors' after, which is the order a leak trace prints them in
   // because that is the order they were added in: `RealLeakTracerFactory.inspectObjects` puts this one on
   // the reporter before running a single inspector over it.

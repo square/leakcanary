@@ -142,8 +142,8 @@ classes. A class with a single object in it is left ungrouped, since a group of 
 object.
 
 **The pile ids are their own range, at the bottom of the id space**: `UNREACHABLE_NODE_ID` is
-`Long.MIN_VALUE` and `GroupIds` counts up from there for the class groups, so `isPileId` is a range check
-rather than a sign test — see the note on negative object ids in `treemap-rendering.md`. Sequential rather
+`Long.MIN_VALUE` and `GroupIds` counts up from there for the class groups, so `isPileId` is a sign test, no
+object id being negative — see the note on negative node ids in `treemap-rendering.md`. Sequential rather
 than derived from the class, because the same class can have a group at the top of the tree and another one
 under the garbage. The cost is that every entry point
 taking a node id has to ask `groupOrNull()` first, so `summarize()` throws with an actionable message

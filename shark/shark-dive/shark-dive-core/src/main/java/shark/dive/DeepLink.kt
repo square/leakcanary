@@ -175,13 +175,11 @@ data class DeepLink(
       ?: throw IllegalArgumentException("\"$uri\" needs a \"$name\" to say which place it is.")
 
     /**
-     * A node id as a link writes one: `0x` and the whole 64 bits, unsigned.
+     * A node id as a link writes one, which is [hexObjectId], read back unsigned.
      *
-     * Not [hexObjectId], which masks an id down to its low 32 bits so that an object of a 32 bit dump reads
-     * the way every other tool writes it. That is right for a label and wrong here — a link has to come back
-     * as the id it was made from, and a tree's nodes run the full range of [Long]: the uncollected garbage
-     * and the class piles sit at the bottom of it, and an object above the 2 GB mark of a 32 bit dump is
-     * negative. See [HeapDominatorTreemap.isPileId].
+     * Unsigned because a link has to come back as the id it was made from, and a tree's piles are negative
+     * ids: the uncollected garbage and the class piles sit at the bottom of the range of [Long]. See
+     * [HeapDominatorTreemap.isPileId].
      */
     private fun List<Pair<String, String>>.nodeId(
       name: String,
@@ -312,9 +310,9 @@ private fun Place.linkPath(): String = when (this) {
  * compare, or test.
  */
 private fun Place.linkParameters(): List<Pair<String, String>> = when (this) {
-  is Place.Object -> listOf(DeepLink.ID_PARAMETER to linkNodeId(objectId))
+  is Place.Object -> listOf(DeepLink.ID_PARAMETER to hexObjectId(objectId))
   is Place.SmallerObjects -> listOf(
-    DeepLink.PARENT_PARAMETER to linkNodeId(parentObjectId),
+    DeepLink.PARENT_PARAMETER to hexObjectId(parentObjectId),
     DeepLink.COUNT_PARAMETER to nodeCount.toString(),
     DeepLink.BYTES_PARAMETER to byteCount.toString()
   )
@@ -336,7 +334,3 @@ private fun Place.linkParameters(): List<Pair<String, String>> = when (this) {
   is Place.AgentLogs -> emptyList()
   is Place.AgentLog -> listOf(DeepLink.SESSION_PARAMETER to sessionId)
 }
-
-/** The exact 64 bits, unsigned, which is what `DeepLink.nodeId` reads back. */
-private fun linkNodeId(nodeId: Long): String =
-  DeepLink.HEX_PREFIX + java.lang.Long.toUnsignedString(nodeId, 16)

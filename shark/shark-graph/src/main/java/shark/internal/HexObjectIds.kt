@@ -7,15 +7,10 @@ package shark.internal
  * of a leak trace or an error can be searched for in any of them. Shark Dive turns an id written this
  * way into a link to the object.
  *
- * A 32 bit heap dump records an id in 4 bytes and shark widens it by sign, so an object above the 2 GB
- * mark has a negative id. Its low 32 bits are the address, and what every other tool prints.
+ * Unsigned, so that an id that is no address of the heap dump, like a negative one somebody passed in,
+ * is still written as the [Long] it is and reads back as that.
  *
  * `shark`, `shark-android`, `shark-cli` and `leakcanary-android-core` each have a copy, since none of
  * them can see this one.
  */
-internal fun hexObjectId(objectId: Long): String {
-  val address = if (objectId < 0L) objectId and LOW_32_BITS else objectId
-  return "0x${address.toString(16)}"
-}
-
-private const val LOW_32_BITS = 0xffffffffL
+internal fun hexObjectId(objectId: Long): String = "0x${java.lang.Long.toHexString(objectId)}"

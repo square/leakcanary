@@ -446,7 +446,13 @@ class HprofWriter private constructor(
   }
 
   private fun BufferedSink.writeId(id: Long) {
-    when (hprofHeader.identifierByteSize) {
+    val identifierByteSize = hprofHeader.identifierByteSize
+    require(identifierByteSize == 8 || id ushr (identifierByteSize * 8) == 0L) {
+      "Object id 0x${java.lang.Long.toHexString(id)} doesn't fit in the $identifierByteSize bytes this " +
+        "heap dump writes an id in. An id is the address of an object, which a heap dump reader reads " +
+        "unsigned: an object at 0x82000010 has id 0x82000010, not ${0x82000010L.toInt()}."
+    }
+    when (identifierByteSize) {
       1 -> writeByte(id.toInt())
       2 -> writeShort(id.toInt())
       4 -> writeInt(id.toInt())

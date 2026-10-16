@@ -56,7 +56,6 @@ import shark.dive.ReachabilityStrength.UNREACHABLE
 import shark.dive.ReachabilityStrength.WEAK
 import shark.dive.ReferencePage
 import shark.dive.Topic.WEAKER_REFERENCES
-import shark.dive.exactHexObjectId
 import shark.dive.formatByteSize
 import shark.dive.formatObjectCount
 import shark.dive.hexObjectId
@@ -531,7 +530,7 @@ class DiveAppTest {
       // read, grepped and fixed without this app. See [StarredFile].
       waitUntil(timeoutMillis = OPEN_TIMEOUT_MILLIS) { starred.listFiles().orEmpty().isNotEmpty() }
       assertThat(starred.listFiles().orEmpty().single().readText())
-        .contains(exactHexObjectId(payloadObjectId))
+        .contains(hexObjectId(payloadObjectId))
     }
   }
 

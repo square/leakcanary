@@ -213,7 +213,7 @@ class HeapDominatorTreemap internal constructor(
    * object of another heap dump reads as, three frames below whatever asked.
    */
   private fun nodeOf(nodeId: Long): DominatorNode = requireNotNull(nodes[nodeId]) {
-    "$nodeId is no node of this tree, which has ${nodes.size} of them. Ask contains() first."
+    "${nodeIdText(nodeId)} is no node of this tree, which has ${nodes.size} of them. Ask contains() first."
   }
 
   /**
@@ -467,7 +467,7 @@ class HeapDominatorTreemap internal constructor(
     overrides: VerdictOverrides = VerdictOverrides.NONE
   ): HeapObjectSummary {
     require(group(objectId) == null) {
-      "$objectId stands for a pile of objects rather than for one. Ask groupOrNull() first, and " +
+      "${nodeIdText(objectId)} stands for a pile of objects rather than for one. Ask groupOrNull() first, and " +
         "describe it with what that returns."
     }
     val node = nodeOf(objectId)
@@ -1809,11 +1809,8 @@ class HeapDominatorTreemap internal constructor(
     const val ROOT_LABEL = "Whole heap dump"
 
     /**
-     * The first of the ids this tree hands out to a pile of objects, which count up from there.
-     *
-     * At the bottom of the range rather than just below zero, because a negative object id is a real
-     * thing: an id is a heap address, and a 32 bit heap dump records it in 4 bytes, which shark widens by
-     * sign — so every object above the 2 GB mark of such a dump has a negative id. See [isPileId].
+     * The first of the ids this tree hands out to a pile of objects, which count up from there and stay
+     * negative, where no object id is. See [isPileId].
      */
     private const val FIRST_PILE_ID = Long.MIN_VALUE
 
@@ -1844,13 +1841,11 @@ class HeapDominatorTreemap internal constructor(
      * Whether [nodeId] stands for a pile of objects rather than for one object of the heap dump: the two
      * halves of the tree, and the classes their children are gathered under.
      *
-     * Which is a range check rather than a look at the sign, because an object id can be negative. The ids
-     * of a heap dump are addresses, 8 bytes wide or 4 widened by sign, so they run from [Int.MIN_VALUE] up,
-     * and this tree's own ids are below that. The root, [NULL_REFERENCE], is neither.
+     * Which is the sign, because an object id is never negative. It is the address the heap dump recorded,
+     * which shark reads unsigned, and no process keeps objects in the top half of a 64 bit address space.
+     * The root, [NULL_REFERENCE], is neither.
      */
-    fun isPileId(nodeId: Long): Boolean = nodeId < SMALLEST_OBJECT_ID
-
-    private const val SMALLEST_OBJECT_ID: Long = Int.MIN_VALUE.toLong()
+    fun isPileId(nodeId: Long): Boolean = nodeId < 0L
 
     private const val BITMAP_CLASS_NAME = "android.graphics.Bitmap"
     private const val NULL_VALUE = "null"

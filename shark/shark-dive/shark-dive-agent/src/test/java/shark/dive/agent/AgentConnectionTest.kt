@@ -12,7 +12,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import shark.dive.DeepLink
 import shark.dive.Place
-import shark.dive.exactHexObjectId
+import shark.dive.hexObjectId
 
 /**
  * What comes back over the socket, and what goes into the session file, for one line in.
@@ -386,7 +386,7 @@ class AgentConnectionTest {
       """"reason":"The holder never lets go.""""
   )
 
-  private fun hex(objectId: Long) = exactHexObjectId(objectId)
+  private fun hex(objectId: Long) = hexObjectId(objectId)
 
   private companion object {
 

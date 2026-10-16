@@ -9,7 +9,7 @@ import kotlin.math.max
  * A key then costs what the *span* of a heap dump's object ids needs rather than what a whole id
  * needs. On a JVM heap dump that turns 8 byte ids into 4 byte keys, because a heap spans far less
  * than the 4 GB an unsigned int covers. An Android heap dump's ids are already 4 bytes, and ART
- * spreads its heaps over most of the range an int addresses, so there a key usually stays 4 bytes
+ * spreads its heaps over much of the 4 GB those address, so there a key usually stays 4 bytes
  * and only a heap dump of a small heap gets down to 3 or fewer.
  *
  * Because the base is the smallest id, no offset ever wraps and [encode] is therefore monotonic:

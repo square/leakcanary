@@ -14,7 +14,7 @@ class UnreachableObjectRenderingTest {
     val analysis = heapDump.checkForLeaks<HeapAnalysisSuccess>()
 
     analysis renders """
-    com.example.SomeClass instance
+    com.example.SomeClass instance 0x11
     _  Verdict: Stuck (ObjectWatcher was watching this because its lifecycle has ended)
     _  key = 39efcc1a-67bf-2040-e7ab-3fc9f94731dc
     _  watchDurationMillis = 25000

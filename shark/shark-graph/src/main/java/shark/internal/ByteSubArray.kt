@@ -23,11 +23,12 @@ internal class ByteSubArray(
     return array[rangeStart + index]
   }
 
+  /** Unsigned, like [shark.HprofRecordReader.readId]. */
   fun readId(): Long {
     return if (longIdentifiers) {
       readLong()
     } else {
-      readInt().toLong()
+      readInt().toLong() and INT_MASK
     }
   }
 
@@ -127,3 +128,5 @@ private inline infix fun Byte.and(other: Long): Long = toLong() and other
 
 @Suppress("NOTHING_TO_INLINE") // Syntactic sugar.
 private inline infix fun Byte.and(other: Int): Int = toInt() and other
+
+private const val INT_MASK = 0xffffffffL

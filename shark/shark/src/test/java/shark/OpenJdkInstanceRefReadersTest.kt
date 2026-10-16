@@ -58,6 +58,15 @@ class OpenJdkInstanceRefReadersTest {
      * thread as one list, so a sentinel cleared with the entries coming out of its queue only says
      * the thread has taken that list. The sentinel of a second collection only comes out once the
      * thread is through it.
+     *
+     * `System.runFinalization()` would do this on ART, whose finalization sentinel goes through the
+     * daemon that enqueues cleared references:
+     * https://android.googlesource.com/platform/libcore/+/refs/tags/android-16.0.0_r1/luni/src/main/java/java/lang/ref/FinalizerReference.java#118
+     * But not on HotSpot, which these tests run on. There it only runs the finalizers already
+     * queued, and returns while the Reference Handler thread may still be holding the list:
+     * https://github.com/openjdk/jdk17u/blob/jdk-17.0.20%2B8/src/java.base/share/classes/java/lang/ref/Finalizer.java#L127-L145
+     * With that thread suspended for 300 ms around the dump, it passed 1 run in 10, the same as
+     * `System.gc()` alone, where waiting for the sentinels passed 10 in 10.
      */
     private fun clearWeakKeys() {
       repeat(2) {

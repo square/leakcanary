@@ -95,10 +95,6 @@ fun Place.noteKey(): String = when (this) {
  * listing says which places this heap dump has been written about, and that is only worth saying if each of
  * them is somewhere a reader can be sent. A key from a newer version of the app, or a file somebody dropped
  * in the directory by hand, is null rather than an error.
- *
- * One caveat, from [hexObjectId] being the recognisable spelling rather than the exact one: a 32 bit heap
- * dump's sign-widened address and the positive address of the same digits share a key, so they share a note,
- * and this answers with the positive one. The note is right; the tab it opens, for that one dump, may not be.
  */
 fun placeOfNoteKeyOrNull(key: String): Place? = when {
   key == HEAP_DUMP_KEY -> Place.wholeHeapDump()

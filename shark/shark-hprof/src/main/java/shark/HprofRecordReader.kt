@@ -536,12 +536,16 @@ class HprofRecordReader internal constructor(
     return Double.fromBits(readLong())
   }
 
+  /**
+   * An object id, which is the address the heap dump recorded the object at: unsigned, the way every
+   * other heap dump tool shows it. A 4 byte id above the 2 GB mark is a positive [Long] like any
+   * other, e.g. `0x82000010`, rather than a negative one.
+   */
   fun readId(): Long {
-    // As long as we don't interpret IDs, reading signed values here is fine.
     return when (identifierByteSize) {
-      1 -> readByte().toLong()
-      2 -> readShort().toLong()
-      4 -> readInt().toLong()
+      1 -> readUnsignedByte().toLong()
+      2 -> readUnsignedShort().toLong()
+      4 -> readUnsignedInt()
       8 -> readLong()
       else -> throw IllegalArgumentException("ID Length must be 1, 2, 4, or 8")
     }

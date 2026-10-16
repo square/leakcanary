@@ -47,9 +47,10 @@ class ObjectArrayReferenceReaderTest {
   private val nullReference = ReferenceHolder(NULL_REFERENCE)
 
   /**
-   * An id no object of the heap dump has: [HprofWriterHelper] hands out ids counting up from 1.
+   * An id no object of the heap dump has: [HprofWriterHelper] hands out ids counting up from 1, and
+   * this is the highest a 4 byte id goes.
    */
-  private val danglingReference = ReferenceHolder(Long.MAX_VALUE)
+  private val danglingReference = ReferenceHolder(0xffffffffL)
 
   private fun DualSourceProvider.readArrayReferenceNames(): List<String> {
     return openHeapGraph().use { graph ->

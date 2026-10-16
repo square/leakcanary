@@ -46,14 +46,14 @@ HEAP ANALYSIS RESULT
 ┬───
 │ GC Root: System class
 │
-├─ com.example.MySingleton class
+├─ com.example.MySingleton class 0x12c48d10
 │    Verdict: Expected (a class is always expected)
 │    ↓ static MySingleton.leakedView
 │                         ~~~~~~~~~~
-├─ android.widget.TextView instance
+├─ android.widget.TextView instance 0x12e5f3a0
 │    Verdict: Stuck (View.mContext references a destroyed activity)
 │    ↓ TextView.mContext
-╰→ com.example.MainActivity instance
+╰→ com.example.MainActivity instance 0x12e1b2c8
      Verdict: Stuck (Activity#mDestroyed is true)
 ====================================
   at leakcanary.AndroidDetectLeaksAssert.assertNoLeaks(AndroidDetectLeaksAssert.kt:34)

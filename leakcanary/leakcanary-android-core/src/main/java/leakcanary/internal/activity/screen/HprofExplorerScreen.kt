@@ -13,6 +13,7 @@ import com.squareup.leakcanary.core.R
 import leakcanary.internal.activity.db.Io
 import leakcanary.internal.activity.db.executeOnIo
 import leakcanary.internal.activity.ui.SimpleListAdapter
+import leakcanary.internal.hexObjectId
 import leakcanary.internal.navigation.Screen
 import leakcanary.internal.navigation.activity
 import leakcanary.internal.navigation.inflate
@@ -309,14 +310,3 @@ internal class HprofExplorerScreen(
     }
   }
 }
-
-/**
- * [objectId] in hex, the way shark writes an object id for someone to read: `0x12c0a6b8`. The
- * same as the copy in `shark-graph`, which says why. This module can't see that one.
- */
-private fun hexObjectId(objectId: Long): String {
-  val address = if (objectId < 0L) objectId and LOW_32_BITS else objectId
-  return "0x${address.toString(16)}"
-}
-
-private const val LOW_32_BITS = 0xffffffffL

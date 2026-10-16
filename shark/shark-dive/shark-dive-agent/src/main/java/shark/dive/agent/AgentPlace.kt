@@ -2,7 +2,7 @@ package shark.dive.agent
 
 import shark.dive.ObjectListFilter
 import shark.dive.Place
-import shark.dive.exactHexObjectId
+import shark.dive.hexObjectId
 
 /**
  * How a place of a heap dump is spelled to an agent, and read back off one.
@@ -80,7 +80,7 @@ internal fun showItInstead(text: String): String? {
  * read the human's copy would be the same prose over again. See `AgentMethod`.
  */
 internal fun placeText(place: Place): String? = when (place) {
-  is Place.Object -> exactHexObjectId(place.objectId)
+  is Place.Object -> hexObjectId(place.objectId)
   is Place.Objects ->
     if (place.filter.query.isEmpty()) {
       PLACE_OBJECTS
