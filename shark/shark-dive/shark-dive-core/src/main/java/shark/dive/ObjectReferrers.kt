@@ -70,18 +70,19 @@ data class ReferrerReference(
   val holds: Boolean
 )
 
-/** One GC root on an object. A root is no object, so it has a type and no row or references. */
+/**
+ * One GC root on an object. A root is no object, so it has a type and no row or references.
+ *
+ * A `JAVA_FRAME`, `JNI_LOCAL` or `NATIVE_STACK` root on the stack of a thread the heap dump has is none of
+ * these. Shark reads it as a reference from the thread, so the local variable is an [ObjectReferrer] whose
+ * reference is [PathReference.isVirtual]. See [TreeGcRootProvider].
+ */
 data class GcRootReferrer(
   val gcRootType: LeakTrace.GcRootType,
   /**
    * Whether the dominator tree holds the object through this root, which is what [ReferrerReference.holds]
    * says of a reference. False for a weaker root on an object something firmer holds, such as a local
    * variable pointing at an object a field holds. See [HeapReachability.isHeldThrough].
-   *
-   * False too for a root on the stack of a thread the heap dump names: a `JAVA_FRAME`, `JNI_LOCAL` or
-   * `NATIVE_STACK` root. Each is read as a reference from the thread as well, and the tree reaches the object
-   * through the thread. So the one local variable is this root and an [ObjectReferrer] whose reference is
-   * [PathReference.isVirtual].
    */
   override val holds: Boolean
 ) : Referrer

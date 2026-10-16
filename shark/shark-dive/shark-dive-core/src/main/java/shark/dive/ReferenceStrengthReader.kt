@@ -5,10 +5,6 @@ import shark.AndroidReferenceMatchers
 import shark.ClassReferenceReader
 import shark.FieldInstanceReferenceReader
 import shark.GcRoot
-import shark.GcRoot.JavaFrame
-import shark.GcRoot.JniLocal
-import shark.GcRoot.NativeStack
-import shark.GcRoot.ThreadObject
 import shark.HeapGraph
 import shark.HeapObject
 import shark.HeapObject.HeapClass
@@ -120,20 +116,6 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   private val localVariableReader = JavaLocalReferenceReader(graph, referenceMatchers)
 
-  /**
-   * The threads [localVariableReader] reads the stack frames of, by the serial number a root on a stack
-   * names its thread with. Read once: a heap dump has a few hundred threads and tens of thousands of frames.
-   */
-  private val threadObjectIdBySerialNumber: Map<Int, Long> by lazy {
-    graph.gcRoots.asSequence()
-      .filterIsInstance<ThreadObject>()
-      .filter { root ->
-        val thread = graph.findObjectByIdOrNull(root.id)
-        thread is HeapInstance && localVariableReader.matches(thread)
-      }
-      .associate { it.threadSerialNumber to it.id }
-  }
-
   private val viewChildReader = ViewChildReferenceReader(graph)
 
   private val layoutNodeChildReader = LayoutNodeChildReferenceReader(graph)
@@ -195,22 +177,6 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
     is HeapInstance -> instanceFieldReader.read(source)
     is HeapObjectArray -> objectArrayReader.read(source)
     is HeapPrimitiveArray -> emptySequence()
-  }
-
-  /**
-   * Whether [gcRoot] is a local variable that [weakeningReferencesOf] also reads as a reference from its
-   * thread. So the two are one local variable, and the reference is the reading that says which thread.
-   * See [TreeGcRootProvider].
-   */
-  fun isReadAsAReference(gcRoot: GcRoot): Boolean =
-    threadSerialNumberOf(gcRoot)?.let { it in threadObjectIdBySerialNumber } == true
-
-  /** The thread a root on a stack is on, and null for a root that is on none. */
-  private fun threadSerialNumberOf(gcRoot: GcRoot): Int? = when (gcRoot) {
-    is JavaFrame -> gcRoot.threadSerialNumber
-    is JniLocal -> gcRoot.threadSerialNumber
-    is NativeStack -> gcRoot.threadSerialNumber
-    else -> null
   }
 
   /**
@@ -296,7 +262,7 @@ internal class ReferenceStrengthReader(private val graph: HeapGraph) {
 
   /**
    * What the methods [source] is running hold in their local variables, at [LOCAL], when [source] is a
-   * thread the heap dump names. Shark reads each [JavaFrame], [JniLocal] and [NativeStack] root of that
+   * thread the heap dump names. Shark reads each [GcRoot.JavaFrame], [GcRoot.JniLocal] and [GcRoot.NativeStack] root of that
    * thread as one of these. Unlike the root, the reference says which thread the local variable is on.
    *
    * At [LOCAL] like the root, so that an object a field also holds is the field's. A local variable

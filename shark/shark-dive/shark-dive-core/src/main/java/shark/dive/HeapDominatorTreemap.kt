@@ -798,7 +798,7 @@ class HeapDominatorTreemap internal constructor(
       return ObjectReferrers.NONE
     }
     val candidates = mutableListOf<ReferrerCandidate>()
-    graph.gcRoots.filter { it.id == objectId }.forEach { gcRoot ->
+    gcRootProvider.rootsOn(objectId).forEach { gcRoot ->
       val referrer = GcRootReferrer(
         gcRootType = LeakTrace.GcRootType.fromGcRoot(gcRoot),
         holds = gcRootProvider.holds(gcRoot)
@@ -1439,8 +1439,8 @@ class HeapDominatorTreemap internal constructor(
    * and Shark's — and looking it up twice would let the two answer about different roots. See
    * [RootPath.gcRootType].
    */
-  private fun gcRootOf(objectId: Long): GcRoot? = graph.gcRoots.firstOrNull {
-    it.id == objectId && gcRootProvider.holds(it)
+  private fun gcRootOf(objectId: Long): GcRoot? = gcRootProvider.rootsOn(objectId).firstOrNull {
+    gcRootProvider.holds(it)
   }
 
   /** The label for an object no GC root reaches, which says so in the log when the two halves disagree. */

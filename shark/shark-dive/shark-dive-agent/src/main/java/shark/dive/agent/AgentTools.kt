@@ -464,8 +464,10 @@ internal class AgentTools(
       "holding the object. It is false for a weak reference to an object held strongly. It is false too " +
       "for a reference to an object its owner holds, such as a view held by its parent. `isVirtual` marks " +
       "a reference Shark reads off a structure, such as a list holding its elements. The array the list " +
-      "keeps them in is a referrer too. Holders come first, GC roots ahead of objects, then the largest " +
-      "retained size. `nextOffset` is where the next page starts, and null on the last one.",
+      "keeps them in is a referrer too. A thread holds the local variables of the methods it runs the same " +
+      "way, in place of the GC root the heap dump has for each. Holders come first, GC roots ahead of " +
+      "objects, then the largest retained size. `nextOffset` is where the next page starts, and null on " +
+      "the last one.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object pointed at."),

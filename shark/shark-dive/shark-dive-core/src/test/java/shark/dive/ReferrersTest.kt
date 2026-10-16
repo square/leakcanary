@@ -123,10 +123,10 @@ class ReferrersTest {
   }
 
   /**
-   * A local variable of a thread the heap dump names is read twice: as the GC root the dump records, and as
-   * a reference from the thread. Neither holds an object a field holds, so it is drawn under the field.
+   * A local variable of a thread the heap dump names is a reference from the thread, and is no GC root even
+   * though the heap dump records one. It holds nothing a field holds, so the object is drawn under the field.
    */
-  @Test fun `a local variable of a named thread holds nothing a field holds, read either way`() {
+  @Test fun `a local variable of a named thread is its thread's and holds nothing a field holds`() {
     HeapDive.open(testFolder.onAStackAndInAFieldHeapDump()).use { dive ->
       val tree = dive.tree
       val payload = tree.findByLabel("Object[]")
@@ -135,7 +135,6 @@ class ReferrersTest {
 
       assertThat(referrers.referenceLabels()).containsExactly(
         "Holder.payload",
-        "JAVA_FRAME (holds nothing)",
         "Thread.<local variable> (virtual, holds nothing)"
       )
       assertThat(referrers.holdingReferrerCount).isEqualTo(1)
@@ -154,10 +153,7 @@ class ReferrersTest {
 
       val referrers = tree.referrersOf(payload.objectId)
 
-      assertThat(referrers.referenceLabels()).containsExactly(
-        "Thread.<local variable> (virtual)",
-        "JAVA_FRAME (holds nothing)"
-      )
+      assertThat(referrers.referenceLabels()).containsExactly("Thread.<local variable> (virtual)")
       assertThat(tree.dominatorOf(payload.objectId)?.nodeId)
         .isEqualTo(tree.instancesOf("Thread").single().objectId)
       assertThat(tree.strengthOf(payload.objectId)).isEqualTo(ReachabilityStrength.LOCAL)
@@ -184,11 +180,8 @@ class ReferrersTest {
 
       assertThat(referrers.referenceLabels()).containsExactly(
         "Thread.<local variable> (virtual)",
-        "Thread.<local variable> (virtual)",
-        "Thread.<local variable> (virtual)",
-        "JAVA_FRAME (holds nothing)",
-        "JNI_LOCAL (holds nothing)",
-        "NATIVE_STACK (holds nothing)"
+        "Thread.<native local> (virtual)",
+        "Thread.<native local> (virtual)"
       )
       assertThat(tree.dominatorOf(payload.objectId)?.nodeId)
         .isEqualTo(tree.instancesOf("Thread").single().objectId)
@@ -278,7 +271,7 @@ class ReferrersTest {
    * A heap dump where a GC rooted holder holds a payload that [gcRootOn] is a second GC root on.
    *
    * A [JavaFrame] here has a thread that is no object of the dump, so the local is a GC root on the payload
-   * and nothing else. A thread the dump names would be a referrer too, since Shark reads a local as a
+   * and nothing else. A thread the dump names would be the referrer instead, since Shark reads a local as a
    * reference from its thread: see [onAStackAndInAFieldHeapDump].
    */
   private fun TemporaryFolder.inAFieldAndARootHeapDump(gcRootOn: (payload: Long) -> GcRoot): File {

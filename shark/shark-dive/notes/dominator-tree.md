@@ -565,11 +565,13 @@ the local as the hprof records it, naming its thread by serial number. `JavaLoca
 each frame of a thread the dump names as a `LOCAL` reference from that `Thread`, marked `isVirtual`, and
 `MatchingGcRootProvider` drops the root. `ReferenceStrengthReader` reads that reference as a weakening one
 at `LOCAL`. So an object only a stack holds is under its thread, and an object a field also holds is under
-the field.
+the field. The referrers of an object take their GC roots from `MatchingGcRootProvider` as well, through
+`TreeGcRootProvider.rootsOn`, so a local variable is listed once, as its thread's reference.
 
 **Native code a thread runs holds objects through `JNI_LOCAL` and `NATIVE_STACK` roots, read the same
 way.** These name a thread by serial number too, and on every dump here it is a thread the dump names. Shark
-reads both as `LOCAL` references from the thread and drops the roots, as it does for frames. Left as roots,
+reads both as `NATIVE_LOCAL` references from the thread and drops the roots, as it does for frames, and
+`ReferenceStrengthReader` reads them at `LOCAL` like a frame's. Left as roots,
 they are a second holder beside the thread. On `large-dump.hprof` that put 7 objects under the whole heap
 dump: six with a frame and a native root on one thread, and a `String[]` one of the six holds.
 
