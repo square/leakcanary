@@ -16,6 +16,7 @@
 package shark
 
 import java.util.EnumSet
+import java.util.concurrent.TimeUnit
 import kotlin.math.absoluteValue
 import shark.AndroidObjectInspectors.Companion.appDefaults
 import shark.AndroidServices.aliveAndroidServiceObjectIds
@@ -710,11 +711,10 @@ enum class AndroidObjectInspectors : ObjectInspector {
         addSyntheticField("Message.when", whenUptimeMillis.toString())
         if (heapDumpUptimeMillis != null) {
           val diffMs = whenUptimeMillis - heapDumpUptimeMillis
-          labels += if (diffMs > 0) {
-            "Message.when is $diffMs ms after the heap dump"
-          } else {
-            "Message.when is ${diffMs.absoluteValue} ms before the heap dump"
-          }
+          val diffAbsoluteMs = diffMs.absoluteValue
+          val inLargestUnit = durationInLargestUnit(diffAbsoluteMs)?.let { " ($it)" } ?: ""
+          val direction = if (diffMs > 0) "after" else "before"
+          labels += "Message.when is $diffAbsoluteMs ms$inLargestUnit $direction the heap dump"
         }
 
         addReferenceField(instance["android.os.Message", "obj"]!!)
@@ -1038,6 +1038,30 @@ private fun String.quoted(): String {
   }
   return builder.append('"').toString()
 }
+
+/**
+ * [millis] in the largest unit it comes to at least one of, to a tenth: `2.5 minutes`, `1 hour`. Null under
+ * a second.
+ *
+ * The unit is picked after rounding: 59999 ms reads `1 minute`, not `60 seconds`.
+ */
+private fun durationInLargestUnit(millis: Long): String? {
+  for ((unitMillis, unitName) in DURATION_UNITS) {
+    val tenths = (millis * 10 + unitMillis / 2) / unitMillis
+    if (tenths >= 10) {
+      val amount = if (tenths % 10 == 0L) "${tenths / 10}" else "${tenths / 10}.${tenths % 10}"
+      return "$amount $unitName" + if (tenths == 10L) "" else "s"
+    }
+  }
+  return null
+}
+
+private val DURATION_UNITS = listOf(
+  TimeUnit.DAYS.toMillis(1) to "day",
+  TimeUnit.HOURS.toMillis(1) to "hour",
+  TimeUnit.MINUTES.toMillis(1) to "minute",
+  TimeUnit.SECONDS.toMillis(1) to "second"
+)
 
 /** android.view.WindowManager.LayoutParams.TYPE_TOAST */
 private const val TYPE_TOAST = 2005
