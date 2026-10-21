@@ -14,8 +14,9 @@ is still `a`.
 
 ## How Shark Dive uses it
 
-`HeapDive.open` calls `HeapDominatorTree.buildFor` with a `WeakeningAwareReferenceReader` wrapping
-`ActualMatchingReferenceReaderFactory`, then `buildNodes` with `AndroidObjectSizeCalculator`. One tree
+`HeapDive.open` calls `HeapDominatorTree.buildFor` with a `WeakeningAwareReferenceReader` wrapping the
+readers `ActualMatchingReferenceReaderFactory` builds, less the one for local variables (see the
+reachability section), then `buildNodes` with `AndroidObjectSizeCalculator`. One tree
 per open heap dump, built once, holding every object of the dump.
 
 **Which reference matchers go in matters, and it isn't "none".** The matchers do two unrelated jobs,
@@ -40,7 +41,7 @@ and only one of them belongs here:
   `JvmReferenceStrengthTest`, which dumps a real JVM that has one.
 - `AndroidReferenceMatchers` mostly suppresses noise so a leak trace stays readable. Those are real
   strong references, so ignoring them here would hide memory that really is retained. **Left out.**
-  This is why `ActualMatchingReferenceReaderFactory` and not `AndroidReferenceReaderFactory`: the
+  This is why the readers of `ActualMatchingReferenceReaderFactory` and not `AndroidReferenceReaderFactory`: the
   latter also installs `FlatteningPartitionedInstanceReferenceReader`, which surfaces a map's or
   list's internals as direct children of the collection and marks them leaf objects. Good for a leak
   trace, wrong here — a treemap needs every object to be a node exactly once, and the array a
@@ -63,14 +64,14 @@ the whole heap dump and they only pick which strengths are drawn in colour. See 
 **`SOFT`, `WEAK` and `PHANTOM` often come out at 0 bytes — but don't treat that as a rule.** The
 collection that precedes a dump clears a `Reference` whose referent nothing else was holding, so on
 many dumps there's nothing left at those strengths. Measured on `compose_leak.hprof`: 15.8 MB strong over
-243,672 objects, 8 B weak over one, exactly 0 B soft, finalizer and phantom, 418 KB uncollected garbage
-over 15,320 objects. On a 287 MB production dump: 262 MB strong, 7 MB uncollected garbage, and 5 finalizer
-reachable objects totalling 1.1 KB — measured before the list links above were followed, so its finalizer
-count would be higher today.
+243,342 objects, 6.8 KB local over 330, 8 B weak over one, exactly 0 B soft, finalizer and phantom, 418 KB
+uncollected garbage over 15,320 objects. On a 287 MB production dump: 262 MB strong, 7 MB uncollected
+garbage, and 5 finalizer reachable objects totalling 1.1 KB — measured before the list links above were
+followed, so its finalizer count would be higher today.
 
 **And a dump where none of them is 0 looks like this.** `leak_asynctask_o.hprof`, same repo, 9.0 MB strong
-over 120,601 objects: 164 KB phantom over 1,266, 405 B finalizer over 17, 366 B thread local over 14,
-140 B soft over 5, 97 B weak over 7, and 255 KB garbage over 7,847. Worth having a dump like that to hand,
+over 120,566 objects: 164 KB phantom over 1,266, 945 B local over 35, 405 B finalizer over 17, 366 B thread
+local over 14, 140 B soft over 5, 97 B weak over 7, and 255 KB garbage over 7,847. Worth having a dump like that to hand,
 because every one of those strengths reading 0 is also what a broken strength computation looks like.
 
 **A dump can and does contain objects that are only weakly reachable**, and not as uncollected
@@ -558,6 +559,40 @@ variable says nothing about what keeps that object in memory. Nothing is lost by
 reached at exactly the strength this compares against, so the edges of its strongest path all survive, and
 the tree still holds every object of the dump. Withholding a *root* edge is how the dominator tree is told,
 since `HeapDominatorTree` is exact and has no notion of a low priority root.
+
+**Shark reads a local variable twice, and the tree takes one of the two readings.** A `JavaFrame` root is
+the local as the hprof records it, naming its thread by serial number. `JavaLocalReferenceReader` also reads
+each frame of a thread the dump names as a `LOCAL` reference from that `Thread`, marked `isVirtual`, and
+`MatchingGcRootProvider` drops the root. `ReferenceStrengthReader` reads that reference as a weakening one
+at `LOCAL`. So an object only a stack holds is under its thread, and an object a field also holds is under
+the field. The referrers of an object take their GC roots from `MatchingGcRootProvider` as well, through
+`TreeGcRootProvider.rootsOn`, so a local variable is listed once, as its thread's reference.
+
+**Native code a thread runs holds objects through `JNI_LOCAL` and `NATIVE_STACK` roots, read the same
+way.** These name a thread by serial number too, and on every dump here it is a thread the dump names. Shark
+reads both as `NATIVE_LOCAL` references from the thread and drops the roots, as it does for frames, and
+`ReferenceStrengthReader` reads them at `LOCAL` like a frame's. Left as roots,
+they are a second holder beside the thread. On `large-dump.hprof` that put 7 objects under the whole heap
+dump: six with a frame and a native root on one thread, and a `String[]` one of the six holds.
+
+The local used to be read as retaining, like the rest of what `ActualMatchingReferenceReaderFactory` reads.
+That made every local variable of a named thread strong, so no object of any of these dumps was `LOCAL`.
+And an object a field also held had two holders, the thread and the field's owner, so it sat under the
+whole heap dump. Measured on `large-dump.hprof`, against that reading:
+
+| | Objects | Retained |
+| --- | --- | --- |
+| On a stack, moved from under the whole heap dump to under an object | 160 | 45 KB |
+| On a stack, moved from under the whole heap dump to under its thread | 3 | 182 B |
+| `STRONG` before, `LOCAL` now | 38 | 2.3 KB |
+
+The 160 are mostly what a parked thread waits on: 36 under an `AbstractQueuedSynchronizer$ConditionObject`,
+44 under a `ScheduledThreadPoolExecutor` or its queue, 16 under a `LinkedBlockingQueue`.
+
+The 3 are `String`s only a `JNI_LOCAL` root on the main thread holds. Every other dump here has 2 to 4 of
+them, all `String`s. What a stack holds and is still under the whole heap dump is on the stacks of two
+threads. One is a `Message` that frames of the main thread and of a `HandlerThread` both hold, in
+`leak_asynctask_pre_m.hprof`.
 
 **A garbage cycle has no entry point**, and that's the part to get right: a doubly linked list nothing
 points at any more has every node pointed at by another, so "the ones nothing points at" finds none of

@@ -690,6 +690,10 @@ can't take that way at all, because **its phase 1 treats a leaking object as a l
   independent of one and never reported as an alternative. It was on screen only because the path itself
   ran through it.
 
+  **That frame route is gone since**, for a reason of its own: a local variable holds nothing a field holds,
+  so the tree has no edge from the thread to `MainActivity$2` at all. `dominator-tree.md` has why. The two
+  queues still order a leak ahead of a known library leak.
+
 **Shark's library leak matchers are added to the reference reader the tree is built from**
 (`ReferenceStrengthReader`), filtered to `LibraryLeakReferenceMatcher` — the ignored ones beside them would
 drop references, and every object has to stay a node of the tree exactly once. A `LibraryLeakReferenceMatcher`

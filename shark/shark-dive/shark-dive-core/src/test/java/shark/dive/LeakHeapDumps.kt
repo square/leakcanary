@@ -367,20 +367,22 @@ internal fun TemporaryFolder.leakOnAStackAndInAFieldHeapDump(): File {
 }
 
 /**
- * A heap dump shaped like the `AsyncTask` of the sample app, where three objects each hold the other two.
+ * A heap dump shaped like the `AsyncTask` of the sample app, where the executor and the runnable it is
+ * running each hold the other.
  *
  * What a real executor looks like while it is running something: the executor holds the runnable it wrapped
- * the task in, that runnable holds the task, the task holds the thread running it — `FutureTask.runner` — and
- * that thread's stack frame holds the runnable back. Which is a loop, and the objects on it are neither above
- * nor below each other however far a walk up the referrers gets. See `isAbove`.
+ * the task in as `mActive`, and that runnable holds the executor back as `this$0`, since it is an inner class
+ * calling `scheduleNext()` on it. Which is a loop, and the two objects on it are neither above nor below each
+ * other however far a walk up the referrers gets. See `isAbove`. The runnable holds the task, and the task
+ * holds the thread running it, `FutureTask.runner`.
  *
- * The paths drawn through it all take the executor's field rather than a frame, since [RootPathSearch] puts
- * a frame off, so what a reader sees is the wrapper above the task with the activity under both. **A frame
- * holds the activity too**, as the running thread's frames do in `leak_asynctask_o.hprof`, which is what
- * makes it the shorter way in the moment a verdict set by hand puts the way through the task off as well.
+ * **That thread's stack frames point at the runnable and at the activity**, as the running thread's frames do
+ * in `leak_asynctask_o.hprof`, and hold neither: a field holds both, and a local variable holds nothing a
+ * field holds. So a frame closes no loop, and it is no way to the activity round the task either.
  */
 internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump {
   val file = newFile("task-holding-its-own-thread.hprof")
+  var executorObjectId = 0L
   var wrapperObjectId = 0L
   var taskObjectId = 0L
   var activityObjectId = 0L
@@ -398,36 +400,41 @@ internal fun TemporaryFolder.taskHoldingItsOwnThreadHeapDump(): TaskLoopHeapDump
       ),
       fields = listOf(activity, thread)
     )
+    val executor = reserveObjectId()
     val wrapper = instance(
-      clazz(className = WRAPPER_CLASS_NAME, fields = listOf("val\$r" to ReferenceHolder::class)),
-      fields = listOf(task)
+      clazz(
+        className = WRAPPER_CLASS_NAME,
+        fields = listOf("val\$r" to ReferenceHolder::class, "this$0" to ReferenceHolder::class)
+      ),
+      fields = listOf(task, executor)
     )
-    // The runnable the thread is inside of, which is how the loop closes: a local variable of a method
-    // running on that thread is a Java frame GC root, read as a reference of the thread itself.
+    // The runnable the thread is inside of, and the activity the method it is running has a hold of.
     gcRoot(JavaFrame(id = wrapper.value, threadSerialNumber = 42, frameNumber = 0))
-    // And the activity the method it is running has a hold of, two steps from the thread where the
-    // executor's field is four.
     gcRoot(JavaFrame(id = activity.value, threadSerialNumber = 42, frameNumber = 1))
-    val executor = instance(
+    instance(
       clazz(className = EXECUTOR_CLASS_NAME, fields = listOf("mActive" to ReferenceHolder::class)),
-      fields = listOf(wrapper)
+      fields = listOf(wrapper),
+      objectId = executor
     )
     gcRoot(JniGlobal(id = executor.value, jniGlobalRefId = 0))
+    executorObjectId = executor.value
     wrapperObjectId = wrapper.value
     taskObjectId = task.value
     activityObjectId = activity.value
   }
-  return TaskLoopHeapDump(file, wrapperObjectId, taskObjectId, activityObjectId)
+  return TaskLoopHeapDump(file, executorObjectId, wrapperObjectId, taskObjectId, activityObjectId)
 }
 
-/** A [taskHoldingItsOwnThreadHeapDump] and the three objects of it a verdict gets set on. */
+/** A [taskHoldingItsOwnThreadHeapDump] and the four objects of it a verdict gets set on. */
 internal class TaskLoopHeapDump(
   val file: File,
-  /** The runnable the executor is running, which is on the loop and above the task on every path. */
+  /** The executor, which is GC rooted and on the loop. */
+  val executorObjectId: Long,
+  /** The runnable the executor is running, which is on the loop too and above the task on every path. */
   val wrapperObjectId: Long,
-  /** The task it wrapped, which is on the loop too and is what holds the activity. */
+  /** The task it wrapped, which is on no loop and is what holds the activity. */
   val taskObjectId: Long,
-  /** The destroyed activity under both of them, which is on no loop. */
+  /** The destroyed activity under all of them. */
   val activityObjectId: Long
 )
 

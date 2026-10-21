@@ -684,6 +684,7 @@ internal fun verbOfTool(
   "describe_object" -> "Looked at"
   "path_from_gc_roots" -> "Read the path to"
   "ways_held" -> "Looked for every way of holding"
+  "referrers" -> "Listed what points at"
   // Which is a search of the whole dump when it names no class, and that is the list of the biggest
   // objects rather than a search for nothing.
   "find_objects" -> if (SUBJECT_CLASS_NAME in arguments) "Searched for" else "Listed the"

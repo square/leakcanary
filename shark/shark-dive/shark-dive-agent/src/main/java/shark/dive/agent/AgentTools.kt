@@ -11,6 +11,7 @@ import shark.dive.DEFAULT_OUTLINE_CHILDREN
 import shark.dive.DEFAULT_OUTLINE_DEPTH
 import shark.dive.HeapDominatorTreemap
 import shark.dive.HeapObjectKind
+import shark.dive.ObjectReferrers
 import shark.dive.Verdict
 import shark.dive.VerdictConflict
 import shark.dive.VerdictOverride
@@ -82,17 +83,15 @@ internal class AgentTools(
     describeObject(),
     pathFromGcRoots(),
     waysHeld(),
+    referrers(),
     findObjects(),
     dominatorTree(),
     setVerdict(),
     clearVerdict(),
     readNotes(),
     takeNote(),
-    show(),
-    listDevices(),
-    listProcesses(),
-    dumpHeap()
-  )
+    show()
+  ) + AgentDeviceTools(heapDumps, keyOf = ::keyOf).all
 
   fun byName(name: String): AgentTool? = all.firstOrNull { it.name == name }
 
@@ -419,12 +418,13 @@ internal class AgentTools(
   }
 
   private fun waysHeld() = AgentTool(
-    name = "ways_held",
+    name = WAYS_HELD,
     summary = "Every way an object is held, rather than the one path.",
     description = "Every way an object is held, rather than the one path. It answers \"is that reference " +
       "really the only thing keeping it in memory?\", which a single path cannot, and which decides " +
       "whether clearing a field would free anything. Give `from` to ask only about the ways between that " +
-      "object and this one. Refused for uncollected garbage, which nothing holds.",
+      "object and this one. Refused for uncollected garbage, which nothing holds. `$REFERRERS` is the " +
+      "single step up: every object pointing at it, through every reference.",
     schema = schema(
       HEAP_DUMP_KEY to heapDumpArgument(),
       OBJECT to objectIdArgument("The object being held."),
@@ -450,6 +450,45 @@ internal class AgentTools(
         tree.independentPathsBetween(fromObjectId, objectId, dump.verdicts)
       }
       AgentJson.independentPaths(paths)
+    }
+  }
+
+  private fun referrers() = AgentTool(
+    name = REFERRERS,
+    summary = "Every object and GC root pointing at an object, a page at a time.",
+    description = "Every object pointing at an object with each reference it points through, and every GC " +
+      "root on it, a page at a time. This is one step up, where `$WAYS_HELD` walks to the GC roots and " +
+      "keeps only paths sharing no object. So two referrers held by one parent are one way there and two " +
+      "referrers here. A GC root is a referrer with a `gcRootType` in place of an object and its " +
+      "references. `holds` is whether retained sizes and `$WAYS_HELD` count a reference or a root as " +
+      "holding the object. It is false for a weak reference to an object held strongly. It is false too " +
+      "for a reference to an object its owner holds, such as a view held by its parent. `isVirtual` marks " +
+      "a reference Shark reads off a structure, such as a list holding its elements. The array the list " +
+      "keeps them in is a referrer too. A thread holds the local variables of the methods it runs the same " +
+      "way, in place of the GC root the heap dump has for each. Holders come first, GC roots ahead of " +
+      "objects, then the largest retained size. `nextOffset` is where the next page starts, and null on " +
+      "the last one.",
+    schema = schema(
+      HEAP_DUMP_KEY to heapDumpArgument(),
+      OBJECT to objectIdArgument("The object pointed at."),
+      OFFSET to integer(
+        "Where the page starts in the whole list, 0 by default. The `nextOffset` of a page is the next one's."
+      ).optional(),
+      LIMIT to integer(
+        "How many referrers to list, at most ${HeapDominatorTreemap.MAX_LISTED_OBJECTS}. The counts come " +
+          "back whole whatever this is."
+      ).optional()
+    )
+  ) { arguments ->
+    val dump = arguments.heapDump()
+    val objectId = arguments.objectId(OBJECT)
+    val offset = arguments.pageOffset()
+    val limit = arguments.int(LIMIT, default = DEFAULT_LISTED_OBJECTS)
+      .coerceIn(1, HeapDominatorTreemap.MAX_LISTED_OBJECTS)
+    dump.read("what points at ${hexObjectId(objectId)} from $offset on, for an agent") { dive ->
+      val tree = dive.tree
+      objectId.requireOneObjectOf(tree)
+      AgentJson.referrers(tree.referrersOf(objectId, offset, limit).requireAPage(objectId))
     }
   }
 
@@ -761,72 +800,6 @@ internal class AgentTools(
     buildJsonObject {
       put("shown", true)
       put("link", link)
-    }
-  }
-
-  private fun listDevices() = AgentTool(
-    name = LIST_DEVICES,
-    summary = "The Android devices adb is connected to.",
-    description = "The Android devices `adb` is connected to, which is the first half of what the window's " +
-      "`Take heap dump` button asks. $LIST_PROCESSES is the other half, and `adb` is the only thing here " +
-      "that reaches outside this machine.",
-    schema = schema()
-  ) {
-    val devices = heapDumps.devices()
-    buildJsonObject {
-      putJsonArray("devices") { AgentJson.devices(devices).forEach { add(it) } }
-      if (devices.isEmpty()) {
-        put(
-          "problem",
-          "`adb` is connected to no device. Plug one in, start an emulator, or ask whoever is at the " +
-            "machine to."
-        )
-      }
-    }
-  }
-
-  private fun listProcesses() = AgentTool(
-    name = LIST_PROCESSES,
-    summary = "The app processes of one device, which are what can be dumped.",
-    description = "The app processes running on one device, each with its pid and whether it is one of the " +
-      "system's own. What can be dumped is an app built debuggable, or every process of a device whose " +
-      "whole build is. That second case is `dumpsAnyProcess` in $LIST_DEVICES: a `userdebug` emulator " +
-      "image has it, a phone does not, and it is the only way a system app here is dumpable.",
-    schema = schema(
-      DEVICE to string("The serial number of the device, from $LIST_DEVICES.")
-    )
-  ) { arguments ->
-    val serialNumber = arguments.string(DEVICE)
-    val processes = heapDumps.processesOf(serialNumber)
-    buildJsonObject {
-      put("device", serialNumber)
-      putJsonArray("processes") { AgentJson.processes(processes).forEach { add(it) } }
-    }
-  }
-
-  private fun dumpHeap() = AgentTool(
-    name = DUMP_HEAP,
-    summary = "Takes a heap dump off a device and opens it. Minutes, on a large app.",
-    description = "Takes a heap dump of a running process, opens it in a window of Shark Dive and " +
-      "answers once it can be read, which is what the window's `Take heap dump` button does. Minutes, " +
-      "on a large app: the device writes the dump, it is pulled over `adb`, and then opened. The garbage " +
-      "is collected first either way, so what is in the dump is what is really still held. That is " +
-      "`am dumpheap -g` from API 27, and below that the same collection run in the process over JDWP. " +
-      "$LIST_DEVICES is the devices and $LIST_PROCESSES is one device's processes.",
-    schema = schema(
-      DEVICE to string("The serial number of the device, from $LIST_DEVICES."),
-      PROCESS to string("The name of the process to dump, from $LIST_PROCESSES.")
-    )
-  ) { arguments ->
-    val dump = heapDumps.dumpHeap(
-      serialNumber = arguments.string(DEVICE),
-      processName = arguments.string(PROCESS)
-    )
-    buildJsonObject {
-      put(HEAP_DUMP_KEY, keyOf(dump))
-      put("heapDumpPath", dump.heapDumpPath)
-      put("dumped", true)
-      put("next", NEXT_WITH_A_NEW_DUMP)
     }
   }
 
@@ -1168,6 +1141,29 @@ private fun VerdictConflict.asSentence(): String {
     "${existing.reason} Keeping yours makes it ${solved.verdict}."
 }
 
+/** Where a page of a list starts, refused below 0. */
+private fun AgentArguments.pageOffset(): Int {
+  val offset = int(OFFSET, default = 0)
+  if (offset < 0) {
+    throw AgentRefusal("`$OFFSET` is $offset, and a page starts at 0 or after it.")
+  }
+  return offset
+}
+
+/**
+ * Refuses a page that starts past the last referrer of [objectId]. An empty page answered there would read
+ * as nothing pointing at the object.
+ */
+private fun ObjectReferrers.requireAPage(objectId: Long): ObjectReferrers {
+  if (offset > 0 && referrers.isEmpty()) {
+    throw AgentRefusal(
+      "`$OFFSET` is $offset, and ${hexObjectId(objectId)} has a `referrerCount` of $referrerCount. A " +
+        "page has to start below $referrerCount."
+    )
+  }
+  return this
+}
+
 /**
  * Refuses an id that is no single object of the heap dump, which is four different mistakes.
  *
@@ -1224,6 +1220,8 @@ private const val DESCRIBE_OBJECT = "describe_object"
 private const val FIND_OBJECTS = "find_objects"
 private const val DOMINATOR_TREE = "dominator_tree"
 private const val PATH_FROM_GC_ROOTS = "path_from_gc_roots"
+private const val WAYS_HELD = "ways_held"
+private const val REFERRERS = "referrers"
 private const val SET_VERDICT = "set_verdict"
 private const val READ_NOTES = "read_notes"
 private const val TAKE_NOTE = "take_note"
@@ -1270,9 +1268,6 @@ private val LEAK_TRACE_PAIR = "`$LEAK_TRACE` and `$HUMAN_LEAK_TRACE` are the sam
   "names gets you one with a step dropped or the underline moved, and that looks like the real thing to " +
   "whoever you hand it to."
 private const val SHOW = "show"
-internal const val LIST_DEVICES = "list_devices"
-internal const val LIST_PROCESSES = "list_processes"
-internal const val DUMP_HEAP = "dump_heap"
 
 /**
  * Which heap dump a call is about: the key it is open under, or the path it was given as.
@@ -1298,6 +1293,7 @@ private const val CLASS_NAME = "className"
 private const val EXACT_MATCH = "exactMatch"
 private const val KINDS = "kinds"
 private const val LIMIT = "limit"
+private const val OFFSET = "offset"
 private const val VERDICT = "verdict"
 
 /**
@@ -1319,8 +1315,6 @@ private const val REPLACE = "replace"
 private const val MAX_DEPTH = "maxDepth"
 private const val MAX_CHILDREN = "maxChildren"
 private const val PATH = "path"
-private const val DEVICE = "device"
-private const val PROCESS = "process"
 
 /**
  * What to do with a heap dump that has just been opened, whichever tool opened it.
@@ -1335,7 +1329,7 @@ private const val PROCESS = "process"
  * investigations, which makes this the one answer that can say so to a session that has read nothing — and
  * the whole of what moving the method out of the answers costs is this sentence. See [AgentMethod].
  */
-private const val NEXT_WITH_A_NEW_DUMP = "To investigate leaks, read ${AgentCommandLine.LEAK_METHOD_OPTION}. " +
+internal const val NEXT_WITH_A_NEW_DUMP = "To investigate leaks, read ${AgentCommandLine.LEAK_METHOD_OPTION}. " +
   "To figure out where memory has gone, call $DOMINATOR_TREE."
 
 /**
