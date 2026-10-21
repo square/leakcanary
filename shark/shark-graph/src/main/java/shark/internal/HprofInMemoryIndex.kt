@@ -117,6 +117,10 @@ internal class HprofInMemoryIndex private constructor(
   val primitiveArrayCount: Int
     get() = primitiveArrayIndex.size
 
+  /** The number of indexed objects, i.e. one past the largest valid `objectIndex`. */
+  private val objectCount: Int
+    get() = classIndex.size + instanceIndex.size + objectArrayIndex.size + primitiveArrayIndex.size
+
   fun fieldName(
     classId: Long,
     id: Long
@@ -194,12 +198,7 @@ internal class HprofInMemoryIndex private constructor(
       .map {
         val id = it.first
         val array = it.second
-        val instance = IndexedInstance(
-          position = array.readTruncatedLong(positionSize),
-          classId = array.readClassId(),
-          recordSize = array.readTruncatedLong(bytesForInstanceSize)
-        )
-        id to instance
+        id to array.readInstance()
       }
   }
 
@@ -208,12 +207,7 @@ internal class HprofInMemoryIndex private constructor(
       .map {
         val id = it.first
         val array = it.second
-        val objectArray = IndexedObjectArray(
-          position = array.readTruncatedLong(positionSize),
-          arrayClassId = array.readClassId(),
-          recordSize = array.readTruncatedLong(bytesForObjectArraySize)
-        )
-        id to objectArray
+        id to array.readObjectArray()
       }
   }
 
@@ -222,14 +216,7 @@ internal class HprofInMemoryIndex private constructor(
       .map {
         val id = it.first
         val array = it.second
-
-        val primitiveArray = IndexedPrimitiveArray(
-          position = array.readTruncatedLong(positionSize),
-          primitiveType = PrimitiveType.values()[array.readByte()
-            .toInt()],
-          recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
-        )
-        id to primitiveArray
+        id to array.readPrimitiveArray()
       }
   }
 
@@ -343,7 +330,9 @@ internal class HprofInMemoryIndex private constructor(
   }
 
   fun objectAtIndex(index: Int): LongObjectPair<IndexedObject> {
-    require(index >= 0)
+    require(index in 0 until objectCount) {
+      "$index should be in range [0, $objectCount["
+    }
     if (index < classIndex.size) {
       val objectId = classIndex.keyAt(index)
       val array = classIndex.getAtIndex(index)
@@ -353,32 +342,18 @@ internal class HprofInMemoryIndex private constructor(
     if (shiftedIndex < instanceIndex.size) {
       val objectId = instanceIndex.keyAt(shiftedIndex)
       val array = instanceIndex.getAtIndex(shiftedIndex)
-      return objectId to IndexedInstance(
-        position = array.readTruncatedLong(positionSize),
-        classId = array.readClassId(),
-        recordSize = array.readTruncatedLong(bytesForInstanceSize)
-      )
+      return objectId to array.readInstance()
     }
     shiftedIndex -= instanceIndex.size
     if (shiftedIndex < objectArrayIndex.size) {
       val objectId = objectArrayIndex.keyAt(shiftedIndex)
       val array = objectArrayIndex.getAtIndex(shiftedIndex)
-      return objectId to IndexedObjectArray(
-        position = array.readTruncatedLong(positionSize),
-        arrayClassId = array.readClassId(),
-        recordSize = array.readTruncatedLong(bytesForObjectArraySize)
-      )
+      return objectId to array.readObjectArray()
     }
     shiftedIndex -= objectArrayIndex.size
-    require(shiftedIndex < primitiveArrayIndex.size)
     val objectId = primitiveArrayIndex.keyAt(shiftedIndex)
     val array = primitiveArrayIndex.getAtIndex(shiftedIndex)
-    return objectId to IndexedPrimitiveArray(
-      position = array.readTruncatedLong(positionSize),
-      primitiveType = PrimitiveType.values()[array.readByte()
-        .toInt()],
-      recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
-    )
+    return objectId to array.readPrimitiveArray()
   }
 
   /**
@@ -413,40 +388,35 @@ internal class HprofInMemoryIndex private constructor(
     return -1
   }
 
+  /**
+   * The `objectIndex` of the object with id [objectId] and its record fields, or null if [objectId]
+   * isn't in the heap dump.
+   *
+   * The classes are searched first here rather than last as in [objectIndexOrMinusOne]: this is
+   * what resolves an instance's class, so most of what it is asked for is a class id.
+   */
   @Suppress("ReturnCount")
   fun indexedObjectOrNull(objectId: Long): IntObjectPair<IndexedObject>? {
-    var index = classIndex.indexOf(objectId)
-    if (index >= 0) {
-      val array = classIndex.getAtIndex(index)
-      return index to array.readClass()
+    val classSlot = classIndex.indexOf(objectId)
+    if (classSlot >= 0) {
+      val array = classIndex.getAtIndex(classSlot)
+      return classSlot to array.readClass()
     }
-    index = instanceIndex.indexOf(objectId)
-    if (index >= 0) {
-      val array = instanceIndex.getAtIndex(index)
-      return classIndex.size + index to IndexedInstance(
-        position = array.readTruncatedLong(positionSize),
-        classId = array.readClassId(),
-        recordSize = array.readTruncatedLong(bytesForInstanceSize)
-      )
+    val instanceSlot = instanceIndex.indexOf(objectId)
+    if (instanceSlot >= 0) {
+      val array = instanceIndex.getAtIndex(instanceSlot)
+      return classIndex.size + instanceSlot to array.readInstance()
     }
-    index = objectArrayIndex.indexOf(objectId)
-    if (index >= 0) {
-      val array = objectArrayIndex.getAtIndex(index)
-      return classIndex.size + instanceIndex.size + index to IndexedObjectArray(
-        position = array.readTruncatedLong(positionSize),
-        arrayClassId = array.readClassId(),
-        recordSize = array.readTruncatedLong(bytesForObjectArraySize)
-      )
+    val objectArraySlot = objectArrayIndex.indexOf(objectId)
+    if (objectArraySlot >= 0) {
+      val array = objectArrayIndex.getAtIndex(objectArraySlot)
+      return classIndex.size + instanceIndex.size + objectArraySlot to array.readObjectArray()
     }
-    index = primitiveArrayIndex.indexOf(objectId)
-    if (index >= 0) {
-      val array = primitiveArrayIndex.getAtIndex(index)
-      return classIndex.size + instanceIndex.size + objectArrayIndex.size + index to IndexedPrimitiveArray(
-        position = array.readTruncatedLong(positionSize),
-        primitiveType = PrimitiveType.values()[array.readByte()
-          .toInt()],
-        recordSize = array.readTruncatedLong(bytesForPrimitiveArraySize)
-      )
+    val primitiveArraySlot = primitiveArrayIndex.indexOf(objectId)
+    if (primitiveArraySlot >= 0) {
+      val array = primitiveArrayIndex.getAtIndex(primitiveArraySlot)
+      return classIndex.size + instanceIndex.size + objectArrayIndex.size + primitiveArraySlot to
+        array.readPrimitiveArray()
     }
     return null
   }
@@ -478,21 +448,26 @@ internal class HprofInMemoryIndex private constructor(
     )
   }
 
-  @Suppress("ReturnCount")
+  private fun ByteSubArray.readInstance(): IndexedInstance = IndexedInstance(
+    position = readTruncatedLong(positionSize),
+    classId = readClassId(),
+    recordSize = readTruncatedLong(bytesForInstanceSize)
+  )
+
+  private fun ByteSubArray.readObjectArray(): IndexedObjectArray = IndexedObjectArray(
+    position = readTruncatedLong(positionSize),
+    arrayClassId = readClassId(),
+    recordSize = readTruncatedLong(bytesForObjectArraySize)
+  )
+
+  private fun ByteSubArray.readPrimitiveArray(): IndexedPrimitiveArray = IndexedPrimitiveArray(
+    position = readTruncatedLong(positionSize),
+    primitiveType = PrimitiveType.values()[readByte().toInt()],
+    recordSize = readTruncatedLong(bytesForPrimitiveArraySize)
+  )
+
   fun objectIdIsIndexed(objectId: Long): Boolean {
-    if (classIndex[objectId] != null) {
-      return true
-    }
-    if (instanceIndex[objectId] != null) {
-      return true
-    }
-    if (objectArrayIndex[objectId] != null) {
-      return true
-    }
-    if (primitiveArrayIndex[objectId] != null) {
-      return true
-    }
-    return false
+    return objectIndexOrMinusOne(objectId) != -1
   }
 
   private fun hprofStringById(id: Long): String {
