@@ -11,6 +11,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
+import shark.SyntheticField
 import shark.dive.AndroidDevice
 import shark.dive.DeviceProcess
 import shark.dive.DominatorOutline
@@ -21,7 +22,6 @@ import shark.dive.HeapSizes
 import shark.dive.IndependentPaths
 import shark.dive.LeakKind
 import shark.dive.VerdictOverrides
-import shark.dive.ObjectContent
 import shark.dive.ObjectDominator
 import shark.dive.ObjectList
 import shark.dive.ObjectListEntry
@@ -49,10 +49,10 @@ import shark.dive.suspectReferenceIndexes
  * spelling this app's own files use, and [shark.dive.objectIdOfHex] is the only way back.
  *
  * **Nothing is summarised away, and every cap says so.** A field an agent can't see is a field it will
- * guess at, so the answers here are what the window shows: the labels the inspectors wrote, the verdict and
- * the reason under it, the whole path. Where an answer is capped — a list of objects, the ways one is held
- * — the count that was matched and whether anything was left out go with it, because an agent counting the
- * instances of a class must never be counting the page it was shown.
+ * guess at, so the answers here are what the window shows: the synthetic fields and labels the inspectors
+ * wrote, the verdict and the reason under it, the whole path. Where an answer is capped — a list of objects,
+ * the ways one is held — the count that was matched and whether anything was left out go with it, because an
+ * agent counting the instances of a class must never be counting the page it was shown.
  */
 internal object AgentJson {
 
@@ -192,7 +192,7 @@ internal object AgentJson {
     put("label", summary.label)
     put("className", summary.className)
     put("kind", summary.kind?.name)
-    objectContentInto(summary.content)
+    syntheticFieldsInto(summary.syntheticFields)
     put("strength", summary.strength.name)
     put("shallowBytes", summary.shallowSize)
     put("retainedBytes", summary.retainedSize)
@@ -280,10 +280,10 @@ internal object AgentJson {
    * marked — the same trace [humanLeakTrace] renders for a person, in the fields a program reads.
    *
    * **Two renderings of one path and neither is a summary of the other.** This carries everything the
-   * window has about each object of it — the labels the inspectors wrote, the verdict and the reason under
-   * it, the sizes, the reference it holds the next object through — and the text form carries what
-   * `shark.LeakTrace` prints, which is the artefact to show a person and to compare against a LeakCanary
-   * report. So a tool that answers with a path answers with both, and
+   * window has about each object of it — the synthetic fields and labels the inspectors wrote, the verdict
+   * and the reason under it, the sizes, the reference it holds the next object through — and the text form
+   * carries what `shark.LeakTrace` prints, which is the artefact to show a person and to compare against a
+   * LeakCanary report. So a tool that answers with a path answers with both, and
    * `shark/shark-dive/shark-dive-agent/AGENTS.md` has why neither is left to be derived from the other.
    *
    * **A path is objects, and each of them carries the reference it holds the next one through.** Which is
@@ -466,7 +466,7 @@ internal object AgentJson {
                       put("object", hexObjectId(leaking.objectId))
                       put("className", leaking.className)
                       put("kind", leaking.kind.name)
-                      objectContentInto(leaking.content)
+                      syntheticFieldsInto(leaking.syntheticFields)
                       put("retainedBytes", leaking.retainedSize)
                       put("retainedObjects", leaking.retainedCount)
                       put("strength", leaking.strength.name)
@@ -519,7 +519,7 @@ internal object AgentJson {
     put("object", hexObjectId(entry.objectId))
     put("className", entry.className)
     put("kind", entry.kind.name)
-    objectContentInto(entry.content)
+    syntheticFieldsInto(entry.syntheticFields)
     put("shallowBytes", entry.shallowSize)
     put("retainedBytes", entry.retainedSize)
     put("strength", entry.strength.name)
@@ -552,7 +552,7 @@ internal object AgentJson {
     put("object", hexObjectId(step.objectId))
     put("className", step.className)
     put("kind", step.kind.name)
-    objectContentInto(step.content)
+    syntheticFieldsInto(step.syntheticFields)
     put("strength", step.strength.name)
     put("retainedBytes", step.retainedSize)
     put("retainedObjects", step.retainedCount)
@@ -610,28 +610,16 @@ internal object AgentJson {
   }
 
   /**
-   * What an object is beyond its class, as one field per fact it carries and nothing at all for the kinds
-   * that carry none.
-   *
-   * **A field named after what it holds, rather than the line a window draws.** This was one `headline`
-   * string — `"420 × 467 pixels, recycled"`, `"42 elements"` — which is a sentence formatted for a screen
-   * on a surface read by a program: a width, a height and a boolean arrive as characters to parse back out,
-   * and every object that is none of these kinds arrives as a `headline` of null, on every object of every
-   * path. So the model carries the facts now ([ObjectContent]), the window formats the sentence, and these
-   * are the facts. Absent rather than null, since a String has no bitmap dimensions to report as missing.
+   * The synthetic fields Shark's object inspectors reported for an object, keyed by name, each value spelled
+   * as the leak trace prints it: `"syntheticFields": {"Thread.name": "\"main\"", "Bitmap.mWidth": "420"}`.
+   * Most objects have none, and for those the field is absent.
    */
-  private fun JsonObjectBuilder.objectContentInto(content: ObjectContent?) {
-    when (content) {
-      null -> Unit
-      is ObjectContent.JavaString -> put("stringValue", content.value)
-      is ObjectContent.Bitmap -> {
-        put("bitmapWidth", content.width)
-        put("bitmapHeight", content.height)
-        put("bitmapIsRecycled", content.isRecycled)
-      }
-      is ObjectContent.Thread -> put("threadName", content.name)
-      is ObjectContent.ObjectArray -> put("arrayElementCount", content.elementCount)
-      is ObjectContent.PrimitiveArray -> put("arrayByteCount", content.byteCount)
+  private fun JsonObjectBuilder.syntheticFieldsInto(syntheticFields: List<SyntheticField>) {
+    if (syntheticFields.isEmpty()) {
+      return
+    }
+    putJsonObject("syntheticFields") {
+      syntheticFields.forEach { put(it.name, it.value) }
     }
   }
 

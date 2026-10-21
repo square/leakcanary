@@ -744,10 +744,10 @@ concept. **So the rule is that a naming of an object is a call to `ObjectIdentit
 that looks like one.** `nameStyle` is the only thing a surface picks — the leaks row draws smaller, being
 indented inside the leak it is an instance of.
 
-A list row is that block with the headline under it and the sizes beside it, `ObjectRow`, which both lists of
-objects are built from — so the object list and the starred objects are one table with two contents. Three
-lines a row rather than one costs a screenful about half the objects it used to hold, which is the price of
-an address being readable where a link, a note or an agent's answer put one.
+A list row is that block with the synthetic fields under it and the sizes beside it, `ObjectRow`, which both
+lists of objects are built from — so the object list and the starred objects are one table with two contents.
+Three lines a row rather than one costs a screenful about half the objects it used to hold, which is the price
+of an address being readable where a link, a note or an agent's answer put one.
 
 **Which object it is lives above the map, not in the details panel.** It is a different question from the
 rest of that panel — which object, as against what that object holds — and it is what the tab strip and the

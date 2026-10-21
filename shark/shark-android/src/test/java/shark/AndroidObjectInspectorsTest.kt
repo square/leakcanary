@@ -11,6 +11,7 @@ import shark.LeakTraceObject.Verdict.UNKNOWN
 import shark.LeakTraceObject.ObjectType.INSTANCE
 import shark.ValueHolder.BooleanHolder
 import shark.ValueHolder.IntHolder
+import shark.ValueHolder.LongHolder
 import shark.ValueHolder.ReferenceHolder
 
 class AndroidObjectInspectorsTest {
@@ -106,7 +107,8 @@ class AndroidObjectInspectorsTest {
     val lifecycleRegistry = analyzeLifecycleRegistry(state = "DESTROYED")
 
     assertThat(lifecycleRegistry.verdict).isEqualTo(UNKNOWN)
-    assertThat(lifecycleRegistry.labels).contains("state = DESTROYED")
+    assertThat(lifecycleRegistry.syntheticFields)
+      .contains(SyntheticField("LifecycleRegistry.state", "DESTROYED"))
   }
 
   @Test fun `LIFECYCLE_REGISTRY that is not destroyed is not leaking`() {
@@ -116,33 +118,29 @@ class AndroidObjectInspectorsTest {
     assertThat(lifecycleRegistry.verdictReason).isEqualTo("state is RESUMED")
   }
 
-  @Test fun `STUB reports a binder stub as not leaking`() {
+  @Test fun `STUB reports a binder stub as expected`() {
     val stub = analyzeBinderStub()
       .single { it.owningClassSimpleName == "UploadCallbacks\$ResultStub" }
       .originObject
 
     assertThat(stub.verdict).isEqualTo(EXPECTED)
-    assertThat(stub.verdictReason)
-      .contains("stays in memory until the process on the other side gets GCed")
+    assertThat(stub.verdictReason).isEqualTo("UploadCallbacks\$ResultStub is a binder stub")
   }
 
-  @Test fun `STUB says the test for what it holds is whether that work is done`() {
-    // Both halves of the reading this label exists to stop, and the second is the one an earlier version
-    // left out: deference to the framework, and then treating a reference nobody can clear as innocent.
+  @Test fun `STUB points at what the stub holds`() {
     val stub = analyzeBinderStub()
       .single { it.owningClassSimpleName == "UploadCallbacks\$ResultStub" }
       .originObject
 
-    assertThat(stub.labels.single())
-      .contains("ask of each object whether the work it was made for is finished")
-      .contains("a reference you can't clear is still a reference that shouldn't be there")
+    // The link goes to docs/binder-stubs.md.
+    assertThat(stub.labels.single()).isEqualTo(
+      "Look for the leak in what UploadCallbacks\$ResultStub holds, see" +
+        " https://square.github.io/leakcanary/binder-stubs/"
+    )
   }
 
-  @Test fun `STUB says nothing about what the stub holds`() {
-    // The whole point of reporting a framework class as not leaking: a not leaking verdict spreads to
-    // what holds an object and never to what it holds, so the object the stub points at is still the
-    // one to read. Reading it as expected too is how an investigation ends up blaming the last
-    // reference of the chain.
+  @Test fun `an object a stub holds keeps its own verdict`() {
+    // An expected verdict spreads to what holds an object, never to what it holds.
     val held = analyzeBinderStub()
       .single { it.owningClassSimpleName == "UploadCallbacks" }
       .originObject
@@ -155,8 +153,8 @@ class AndroidObjectInspectorsTest {
     val animators = analyzeObjectAnimators("leak_asynctask_m.hprof")
 
     assertThat(animators).isNotEmpty.allSatisfy { animator ->
-      assertThat(animator.labels).anyMatch { it.startsWith("mRunning = ") }
-      assertThat(animator.labels).noneMatch { it.startsWith("mAnimationEndRequested") }
+      assertThat(animator.syntheticFields).anyMatch { it.name == "ValueAnimator.mRunning" }
+      assertThat(animator.syntheticFields).noneMatch { it.name == "ValueAnimator.mAnimationEndRequested" }
     }
   }
 
@@ -164,7 +162,50 @@ class AndroidObjectInspectorsTest {
     val animators = analyzeObjectAnimators("leak_asynctask_o.hprof")
 
     assertThat(animators).isNotEmpty.allSatisfy { animator ->
-      assertThat(animator.labels).anyMatch { it.startsWith("mAnimationEndRequested = ") }
+      assertThat(animator.syntheticFields).anyMatch { it.name == "ValueAnimator.mAnimationEndRequested" }
+    }
+  }
+
+  @Test fun `MESSAGE says how far when is from the heap dump in a larger unit too`() {
+    assertThat(messageWhenLabel(150_000)).isEqualTo(
+      "Message.when is 150000 ms (2.5 minutes) after the heap dump"
+    )
+    assertThat(messageWhenLabel(-7_200_000)).isEqualTo(
+      "Message.when is 7200000 ms (2 hours) before the heap dump"
+    )
+    assertThat(messageWhenLabel(1_000)).isEqualTo("Message.when is 1000 ms (1 second) after the heap dump")
+    assertThat(messageWhenLabel(129_600_000)).isEqualTo(
+      "Message.when is 129600000 ms (1.5 days) after the heap dump"
+    )
+  }
+
+  @Test fun `MESSAGE picks the unit after rounding`() {
+    assertThat(messageWhenLabel(59_999)).isEqualTo("Message.when is 59999 ms (1 minute) after the heap dump")
+  }
+
+  @Test fun `MESSAGE says nothing more than ms under a second`() {
+    assertThat(messageWhenLabel(-500)).isEqualTo("Message.when is 500 ms before the heap dump")
+  }
+
+  /**
+   * The label [AndroidObjectInspectors.MESSAGE] gives a message due [offsetMillis] after the heap dump,
+   * which the dump DSL takes at 30000 ms of uptime.
+   */
+  private fun messageWhenLabel(offsetMillis: Long): String {
+    val heapDump = dump {
+      "android.os.Message" instance {
+        field["what"] = IntHolder(0)
+        field["when"] = LongHolder(30_000 + offsetMillis)
+        field["obj"] = ReferenceHolder(ValueHolder.NULL_REFERENCE)
+        field["callback"] = ReferenceHolder(ValueHolder.NULL_REFERENCE)
+        field["target"] = ReferenceHolder(ValueHolder.NULL_REFERENCE)
+      }
+    }
+    return heapDump.openHeapGraph().use { graph ->
+      val message = graph.findClassByName("android.os.Message")!!.instances.single()
+      val reporter = ObjectReporter(message)
+      AndroidObjectInspectors.MESSAGE.inspect(reporter)
+      reporter.labels.single { it.startsWith("Message.when") }
     }
   }
 

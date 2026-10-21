@@ -16,11 +16,15 @@
 package shark
 
 import java.util.EnumSet
+import java.util.concurrent.TimeUnit
 import kotlin.math.absoluteValue
 import shark.AndroidObjectInspectors.Companion.appDefaults
 import shark.AndroidServices.aliveAndroidServiceObjectIds
 import shark.FilteringLeakingObjectFinder.LeakingObjectFilter
+import shark.HeapObject.HeapClass
 import shark.HeapObject.HeapInstance
+import shark.HeapObject.HeapObjectArray
+import shark.HeapObject.HeapPrimitiveArray
 import shark.internal.InternalSharkCollectionsHelper
 
 /**
@@ -158,14 +162,14 @@ enum class AndroidObjectInspectors : ObjectInspector {
 
         AndroidResourceIdNames.readFromHeap(instance.graph)
           ?.let { resIds ->
-            val mID = instance["android.view.View", "mID"]!!.value.asInt!!
+            val mIDField = instance["android.view.View", "mID"]!!
+            val mID = mIDField.value.asInt!!
             val noViewId = -1
             if (mID != noViewId) {
-              val resourceName = resIds[mID]
-              labels += "View.mID = R.id.$resourceName"
+              addSyntheticField(mIDField, resIds[mID]?.let { "R.id.$it" } ?: mID.toString())
             }
           }
-        labels += "View.mWindowAttachCount = $mWindowAttachCount"
+        addSyntheticField("View.mWindowAttachCount", mWindowAttachCount.toString())
       }
     }
   },
@@ -369,11 +373,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         // Can't infer leaking status: mDecor null means either never shown or dismiss.
         // mDecor non null means the dialog is showing, but sometimes dialogs stay showing
         // after activity destroyed so that's not really a non leak either.
-        labels += mDecor describedWithValue if (mDecor.value.isNullReference) {
-          "null"
-        } else {
-          "not null"
-        }
+        addReferenceField(mDecor)
       }
     }
   },
@@ -425,7 +425,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
         val mTag = instance["android.app.Fragment", "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          labels += "Fragment.mTag=$mTag"
+          addSyntheticField("Fragment.mTag", mTag.quoted())
         }
       }
     }
@@ -454,7 +454,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
         val mTag = instance[ANDROID_SUPPORT_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          labels += "Fragment.mTag=$mTag"
+          addSyntheticField("Fragment.mTag", mTag.quoted())
         }
       }
     }
@@ -478,7 +478,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
         }
         val mTag = instance[ANDROIDX_FRAGMENT_CLASS_NAME, "mTag"]?.value?.readAsJavaString()
         if (!mTag.isNullOrEmpty()) {
-          labels += "Fragment.mTag = $mTag"
+          addSyntheticField("Fragment.mTag", mTag.quoted())
         }
       }
     }
@@ -571,8 +571,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
       reporter: ObjectReporter
     ) {
       reporter.whenInstanceOf("mortar.Presenter") { instance ->
-        val view = instance.getOrThrow("mortar.Presenter", "view")
-        labels += view describedWithValue if (view.value.isNullReference) "null" else "not null"
+        addReferenceField(instance.getOrThrow("mortar.Presenter", "view"))
       }
     }
   },
@@ -603,7 +602,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
     ) {
       reporter.whenInstanceOf("com.squareup.coordinators.Coordinator") { instance ->
         val attached = instance.getOrThrow("com.squareup.coordinators.Coordinator", "attached")
-        labels += attached describedWithValue "${attached.value.asBoolean}"
+        addSyntheticField(attached, attached.value.asBoolean!!.toString())
       }
     }
   },
@@ -658,26 +657,22 @@ enum class AndroidObjectInspectors : ObjectInspector {
               stuckReasons += "ViewRootImpl.mContext references a destroyed activity, did you forget to cancel toasts or dismiss dialogs?"
             }
           }
-          labels += mViewField describedWithValue "not null"
+          addReferenceField(mViewField)
         }
         val mWindowAttributes =
           instance["android.view.ViewRootImpl", "mWindowAttributes"]!!.valueAsInstance!!
         val mTitleField = mWindowAttributes["android.view.WindowManager\$LayoutParams", "mTitle"]!!
-        labels += if (mTitleField.value.isNonNullReference) {
-          val mTitle =
-            mTitleField.valueAsInstance!!.readAsJavaString()!!
-          "mWindowAttributes.mTitle = \"$mTitle\""
-        } else {
-          "mWindowAttributes.mTitle is null"
-        }
+        addSyntheticField(
+          "ViewRootImpl.mWindowAttributes.mTitle",
+          mTitleField.valueAsInstance?.let { it.readAsJavaString()!!.quoted() } ?: "null"
+        )
 
         val type =
           mWindowAttributes["android.view.WindowManager\$LayoutParams", "type"]!!.value.asInt!!
-        // android.view.WindowManager.LayoutParams.TYPE_TOAST
-        val details = if (type == 2005) {
-          " (Toast)"
-        } else ""
-        labels += "mWindowAttributes.type = $type$details"
+        addSyntheticField(
+          "ViewRootImpl.mWindowAttributes.type",
+          if (type == TYPE_TOAST) "TYPE_TOAST ($TYPE_TOAST)" else type.toString()
+        )
       }
     }
   },
@@ -699,7 +694,7 @@ enum class AndroidObjectInspectors : ObjectInspector {
           stuckReasons += mDestroyed describedWithValue "true"
         } else {
           // A dialog window could be leaking, destroy is only set to false for activity windows.
-          labels += mDestroyed describedWithValue "false"
+          addSyntheticField(mDestroyed, "false")
         }
       }
     }
@@ -708,25 +703,23 @@ enum class AndroidObjectInspectors : ObjectInspector {
   MESSAGE {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.os.Message") { instance ->
-        labels += "Message.what = ${instance["android.os.Message", "what"]!!.value.asInt}"
+        val what = instance["android.os.Message", "what"]!!.value.asInt!!
+        addSyntheticField("Message.what", what.toString())
 
         val heapDumpUptimeMillis = KeyedWeakReferenceFinder.heapDumpUptimeMillis(instance.graph)
         val whenUptimeMillis = instance["android.os.Message", "when"]!!.value.asLong!!
-
-        labels += if (heapDumpUptimeMillis != null) {
+        addSyntheticField("Message.when", whenUptimeMillis.toString())
+        if (heapDumpUptimeMillis != null) {
           val diffMs = whenUptimeMillis - heapDumpUptimeMillis
-          if (diffMs > 0) {
-            "Message.when = $whenUptimeMillis ($diffMs ms after heap dump)"
-          } else {
-            "Message.when = $whenUptimeMillis (${diffMs.absoluteValue} ms before heap dump)"
-          }
-        } else {
-          "Message.when = $whenUptimeMillis"
+          val diffAbsoluteMs = diffMs.absoluteValue
+          val inLargestUnit = durationInLargestUnit(diffAbsoluteMs)?.let { " ($it)" } ?: ""
+          val direction = if (diffMs > 0) "after" else "before"
+          labels += "Message.when is $diffAbsoluteMs ms$inLargestUnit $direction the heap dump"
         }
 
-        labels += "Message.obj = ${instance["android.os.Message", "obj"]!!.value.asObject}"
-        labels += "Message.callback = ${instance["android.os.Message", "callback"]!!.value.asObject}"
-        labels += "Message.target = ${instance["android.os.Message", "target"]!!.value.asObject}"
+        addReferenceField(instance["android.os.Message", "obj"]!!)
+        addReferenceField(instance["android.os.Message", "callback"]!!)
+        addReferenceField(instance["android.os.Message", "target"]!!)
       }
     }
   },
@@ -799,9 +792,9 @@ enum class AndroidObjectInspectors : ObjectInspector {
             when (val stateValue = stateField.value.asInt!!) {
               3 -> stuckReasons += "Composition disposed" // DISPOSED state
               0 -> expectedReasons += "Composition running" // RUNNING state
-              1 -> labels += "Composition deactivated" // DEACTIVATED state
-              2 -> labels += "Composition inconsistent" // INCONSISTENT state
-              else -> labels += "Composition state: $stateValue"
+              1 -> addSyntheticField(stateField, "DEACTIVATED (1)")
+              2 -> addSyntheticField(stateField, "INCONSISTENT (2)")
+              else -> addSyntheticField(stateField, stateValue.toString())
             }
           } else {
             // Neither field exists - can't determine composition state
@@ -835,36 +828,46 @@ enum class AndroidObjectInspectors : ObjectInspector {
   OBJECT_ANIMATOR {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.animation.ObjectAnimator") { instance ->
-        labels += "mPropertyName = " + (instance["android.animation.ObjectAnimator", "mPropertyName"]!!.valueAsInstance?.readAsJavaString()
-          ?: "null")
-        val mProperty = instance["android.animation.ObjectAnimator", "mProperty"]!!.valueAsInstance
+        val mPropertyName = instance["android.animation.ObjectAnimator", "mPropertyName"]!!
+        addSyntheticField(mPropertyName, mPropertyName.valueAsInstance?.readAsJavaString()?.quoted() ?: "null")
+        val mPropertyField = instance["android.animation.ObjectAnimator", "mProperty"]!!
+        val mProperty = mPropertyField.valueAsInstance
         if (mProperty == null) {
-          labels += "mProperty = null"
+          addSyntheticField(mPropertyField, "null")
         } else {
-          labels += "mProperty.mName = " + (mProperty["android.util.Property", "mName"]!!.valueAsInstance?.readAsJavaString()
-            ?: "null")
-          labels += "mProperty.mType = " + (mProperty["android.util.Property", "mType"]!!.valueAsClass?.name
-            ?: "null")
+          val mName = mProperty["android.util.Property", "mName"]!!.valueAsInstance?.readAsJavaString()
+          addSyntheticField("ObjectAnimator.mProperty.mName", mName?.quoted() ?: "null")
+          val mType = mProperty["android.util.Property", "mType"]!!.valueAsClass
+          addSyntheticField("ObjectAnimator.mProperty.mType", mType?.referenceText ?: "null")
         }
-        labels += "mInitialized = " + instance["android.animation.ValueAnimator", "mInitialized"]!!.value.asBoolean!!
-        labels += "mStarted = " + instance["android.animation.ValueAnimator", "mStarted"]!!.value.asBoolean!!
-        labels += "mRunning = " + instance["android.animation.ValueAnimator", "mRunning"]!!.value.asBoolean!!
-        // Added in Android 7.0, so a heap dump from before it has no such field to read.
-        instance["android.animation.ValueAnimator", "mAnimationEndRequested"]?.let { field ->
-          labels += "mAnimationEndRequested = " + field.value.asBoolean!!
+        listOf("mInitialized", "mStarted", "mRunning", "mAnimationEndRequested").forEach { name ->
+          // mAnimationEndRequested was added in Android 7.0, so a heap dump from before it has no such
+          // field to read.
+          instance["android.animation.ValueAnimator", name]?.let { field ->
+            addSyntheticField(field, field.value.asBoolean!!.toString())
+          }
         }
-        labels += "mDuration = " + instance["android.animation.ValueAnimator", "mDuration"]!!.value.asLong!!
-        labels += "mStartDelay = " + instance["android.animation.ValueAnimator", "mStartDelay"]!!.value.asLong!!
-        val repeatCount = instance["android.animation.ValueAnimator", "mRepeatCount"]!!.value.asInt!!
-        labels += "mRepeatCount = " + if (repeatCount == -1) "INFINITE (-1)" else repeatCount
-
-        val repeatModeConstant = when (val repeatMode =
-          instance["android.animation.ValueAnimator", "mRepeatMode"]!!.value.asInt!!) {
-          1 -> "RESTART (1)"
-          2 -> "REVERSE (2)"
-          else -> "Unknown ($repeatMode)"
+        listOf("mDuration", "mStartDelay").forEach { name ->
+          val field = instance["android.animation.ValueAnimator", name]!!
+          addSyntheticField(field, field.value.asLong!!.toString())
         }
-        labels += "mRepeatMode = $repeatModeConstant"
+        val mRepeatCount = instance["android.animation.ValueAnimator", "mRepeatCount"]!!
+        addSyntheticField(
+          mRepeatCount,
+          when (val repeatCount = mRepeatCount.value.asInt!!) {
+            -1 -> "INFINITE (-1)"
+            else -> repeatCount.toString()
+          }
+        )
+        val mRepeatMode = instance["android.animation.ValueAnimator", "mRepeatMode"]!!
+        addSyntheticField(
+          mRepeatMode,
+          when (val repeatMode = mRepeatMode.value.asInt!!) {
+            1 -> "RESTART (1)"
+            2 -> "REVERSE (2)"
+            else -> repeatMode.toString()
+          }
+        )
       }
     }
   },
@@ -879,58 +882,43 @@ enum class AndroidObjectInspectors : ObjectInspector {
         if (state != "DESTROYED") {
           expectedReasons += "state is $state"
         } else {
-          labels += "state = $state"
+          addSyntheticField("LifecycleRegistry.state", state)
+        }
+      }
+    }
+  },
+
+  BITMAP {
+    override fun inspect(reporter: ObjectReporter) {
+      reporter.whenInstanceOf("android.graphics.Bitmap") { instance ->
+        // A bitmap from a platform version that kept its dimensions elsewhere has no such fields.
+        listOf("mWidth", "mHeight").forEach { name ->
+          instance["android.graphics.Bitmap", name]?.let { field ->
+            addSyntheticField(field, field.value.asInt!!.toString())
+          }
+        }
+        instance["android.graphics.Bitmap", "mRecycled"]?.let { field ->
+          addSyntheticField(field, field.value.asBoolean!!.toString())
         }
       }
     }
   },
 
   /**
-   * A binder stub is the object a remote process holds a proxy to, and the runtime keeps it alive until
-   * that proxy is collected — in another process, on another heap, at a time this one has no say in. So a
-   * stub still being here after the activity or service it was made for has gone is the design working,
-   * not a leak, which is why this is the one inspector that reports a framework class as not leaking.
+   * Reports a binder stub, any subclass of `android.os.Binder`, as expected. Another process holds a proxy
+   * to the stub, and the stub stays in memory until that process garbage collects the proxy. The app has no
+   * say in when that happens.
    *
-   * **It says that about the stub and nothing else.** A not-leaking verdict spreads to what *holds* an
-   * object, never to what it holds, and that is the whole of why this is safe to report: every object
-   * below the stub is still open, and one of them is usually the leak. The label is there to say so,
-   * because the reading that costs an investigation is "the stub is fine, therefore what the stub holds
-   * is fine" — which is the Android framework being assumed right about an object it has never heard of.
-   *
-   * **And the test for what it holds is whether that object's work is done, not whether the reference could
-   * have been cleared.** Which is the second way this reads backwards, and the harder one to catch, because
-   * it looks like engineering judgement rather than deference: the field from a stub is a `this$0` a compiler
-   * wrote, in a class the app doesn't ship, so an investigation concludes there is nothing here to clear and
-   * moves the fault one step down the chain to a field somebody owns. That is true about the code and no
-   * evidence at all about the heap. A receiver whose result has arrived should not still be reachable
-   * however it came to be held, so the reference out of the stub is the faulty one, and the fix being
-   * somebody else's — or being to stop the object under the stub existing at all — is the next question
-   * rather than a reason to answer this one differently.
+   * An expected verdict spreads up a leak trace to what holds the stub, never down to what the stub holds.
+   * The leak is usually one of the objects below the stub. The label says to look there and links to
+   * [BINDER_STUBS_PAGE] for how to fix it.
    */
   STUB {
     override fun inspect(reporter: ObjectReporter) {
       reporter.whenInstanceOf("android.os.Binder") { instance ->
         val name = instance.instanceClassSimpleName
-        expectedReasons += "$name is a binder stub, and a stub stays in memory until the process on" +
-          " the other side gets GCed, so outliving what it was made for is by design"
-        labels += "This says nothing about what $name holds. A stub has to be a *static* class, so that" +
-          " it holds nothing it wasn't given, and every reference it was given has to be cleared when" +
-          " the work is done — so read what $name holds and ask of each object whether the work it was" +
-          " made for is finished. If it is, that object is leaking, and it is leaking however it came to" +
-          " be held: a reference you can't clear is still a reference that shouldn't be there, so" +
-          " \"there is no field here to clear\" is a fact about the code and not a verdict about the" +
-          " heap. That is where the leak is, and the framework being unable to help it" +
-          " is not the same as the framework being right: an AOSP or library stub holding your object" +
-          " past its life is a bug, it is only a bug you can't edit. What to do about it, in order:" +
-          " if $name is yours, make it static and clear what it holds at the end of the work it was" +
-          " made for — a compiler generated outer reference (this\$0) is what a non-static one looks" +
-          " like here. If it is framework or library code, file a ticket against it —" +
-          " https://issuetracker.google.com/issues/new?component=192705 for the platform — and then" +
-          " fix it from below anyway: the reference that has to go is often further down the chain and" +
-          " in your code, so if the stub holds your callback and your callback holds an activity," +
-          " clearing that activity field in onDestroy ends the leak whoever owns the stub. What is" +
-          " never the fix is swapping a reference for a WeakReference, which only makes the behaviour" +
-          " depend on when a GC runs."
+        expectedReasons += "$name is a binder stub"
+        labels += "Look for the leak in what $name holds, see $BINDER_STUBS_PAGE"
       }
     }
   },
@@ -1007,6 +995,80 @@ private infix fun HeapField.describedWithValue(valueDescription: String): String
   return "${declaringClass.simpleName}#$name is $valueDescription"
 }
 
+/** [value] as a synthetic field named after [field]: `Dialog.mDecor`. */
+private fun ObjectReporter.addSyntheticField(
+  field: HeapField,
+  value: String
+) = addSyntheticField("${field.declaringClass.simpleName}.${field.name}", value)
+
+/** The object [field] points to, as a synthetic field named after [field]. */
+private fun ObjectReporter.addReferenceField(field: HeapField) =
+  addSyntheticField(field, field.value.asObject?.referenceText ?: "null")
+
+/**
+ * This object the way the JDK prints one: `android.os.Handler@0x12c0a6b8`, and
+ * `class android.os.Handler@0x12c0a6b8` for a class.
+ */
+private val HeapObject.referenceText: String
+  get() {
+    val className = when (this) {
+      is HeapClass -> "class $name"
+      is HeapInstance -> instanceClassName
+      is HeapObjectArray -> arrayClassName
+      is HeapPrimitiveArray -> arrayClassName
+    }
+    return "$className@${hexObjectId(objectId)}"
+  }
+
+/**
+ * This string in double quotes, with what would end the quote or the line escaped: `"a \"b\""`. A copy of
+ * the one in shark.
+ */
+private fun String.quoted(): String {
+  val builder = StringBuilder(length + 2).append('"')
+  for (char in this) {
+    when (char) {
+      '"' -> builder.append("\\\"")
+      '\\' -> builder.append("\\\\")
+      '\n' -> builder.append("\\n")
+      '\r' -> builder.append("\\r")
+      '\t' -> builder.append("\\t")
+      else -> builder.append(char)
+    }
+  }
+  return builder.append('"').toString()
+}
+
+/**
+ * [millis] in the largest unit it comes to at least one of, to a tenth: `2.5 minutes`, `1 hour`. Null under
+ * a second.
+ *
+ * The unit is picked after rounding: 59999 ms reads `1 minute`, not `60 seconds`.
+ */
+private fun durationInLargestUnit(millis: Long): String? {
+  for ((unitMillis, unitName) in DURATION_UNITS) {
+    val tenths = (millis * 10 + unitMillis / 2) / unitMillis
+    if (tenths >= 10) {
+      val amount = if (tenths % 10 == 0L) "${tenths / 10}" else "${tenths / 10}.${tenths % 10}"
+      return "$amount $unitName" + if (tenths == 10L) "" else "s"
+    }
+  }
+  return null
+}
+
+private val DURATION_UNITS = listOf(
+  TimeUnit.DAYS.toMillis(1) to "day",
+  TimeUnit.HOURS.toMillis(1) to "hour",
+  TimeUnit.MINUTES.toMillis(1) to "minute",
+  TimeUnit.SECONDS.toMillis(1) to "second"
+)
+
+/** android.view.WindowManager.LayoutParams.TYPE_TOAST */
+private const val TYPE_TOAST = 2005
+
+/** The page the label of [AndroidObjectInspectors.STUB] links to, `docs/binder-stubs.md`. */
+private const val BINDER_STUBS_PAGE = "https://square.github.io/leakcanary/binder-stubs/"
+
 private fun ObjectReporter.applyFromField(
   inspector: ObjectInspector,
   field: HeapField?
@@ -1022,6 +1084,7 @@ private fun ObjectReporter.applyFromField(
   inspector.inspect(delegateReporter)
   val prefix = "${field.declaringClass.simpleName}#${field.name}:"
 
+  delegateReporter.syntheticFields.forEach { addSyntheticField("$prefix ${it.name}", it.value) }
   labels += delegateReporter.labels.map { "$prefix $it" }
   stuckReasons += delegateReporter.stuckReasons.map { "$prefix $it" }
   expectedReasons += delegateReporter.expectedReasons.map { "$prefix $it" }

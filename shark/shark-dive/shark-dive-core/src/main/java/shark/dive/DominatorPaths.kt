@@ -1,6 +1,7 @@
 package shark.dive
 
 import shark.LeakTrace
+import shark.SyntheticField
 import shark.ReferenceLocationType
 
 /**
@@ -101,12 +102,8 @@ data class PathStep(
   /** Fully qualified class name, or array type. */
   val className: String,
   val kind: HeapObjectKind,
-  /**
-   * What this object is beyond its class — a string's characters, a bitmap's dimensions — for the kinds
-   * Shark Dive reads it off, null for the rest. What tells one object of a path apart from another object
-   * of the same class. See [ObjectContent].
-   */
-  val content: ObjectContent?,
+  /** What Shark's object inspectors reported as fields of this object. Its leak trace prints them. */
+  val syntheticFields: List<SyntheticField>,
   val strength: ReachabilityStrength,
   /** Bytes retained, and how many objects that is: 0 for an object folded into another one. */
   val retainedSize: Long,

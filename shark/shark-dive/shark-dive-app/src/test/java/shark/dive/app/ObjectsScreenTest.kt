@@ -66,7 +66,7 @@ class ObjectsScreenTest {
 
       // One line per object, whatever its size, with the retained size the treemap draws its rectangle from.
       onNodeWithText("Holder instance").assertIsDisplayed()
-      onNodeWithText("$PAYLOAD_LENGTH elements").assertIsDisplayed()
+      onNodeWithText("length = $PAYLOAD_LENGTH").assertIsDisplayed()
       // How much of the heap dump is being looked at, which is what says a search found little of it.
       onNodeWithText("objects match", substring = true).assertIsDisplayed()
     }

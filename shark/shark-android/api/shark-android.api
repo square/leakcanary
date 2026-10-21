@@ -51,6 +51,7 @@ public abstract class shark/AndroidObjectInspectors : java/lang/Enum, shark/Obje
 	public static final field ANIMATOR Lshark/AndroidObjectInspectors;
 	public static final field APPLICATION Lshark/AndroidObjectInspectors;
 	public static final field APPLICATION_PACKAGE_MANAGER Lshark/AndroidObjectInspectors;
+	public static final field BITMAP Lshark/AndroidObjectInspectors;
 	public static final field COMPOSITION_IMPL Lshark/AndroidObjectInspectors;
 	public static final field CONTEXT_FIELD Lshark/AndroidObjectInspectors;
 	public static final field CONTEXT_IMPL Lshark/AndroidObjectInspectors;

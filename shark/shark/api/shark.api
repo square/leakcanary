@@ -413,7 +413,8 @@ public final class shark/LeakTrace$GcRootType$Companion {
 
 public final class shark/LeakTraceObject : java/io/Serializable {
 	public static final field Companion Lshark/LeakTraceObject$Companion;
-	public fun <init> (Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;JLjava/util/Set;Lshark/LeakTraceObject$Verdict;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;)V
+	public fun <init> (Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;JLjava/util/Set;Lshark/LeakTraceObject$Verdict;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/util/List;)V
+	public synthetic fun <init> (Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;JLjava/util/Set;Lshark/LeakTraceObject$Verdict;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
 	public final fun component1 ()Lshark/LeakTraceObject$ObjectType;
 	public final fun component2 ()Ljava/lang/String;
 	public final fun component3 ()J
@@ -422,8 +423,9 @@ public final class shark/LeakTraceObject : java/io/Serializable {
 	public final fun component6 ()Ljava/lang/String;
 	public final fun component7 ()Ljava/lang/Integer;
 	public final fun component8 ()Ljava/lang/Integer;
-	public final fun copy (Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;JLjava/util/Set;Lshark/LeakTraceObject$Verdict;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;)Lshark/LeakTraceObject;
-	public static synthetic fun copy$default (Lshark/LeakTraceObject;Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;JLjava/util/Set;Lshark/LeakTraceObject$Verdict;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;ILjava/lang/Object;)Lshark/LeakTraceObject;
+	public final fun component9 ()Ljava/util/List;
+	public final fun copy (Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;JLjava/util/Set;Lshark/LeakTraceObject$Verdict;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/util/List;)Lshark/LeakTraceObject;
+	public static synthetic fun copy$default (Lshark/LeakTraceObject;Lshark/LeakTraceObject$ObjectType;Ljava/lang/String;JLjava/util/Set;Lshark/LeakTraceObject$Verdict;Ljava/lang/String;Ljava/lang/Integer;Ljava/lang/Integer;Ljava/util/List;ILjava/lang/Object;)Lshark/LeakTraceObject;
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getClassName ()Ljava/lang/String;
 	public final fun getClassSimpleName ()Ljava/lang/String;
@@ -431,6 +433,7 @@ public final class shark/LeakTraceObject : java/io/Serializable {
 	public final fun getObjectId ()J
 	public final fun getRetainedHeapByteSize ()Ljava/lang/Integer;
 	public final fun getRetainedObjectCount ()Ljava/lang/Integer;
+	public final fun getSyntheticFields ()Ljava/util/List;
 	public final fun getType ()Lshark/LeakTraceObject$ObjectType;
 	public final fun getTypeName ()Ljava/lang/String;
 	public final fun getVerdict ()Lshark/LeakTraceObject$Verdict;
@@ -626,10 +629,12 @@ public abstract interface class shark/ObjectInspector {
 
 public abstract class shark/ObjectInspectors : java/lang/Enum, shark/ObjectInspector {
 	public static final field ANONYMOUS_CLASS Lshark/ObjectInspectors;
+	public static final field ARRAY Lshark/ObjectInspectors;
 	public static final field CLASS Lshark/ObjectInspectors;
 	public static final field CLASSLOADER Lshark/ObjectInspectors;
 	public static final field Companion Lshark/ObjectInspectors$Companion;
 	public static final field KEYED_WEAK_REFERENCE Lshark/ObjectInspectors;
+	public static final field STRING Lshark/ObjectInspectors;
 	public static final field THREAD Lshark/ObjectInspectors;
 	public static fun getEntries ()Lkotlin/enums/EnumEntries;
 	public static fun valueOf (Ljava/lang/String;)Lshark/ObjectInspectors;
@@ -644,10 +649,12 @@ public final class shark/ObjectInspectors$Companion {
 
 public final class shark/ObjectReporter {
 	public fun <init> (Lshark/HeapObject;)V
+	public final fun addSyntheticField (Ljava/lang/String;Ljava/lang/String;)V
 	public final fun getExpectedReasons ()Ljava/util/Set;
 	public final fun getHeapObject ()Lshark/HeapObject;
 	public final fun getLabels ()Ljava/util/LinkedHashSet;
 	public final fun getStuckReasons ()Ljava/util/Set;
+	public final fun getSyntheticFields ()Ljava/util/List;
 	public final fun whenInstanceOf (Ljava/lang/String;Lkotlin/jvm/functions/Function2;)V
 	public final fun whenInstanceOf (Lkotlin/reflect/KClass;Lkotlin/jvm/functions/Function2;)V
 }
@@ -985,6 +992,19 @@ public final class shark/ShortestPathObjectNode$GrowingChildNode {
 	public fun equals (Ljava/lang/Object;)Z
 	public final fun getChild ()Lshark/ShortestPathObjectNode;
 	public final fun getObjectCountIncrease ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class shark/SyntheticField : java/io/Serializable {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Lshark/SyntheticField;
+	public static synthetic fun copy$default (Lshark/SyntheticField;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Lshark/SyntheticField;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getValue ()Ljava/lang/String;
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
 }

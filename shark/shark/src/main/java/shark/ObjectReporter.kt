@@ -12,8 +12,18 @@ import kotlin.reflect.KClass
  */
 class ObjectReporter constructor(val heapObject: HeapObject) {
 
+  private val mutableSyntheticFields = mutableListOf<SyntheticField>()
+
   /**
-   * Labels that will be visible on the corresponding [heapObject] in the leak trace.
+   * The fields added with [addSyntheticField], in the order they were added. The leak trace prints
+   * them above [labels].
+   */
+  val syntheticFields: List<SyntheticField>
+    get() = mutableSyntheticFields
+
+  /**
+   * Sentences that will be visible on the corresponding [heapObject] in the leak trace. A value read
+   * off the object goes in [addSyntheticField] instead.
    */
   val labels = linkedSetOf<String>()
 
@@ -28,6 +38,17 @@ class ObjectReporter constructor(val heapObject: HeapObject) {
    * it [LeakTraceObject.Verdict.EXPECTED].
    */
   val expectedReasons = mutableSetOf<String>()
+
+  /**
+   * Reports [value] as a field of [heapObject] named [name], such as `Fragment.mTag`. [value] is
+   * printed as is. See [SyntheticField].
+   */
+  fun addSyntheticField(
+    name: String,
+    value: String
+  ) {
+    mutableSyntheticFields += SyntheticField(name, value)
+  }
 
   /**
    * Runs [block] if [ObjectReporter.heapObject] is an instance of [expectedClass].
