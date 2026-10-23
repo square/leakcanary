@@ -9,6 +9,9 @@ import androidx.work.WorkerParameters
 import com.google.common.util.concurrent.ListenableFuture
 import com.squareup.leakcanary.core.R
 import leakcanary.EventListener.Event
+import shark.CancelSignal
+import shark.CanceledException
+import shark.SharkLog
 
 internal class HeapAnalyzerWorker(
   appContext: Context,
@@ -16,12 +19,25 @@ internal class HeapAnalyzerWorker(
 ) :
   Worker(appContext, workerParams) {
   override fun doWork(): Result {
-    val doneEvent =
-      AndroidDebugHeapAnalyzer.runAnalysisBlocking(inputData.asEvent()) { event ->
-        InternalLeakCanary.sendEvent(event)
+    val cancelSignal = CancelSignal {
+      if (isStopped) "WorkManager stopped the heap analysis" else null
+    }
+    val heapDump = inputData.asEvent<Event.HeapDump>()
+    try {
+      val doneEvent =
+        AndroidDebugHeapAnalyzer.runAnalysisBlocking(heapDump, cancelSignal) { event ->
+          if (!isStopped) {
+            InternalLeakCanary.sendEvent(event)
+          }
+        }
+      if (!isStopped) {
+        InternalLeakCanary.sendEvent(doneEvent)
       }
-    InternalLeakCanary.sendEvent(doneEvent)
-    return Result.success()
+      return Result.success()
+    } catch (canceled: CanceledException) {
+      SharkLog.d { "Heap analysis for ${heapDump.file} was canceled: ${canceled.cancelReason}" }
+      return Result.retry()
+    }
   }
 
   override fun getForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
