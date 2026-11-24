@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.jvm.application.tasks.CreateStartScripts
 
 plugins {
   id("org.jetbrains.kotlin.jvm")
@@ -41,3 +42,18 @@ tasks.named("processResources") {
   dependsOn("generateVersionProperties")
 }
 
+// The default Windows start script lists every jar in lib/ on a single `set CLASSPATH=...` line,
+// which exceeds cmd.exe's 8,191-character limit once %APP_HOME% expands. Use a wildcard classpath
+// so Java expands lib/ itself.
+tasks.named<CreateStartScripts>("startScripts") {
+  doLast {
+    val original = windowsScript.readText()
+    val updated = original.replace(Regex("(?m)^set CLASSPATH=[^\\r\\n]*")) {
+      "set CLASSPATH=%APP_HOME%\\lib\\*"
+    }
+    check(updated != original) {
+      "Failed to replace CLASSPATH in ${windowsScript.name}"
+    }
+    windowsScript.writeText(updated)
+  }
+}
