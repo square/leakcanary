@@ -1012,6 +1012,33 @@ enum class AndroidReferenceMatchers : ReferenceMatcher.ListBuilder {
     }
   },
 
+  INTERACTION_JANK_MONITOR {
+    override fun add(
+      references: MutableList<ReferenceMatcher>
+    ) {
+      val description = """
+        When a jank-tracking session ends and frame metrics have not yet arrived, FrameTracker
+        schedules a force-finish callback 10 seconds later. Until that timeout fires, FrameTracker
+        retains its Configuration (which holds mContext and mView on API 35+) and mViewRoot
+        (which holds ViewRootImpl on API 33+), keeping a destroyed Activity alive past
+        ObjectWatcher's watch duration.
+        Tracked here: https://github.com/square/leakcanary/issues/3023
+      """.trimIndent()
+      references += instanceField(
+        "com.android.internal.jank.FrameTracker", "mConfig"
+      ).leak(
+        description = description,
+        patternApplies = applyIf { sdkInt >= 35 }
+      )
+      references += instanceField(
+        "com.android.internal.jank.FrameTracker", "mViewRoot"
+      ).leak(
+        description = description,
+        patternApplies = applyIf { sdkInt >= 33 }
+      )
+    }
+  },
+
   // ######## Manufacturer specific known leaks ########
 
   // SAMSUNG
