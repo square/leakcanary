@@ -193,10 +193,7 @@ enum class AndroidLeakFixes {
 
       val starvePool = object : Runnable {
         override fun run() {
-          val maxPoolSize = 50
-          for (i in 0 until maxPoolSize) {
-            AccessibilityNodeInfo.obtain()
-          }
+          starveAccessibilityNodeInfoPool()
           backgroundHandler.postDelayed(this, 5000)
         }
       }
@@ -302,7 +299,8 @@ enum class AndroidLeakFixes {
    *
    * This fix empties the pool on every activity destroy and every AndroidX fragment view destroy.
    * You can support other cases where views get detached by calling directly
-   * [ViewLocationHolderLeakFix.clearStaticPool].
+   * [ViewLocationHolderLeakFix.clearStaticPool], or [clearPools] to also clear the pool that
+   * [ACCESSIBILITY_NODE_INFO] fixes.
    */
   VIEW_LOCATION_HOLDER {
     override fun apply(application: Application) {
@@ -590,6 +588,40 @@ enum class AndroidLeakFixes {
         } else {
           SharkLog.d { "${fix.name} leak fix already applied." }
         }
+      }
+    }
+
+    /**
+     * Clears the pools of recycled framework objects that keep a reference to the last view they
+     * were used for: ViewGroup.ViewLocationHolder.sPool on Android 9, see [VIEW_LOCATION_HOLDER],
+     * and the AccessibilityNodeInfo pool before Android 9, see [ACCESSIBILITY_NODE_INFO].
+     *
+     * Those fixes clear their pool on their own, but only when an activity is destroyed, a root
+     * view is removed or an AndroidX fragment view is destroyed for the first, and every 5 seconds
+     * for the second. A view detached any other way, e.g. by a navigation library that swaps views
+     * in an activity that stays resumed, stays in the pool until then, and a leak check that runs
+     * in between reports it as retained. Call this right before checking whether watched objects
+     * are retained, as `AndroidDetectLeaksInterceptor` does.
+     *
+     * This doesn't depend on [applyFixes] having been called. Must be called from the main thread.
+     */
+    fun clearPools(application: Application) {
+      checkMainThread()
+      ViewLocationHolderLeakFix.clearStaticPool(application)
+      if (SDK_INT < 28) {
+        starveAccessibilityNodeInfoPool()
+      }
+    }
+
+    /**
+     * Takes every AccessibilityNodeInfo out of its pool and drops them, so that the next ones are
+     * created rather than recycled.
+     */
+    private fun starveAccessibilityNodeInfoPool() {
+      // AccessibilityNodeInfo.MAX_POOL_SIZE
+      val maxPoolSize = 50
+      for (i in 0 until maxPoolSize) {
+        AccessibilityNodeInfo.obtain()
       }
     }
 

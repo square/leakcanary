@@ -20,6 +20,7 @@ public abstract class leakcanary/AndroidLeakFixes : java/lang/Enum {
 public final class leakcanary/AndroidLeakFixes$Companion {
 	public final fun applyFixes (Landroid/app/Application;Ljava/util/Set;)V
 	public static synthetic fun applyFixes$default (Lleakcanary/AndroidLeakFixes$Companion;Landroid/app/Application;Ljava/util/Set;ILjava/lang/Object;)V
+	public final fun clearPools (Landroid/app/Application;)V
 }
 
 public final class leakcanary/ViewLocationHolderLeakFix {
