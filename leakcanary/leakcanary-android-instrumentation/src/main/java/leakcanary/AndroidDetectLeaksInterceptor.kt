@@ -1,5 +1,6 @@
 package leakcanary
 
+import android.app.Application
 import android.app.Instrumentation
 import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
@@ -25,7 +26,7 @@ class AndroidDetectLeaksInterceptor(
       return NoHeapAnalysis("No watched objects after waiting for idle sync.")
     }
 
-    GcTrigger.inProcess().runGc()
+    clearPoolsThenGc()
     if (!retainedObjectTracker.hasTrackedObjects) {
       return NoHeapAnalysis("No watched objects after triggering an explicit GC.")
     }
@@ -48,11 +49,21 @@ class AndroidDetectLeaksInterceptor(
       SystemClock.sleep(endOfWatchDelay)
     }
 
-    GcTrigger.inProcess().runGc()
+    clearPoolsThenGc()
 
     if (!retainedObjectTracker.hasRetainedObjects) {
       return NoHeapAnalysis("No retained objects after waiting for retained delay.")
     }
     return AnalyzeHeap
+  }
+
+  private fun clearPoolsThenGc() {
+    // Framework pools can still reference views detached from an activity that is still resumed.
+    // Plumber only clears them on later events.
+    val application = instrumentation.targetContext.applicationContext as Application
+    instrumentation.runOnMainSync {
+      AndroidLeakFixes.clearPools(application)
+    }
+    GcTrigger.inProcess().runGc()
   }
 }
