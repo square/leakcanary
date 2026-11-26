@@ -6,7 +6,6 @@ import android.app.Application
 import android.content.Context
 import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.ContextWrapper
-import android.os.Build.MANUFACTURER
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import android.os.Handler
@@ -18,7 +17,6 @@ import android.view.View.OnAttachStateChangeListener
 import android.view.Window
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.TextView
 import com.squareup.leakcanary.plumber.core.R
 import curtains.Curtains
 import curtains.OnRootViewAddedListener
@@ -201,92 +199,6 @@ enum class AndroidLeakFixes {
         }
       }
       backgroundHandler.postDelayed(starvePool, 5000)
-    }
-  },
-
-  /**
-   * ClipboardUIManager is a static singleton that leaks an activity context.
-   * This fix makes sure the manager is called with an application context.
-   */
-  SAMSUNG_CLIPBOARD_MANAGER {
-    override fun apply(application: Application) {
-      if (MANUFACTURER != SAMSUNG || SDK_INT !in 19..21) {
-        return
-      }
-
-      try {
-        val managerClass = Class.forName("android.sec.clipboard.ClipboardUIManager")
-        val instanceMethod = managerClass.getDeclaredMethod("getInstance", Context::class.java)
-        instanceMethod.isAccessible = true
-        instanceMethod.invoke(null, application)
-      } catch (ignored: Exception) {
-        SharkLog.d(ignored) { "Could not fix the $name leak" }
-      }
-    }
-  },
-
-  /**
-   * A static helper for EditText bubble popups leaks a reference to the latest focused view.
-   *
-   * This fix clears it when the activity is destroyed.
-   */
-  BUBBLE_POPUP {
-    override fun apply(application: Application) {
-      if (MANUFACTURER != LG || SDK_INT !in 19..21) {
-        return
-      }
-
-      backgroundHandler.post {
-        val helperField: Field
-        try {
-          val helperClass = Class.forName("android.widget.BubblePopupHelper")
-          helperField = helperClass.getDeclaredField("sHelper")
-          helperField.isAccessible = true
-        } catch (ignored: Exception) {
-          SharkLog.d(ignored) { "Could not fix the $name leak" }
-          return@post
-        }
-
-        application.onActivityDestroyed {
-          try {
-            helperField.set(null, null)
-          } catch (ignored: Exception) {
-            SharkLog.d(ignored) { "Could not fix the $name leak" }
-          }
-        }
-      }
-    }
-  },
-
-  /**
-   * mLastHoveredView is a static field in TextView that leaks the last hovered view.
-   *
-   * This fix clears it when the activity is destroyed.
-   */
-  LAST_HOVERED_VIEW {
-    override fun apply(application: Application) {
-      if (MANUFACTURER != SAMSUNG || SDK_INT !in 19..21) {
-        return
-      }
-
-      backgroundHandler.post {
-        val field: Field
-        try {
-          field = TextView::class.java.getDeclaredField("mLastHoveredView")
-          field.isAccessible = true
-        } catch (ignored: Exception) {
-          SharkLog.d(ignored) { "Could not fix the $name leak" }
-          return@post
-        }
-
-        application.onActivityDestroyed {
-          try {
-            field.set(null, null)
-          } catch (ignored: Exception) {
-            SharkLog.d(ignored) { "Could not fix the $name leak" }
-          }
-        }
-      }
     }
   },
 
@@ -571,9 +483,6 @@ enum class AndroidLeakFixes {
   private var applied = false
 
   companion object {
-
-    private const val SAMSUNG = "samsung"
-    private const val LG = "LGE"
 
     // ViewRootImpl.MSG_WINDOW_FOCUS_CHANGED, 6 from Android 11 to Android 16.
     private const val VIEW_ROOT_IMPL_MSG_WINDOW_FOCUS_CHANGED = 6
