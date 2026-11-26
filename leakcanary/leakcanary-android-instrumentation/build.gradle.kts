@@ -9,6 +9,7 @@ dependencies {
   api(projects.leakcanary.leakcanaryTestCore)
   api(projects.shark.sharkAndroid)
 
+  implementation(projects.plumber.plumberAndroidCore)
   implementation(libs.androidX.test.runner)
   implementation(libs.kotlin.stdlib)
 
